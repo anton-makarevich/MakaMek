@@ -385,16 +385,17 @@ public class TerrainCachingServiceTests
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            
-            var manifest = new
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
             {
-                themeId,
-                name,
-                version
-            };
-            writer.Write(JsonSerializer.Serialize(manifest));
+                var manifest = new
+                {
+                    themeId,
+                    name,
+                    version
+                };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
         }
         stream.Position = 0;
         return stream;
@@ -407,9 +408,11 @@ public class TerrainCachingServiceTests
         {
             // Add a dummy file instead of manifest
             var dummyEntry = archive.CreateEntry("dummy.txt");
-            using var entryStream = dummyEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            writer.Write("dummy content");
+            using (var entryStream = dummyEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                writer.Write("dummy content");
+            }
         }
         stream.Position = 0;
         return stream;
@@ -422,15 +425,19 @@ public class TerrainCachingServiceTests
         {
             // Add manifest
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
-            writer.Write(JsonSerializer.Serialize(manifest));
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
 
             // Add base terrain image
             var baseEntry = archive.CreateEntry("base-1.png");
-            using var baseStream = baseEntry.Open();
-            baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4); // PNG header
+            using (var baseStream = baseEntry.Open())
+            {
+                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4); // PNG header
+            }
         }
         stream.Position = 0;
         return stream;
@@ -443,19 +450,25 @@ public class TerrainCachingServiceTests
         {
             // Add manifest
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
-            writer.Write(JsonSerializer.Serialize(manifest));
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
 
             // Add terrain overlay images
-            var lightwoodsEntry = archive.CreateEntry("terrain/lightwoods-1.png");
-            using var lightwoodsStream = lightwoodsEntry.Open();
-            lightwoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            var lightwoodsEntry = archive.CreateEntry("terrains/lightwoods-1.png");
+            using (var lightwoodsStream = lightwoodsEntry.Open())
+            {
+                lightwoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
 
-            var heavywoodsEntry = archive.CreateEntry("terrain/heavywoods-1.png");
-            using var heavywoodsStream = heavywoodsEntry.Open();
-            heavywoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            var heavywoodsEntry = archive.CreateEntry("terrains/heavywoods-1.png");
+            using (var heavywoodsStream = heavywoodsEntry.Open())
+            {
+                heavywoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
         }
         stream.Position = 0;
         return stream;
@@ -468,19 +481,25 @@ public class TerrainCachingServiceTests
         {
             // Add manifest
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
-            writer.Write(JsonSerializer.Serialize(manifest));
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
 
             // Add edge images
             var topEdgeEntry = archive.CreateEntry("edges/top-0-1.png");
-            using var topEdgeStream = topEdgeEntry.Open();
-            topEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            using (var topEdgeStream = topEdgeEntry.Open())
+            {
+                topEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
 
             var bottomEdgeEntry = archive.CreateEntry("edges/bottom-3-1.png");
-            using var bottomEdgeStream = bottomEdgeEntry.Open();
-            bottomEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            using (var bottomEdgeStream = bottomEdgeEntry.Open())
+            {
+                bottomEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
         }
         stream.Position = 0;
         return stream;
@@ -493,17 +512,21 @@ public class TerrainCachingServiceTests
         {
             // Add manifest
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
-            writer.Write(JsonSerializer.Serialize(manifest));
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
 
             // Add multiple base terrain variants
             for (int i = 1; i <= 3; i++)
             {
                 var baseEntry = archive.CreateEntry($"base-{i}.png");
-                using var baseStream = baseEntry.Open();
-                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                using (var baseStream = baseEntry.Open())
+                {
+                    baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                }
             }
         }
         stream.Position = 0;
@@ -517,17 +540,21 @@ public class TerrainCachingServiceTests
         {
             // Add manifest
             var manifestEntry = archive.CreateEntry("manifest.json");
-            using var entryStream = manifestEntry.Open();
-            using var writer = new StreamWriter(entryStream);
-            var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
-            writer.Write(JsonSerializer.Serialize(manifest));
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { themeId, name = "Test Theme", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
 
             // Add multiple edge variants for direction 0
             for (int i = 1; i <= 3; i++)
             {
                 var edgeEntry = archive.CreateEntry($"edges/top-0-{i}.png");
-                using var edgeStream = edgeEntry.Open();
-                edgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                using (var edgeStream = edgeEntry.Open())
+                {
+                    edgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                }
             }
         }
         stream.Position = 0;

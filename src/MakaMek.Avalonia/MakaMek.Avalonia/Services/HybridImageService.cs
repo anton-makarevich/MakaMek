@@ -19,15 +19,27 @@ public class HybridImageService : IImageService<Bitmap>
     private readonly AvaloniaAssetImageService _avaloniaAssetImageService;
     private readonly CachedImageService _cachedImageService;
     private readonly ITerrainAssetService? _terrainAssetService;
+    private string _terrainThemeId;
 
     public HybridImageService(
         AvaloniaAssetImageService avaloniaAssetImageService,
         CachedImageService cachedImageService,
-        ITerrainAssetService? terrainAssetService = null)
+        ITerrainAssetService? terrainAssetService = null,
+        string? terrainThemeId = "classic")
     {
         _avaloniaAssetImageService = avaloniaAssetImageService;
         _cachedImageService = cachedImageService;
         _terrainAssetService = terrainAssetService;
+        _terrainThemeId = terrainThemeId ?? "classic";
+    }
+
+    /// <summary>
+    /// Sets the terrain theme to use for terrain image lookups
+    /// </summary>
+    /// <param name="themeId">The theme ID (e.g., "classic")</param>
+    public void SetTerrainTheme(string themeId)
+    {
+        _terrainThemeId = themeId;
     }
 
     /// <summary>
@@ -69,16 +81,13 @@ public class HybridImageService : IImageService<Bitmap>
         {
             byte[]? imageBytes = null;
             
-            // For now, use default theme "classic" - could be made configurable later
-            const string defaultTheme = "classic";
-            
             switch (subType.ToLowerInvariant())
             {
                 case "base":
-                    imageBytes = await _terrainAssetService.GetBaseTerrainImage(defaultTheme);
+                    imageBytes = await _terrainAssetService.GetBaseTerrainImage(_terrainThemeId);
                     break;
                 case "overlays":
-                    imageBytes = await _terrainAssetService.GetTerrainOverlayImage(defaultTheme, assetName);
+                    imageBytes = await _terrainAssetService.GetTerrainOverlayImage(_terrainThemeId, assetName);
                     break;
                 // edges require direction - handled separately via GetEdgeImage
             }

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,9 +18,10 @@ public class TerrainCachingService : ITerrainAssetService
 {
     private readonly ConcurrentDictionary<string, TerrainThemeManifest> _themeManifests = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
-    private readonly ConcurrentDictionary<string, List<int>> _variantCache = new();
+    private readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> _variantCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<TerrainCachingService> _logger;
+    private readonly Lock _initializationLock = new();
     
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -28,7 +30,7 @@ public class TerrainCachingService : ITerrainAssetService
         PropertyNameCaseInsensitive = true
     };
     
-    private bool _isInitialized;
+    private volatile bool _isInitialized;
 
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
@@ -102,7 +104,7 @@ public class TerrainCachingService : ITerrainAssetService
     {
         var variantKey = GetVariantKey(themeId, assetType, assetName);
         return _variantCache.TryGetValue(variantKey, out var variants) 
-            ? variants.AsReadOnly() 
+            ? variants 
             : Array.Empty<int>();
     }
 
@@ -167,8 +169,12 @@ public class TerrainCachingService : ITerrainAssetService
     {
         if (_isInitialized) return;
 
-        await LoadTerrainFromStreamProviders();
-        _isInitialized = true;
+        lock (_initializationLock)
+        {
+            if (_isInitialized) return;
+            LoadTerrainFromStreamProviders().GetAwaiter().GetResult();
+            _isInitialized = true;
+        }
     }
 
     private async Task LoadTerrainFromStreamProviders()
@@ -224,7 +230,7 @@ public class TerrainCachingService : ITerrainAssetService
         var entries = archive.Entries
             .Where(e => e.FullName.StartsWith(directory, StringComparison.OrdinalIgnoreCase) &&
                         e.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) &&
-                        !e.FullName.Contains('/'))
+                        e.FullName.IndexOf('/', directory.Length) == -1)
             .ToList();
 
         foreach (var entry in entries)
@@ -243,14 +249,8 @@ public class TerrainCachingService : ITerrainAssetService
             var variantKey = GetVariantKey(themeId, assetType, assetName);
             _variantCache.AddOrUpdate(
                 variantKey,
-                _ => [variant],
-                (_, list) =>
-                {
-                    if (!list.Contains(variant))
-                        list.Add(variant);
-                    list.Sort();
-                    return list;
-                });
+                _ => ImmutableSortedSet.Create(variant),
+                (_, set) => set.Add(variant));
         }
     }
 
@@ -282,14 +282,8 @@ public class TerrainCachingService : ITerrainAssetService
             var variantKey = GetVariantKey(themeId, assetType, direction);
             _variantCache.AddOrUpdate(
                 variantKey,
-                _ => [variant],
-                (_, list) =>
-                {
-                    if (!list.Contains(variant))
-                        list.Add(variant);
-                    list.Sort();
-                    return list;
-                });
+                _ => ImmutableSortedSet.Create(variant),
+                (_, set) => set.Add(variant));
         }
     }
 
