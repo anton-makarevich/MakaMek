@@ -8,7 +8,7 @@ MMTX (MakaMek Terrain eXchange) is a package format for distributing terrain ass
 
 MMTX packages are standard ZIP archives with the following structure:
 
-```
+```text
 theme.mmtx
 ├── manifest.json           # Required: Theme metadata
 ├── base-{variant}.png      # Base terrain images
@@ -31,7 +31,7 @@ theme.mmtx
   "name": "Grasslands",
   "version": "1.0.0",
   "requiredMakaMekVersion": "0.53.6",
-  "description": "lassi grasslands terrain style",
+  "description": "Grasslands terrain style",
   "author": "MakaMek"
 }
 ```
