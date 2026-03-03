@@ -11,7 +11,7 @@ using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Tests.Services;
+namespace Sanet.MakaMek.Assets.Tests.Services;
 
 public class UnitCachingServiceTests
 {

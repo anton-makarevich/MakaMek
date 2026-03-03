@@ -3,6 +3,7 @@ using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;

@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Data.Units;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Assets.Services;
 
 public interface IUnitsLoader
 {

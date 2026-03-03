@@ -6,11 +6,11 @@ namespace Sanet.MakaMek.Assets.Services;
 /// Unit loader that retrieves units from the UnitCachingService
 /// This replaces the embedded resources loader for MMUX package support
 /// </summary>
-public class MmuxUnitsLoader : Core.Services.IUnitsLoader
+public class MmuxUnitsLoader : IUnitsLoader
 {
-    private readonly Core.Services.IUnitCachingService _unitCachingService;
+    private readonly IUnitCachingService _unitCachingService;
 
-    public MmuxUnitsLoader(Core.Services.IUnitCachingService unitCachingService)
+    public MmuxUnitsLoader(IUnitCachingService unitCachingService)
     {
         _unitCachingService = unitCachingService;
     }

@@ -2,7 +2,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
