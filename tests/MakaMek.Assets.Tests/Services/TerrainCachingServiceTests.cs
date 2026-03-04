@@ -398,12 +398,16 @@ public class TerrainCachingServiceTests
 
             // Add terrain overlay images
             var lightWoodsEntry = archive.CreateEntry("terrains/lightwoods-1.png");
-            using var lightWoodsStream = lightWoodsEntry.Open();
-            lightWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            using (var lightWoodsStream = lightWoodsEntry.Open())
+            {
+                lightWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
 
             var heavyWoodsEntry = archive.CreateEntry("terrains/heavywoods-1.png");
-            using var heavyWoodsStream = heavyWoodsEntry.Open();
-            heavyWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            using (var heavyWoodsStream = heavyWoodsEntry.Open())
+            {
+                heavyWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
         }
         stream.Position = 0;
         return stream;
@@ -480,12 +484,12 @@ public class TerrainCachingServiceTests
                 writer.Write(JsonSerializer.Serialize(manifest));
             }
 
-            // Add multiple edge variants for direction 0
+            // Add multiple edge variants for direction 0 with unique content per variant
             for (int i = 1; i <= 3; i++)
             {
                 var edgeEntry = archive.CreateEntry($"edges/top-0-{i}.png");
                 using var edgeStream = edgeEntry.Open();
-                edgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                edgeStream.Write([0x89, 0x50, 0x4E, 0x47, (byte)i], 0, 5); // unique trailing byte per variant
             }
         }
         stream.Position = 0;

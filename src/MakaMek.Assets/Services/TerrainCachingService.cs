@@ -172,6 +172,7 @@ public class TerrainCachingService : ITerrainAssetService
         await _initializationLock.WaitAsync();
         try
         {
+            if (_isInitialized) return; // double-check after acquiring lock
             await LoadTerrainFromStreamProviders();
             _isInitialized = true;
         }
