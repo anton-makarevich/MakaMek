@@ -39,6 +39,7 @@ jobs:
         with:
           files: ./tests/MakaMek.Assets.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: assets
           fail_ci_if_error: true
   
   publish-nuget:

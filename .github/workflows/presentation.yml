@@ -45,6 +45,7 @@ jobs:
         with:
           files: ./tests/MakaMek.Presentation.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: presentation
           fail_ci_if_error: true
   
   publish-nuget:

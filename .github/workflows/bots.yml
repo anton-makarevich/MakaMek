@@ -43,6 +43,7 @@ jobs:
         with:
           files: ./tests/MakaMek.Bots.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: bots
           fail_ci_if_error: true
   
   publish-nuget:

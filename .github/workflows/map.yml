@@ -39,6 +39,7 @@ jobs:
         with:
           files: ./tests/MakaMek.Map.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: map
           fail_ci_if_error: true
   
   publish-nuget:
