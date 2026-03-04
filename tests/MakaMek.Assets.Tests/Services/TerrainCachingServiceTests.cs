@@ -4,40 +4,35 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Data.Terrain;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
-using Xunit;
 
 namespace Sanet.MakaMek.Assets.Tests.Services;
 
 public class TerrainCachingServiceTests
 {
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly IResourceStreamProvider _streamProvider;
+    private readonly ILoggerFactory _loggerFactory= Substitute.For<ILoggerFactory>();
+    private readonly TerrainCachingService _sut;
 
     public TerrainCachingServiceTests()
     {
-        _loggerFactory = Substitute.For<ILoggerFactory>();
-        _loggerFactory.CreateLogger(Arg.Any<string>()).Returns(Substitute.For<ILogger>());
-        _streamProvider = Substitute.For<IResourceStreamProvider>();
+        _loggerFactory.CreateLogger(Arg.Any<string>())
+            .Returns(Substitute.For<ILogger>());
+        _sut = new TerrainCachingService([], _loggerFactory);
     }
-
-    #region LoadTerrainFromMmtxStreamAsync Tests
-
+    
     [Fact]
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadManifest()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackage("test-theme", "Test Theme", "1.0.0");
 
         // Act
-        var manifest = await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Assert
         manifest.ShouldNotBeNull();
-        manifest!.ThemeId.ShouldBe("test-theme");
+        manifest.ThemeId.ShouldBe("test-theme");
         manifest.Name.ShouldBe("Test Theme");
         manifest.Version.ShouldBe("1.0.0");
     }
@@ -46,11 +41,10 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldReturnNull_WhenMissingManifest()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithoutManifest();
 
         // Act
-        var manifest = await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Assert
         manifest.ShouldBeNull();
@@ -60,11 +54,10 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldReturnNull_WhenMissingThemeId()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackage("", "Test Theme", "1.0.0");
 
         // Act
-        var manifest = await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Assert
         manifest.ShouldBeNull();
@@ -74,12 +67,11 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadBaseTerrain()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-theme");
 
         // Act
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var variants = service.GetAvailableVariants("test-theme", TerrainAssetType.Base, "base");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var variants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.Base, "base");
 
         // Assert
         variants.Count.ShouldBe(1);
@@ -90,30 +82,28 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadTerrainOverlays()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithOverlays("test-theme");
 
         // Act
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var lightwoodsVariants = service.GetAvailableVariants("test-theme", TerrainAssetType.Overlay, "lightwoods");
-        var heavywoodsVariants = service.GetAvailableVariants("test-theme", TerrainAssetType.Overlay, "heavywoods");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var lightwoodsVariants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.Overlay, "lightwoods");
+        var heavyWoodsVariants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.Overlay, "heavywoods");
 
         // Assert
         lightwoodsVariants.Count.ShouldBe(1);
-        heavywoodsVariants.Count.ShouldBe(1);
+        heavyWoodsVariants.Count.ShouldBe(1);
     }
 
     [Fact]
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadEdgeImages()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithEdges("test-theme");
 
         // Act
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var topEdgeVariants = service.GetAvailableVariants("test-theme", TerrainAssetType.EdgeTop, "0");
-        var bottomEdgeVariants = service.GetAvailableVariants("test-theme", TerrainAssetType.EdgeBottom, "3");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var topEdgeVariants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.EdgeTop, "0");
+        var bottomEdgeVariants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.EdgeBottom, "3");
 
         // Assert
         topEdgeVariants.Count.ShouldBe(1);
@@ -124,12 +114,11 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadMultipleVariants()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithMultipleVariants("test-theme");
 
         // Act
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var variants = service.GetAvailableVariants("test-theme", TerrainAssetType.Base, "base");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var variants = _sut.GetAvailableVariants("test-theme", TerrainAssetType.Base, "base");
 
         // Assert
         variants.Count.ShouldBe(3);
@@ -137,54 +126,41 @@ public class TerrainCachingServiceTests
         variants.ShouldContain(1);
         variants.ShouldContain(2);
     }
-
-    #endregion
-
-    #region GetBaseTerrainImage Tests
-
+    
     [Fact]
     public async Task GetBaseTerrainImage_ShouldReturnImage_WhenLoaded()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var image = await service.GetBaseTerrainImage("test-theme");
+        var image = await _sut.GetBaseTerrainImage("test-theme");
 
         // Assert
         image.ShouldNotBeNull();
-        image!.Length.ShouldBeGreaterThan(0);
+        image.Length.ShouldBeGreaterThan(0);
     }
 
     [Fact]
     public async Task GetBaseTerrainImage_ShouldReturnNull_WhenThemeNotLoaded()
     {
-        // Arrange
-        var service = CreateService();
-
         // Act
-        var image = await service.GetBaseTerrainImage("nonexistent-theme");
+        var image = await _sut.GetBaseTerrainImage("nonexistent-theme");
 
         // Assert
         image.ShouldBeNull();
     }
-
-    #endregion
-
-    #region GetTerrainOverlayImage Tests
-
+    
     [Fact]
     public async Task GetTerrainOverlayImage_ShouldReturnImage_WhenExists()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithOverlays("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var image = await service.GetTerrainOverlayImage("test-theme", "lightwoods");
+        var image = await _sut.GetTerrainOverlayImage("test-theme", "lightwoods");
 
         // Assert
         image.ShouldNotBeNull();
@@ -194,32 +170,26 @@ public class TerrainCachingServiceTests
     public async Task GetTerrainOverlayImage_ShouldReturnNull_WhenNotExists()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithOverlays("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var image = await service.GetTerrainOverlayImage("test-theme", "nonexistent");
+        var image = await _sut.GetTerrainOverlayImage("test-theme", "nonexistent");
 
         // Assert
         image.ShouldBeNull();
     }
-
-    #endregion
-
-    #region GetEdgeImage Tests
-
+    
     [Fact]
     public async Task GetEdgeImage_ShouldReturnImage_WhenExists()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithEdges("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
         // Act
-        var image = await service.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
+        var image = await _sut.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
 
         // Assert
         image.ShouldNotBeNull();
@@ -229,13 +199,12 @@ public class TerrainCachingServiceTests
     public async Task GetEdgeImage_ShouldReturnNull_WhenInvalidEdgeType()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithEdges("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
         // Act
-        var image = await service.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.Base, coordinates);
+        var image = await _sut.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.Base, coordinates);
 
         // Assert
         image.ShouldBeNull();
@@ -245,52 +214,47 @@ public class TerrainCachingServiceTests
     public async Task GetEdgeImage_ShouldReturnConsistentVariant_ForSameCoordinates()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithMultipleEdgeVariants("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(5, 10);
 
         // Act - Get same edge twice
-        var image1 = await service.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
-        var image2 = await service.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
+        var image1 = await _sut.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
+        var image2 = await _sut.GetEdgeImage("test-theme", HexDirection.Top, TerrainAssetType.EdgeTop, coordinates);
 
         // Assert - Should return same variant (deterministic)
         image1.ShouldBe(image2);
     }
 
     [Fact]
-    public async Task GetEdgeImage_ShouldReturnDifferentVariants_ForDifferentCoordinates()
+    public async Task GetEdgeImage_ShouldUseMultipleVariants_AcrossDifferentCoordinates()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithMultipleEdgeVariants("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-
-        // Act - Get edges for different coordinates
-        var coord1 = new HexCoordinates(0, 0);
-        var coord2 = new HexCoordinates(100, 200);
-        
-        // Get variants for both coordinates
-        var variants1 = service.GetAvailableVariants("test-theme", TerrainAssetType.EdgeTop, "0");
-        var variants2 = service.GetAvailableVariants("test-theme", TerrainAssetType.EdgeTop, "0");
-
-        // Assert - Variants should be available
-        variants1.Count.ShouldBeGreaterThan(1);
-        variants1.ShouldBe(variants2);
-    }
-
-    #endregion
-
-    #region GetLoadedThemes Tests
-
-    [Fact]
-    public async Task GetLoadedThemes_ShouldReturnEmpty_WhenNothingLoaded()
-    {
-        // Arrange
-        var service = CreateService();
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var themes = service.GetLoadedThemes();
+        var distinctImages = new HashSet<string>();
+        for (var i = 0; i < 32; i++)
+        {
+            var image = await _sut.GetEdgeImage(
+                "test-theme",
+                HexDirection.Top,
+                TerrainAssetType.EdgeTop,
+                new HexCoordinates(i, i * 7));
+            image.ShouldNotBeNull();
+            distinctImages.Add(Convert.ToHexString(image));
+        }
+
+        // Assert
+        distinctImages.Count.ShouldBeGreaterThan(1);
+    }
+
+    [Fact]
+    public void GetLoadedThemes_ShouldReturnEmpty_WhenNothingLoaded()
+    {
+        // Act
+        var themes = _sut.GetLoadedThemes();
 
         // Assert
         themes.ShouldBeEmpty();
@@ -300,83 +264,58 @@ public class TerrainCachingServiceTests
     public async Task GetLoadedThemes_ShouldReturnLoadedThemes()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream1 = CreateMmtxPackage("theme1", "Theme 1", "1.0.0");
         using var mmtxStream2 = CreateMmtxPackage("theme2", "Theme 2", "1.0.0");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream1);
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream2);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream1);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream2);
 
         // Act
-        var themes = service.GetLoadedThemes().ToList();
+        var themes = _sut.GetLoadedThemes().ToList();
 
         // Assert
         themes.Count.ShouldBe(2);
         themes.ShouldContain("theme1");
         themes.ShouldContain("theme2");
     }
-
-    #endregion
-
-    #region GetThemeManifest Tests
-
+    
     [Fact]
     public async Task GetThemeManifest_ShouldReturnManifest_WhenLoaded()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackage("test-theme", "Test Theme", "2.0.0");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var manifest = service.GetThemeManifest("test-theme");
+        var manifest = _sut.GetThemeManifest("test-theme");
 
         // Assert
         manifest.ShouldNotBeNull();
-        manifest!.Version.ShouldBe("2.0.0");
+        manifest.Version.ShouldBe("2.0.0");
     }
 
     [Fact]
     public void GetThemeManifest_ShouldReturnNull_WhenNotLoaded()
     {
-        // Arrange
-        var service = CreateService();
-
         // Act
-        var manifest = service.GetThemeManifest("nonexistent");
+        var manifest = _sut.GetThemeManifest("nonexistent");
 
         // Assert
         manifest.ShouldBeNull();
     }
-
-    #endregion
-
-    #region ClearCache Tests
-
+    
     [Fact]
     public async Task ClearCache_ShouldClearAllData()
     {
         // Arrange
-        var service = CreateService();
         using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-theme");
-        await service.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        service.ClearCache();
-        var themes = service.GetLoadedThemes();
+        _sut.ClearCache();
+        var themes = _sut.GetLoadedThemes();
 
         // Assert
         themes.ShouldBeEmpty();
-    }
-
-    #endregion
-
-    #region Helper Methods
-
-    private TerrainCachingService CreateService()
-    {
-        return new TerrainCachingService(
-            Enumerable.Empty<IResourceStreamProvider>(),
-            _loggerFactory);
     }
 
     private static MemoryStream CreateMmtxPackage(string themeId, string name, string version)
@@ -458,17 +397,13 @@ public class TerrainCachingServiceTests
             }
 
             // Add terrain overlay images
-            var lightwoodsEntry = archive.CreateEntry("terrains/lightwoods-1.png");
-            using (var lightwoodsStream = lightwoodsEntry.Open())
-            {
-                lightwoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
+            var lightWoodsEntry = archive.CreateEntry("terrains/lightwoods-1.png");
+            using var lightWoodsStream = lightWoodsEntry.Open();
+            lightWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
 
-            var heavywoodsEntry = archive.CreateEntry("terrains/heavywoods-1.png");
-            using (var heavywoodsStream = heavywoodsEntry.Open())
-            {
-                heavywoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
+            var heavyWoodsEntry = archive.CreateEntry("terrains/heavywoods-1.png");
+            using var heavyWoodsStream = heavyWoodsEntry.Open();
+            heavyWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
         }
         stream.Position = 0;
         return stream;
@@ -523,10 +458,8 @@ public class TerrainCachingServiceTests
             for (int i = 1; i <= 3; i++)
             {
                 var baseEntry = archive.CreateEntry($"base-{i}.png");
-                using (var baseStream = baseEntry.Open())
-                {
-                    baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-                }
+                using var baseStream = baseEntry.Open();
+                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
             }
         }
         stream.Position = 0;
@@ -551,15 +484,11 @@ public class TerrainCachingServiceTests
             for (int i = 1; i <= 3; i++)
             {
                 var edgeEntry = archive.CreateEntry($"edges/top-0-{i}.png");
-                using (var edgeStream = edgeEntry.Open())
-                {
-                    edgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-                }
+                using var edgeStream = edgeEntry.Open();
+                edgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
             }
         }
         stream.Position = 0;
         return stream;
     }
-
-    #endregion
 }
