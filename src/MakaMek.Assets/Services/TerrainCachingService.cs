@@ -305,7 +305,7 @@ public class TerrainCachingService : ITerrainAssetService
         var namePart = fileName[..lastDashIndex];
         var variantPart = fileName[(lastDashIndex + 1)..];
         
-        if (int.TryParse(variantPart, out var variantNum))
+        if (int.TryParse(variantPart, out var variantNum) && variantNum > 0)
             return (namePart.ToLowerInvariant(), variantNum - 1); // Convert to 0-indexed
         
         return (fileName.ToLowerInvariant(), 0);
@@ -331,7 +331,7 @@ public class TerrainCachingService : ITerrainAssetService
             return (null, "0", 0);
         
         var variant = 0;
-        if (parts.Length >= 3 && int.TryParse(parts[2], out var variantNum))
+        if (parts.Length >= 3 && int.TryParse(parts[2], out var variantNum) && variantNum > 0)
             variant = variantNum - 1; // Convert to 0-indexed
         
         return (edgeType, direction, variant);
