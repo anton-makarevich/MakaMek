@@ -2637,4 +2637,113 @@ public class MechTests
         result.ShouldContain(MovementType.Walk);
         result.ShouldContain(MovementType.Jump);
     }
+
+    [Theory]
+    [InlineData(PartLocation.LeftTorso, PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightTorso, PartLocation.RightArm)]
+    public void UpdateDestroyedStatus_ShouldBlowOffArm_WhenSideTorsoDestroyed(
+        PartLocation torsoLocation, PartLocation armLocation)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var torso = mech.Parts[torsoLocation];
+        var arm = mech.Parts[armLocation];
+
+        // Destroy side torso (armor 25 + structure 8 = 33)
+        torso.ApplyDamage(33, HitDirection.Front);
+        torso.IsDestroyed.ShouldBeTrue();
+
+        // Act
+        mech.UpdateDestroyedStatus();
+
+        // Assert
+        arm.IsBlownOff.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UpdateDestroyedStatus_ShouldNotBlowOffArm_WhenTorsoHasStructure()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var leftArm = mech.Parts[PartLocation.LeftArm];
+
+        // Damage left torso but don't destroy it
+        mech.Parts[PartLocation.LeftTorso].ApplyDamage(10, HitDirection.Front);
+
+        // Act
+        mech.UpdateDestroyedStatus();
+
+        // Assert
+        leftArm.IsBlownOff.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void UpdateDestroyedStatus_ShouldNotReBlowOffArm_WhenAlreadyBlownOff()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var leftTorso = mech.Parts[PartLocation.LeftTorso];
+        var leftArm = mech.Parts[PartLocation.LeftArm];
+
+        // Blow off arm first, then destroy torso
+        leftArm.BlowOff();
+        leftArm.IsBlownOff.ShouldBeTrue();
+        leftTorso.ApplyDamage(33, HitDirection.Front);
+
+        // Act - should not throw or re-blow-off
+        mech.UpdateDestroyedStatus();
+
+        // Assert
+        leftArm.IsBlownOff.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UpdateDestroyedStatus_ShouldBlowOffArm_EvenWhenArmHasFullStructure()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var leftTorso = mech.Parts[PartLocation.LeftTorso];
+        var leftArm = mech.Parts[PartLocation.LeftArm];
+
+        // Verify arm is pristine
+        leftArm.CurrentArmor.ShouldBe(leftArm.MaxArmor);
+        leftArm.CurrentStructure.ShouldBe(leftArm.MaxStructure);
+
+        // Destroy left torso
+        leftTorso.ApplyDamage(33, HitDirection.Front);
+
+        // Act
+        mech.UpdateDestroyedStatus();
+
+        // Assert
+        leftArm.IsBlownOff.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(PartLocation.LeftTorso, PartLocation.LeftArm, PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightTorso, PartLocation.RightArm, PartLocation.RightLeg)]
+    public void ApplyDamage_WhenSideTorsoDestroyed_ShouldBlowOffArmButNotDestroyLeg(
+        PartLocation torsoLocation, PartLocation armLocation, PartLocation legLocation)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var torso = mech.Parts[torsoLocation];
+        var arm = mech.Parts[armLocation];
+        var leg = mech.Parts[legLocation];
+
+        // Act - apply enough damage to destroy the side torso via the ApplyDamage flow
+        // Side torso has armor 25 + structure 8 = 33
+        var hitData = CreateHitDataForLocation(torsoLocation, 33);
+        mech.ApplyDamage([hitData], HitDirection.Front);
+
+        // Assert
+        torso.IsDestroyed.ShouldBeTrue();
+        arm.IsBlownOff.ShouldBeTrue("arm should be blown off when side torso is destroyed");
+        leg.IsDestroyed.ShouldBeFalse("leg should NOT be destroyed just because side torso is destroyed");
+    }
 }

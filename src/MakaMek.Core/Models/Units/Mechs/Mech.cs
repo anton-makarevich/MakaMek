@@ -125,6 +125,19 @@ public class Mech : Unit
         {
             Status = UnitStatus.Destroyed;
         }
+
+        // Side torso destruction blows off the corresponding arm (BattleTech rules)
+        if (_parts.TryGetValue(PartLocation.LeftTorso, out var leftTorso) && leftTorso.IsDestroyed
+            && _parts.TryGetValue(PartLocation.LeftArm, out var leftArm) && !leftArm.IsBlownOff)
+        {
+            leftArm.BlowOff();
+        }
+
+        if (_parts.TryGetValue(PartLocation.RightTorso, out var rightTorso) && rightTorso.IsDestroyed
+            && _parts.TryGetValue(PartLocation.RightArm, out var rightArm) && !rightArm.IsBlownOff)
+        {
+            rightArm.BlowOff();
+        }
     }
 
     public override PartLocation? GetTransferLocation(PartLocation location) => location switch

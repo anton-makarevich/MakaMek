@@ -90,4 +90,43 @@ public class LegTests
         
         sut.GetWeaponsConfigurationOptions().ShouldBeEmpty();
     }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg, PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightLeg, PartLocation.RightTorso)]
+    public void IsDestroyed_ShouldBeFalse_WhenSideTorsoIsDestroyed(PartLocation legLocation, PartLocation torsoLocation)
+    {
+        var leg = new Leg("Leg", legLocation, 8, 4);
+        var torso = new SideTorso("Torso", torsoLocation, 10, 6, 4);
+        var mech = new Mech("Test", "TST-1A", 50, [leg, torso]);
+
+        // Destroy the side torso by applying enough damage
+        torso.ApplyDamage(16, HitDirection.Front);
+
+        torso.IsDestroyed.ShouldBeTrue();
+        leg.IsDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDestroyed_ShouldBeTrue_WhenStructureReachesZero()
+    {
+        var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
+
+        // Apply enough damage to destroy leg (armor 8 + structure 4 = 12)
+        sut.ApplyDamage(12, HitDirection.Front);
+
+        sut.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsDestroyed_ShouldBeTrue_WhenBlownOff()
+    {
+        var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
+
+        sut.BlowOff();
+
+        sut.IsDestroyed.ShouldBeTrue();
+    }
 }
