@@ -10,7 +10,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Map.Models;
@@ -126,17 +125,18 @@ public class Mech : Unit
             Status = UnitStatus.Destroyed;
         }
 
-        // Side torso destruction blows off the corresponding arm (BattleTech rules)
-        if (_parts.TryGetValue(PartLocation.LeftTorso, out var leftTorso) && leftTorso.IsDestroyed
-            && _parts.TryGetValue(PartLocation.LeftArm, out var leftArm) && !leftArm.IsBlownOff)
-        {
-            leftArm.BlowOff();
-        }
+        BlowOffArmOnTorsoDestruction(PartLocation.LeftTorso, PartLocation.LeftArm);
+        BlowOffArmOnTorsoDestruction(PartLocation.RightTorso, PartLocation.RightArm);
+        return;
 
-        if (_parts.TryGetValue(PartLocation.RightTorso, out var rightTorso) && rightTorso.IsDestroyed
-            && _parts.TryGetValue(PartLocation.RightArm, out var rightArm) && !rightArm.IsBlownOff)
+        // Side torso destruction blows off the corresponding arm 
+        void BlowOffArmOnTorsoDestruction(PartLocation torsoLocation, PartLocation armLocation)
         {
-            rightArm.BlowOff();
+            if (_parts.TryGetValue(torsoLocation, out var torso) && torso.IsDestroyed
+                                                                 && _parts.TryGetValue(armLocation, out var arm) && !arm.IsBlownOff)
+            {
+                arm.BlowOff();
+            }
         }
     }
 
