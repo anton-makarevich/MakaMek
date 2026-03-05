@@ -4,9 +4,9 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>Sanet.MakaMek.Presentation</AssemblyName>
-        <RootNamespace>Sanet.MakaMek.Presentation</RootNamespace>
-        <Description>An Attempt of Classic BattleTech game implementation. Presentation Logic</Description>
+        <AssemblyName>Sanet.MakaMek.Assets</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Assets</RootNamespace>
+        <Description>An Attempt of Classic BattleTech game implementation. Asset Management</Description>
     </PropertyGroup>
     
     <ItemGroup>
@@ -14,19 +14,16 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="Sanet.MVVM.Core" Version="1.4.0" />
-      <PackageReference Include="System.Reactive" Version="6.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\MakaMek.Assets\MakaMek.Assets.csproj" />
-      <ProjectReference Include="..\MakaMek.Bots\MakaMek.Bots.csproj" />
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
-      <ProjectReference Include="..\MakaMek.Services\MakaMek.Services.csproj" />
+      <ProjectReference Include="..\MakaMek.Map\MakaMek.Map.csproj" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->
-    <Target Name="PrintProperties" BeforeTargets="Build">
+    <Target Name="PrintProperties" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
         <Message Importance="high" Text="Project: $(MSBuildProjectName)" />
         <Message Importance="high" Text="Version: $(Version)" />
         <Message Importance="high" Text="Authors: $(Authors)" />

@@ -5,8 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <AssemblyName>Sanet.MakaMek.Core.Tests</AssemblyName>
-    <RootNamespace>Sanet.MakaMek.Core.Tests</RootNamespace>
+    <AssemblyName>Sanet.MakaMek.Assets.Tests</AssemblyName>
+    <RootNamespace>Sanet.MakaMek.Assets.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,32 +35,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MakaMek.Assets\MakaMek.Assets.csproj" />
-    <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="Resources\SHD-2D.mmux" />
-    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
-    <None Update="Resources\LCT-1V.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\SHD-2D.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\Vindicator VND-1AA Avenging Angel.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\Vindicator VND-1R Vong.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\Wolfhound WLF-1A.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\Atlas AS7-D.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\Victor VTR-9A.mtf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

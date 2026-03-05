@@ -1,9 +1,9 @@
 using NSubstitute;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Services;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Services;
+namespace Sanet.MakaMek.Assets.Tests.Services;
 
 public class MmuxUnitsLoaderTests
 {

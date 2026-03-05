@@ -1,4 +1,4 @@
-name: MakaMek Core Library
+name: MakaMek Assets Library
 permissions:
   contents: read
 on:
@@ -6,16 +6,15 @@ on:
     branches:
       - main
     paths:
-      - 'src/MakaMek.Core/**'
-      - 'src/MakaMek.SourceGenerators/**'
-      - 'tests/MakaMek.Core.Tests/**'
-      - '.github/workflows/core.yml'
+      - 'src/MakaMek.Assets/**'
+      - 'tests/MakaMek.Assets.Tests/**'
+      - '.github/workflows/assets.yml'
   pull_request:
     paths:
-      - 'src/MakaMek.Core/**'
-      - 'src/MakaMek.SourceGenerators/**'
-      - 'tests/MakaMek.Core.Tests/**'
-      - '.github/workflows/core.yml'
+      - 'src/MakaMek.Assets/**'
+      - 'tests/MakaMek.Assets.Tests/**'
+      - '.github/workflows/assets.yml'
+
   workflow_dispatch:
 env:
   NuGetDirectory: ${{ github.workspace }}/nuget
@@ -23,8 +22,6 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,15 +31,15 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      - name: Run Core tests
-        run: dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]* /p:ExcludeByFile="${{ env.COVERAGE_EXCLUSIONS }}"
+      - name: Run Assets tests
+        run: dotnet test tests/MakaMek.Assets.Tests/MakaMek.Assets.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Assets]*
 
-      - name: Upload Core tests results
+      - name: Upload Assets tests results
         uses: codecov/codecov-action@v4
         with:
-          files: ./tests/MakaMek.Core.Tests/coverage.opencover.xml
+          files: ./tests/MakaMek.Assets.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          flags: core
+          flags: assets
           fail_ci_if_error: true
   
   publish-nuget:
@@ -60,7 +57,7 @@ jobs:
 
       - name: Create nuget packages
         run: |
-          dotnet pack src/MakaMek.Core/MakaMek.Core.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+          dotnet pack src/MakaMek.Assets/MakaMek.Assets.csproj --configuration Release --output ${{ env.NuGetDirectory }}
 
       - name: Publish NuGet package
         run: |

@@ -1,6 +1,6 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Unit loader that retrieves units from the UnitCachingService

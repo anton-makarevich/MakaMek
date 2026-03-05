@@ -1,21 +1,22 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Service for caching unit data and images loaded from various sources including MMUX packages
 /// </summary>
 public class UnitCachingService : IUnitCachingService
 {
+    private readonly SemaphoreSlim _initializationLock = new(1, 1);
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
@@ -102,8 +103,17 @@ public class UnitCachingService : IUnitCachingService
     {
         if (_isInitialized) return;
 
-        await LoadUnitsFromStreamProviders();
-        _isInitialized = true;
+        await _initializationLock.WaitAsync();
+        try
+        {
+            if (_isInitialized) return;
+            await LoadUnitsFromStreamProviders();
+            _isInitialized = true;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
     }
 
     /// <summary>

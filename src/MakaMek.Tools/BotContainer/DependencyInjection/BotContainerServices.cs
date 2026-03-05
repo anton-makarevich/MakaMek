@@ -1,4 +1,5 @@
 using ModelContextProtocol.Protocol;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -44,7 +45,7 @@ public static class BotContainerServices
         services.AddSingleton<ICommandLoggerFactory, FileCommandLoggerFactory>();
 
         // Unit Loading (using GitHub/MMUX like Avalonia)
-        services.AddSingleton<IUnitCachingService, UnitCachingService>(sp =>
+        services.AddSingleton<IUnitCachingService>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();

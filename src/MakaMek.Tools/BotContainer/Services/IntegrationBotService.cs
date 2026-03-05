@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Options;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -13,7 +14,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
@@ -29,7 +29,7 @@ public class IntegrationBotService : BackgroundService
     private readonly IGameFactory _gameFactory;
     private readonly IBotManager _botManager;
     private readonly IRulesProvider _rulesProvider;
-    private readonly Sanet.MakaMek.Core.Utils.IMechFactory _mechFactory;
+    private readonly Core.Utils.IMechFactory _mechFactory;
     private readonly IUnitsLoader _unitsLoader;
     private readonly IToHitCalculator _toHitCalculator;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
@@ -39,7 +39,6 @@ public class IntegrationBotService : BackgroundService
     private readonly IHashService _hashService;
     private readonly ILogger<IntegrationBotService> _logger;
     private readonly BotAgentClient _botAgentClient;
-    private readonly IOptions<BotAgentConfiguration> _botAgentConfig;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IServer _server;
     private IDisposable? _gameCommandsSubscription;
@@ -58,7 +57,7 @@ public class IntegrationBotService : BackgroundService
         IGameFactory gameFactory,
         IBotManager botManager,
         IRulesProvider rulesProvider,
-        Sanet.MakaMek.Core.Utils.IMechFactory mechFactory,
+        Core.Utils.IMechFactory mechFactory,
         IUnitsLoader unitsLoader,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
@@ -68,7 +67,6 @@ public class IntegrationBotService : BackgroundService
         IHashService hashService,
         ILogger<IntegrationBotService> logger,
         BotAgentClient botAgentClient,
-        IOptions<BotAgentConfiguration> botAgentConfig,
         ILoggerFactory loggerFactory,
         IServer server,
         IGameStateProvider gameStateProvider)
@@ -89,7 +87,6 @@ public class IntegrationBotService : BackgroundService
         _hashService = hashService;
         _logger = logger;
         _botAgentClient = botAgentClient;
-        _botAgentConfig = botAgentConfig;
         _loggerFactory = loggerFactory;
         _server = server;
         _gameStateProvider = gameStateProvider;

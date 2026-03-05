@@ -1,6 +1,5 @@
 using System;
 using Avalonia.Media.Imaging;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services;
 using SkiaSharp;
 using System.Linq;
