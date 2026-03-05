@@ -174,7 +174,7 @@ public class MainMenuViewModelTests
     }   
     
     [Fact]
-    public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeeps()
+    public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
     {
         // Arrange
         const string errorMessage = "Test error message";
@@ -191,11 +191,11 @@ public class MainMenuViewModelTests
         
         // Assert
         sut.LoadingText.ShouldContain(errorMessage);
-        sut.IsLoading.ShouldBeFalse();
+        sut.IsLoading.ShouldBeTrue();
     }
     
     [Fact]
-    public async Task PreloadUnits_WhenNoUnitsFound_SetsNoItemsFoundText()
+    public async Task PreloadUnits_WhenNoUnitsFound_SetsNoItemsFoundTextAndKeepsLoadingTrue()
     {
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
@@ -209,6 +209,6 @@ public class MainMenuViewModelTests
         
         // Assert
         sut.LoadingText.ShouldContain("No items found");
-        sut.IsLoading.ShouldBeFalse();
+        sut.IsLoading.ShouldBeTrue();
     }   
 }

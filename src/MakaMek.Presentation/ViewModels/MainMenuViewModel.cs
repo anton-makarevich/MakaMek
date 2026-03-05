@@ -98,14 +98,11 @@ public class MainMenuViewModel : BaseViewModel
 
             // Small delay to show the completion message
             await Task.Delay(_messageDelay);
+            IsLoading = false;
         }
         catch (Exception ex)
         {
             LoadingText = string.Format(_localizationService.GetString("MainMenu_Loading_Error"), ex.Message);
-        }
-        finally
-        {
-            IsLoading = false;
         }
     }
 }
