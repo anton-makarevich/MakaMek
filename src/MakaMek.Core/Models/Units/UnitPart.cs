@@ -63,7 +63,7 @@ public abstract class UnitPart
     public bool IsBlownOff { get; private set; }
     
     // A part is destroyed if either structure is depleted or it's blown off
-    public bool IsDestroyed => CurrentStructure <= 0 
+    public virtual bool IsDestroyed => CurrentStructure <= 0 
                                || IsBlownOff
                                || DamageTransferPart?.IsDestroyed == true;
     

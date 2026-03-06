@@ -10,7 +10,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Map.Models;
@@ -124,6 +123,22 @@ public class Mech : Unit
         if (_parts.TryGetValue(PartLocation.CenterTorso, out var centerTorso) && centerTorso.IsDestroyed)
         {
             Status = UnitStatus.Destroyed;
+        }
+
+        BlowOffArmOnTorsoDestruction(PartLocation.LeftTorso, PartLocation.LeftArm);
+        BlowOffArmOnTorsoDestruction(PartLocation.RightTorso, PartLocation.RightArm);
+        return;
+
+        // Side torso destruction blows off the corresponding arm 
+        void BlowOffArmOnTorsoDestruction(PartLocation torsoLocation, PartLocation armLocation)
+        {
+            if (_parts.TryGetValue(torsoLocation, out var torso)
+                && torso.CurrentStructure <= 0
+                && _parts.TryGetValue(armLocation, out var arm)
+                && !arm.IsBlownOff)
+            {
+                arm.BlowOff();
+            }
         }
     }
 

@@ -20,6 +20,9 @@ public class Leg : UnitPart
 
     internal override bool CanBeBlownOff => true;
 
+    // Legs are only destroyed by direct damage or blow-off, not by side torso destruction
+    public override bool IsDestroyed => CurrentStructure <= 0 || IsBlownOff;
+
     // Legs always face the direction of movement
     public override HexDirection? Facing => Unit?.Position?.Facing;
 
