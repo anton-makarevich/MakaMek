@@ -132,8 +132,10 @@ public class Mech : Unit
         // Side torso destruction blows off the corresponding arm 
         void BlowOffArmOnTorsoDestruction(PartLocation torsoLocation, PartLocation armLocation)
         {
-            if (_parts.TryGetValue(torsoLocation, out var torso) && torso.IsDestroyed
-                                                                 && _parts.TryGetValue(armLocation, out var arm) && !arm.IsBlownOff)
+            if (_parts.TryGetValue(torsoLocation, out var torso)
+                && torso.CurrentStructure <= 0
+                && _parts.TryGetValue(armLocation, out var arm)
+                && !arm.IsBlownOff)
             {
                 arm.BlowOff();
             }
