@@ -261,7 +261,7 @@ public class TerrainCachingService : ITerrainAssetService
 
     private async Task ExtractEdgeImagesAsync(ZipArchive archive, string biomeId)
     {
-        var edgesDirectory = "edges/";
+        const string edgesDirectory = "edges/";
         var edgeEntries = archive.Entries
             .Where(e => e.FullName.StartsWith(edgesDirectory, StringComparison.OrdinalIgnoreCase) &&
                         e.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
@@ -344,7 +344,7 @@ public class TerrainCachingService : ITerrainAssetService
         if (!int.TryParse(variantPart, out var variantNum) || variantNum <= 0)
             return false;
 
-        variant = variantNum - 1;
+        variant = variantNum;
         return true;
     }
 

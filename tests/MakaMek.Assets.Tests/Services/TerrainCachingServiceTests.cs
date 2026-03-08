@@ -75,7 +75,7 @@ public class TerrainCachingServiceTests
 
         // Assert
         variants.Count.ShouldBe(1);
-        variants.ShouldContain(0);
+        variants.ShouldContain(1);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalAssetVariantsAsZeroBased()
+    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalAssetVariantsAsOneBased()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackageWithOptionalAssetVariants("test-biome");
@@ -122,16 +122,17 @@ public class TerrainCachingServiceTests
         var lightwoodsVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
 
         // Assert
-        baseVariants.Count.ShouldBe(1);
+        baseVariants.Count.ShouldBe(2);
         baseVariants.ShouldContain(0);
+        baseVariants.ShouldContain(1);
 
         lightwoodsVariants.Count.ShouldBe(2);
         lightwoodsVariants.ShouldContain(0);
-        lightwoodsVariants.ShouldContain(1);
+        lightwoodsVariants.ShouldContain(2);
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalEdgeVariantsAsZeroBased()
+    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalEdgeVariantsAsOneBased()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackageWithOptionalEdgeVariants("test-biome");
@@ -142,11 +143,12 @@ public class TerrainCachingServiceTests
         var bottomEdgeVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
 
         // Assert
-        topEdgeVariants.Count.ShouldBe(1);
+        topEdgeVariants.Count.ShouldBe(2);
         topEdgeVariants.ShouldContain(0);
+        topEdgeVariants.ShouldContain(1);
 
         bottomEdgeVariants.Count.ShouldBe(1);
-        bottomEdgeVariants.ShouldContain(1);
+        bottomEdgeVariants.ShouldContain(2);
     }
 
     [Fact]
@@ -161,9 +163,9 @@ public class TerrainCachingServiceTests
 
         // Assert
         variants.Count.ShouldBe(3);
-        variants.ShouldContain(0);
         variants.ShouldContain(1);
         variants.ShouldContain(2);
+        variants.ShouldContain(3);
     }
     
     [Fact]
