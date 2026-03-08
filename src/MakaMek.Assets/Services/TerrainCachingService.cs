@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Assets.Data.Terrain;
+using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 
@@ -16,7 +16,7 @@ namespace Sanet.MakaMek.Assets.Services;
 /// </summary>
 public class TerrainCachingService : ITerrainAssetService
 {
-    private readonly ConcurrentDictionary<string, TerrainThemeManifest> _themeManifests = new();
+    private readonly ConcurrentDictionary<string, BiomeManifest> _themeManifests = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> _variantCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
@@ -41,7 +41,7 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public TerrainThemeManifest? GetThemeManifest(string themeId)
+    public BiomeManifest? GetThemeManifest(string themeId)
     {
         return _themeManifests.GetValueOrDefault(themeId);
     }
@@ -109,7 +109,7 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public async Task<TerrainThemeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream)
+    public async Task<BiomeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream)
     {
         try
         {
@@ -123,29 +123,29 @@ public class TerrainCachingService : ITerrainAssetService
                 return null;
             }
 
-            TerrainThemeManifest manifest;
+            BiomeManifest manifest;
             await using (var manifestStream = await manifestEntry.OpenAsync())
             using (var reader = new StreamReader(manifestStream))
             {
                 var jsonContent = await reader.ReadToEndAsync();
-                manifest = JsonSerializer.Deserialize<TerrainThemeManifest>(jsonContent, _jsonOptions)
+                manifest = JsonSerializer.Deserialize<BiomeManifest>(jsonContent, _jsonOptions)
                     ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
             }
             
-            if (string.IsNullOrEmpty(manifest.ThemeId))
+            if (string.IsNullOrEmpty(manifest.Id))
             {
                 _logger.LogWarning("MMTX package manifest missing themeId");
                 return null;
             }
 
             // Extract and cache all images
-            await ExtractImagesAsync(archive, manifest.ThemeId);
+            await ExtractImagesAsync(archive, manifest.Id);
             
             // Cache the manifest
-            _themeManifests.TryAdd(manifest.ThemeId, manifest);
+            _themeManifests.TryAdd(manifest.Id, manifest);
             
             _logger.LogInformation("Loaded terrain theme '{ThemeId}' version {Version}", 
-                manifest.ThemeId, manifest.Version);
+                manifest.Id, manifest.Version);
             
             return manifest;
         }

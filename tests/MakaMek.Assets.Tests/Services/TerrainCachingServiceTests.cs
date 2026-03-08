@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using Sanet.MakaMek.Assets.Data.Terrain;
+using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
@@ -32,7 +32,7 @@ public class TerrainCachingServiceTests
 
         // Assert
         manifest.ShouldNotBeNull();
-        manifest.ThemeId.ShouldBe("test-theme");
+        manifest.Id.ShouldBe("test-theme");
         manifest.Name.ShouldBe("Test Theme");
         manifest.Version.ShouldBe("1.0.0");
     }

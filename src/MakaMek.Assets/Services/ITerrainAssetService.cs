@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Assets.Data.Terrain;
+using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Assets.Services;
@@ -13,7 +13,7 @@ public interface ITerrainAssetService
     /// </summary>
     /// <param name="themeId">The theme identifier</param>
     /// <returns>Theme manifest if loaded, null otherwise</returns>
-    TerrainThemeManifest? GetThemeManifest(string themeId);
+    BiomeManifest? GetThemeManifest(string themeId);
     
     /// <summary>
     /// Gets all loaded theme identifiers
@@ -62,7 +62,7 @@ public interface ITerrainAssetService
     /// </summary>
     /// <param name="mmtxStream">Stream containing the MMTX package data</param>
     /// <returns>The loaded theme manifest</returns>
-    Task<TerrainThemeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream);
+    Task<BiomeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream);
     
     /// <summary>
     /// Clears all cached terrain data
