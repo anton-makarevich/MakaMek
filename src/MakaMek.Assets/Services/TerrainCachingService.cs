@@ -16,7 +16,7 @@ namespace Sanet.MakaMek.Assets.Services;
 /// </summary>
 public class TerrainCachingService : ITerrainAssetService
 {
-    private readonly ConcurrentDictionary<string, BiomeManifest> _themeManifests = new();
+    private readonly ConcurrentDictionary<string, BiomeManifest> _biomeManifests = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> _variantCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
@@ -41,47 +41,47 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public BiomeManifest? GetThemeManifest(string themeId)
+    public BiomeManifest? GetBiomeManifest(string biomeId)
     {
-        return _themeManifests.GetValueOrDefault(themeId);
+        return _biomeManifests.GetValueOrDefault(biomeId);
     }
 
     /// <inheritdoc />
-    public IEnumerable<string> GetLoadedThemes()
+    public IEnumerable<string> GetLoadedBiomes()
     {
-        return _themeManifests.Keys;
+        return _biomeManifests.Keys;
     }
 
     /// <inheritdoc />
-    public async Task<byte[]?> GetBaseTerrainImage(string themeId, int? variant = null)
+    public async Task<byte[]?> GetBaseBiomeImage(string biomeId, int? variant = null)
     {
         await EnsureInitialized();
         
-        var variants = GetAvailableVariants(themeId, TerrainAssetType.Base, "base");
+        var variants = GetAvailableVariants(biomeId, TerrainAssetType.Base, "base");
         if (variants.Count == 0) return null;
         
-        var selectedVariant = variant ?? SelectRandomVariant(variants, themeId, "base", 0);
-        var cacheKey = GetCacheKey(themeId, TerrainAssetType.Base, "base", selectedVariant);
+        var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, "base", 0);
+        var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Base, "base", selectedVariant);
         
         return _imageCache.GetValueOrDefault(cacheKey);
     }
 
     /// <inheritdoc />
-    public async Task<byte[]?> GetTerrainOverlayImage(string themeId, string terrainType, int? variant = null)
+    public async Task<byte[]?> GetTerrainOverlayImage(string biomeId, string terrainType, int? variant = null)
     {
         await EnsureInitialized();
         
-        var variants = GetAvailableVariants(themeId, TerrainAssetType.Overlay, terrainType);
+        var variants = GetAvailableVariants(biomeId, TerrainAssetType.Overlay, terrainType);
         if (variants.Count == 0) return null;
         
-        var selectedVariant = variant ?? SelectRandomVariant(variants, themeId, terrainType, 0);
-        var cacheKey = GetCacheKey(themeId, TerrainAssetType.Overlay, terrainType, selectedVariant);
+        var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, terrainType, 0);
+        var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Overlay, terrainType, selectedVariant);
         
         return _imageCache.GetValueOrDefault(cacheKey);
     }
 
     /// <inheritdoc />
-    public async Task<byte[]?> GetEdgeImage(string themeId, HexDirection direction, TerrainAssetType edgeType, HexCoordinates coordinates)
+    public async Task<byte[]?> GetEdgeImage(string biomeId, HexDirection direction, TerrainAssetType edgeType, HexCoordinates coordinates)
     {
         await EnsureInitialized();
         
@@ -89,20 +89,20 @@ public class TerrainCachingService : ITerrainAssetService
             return null;
         
         var directionName = ((int)direction).ToString();
-        var variants = GetAvailableVariants(themeId, edgeType, directionName);
+        var variants = GetAvailableVariants(biomeId, edgeType, directionName);
         if (variants.Count == 0) return null;
         
         // Use hex coordinates for deterministic variant selection
-        var selectedVariant = SelectRandomVariant(variants, themeId, directionName, coordinates.Q + coordinates.R * 31);
-        var cacheKey = GetCacheKey(themeId, edgeType, directionName, selectedVariant);
+        var selectedVariant = SelectRandomVariant(variants, biomeId, directionName, coordinates.Q + coordinates.R * 31);
+        var cacheKey = GetCacheKey(biomeId, edgeType, directionName, selectedVariant);
         
         return _imageCache.GetValueOrDefault(cacheKey);
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<int> GetAvailableVariants(string themeId, TerrainAssetType assetType, string assetName)
+    public IReadOnlyList<int> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
-        var variantKey = GetVariantKey(themeId, assetType, assetName);
+        var variantKey = GetVariantKey(biomeId, assetType, assetName);
         return _variantCache.TryGetValue(variantKey, out var variants) 
             ? variants 
             : Array.Empty<int>();
@@ -134,7 +134,7 @@ public class TerrainCachingService : ITerrainAssetService
             
             if (string.IsNullOrEmpty(manifest.Id))
             {
-                _logger.LogWarning("MMTX package manifest missing themeId");
+                _logger.LogWarning("MMTX package manifest missing id");
                 return null;
             }
 
@@ -142,9 +142,9 @@ public class TerrainCachingService : ITerrainAssetService
             await ExtractImagesAsync(archive, manifest.Id);
             
             // Cache the manifest
-            _themeManifests.TryAdd(manifest.Id, manifest);
+            _biomeManifests.TryAdd(manifest.Id, manifest);
             
-            _logger.LogInformation("Loaded terrain theme '{ThemeId}' version {Version}", 
+            _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}", 
                 manifest.Id, manifest.Version);
             
             return manifest;
@@ -159,7 +159,7 @@ public class TerrainCachingService : ITerrainAssetService
     /// <inheritdoc />
     public void ClearCache()
     {
-        _themeManifests.Clear();
+        _biomeManifests.Clear();
         _imageCache.Clear();
         _variantCache.Clear();
         _isInitialized = false;
@@ -172,7 +172,7 @@ public class TerrainCachingService : ITerrainAssetService
         await _initializationLock.WaitAsync();
         try
         {
-            if (_isInitialized) return; // double-check after acquiring lock
+            if (_isInitialized) return; // double-check after acquiring a lock
             await LoadTerrainFromStreamProviders();
             _isInitialized = true;
         }
@@ -214,21 +214,21 @@ public class TerrainCachingService : ITerrainAssetService
         }
     }
 
-    private async Task ExtractImagesAsync(ZipArchive archive, string themeId)
+    private async Task ExtractImagesAsync(ZipArchive archive, string biomeId)
     {
         // Extract base terrain images
-        await ExtractImagesFromDirectoryAsync(archive, themeId, "", TerrainAssetType.Base);
+        await ExtractImagesFromDirectoryAsync(archive, biomeId, "", TerrainAssetType.Base);
         
         // Extract terrain overlay images
-        await ExtractImagesFromDirectoryAsync(archive, themeId, "terrains/", TerrainAssetType.Overlay);
+        await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/", TerrainAssetType.Overlay);
         
         // Extract edge images
-        await ExtractEdgeImagesAsync(archive, themeId);
+        await ExtractEdgeImagesAsync(archive, biomeId);
     }
 
     private async Task ExtractImagesFromDirectoryAsync(
         ZipArchive archive, 
-        string themeId, 
+        string biomeId, 
         string directory,
         TerrainAssetType assetType)
     {
@@ -247,11 +247,11 @@ public class TerrainCachingService : ITerrainAssetService
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
             
-            var cacheKey = GetCacheKey(themeId, assetType, assetName, variant);
+            var cacheKey = GetCacheKey(biomeId, assetType, assetName, variant);
             _imageCache.TryAdd(cacheKey, memoryStream.ToArray());
             
             // Track variants
-            var variantKey = GetVariantKey(themeId, assetType, assetName);
+            var variantKey = GetVariantKey(biomeId, assetType, assetName);
             _variantCache.AddOrUpdate(
                 variantKey,
                 _ => ImmutableSortedSet.Create(variant),
@@ -259,7 +259,7 @@ public class TerrainCachingService : ITerrainAssetService
         }
     }
 
-    private async Task ExtractEdgeImagesAsync(ZipArchive archive, string themeId)
+    private async Task ExtractEdgeImagesAsync(ZipArchive archive, string biomeId)
     {
         var edgesDirectory = "edges/";
         var edgeEntries = archive.Entries
@@ -280,11 +280,11 @@ public class TerrainCachingService : ITerrainAssetService
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
             
-            var cacheKey = GetCacheKey(themeId, assetType, direction, variant);
+            var cacheKey = GetCacheKey(biomeId, assetType, direction, variant);
             _imageCache.TryAdd(cacheKey, memoryStream.ToArray());
             
             // Track variants
-            var variantKey = GetVariantKey(themeId, assetType, direction);
+            var variantKey = GetVariantKey(biomeId, assetType, direction);
             _variantCache.AddOrUpdate(
                 variantKey,
                 _ => ImmutableSortedSet.Create(variant),
@@ -293,33 +293,33 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <summary>
-    /// Parses an asset file name into asset name and variant number
-    /// Examples: "base-1" -> ("base", 0), "lightwoods-2" -> ("lightwoods", 1)
+    /// Parses an asset file name into asset name and zero-based variant number.
+    /// Examples: "base" -> ("base", 0), "base-1" -> ("base", 1), "lightwoods-2" -> ("lightwoods", 2)
     /// </summary>
     private static (string assetName, int variant) ParseAssetFileName(string fileName)
     {
+        var normalizedFileName = fileName.ToLowerInvariant();
         var lastDashIndex = fileName.LastIndexOf('-');
         if (lastDashIndex < 0)
-            return (fileName.ToLowerInvariant(), 0);
+            return (normalizedFileName, 0);
         
         var namePart = fileName[..lastDashIndex];
         var variantPart = fileName[(lastDashIndex + 1)..];
         
-        if (int.TryParse(variantPart, out var variantNum) && variantNum > 0)
-            return (namePart.ToLowerInvariant(), variantNum - 1); // Convert to 0-indexed
-        
-        return (fileName.ToLowerInvariant(), 0);
+        return TryParseVariantSuffix(variantPart, out var variant)
+            ? (namePart.ToLowerInvariant(), variant)
+            : (normalizedFileName, 0);
     }
 
     /// <summary>
-    /// Parses an edge file name into edge type, direction, and variant
-    /// Examples: "top-0-1" -> ("top", "0", 0), "bottom-5-3" -> ("bottom", "5", 2)
+    /// Parses an edge file name into edge type, direction, and zero-based variant number.
+    /// Examples: "top-0" -> ("top", "0", 0), "top-0-1" -> ("top", "0", 1), "bottom-5-3" -> ("bottom", "5", 3)
     /// </summary>
     private static (string? edgeType, string direction, int variant) ParseEdgeFileName(string fileName)
     {
         var parts = fileName.Split('-');
         
-        if (parts.Length < 3)
+        if (parts.Length is < 2 or > 3)
             return (null, "0", 0);
         
         var edgeType = parts[0].ToLowerInvariant();
@@ -330,34 +330,45 @@ public class TerrainCachingService : ITerrainAssetService
         if (!int.TryParse(direction, out _))
             return (null, "0", 0);
         
-        var variant = 0;
-        if (parts.Length >= 3 && int.TryParse(parts[2], out var variantNum) && variantNum > 0)
-            variant = variantNum - 1; // Convert to 0-indexed
-        
-        return (edgeType, direction, variant);
+        if (parts.Length == 2)
+            return (edgeType, direction, 0);
+
+        return TryParseVariantSuffix(parts[2], out var variant)
+            ? (edgeType, direction, variant)
+            : (null, "0", 0);
     }
 
-    private static string GetCacheKey(string themeId, TerrainAssetType assetType, string assetName, int variant)
+    private static bool TryParseVariantSuffix(string variantPart, out int variant)
     {
-        return $"{themeId}/{assetType}/{assetName}/{variant}";
+        variant = 0;
+        if (!int.TryParse(variantPart, out var variantNum) || variantNum <= 0)
+            return false;
+
+        variant = variantNum - 1;
+        return true;
     }
 
-    private static string GetVariantKey(string themeId, TerrainAssetType assetType, string assetName)
+    private static string GetCacheKey(string biomeId, TerrainAssetType assetType, string assetName, int variant)
     {
-        return $"{themeId}/{assetType}/{assetName}";
+        return $"{biomeId}/{assetType}/{assetName}/{variant}";
+    }
+
+    private static string GetVariantKey(string biomeId, TerrainAssetType assetType, string assetName)
+    {
+        return $"{biomeId}/{assetType}/{assetName}";
     }
 
     /// <summary>
     /// Selects a variant deterministically based on a seed value
     /// Uses hash-based selection for consistent results across sessions
     /// </summary>
-    private static int SelectRandomVariant(IReadOnlyList<int> variants, string themeId, string assetName, int seed)
+    private static int SelectRandomVariant(IReadOnlyList<int> variants, string biomeId, string assetName, int seed)
     {
         if (variants.Count == 0) return 0;
         if (variants.Count == 1) return variants[0];
         
-        // Combine theme, asset name, and seed for deterministic selection
-        var combined = $"{themeId}-{assetName}-{seed}";
+        // Combine biome, asset name, and seed for deterministic selection
+        var combined = $"{biomeId}-{assetName}-{seed}";
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(combined));
         var hashValue = BitConverter.ToUInt32(hash, 0);
         
