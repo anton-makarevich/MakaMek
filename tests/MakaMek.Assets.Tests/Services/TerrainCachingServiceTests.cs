@@ -71,7 +71,7 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var variants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
+        var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
 
         // Assert
         variants.Count.ShouldBe(1);
@@ -86,8 +86,8 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var lightwoodsVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
-        var heavyWoodsVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "heavywoods");
+        var lightwoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
+        var heavyWoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "heavywoods");
 
         // Assert
         lightwoodsVariants.Count.ShouldBe(1);
@@ -102,8 +102,8 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var topEdgeVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
-        var bottomEdgeVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
+        var topEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
+        var bottomEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
 
         // Assert
         topEdgeVariants.Count.ShouldBe(1);
@@ -118,8 +118,8 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var baseVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
-        var lightwoodsVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
+        var baseVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
+        var lightwoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
 
         // Assert
         baseVariants.Count.ShouldBe(2);
@@ -139,8 +139,8 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var topEdgeVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
-        var bottomEdgeVariants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
+        var topEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
+        var bottomEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
 
         // Assert
         topEdgeVariants.Count.ShouldBe(2);
@@ -159,7 +159,7 @@ public class TerrainCachingServiceTests
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-        var variants = _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
+        var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
 
         // Assert
         variants.Count.ShouldBe(3);
@@ -292,10 +292,10 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public void GetLoadedBiomes_ShouldReturnEmpty_WhenNothingLoaded()
+    public async Task GetLoadedBiomes_ShouldReturnEmpty_WhenNothingLoaded()
     {
         // Act
-        var biomes = _sut.GetLoadedBiomes();
+        var biomes = await _sut.GetLoadedBiomes();
 
         // Assert
         biomes.ShouldBeEmpty();
@@ -311,14 +311,14 @@ public class TerrainCachingServiceTests
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream2);
 
         // Act
-        var biomes = _sut.GetLoadedBiomes().ToList();
+        var biomes = (await _sut.GetLoadedBiomes()).ToList();
 
         // Assert
         biomes.Count.ShouldBe(2);
         biomes.ShouldContain("biome1");
         biomes.ShouldContain("biome2");
     }
-    
+
     [Fact]
     public async Task GetBiomeManifest_ShouldReturnManifest_WhenLoaded()
     {
@@ -327,7 +327,7 @@ public class TerrainCachingServiceTests
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
-        var manifest = _sut.GetBiomeManifest("test-biome");
+        var manifest = await _sut.GetBiomeManifest("test-biome");
 
         // Assert
         manifest.ShouldNotBeNull();
@@ -335,15 +335,15 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public void GetBiomeManifest_ShouldReturnNull_WhenNotLoaded()
+    public async Task GetBiomeManifest_ShouldReturnNull_WhenNotLoaded()
     {
         // Act
-        var manifest = _sut.GetBiomeManifest("nonexistent");
+        var manifest = await _sut.GetBiomeManifest("nonexistent");
 
         // Assert
         manifest.ShouldBeNull();
     }
-    
+
     [Fact]
     public async Task ClearCache_ShouldClearAllData()
     {
@@ -353,7 +353,7 @@ public class TerrainCachingServiceTests
 
         // Act
         _sut.ClearCache();
-        var biomes = _sut.GetLoadedBiomes();
+        var biomes = await _sut.GetLoadedBiomes();
 
         // Assert
         biomes.ShouldBeEmpty();

@@ -9,17 +9,19 @@ namespace Sanet.MakaMek.Assets.Services;
 public interface ITerrainAssetService
 {
     /// <summary>
-    /// Gets the manifest for a loaded biome
+    /// Gets the manifest for a loaded biome.
+    /// Ensures provider-backed biomes are initialized before returning.
     /// </summary>
     /// <param name="biomeId">The biome identifier</param>
     /// <returns>Biomes manifest if loaded, null otherwise</returns>
-    BiomeManifest? GetBiomeManifest(string biomeId);
-    
+    Task<BiomeManifest?> GetBiomeManifest(string biomeId);
+
     /// <summary>
-    /// Gets all loaded biome identifiers
+    /// Gets all loaded biome identifiers.
+    /// Ensures provider-backed biomes are initialized before returning.
     /// </summary>
     /// <returns>Collection of biome IDs</returns>
-    IEnumerable<string> GetLoadedBiomes();
+    Task<IEnumerable<string>> GetLoadedBiomes();
     
     /// <summary>
     /// Gets a base terrain image for the specified biome
@@ -49,13 +51,14 @@ public interface ITerrainAssetService
     Task<byte[]?> GetEdgeImage(string biomeId, HexDirection direction, TerrainAssetType edgeType, HexCoordinates coordinates);
     
     /// <summary>
-    /// Gets available variants for a specific asset type
+    /// Gets available variants for a specific asset type.
+    /// Ensures provider-backed biomes are initialized before returning.
     /// </summary>
     /// <param name="biomeId">The biome identifier</param>
     /// <param name="assetType">Type of asset</param>
     /// <param name="assetName">Name of the asset (terrain type or direction for edges)</param>
     /// <returns>List of available variant numbers</returns>
-    IReadOnlyList<int> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName);
+    Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName);
     
     /// <summary>
     /// Loads a terrain biome from an MMTX package stream

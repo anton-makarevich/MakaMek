@@ -41,14 +41,16 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public BiomeManifest? GetBiomeManifest(string biomeId)
+    public async Task<BiomeManifest?> GetBiomeManifest(string biomeId)
     {
+        await EnsureInitialized();
         return _biomeManifests.GetValueOrDefault(biomeId);
     }
 
     /// <inheritdoc />
-    public IEnumerable<string> GetLoadedBiomes()
+    public async Task<IEnumerable<string>> GetLoadedBiomes()
     {
+        await EnsureInitialized();
         return _biomeManifests.Keys;
     }
 
@@ -56,8 +58,8 @@ public class TerrainCachingService : ITerrainAssetService
     public async Task<byte[]?> GetBaseBiomeImage(string biomeId, int? variant = null)
     {
         await EnsureInitialized();
-        
-        var variants = GetAvailableVariants(biomeId, TerrainAssetType.Base, "base");
+
+        var variants = await GetAvailableVariants(biomeId, TerrainAssetType.Base, "base");
         if (variants.Count == 0) return null;
         
         var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, "base", 0);
@@ -70,8 +72,8 @@ public class TerrainCachingService : ITerrainAssetService
     public async Task<byte[]?> GetTerrainOverlayImage(string biomeId, string terrainType, int? variant = null)
     {
         await EnsureInitialized();
-        
-        var variants = GetAvailableVariants(biomeId, TerrainAssetType.Overlay, terrainType);
+
+        var variants = await GetAvailableVariants(biomeId, TerrainAssetType.Overlay, terrainType);
         if (variants.Count == 0) return null;
         
         var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, terrainType, 0);
@@ -89,7 +91,7 @@ public class TerrainCachingService : ITerrainAssetService
             return null;
         
         var directionName = ((int)direction).ToString();
-        var variants = GetAvailableVariants(biomeId, edgeType, directionName);
+        var variants = await GetAvailableVariants(biomeId, edgeType, directionName);
         if (variants.Count == 0) return null;
         
         // Use hex coordinates for deterministic variant selection
@@ -100,11 +102,12 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<int> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
+    public async Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
+        await EnsureInitialized();
         var variantKey = GetVariantKey(biomeId, assetType, assetName);
-        return _variantCache.TryGetValue(variantKey, out var variants) 
-            ? variants 
+        return _variantCache.TryGetValue(variantKey, out var variants)
+            ? variants
             : Array.Empty<int>();
     }
 
