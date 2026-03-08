@@ -141,11 +141,15 @@ public class TerrainCachingService : ITerrainAssetService
                 return null;
             }
 
-            // Extract and cache all images
+            // Cache the manifest first to reject duplicates before extracting images
+            if (!_biomeManifests.TryAdd(manifest.Id, manifest))
+            {
+                _logger.LogWarning("Duplicate biome ID '{BiomeId}' found, skipping extraction", manifest.Id);
+                return null;
+            }
+
+            // Extract and cache all images (only if manifest was successfully added)
             await ExtractImagesAsync(archive, manifest.Id);
-            
-            // Cache the manifest
-            _biomeManifests.TryAdd(manifest.Id, manifest);
             
             _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}", 
                 manifest.Id, manifest.Version);
