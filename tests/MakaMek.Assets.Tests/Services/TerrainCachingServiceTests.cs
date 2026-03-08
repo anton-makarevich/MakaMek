@@ -359,6 +359,21 @@ public class TerrainCachingServiceTests
         biomes.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task LoadTerrainFromMmtxStreamAsync_ShouldIgnoreAssetWithNonIntegerVariant()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackageWithNonIntegerVariant("test-biome");
+
+        // Act
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
+
+        // Assert
+        variants.Count.ShouldBe(1);
+        variants.ShouldContain(0); // Should treat as variant 0 (default)
+    }
+     
     private static MemoryStream CreateMmtxPackage(string biomeId, string name, string version)
     {
         var stream = new MemoryStream();
@@ -581,6 +596,38 @@ public class TerrainCachingServiceTests
                 var edgeEntry = archive.CreateEntry($"edges/top-0-{i}.png");
                 using var edgeStream = edgeEntry.Open();
                 edgeStream.Write([0x89, 0x50, 0x4E, 0x47, (byte)i], 0, 5); // unique trailing byte per variant
+            }
+        }
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateMmtxPackageWithNonIntegerVariant(string biomeId)
+    {
+        var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            // Add manifest
+            var manifestEntry = archive.CreateEntry("manifest.json");
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
+
+            // Add base terrain with noninteger variant (should be ignored)
+            var baseEntry = archive.CreateEntry("base-abc.png");
+            using (var baseStream = baseEntry.Open())
+            {
+                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
+
+            // Add valid base terrain to have something to test against
+            var validBaseEntry = archive.CreateEntry("base.png");
+            using (var validBaseStream = validBaseEntry.Open())
+            {
+                validBaseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
             }
         }
         stream.Position = 0;
