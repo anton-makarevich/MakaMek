@@ -373,6 +373,34 @@ public class TerrainCachingServiceTests
         variants.Count.ShouldBe(1);
         variants.ShouldContain(0); // Should treat as variant 0 (default)
     }
+
+    [Fact]
+    public async Task LoadTerrainFromMmtxStreamAsync_ShouldRejectDuplicateBiomeId()
+    {
+        // Arrange
+        using var firstStream = CreateMmtxPackageWithBaseTerrain("duplicate-biome");
+        using var secondStream = CreateMmtxPackageWithBaseTerrain("duplicate-biome");
+
+        // Act - Load the first biome successfully
+        var firstManifest = await _sut.LoadTerrainFromMmtxStreamAsync(firstStream);
+        firstManifest.ShouldNotBeNull();
+
+        // Attempt to load the duplicate biome
+        var secondManifest = await _sut.LoadTerrainFromMmtxStreamAsync(secondStream);
+
+        // Assert
+        secondManifest.ShouldBeNull(); // Should return null for duplicate
+        
+        // Verify only the first biome is loaded
+        var loadedBiomes = (await _sut.GetLoadedBiomes()).ToList();
+        loadedBiomes.Count.ShouldBe(1);
+        loadedBiomes.ShouldContain("duplicate-biome");
+        
+        // Verify variants are only from the first load
+        var variants = await _sut.GetAvailableVariants("duplicate-biome", TerrainAssetType.Base, "base");
+        variants.Count.ShouldBe(1);
+        variants.ShouldContain(1);
+    }
      
     private static MemoryStream CreateMmtxPackage(string biomeId, string name, string version)
     {
