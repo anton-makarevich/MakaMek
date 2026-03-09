@@ -368,10 +368,12 @@ public class TerrainCachingServiceTests
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
+        var invalidVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base-abc");
 
-        // Assert
+        // Assert - base-abc.png is skipped entirely; only base.png (variant 0) is loaded
         variants.Count.ShouldBe(1);
-        variants.ShouldContain(0); // Should treat as variant 0 (default)
+        variants.ShouldContain(0);
+        invalidVariants.Count.ShouldBe(0);
     }
 
     [Fact]

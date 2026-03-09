@@ -234,8 +234,8 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     private async Task ExtractImagesFromDirectoryAsync(
-        ZipArchive archive, 
-        string biomeId, 
+        ZipArchive archive,
+        string biomeId,
         string directory,
         TerrainAssetType assetType)
     {
@@ -248,21 +248,22 @@ public class TerrainCachingService : ITerrainAssetService
         foreach (var entry in entries)
         {
             var fileName = Path.GetFileNameWithoutExtension(entry.Name);
-            var (assetName, variant) = ParseAssetFileName(fileName);
-            
+            var parsed = ParseAssetFileName(fileName);
+            if (parsed == null) continue;
+
             await using var stream = await entry.OpenAsync();
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
-            
-            var cacheKey = GetCacheKey(biomeId, assetType, assetName, variant);
+
+            var cacheKey = GetCacheKey(biomeId, assetType, parsed.AssetName, parsed.Variant);
             _imageCache.TryAdd(cacheKey, memoryStream.ToArray());
-            
+
             // Track variants
-            var variantKey = GetVariantKey(biomeId, assetType, assetName);
+            var variantKey = GetVariantKey(biomeId, assetType, parsed.AssetName);
             _variantCache.AddOrUpdate(
                 variantKey,
-                _ => ImmutableSortedSet.Create(variant),
-                (_, set) => set.Add(variant));
+                _ => ImmutableSortedSet.Create(parsed.Variant),
+                (_, set) => set.Add(parsed.Variant));
         }
     }
 
@@ -277,72 +278,76 @@ public class TerrainCachingService : ITerrainAssetService
         foreach (var entry in edgeEntries)
         {
             var fileName = Path.GetFileNameWithoutExtension(entry.Name);
-            var (edgeType, direction, variant) = ParseEdgeFileName(fileName);
-            
-            if (edgeType == null) continue;
-            
-            var assetType = edgeType == "top" ? TerrainAssetType.EdgeTop : TerrainAssetType.EdgeBottom;
-            
+            var parsed = ParseEdgeFileName(fileName);
+            if (parsed == null) continue;
+
+            var assetType = parsed.EdgeType == "top" ? TerrainAssetType.EdgeTop : TerrainAssetType.EdgeBottom;
+
             await using var stream = await entry.OpenAsync();
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
-            
-            var cacheKey = GetCacheKey(biomeId, assetType, direction, variant);
+
+            var cacheKey = GetCacheKey(biomeId, assetType, parsed.Direction, parsed.Variant);
             _imageCache.TryAdd(cacheKey, memoryStream.ToArray());
-            
+
             // Track variants
-            var variantKey = GetVariantKey(biomeId, assetType, direction);
+            var variantKey = GetVariantKey(biomeId, assetType, parsed.Direction);
             _variantCache.AddOrUpdate(
                 variantKey,
-                _ => ImmutableSortedSet.Create(variant),
-                (_, set) => set.Add(variant));
+                _ => ImmutableSortedSet.Create(parsed.Variant),
+                (_, set) => set.Add(parsed.Variant));
         }
     }
 
+    private record AssetInfo(string AssetName, int Variant);
+    private record EdgeInfo(string EdgeType, string Direction, int Variant);
+
     /// <summary>
     /// Parses an asset file name into asset name and zero-based variant number.
-    /// Examples: "base" -> ("base", 0), "base-1" -> ("base", 1), "lightwoods-2" -> ("lightwoods", 2)
+    /// Returns null when the file has an invalid (non-integer) variant suffix so the asset is skipped.
+    /// Examples: "base" -> ("base", 0), "base-1" -> ("base", 1), "base-abc" -> null
     /// </summary>
-    private static (string assetName, int variant) ParseAssetFileName(string fileName)
+    private static AssetInfo? ParseAssetFileName(string fileName)
     {
         var normalizedFileName = fileName.ToLowerInvariant();
         var lastDashIndex = fileName.LastIndexOf('-');
         if (lastDashIndex < 0)
-            return (normalizedFileName, 0);
-        
+            return new AssetInfo(normalizedFileName, 0);
+
         var namePart = fileName[..lastDashIndex];
         var variantPart = fileName[(lastDashIndex + 1)..];
-        
+
         return TryParseVariantSuffix(variantPart, out var variant)
-            ? (namePart.ToLowerInvariant(), variant)
-            : (normalizedFileName, 0);
+            ? new AssetInfo(namePart.ToLowerInvariant(), variant)
+            : null;
     }
 
     /// <summary>
     /// Parses an edge file name into edge type, direction, and zero-based variant number.
-    /// Examples: "top-0" -> ("top", "0", 0), "top-0-1" -> ("top", "0", 1), "bottom-5-3" -> ("bottom", "5", 3)
+    /// Returns null when the file name is invalid or has an invalid variant suffix so the asset is skipped.
+    /// Examples: "top-0" -> ("top", "0", 0), "top-0-1" -> ("top", "0", 1), "top-0-abc" -> null
     /// </summary>
-    private static (string? edgeType, string direction, int variant) ParseEdgeFileName(string fileName)
+    private static EdgeInfo? ParseEdgeFileName(string fileName)
     {
         var parts = fileName.Split('-');
-        
+
         if (parts.Length is < 2 or > 3)
-            return (null, "0", 0);
-        
+            return null;
+
         var edgeType = parts[0].ToLowerInvariant();
         if (edgeType is not ("top" or "bottom"))
-            return (null, "0", 0);
-        
+            return null;
+
         var direction = parts[1];
         if (!int.TryParse(direction, out _))
-            return (null, "0", 0);
-        
+            return null;
+
         if (parts.Length == 2)
-            return (edgeType, direction, 0);
+            return new EdgeInfo(edgeType, direction, 0);
 
         return TryParseVariantSuffix(parts[2], out var variant)
-            ? (edgeType, direction, variant)
-            : (null, "0", 0);
+            ? new EdgeInfo(edgeType, direction, variant)
+            : null;
     }
 
     private static bool TryParseVariantSuffix(string variantPart, out int variant)
