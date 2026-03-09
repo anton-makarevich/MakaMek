@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Assets.Data.Terrain;
+namespace Sanet.MakaMek.Assets.Models.Terrains;
 
 /// <summary>
 /// Defines the types of terrain assets available in MMTX packages

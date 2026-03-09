@@ -84,7 +84,7 @@ public class HybridImageService : IImageService<Bitmap>
             switch (subType.ToLowerInvariant())
             {
                 case "base":
-                    imageBytes = await _terrainAssetService.GetBaseTerrainImage(_terrainThemeId);
+                    imageBytes = await _terrainAssetService.GetBaseBiomeImage(_terrainThemeId);
                     break;
                 case "overlays":
                     imageBytes = await _terrainAssetService.GetTerrainOverlayImage(_terrainThemeId, assetName);

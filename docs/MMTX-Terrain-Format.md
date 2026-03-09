@@ -27,18 +27,18 @@ theme.mmtx
 
 ```json
 {
-  "themeId": "makamek.themes.grasslands",
+  "id": "makamek.biomes.grasslands",
   "name": "Grasslands",
   "version": "1.0.0",
   "requiredMakaMekVersion": "0.53.6",
-  "description": "Grasslands terrain style",
+  "description": "Grasslands biome",
   "author": "MakaMek"
 }
 ```
 
 ### Required Fields
 
-- **themeId**: Unique identifier for the theme (alphanumeric, dashes allowed)
+- **id**: Unique identifier for the biome (alphanumeric, dashes allowed)
 - **name**: Human-readable display name
 - **version**: Semantic version (major.minor.patch)
 - **requiredMakaMekVersion**: Minimum MakaMek version compatibility
@@ -60,8 +60,8 @@ base-{variant}.png
 
 - Located in root directory
 - **variant**: Optional numeric suffix (1-indexed)
-  - `base-1.png` → variant 0
-  - `base-2.png` → variant 1
+  - `base-1.png` → variant 1
+  - `base-2.png` → variant 2
   - `base.png` (no suffix) → variant 0
 
 Examples:
@@ -81,8 +81,8 @@ terrains/{terrainType}-{variant}.png
 - **variant**: Optional numeric suffix (1-indexed)
 
 Examples:
-- `terrains/lightwoods-1.png` - Light woods overlay, variant 0
-- `terrains/heavywoods-2.png` - Heavy woods overlay, variant 1
+- `terrains/lightwoods-1.png` - Light woods overlay, variant 1
+- `terrains/heavywoods-2.png` - Heavy woods overlay, variant 2
 - `terrains/rough.png` - Rough terrain overlay, variant 0
 
 ### Edge Effects
@@ -106,8 +106,8 @@ edges/{type}-{direction}-{variant}.png
 - **variant**: Optional numeric suffix (1-indexed)
 
 Examples:
-- `edges/top-0-1.png` - Top edge at direction 0, variant 0
-- `edges/bottom-3-2.png` - Bottom edge at direction 3, variant 1
+- `edges/top-0-1.png` - Top edge at direction 0, variant 1
+- `edges/bottom-3-2.png` - Bottom edge at direction 3, variant 2
 - `edges/top-5.png` - Top edge at direction 5, variant 0
 
 ## Image Requirements
@@ -147,9 +147,10 @@ Variants provide visual variety while maintaining deterministic rendering:
 ### Variant Numbering
 
 - Variants are 1-indexed in filenames but 0-indexed internally
-- `lightwoods-1.png` → variant 0
-- `lightwoods-2.png` → variant 1
-- `lightwoods-3.png` → variant 2
+- `lightwoods.png` → variant 0
+- `lightwoods-1.png` → variant 1
+- `lightwoods-2.png` → variant 2
+- `lightwoods-3.png` → variant 3
 
 ### Selection Algorithm
 
@@ -174,26 +175,23 @@ A minimal MMTX package:
 ```
 classic.mmtx
 ├── manifest.json
-├── base-1.png
-├── base-2.png
+├── base.png
 ├── terrains/
-│   ├── lightwoods-1.png
-│   ├── lightwoods-2.png
-│   ├── heavywoods-1.png
-│   └── rough-1.png
+│   ├── lightwoods.png
+│   └── heavywoods.png
 └── edges/
-    ├── top-0-1.png
-    ├── top-1-1.png
-    ├── top-2-1.png
-    ├── top-3-1.png
-    ├── top-4-1.png
-    ├── top-5-1.png
-    ├── bottom-0-1.png
-    ├── bottom-1-1.png
-    ├── bottom-2-1.png
-    ├── bottom-3-1.png
-    ├── bottom-4-1.png
-    └── bottom-5-1.png
+    ├── top-0.png
+    ├── top-1.png
+    ├── top-2.png
+    ├── top-3.png
+    ├── top-4.png
+    ├── top-5.png
+    ├── bottom-0.png
+    ├── bottom-1.png
+    ├── bottom-2.png
+    ├── bottom-3.png
+    ├── bottom-4.png
+    └── bottom-5.png
 ```
 
 ## Integration with MakaMek
@@ -203,7 +201,7 @@ classic.mmtx
 1. `TerrainCachingService` receives MMTX stream from `IResourceStreamProvider`
 2. ZIP archive is extracted
 3. `manifest.json` is parsed for theme metadata
-4. Images are cached with keys: `{themeId}/{assetType}/{assetName}/{variant}`
+4. Images are cached with keys: `{id}/{assetType}/{assetName}/{variant}`
 5. Variant availability is tracked per asset type
 
 ### Service Interface
@@ -225,17 +223,7 @@ var edge = await terrainService.GetEdgeImage("classic", HexDirection.Top,
 The parser handles malformed packages gracefully:
 
 - Missing `manifest.json`: Package is skipped, logged as warning
-- Missing `themeId` in manifest: Package is skipped
+- Missing `id` in manifest: Package is skipped
 - Invalid image files: Individual images are skipped, others loaded
 - Missing directories: Optional directories (terrains/, edges/) can be omitted
 
-## Comparison with MMUX
-
-| Feature | MMUX (Units) | MMTX (Terrain) |
-|---------|--------------|----------------|
-| Extension | `.mmux` | `.mmtx` |
-| Manifest | `unit.json` | `manifest.json` |
-| Images | `unit.png` (single) | Multiple with variants |
-| Variants | Not supported | Fully supported |
-| Directory structure | Flat | Hierarchical |
-| Key identifier | Model name | Theme ID |

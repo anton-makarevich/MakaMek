@@ -1,17 +1,17 @@
 using System.Text.Json.Serialization;
 
-namespace Sanet.MakaMek.Assets.Data.Terrain;
+namespace Sanet.MakaMek.Assets.Models.Terrains;
 
 /// <summary>
 /// Represents the manifest.json file inside an MMTX terrain package
 /// </summary>
-public class TerrainThemeManifest
+public class BiomeManifest
 {
     /// <summary>
     /// Unique identifier for this terrain theme
     /// </summary>
-    [JsonPropertyName("themeId")]
-    public string ThemeId { get; set; } = string.Empty;
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
     
     /// <summary>
     /// Human-readable name of the theme

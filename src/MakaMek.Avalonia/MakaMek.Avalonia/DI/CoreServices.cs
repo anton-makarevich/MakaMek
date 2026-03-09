@@ -54,7 +54,7 @@ public static class CoreServices
                 var streamProviders = new List<IResourceStreamProvider>
                 {
                     new GitHubResourceStreamProvider("mmtx",
-                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/terrains",
+                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
                         cachingService,
                         loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
                     )
