@@ -294,6 +294,14 @@ public class FakeLocalizationService: ILocalizationService
 
             // Main Menu loading messages
             "MainMenu_Loading_Content" => "Loading content...",
+            "MainMenu_Loading_Units" => "Loading units...",
+            "MainMenu_Loading_Biomes" => "Loading biomes...",
+            "MainMenu_Loading_NoUnitsFound" => "No units found",
+            "MainMenu_Loading_NoBiomesFound" => "No biomes found",
+            "MainMenu_Loading_UnitsLoaded" => "Loaded {0} units",
+            "MainMenu_Loading_BiomesLoaded" => "Loaded {0} biomes",
+            "MainMenu_Loading_UnitsError" => "Error loading units: {0}",
+            "MainMenu_Loading_BiomesError" => "Error loading biomes: {0}",
             "MainMenu_Loading_NoItemsFound" => "No items found",
             "MainMenu_Loading_ItemsLoaded" => "Loaded {0} items",
             "MainMenu_Loading_Error" => "Error loading content: {0}",
