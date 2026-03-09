@@ -220,5 +220,44 @@ public class MainMenuViewModelTests
         // Assert
         sut.LoadingText.ShouldContain("No units found");
         sut.IsLoading.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task PreloadBiomes_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
+    {
+        // Arrange
+        const string errorMessage = "Test error message";
+        _terrainAssetService
+            .GetLoadedBiomes()
+            .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
+        
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+        
+        // Small delay to allow the background task to complete
+        for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains(errorMessage); i++)
+            await Task.Delay(10);
+        
+        // Assert
+        sut.LoadingText.ShouldContain(errorMessage);
+        sut.IsLoading.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task PreloadBiomes_WhenNoBiomesFound_SetsNoBiomesFoundTextAndKeepsLoadingTrue()
+    {
+        // Arrange
+        _terrainAssetService.GetLoadedBiomes().Returns([]);
+        
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+        
+        // Small delay to allow the background task to complete
+        for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains("No biomes found"); i++)
+            await Task.Delay(10);
+        
+        // Assert
+        sut.LoadingText.ShouldContain("No biomes found");
+        sut.IsLoading.ShouldBeTrue();
     }   
 }
