@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
 using NSubstitute;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -65,6 +66,7 @@ public class BattleMapViewModelTests
         var imageService = Substitute.For<IImageService>();
         var dispatcherService = Substitute.For<IDispatcherService>();
         _sut = new BattleMapViewModel(imageService,
+            Substitute.For<ITerrainAssetService>(),
             _localizationService,
             dispatcherService,
             Substitute.For<IRulesProvider>());

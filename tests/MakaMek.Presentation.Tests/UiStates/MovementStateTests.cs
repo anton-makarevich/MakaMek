@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using NSubstitute;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -46,11 +47,11 @@ public class MovementStateTests
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
+    private readonly IImageService _imageService = Substitute.For<IImageService>();
+    private readonly ITerrainAssetService _terrainAssetsService = Substitute.For<ITerrainAssetService>();
 
     public MovementStateTests()
     {
-        var imageService = Substitute.For<IImageService>();
-
         // Mock localization service responses
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectMovementType").Returns("Select movement type");
@@ -71,7 +72,8 @@ public class MovementStateTests
         var dispatcherService = Substitute.For<IDispatcherService>();
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
 
-         _battleMapViewModel = new BattleMapViewModel(imageService,
+         _battleMapViewModel = new BattleMapViewModel(_imageService,
+             _terrainAssetsService,
              _localizationService,
              dispatcherService,
              _rulesProvider);
@@ -308,10 +310,11 @@ public class MovementStateTests
         var gameWithNullPlayer = Substitute.For<IClientGame>();
         gameWithNullPlayer.PhaseStepState.Returns((PhaseStepState?)null);
 
-        var imageService = Substitute.For<IImageService>();
         var dispatcherService = Substitute.For<IDispatcherService>();
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
-        var viewModel = new BattleMapViewModel(imageService, _localizationService, dispatcherService, _rulesProvider)
+        var viewModel = new BattleMapViewModel(_imageService,
+            _terrainAssetsService,
+            _localizationService, dispatcherService, _rulesProvider)
             {
                 Game = gameWithNullPlayer
             };

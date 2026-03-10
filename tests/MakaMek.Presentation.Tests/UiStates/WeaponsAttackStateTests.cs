@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -67,6 +68,7 @@ public class WeaponsAttackStateTests
         _localizationService.GetString("Action_DeclareAttack").Returns("Declare Attack");
         
         _battleMapViewModel = new BattleMapViewModel(imageService,
+            Substitute.For<ITerrainAssetService>(),
             _localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>());

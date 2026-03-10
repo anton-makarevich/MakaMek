@@ -407,6 +407,7 @@ public class JoinGameViewModelTests
         var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
         var battleMapViewModel = new BattleMapViewModel(imageService,
+            Substitute.For<ITerrainAssetService>(),
             localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>());
