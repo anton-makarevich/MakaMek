@@ -209,7 +209,7 @@ public class HexControl : Panel
         {
             if (terrain.Id == MakaMekTerrains.Clear) continue;
 
-            var terrainType = terrain.Id.ToString().ToLower();
+            var terrainType = terrain.Id.ToString().ToLowerInvariant();
             var imageBytes = await _terrainAssetService.GetTerrainOverlayImage(biomeId, terrainType);
             var bitmap = BytesToBitmap(imageBytes);
             AddImageLayer(bitmap, ZIndexOverlays + overlayIndex);
