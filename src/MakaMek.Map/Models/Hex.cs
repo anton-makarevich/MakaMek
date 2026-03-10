@@ -13,12 +13,13 @@ public class Hex : IDisposable
     public HexCoordinates Coordinates { get; }
     public int Level { get; private set; }
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
-    public string? Theme { get; set; }
+    public string Biome { get; private set; }
 
-    public Hex(HexCoordinates coordinates, int level = 0)
+    public Hex(HexCoordinates coordinates, int level = 0, string biome = "makamek.biomes.grasslands")
     {
         Coordinates = coordinates;
         Level = level;
+        Biome = biome;
     }
 
     public void AddTerrain(Terrain terrain)

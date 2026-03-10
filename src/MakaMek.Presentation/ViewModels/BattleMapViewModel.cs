@@ -4,6 +4,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -85,11 +86,13 @@ public class BattleMapViewModel : BaseViewModel
 
     public BattleMapViewModel(
         IImageService imageService,
+        ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService, 
         IDispatcherService dispatcherService,
         IRulesProvider rulesProvider)
     {
         ImageService = imageService;
+        TerrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         CurrentState = new IdleState();
@@ -609,6 +612,7 @@ public class BattleMapViewModel : BaseViewModel
     public ICommand HideBodyPartSelectorCommand { get; }
 
     public ICommand LeaveGameCommand { get; }
+    public ITerrainAssetService TerrainAssetService { get; }
 
     private Task ProcessGameEnded(GameEndedCommand command)
     {

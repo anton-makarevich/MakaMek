@@ -69,6 +69,7 @@ public class StartNewGameViewModelTests
         var imageService = Substitute.For<IImageService>();
         _battleMapViewModel =
             new BattleMapViewModel(imageService,
+                Substitute.For<ITerrainAssetService>(),
                 localizationService,
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider);

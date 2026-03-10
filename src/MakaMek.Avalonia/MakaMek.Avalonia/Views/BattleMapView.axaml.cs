@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Map.Models;
@@ -32,16 +33,22 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void RenderMap(IGame game, IImageService<Bitmap> imageService)
     {
+        var terrainAssetService = ViewModel?.TerrainAssetService;
+        if (terrainAssetService == null)
+        {
+            game.Logger.LogError("Terrain asset service is not available");
+            return;
+        }
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
-
+        
         var maxH = 0d;
         var maxV = 0d;
-        
+
         foreach (var hex in game.BattleMap?.GetHexes()??[])
         {
             var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
-            var hexControl = new HexControl(hex, imageService, game.Logger, edges);
+            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, edges);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;
