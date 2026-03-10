@@ -89,7 +89,7 @@ public class HexControl : Panel
         Children.Add(label);
         label.ZIndex = ZIndexLabel;
 
-        // Set initial highlight state
+        // Set the initial highlight state
         if (_hex.IsHighlighted)
             Highlight(HexHighlightType.Selected);
 
@@ -131,6 +131,7 @@ public class HexControl : Panel
     {
         foreach (var layer in _terrainImageLayers)
         {
+            (layer.Source as IDisposable)?.Dispose();
             Children.Remove(layer);
         }
 
@@ -154,7 +155,7 @@ public class HexControl : Panel
         _terrainImageLayers.Add(imageControl);
     }
 
-    private static Bitmap? BytesToBitmap(byte[]? bytes)
+    private Bitmap? BytesToBitmap(byte[]? bytes)
     {
         if (bytes == null) return null;
         try
@@ -164,6 +165,7 @@ public class HexControl : Panel
         }
         catch
         {
+            _logger.LogError("Error converting bytes to bitmap");
             return null;
         }
     }
