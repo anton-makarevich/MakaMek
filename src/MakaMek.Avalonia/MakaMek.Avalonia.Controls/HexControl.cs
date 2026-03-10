@@ -170,7 +170,7 @@ public class HexControl : Panel
 
     private async Task UpdateBaseTerrainImage()
     {
-        var biomeId = _hex.Theme ?? "classic";
+        var biomeId = _hex.Biome;
         var imageBytes = await _terrainAssetService.GetBaseBiomeImage(biomeId);
         var bitmap = BytesToBitmap(imageBytes);
         AddImageLayer(bitmap, ZIndexBaseTerrain);
@@ -179,7 +179,7 @@ public class HexControl : Panel
     private async Task UpdateEdgeLayers()
     {
         if (_edges == null) return;
-        var biomeId = _hex.Theme ?? "classic";
+        var biomeId = _hex.Biome;
         var edgeIndex = 0;
 
         foreach (var edge in _edges)
@@ -200,7 +200,7 @@ public class HexControl : Panel
 
     private async Task UpdateOverlayLayers()
     {
-        var biomeId = _hex.Theme ?? "classic";
+        var biomeId = _hex.Biome;
         var overlayIndex = 0;
 
         foreach (var terrain in _hex.GetTerrains())
