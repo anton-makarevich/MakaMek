@@ -612,7 +612,7 @@ public class BattleMapViewModel : BaseViewModel
     public ICommand HideBodyPartSelectorCommand { get; }
 
     public ICommand LeaveGameCommand { get; }
-    public ITerrainAssetService TerrainAssetService { get; set; }
+    public ITerrainAssetService TerrainAssetService { get; }
 
     private Task ProcessGameEnded(GameEndedCommand command)
     {
