@@ -31,15 +31,16 @@ public class BattleMapFactory : IBattleMapFactory
     }
 
     /// <summary>
-    /// Create a battle map from existing hex data
+    /// Create a battle map from existing map data (including biome)
     /// </summary>
-    public BattleMap CreateFromData(IList<HexData> hexData)
+    public BattleMap CreateFromData(BattleMapData mapData)
     {
         var map = new BattleMap(
-            hexData.Max(h => h.Coordinates.Q),
-            hexData.Max(h => h.Coordinates.R));
-        
-        foreach (var hex in hexData)
+            mapData.HexData.Max(h => h.Coordinates.Q),
+            mapData.HexData.Max(h => h.Coordinates.R),
+            mapData.Biome);
+
+        foreach (var hex in mapData.HexData)
         {
             var newHex = new Hex(new HexCoordinates(hex.Coordinates), hex.Level);
             foreach (var terrainType in hex.TerrainTypes)
@@ -50,7 +51,7 @@ public class BattleMapFactory : IBattleMapFactory
             }
             map.AddHex(newHex);
         }
-        
+
         return map;
     }
 }

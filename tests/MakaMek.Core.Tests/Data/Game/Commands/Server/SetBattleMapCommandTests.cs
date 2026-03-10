@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Map.Data;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
@@ -19,7 +20,7 @@ public class SetBattleMapCommandTests
         {
             GameOriginId = _gameId,
             Timestamp = _timestamp,
-            MapData = []
+            MapData = new BattleMapData { HexData = [] }
         };
     }
 

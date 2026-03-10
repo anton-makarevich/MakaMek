@@ -6,6 +6,7 @@ public interface IBattleMap
 {
     int Width { get; }
     int Height { get; }
+    string Biome { get; }
 
     /// <summary>
     /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries
@@ -60,10 +61,10 @@ public interface IBattleMap
     IEnumerable<Hex> GetHexes();
 
     /// <summary>
-    /// Converts the battle map to a list of hex data objects
+    /// Converts the battle map to a data object including biome and hex data
     /// </summary>
-    /// <returns>List of hex data objects representing the map</returns>
-    List<HexData> ToData();
+    /// <returns>BattleMapData object representing the map</returns>
+    BattleMapData ToData();
 
     /// <summary>
     /// Gets hexes along the line of sight between two coordinates, including terrain information

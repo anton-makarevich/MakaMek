@@ -105,7 +105,7 @@ public class StartNewGameViewModelTests
         var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
 

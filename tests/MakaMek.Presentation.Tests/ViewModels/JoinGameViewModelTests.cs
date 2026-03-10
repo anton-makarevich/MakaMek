@@ -6,6 +6,7 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -420,7 +421,7 @@ public class JoinGameViewModelTests
         _sut.HandleServerCommand(new SetBattleMapCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = []
+            MapData = new BattleMapData { HexData = [] }
         });
 
         // Assert

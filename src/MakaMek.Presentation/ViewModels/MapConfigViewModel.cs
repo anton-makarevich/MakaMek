@@ -208,13 +208,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
                 return;
             }
 
-            var hexData = JsonSerializer.Deserialize<List<HexData>>(content);
-            if (hexData == null || hexData.Count == 0)
+            var mapData = JsonSerializer.Deserialize<BattleMapData>(content);
+            if (mapData == null || mapData.HexData.Count == 0)
             {
                 return;
             }
 
-            var battleMap = _mapFactory.CreateFromData(hexData);
+            var battleMap = _mapFactory.CreateFromData(mapData);
 
             var mapName = string.IsNullOrWhiteSpace(name)
                 ? "Loaded Map"
@@ -249,9 +249,9 @@ public class MapConfigViewModel : BindableBase, IDisposable
             var maps = await _mapResourceProvider.GetAvailableMapsAsync();
             var tasks = new List<Task>();
 
-            foreach (var (name, hexData) in maps)
+            foreach (var (name, mapData) in maps)
             {
-                var battleMap = _mapFactory.CreateFromData(hexData);
+                var battleMap = _mapFactory.CreateFromData(mapData);
                 var item = new MapPreviewItem
                 {
                     Name = name,

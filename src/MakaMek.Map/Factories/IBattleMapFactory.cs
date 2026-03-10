@@ -15,7 +15,7 @@ public interface IBattleMapFactory
     BattleMap GenerateMap(int width, int height, ITerrainGenerator generator);
 
     /// <summary>
-    /// Create a battle map from existing hex data
+    /// Create a battle map from existing map data (including biome)
     /// </summary>
-    BattleMap CreateFromData(IList<HexData> hexData);
+    BattleMap CreateFromData(BattleMapData mapData);
 }

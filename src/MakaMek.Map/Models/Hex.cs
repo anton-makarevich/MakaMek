@@ -13,13 +13,16 @@ public class Hex : IDisposable
     public HexCoordinates Coordinates { get; }
     public int Level { get; private set; }
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
-    public string Biome { get; private set; }
 
-    public Hex(HexCoordinates coordinates, int level = 0, string biome = "makamek.biomes.grasslands")
+    /// <summary>
+    /// The biome identifier for this hex, inherited from the map when added via BattleMap.AddHex()
+    /// </summary>
+    public string Biome { get; internal set; } = string.Empty;
+
+    public Hex(HexCoordinates coordinates, int level = 0)
     {
         Coordinates = coordinates;
         Level = level;
-        Biome = biome;
     }
 
     public void AddTerrain(Terrain terrain)

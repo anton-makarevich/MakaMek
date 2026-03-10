@@ -16,5 +16,5 @@ public record struct SetBattleMapCommand : IGameCommand
         return string.Format(localizationService.GetString("Command_SetBattleMap"));
     }
 
-    public required List<HexData> MapData { get; init; }
+    public required BattleMapData MapData { get; init; }
 }
