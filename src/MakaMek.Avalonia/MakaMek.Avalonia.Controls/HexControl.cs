@@ -272,6 +272,7 @@ public class HexControl : Panel
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _hexSubscription?.Dispose();
+        ClearImageLayers();
         base.OnDetachedFromVisualTree(e);
     }
 }
