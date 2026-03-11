@@ -23,12 +23,14 @@ public class MapConfigViewModelTests
     private readonly ILogger _logger = Substitute.For<ILogger>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
 
+    private const string TestBiome = "makamek.biomes.desert";
+    
     public MapConfigViewModelTests()
     {
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
         
-        // Configure dispatcher to execute actions immediately
+        // Configure the dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
@@ -37,6 +39,7 @@ public class MapConfigViewModelTests
     private static BattleMapData CreateSingleMapData() =>
         new()
         {
+            Biome = TestBiome,
             HexData =
             [
                 new()
@@ -479,7 +482,7 @@ public class MapConfigViewModelTests
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap!.Name.ShouldBe("TestMap");
         sut.SelectedMap.Map.ShouldBe(expectedMap);
-        sut.SelectedTabIndex = 0; // ensure Select Map tab is active
+        sut.SelectedTabIndex = 0; // ensure the Select Map tab is active
         sut.Map.ShouldBe(expectedMap);
     }
 
@@ -675,11 +678,11 @@ public class MapConfigViewModelTests
         // Assert
         sut.AvailableMaps.Count.ShouldBe(2);
         
-        // Map1 should have null preview due to error
+        // Map1 should have a null preview due to an error
         var map1Item = sut.AvailableMaps.First(m => m.Name == "Map1");
         map1Item.PreviewImage.ShouldBeNull();
         
-        // Map2 should have preview
+        // Map2 should have a preview
         var map2Item = sut.AvailableMaps.First(m => m.Name == "Map2");
         map2Item.PreviewImage.ShouldNotBeNull();
         

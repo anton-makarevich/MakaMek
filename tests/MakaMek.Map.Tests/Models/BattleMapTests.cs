@@ -879,6 +879,7 @@ public class BattleMapTests
         var hexDataList = sut.ToData();
 
         // Assert
+        hexDataList.Biome.ShouldBe(sut.Biome);
         hexDataList.HexData.Count.ShouldBe(4);
 
         // Verify first hex data
