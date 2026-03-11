@@ -35,6 +35,11 @@ public class BattleMapFactory : IBattleMapFactory
     /// </summary>
     public BattleMap CreateFromData(BattleMapData mapData)
     {
+        if (mapData.HexData.Count == 0)
+        {
+            return new BattleMap(0, 0, mapData.Biome);
+        }
+
         var map = new BattleMap(
             mapData.HexData.Max(h => h.Coordinates.Q),
             mapData.HexData.Max(h => h.Coordinates.R),
