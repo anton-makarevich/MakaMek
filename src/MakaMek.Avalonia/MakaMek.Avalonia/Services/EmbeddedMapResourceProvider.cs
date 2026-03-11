@@ -42,7 +42,11 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
                 if (stream == null) continue;
 
                 var mapData = await JsonSerializer.DeserializeAsync<BattleMapData>(stream);
-                if (mapData == null) continue;
+                if (mapData?.HexData == null || mapData.HexData.Count == 0)
+                {
+                    _logger.LogWarning("Skipping map resource {ResourceId} because it has no hex data", resourceId);
+                    continue;
+                }
 
                 var name = ExtractMapName(resourceId);
                 maps.Add((name, mapData));
