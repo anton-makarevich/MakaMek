@@ -78,6 +78,7 @@ MakaMek/
 │   ├── MakaMek.Map/          # Map generation and management
 │   ├── MakaMek.Presentation/ # Presentation layer (ViewModels and UI states)
 │   ├── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
+│   ├── MakaMek.Assets/       # 2D Assets management
 │   ├── MakaMek.Bots/         # Bot framework 
 │   └── MakaMek.Tools/        # Tools and utilities
 ├── tests/                    # Unit tests
