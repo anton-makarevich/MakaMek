@@ -46,7 +46,9 @@ public class ClientGameTests
     private readonly Guid _idempotencyKey = Guid.NewGuid();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
-    private const int CommandAckTimeout = 300;
+    // Keep this longer than WaitForPublishedCommand's worst-case polling window
+    // so pending client commands are still tracked when tests simulate a rebroadcast.
+    private const int CommandAckTimeout = 1000;
     public ClientGameTests()
     {
         _hashService.ComputeCommandIdempotencyKey(
