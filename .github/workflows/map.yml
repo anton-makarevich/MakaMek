@@ -5,10 +5,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'src/MakaMek.Map/**'
-      - 'tests/MakaMek.Map.Tests/**'
-      - '.github/workflows/map.yml'
+
   pull_request:
     paths:
       - 'src/MakaMek.Map/**'
