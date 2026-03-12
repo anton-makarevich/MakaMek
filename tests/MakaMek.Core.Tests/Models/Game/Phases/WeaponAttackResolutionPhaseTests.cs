@@ -1042,6 +1042,104 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_ShouldResolveMultipleWeaponsFromSameAttacker_WhenFirstWeaponDestroysTarget()
+    {
+        // Arrange
+        SetMap();
+        
+        // Declare two weapons from the same attacker (_player1Unit1) at the same target
+        var weapon1 = new TestWeapon();
+        var part1 = _player1Unit1.Parts.Values.Skip(0).First();
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weapon2 = new TestWeapon();
+        var part2 = _player1Unit1.Parts.Values.Skip(1).First();
+        part2.TryAddComponent(weapon2).ShouldBeTrue();
+
+        _player1Unit1.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(
+                            part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            },
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon2.Name,
+                    Type = weapon2.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(
+                            part2.Location,
+                            weapon2.MountedAtFirstLocationSlots.First(),
+                            weapon2.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        var centerTorso = _player2Unit1.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure - 1, HitDirection.Front);
+
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 0, 1, true)
+            ]);
+
+        SetupDiceRolls(8, 7, 8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldBe(UnitStatus.Destroyed);
+        DiceRoller.Received(4).Roll2D6();
+
+        Received.InOrder(() =>
+        {
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.UnitDestroyed));
+
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.IsHit
+                && cmd.ResolutionData.HitLocationsData != null));
+        });
+    }
+
+    [Fact]
     public void Enter_ShouldResolveLaterDeclaredAttack_WhenEarlierAttackDestroyedTargetByCriticalHitEffects()
     {
         // Arrange
