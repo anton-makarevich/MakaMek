@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
@@ -105,5 +106,25 @@ public class BattleMapFactoryTests
             clonedHex.Level.ShouldBe(hex.Level);
             clonedHex.GetTerrainTypes().ShouldBeEquivalentTo(hex.GetTerrainTypes());
         }
+    }
+
+    [Fact]
+    public void CreateFromData_ShouldReturnEmptyMap_WhenHexDataIsEmpty()
+    {
+        // Arrange
+        var emptyMapData = new BattleMapData
+        {
+            HexData = [],
+            Biome = "TestBiome"
+        };
+
+        // Act
+        var result = _sut.CreateFromData(emptyMapData);
+
+        // Assert
+        result.Width.ShouldBe(0);
+        result.Height.ShouldBe(0);
+        result.Biome.ShouldBe("TestBiome");
+        result.GetHexes().ShouldBeEmpty();
     }
 }

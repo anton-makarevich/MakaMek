@@ -1,4 +1,6 @@
-[
+{
+  "Biome": "makamek.biomes.grasslands",
+  "HexData": [
   {
     "Coordinates": {
       "Q": 1,
@@ -2549,4 +2551,5 @@
     ],
     "Level": 0
   }
-]
+  ]
+}

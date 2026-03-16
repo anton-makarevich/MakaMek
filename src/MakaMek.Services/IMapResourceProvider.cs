@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Services;
 public interface IMapResourceProvider
 {
     /// <summary>
-    /// Gets all available maps with their names and hex data
+    /// Gets all available maps with their names and map data
     /// </summary>
-    Task<IReadOnlyList<(string Name, IList<HexData> HexData)>> GetAvailableMapsAsync();
+    Task<IReadOnlyList<(string Name, BattleMapData MapData)>> GetAvailableMapsAsync();
 }

@@ -385,7 +385,7 @@ public class ServerGameTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
             cmd.GameOriginId == _sut.Id &&
-            cmd.MapData.Count == battleMap.ToData().Count));
+            cmd.MapData.HexData.Count == battleMap.ToData().HexData.Count));
     }
 
     [Fact]

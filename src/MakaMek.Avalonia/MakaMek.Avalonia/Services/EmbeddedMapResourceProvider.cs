@@ -25,14 +25,14 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
         _streamProvider = new AssemblyResourceStreamProvider("json", typeof(EmbeddedMapResourceProvider).Assembly);
     }
 
-    public async Task<IReadOnlyList<(string Name, IList<HexData> HexData)>> GetAvailableMapsAsync()
+    public async Task<IReadOnlyList<(string Name, BattleMapData MapData)>> GetAvailableMapsAsync()
     {
         var resourceIds = await _streamProvider.GetAvailableResourceIds();
         var mapResourceIds = resourceIds
             .Where(id => id.Contains(MapsResourcePrefix, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var maps = new List<(string Name, IList<HexData> HexData)>();
+        var maps = new List<(string Name, BattleMapData MapData)>();
 
         foreach (var resourceId in mapResourceIds)
         {
@@ -41,11 +41,15 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
                 await using var stream = await _streamProvider.GetResourceStream(resourceId);
                 if (stream == null) continue;
 
-                var hexData = await JsonSerializer.DeserializeAsync<List<HexData>>(stream);
-                if (hexData == null) continue;
+                var mapData = await JsonSerializer.DeserializeAsync<BattleMapData>(stream);
+                if (mapData?.HexData == null || mapData.HexData.Count == 0)
+                {
+                    _logger.LogWarning("Skipping map resource {ResourceId} because it has no hex data", resourceId);
+                    continue;
+                }
 
                 var name = ExtractMapName(resourceId);
-                maps.Add((name, hexData));
+                maps.Add((name, mapData));
             }
             catch (JsonException exception)
             {

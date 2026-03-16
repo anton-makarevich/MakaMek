@@ -46,7 +46,9 @@ public class ClientGameTests
     private readonly Guid _idempotencyKey = Guid.NewGuid();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
-    private const int CommandAckTimeout = 300;
+    // Keep this longer than WaitForPublishedCommand's worst-case polling window
+    // so pending client commands are still tracked when tests simulate a rebroadcast.
+    private const int CommandAckTimeout = 1000;
     public ClientGameTests()
     {
         _hashService.ComputeCommandIdempotencyKey(
@@ -64,7 +66,7 @@ public class ClientGameTests
             _rulesProvider,
             _componentProvider,
             Substitute.For<ILocalizationService>());
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
         _sut = new ClientGame(_rulesProvider,
             mechFactory,
             _commandPublisher,
@@ -1906,24 +1908,25 @@ public class ClientGameTests
             }
         ];
         
-        var newBattleMap = BattleMapFactory.CreateFromData(mapData);
-        
-        _mapFactory.CreateFromData(Arg.Is<List<HexData>>(data => 
-            data.Count == mapData.Count)).Returns(newBattleMap);
-        
+        var battleMapData = new BattleMapData { HexData = mapData };
+        var newBattleMap = BattleMapFactory.CreateFromData(battleMapData);
+
+        _mapFactory.CreateFromData(Arg.Is<BattleMapData>(data =>
+            data.HexData.Count == mapData.Count)).Returns(newBattleMap);
+
         var setBattleMapCommand = new SetBattleMapCommand
         {
             GameOriginId = Guid.NewGuid(), // Different from client game ID
-            MapData = mapData
+            MapData = battleMapData
         };
-        
+
         // Act
         _sut.HandleCommand(setBattleMapCommand);
-        
+
         // Assert
         _sut.BattleMap.ShouldBe(newBattleMap);
-        _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data =>
-            data.Count == mapData.Count));
+        _mapFactory.Received(1).CreateFromData(Arg.Is<BattleMapData>(data =>
+            data.HexData.Count == mapData.Count));
     }
 
     [Fact]
@@ -2222,9 +2225,9 @@ public class ClientGameTests
         _sut.HandleCommand(new SetBattleMapCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = []
+            MapData = new BattleMapData { HexData = [] }
         });
-        
+
         // Deploy the unit
         _sut.HandleCommand(new DeployUnitCommand
         {
@@ -2234,7 +2237,7 @@ public class ClientGameTests
             Position = new HexCoordinateData(1, 1),
             Direction = 0
         });
-        
+
         // Create hit locations data for the falling damage
         var hitLocations = new List<LocationHitData>
         {
@@ -2308,9 +2311,9 @@ public class ClientGameTests
         _sut.HandleCommand(new SetBattleMapCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = []
+            MapData = new BattleMapData { HexData = [] }
         });
-        
+
         // Deploy the unit
         _sut.HandleCommand(new DeployUnitCommand
         {

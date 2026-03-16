@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Map.Models;
 /// <summary>
 /// Represents the game battle map, managing hexes and providing pathfinding capabilities
 /// </summary>
-public class BattleMap(int width, int height) : IBattleMap
+public class BattleMap(int width, int height, string biome = "makamek.biomes.grasslands") : IBattleMap
 {
     private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
     private readonly LineOfSightCache _losCache = new();
@@ -15,9 +15,11 @@ public class BattleMap(int width, int height) : IBattleMap
 
     public int Width { get; } = width;
     public int Height { get; } = height;
+    public string Biome { get; } = biome;
 
     /// <summary>
-    /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries
+    /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries.
+    /// Stamps the map's biome onto the hex.
     /// </summary>
     public void AddHex(Hex hex)
     {
@@ -26,7 +28,8 @@ public class BattleMap(int width, int height) : IBattleMap
         {
             throw new HexOutsideOfMapBoundariesException(hex.Coordinates, Width, Height);
         }
-        
+
+        hex.Biome = Biome;
         _hexes[hex.Coordinates] = hex;
     }
 
@@ -593,12 +596,16 @@ public class BattleMap(int width, int height) : IBattleMap
     }
 
     /// <summary>
-    /// Converts the battle map to a list of hex data objects
+    /// Converts the battle map to a data object including biome and hex data
     /// </summary>
-    /// <returns>List of hex data objects representing the map</returns>
-    public List<HexData> ToData()
+    /// <returns>BattleMapData object representing the map</returns>
+    public BattleMapData ToData()
     {
-        return GetHexes().Select(hex => hex.ToData()).ToList();
+        return new BattleMapData
+        {
+            Biome = Biome,
+            HexData = GetHexes().Select(hex => hex.ToData()).ToList()
+        };
     }
 
     private MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
@@ -693,7 +700,7 @@ public class BattleMap(int width, int height) : IBattleMap
     /// Gets the edge information for all 6 edges of a hex
     /// </summary>
     /// <param name="coordinates">The coordinates of the hex</param>
-    /// <returns>A list of HexEdge objects for all 6 directions. Returns empty list if hex doesn't exist.</returns>
+    /// <returns>A list of HexEdge objects for all 6 directions. Returns an empty list if hex doesn't exist.</returns>
     public IReadOnlyList<HexEdge> GetHexEdges(HexCoordinates coordinates)
     {
         var hex = GetHex(coordinates);

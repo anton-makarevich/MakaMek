@@ -23,26 +23,33 @@ public class MapConfigViewModelTests
     private readonly ILogger _logger = Substitute.For<ILogger>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
 
+    private const string TestBiome = "makamek.biomes.desert";
+    
     public MapConfigViewModelTests()
     {
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
         
-        // Configure dispatcher to execute actions immediately
+        // Configure the dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
     }
 
-    private static IList<HexData> CreateSingleHexData() =>
-    [
+    private static BattleMapData CreateSingleMapData() =>
         new()
         {
-            Coordinates = new HexCoordinateData(1, 1),
-            TerrainTypes = [MakaMekTerrains.Clear],
-            Level = 0
-        }
-    ];
+            Biome = TestBiome,
+            HexData =
+            [
+                new()
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Level = 0
+                }
+            ]
+        };
 
     [Fact]
     public void Constructor_SetsDefaultValues()
@@ -253,15 +260,15 @@ public class MapConfigViewModelTests
     public async Task LoadAvailableMapsAsync_PreselectsFirstMap()
     {
         // Arrange
-        var hexData = CreateSingleHexData();
+        var mapData = CreateSingleMapData();
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>
+            .Returns(new List<(string Name, BattleMapData MapData)>
             {
-                ("Map1", hexData),
-                ("Map2", hexData)
+                ("Map1", mapData),
+                ("Map2", mapData)
             });
         var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
         
         var previewImage = new object();
         _previewRenderer.GeneratePreviewAsync(
@@ -286,16 +293,16 @@ public class MapConfigViewModelTests
     public async Task SelectMap_UpdatesSelectedMapAndDeselectsPrevious()
     {
         // Arrange
-        var hexData = CreateSingleHexData();
+        var mapData = CreateSingleMapData();
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>
+            .Returns(new List<(string Name, BattleMapData MapData)>
             {
-                ("Map1", hexData),
-                ("Map2", hexData)
+                ("Map1", mapData),
+                ("Map2", mapData)
             });
-        
+
         var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
         var sut = new MapConfigViewModel(_previewRenderer,
             _mapFactory,
@@ -317,14 +324,14 @@ public class MapConfigViewModelTests
     public async Task Map_ReturnsSelectedMap_WhenTabIndexIsZero()
     {
         // Arrange
-        var hexData = CreateSingleHexData();
+        var mapData = CreateSingleMapData();
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>
+            .Returns(new List<(string Name, BattleMapData MapData)>
             {
-                ("TestMap", hexData)
+                ("TestMap", mapData)
             });
         var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
         var sut = new MapConfigViewModel(_previewRenderer,
             _mapFactory,
@@ -407,14 +414,14 @@ public class MapConfigViewModelTests
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockDisposable));
-        var hexData = CreateSingleHexData();
+        var mapData = CreateSingleMapData();
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>
+            .Returns(new List<(string Name, BattleMapData MapData)>
             {
-                ("TestMap", hexData)
+                ("TestMap", mapData)
             });
         var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
         
@@ -443,24 +450,27 @@ public class MapConfigViewModelTests
     {
         // Arrange
         const string mapJson = """
-                               [
                                {
-                                 "Coordinates": {
-                                   "Q": 1,
-                                   "R": 1
-                                 },
-                                 "TerrainTypes": [
-                                   0
-                                 ],
-                                 "Level": 0
+                                 "Biome": "makamek.biomes.grasslands",
+                                 "HexData": [
+                                 {
+                                   "Coordinates": {
+                                     "Q": 1,
+                                     "R": 1
+                                   },
+                                   "TerrainTypes": [
+                                     0
+                                   ],
+                                   "Level": 0
+                                 }
+                                 ]
                                }
-                               ]
                                """;
         const string fileName = "TestMap.json";
         _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>((fileName, mapJson)));
-        
+
         var expectedMap = new BattleMap(2, 2);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(expectedMap);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(expectedMap);
         
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
         
@@ -472,7 +482,7 @@ public class MapConfigViewModelTests
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap!.Name.ShouldBe("TestMap");
         sut.SelectedMap.Map.ShouldBe(expectedMap);
-        sut.SelectedTabIndex = 0; // ensure Select Map tab is active
+        sut.SelectedTabIndex = 0; // ensure the Select Map tab is active
         sut.Map.ShouldBe(expectedMap);
     }
 
@@ -491,7 +501,7 @@ public class MapConfigViewModelTests
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
         sut.SelectedMap.ShouldBeNull();
-        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<BattleMapData>());
     }
 
     [Fact]
@@ -499,7 +509,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         _fileService.OpenFile(Arg.Any<string>())
-            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "[]")));
+            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", """{"HexData": []}""")));
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
 
@@ -509,7 +519,7 @@ public class MapConfigViewModelTests
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
         sut.SelectedMap.ShouldBeNull();
-        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<BattleMapData>());
     }
 
     [Fact]
@@ -542,9 +552,9 @@ public class MapConfigViewModelTests
     {
         // Arrange
         _fileService.OpenFile(Arg.Any<string>())
-            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]")));
+            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "{\"HexData\":[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]}")));
 
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(new BattleMap(2, 2));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
 
@@ -559,17 +569,17 @@ public class MapConfigViewModelTests
     public void LoadAvailableMaps_PopulatesItemsImmediately_ThenGeneratesPreviewsInParallel()
     {
         // Arrange
-        var hexData = CreateSingleHexData();
-        var maps = new List<(string Name, IList<HexData> HexData)>
+        var mapData = CreateSingleMapData();
+        var maps = new List<(string Name, BattleMapData MapData)>
         {
-            ("Map1", hexData),
-            ("Map2", hexData),
-            ("Map3", hexData)
+            ("Map1", mapData),
+            ("Map2", mapData),
+            ("Map3", mapData)
         };
         _mapResourceProvider.GetAvailableMapsAsync().Returns(maps);
 
         var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
         var previewImage = new object();
         var previewGenerationTasks = new List<Task<object?>>();
@@ -609,38 +619,44 @@ public class MapConfigViewModelTests
     public async Task LoadAvailableMaps_WhenPreviewGenerationFails_LogsErrorAndLeavesPreviewNull()
     {
         // Arrange
-        var hexData1 = new List<HexData>
+        var mapData1 = new BattleMapData
         {
-            new()
-            {
-                Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
+            HexData =
+            [
+                new()
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Level = 0
+                }
+            ]
         };
-        
-        var hexData2 = new List<HexData>
+
+        var mapData2 = new BattleMapData
         {
-            new()
-            {
-                Coordinates = new HexCoordinateData(2, 2),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
+            HexData =
+            [
+                new()
+                {
+                    Coordinates = new HexCoordinateData(2, 2),
+                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Level = 0
+                }
+            ]
         };
-        
+
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>
+            .Returns(new List<(string Name, BattleMapData MapData)>
             {
-                ("Map1", hexData1),
-                ("Map2", hexData2)
+                ("Map1", mapData1),
+                ("Map2", mapData2)
             });
-        
+
         var map1 = new BattleMap(5, 5);
         var map2 = new BattleMap(6, 6);
-        
-        _mapFactory.CreateFromData(hexData1).Returns(map1);
-        _mapFactory.CreateFromData(hexData2).Returns(map2);
+
+        _mapFactory.CreateFromData(mapData1).Returns(map1);
+        _mapFactory.CreateFromData(mapData2).Returns(map2);
         
         _previewRenderer.GeneratePreviewAsync(
             Arg.Is<BattleMap>(x => x.Width == 5 && x.Height == 5),
@@ -662,11 +678,11 @@ public class MapConfigViewModelTests
         // Assert
         sut.AvailableMaps.Count.ShouldBe(2);
         
-        // Map1 should have null preview due to error
+        // Map1 should have a null preview due to an error
         var map1Item = sut.AvailableMaps.First(m => m.Name == "Map1");
         map1Item.PreviewImage.ShouldBeNull();
         
-        // Map2 should have preview
+        // Map2 should have a preview
         var map2Item = sut.AvailableMaps.First(m => m.Name == "Map2");
         map2Item.PreviewImage.ShouldNotBeNull();
         
@@ -684,7 +700,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         _mapResourceProvider.GetAvailableMapsAsync()
-            .Returns(new List<(string Name, IList<HexData> HexData)>());
+            .Returns(new List<(string Name, BattleMapData MapData)>());
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
 
