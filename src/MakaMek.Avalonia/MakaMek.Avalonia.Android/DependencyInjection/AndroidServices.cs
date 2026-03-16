@@ -27,10 +27,10 @@ public static class AndroidServices
         // Register console-based command logger for Android platform
         services.AddSingleton<ICommandLoggerFactory, ConsoleCommandLoggerFactory>();
 
-        // Register file system caching service for Android platform
+        // Register file system caching service for an Android platform
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
 
-        // Register external navigation service for Android platform
+        // Register external navigation service for an Android platform
         services.AddSingleton<IExternalNavigationService, AndroidExternalNavigationService>();
     }
 }
