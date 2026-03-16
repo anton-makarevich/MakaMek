@@ -10,7 +10,6 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -476,7 +475,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
         _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
-        // Setup ToHitCalculator to return a value
+        // Set up ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
@@ -542,7 +541,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
         _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
-        // Setup ToHitCalculator to return a value
+        // Set up ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
@@ -689,7 +688,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
         _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
-        // Setup ToHitCalculator to return a value
+        // Set up ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
@@ -989,6 +988,263 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_ShouldResolveLaterDeclaredAttack_WhenEarlierAttackDestroyedTargetByWeaponDamage()
+    {
+        // Arrange
+        SetMap();
+        DeclareSingleWeaponAttack(_player1Unit1, _player2Unit1);
+        DeclareSingleWeaponAttack(_player1Unit2, _player2Unit1);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        var centerTorso = _player2Unit1.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure - 1, HitDirection.Front);
+
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 0, 1, true)
+            ]);
+
+        SetupDiceRolls(8, 7, 8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldBe(UnitStatus.Destroyed);
+        DiceRoller.Received(4).Roll2D6();
+
+        Received.InOrder(() =>
+        {
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.UnitDestroyed));
+
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit2.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.IsHit
+                && cmd.ResolutionData.HitLocationsData != null));
+        });
+    }
+
+    [Fact]
+    public void Enter_ShouldResolveMultipleWeaponsFromSameAttacker_WhenFirstWeaponDestroysTarget()
+    {
+        // Arrange
+        SetMap();
+        
+        // Declare two weapons from the same attacker (_player1Unit1) at the same target
+        var weapon1 = new TestWeapon();
+        var part1 = _player1Unit1.Parts.Values.Skip(0).First();
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weapon2 = new TestWeapon();
+        var part2 = _player1Unit1.Parts.Values.Skip(1).First();
+        part2.TryAddComponent(weapon2).ShouldBeTrue();
+
+        _player1Unit1.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(
+                            part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            },
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon2.Name,
+                    Type = weapon2.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(
+                            part2.Location,
+                            weapon2.MountedAtFirstLocationSlots.First(),
+                            weapon2.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        var centerTorso = _player2Unit1.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure - 1, HitDirection.Front);
+
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 0, 1, true)
+            ]);
+
+        SetupDiceRolls(8, 7, 8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldBe(UnitStatus.Destroyed);
+        DiceRoller.Received(4).Roll2D6();
+
+        Received.InOrder(() =>
+        {
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.UnitDestroyed));
+
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.IsHit
+                && cmd.ResolutionData.HitLocationsData != null));
+        });
+    }
+
+    [Fact]
+    public void Enter_ShouldResolveLaterDeclaredAttack_WhenEarlierAttackDestroyedTargetByCriticalHitEffects()
+    {
+        // Arrange
+        SetMap();
+        DeclareSingleWeaponAttack(_player1Unit1, _player2Unit1);
+        DeclareSingleWeaponAttack(_player1Unit2, _player2Unit1);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 3, 2, false)
+            ]);
+
+        var criticalHitDestroyedTarget = false;
+        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
+                Arg.Is<Unit>(u => u.Id == _player2Unit1.Id),
+                Arg.Any<List<LocationDamageData>>())
+            .Returns(_ =>
+            {
+                if (criticalHitDestroyedTarget)
+                    return null;
+
+                criticalHitDestroyedTarget = true;
+                var currentCenterTorso = _player2Unit1.Parts[PartLocation.CenterTorso];
+                _player2Unit1.ApplyDamage(
+                    [
+                        new LocationHitData(
+                            [new LocationDamageData(
+                                PartLocation.CenterTorso,
+                                currentCenterTorso.CurrentArmor,
+                                currentCenterTorso.CurrentStructure,
+                                true)],
+                            [],
+                            [],
+                            PartLocation.CenterTorso)
+                    ],
+                    HitDirection.Front);
+
+                return new CriticalHitsResolutionCommand
+                {
+                    GameOriginId = Guid.Empty,
+                    TargetId = _player2Unit1.Id,
+                    CriticalHits =
+                    [
+                        new LocationCriticalHitsData(
+                            PartLocation.LeftTorso,
+                            [6, 6],
+                            1,
+                            [
+                                new ComponentHitData
+                                {
+                                    Type = MakaMekComponent.ISAmmoLRM10,
+                                    Slot = 1,
+                                    ExplosionDamage = 10,
+                                    ExplosionDamageDistribution =
+                                    [
+                                        new LocationDamageData(PartLocation.CenterTorso, 0, 1, true)
+                                    ]
+                                }
+                            ],
+                            false)
+                    ]
+                };
+            });
+
+        SetupDiceRolls(8, 7, 8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldBe(UnitStatus.Destroyed);
+        DiceRoller.Received(4).Roll2D6();
+
+        Received.InOrder(() =>
+        {
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id
+                && cmd.TargetId == _player2Unit1.Id));
+
+            CommandPublisher.PublishCommand(Arg.Is<CriticalHitsResolutionCommand>(cmd =>
+                cmd.TargetId == _player2Unit1.Id));
+
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit2.Id
+                && cmd.TargetId == _player2Unit1.Id
+                && cmd.ResolutionData.IsHit
+                && cmd.ResolutionData.HitLocationsData != null));
+        });
+    }
+
+    [Fact]
     public void PublishCommand_ShouldApplyDamageAndExternalHeat()
     {
         // Arrange
@@ -1268,7 +1524,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         part3.TryAddComponent(weaponWithoutTarget).ShouldBeTrue();
         // Deliberately not setting a target for this weapon
 
-        // Setup ToHitCalculator to return a value
+        // Set up ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
@@ -1293,7 +1549,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<HitDirection>())
             .Returns([new LocationDamageData(location, 3, 2, false)]);
 
-        // Setup critical hits calculator to return critical hits that cause falls
+        // Set up a critical hits calculator to return critical hits that cause falls
         var criticalHitsCommand = new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
@@ -1310,6 +1566,33 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Is<Unit>(u => u.Id == unit.Id),
                 Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);
+    }
+
+    private static void DeclareSingleWeaponAttack(IUnit attacker, IUnit target, int partIndex = 0, Weapon? weapon = null)
+    {
+        weapon ??= new TestWeapon();
+        var part = attacker.Parts.Values.Skip(partIndex).First();
+        part.TryAddComponent(weapon).ShouldBeTrue();
+
+        attacker.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon.Name,
+                    Type = weapon.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(
+                            part.Location,
+                            weapon.MountedAtFirstLocationSlots.First(),
+                            weapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = target.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
     }
 
     private void SetupDiceRolls(params int[] rolls)
@@ -1371,7 +1654,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<HitDirection>())
             .Returns([new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)]);
 
-        // Setup critical hits calculator to return a command
+        // Set up a critical hits calculator to return a command
         var expectedCommand = new CriticalHitsResolutionCommand
         {
             GameOriginId = Game.Id,
@@ -1420,7 +1703,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<HitDirection>())
             .Returns([new LocationDamageData(PartLocation.LeftLeg, 3, 2, false)]);
 
-        // Setup critical hits calculator to return a blown-off leg
+        // Set up a critical hits calculator to return a blown-off leg
         var criticalHitsCommand = new CriticalHitsResolutionCommand
         {
             GameOriginId = Game.Id,
