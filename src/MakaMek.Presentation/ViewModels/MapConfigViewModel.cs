@@ -209,7 +209,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             }
 
             var mapData = JsonSerializer.Deserialize<BattleMapData>(content);
-            if (mapData == null || mapData.HexData.Count == 0)
+            if (mapData?.HexData is not { Count: > 0 })
             {
                 return;
             }
