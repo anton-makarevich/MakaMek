@@ -89,6 +89,19 @@ public class HexControl : Panel
         Children.Add(label);
         label.ZIndex = ZIndexLabel;
 
+        if (hex.Level != 0)
+        {
+            var levelLabel = new Label
+            {
+                Content = $"LEVEL {hex.Level}",
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = Brushes.White
+            };
+            Children.Add(levelLabel);
+            levelLabel.ZIndex = ZIndexLabel;
+        }
+
         // Set the initial highlight state
         if (_hex.IsHighlighted)
             Highlight(HexHighlightType.Selected);
