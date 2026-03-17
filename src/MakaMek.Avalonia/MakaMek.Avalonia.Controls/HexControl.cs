@@ -28,8 +28,8 @@ public class HexControl : Panel
     private static readonly IBrush HighlightFill = new SolidColorBrush(Color.Parse("#3300BFFF")); // Semi-transparent light blue
     private static readonly IBrush TransparentFill = Brushes.Transparent;
 
-    private const double DefaultStrokeThickness = 2;
-    private const double HighlightStrokeThickness = 3;
+    private const double DefaultStrokeThickness = 1;
+    private const double HighlightStrokeThickness = 2;
 
     // Z-index constants for layer ordering
     private const int ZIndexBaseTerrain = 0;
@@ -80,7 +80,8 @@ public class HexControl : Panel
             Content = hex.Coordinates.ToString(),
             VerticalAlignment = VerticalAlignment.Top,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = Brushes.White
+            Foreground = Brushes.White,
+            FontSize = 12
         };
 
         // Add polygon and label (always on top)
@@ -96,7 +97,8 @@ public class HexControl : Panel
                 Content = $"LEVEL {hex.Level}",
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = Brushes.White
+                Foreground = Brushes.White,
+                FontSize = 11
             };
             Children.Add(levelLabel);
             levelLabel.ZIndex = ZIndexLabel;
