@@ -31,7 +31,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         MapCanvas.ContentClicked += OnMapContentClicked;
     }
 
-    private void RenderMap(IGame game, IImageService<Bitmap> imageService)
+    private void RenderMap(IGame game)
     {
         var terrainAssetService = ViewModel?.TerrainAssetService;
         if (terrainAssetService == null)
@@ -41,19 +41,21 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
-        
+
         var maxH = 0d;
         var maxV = 0d;
+
+        var hexConfiguration = ViewModel?.HexConfiguration.ToConfiguration();
 
         foreach (var hex in game.BattleMap?.GetHexes()??[])
         {
             var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
-            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, edges);
+            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, edges, hexConfiguration);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;
         }
-        
+
         _unitControls = ViewModel?.Units
             .Select(u=>new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
             .ToList();
@@ -67,7 +69,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         // Ensure DirectionSelector stays on top
         MapCanvas.Children.Add(directionSelector);
-        
+
         MapCanvas.Width = maxH + 2*HexCoordinatesPixelExtensions.HexWidth;
         MapCanvas.Height = maxV + 3*HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
     }
@@ -112,7 +114,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         base.OnViewModelSet();
         if (ViewModel is { Game: not null })
         {
-            RenderMap(ViewModel.Game, (IImageService<Bitmap>)ViewModel.ImageService);
+            RenderMap(ViewModel.Game);
             ViewModel.PropertyChanged+=OnViewModelPropertyChanged;
         }
     }
@@ -126,6 +128,13 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         else if (e.PropertyName == nameof(ViewModel.WeaponAttacks))
         {
             UpdateWeaponAttacks();
+        }
+        else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
+        {
+            if (ViewModel?.Game != null)
+            {
+                RenderMap(ViewModel.Game);
+            }
         }
     }
 

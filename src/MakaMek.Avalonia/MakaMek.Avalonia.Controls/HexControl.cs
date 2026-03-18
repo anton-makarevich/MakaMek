@@ -56,15 +56,17 @@ public class HexControl : Panel
     }
 
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
-        IReadOnlyList<HexEdge>? edges = null)
+        IReadOnlyList<HexEdge>? edges = null, HexControlConfiguration? configuration = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
-        
+
         _logger = logger;
         _edges = edges?.ToArray();
         Width = HexCoordinatesPixelExtensions.HexWidth;
         Height = HexCoordinatesPixelExtensions.HexHeight;
+
+        var config = configuration ?? HexControlConfiguration.Default;
 
         // Hex polygon (top layer)
         _hexPolygon = new Polygon
@@ -72,23 +74,25 @@ public class HexControl : Panel
             Points = GetHexPoints(),
             Fill = TransparentFill,
             Stroke = DefaultStroke,
-            StrokeThickness = DefaultStrokeThickness
+            StrokeThickness = DefaultStrokeThickness,
+            IsVisible = config.ShowOutline
         };
 
-        var label = new Label
+        var coordinateLabel = new Label
         {
             Content = hex.Coordinates.ToString(),
             VerticalAlignment = VerticalAlignment.Top,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = Brushes.White,
-            FontSize = 12
+            FontSize = 12,
+            IsVisible = config.ShowLabels
         };
 
         // Add polygon and label (always on top)
         Children.Add(_hexPolygon);
         _hexPolygon.ZIndex = ZIndexPolygon;
-        Children.Add(label);
-        label.ZIndex = ZIndexLabel;
+        Children.Add(coordinateLabel);
+        coordinateLabel.ZIndex = ZIndexLabel;
 
         if (hex.Level != 0)
         {
@@ -98,7 +102,8 @@ public class HexControl : Panel
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
-                FontSize = 11
+                FontSize = 11,
+                IsVisible = config.ShowLabels
             };
             Children.Add(levelLabel);
             levelLabel.ZIndex = ZIndexLabel;
