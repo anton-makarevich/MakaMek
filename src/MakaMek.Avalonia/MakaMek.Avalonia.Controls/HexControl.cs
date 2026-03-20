@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -56,7 +57,7 @@ public class HexControl : Panel
     }
 
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
-        IReadOnlyList<HexEdge>? edges = null, HexControlConfiguration? configuration = null)
+        IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
@@ -66,7 +67,7 @@ public class HexControl : Panel
         Width = HexCoordinatesPixelExtensions.HexWidth;
         Height = HexCoordinatesPixelExtensions.HexHeight;
 
-        var config = configuration ?? HexControlConfiguration.Default;
+        var config = configuration ?? HexRenderConfiguration.Default;
 
         // Hex polygon (top layer)
         _hexPolygon = new Polygon

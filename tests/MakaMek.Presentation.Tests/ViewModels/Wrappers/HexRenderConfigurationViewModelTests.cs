@@ -1,15 +1,15 @@
-using Sanet.MakaMek.Avalonia.Controls;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
-namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 
-public class HexControlConfigurationViewModelTests
+public class HexRenderConfigurationViewModelTests
 {
     [Fact]
     public void ShowLabels_DefaultsToTrue()
     {
         // Arrange & Act
-        var sut = new HexControlConfigurationViewModel();
+        var sut = new HexRenderConfigurationViewModel();
 
         // Assert
         sut.ShowLabels.ShouldBeTrue();
@@ -19,7 +19,7 @@ public class HexControlConfigurationViewModelTests
     public void ShowOutline_DefaultsToTrue()
     {
         // Arrange & Act
-        var sut = new HexControlConfigurationViewModel();
+        var sut = new HexRenderConfigurationViewModel();
 
         // Assert
         sut.ShowOutline.ShouldBeTrue();
@@ -29,7 +29,7 @@ public class HexControlConfigurationViewModelTests
     public void ToConfiguration_ReturnsCorrectConfiguration()
     {
         // Arrange
-        var sut = new HexControlConfigurationViewModel
+        var sut = new HexRenderConfigurationViewModel
         {
             ShowLabels = false,
             ShowOutline = true

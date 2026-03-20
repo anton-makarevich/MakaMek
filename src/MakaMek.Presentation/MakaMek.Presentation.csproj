@@ -20,7 +20,6 @@
     
     <ItemGroup>
       <ProjectReference Include="..\MakaMek.Assets\MakaMek.Assets.csproj" />
-      <ProjectReference Include="..\MakaMek.Avalonia\MakaMek.Avalonia.Controls\MakaMek.Avalonia.Controls.csproj" />
       <ProjectReference Include="..\MakaMek.Bots\MakaMek.Bots.csproj" />
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
       <ProjectReference Include="..\MakaMek.Services\MakaMek.Services.csproj" />

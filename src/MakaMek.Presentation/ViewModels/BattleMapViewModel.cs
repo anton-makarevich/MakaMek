@@ -18,7 +18,6 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.UiStates;
-using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
@@ -105,7 +104,7 @@ public class BattleMapViewModel : BaseViewModel
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
-        HexConfiguration = new HexControlConfigurationViewModel();
+        HexConfiguration = new HexRenderConfigurationViewModel();
         HexConfiguration.PropertyChanged += (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
     }
 
@@ -502,7 +501,7 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState.ExecutePlayerAction();
     }
 
-    public HexControlConfigurationViewModel HexConfiguration { get; }
+    public HexRenderConfigurationViewModel HexConfiguration { get; }
 
     public bool IsCommandLogExpanded
     {
