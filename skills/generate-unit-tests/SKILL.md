@@ -14,6 +14,7 @@ Generate xUnit tests following established patterns for a given file, covering u
 - Are there existing tests for this class to avoid duplication?
 - Are dependencies identifiable for mocking with NSubstitute?
 - Is the test project location known for placing the new test file?
+- If any checkpoint cannot be resolved with confidence, stop and ask the user for clarification before generating or modifying tests.
 
 ## Implementation Steps
 
@@ -81,3 +82,4 @@ using Shouldly;
 
 ### Step 8: Write or Update Test File
 Create the new test file or append tests to the existing one, ensuring proper formatting and organization.
+If file location, class mapping, or coverage status is ambiguous, request clarification first.
