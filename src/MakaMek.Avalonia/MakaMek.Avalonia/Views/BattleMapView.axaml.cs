@@ -41,6 +41,8 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
+        _movementPathSegments.Clear();
+        _weaponAttackControls.Clear();
 
         var maxH = 0d;
         var maxV = 0d;
@@ -72,6 +74,10 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         MapCanvas.Width = maxH + 2*HexCoordinatesPixelExtensions.HexWidth;
         MapCanvas.Height = maxV + 3*HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
+        
+        // restore overlays after a full canvas rebuild
+        UpdateMovementPath();
+        UpdateWeaponAttacks();
     }
 
     private void OnMapContentClicked(object? sender, Point clickPosition)
