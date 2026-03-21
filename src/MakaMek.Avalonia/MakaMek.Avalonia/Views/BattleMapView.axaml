@@ -273,10 +273,10 @@
             <StackPanel Margin="10" Spacing="10">
                 <CheckBox Content="Show Labels"
                           IsChecked="{Binding HexConfiguration.ShowLabels}"
-                          Foreground="{StaticResource TextLightBrush}"/>
+                          Foreground="{StaticResource TextBrush}"/>
                 <CheckBox Content="Show Hex Outlines"
                           IsChecked="{Binding HexConfiguration.ShowOutline}"
-                          Foreground="{StaticResource TextLightBrush}"/>
+                          Foreground="{StaticResource TextBrush}"/>
             </StackPanel>
         </templatedControls:GamePanel>
     </Grid>
