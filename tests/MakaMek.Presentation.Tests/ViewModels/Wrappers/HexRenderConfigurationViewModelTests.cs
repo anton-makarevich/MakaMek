@@ -42,4 +42,34 @@ public class HexRenderConfigurationViewModelTests
         config.ShowLabels.ShouldBeFalse();
         config.ShowOutline.ShouldBeTrue();
     }
+
+    [Fact]
+    public void ShowLabels_WhenChanged_RaisesPropertyChanged()
+    {
+        // Arrange
+        var sut = new HexRenderConfigurationViewModel();
+        string? changedProperty = null;
+        sut.PropertyChanged += (_, e) => changedProperty = e.PropertyName;
+
+        // Act
+        sut.ShowLabels = false;
+
+        // Assert
+        changedProperty.ShouldBe(nameof(HexRenderConfigurationViewModel.ShowLabels));
+    }
+    
+    [Fact]
+    public void ShowOutline_WhenChanged_RaisesPropertyChanged()
+    {
+        // Arrange
+        var sut = new HexRenderConfigurationViewModel();
+        string? changedProperty = null;
+        sut.PropertyChanged += (_, e) => changedProperty = e.PropertyName;
+
+        // Act
+        sut.ShowOutline = false;
+
+        // Assert
+        changedProperty.ShouldBe(nameof(HexRenderConfigurationViewModel.ShowOutline));
+    }
 }
