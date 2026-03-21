@@ -299,6 +299,41 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void HexConfiguration_ShouldNotBeNull_AfterConstruction()
+    {
+        // Assert
+        _sut.HexConfiguration.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void IsMapSettingsPanelVisible_ShouldBeFalse_ByDefault()
+    {
+        // Assert
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToggleMapSettings_ShouldToggleIsMapSettingsPanelVisible()
+    {
+        // Arrange
+        var propertyChangedEvents = new List<string>();
+        _sut.PropertyChanged += (_, e) => propertyChangedEvents.Add(e.PropertyName ?? string.Empty);
+
+        // Act & Assert - First toggle
+        _sut.ToggleMapSettings();
+        _sut.IsMapSettingsPanelVisible.ShouldBeTrue();
+        propertyChangedEvents.ShouldContain(nameof(BattleMapViewModel.IsMapSettingsPanelVisible));
+
+        // Clear events for the second test
+        propertyChangedEvents.Clear();
+
+        // Act & Assert - Second toggle
+        _sut.ToggleMapSettings();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        propertyChangedEvents.ShouldContain(nameof(BattleMapViewModel.IsMapSettingsPanelVisible));
+    }
+
+    [Fact]
     public void IsCommandLogExpanded_ShouldBeFalse_ByDefault()
     {
         // Assert

@@ -87,7 +87,7 @@ public class BattleMapViewModel : BaseViewModel
     public BattleMapViewModel(
         IImageService imageService,
         ITerrainAssetService terrainAssetService,
-        ILocalizationService localizationService, 
+        ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IRulesProvider rulesProvider)
     {
@@ -104,6 +104,8 @@ public class BattleMapViewModel : BaseViewModel
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        HexConfiguration = new HexRenderConfigurationViewModel();
+        HexConfiguration.PropertyChanged += (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
     }
 
     private async Task LeaveGame()
@@ -499,6 +501,8 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState.ExecutePlayerAction();
     }
 
+    public HexRenderConfigurationViewModel HexConfiguration { get; }
+
     public bool IsCommandLogExpanded
     {
         get;
@@ -516,6 +520,12 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
 
+    public bool IsMapSettingsPanelVisible
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
     public bool IsRecordSheetButtonVisible => SelectedUnit != null && !IsRecordSheetExpanded;
     public bool IsRecordSheetPanelVisible => SelectedUnit != null && IsRecordSheetExpanded;
 
@@ -527,6 +537,11 @@ public class BattleMapViewModel : BaseViewModel
     public void ToggleRecordSheet()
     {
         IsRecordSheetExpanded = !IsRecordSheetExpanded;
+    }
+
+    public void ToggleMapSettings()
+    {
+        IsMapSettingsPanelVisible = !IsMapSettingsPanelVisible;
     }
 
     public IEnumerable<IUnit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];

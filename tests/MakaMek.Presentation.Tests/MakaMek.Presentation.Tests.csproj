@@ -43,7 +43,6 @@
     <Folder Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\Resources\Units\Mechs\">
       <Link>Resources\Mechs</Link>
     </Folder>
-    <Folder Include="Models\Map\" />
   </ItemGroup>
 
 </Project>

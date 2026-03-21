@@ -2,7 +2,7 @@
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
-namespace Sanet.MakaMek.Map.Tests.Data.Map;
+namespace Sanet.MakaMek.Map.Tests.Data;
 
 public class ReachabilityDataTest
 {

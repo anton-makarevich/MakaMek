@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -22,6 +23,7 @@ public class HexControl : Panel
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
     private readonly List<Image> _terrainImageLayers = [];
+    private readonly HexRenderConfiguration _renderConfiguration;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
     private static readonly IBrush HighlightStroke = new SolidColorBrush(Color.Parse("#00BFFF")); // Light blue
@@ -56,15 +58,17 @@ public class HexControl : Panel
     }
 
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
-        IReadOnlyList<HexEdge>? edges = null)
+        IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
-        
+
         _logger = logger;
         _edges = edges?.ToArray();
         Width = HexCoordinatesPixelExtensions.HexWidth;
         Height = HexCoordinatesPixelExtensions.HexHeight;
+
+        _renderConfiguration = configuration ?? HexRenderConfiguration.Default;
 
         // Hex polygon (top layer)
         _hexPolygon = new Polygon
@@ -75,20 +79,21 @@ public class HexControl : Panel
             StrokeThickness = DefaultStrokeThickness
         };
 
-        var label = new Label
+        var coordinateLabel = new Label
         {
             Content = hex.Coordinates.ToString(),
             VerticalAlignment = VerticalAlignment.Top,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = Brushes.White,
-            FontSize = 12
+            FontSize = 12,
+            IsVisible = _renderConfiguration.ShowLabels
         };
 
         // Add polygon and label (always on top)
         Children.Add(_hexPolygon);
         _hexPolygon.ZIndex = ZIndexPolygon;
-        Children.Add(label);
-        label.ZIndex = ZIndexLabel;
+        Children.Add(coordinateLabel);
+        coordinateLabel.ZIndex = ZIndexLabel;
 
         if (hex.Level != 0)
         {
@@ -98,15 +103,15 @@ public class HexControl : Panel
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
-                FontSize = 11
+                FontSize = 11,
+                IsVisible = _renderConfiguration.ShowLabels
             };
             Children.Add(levelLabel);
             levelLabel.ZIndex = ZIndexLabel;
         }
 
         // Set the initial highlight state
-        if (_hex.IsHighlighted)
-            Highlight(HexHighlightType.Selected);
+        Highlight(_hex.IsHighlighted ? HexHighlightType.Selected : HexHighlightType.None);
 
         // Subscribe to highlight changes from the Hex model
         _hexSubscription = _hex.IsHighlightedChanged
@@ -132,12 +137,14 @@ public class HexControl : Panel
                 _hexPolygon.Stroke = HighlightStroke;
                 _hexPolygon.StrokeThickness = HighlightStrokeThickness;
                 _hexPolygon.Fill = HighlightFill;
+                _hexPolygon.IsVisible = true;
                 break;
             case HexHighlightType.None:
             default:
                 _hexPolygon.Stroke = DefaultStroke;
                 _hexPolygon.StrokeThickness = DefaultStrokeThickness;
                 _hexPolygon.Fill = TransparentFill;
+                _hexPolygon.IsVisible = _renderConfiguration.ShowOutline;
                 break;
         }
     }
