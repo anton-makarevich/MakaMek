@@ -192,63 +192,38 @@ public record HexCoordinates
 
     private (HexCoordinates next, HexCoordinates? additional, bool areEqual) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
     {
-        // Calculate vectors to potential next hexes
         var mainNext = current.GetNeighbour((HexDirection)mainDir);
         var leftNext = current.GetNeighbour((HexDirection)leftDir);
         var rightNext = current.GetNeighbour((HexDirection)rightDir);
 
-        // Calculate distances from this to next and from next to target
-        var mainToNext = GetActualDistance(this, mainNext);
-        var leftToNext = GetActualDistance(this, leftNext);
-        var rightToNext = GetActualDistance(this, rightNext);
+        var leftIntersects = leftNext.IsIntersectedBy(this, target);
+        var rightIntersects = rightNext.IsIntersectedBy(this, target);
+        var mainIntersects = mainNext.IsIntersectedBy(this, target);
 
-        var mainToTarget = GetActualDistance(mainNext, target);
-        var leftToTarget = GetActualDistance(leftNext, target);
-        var rightToTarget = GetActualDistance(rightNext, target);
+        switch (leftIntersects)
+        {
+            // Check for divided paths (two hexes geometrically intersected evenly at a vertex)
+            case true when rightIntersects:
+                return (leftNext, rightNext, true);
+            case true when mainIntersects:
+                return (leftNext, mainNext, true);
+        }
 
-        // Calculate total distances
-        var mainTotal = mainToNext + mainToTarget;
-        var leftTotal = leftToNext + leftToTarget;
-        var rightTotal = rightToNext + rightToTarget;
-
-        const double epsilon = 0.05; //Adjusting epsilon, we can control how close the line
-                                     //should be to the "corners" of the hexes    
+        if (rightIntersects && mainIntersects) return (rightNext, mainNext, true);
         
-        // First check if left path's total distance is equal or better
-        if (leftTotal <= mainTotal + epsilon && leftTotal <= rightTotal + epsilon)
-        {
-            // If left total equals main total, we have two options
-            if (Math.Abs(leftTotal - mainTotal) < epsilon)
-            {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(leftToNext - mainToNext) < epsilon;
-                return (leftNext, mainNext, areEqual);
-            }
-            
-            // If left total equals right total, we have two options
-            if (Math.Abs(leftTotal - rightTotal) < epsilon)
-            {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(leftToNext - rightToNext) < epsilon;
-                return (leftNext, rightNext, areEqual);
-            }
-            
-            return (leftNext, null, false);
-        }
+        // Single path
+        if (leftIntersects) return (leftNext, null, false);
+        if (rightIntersects) return (rightNext, null, false);
+        if (mainIntersects) return (mainNext, null, false);
 
-        // Then check if the right path's total distance equals the main
-        if (rightTotal <= mainTotal + epsilon)
-        {
-            // If right total equals main total, we have two options
-            if (Math.Abs(rightTotal - mainTotal) < epsilon)
-            {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(rightToNext - mainToNext) < epsilon;
-                return (rightNext, mainNext, areEqual);
-            }
-            return (rightNext, null, false);
-        }
-
+        // Fallback: This shouldn't happen with exact geometry unless target is reached or something weird occurs
+        // Fallback to Euclidean closest
+        var fallbackMain = GetActualDistance(mainNext, target);
+        var fallbackLeft = GetActualDistance(leftNext, target);
+        var fallbackRight = GetActualDistance(rightNext, target);
+        
+        if (fallbackLeft <= fallbackMain && fallbackLeft <= fallbackRight) return (leftNext, null, false);
+        if (fallbackRight <= fallbackMain) return (rightNext, null, false);
         return (mainNext, null, false);
     }
 
