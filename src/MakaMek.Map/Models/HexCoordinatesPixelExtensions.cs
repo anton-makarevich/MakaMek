@@ -6,14 +6,14 @@ public static class HexCoordinatesPixelExtensions
     public const double HexHeight = 86.60254037844386; // 100 * Math.Sin(Math.PI / 3.0)
     private const double HexHorizontalSpacing = HexWidth * 0.75;
 
-    public enum PointRelationship
+    private enum PointRelationship
     {
         Left = 1,
         Colinear = 0,
         Right = -1
     }
 
-    public static PointRelationship GetGeometricRelationship(double lineStartX, double lineStartY, double lineEndX, double lineEndY, double pointX, double pointY)
+    private static PointRelationship GetGeometricRelationship(double lineStartX, double lineStartY, double lineEndX, double lineEndY, double pointX, double pointY)
     {
         var cross = (lineEndX - lineStartX) * (pointY - lineStartY) - (pointX - lineStartX) * (lineEndY - lineStartY);
         return cross switch

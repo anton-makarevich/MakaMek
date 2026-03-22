@@ -200,24 +200,42 @@ public record HexCoordinates
         var rightIntersects = rightNext.IsIntersectedBy(this, target);
         var mainIntersects = mainNext.IsIntersectedBy(this, target);
 
-        switch (leftIntersects)
+        var currDist = GetActualDistance(this, current);
+        var candidates = new List<(HexCoordinates hex, double dist)>();
+
+        // Add left first, then right, then main to maintain consistent split processing
+        if (leftIntersects)
         {
-            // Check for divided paths (two hexes geometrically intersected evenly at a vertex)
-            case true when rightIntersects:
-                return (leftNext, rightNext, true);
-            case true when mainIntersects:
-                return (leftNext, mainNext, true);
+            var d = GetActualDistance(this, leftNext);
+            if (d > currDist + 0.0001) candidates.Add((leftNext, d));
+        }
+        if (rightIntersects)
+        {
+            var d = GetActualDistance(this, rightNext);
+            if (d > currDist + 0.0001) candidates.Add((rightNext, d));
+        }
+        if (mainIntersects)
+        {
+            var d = GetActualDistance(this, mainNext);
+            if (d > currDist + 0.0001) candidates.Add((mainNext, d));
         }
 
-        if (rightIntersects && mainIntersects) return (rightNext, mainNext, true);
-        
-        // Single path
-        if (leftIntersects) return (leftNext, null, false);
-        if (rightIntersects) return (rightNext, null, false);
-        if (mainIntersects) return (mainNext, null, false);
+        if (candidates.Count > 0)
+        {
+            var minDist = candidates.Min(c => c.dist);
+            var bestCandidates = candidates.Where(c => Math.Abs(c.dist - minDist) < 0.0001).Select(c => c.hex).ToList();
 
-        // Fallback: This shouldn't happen with exact geometry unless target is reached or something weird occurs
-        // Fallback to Euclidean closest
+            if (bestCandidates.Count == 2)
+            {
+                return (bestCandidates[0], bestCandidates[1], true);
+            }
+            if (bestCandidates.Count >= 1)
+            {
+                return (bestCandidates[0], null, false);
+            }
+        }
+
+        // Fallback: This shouldn't happen with exact geometry unless precision edge cases occur at the target
         var fallbackMain = GetActualDistance(mainNext, target);
         var fallbackLeft = GetActualDistance(leftNext, target);
         var fallbackRight = GetActualDistance(rightNext, target);
