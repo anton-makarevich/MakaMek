@@ -13,10 +13,14 @@ public static class HexCoordinatesPixelExtensions
         Right = -1
     }
 
-    private static PointRelationship GetGeometricRelationship(double lineStartX, double lineStartY, double lineEndX, double lineEndY, double pointX, double pointY)
+    private static PointRelationship GetGeometricRelationship(double lineStartX, double lineStartY, double lineEndX,
+        double lineEndY, double pointX, double pointY)
     {
-        var cross = (lineEndX - lineStartX) * (pointY - lineStartY) - (pointX - lineStartX) * (lineEndY - lineStartY);
-        return cross switch
+        var dx = lineEndX - lineStartX;
+        var dy = lineEndY - lineStartY;
+        var cross = dx * (pointY - lineStartY) - (pointX - lineStartX) * dy;
+        var signedDistance = (dx == 0 && dy == 0) ? 0 : cross / Math.Sqrt(dx * dx + dy * dy);
+        return signedDistance switch
         {
             > 0.0001 => PointRelationship.Left,
             < -0.0001 => PointRelationship.Right,
