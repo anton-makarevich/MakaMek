@@ -192,64 +192,50 @@ public record HexCoordinates
 
     private (HexCoordinates next, HexCoordinates? additional, bool areEqual) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
     {
-        // Calculate vectors to potential next hexes
         var mainNext = current.GetNeighbour((HexDirection)mainDir);
         var leftNext = current.GetNeighbour((HexDirection)leftDir);
         var rightNext = current.GetNeighbour((HexDirection)rightDir);
 
-        // Calculate distances from this to next and from next to target
-        var mainToNext = GetActualDistance(this, mainNext);
-        var leftToNext = GetActualDistance(this, leftNext);
-        var rightToNext = GetActualDistance(this, rightNext);
+        var leftIntersects = leftNext.IsIntersectedBy(this, target);
+        var rightIntersects = rightNext.IsIntersectedBy(this, target);
+        var mainIntersects = mainNext.IsIntersectedBy(this, target);
 
-        var mainToTarget = GetActualDistance(mainNext, target);
-        var leftToTarget = GetActualDistance(leftNext, target);
-        var rightToTarget = GetActualDistance(rightNext, target);
+        var currDist = GetActualDistance(this, current);
+        var candidates = new List<(HexCoordinates hex, double dist)>();
 
-        // Calculate total distances
-        var mainTotal = mainToNext + mainToTarget;
-        var leftTotal = leftToNext + leftToTarget;
-        var rightTotal = rightToNext + rightToTarget;
-
-        const double epsilon = 0.05; //Adjusting epsilon, we can control how close the line
-                                     //should be to the "corners" of the hexes    
-        
-        // First check if left path's total distance is equal or better
-        if (leftTotal <= mainTotal + epsilon && leftTotal <= rightTotal + epsilon)
+        // Add left first, then right, then main to maintain consistent split processing
+        if (leftIntersects)
         {
-            // If left total equals main total, we have two options
-            if (Math.Abs(leftTotal - mainTotal) < epsilon)
-            {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(leftToNext - mainToNext) < epsilon;
-                return (leftNext, mainNext, areEqual);
-            }
-            
-            // If left total equals right total, we have two options
-            if (Math.Abs(leftTotal - rightTotal) < epsilon)
-            {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(leftToNext - rightToNext) < epsilon;
-                return (leftNext, rightNext, areEqual);
-            }
-            
-            return (leftNext, null, false);
+            var d = GetActualDistance(this, leftNext);
+            if (d > currDist + 0.0001) candidates.Add((leftNext, d));
+        }
+        if (rightIntersects)
+        {
+            var d = GetActualDistance(this, rightNext);
+            if (d > currDist + 0.0001) candidates.Add((rightNext, d));
+        }
+        if (mainIntersects)
+        {
+            var d = GetActualDistance(this, mainNext);
+            if (d > currDist + 0.0001) candidates.Add((mainNext, d));
         }
 
-        // Then check if the right path's total distance equals the main
-        if (rightTotal <= mainTotal + epsilon)
+        if (candidates.Count > 0)
         {
-            // If right total equals main total, we have two options
-            if (Math.Abs(rightTotal - mainTotal) < epsilon)
+            var minDist = candidates.Min(c => c.dist);
+            var bestCandidates = candidates.Where(c => Math.Abs(c.dist - minDist) < 0.0001).Select(c => c.hex).ToList();
+
+            if (bestCandidates.Count == 2)
             {
-                // If distances to the next are equal, it's a divided line
-                var areEqual = Math.Abs(rightToNext - mainToNext) < epsilon;
-                return (rightNext, mainNext, areEqual);
+                return (bestCandidates[0], bestCandidates[1], true);
             }
-            return (rightNext, null, false);
+            if (bestCandidates.Count >= 1)
+            {
+                return (bestCandidates[0], null, false);
+            }
         }
 
-        return (mainNext, null, false);
+        throw new InvalidOperationException($"LOS calculation failed to find geometric next hex from {current} to {target}. Origin: {this}. Targets checked - Main: {mainNext}, Left: {leftNext}, Right: {rightNext}.");
     }
 
     private double GetActualDistance(HexCoordinates from, HexCoordinates to)
