@@ -235,14 +235,7 @@ public record HexCoordinates
             }
         }
 
-        // Fallback: This shouldn't happen with exact geometry unless precision edge cases occur at the target
-        var fallbackMain = GetActualDistance(mainNext, target);
-        var fallbackLeft = GetActualDistance(leftNext, target);
-        var fallbackRight = GetActualDistance(rightNext, target);
-        
-        if (fallbackLeft <= fallbackMain && fallbackLeft <= fallbackRight) return (leftNext, null, false);
-        if (fallbackRight <= fallbackMain) return (rightNext, null, false);
-        return (mainNext, null, false);
+        throw new InvalidOperationException($"LOS calculation failed to find geometric next hex from {current} to {target}. Origin: {this}. Targets checked - Main: {mainNext}, Left: {leftNext}, Right: {rightNext}.");
     }
 
     private double GetActualDistance(HexCoordinates from, HexCoordinates to)

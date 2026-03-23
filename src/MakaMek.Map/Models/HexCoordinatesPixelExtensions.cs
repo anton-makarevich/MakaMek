@@ -54,8 +54,24 @@ public static class HexCoordinatesPixelExtensions
             var cx = coordinates.H;
             var cy = coordinates.V;
             
-            const double size = HexWidth / 2.0;
-            const double halfHeight = HexHeight / 2.0;
+            var size = HexWidth / 2.0;
+            var halfHeight = HexHeight / 2.0;
+
+            // Bounding box check for the finite line segment
+            var minX = Math.Min(x0, x1);
+            var maxX = Math.Max(x0, x1);
+            var minY = Math.Min(y0, y1);
+            var maxY = Math.Max(y0, y1);
+
+            var hexMinX = cx - size;
+            var hexMaxX = cx + size;
+            var hexMinY = cy - halfHeight;
+            var hexMaxY = cy + halfHeight;
+
+            if (maxX < hexMinX - 0.1 || minX > hexMaxX + 0.1 || maxY < hexMinY - 0.1 || minY > hexMaxY + 0.1)
+            {
+                return false;
+            }
 
             // Flat-topped hex corners
             (double x, double y)[] points =

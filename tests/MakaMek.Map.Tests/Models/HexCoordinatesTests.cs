@@ -1322,6 +1322,57 @@ public class HexCoordinatesTests
         actualSequence.ShouldContain(new HexCoordinates(2,7));
     }
     
+    [Fact]
+    public void LineTo_LongDistance_ShouldBeAccurateAndSymmetrical()
+    {
+        // Arrange: Check a very long-distance ray that previously failed due to epsilon spread
+        var start = new HexCoordinates(2, 2);
+        var end = new HexCoordinates(22, 17);
+
+        // Act
+        var forwardLine = start.LineTo(end).Select(s => s.MainOption).ToList();
+        var backwardLine = end.LineTo(start).Select(s => s.MainOption).ToList();
+        
+        // Assert: Must reach the target perfectly
+        forwardLine.Last().ShouldBe(end);
+        backwardLine.Last().ShouldBe(start);
+        
+        // Assert: Path should be symmetrical geometrically
+        var reversedBackwardLine = backwardLine.AsEnumerable().Reverse().ToList();
+        
+        forwardLine.Count.ShouldBe(reversedBackwardLine.Count);
+        for (var i = 0; i < forwardLine.Count; i++)
+        {
+            // Verify structural symmetry
+            forwardLine[i].DistanceTo(reversedBackwardLine[i]).ShouldBeLessThan(2);
+        }
+    }
+    
+    [Fact]
+    public void GetNextHexInLine_WhenNoGeometricIntersectionFound_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var origin = new HexCoordinates(0, 0);
+        var current = new HexCoordinates(0, 0);
+        var target = new HexCoordinates(10, 0); // Line goes exactly horizontally
+
+        // We intentionally pass completely wrong directions (e.g., pointing entirely away from the target)
+        // so that none of the checked neighbors intersect the true mathematical line.
+        int wrongMainDir = (int)HexDirection.TopLeft; 
+        int wrongLeftDir = (int)HexDirection.Top;
+        int wrongRightDir = (int)HexDirection.BottomLeft;
+
+        // Act & Assert
+        var exception = Should.Throw<System.Reflection.TargetInvocationException>(() => 
+        {
+            var methodInfo = typeof(HexCoordinates).GetMethod("GetNextHexInLine", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            methodInfo!.Invoke(origin, new object[] { current, target, wrongMainDir, wrongLeftDir, wrongRightDir });
+        });
+
+        exception.InnerException.ShouldBeOfType<InvalidOperationException>();
+        exception.InnerException.Message.ShouldContain("LOS calculation failed to find geometric next hex");
+    }
+
     [Theory]
     [InlineData(5, 5, 5, 4, HexDirection.Top, FiringArc.Front, true)]       // Target directly in front
     [InlineData(5, 5, 6, 4, HexDirection.Top, FiringArc.Front, true)]       // Target in front-right
