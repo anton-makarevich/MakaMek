@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -360,7 +359,17 @@ public class WeaponsAttackState : IUiState
                 // Filter out hexes without the line of sight
                 if (Game.BattleMap != null)
                 {
-                    weaponHexes.RemoveWhere(h => !Game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h, Attacker?.Height ?? 0));
+                    weaponHexes.RemoveWhere(h =>
+                    {
+                        var targetHeight = _viewModel.Units
+                            .FirstOrDefault(u => u.Position?.Coordinates == h)
+                            ?.Height ?? 0;
+                        return !Game.BattleMap.HasLineOfSight(
+                            unitPosition.Coordinates,
+                            h,
+                            Attacker.Height,
+                            targetHeight);
+                    });
                 }
 
                 _weaponRanges[weapon] = weaponHexes;
