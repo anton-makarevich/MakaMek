@@ -88,6 +88,27 @@ public class MechTests
     }
 
     [Fact]
+    public void Height_Returns2_WhenStanding()
+    {
+        // Arrange & Act
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+
+        // Assert
+        mech.Height.ShouldBe(2, "standing mech should have height 2");
+    }
+
+    [Fact]
+    public void Height_Returns1_WhenProne()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        mech.SetProne();
+
+        // Act & Assert
+        mech.Height.ShouldBe(1, "prone mech should have height 1");
+    }
+
+    [Fact]
     public void Constructor_InitializesAllParts()
     {
         // Arrange & Act

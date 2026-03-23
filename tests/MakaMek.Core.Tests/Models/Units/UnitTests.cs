@@ -69,6 +69,8 @@ public class UnitTests
         : Unit(chassis, model, tonnage, parts, id)
     {
         public override int CalculateBattleValue() => 0;
+        
+        public override int Height => 2;
 
         public override bool CanMoveBackward(MovementType type) => true;
 

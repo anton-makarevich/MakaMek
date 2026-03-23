@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -57,6 +56,16 @@ public record AttackScenario
     public PartLocation? AimedShotTarget { get; private init; }
     
     /// <summary>
+    /// Height of the attacking unit in levels (used for LOS calculations)
+    /// </summary>
+    public int AttackerHeight { get; private init; }
+    
+    /// <summary>
+    /// Height of the target unit in levels (used for LOS calculations)
+    /// </summary>
+    public int TargetHeight { get; private init; }
+    
+    /// <summary>
     /// Creates an AttackScenario from actual units in their current state.
     /// Used for real combat calculations.
     /// </summary>
@@ -95,7 +104,9 @@ public record AttackScenario
             AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
             AttackerFacing = attacker.Facing,
             IsPrimaryTarget = isPrimaryTarget,
-            AimedShotTarget = aimedShotTarget
+            AimedShotTarget = aimedShotTarget,
+            AttackerHeight = attacker.Height,
+            TargetHeight = target.Height
         };
     }
     
@@ -112,6 +123,8 @@ public record AttackScenario
     /// <param name="attackerFacing">Attacker's facing direction</param>
     /// <param name="isPrimaryTarget">Whether this is the primary target</param>
     /// <param name="aimedShotTarget">Body part being targeted for aimed shot, if any</param>
+    /// <param name="attackerHeight">Height of the attacker unit in levels</param>
+    /// <param name="targetHeight">Height of the target unit in levels</param>
     /// <returns>AttackScenario representing the hypothetical attack</returns>
     public static AttackScenario FromHypothetical(
         int attackerGunnery,
@@ -122,7 +135,9 @@ public record AttackScenario
         IReadOnlyList<RollModifier> attackerModifiers,
         HexDirection? attackerFacing = null,
         bool isPrimaryTarget = true,
-        PartLocation? aimedShotTarget = null)
+        PartLocation? aimedShotTarget = null,
+        int attackerHeight = 2, // assume the attacker is a mech
+        int targetHeight = 2) // assume the target is a mech
     {
         return new AttackScenario
         {
@@ -134,7 +149,9 @@ public record AttackScenario
             AttackerModifiers = attackerModifiers,
             AttackerFacing = attackerFacing,
             IsPrimaryTarget = isPrimaryTarget,
-            AimedShotTarget = aimedShotTarget
+            AimedShotTarget = aimedShotTarget,
+            AttackerHeight = attackerHeight,
+            TargetHeight = targetHeight
         };
     }
 }

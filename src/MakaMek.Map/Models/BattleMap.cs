@@ -473,7 +473,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Checks if there is a line of sight between two hexes
     /// </summary>
-    public bool HasLineOfSight(HexCoordinates from, HexCoordinates to)
+    /// <param name="from">Source hex coordinates</param>
+    /// <param name="to">Target hex coordinates</param>
+    /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
+    /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
+    public bool HasLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0)
     {
         if (!IsOnMap(from) || !IsOnMap(to))
             return false;
@@ -498,7 +502,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return true; // No intervening hexes
 
         var distance = 1;
-        var totalDistance = hexLine.Count;
+        var totalDistance = hexLine.Count+1;
         foreach (var coordinates in hexLine)
         {
             var hex = GetHex(coordinates);
@@ -506,14 +510,15 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return false;
 
             // Calculate the minimum height needed at this distance to maintain LOS
+            // Use hex level + unit height for proper unit height support
             var requiredHeight = InterpolateHeight(
-                fromHex.GetCeiling(),
-                toHex.GetCeiling(),
+                fromHex.Level + attackerHeight,
+                toHex.Level + targetHeight,
                 distance,
                 totalDistance);
 
             // If the hex is higher than the line between start and end points, it blocks LOS
-            if (hex.Level > requiredHeight)
+            if (hex.Level >= requiredHeight)
                 return false;
 
             distance++;
@@ -581,13 +586,13 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Interpolate height between two points for LOS calculation
     /// </summary>
-    private static int InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
+    private static double InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
     {
         if (totalDistance == 0)
             return startHeight;
 
         var t = (double)currentDistance / totalDistance;
-        return (int)Math.Round(startHeight + (endHeight - startHeight) * t);
+        return startHeight + (endHeight - startHeight) * t;
     }
 
     public IEnumerable<Hex> GetHexes()
