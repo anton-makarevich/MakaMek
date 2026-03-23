@@ -3,7 +3,6 @@ using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Utils;
@@ -74,7 +73,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         
         // Setup ToHit
         const int toHitNumber = 6; // High probability
@@ -116,7 +115,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS - Obstruction
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(false);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(false);
 
         // Act
         var result = await _sut.EvaluatePath(unit, path, enemies);
@@ -147,7 +146,7 @@ public class TacticalEvaluatorTests
         
         var enemies = new List<IUnit> { enemy };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
 
         // Act
         var result = await _sut.EvaluatePath(unit, path, enemies);
@@ -191,7 +190,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(hasLos);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(hasLos);
         
         // Setup ToHit
         const int toHitNumber = 8;
@@ -245,7 +244,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         
         // Setup ToHit
         const int toHitNumber = 8;
@@ -288,7 +287,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy1, enemy2 };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         
         // ToHit for Enemy 1 -> 8 (prob 0.4166)
         _toHitCalculator.GetToHitNumber(
@@ -340,7 +339,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Enemy should be counted even if there is no LoS
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(false);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(false);
         
         // Setup ToHit
         const int toHitNumber = 8;
@@ -382,7 +381,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
 
@@ -394,7 +393,7 @@ public class TacticalEvaluatorTests
     }
 
     [Theory]
-    [InlineData(PartLocation.RightLeg,0)]// Legs don't rotate with torso
+    [InlineData(PartLocation.RightLeg,0)]// Legs don't rotate with the torso
     [InlineData(PartLocation.RightTorso, 1)]
     public async Task EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expectedConfigs)
     {
@@ -422,7 +421,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
 
@@ -458,7 +457,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
         
@@ -498,7 +497,7 @@ public class TacticalEvaluatorTests
     
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(true);
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
         
