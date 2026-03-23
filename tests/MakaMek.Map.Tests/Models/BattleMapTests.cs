@@ -148,7 +148,7 @@ public class BattleMapTests
         }
 
         // Act
-        var hasLos = sut.HasLineOfSight(start, end);
+        var hasLos = sut.HasLineOfSight(start, end, 2);
 
         // Assert
         hasLos.ShouldBeTrue();
@@ -176,7 +176,7 @@ public class BattleMapTests
         sut.AddHex(blockingHex);
 
         // Act
-        var hasLos = sut.HasLineOfSight(start, end);
+        var hasLos = sut.HasLineOfSight(start, end, 2);
 
         // Assert
         hasLos.ShouldBeFalse();
@@ -605,8 +605,8 @@ public class BattleMapTests
         var validCoord = new HexCoordinates(1, 1);
 
         // Act & Assert
-        sut.HasLineOfSight(invalidCoord, validCoord).ShouldBeFalse();
-        sut.HasLineOfSight(validCoord, invalidCoord).ShouldBeFalse();
+        sut.HasLineOfSight(invalidCoord, validCoord, 2).ShouldBeFalse();
+        sut.HasLineOfSight(validCoord, invalidCoord, 2).ShouldBeFalse();
     }
 
     [Fact]
@@ -617,7 +617,7 @@ public class BattleMapTests
         var coord = new HexCoordinates(1, 1);
 
         // Act & Assert
-        sut.HasLineOfSight(coord, coord).ShouldBeTrue();
+        sut.HasLineOfSight(coord, coord, 2).ShouldBeTrue();
     }
 
     [Fact]
@@ -629,7 +629,7 @@ public class BattleMapTests
         var to = new HexCoordinates(1, 3);
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeTrue();
+        sut.HasLineOfSight(from, to, 2).ShouldBeTrue();
     }
     
     [Fact]
@@ -641,7 +641,7 @@ public class BattleMapTests
         var to = new HexCoordinates(1, 2);
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeTrue();
+        sut.HasLineOfSight(from, to, 2).ShouldBeTrue();
     }
 
     [Fact]
@@ -662,7 +662,7 @@ public class BattleMapTests
         hex2.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeTrue();
+        sut.HasLineOfSight(from, to, 2).ShouldBeTrue();
     }
 
     [Fact]
@@ -683,7 +683,7 @@ public class BattleMapTests
         hex2.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeFalse();
+        sut.HasLineOfSight(from, to, 2).ShouldBeFalse();
     }
 
     [Fact]
@@ -704,7 +704,7 @@ public class BattleMapTests
         hex2.AddTerrain(new HeavyWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeFalse();
+        sut.HasLineOfSight(from, to, 2).ShouldBeFalse();
     }
 
     [Fact]
@@ -730,7 +730,7 @@ public class BattleMapTests
         middleHex.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(from, to).ShouldBeTrue();
+        sut.HasLineOfSight(from, to, 2).ShouldBeTrue();
     }
 
     [Fact]
@@ -757,11 +757,11 @@ public class BattleMapTests
         }
 
         // Act
-        var hasLos = sut.HasLineOfSight(attacker, target);
+        var hasLos = sut.HasLineOfSight(attacker, target, 2);
 
         // Assert
         // LOS should be blocked because the line passes through multiple heavy woods hexes
-        // Each heavy woods has an intervening factor of 2, and total intervening factor >= 3 blocks LOS
+        // Each heavy wood has an intervening factor of 2, and total intervening factor >= 3 blocks LOS
         hasLos.ShouldBeFalse($"LOS should be blocked by heavy woods cluster between {attacker} and {target}");
     }
 
@@ -778,7 +778,7 @@ public class BattleMapTests
         sut.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new HeavyWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(start, end).ShouldBeFalse(
+        sut.HasLineOfSight(start, end, 2).ShouldBeFalse(
             "LOS should be blocked because the defender's path through (3,2) with heavy forest is preferred");
     }
     
@@ -796,7 +796,7 @@ public class BattleMapTests
         sut.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new HeavyWoodsTerrain());
 
         // Act & Assert
-        sut.HasLineOfSight(start, end).ShouldBeFalse(
+        sut.HasLineOfSight(start, end, 2).ShouldBeFalse(
             "LOS should be blocked because the defender's path through (3,2) with heavy forest is preferred");
     }
 
@@ -810,7 +810,7 @@ public class BattleMapTests
         var to = new HexCoordinates(6, 2);
         
         // Initial LOS with no obstacles
-        var initialLos = sut.HasLineOfSight(from, to);
+        var initialLos = sut.HasLineOfSight(from, to, 2);
         initialLos.ShouldBeTrue("Should have LOS with no obstacles");
 
         // Add heavy forest to block LOS
@@ -821,7 +821,7 @@ public class BattleMapTests
         sut.ClearLosCache();
 
         // Act & Assert
-        var losAfterChange = sut.HasLineOfSight(from, to);
+        var losAfterChange = sut.HasLineOfSight(from, to, 2);
         losAfterChange.ShouldBeFalse("LOS should be blocked after adding forest and clearing cache");
     }
 
@@ -835,7 +835,7 @@ public class BattleMapTests
         var to = new HexCoordinates(6, 2);
         
         // Initial LOS with no obstacles
-        var initialLos = sut.HasLineOfSight(from, to);
+        var initialLos = sut.HasLineOfSight(from, to, 2);
         initialLos.ShouldBeTrue("Should have LOS with no obstacles");
 
         // Add heavy forest but don't clear the cache
@@ -843,11 +843,77 @@ public class BattleMapTests
         sut.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        var losWithCache = sut.HasLineOfSight(from, to);
+        var losWithCache = sut.HasLineOfSight(from, to, 2);
 
         // Assert
         losWithCache.ShouldBeTrue("Should still have LOS when using cached path");
         losWithCache.ShouldBe(initialLos, "LOS result should not change without cache clear");
+    }
+
+    [Fact]
+    public void HasLineOfSight_WithAttackerHeight2_CanSeeOverLevel1Terrain()
+    {
+        // Arrange
+        var sut = new BattleMap(5, 1);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(5, 1);
+        
+        // Add hexes - attacker at level 0, blocking terrain at level 1, target at level 0
+        sut.AddHex(new Hex(start)); // Attacker hex at level 0
+        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain in between
+        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(end)); // Target hex at level 0
+
+        // Act & Assert
+        // Without unit height, LOS is blocked by level 1 terrain (interpolated height at midpoint is 0)
+        sut.HasLineOfSight(start, end, 0).ShouldBeFalse("LOS blocked without unit height");
+        // With standing mech height (2), can see over level 1 terrain (interpolated height at midpoint is 2)
+        sut.HasLineOfSight(start, end, 2, 2).ShouldBeTrue("LOS clear with mech height 2");
+    }
+
+    [Fact]
+    public void HasLineOfSight_WithProneAttacker_BlockedByLevel1Terrain()
+    {
+        // Arrange
+        var sut = new BattleMap(5, 1);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(5, 1);
+        
+        // Add hexes - attacker at level 0, blocking terrain at level 1, target at level 0
+        sut.AddHex(new Hex(start));
+        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain in between
+        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(end));
+
+        // Act & Assert
+        // Standing mech (height 2) can see over level 1 terrain
+        sut.HasLineOfSight(start, end, 2, 2).ShouldBeTrue("LOS clear with standing mech");
+        // Prone mech (height 1) cannot see over level 1 terrain
+        sut.HasLineOfSight(start, end, 1, 1).ShouldBeFalse("LOS blocked for prone mech");
+    }
+
+    [Fact]
+    public void HasLineOfSight_WithTargetHeight_HasBetterLOS()
+    {
+        // Arrange
+        var sut = new BattleMap(5, 1);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(5, 1);
+        
+        // Add hexes - attacker at level 0, small hill at level 1, target at level 0
+        sut.AddHex(new Hex(start));
+        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain
+        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(end));
+
+        // Act & Assert
+        // Attacker height 0 (no unit), target height 0 - blocked
+        sut.HasLineOfSight(start, end, 0).ShouldBeFalse("LOS blocked with no heights");
+        // Attacker height 2, target height 0 - clear (standing mech can see over level 1)
+        sut.HasLineOfSight(start, end, 2).ShouldBeTrue("LOS clear with attacker height 2");
     }
 
     [Fact]
@@ -1747,7 +1813,7 @@ public class BattleMapTests
         // Arrange
         var sut = BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain()));
-        // Make corner raised 
+        // Make the corner raised 
         sut.AddHex(new Hex(new HexCoordinates(1, 1), level: 2));
         var cornerCoordinates = new HexCoordinates(1, 1);
 

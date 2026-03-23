@@ -94,7 +94,8 @@ public class TacticalEvaluator : ITacticalEvaluator
             var viableWeapons = EvaluateWeaponsForTarget(attacker,
                 attackerPath,
                 targetPath,
-                weapons);
+                weapons,
+                target.Height);
 
             if (viableWeapons.Count <= 0) continue;
 
@@ -162,7 +163,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 enemiesInRearArc++;
             
             // Check line of sight
-            if (!_game.BattleMap.HasLineOfSight(enemy.Position.Coordinates, position.Coordinates))
+            if (!_game.BattleMap.HasLineOfSight(enemy.Position.Coordinates, position.Coordinates, enemy.Height))
                 continue;
 
             var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
@@ -206,7 +207,8 @@ public class TacticalEvaluator : ITacticalEvaluator
         IUnit attacker,
         MovementPath attackerPath,
         MovementPath targetPath,
-        IReadOnlyList<Weapon> weapons)
+        IReadOnlyList<Weapon> weapons,
+        int targetHeight)
     {
         if (_game.BattleMap == null)
             return [];
@@ -214,7 +216,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         var configWeapons = new Dictionary<WeaponConfiguration, List<WeaponEvaluationData>>();
 
         // Check line of sight
-        if (!_game.BattleMap.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
+        if (!_game.BattleMap.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates, attacker.Height, targetHeight))
             return configWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);

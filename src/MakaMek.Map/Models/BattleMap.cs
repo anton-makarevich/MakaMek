@@ -473,7 +473,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Checks if there is a line of sight between two hexes
     /// </summary>
-    public bool HasLineOfSight(HexCoordinates from, HexCoordinates to)
+    /// <param name="from">Source hex coordinates</param>
+    /// <param name="to">Target hex coordinates</param>
+    /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
+    /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
+    public bool HasLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0)
     {
         if (!IsOnMap(from) || !IsOnMap(to))
             return false;
@@ -506,9 +510,10 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return false;
 
             // Calculate the minimum height needed at this distance to maintain LOS
+            // Use hex level + unit height for proper unit height support
             var requiredHeight = InterpolateHeight(
-                fromHex.GetCeiling(),
-                toHex.GetCeiling(),
+                fromHex.Level + attackerHeight,
+                toHex.Level + targetHeight,
                 distance,
                 totalDistance);
 

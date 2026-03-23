@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -583,6 +582,8 @@ public class UnitPartTests
     public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;
+        
+        public override int Height => 2;
 
         public override bool CanMoveBackward(MovementType type) => true;
 

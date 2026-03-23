@@ -111,6 +111,11 @@ public abstract class Unit : IUnit
 
     public WeightClass Class => Tonnage.ToWeightClass();
 
+    /// <summary>
+    /// Gets the unit's height in levels. Used for line of sight calculations.
+    /// </summary>
+    public abstract int Height { get; }
+
     // Base movement (walking)
     protected int BaseMovement
     {

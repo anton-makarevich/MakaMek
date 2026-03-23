@@ -614,6 +614,12 @@ public class Mech : Unit
     public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
 
     /// <summary>
+    /// Gets the mech's height in levels. Standing mechs are height 2, prone mechs are height 1.
+    /// Used for line of sight calculations.
+    /// </summary>
+    public override int Height => IsProne ? 1 : 2;
+
+    /// <summary>
     /// Resets the turn state for the mech, including torso rotation
     /// </summary>
     public override void ResetTurnState()

@@ -360,7 +360,7 @@ public class WeaponsAttackState : IUiState
                 // Filter out hexes without the line of sight
                 if (Game.BattleMap != null)
                 {
-                    weaponHexes.RemoveWhere(h => !Game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
+                    weaponHexes.RemoveWhere(h => !Game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h, Attacker?.Height ?? 0));
                 }
 
                 _weaponRanges[weapon] = weaponHexes;

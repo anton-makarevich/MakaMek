@@ -56,7 +56,11 @@ public interface IBattleMap
     /// <summary>
     /// Checks if there is a line of sight between two hexes
     /// </summary>
-    bool HasLineOfSight(HexCoordinates from, HexCoordinates to);
+    /// <param name="from">Source hex coordinates</param>
+    /// <param name="to">Target hex coordinates</param>
+    /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
+    /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
+    bool HasLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0);
 
     IEnumerable<Hex> GetHexes();
 
