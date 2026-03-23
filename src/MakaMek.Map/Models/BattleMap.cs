@@ -502,7 +502,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return true; // No intervening hexes
 
         var distance = 1;
-        var totalDistance = hexLine.Count;
+        var totalDistance = hexLine.Count+1;
         foreach (var coordinates in hexLine)
         {
             var hex = GetHex(coordinates);
@@ -518,7 +518,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 totalDistance);
 
             // If the hex is higher than the line between start and end points, it blocks LOS
-            if (hex.Level > requiredHeight)
+            if (hex.Level >= requiredHeight)
                 return false;
 
             distance++;
@@ -586,13 +586,13 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Interpolate height between two points for LOS calculation
     /// </summary>
-    private static int InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
+    private static double InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
     {
         if (totalDistance == 0)
             return startHeight;
 
         var t = (double)currentDistance / totalDistance;
-        return (int)Math.Round(startHeight + (endHeight - startHeight) * t);
+        return startHeight + (endHeight - startHeight) * t;
     }
 
     public IEnumerable<Hex> GetHexes()
