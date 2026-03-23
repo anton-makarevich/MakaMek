@@ -137,7 +137,7 @@ public record AttackScenario
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null,
         int attackerHeight = 2, // assume the attacker is a mech
-        int targetHeight = 1) // assume the target is not an empty hex
+        int targetHeight = 2) // assume the target is a mech
     {
         return new AttackScenario
         {

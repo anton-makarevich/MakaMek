@@ -37,7 +37,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         IReadOnlyList<IUnit> enemyUnits,
         ITurnState? turnState = null)
     {
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
+        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
         var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Any()
@@ -131,17 +131,19 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>(results);
     }
-    
+
     /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
     /// </summary>
     /// <param name="defenderPath">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
+    /// <param name="defenderHeight">Height of the unit at the position</param>
     /// <returns>Defensive threat index (lower is better)</returns>
     private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
-        IReadOnlyList<IUnit> enemyUnits)
+        IReadOnlyList<IUnit> enemyUnits,
+        int defenderHeight)
     {
         var enemiesInRearArc = 0;
         if (_game.BattleMap == null)
@@ -163,7 +165,11 @@ public class TacticalEvaluator : ITacticalEvaluator
                 enemiesInRearArc++;
             
             // Check line of sight
-            if (!_game.BattleMap.HasLineOfSight(enemy.Position.Coordinates, position.Coordinates, enemy.Height))
+            if (!_game.BattleMap.HasLineOfSight(
+                    enemy.Position.Coordinates,
+                    position.Coordinates,
+                    enemy.Height,
+                    defenderHeight))
                 continue;
 
             var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
