@@ -136,8 +136,8 @@ public record AttackScenario
         HexDirection? attackerFacing = null,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null,
-        int attackerHeight = 0,
-        int targetHeight = 0)
+        int attackerHeight = 2, // assume the attacker is a mech
+        int targetHeight = 1) // assume the target is not an empty hex
     {
         return new AttackScenario
         {
