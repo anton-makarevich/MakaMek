@@ -854,15 +854,15 @@ public class BattleMapTests
     public void HasLineOfSight_WithAttackerHeight2_CanSeeOverLevel1Terrain()
     {
         // Arrange
-        var sut = new BattleMap(5, 1);
+        var sut = new BattleMap(1, 5);
         var start = new HexCoordinates(1, 1);
-        var end = new HexCoordinates(5, 1);
+        var end = new HexCoordinates(1, 5);
         
         // Add hexes - attacker at level 0, blocking terrain at level 1, target at level 0
         sut.AddHex(new Hex(start)); // Attacker hex at level 0
-        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
-        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain in between
-        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 3), 1)); // Level 1 terrain in between
+        sut.AddHex(new Hex(new HexCoordinates(1, 4)));
         sut.AddHex(new Hex(end)); // Target hex at level 0
 
         // Act & Assert
@@ -876,15 +876,15 @@ public class BattleMapTests
     public void HasLineOfSight_WithProneAttacker_BlockedByLevel1Terrain()
     {
         // Arrange
-        var sut = new BattleMap(5, 1);
+        var sut = new BattleMap(1, 5);
         var start = new HexCoordinates(1, 1);
-        var end = new HexCoordinates(5, 1);
+        var end = new HexCoordinates(1, 5);
         
         // Add hexes - attacker at level 0, blocking terrain at level 1, target at level 0
         sut.AddHex(new Hex(start));
-        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
-        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain in between
-        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 3), 1)); // Level 1 terrain in between
+        sut.AddHex(new Hex(new HexCoordinates(1, 4)));
         sut.AddHex(new Hex(end));
 
         // Act & Assert
@@ -898,22 +898,22 @@ public class BattleMapTests
     public void HasLineOfSight_WithTargetHeight_HasBetterLOS()
     {
         // Arrange
-        var sut = new BattleMap(5, 1);
+        var sut = new BattleMap(1, 5);
         var start = new HexCoordinates(1, 1);
-        var end = new HexCoordinates(5, 1);
+        var end = new HexCoordinates(1, 5);
         
         // Add hexes - attacker at level 0, small hill at level 1, target at level 0
         sut.AddHex(new Hex(start));
-        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
-        sut.AddHex(new Hex(new HexCoordinates(3, 1), 1)); // Level 1 terrain
-        sut.AddHex(new Hex(new HexCoordinates(4, 1)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+        sut.AddHex(new Hex(new HexCoordinates(1, 3), 1)); // Level 1 terrain
+        sut.AddHex(new Hex(new HexCoordinates(1, 4)));
         sut.AddHex(new Hex(end));
 
         // Act & Assert
         // Attacker height 0 (no unit), target height 0 - blocked
         sut.HasLineOfSight(start, end, 0).ShouldBeFalse("LOS blocked with no heights");
         // Attacker height 2, target height 0 - clear (standing mech can see over level 1)
-        sut.HasLineOfSight(start, end, 2).ShouldBeTrue("LOS clear with attacker height 2");
+        sut.HasLineOfSight(start, end, 2,1).ShouldBeTrue("LOS clear with attacker height 2");
     }
 
     [Fact]
