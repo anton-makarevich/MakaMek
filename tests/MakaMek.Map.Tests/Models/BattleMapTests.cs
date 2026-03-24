@@ -849,6 +849,29 @@ public class BattleMapTests
         losWithCache.ShouldBeTrue("Should still have LOS when using cached path");
         losWithCache.ShouldBe(initialLos, "LOS result should not change without cache clear");
     }
+    
+    [Fact]
+    public void HasLineOfSight_WithLosOverWoods_ShouldNotBlock()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(1, 5, 
+            new SingleTerrainGenerator(1, 5, new ClearTerrain()));
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 5);
+        
+        sut.AddHex(new Hex(from,2));
+        sut.AddHex(new Hex(to,2));
+
+        sut.GetHex(new HexCoordinates(1, 2))!.AddTerrain(new HeavyWoodsTerrain());
+        sut.GetHex(new HexCoordinates(1, 3))!.AddTerrain(new HeavyWoodsTerrain());
+        sut.GetHex(new HexCoordinates(1, 4))!.AddTerrain(new HeavyWoodsTerrain());
+            
+        // Act
+        var los = sut.HasLineOfSight(from, to, 2);
+
+        // Assert
+        los.ShouldBeTrue("Should have LOS with no obstacles");
+    }
 
     [Fact]
     public void HasLineOfSight_WithAttackerHeight2_CanSeeOverLevel1Terrain()
