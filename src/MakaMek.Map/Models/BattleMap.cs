@@ -502,54 +502,35 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return true; // No intervening hexes
 
         var distance = 1;
-        var totalDistance = hexLine.Count+1;
+        var totalDistance = hexLine.Count + 1;
+        var totalInterveningFactor = 0;
         foreach (var coordinates in hexLine)
         {
             var hex = GetHex(coordinates);
             if (hex == null)
                 return false;
 
-            // Calculate the minimum height needed at this distance to maintain LOS
-            // Use hex level + unit height for proper unit height support
             var requiredHeight = InterpolateHeight(
                 fromHex.Level + attackerHeight,
                 toHex.Level + targetHeight,
                 distance,
                 totalDistance);
 
-            // If the hex is higher than the line between start and end points, it blocks LOS
+            // If the hex level blocks the LOS line entirely, return false
             if (hex.Level >= requiredHeight)
                 return false;
 
-            distance++;
-        }
-        
-        // Calculate a total intervening factor, handling nulls properly
-        var terrainDistance = 1;
-        var totalInterveningFactor = 0;
-        foreach (var coordinates in hexLine)
-        {
-            var hex = GetHex(coordinates);
-            if (hex == null) return false; //Hex doesn't exist on the map
-
-            // Only count terrain whose ceiling is strictly above the LOS line at this position
-            var terrainRequiredHeight = InterpolateHeight(
-                fromHex.Level + attackerHeight,
-                toHex.Level + targetHeight,
-                terrainDistance,
-                totalDistance);
-            if (hex.GetCeiling() >= terrainRequiredHeight)
+            // Only count terrain whose ceiling reaches the LOS line at this position
+            if (hex.GetCeiling() >= requiredHeight)
             {
-                var hexFactor = hex.GetTerrains()
-                    .Sum(t => t.InterveningFactor);
-                totalInterveningFactor += hexFactor;
+                totalInterveningFactor += hex.GetTerrains().Sum(t => t.InterveningFactor);
             }
 
-            // Early exit if we already know LOS is blocked
+            // Early exit if a terrain intervening factor is too high
             if (totalInterveningFactor >= 3)
                 return false;
 
-            terrainDistance++;
+            distance++;
         }
 
         return true;
