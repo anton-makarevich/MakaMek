@@ -538,10 +538,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 toHex.Level + targetHeight,
                 terrainDistance,
                 totalDistance);
-            var hexFactor = hex.GetTerrains()
-                .Where(t => hex.GetCeiling() >= terrainRequiredHeight)
-                .Sum(t => t.InterveningFactor);
-            totalInterveningFactor += hexFactor;
+            if (hex.GetCeiling() >= terrainRequiredHeight)
+            {
+                var hexFactor = hex.GetTerrains()
+                    .Sum(t => t.InterveningFactor);
+                totalInterveningFactor += hexFactor;
+            }
 
             // Early exit if we already know LOS is blocked
             if (totalInterveningFactor >= 3)
