@@ -525,17 +525,29 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
         
         // Calculate a total intervening factor, handling nulls properly
+        var terrainDistance = 1;
         var totalInterveningFactor = 0;
         foreach (var coordinates in hexLine)
         {
             var hex = GetHex(coordinates);
             if (hex == null) return false; //Hex doesn't exist on the map
-            var hexFactor = hex.GetTerrains().Sum(t => t.InterveningFactor);
+
+            // Only count terrain whose ceiling is strictly above the LOS line at this position
+            var terrainRequiredHeight = InterpolateHeight(
+                fromHex.Level + attackerHeight,
+                toHex.Level + targetHeight,
+                terrainDistance,
+                totalDistance);
+            var hexFactor = hex.GetTerrains()
+                .Where(t => hex.GetCeiling() >= terrainRequiredHeight)
+                .Sum(t => t.InterveningFactor);
             totalInterveningFactor += hexFactor;
 
             // Early exit if we already know LOS is blocked
             if (totalInterveningFactor >= 3)
                 return false;
+
+            terrainDistance++;
         }
 
         return true;
