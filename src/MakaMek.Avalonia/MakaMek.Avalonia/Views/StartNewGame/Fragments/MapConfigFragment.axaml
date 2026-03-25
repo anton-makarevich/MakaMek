@@ -96,6 +96,18 @@
                         <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
                         <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
                     </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding HillCoverageLabel}" Classes="label"/>
+                        <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding HillCoverage, StringFormat='Hill Coverage: {0}%'}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding MaxElevationLabel}" Classes="label"/>
+                        <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding MaxElevation, StringFormat='Max Elevation: {0}'}" Classes="bodySmall"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Map Preview -->

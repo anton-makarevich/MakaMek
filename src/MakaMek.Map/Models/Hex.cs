@@ -11,7 +11,7 @@ namespace Sanet.MakaMek.Map.Models;
 public class Hex : IDisposable
 {
     public HexCoordinates Coordinates { get; }
-    public int Level { get; private set; }
+    public int Level { get; internal set; }
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
 
     /// <summary>
