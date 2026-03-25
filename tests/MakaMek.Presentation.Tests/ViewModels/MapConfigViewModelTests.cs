@@ -105,11 +105,31 @@ public class MapConfigViewModelTests
     [Fact]
     public void LightWoodsPercentage_SetAndGet_ShouldUpdateCorrectly()
     {
-        var newPercentage = 60;
+        const int newPercentage = 60;
 
         _sut.LightWoodsPercentage = newPercentage;
 
         _sut.LightWoodsPercentage.ShouldBe(newPercentage);
+    }
+    
+    [Fact]
+    public void HillCoverage_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newCoverage = 35;
+
+        _sut.HillCoverage = newCoverage;
+
+        _sut.HillCoverage.ShouldBe(newCoverage);
+    }
+    
+    [Fact]
+    public void MaxElevation_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newElevation = 3;
+
+        _sut.MaxElevation = newElevation;
+
+        _sut.MaxElevation.ShouldBe(newElevation);
     }
 
     [Fact]
@@ -134,6 +154,18 @@ public class MapConfigViewModelTests
     public void LightWoodsLabel_ReturnsCorrectValue()
     {
         _sut.LightWoodsLabel.ShouldBe("Light Woods Percentage");
+    }
+    
+    [Fact]
+    public void HillCoverageLabel_ReturnsCorrectValue()
+    {
+        _sut.HillCoverageLabel.ShouldBe("Hill Coverage");
+    }
+    
+    [Fact]
+    public void MaxElevationLabel_ReturnsCorrectValue()
+    {
+        _sut.MaxElevationLabel.ShouldBe("Max Elevation");
     }
 
     [Fact]
