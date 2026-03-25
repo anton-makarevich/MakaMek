@@ -121,13 +121,16 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         {
             // Darken from base dark toward near-black
             // level 1 -> 0x55, level 2 -> 0x33, level 3+ -> 0x11
-            var dark = (byte)Math.Max(0x10, 0x77 - (hex.Level * 0x22));
+            var darkValue = 0x77L - hex.Level * 0x22L;
+            var dark = (byte)Math.Clamp(darkValue, 0x10L, 0x77L);
             return new SKColor(dark, dark, dark);
         }
 
         // Lighten from base light toward near-white
         // level -1 -> 0xAA, level -2 -> 0xCC, level -3+ -> 0xEE
-        var light = (byte)Math.Min(0xFF, 0x88 + (Math.Abs(hex.Level) * 0x22));
+        var absLevel = Math.Abs((long)hex.Level);
+        var lightValue = 0x88L + absLevel * 0x22L;
+        var light = (byte)Math.Clamp(lightValue, 0x88L, 0xFFL);
         return new SKColor(light, light, light, 0xDD); // Slightly transparent
     }
 }
