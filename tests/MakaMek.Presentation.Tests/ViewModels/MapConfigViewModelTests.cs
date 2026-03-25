@@ -821,4 +821,44 @@ public class MapConfigViewModelTests
         // Assert - the token passed to the renderer must be canceled
         capturedToken.IsCancellationRequested.ShouldBeTrue();
     }
+    
+    [Fact]
+    public async Task HillCoverage_WhenGreaterThanZero_GeneratesMapWithHills()
+    {
+        // Arrange
+        var mockImage = new object();
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+
+        // Wait for the initial generation to complete
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 10) throw new TimeoutException("Initial generation timed out");
+        }
+
+        // Act - set hill coverage > 0 to trigger hill generation
+        sut.HillCoverage = 25;
+        sut.MaxElevation = 3;
+
+        // Wait for a generation to complete
+        i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Hill generation timed out");
+        }
+
+        // Assert
+        sut.SelectedTabIndex = 1; // Switch to the Generate tab
+        sut.Map.ShouldNotBeNull();
+        _mapFactory.Received().GenerateMap(sut.MapWidth, sut.MapHeight, Arg.Any<ITerrainGenerator>());
+    }
 }
