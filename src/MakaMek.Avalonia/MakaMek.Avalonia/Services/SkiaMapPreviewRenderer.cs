@@ -62,6 +62,11 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             paint.IsAntialias = true;
             paint.Style = SKPaintStyle.Fill;
 
+            using var strokePaint = new SKPaint();
+            strokePaint.IsAntialias = true;
+            strokePaint.Style = SKPaintStyle.Stroke;
+            strokePaint.StrokeWidth = dotDiameter * 0.15f;
+
             for (var q = 1; q <= width; q++)
             {
                 for (var r = 1; r <= height; r++)
@@ -78,6 +83,12 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
                     var x = (float)((coordinates.H - hexWidth * 0.35) * scale);
                     var y = (float)(coordinates.V * scale);
                     canvas.DrawCircle(x, y, dotDiameter / 2, paint);
+
+                    if (hex.Level==0) continue;
+                    
+                    var ringColor = GetElevationRingColor(hex);
+                    strokePaint.Color = ringColor;
+                    canvas.DrawCircle(x, y, dotDiameter / 2 * 0.85f, strokePaint);
                 }
             }
 
@@ -102,6 +113,25 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             MakaMekTerrains.HeavyWoods => HeavyWoodsColor,
             _ => ClearTerrainColor
         };
+    }
+
+    private static SKColor GetElevationRingColor(Hex hex)
+    {
+        if (hex.Level > 0)
+        {
+            // Darken from base dark toward near-black
+            // level 1 -> 0x55, level 2 -> 0x33, level 3+ -> 0x11
+            var darkValue = 0x77L - hex.Level * 0x22L;
+            var dark = (byte)Math.Clamp(darkValue, 0x10L, 0x77L);
+            return new SKColor(dark, dark, dark);
+        }
+
+        // Lighten from base light toward near-white
+        // level -1 -> 0xAA, level -2 -> 0xCC, level -3+ -> 0xEE
+        var absLevel = Math.Abs((long)hex.Level);
+        var lightValue = 0x88L + absLevel * 0x22L;
+        var light = (byte)Math.Clamp(lightValue, 0x88L, 0xFFL);
+        return new SKColor(light, light, light, 0xDD); // Slightly transparent
     }
 }
 
