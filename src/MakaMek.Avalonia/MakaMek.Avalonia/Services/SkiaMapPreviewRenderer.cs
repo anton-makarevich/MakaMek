@@ -62,6 +62,11 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             paint.IsAntialias = true;
             paint.Style = SKPaintStyle.Fill;
 
+            using var strokePaint = new SKPaint();
+            strokePaint.IsAntialias = true;
+            strokePaint.Style = SKPaintStyle.Stroke;
+            strokePaint.StrokeWidth = dotDiameter * 0.15f;
+
             for (var q = 1; q <= width; q++)
             {
                 for (var r = 1; r <= height; r++)
@@ -78,6 +83,13 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
                     var x = (float)((coordinates.H - hexWidth * 0.35) * scale);
                     var y = (float)(coordinates.V * scale);
                     canvas.DrawCircle(x, y, dotDiameter / 2, paint);
+
+                    if (hex.Level==0) continue;
+                    
+                    var ringColor = GetElevationRingColor(hex);
+                    if (!ringColor.HasValue) continue;
+                    strokePaint.Color = ringColor.Value;
+                    canvas.DrawCircle(x, y, dotDiameter / 2 * 0.85f, strokePaint);
                 }
             }
 
@@ -102,6 +114,24 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             MakaMekTerrains.HeavyWoods => HeavyWoodsColor,
             _ => ClearTerrainColor
         };
+    }
+
+    private static SKColor? GetElevationRingColor(Hex hex)
+    {
+        if (hex.Level == 0) return null;
+
+        if (hex.Level > 0)
+        {
+            // Darken from base dark toward near-black
+            // level 1 -> 0x55, level 2 -> 0x33, level 3+ -> 0x11
+            var dark = (byte)Math.Max(0x10, 0x77 - (hex.Level * 0x22));
+            return new SKColor(dark, dark, dark);
+        }
+
+        // Lighten from base light toward near-white
+        // level -1 -> 0xAA, level -2 -> 0xCC, level -3+ -> 0xEE
+        var light = (byte)Math.Min(0xFF, 0x88 + (Math.Abs(hex.Level) * 0x22));
+        return new SKColor(light, light, light, 0xDD); // Slightly transparent
     }
 }
 
