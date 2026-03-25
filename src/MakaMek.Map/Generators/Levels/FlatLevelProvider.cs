@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Map.Generators;
+namespace Sanet.MakaMek.Map.Generators.Levels;
 
 /// <summary>
 /// A null-object level provider that always returns level 0 (flat terrain).

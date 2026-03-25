@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Map.Generators;
+namespace Sanet.MakaMek.Map.Generators.Levels;
 
 /// <summary>
 /// Provides elevation levels for individual hex coordinates.

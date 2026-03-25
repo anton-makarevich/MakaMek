@@ -1,8 +1,8 @@
-using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Generators.Levels;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
-namespace Sanet.MakaMek.Map.Tests.Generators;
+namespace Sanet.MakaMek.Map.Tests.Generators.Levels;
 
 public class HillLevelProviderTests
 {

@@ -1,4 +1,5 @@
-using Sanet.MakaMek.Map.Generators.Configuration;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Generators.Levels;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 

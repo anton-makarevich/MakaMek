@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Map.Generators;
+namespace Sanet.MakaMek.Map.Generators.Levels;
 
 /// <summary>
 /// Generates organic hill clusters using BFS flood-fill (via <see cref="PatchGenerator"/>).
