@@ -87,8 +87,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
                     if (hex.Level==0) continue;
                     
                     var ringColor = GetElevationRingColor(hex);
-                    if (!ringColor.HasValue) continue;
-                    strokePaint.Color = ringColor.Value;
+                    strokePaint.Color = ringColor;
                     canvas.DrawCircle(x, y, dotDiameter / 2 * 0.85f, strokePaint);
                 }
             }
@@ -116,10 +115,8 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         };
     }
 
-    private static SKColor? GetElevationRingColor(Hex hex)
+    private static SKColor GetElevationRingColor(Hex hex)
     {
-        if (hex.Level == 0) return null;
-
         if (hex.Level > 0)
         {
             // Darken from base dark toward near-black
