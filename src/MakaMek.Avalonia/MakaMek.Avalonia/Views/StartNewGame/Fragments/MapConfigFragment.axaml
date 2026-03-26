@@ -87,14 +87,26 @@
 
                     <StackPanel Classes="formGroup">
                         <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
-                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
+                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
                         <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
-                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
+                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
                         <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding HillCoverageLabel}" Classes="label"/>
+                        <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding HillCoverage, StringFormat='Hill Coverage: {0}%'}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding MaxElevationLabel}" Classes="label"/>
+                        <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding MaxElevation, StringFormat='Max Elevation: {0}'}" Classes="bodySmall"/>
                     </StackPanel>
                 </StackPanel>
 

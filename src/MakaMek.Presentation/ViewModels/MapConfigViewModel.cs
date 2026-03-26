@@ -70,6 +70,8 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public string MapHeightLabel => "Map Height";
     public string ForestCoverageLabel => "Forest Coverage";
     public string LightWoodsLabel => "Light Woods Percentage";
+    public string HillCoverageLabel => "Hill Coverage";
+    public string MaxElevationLabel => "Max Elevation";
 
     /// <summary>
     /// Currently selected tab index. 0 = Select Map, 1 = Generate Map
@@ -157,6 +159,26 @@ public class MapConfigViewModel : BindableBase, IDisposable
             StartMapUpdate();
         }
     } = 30;
+
+    public int HillCoverage
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            StartMapUpdate();
+        }
+    }
+
+    public int MaxElevation
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            StartMapUpdate();
+        }
+    } = 2;
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
@@ -315,13 +337,16 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
         try
         {
-            ITerrainGenerator generator = ForestCoverage == 0
-                ? new SingleTerrainGenerator(MapWidth, MapHeight, new ClearTerrain())
-                : new ForestPatchesGenerator(
-                    MapWidth,
-                    MapHeight,
-                    forestCoverage: ForestCoverage / 100.0,
-                    lightWoodsProbability: LightWoodsPercentage / 100.0);
+            var builder = new MapGeneratorBuilder(MapWidth, MapHeight)
+                .WithBaseTerrain(new ClearTerrain());
+
+            if (ForestCoverage > 0)
+                builder = builder.WithForestPatches(ForestCoverage / 100.0, LightWoodsPercentage / 100.0);
+
+            if (HillCoverage > 0)
+                builder = builder.WithHills(HillCoverage / 100.0, MaxElevation);
+
+            var generator = builder.Build();
 
             GeneratedMap = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
             NotifyPropertyChanged(nameof(Map));

@@ -105,11 +105,31 @@ public class MapConfigViewModelTests
     [Fact]
     public void LightWoodsPercentage_SetAndGet_ShouldUpdateCorrectly()
     {
-        var newPercentage = 60;
+        const int newPercentage = 60;
 
         _sut.LightWoodsPercentage = newPercentage;
 
         _sut.LightWoodsPercentage.ShouldBe(newPercentage);
+    }
+    
+    [Fact]
+    public void HillCoverage_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newCoverage = 35;
+
+        _sut.HillCoverage = newCoverage;
+
+        _sut.HillCoverage.ShouldBe(newCoverage);
+    }
+    
+    [Fact]
+    public void MaxElevation_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newElevation = 3;
+
+        _sut.MaxElevation = newElevation;
+
+        _sut.MaxElevation.ShouldBe(newElevation);
     }
 
     [Fact]
@@ -134,6 +154,18 @@ public class MapConfigViewModelTests
     public void LightWoodsLabel_ReturnsCorrectValue()
     {
         _sut.LightWoodsLabel.ShouldBe("Light Woods Percentage");
+    }
+    
+    [Fact]
+    public void HillCoverageLabel_ReturnsCorrectValue()
+    {
+        _sut.HillCoverageLabel.ShouldBe("Hill Coverage");
+    }
+    
+    [Fact]
+    public void MaxElevationLabel_ReturnsCorrectValue()
+    {
+        _sut.MaxElevationLabel.ShouldBe("Max Elevation");
     }
 
     [Fact]
@@ -788,5 +820,45 @@ public class MapConfigViewModelTests
 
         // Assert - the token passed to the renderer must be canceled
         capturedToken.IsCancellationRequested.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task HillCoverage_WhenGreaterThanZero_GeneratesMapWithHills()
+    {
+        // Arrange
+        var mockImage = new object();
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+
+        // Wait for the initial generation to complete
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 10) throw new TimeoutException("Initial generation timed out");
+        }
+
+        // Act - set hill coverage > 0 to trigger hill generation
+        sut.HillCoverage = 25;
+        sut.MaxElevation = 3;
+
+        // Wait for a generation to complete
+        i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Hill generation timed out");
+        }
+
+        // Assert
+        sut.SelectedTabIndex = 1; // Switch to the Generate tab
+        sut.Map.ShouldNotBeNull();
+        _mapFactory.Received().GenerateMap(sut.MapWidth, sut.MapHeight, Arg.Any<ITerrainGenerator>());
     }
 }

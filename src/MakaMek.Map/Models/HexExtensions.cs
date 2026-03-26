@@ -10,4 +10,10 @@ public static class HexExtensions
         hex.AddTerrain(terrain);
         return hex;
     }
+
+    public static Hex WithLevel(this Hex hex, int level)
+    {
+        hex.Level = level;
+        return hex;
+    }
 }
