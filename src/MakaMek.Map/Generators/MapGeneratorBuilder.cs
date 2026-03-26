@@ -39,6 +39,9 @@ public class MapGeneratorBuilder
     /// <summary>Adds a terrain overlay patch covering the given fraction of the map.</summary>
     public MapGeneratorBuilder WithTerrain<TTerrain>(double coverage) where TTerrain : Terrain, new()
     {
+        if (coverage is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(coverage), "Coverage must be between 0.0 and 1.0.");
+
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
             (_, _) => new TTerrain()
@@ -52,6 +55,12 @@ public class MapGeneratorBuilder
     /// </summary>
     public MapGeneratorBuilder WithForestPatches(double coverage, double lightWoodsProbability)
     {
+        if (coverage is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(coverage), "Coverage must be between 0.0 and 1.0.");
+        if (lightWoodsProbability is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(lightWoodsProbability),
+                "Light woods probability must be between 0.0 and 1.0.");
+
         var lp = lightWoodsProbability;
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
