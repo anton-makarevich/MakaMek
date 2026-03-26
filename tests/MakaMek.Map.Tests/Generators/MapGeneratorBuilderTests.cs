@@ -124,5 +124,61 @@ public class MapGeneratorBuilderTests
             h1.GetTerrainTypes().ShouldBe(h2.GetTerrainTypes());
         }
     }
+
+    [Theory]
+    [InlineData(-0.1)]
+    [InlineData(1.1)]
+    public void WithTerrain_WithInvalidCoverage_ThrowsArgumentOutOfRangeException(double coverage)
+    {
+        // Arrange
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithTerrain<ClearTerrain>(coverage));
+        ex.ParamName.ShouldBe("coverage");
+    }
+
+    [Fact]
+    public void WithTerrain_WithValidCoverage_ProducesTerrain()
+    {
+        // Arrange & Act
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithTerrain<LightWoodsTerrain>(coverage: 0.5)
+            .WithSeed(42)
+            .Build();
+
+        // Assert
+        var hasTerrain = AllCoords()
+            .Select(c => sut.Generate(c))
+            .Any(h => h.HasTerrain(MakaMekTerrains.LightWoods));
+
+        hasTerrain.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(-0.1, 0.5)]
+    [InlineData(1.1, 0.5)]
+    public void WithForestPatches_WithInvalidCoverage_ThrowsArgumentOutOfRangeException(double coverage, double lightWoodsProbability)
+    {
+        // Arrange
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithForestPatches(coverage, lightWoodsProbability));
+        ex.ParamName.ShouldBe("coverage");
+    }
+
+    [Theory]
+    [InlineData(0.5, -0.1)]
+    [InlineData(0.5, 1.1)]
+    public void WithForestPatches_WithInvalidLightWoodsProbability_ThrowsArgumentOutOfRangeException(double coverage, double lightWoodsProbability)
+    {
+        // Arrange
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithForestPatches(coverage, lightWoodsProbability));
+        ex.ParamName.ShouldBe("lightWoodsProbability");
+    }
 }
 
