@@ -180,5 +180,25 @@ public class MapGeneratorBuilderTests
         var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithForestPatches(coverage, lightWoodsProbability));
         ex.ParamName.ShouldBe("lightWoodsProbability");
     }
+
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(-1, 10)]
+    public void Constructor_WithInvalidWidth_ThrowsArgumentOutOfRangeException(int width, int height)
+    {
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => new MapGeneratorBuilder(width, height));
+        ex.ParamName.ShouldBe("width");
+    }
+
+    [Theory]
+    [InlineData(10, 0)]
+    [InlineData(10, -1)]
+    public void Constructor_WithInvalidHeight_ThrowsArgumentOutOfRangeException(int width, int height)
+    {
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => new MapGeneratorBuilder(width, height));
+        ex.ParamName.ShouldBe("height");
+    }
 }
 
