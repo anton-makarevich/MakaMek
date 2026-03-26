@@ -25,6 +25,10 @@ public class MapGeneratorBuilder
 
     public MapGeneratorBuilder(int width, int height)
     {
+        if (width < 1)
+            throw new ArgumentOutOfRangeException(nameof(width), "Width must be at least 1.");
+        if (height < 1)
+            throw new ArgumentOutOfRangeException(nameof(height), "Height must be at least 1.");
         _width = width;
         _height = height;
     }
