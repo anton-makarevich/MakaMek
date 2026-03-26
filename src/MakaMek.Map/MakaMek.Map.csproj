@@ -8,6 +8,10 @@
         <RootNamespace>Sanet.MakaMek.Map</RootNamespace>
         <Description>An Attempt of Classic BattleTech game implementation. Map Logic</Description>
     </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Sanet.MakaMek.Map.Tests" />
+    </ItemGroup>
     
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="" />
