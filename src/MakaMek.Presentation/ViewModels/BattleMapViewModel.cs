@@ -148,9 +148,7 @@ public class BattleMapViewModel : BaseViewModel
             // Small delay to allow command to be sent
             await Task.Delay(100);
 
-            // Dispose client game
-            Game?.Dispose();
-            Game = null;
+            await GoToMainMenu();
         }
     }
     
