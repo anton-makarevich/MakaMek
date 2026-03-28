@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Reactive.Concurrency;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
@@ -52,10 +53,14 @@ public class EndStateTests
         localizationService.GetString("Action_Shutdown").Returns("Shutdown");
         localizationService.GetString("Action_Startup").Returns("Startup");
         
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        
         _battleMapViewModel = new BattleMapViewModel(imageService,
             Substitute.For<ITerrainAssetService>(),
             localizationService,
-            Substitute.For<IDispatcherService>(),
+            dispatcherService,
             Substitute.For<IRulesProvider>());
         var playerId = Guid.NewGuid();
         
@@ -345,7 +350,7 @@ public class EndStateTests
     {
         // Arrange
         _battleMapViewModel.SelectedUnit = _unit1;
-        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
