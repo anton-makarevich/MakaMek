@@ -69,7 +69,8 @@ public class BattleMapViewModelTests
             Substitute.For<ITerrainAssetService>(),
             _localizationService,
             dispatcherService,
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
         
         // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());

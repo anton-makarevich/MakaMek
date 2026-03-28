@@ -5,6 +5,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
@@ -141,6 +142,36 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             {
                 RenderMap(ViewModel.Game);
             }
+        }
+        else if (e.PropertyName == nameof(ViewModel.AvailableActions))
+        {
+            UpdateMobileActionButtons();
+        }
+    }
+
+    private void UpdateMobileActionButtons()
+    {
+        if (ViewModel is not { IsMobile: true }) return;
+
+        MobileActionButtonsPanel.Children.Clear();
+
+        foreach (var action in ViewModel.AvailableActions)
+        {
+            if (!action.IsVisible) continue;
+
+            var button = new Button
+            {
+                Content = action.Label,
+                Padding = new Thickness(20, 12),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontSize = 16,
+                FontWeight = FontWeight.Bold,
+                Background = new SolidColorBrush(Colors.Aqua)
+            };
+
+            var capturedAction = action;
+            button.Click += (_, _) => capturedAction.OnExecute();
+            MobileActionButtonsPanel.Children.Add(button);
         }
     }
 

@@ -71,7 +71,8 @@ public class WeaponsAttackStateTests
             Substitute.For<ITerrainAssetService>(),
             _localizationService,
             Substitute.For<IDispatcherService>(),
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();

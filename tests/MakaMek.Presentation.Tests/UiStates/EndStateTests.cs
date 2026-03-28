@@ -61,7 +61,8 @@ public class EndStateTests
             Substitute.For<ITerrainAssetService>(),
             localizationService,
             dispatcherService,
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
         var playerId = Guid.NewGuid();
         
         var rules = new ClassicBattletechRulesProvider();

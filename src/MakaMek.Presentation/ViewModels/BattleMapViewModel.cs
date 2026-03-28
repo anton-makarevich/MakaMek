@@ -89,12 +89,14 @@ public class BattleMapViewModel : BaseViewModel
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IRulesProvider rulesProvider)
+        IRulesProvider rulesProvider,
+        IPlatformService platformService)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        IsMobile = platformService.IsMobile;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -427,6 +429,7 @@ public class BattleMapViewModel : BaseViewModel
         NotifyPropertyChanged(nameof(Attacker));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
+        NotifyPropertyChanged(nameof(AvailableActions));
 
         // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
@@ -466,6 +469,14 @@ public class BattleMapViewModel : BaseViewModel
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
+
+    public bool IsMobile { get; }
+
+    /// <summary>
+    /// Returns the available actions for the current UI state.
+    /// Used on mobile to render action buttons in a fixed position overlay.
+    /// </summary>
+    public IEnumerable<StateAction> AvailableActions => CurrentState.GetAvailableActions();
 
     public IImageService ImageService { get; }
 

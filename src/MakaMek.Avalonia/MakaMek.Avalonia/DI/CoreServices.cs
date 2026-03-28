@@ -119,6 +119,7 @@ public static class CoreServices
             services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
             services.AddSingleton<IHashService, HashService>();
             services.AddSingleton<IBotManager, BotManager>();
+            services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
         }
 
         public void RegisterViewModels()
