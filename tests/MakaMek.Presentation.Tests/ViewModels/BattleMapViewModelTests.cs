@@ -174,6 +174,8 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
+        var endGameViewModel = new EndGameViewModel(_localizationService);
+        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = game;
@@ -185,6 +187,7 @@ public class BattleMapViewModelTests
 
         // Assert
         navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
+        await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
     }
 
     [Theory]
