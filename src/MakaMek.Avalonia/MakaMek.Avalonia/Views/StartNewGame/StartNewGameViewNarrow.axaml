@@ -21,7 +21,8 @@
                 <fragments1:PlayersFragment/>
             </TabItem>
             <TabItem Header="Map">
-                <ScrollViewer Classes="gameScrollViewer">
+                <ScrollViewer Classes="gameScrollViewer"
+                              HorizontalScrollBarVisibility="Disabled">
                     <fragments1:MapConfigFragment DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
             </TabItem>
