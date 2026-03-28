@@ -7,6 +7,7 @@
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:behaviors="clr-namespace:Sanet.MakaMek.Avalonia.Behaviors"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:uiStates="clr-namespace:Sanet.MakaMek.Presentation.UiStates;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.BattleMapView"
              x:CompileBindings="True"
@@ -180,12 +181,33 @@
         </StackPanel>
 
         <!-- Mobile Unit Action Buttons (fixed overlay, visible only on mobile) -->
-        <StackPanel x:Name="MobileActionButtonsPanel"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    Margin="0,0,0,80"
-                    Spacing="8"
-                    IsVisible="{Binding IsMobile}"/>
+        <ItemsControl x:Name="MobileActionButtonsPanel"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,40"
+                      IsVisible="{Binding IsMobile}"
+                      ItemsSource="{Binding AvailableActions}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical"
+                                Spacing="4"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="uiStates:StateAction">
+                    <Button Padding="15,10"
+                            Command="{Binding OnExecute}"
+                            HorizontalAlignment="Center" 
+                            IsVisible="{Binding IsVisible}"
+                            Background="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
+                            Foreground="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}">
+                        <TextBlock Text="{Binding Label}"
+                                   FontSize="16"
+                                   FontWeight="Bold"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Player Action Button -->
         <Button HorizontalAlignment="Center"
