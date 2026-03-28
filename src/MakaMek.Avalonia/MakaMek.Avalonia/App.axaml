@@ -17,6 +17,7 @@
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
             <converters:AdaptiveOrientationConverter x:Key="AdaptiveOrientationConverter"/>
             <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
+            <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
