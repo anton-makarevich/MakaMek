@@ -183,6 +183,7 @@
         <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Bottom"
+            Spacing="4"
             Margin="0,0,0,20">
             
             <!-- Mobile Unit Action Buttons (fixed overlay, visible only on mobile) -->
