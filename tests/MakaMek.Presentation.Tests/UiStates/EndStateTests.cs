@@ -142,7 +142,7 @@ public class EndStateTests
     public void CanExecutePlayerAction_ShouldBeTrue_WhenGameOver()
     {
         // Arrange
-        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
 
         // Act & Assert
         _sut.CanExecutePlayerAction.ShouldBeTrue();
@@ -248,7 +248,7 @@ public class EndStateTests
     public void PlayerActionLabel_ReturnsEndGameLabel_WhenGameOver()
     {
         // Arrange
-        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
 
         // Act
         var result = _sut.PlayerActionLabel;
@@ -264,7 +264,7 @@ public class EndStateTests
         var navigationService = Substitute.For<Sanet.MVVM.Core.Services.INavigationService>();
         _battleMapViewModel.SetNavigationService(navigationService);
         
-        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Unknown });
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Unknown });
 
         // Act
         _sut.ExecutePlayerAction();
