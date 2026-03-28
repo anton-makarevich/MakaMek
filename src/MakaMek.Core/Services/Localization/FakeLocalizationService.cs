@@ -220,6 +220,7 @@ public class FakeLocalizationService: ILocalizationService
             // End phase
             "EndPhase_ActionLabel" => "End your turn",
             "EndPhase_PlayerActionLabel" => "End Turn",
+            "EndPhase_EndGameLabel" => "End Game",
             "Action_Shutdown" => "Shutdown",
             "Action_Startup" => "Startup",
             

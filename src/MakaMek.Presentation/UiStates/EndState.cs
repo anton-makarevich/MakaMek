@@ -1,6 +1,7 @@
+using AsyncAwaitBestPractices;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -27,9 +28,11 @@ public class EndState : IUiState
 
     public bool IsActionRequired => IsActivePlayer && CanActivePlayerAct;
 
-    public bool CanExecutePlayerAction => IsActivePlayer && CanActivePlayerAct;
+    public bool CanExecutePlayerAction => (IsActivePlayer && CanActivePlayerAct) || _viewModel.IsGameOver;
 
-    public string PlayerActionLabel => _localizationService.GetString("EndPhase_PlayerActionLabel");
+    public string PlayerActionLabel => _viewModel.IsGameOver 
+        ? _localizationService.GetString("EndPhase_EndGameLabel") 
+        : _localizationService.GetString("EndPhase_PlayerActionLabel");
 
     private bool IsActivePlayer => this.IsActiveHumanPlayer();
 
@@ -61,7 +64,7 @@ public class EndState : IUiState
     {
         var actions = new List<StateAction>();
 
-        if (!IsActivePlayer || _viewModel.Game == null || _viewModel.SelectedUnit == null)
+        if (_viewModel.IsGameOver || !IsActivePlayer || _viewModel.Game == null || _viewModel.SelectedUnit == null)
             return actions;
 
         // Only show actions for units belonging to the active player
@@ -163,10 +166,16 @@ public class EndState : IUiState
     }
 
     /// <summary>
-    /// Sends the TurnEndedCommand to end the current player's turn
+    /// Sends the TurnEndedCommand to end the current player's turn or navigates to end game if over
     /// </summary>
     public void ExecutePlayerAction()
     {
+        if (_viewModel.IsGameOver)
+        {
+            _viewModel.NavigateToEndGame().SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error navigating to end game"));
+            return;
+        }
+
         if (!IsActivePlayer || _viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
 
         var command = new TurnEndedCommand

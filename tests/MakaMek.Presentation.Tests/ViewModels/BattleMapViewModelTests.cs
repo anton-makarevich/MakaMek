@@ -131,6 +131,65 @@ public class BattleMapViewModelTests
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
     }
 
+    [Fact]
+    public void ProcessCommand_GameEndedCommand_SetsPropertiesAndNotifies()
+    {
+        // Arrange
+        var propertyChangedEvents = new List<string>();
+        _sut.PropertyChanged += (_, e) => propertyChangedEvents.Add(e.PropertyName ?? string.Empty);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        var command = new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory };
+
+        // Act
+        game.HandleCommand(command);
+
+        // Assert
+        _sut.IsGameOver.ShouldBeTrue();
+        _sut.GameEndReason.ShouldBe(GameEndReason.Victory);
+        propertyChangedEvents.ShouldContain(nameof(_sut.Turn)); // NotifyStateChanged is called
+    }
+
+    [Fact]
+    public async Task NavigateToEndGame_NavigatesToRoot_WhenNotVictory()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.PlayersLeft });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        await navigationService.Received(1).NavigateToRootAsync();
+    }
+    
+    [Fact]
+    public async Task NavigateToEndGame_GetsEndGameViewModel_WhenVictory()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        var endGameViewModel = new EndGameViewModel(_localizationService);
+        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
+        await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
+    }
+
     [Theory]
     [InlineData(1, "Select Unit",true)]
     [InlineData(0, "", false)]
@@ -2027,30 +2086,6 @@ public class BattleMapViewModelTests
         actions.ShouldContain(a => a.Label.Contains("StayProne"));
     }
     
-    [Fact]
-    public void ProcessGameEndedCommand_ShouldNavigateToRoot_WhenGameEnded()
-    {
-        // Arrange
-        var gameEndedCommand = new GameEndedCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Reason = GameEndReason.PlayersLeft,
-            Timestamp = DateTime.UtcNow
-        };
-        var game = CreateClientGame();
-        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
-            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
-        _sut.Game = game;
-        
-        var navigationService = Substitute.For<INavigationService>();
-        _sut.SetNavigationService(navigationService);
-        
-        // Act
-        game.HandleCommand(gameEndedCommand);
-        
-        // Assert
-        navigationService.Received(1).NavigateToRootAsync();
-    }
 
     [Fact]
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
@@ -2222,10 +2257,14 @@ public class BattleMapViewModelTests
             Substitute.For<ILogger<ClientGame>>());
     }
 
+
     [Fact]
-    public void ProcessGameEnded_WithVictoryReason_ShouldNavigateToEndGameView()
+    public async Task NavigateToEndGame_WithVictoryReason_ShouldInitializeEndGameViewModel()
     {
         // Arrange
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
         var navigationService = Substitute.For<INavigationService>();
         var endGameViewModel = new EndGameViewModel(_localizationService);
         navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
@@ -2238,53 +2277,8 @@ public class BattleMapViewModelTests
         };
 
         // Act
-        _game.HandleCommand(gameEndedCommand);
-
-        // Assert
-        navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
-        navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
-    }
-
-    [Theory]
-    [InlineData(GameEndReason.PlayersLeft)]
-    [InlineData(GameEndReason.Unknown)]
-    public void ProcessGameEnded_WithOtherReasons_ShouldNavigateToRoot(GameEndReason reason)
-    {
-        // Arrange
-        var navigationService = Substitute.For<INavigationService>();
-        _sut.SetNavigationService(navigationService);
-
-        var gameEndedCommand = new GameEndedCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Reason = reason
-        };
-
-        // Act
-        _game.HandleCommand(gameEndedCommand);
-
-        // Assert
-        navigationService.Received(1).NavigateToRootAsync();
-        navigationService.DidNotReceive().GetNewViewModel<EndGameViewModel>();
-    }
-
-    [Fact]
-    public void ProcessGameEnded_WithVictoryReason_ShouldInitializeEndGameViewModel()
-    {
-        // Arrange
-        var navigationService = Substitute.For<INavigationService>();
-        var endGameViewModel = new EndGameViewModel(_localizationService);
-        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
-        _sut.SetNavigationService(navigationService);
-
-        var gameEndedCommand = new GameEndedCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Reason = GameEndReason.Victory
-        };
-
-        // Act
-        _game.HandleCommand(gameEndedCommand);
+        game.HandleCommand(gameEndedCommand);
+        await _sut.NavigateToEndGame();
 
         // Assert
         // Verify that the EndGameViewModel was initialized with the game

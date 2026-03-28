@@ -166,6 +166,18 @@ public class BattleMapViewModel : BaseViewModel
 
     public IReadOnlyCollection<string> CommandLog => _commandLog;
 
+    public bool IsGameOver
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    public GameEndReason GameEndReason
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
     public TargetSelectionViewModel? SelectedTarget
@@ -242,7 +254,7 @@ public class BattleMapViewModel : BaseViewModel
                 ProcessMechStandUp(fallCommand.UnitId, true);
                 break;
             case GameEndedCommand gameEndedCommand:
-                // Server ended the game - navigate to the appropriate screen
+                // Server ended the game - track state to allow UI to respond
                 ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error processing game ended command"));
                 break;
         }
@@ -631,20 +643,22 @@ public class BattleMapViewModel : BaseViewModel
 
     private Task ProcessGameEnded(GameEndedCommand command)
     {
-        // If the game ended with victory, navigate to the end game screen
-        if (command.Reason == GameEndReason.Victory && _game != null)
-        {
-            var endGameViewModel = NavigationService.GetNewViewModel<EndGameViewModel>();
-            if (endGameViewModel != null)
-            {
-                // Initialize the end game view model with the game and reason
-                endGameViewModel.Initialize(_game, command.Reason);
-                return NavigationService.NavigateToViewModelAsync(endGameViewModel);
-            }
-        }
+        IsGameOver = true;
+        GameEndReason = command.Reason;
+        NotifyStateChanged();
+        return Task.CompletedTask;
+    }
 
+    public Task NavigateToEndGame()
+    {
+        // If the game ended with victory, navigate to the end game screen
         // For other reasons navigate back to a menu
-        return GoToMainMenu();
+        if (GameEndReason != GameEndReason.Victory || _game == null) return GoToMainMenu();
+        var endGameViewModel = NavigationService.GetNewViewModel<EndGameViewModel>();
+        if (endGameViewModel == null) return GoToMainMenu();
+        // Initialize the end game view model with the game and reason
+        endGameViewModel.Initialize(_game, GameEndReason);
+        return NavigationService.NavigateToViewModelAsync(endGameViewModel);
     }
     
     private async Task GoToMainMenu()
