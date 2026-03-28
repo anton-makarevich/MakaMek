@@ -131,6 +131,53 @@ public class BattleMapViewModelTests
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
     }
 
+    [Fact]
+    public void ProcessCommand_GameEndedCommand_SetsPropertiesAndNotifies()
+    {
+        // Arrange
+        var propertyChangedEvents = new List<string>();
+        _sut.PropertyChanged += (_, e) => propertyChangedEvents.Add(e.PropertyName ?? string.Empty);
+        var command = new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory };
+
+        // Act
+        _game.HandleCommand(command);
+
+        // Assert
+        _sut.IsGameOver.ShouldBeTrue();
+        _sut.GameEndReason.ShouldBe(GameEndReason.Victory);
+        propertyChangedEvents.ShouldContain(nameof(_sut.Turn)); // NotifyStateChanged is called
+    }
+
+    [Fact]
+    public async Task NavigateToEndGame_NavigatesToRoot_WhenNotVictory()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.PlayersLeft });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        await navigationService.Received(1).NavigateToRootAsync();
+    }
+    
+    [Fact]
+    public async Task NavigateToEndGame_GetsEndGameViewModel_WhenVictory()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
+    }
+
     [Theory]
     [InlineData(1, "Select Unit",true)]
     [InlineData(0, "", false)]

@@ -48,6 +48,7 @@ public class EndStateTests
         // Mock localization service responses
         localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
         localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End your turn");
+        localizationService.GetString("EndPhase_EndGameLabel").Returns("End Game");
         localizationService.GetString("Action_Shutdown").Returns("Shutdown");
         localizationService.GetString("Action_Startup").Returns("Startup");
         
@@ -134,6 +135,16 @@ public class EndStateTests
     public void InitialState_CanExecutePlayerAction()
     {
         // Assert
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ShouldBeTrue_WhenGameOver()
+    {
+        // Arrange
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+
+        // Act & Assert
         _sut.CanExecutePlayerAction.ShouldBeTrue();
     }
     
@@ -234,6 +245,35 @@ public class EndStateTests
     }
     
     [Fact]
+    public void PlayerActionLabel_ReturnsEndGameLabel_WhenGameOver()
+    {
+        // Arrange
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+
+        // Act
+        var result = _sut.PlayerActionLabel;
+        
+        // Assert
+        result.ShouldBe("End Game");
+    }
+    
+    [Fact]
+    public void ExecutePlayerAction_NavigatesToRoot_WhenGameOverWithUnknownReason()
+    {
+        // Arrange
+        var navigationService = Substitute.For<Sanet.MVVM.Core.Services.INavigationService>();
+        _battleMapViewModel.SetNavigationService(navigationService);
+        
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Unknown });
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        navigationService.Received(1).NavigateToRootAsync();
+    }
+    
+    [Fact]
     public void IsActionRequired_ShouldBeTrue_WhenActivePlayerAndCanAct()
     {
         // Arrange
@@ -298,6 +338,20 @@ public class EndStateTests
         // Assert
         actions.ShouldNotBeEmpty();
         actions.ShouldContain(a => a.Label == "Shutdown");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldReturnEmpty_WhenGameOver()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        _game.HandleCommand(new GameEndedCommand { GameOriginId = _game.Id, Reason = GameEndReason.Victory });
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
     }
 
     [Fact]
