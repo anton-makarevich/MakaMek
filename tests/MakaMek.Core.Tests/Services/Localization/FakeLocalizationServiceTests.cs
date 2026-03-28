@@ -261,6 +261,7 @@ public class FakeLocalizationServiceTests
     // End phase
     [InlineData("EndPhase_ActionLabel", "End your turn")]
     [InlineData("EndPhase_PlayerActionLabel", "End Turn")]
+    [InlineData("EndPhase_EndGameLabel", "End Game")]
     [InlineData("Action_Shutdown", "Shutdown")]
     [InlineData("Action_Startup", "Startup")]
     // Mech part names
