@@ -1883,7 +1883,32 @@ public class WeaponsAttackStateTests
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         result.ShouldBeFalse();
     }
-    
+
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenInTargetSelection_AndActionsMenuOffMap()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
+        _platformService.IsMobile.Returns(true);
+
+        _sut.HandleUnitSelection(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(target.Position!.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Act
+        var result = _sut.CanExecutePlayerAction;
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        result.ShouldBeFalse();
+    }
+
     [Fact]
     public void ExecutePlayerAction_CallsConfirmWeaponSelections_WhenInActionSelectionStepAndPlayerIsHuman()
     {
