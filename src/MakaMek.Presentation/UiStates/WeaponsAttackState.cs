@@ -33,7 +33,9 @@ public class WeaponsAttackState : IUiState
 
     public bool IsActionRequired => this.CanHumanPlayerAct();
 
-    public bool CanExecutePlayerAction => CurrentStep is WeaponsAttackStep.ActionSelection or WeaponsAttackStep.TargetSelection;
+    public bool CanExecutePlayerAction =>
+        (CurrentStep is WeaponsAttackStep.ActionSelection or WeaponsAttackStep.TargetSelection)
+        && !_viewModel.AreActionsMenuOffMap;
 
     public string PlayerActionLabel
     {

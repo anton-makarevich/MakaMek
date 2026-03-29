@@ -49,6 +49,7 @@ public class WeaponsAttackStateTests
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>(); 
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IPlatformService _platformService = Substitute.For<IPlatformService>();
     private readonly MechFactory _mechFactory;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
@@ -72,7 +73,7 @@ public class WeaponsAttackStateTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            _platformService);
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();
@@ -1861,6 +1862,25 @@ public class WeaponsAttackStateTests
         
         // Assert
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenActionsMenuOffMap()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        _platformService.IsMobile.Returns(true); // Simulate mobile platform to display actions menu off map
+        
+        // Act
+        _sut.HandleUnitSelection(attacker);
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         result.ShouldBeFalse();
     }
     

@@ -34,6 +34,7 @@ public class BattleMapViewModel : BaseViewModel
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IPlatformService _platformService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
 
 
@@ -96,7 +97,7 @@ public class BattleMapViewModel : BaseViewModel
         TerrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
-        AreActionsMenuOffMap = platformService.IsMobile;
+        _platformService = platformService;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -467,7 +468,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 
-    public bool AreActionsMenuOffMap { get; }
+    public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
     /// <summary>
     /// Returns the available actions for the current UI state.
