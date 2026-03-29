@@ -190,7 +190,7 @@
             <ItemsControl x:Name="MobileActionButtonsPanel"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Bottom"
-                          IsVisible="{Binding IsMobile}"
+                          IsVisible="{Binding AreActionsMenuOffMap}"
                           ItemsSource="{Binding AvailableActions}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

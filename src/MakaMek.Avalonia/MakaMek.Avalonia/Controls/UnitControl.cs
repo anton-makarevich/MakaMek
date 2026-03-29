@@ -356,7 +356,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             _actionButtons.IsVisible = false;
 
             // On mobile, action buttons are rendered in a fixed overlay in BattleMapView
-            if (_viewModel.IsMobile) return;
+            if (_viewModel.AreActionsMenuOffMap) return;
 
             var activeUnit = _viewModel.CurrentState is WeaponsAttackState state
                 ? state.Attacker

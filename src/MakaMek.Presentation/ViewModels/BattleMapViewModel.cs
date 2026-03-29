@@ -96,7 +96,7 @@ public class BattleMapViewModel : BaseViewModel
         TerrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
-        IsMobile = platformService.IsMobile;
+        AreActionsMenuOffMap = platformService.IsMobile;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -467,7 +467,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 
-    public bool IsMobile { get; }
+    public bool AreActionsMenuOffMap { get; }
 
     /// <summary>
     /// Returns the available actions for the current UI state.
