@@ -76,7 +76,8 @@ public class MovementStateTests
              _terrainAssetsService,
              _localizationService,
              dispatcherService,
-             _rulesProvider);
+             _rulesProvider,
+             Substitute.For<IPlatformService>());
         var playerId = Guid.NewGuid();
         var playerId2 = Guid.NewGuid();
 
@@ -314,7 +315,8 @@ public class MovementStateTests
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
         var viewModel = new BattleMapViewModel(_imageService,
             _terrainAssetsService,
-            _localizationService, dispatcherService, _rulesProvider)
+            _localizationService, dispatcherService, _rulesProvider,
+            Substitute.For<IPlatformService>())
             {
                 Game = gameWithNullPlayer
             };

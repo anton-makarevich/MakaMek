@@ -69,7 +69,8 @@ public class BattleMapViewModelTests
             Substitute.For<ITerrainAssetService>(),
             _localizationService,
             dispatcherService,
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
         
         // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
@@ -984,7 +985,7 @@ public class BattleMapViewModelTests
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         
         // Select target
-        var selectTargetAction = _sut.CurrentState.GetAvailableActions().First(a => a.Label == "Select Target");
+        var selectTargetAction = _sut.AvailableActions.First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
         _sut.HandleHexSelection(game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
         
@@ -1071,7 +1072,7 @@ public class BattleMapViewModelTests
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         
         // Select target
-        var selectTargetAction = _sut.CurrentState.GetAvailableActions().First(a => a.Label == "Select Target");
+        var selectTargetAction = _sut.AvailableActions.First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
         _sut.HandleHexSelection(game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
         

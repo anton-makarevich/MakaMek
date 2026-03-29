@@ -61,6 +61,7 @@ public class MovementState : IUiState
     private void TransitionTo(IMovementStep step)
     {
         _step = step;
+        _viewModel.NotifyStateChanged();
     }
     
     private void ClearHighlighting()
@@ -117,7 +118,6 @@ public class MovementState : IUiState
             _builder.SetUnit(unit);
             _isPostStandupMovement = false; // Reset post-standup state when selecting a new unit
             TransitionTo(new SelectingMovementTypeStep(this));
-            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -185,7 +185,6 @@ public class MovementState : IUiState
             _viewModel.HideDirectionSelector();
             ClearHighlighting();
             TransitionTo(new SelectingUnitStep(this));
-            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -235,7 +234,6 @@ public class MovementState : IUiState
             _selectedUnit = null;
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             TransitionTo(new CompletedStep(this));
-            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -479,7 +477,6 @@ public class MovementState : IUiState
             _builder.SetMovementPath(_selectedPath);
             HighlightReachableHexes();
             TransitionTo(new SelectingTargetHexStep(this));
-            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -502,7 +499,6 @@ public class MovementState : IUiState
             }
             
             TransitionTo(new SelectingMovementTypeStep(this));
-            _viewModel.NotifyStateChanged();
         }
     }
 

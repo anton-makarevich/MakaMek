@@ -49,6 +49,7 @@ public class WeaponsAttackStateTests
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>(); 
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IPlatformService _platformService = Substitute.For<IPlatformService>();
     private readonly MechFactory _mechFactory;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
@@ -71,7 +72,8 @@ public class WeaponsAttackStateTests
             Substitute.For<ITerrainAssetService>(),
             _localizationService,
             Substitute.For<IDispatcherService>(),
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            _platformService);
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();
@@ -1863,6 +1865,50 @@ public class WeaponsAttackStateTests
         result.ShouldBeFalse();
     }
     
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenActionsMenuOffMap()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        _platformService.IsMobile.Returns(true); // Simulate mobile platform to display actions menu off map
+        
+        // Act
+        _sut.HandleUnitSelection(attacker);
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenInTargetSelection_AndActionsMenuOffMap()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
+        _platformService.IsMobile.Returns(true);
+
+        _sut.HandleUnitSelection(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(target.Position!.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Act
+        var result = _sut.CanExecutePlayerAction;
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        result.ShouldBeFalse();
+    }
+
     [Fact]
     public void ExecutePlayerAction_CallsConfirmWeaponSelections_WhenInActionSelectionStepAndPlayerIsHuman()
     {

@@ -411,7 +411,8 @@ public class JoinGameViewModelTests
             Substitute.For<ITerrainAssetService>(),
             localizationService,
             Substitute.For<IDispatcherService>(),
-            Substitute.For<IRulesProvider>());
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
         navigationService.GetViewModel<BattleMapViewModel>()
             .Returns(battleMapViewModel);
  

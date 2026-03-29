@@ -34,6 +34,7 @@ public class BattleMapViewModel : BaseViewModel
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IPlatformService _platformService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
 
 
@@ -89,12 +90,14 @@ public class BattleMapViewModel : BaseViewModel
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        IRulesProvider rulesProvider)
+        IRulesProvider rulesProvider,
+        IPlatformService platformService)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
+        _platformService = platformService;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -145,11 +148,8 @@ public class BattleMapViewModel : BaseViewModel
 
             // Small delay to allow command to be sent
             await Task.Delay(100);
-
-            // Dispose client game
-            Game?.Dispose();
-            Game = null;
         }
+        await GoToMainMenu();
     }
     
     public IClientGame? Game
@@ -427,6 +427,7 @@ public class BattleMapViewModel : BaseViewModel
         NotifyPropertyChanged(nameof(Attacker));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
+        NotifyPropertyChanged(nameof(AvailableActions));
 
         // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
@@ -466,6 +467,14 @@ public class BattleMapViewModel : BaseViewModel
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
+
+    public bool AreActionsMenuOffMap => _platformService.IsMobile;
+
+    /// <summary>
+    /// Returns the available actions for the current UI state.
+    /// Used on mobile to render action buttons in a fixed position overlay.
+    /// </summary>
+    public IEnumerable<StateAction> AvailableActions => CurrentState.GetAvailableActions();
 
     public IImageService ImageService { get; }
 

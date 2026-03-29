@@ -49,7 +49,8 @@ public class DeploymentStateTests
             Substitute.For<ITerrainAssetService>(),
             _localizationService,
             Substitute.For<IDispatcherService>(),
-            _rulesProvider);
+            _rulesProvider,
+            Substitute.For<IPlatformService>());
 
         var unitData = MechFactoryTests.CreateDummyMechData();
         
