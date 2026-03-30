@@ -54,11 +54,11 @@ public class ToHitCalculator : IToHitCalculator
 
     public ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map)
     {
-        var hasLos = map.GetLineOfSight(
+        var losResult = map.GetLineOfSight(
             scenario.AttackerPosition.Coordinates,
             scenario.TargetPosition.Coordinates,
             scenario.AttackerHeight,
-            scenario.TargetHeight).HasLineOfSight;
+            scenario.TargetHeight);
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
         var range = weapon.GetRangeBracket(distance);
@@ -73,10 +73,7 @@ public class ToHitCalculator : IToHitCalculator
         };
 
         var otherModifiers = GetDetailedOtherModifiers(scenario);
-        var terrainModifiers = GetTerrainModifiers(
-            scenario.AttackerPosition.Coordinates,
-            scenario.TargetPosition.Coordinates,
-            map);
+        var terrainModifiers = GetTerrainModifiers(losResult);
 
         return new ToHitBreakdown
         {
@@ -103,7 +100,7 @@ public class ToHitCalculator : IToHitCalculator
                 WeaponName = weapon.Name
             },
             TerrainModifiers = terrainModifiers,
-            HasLineOfSight = hasLos,
+            HasLineOfSight = losResult.HasLineOfSight,
             FiringArc = arc
         };
     }
@@ -190,20 +187,24 @@ public class ToHitCalculator : IToHitCalculator
         return modifiers;
     }
 
-    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(HexCoordinates attackerPosition, HexCoordinates targetPosition, IBattleMap map)
+    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(LineOfSightResult losResult)
     {
-        var hexes = map.GetHexesAlongLineOfSight(attackerPosition, targetPosition);
-
-        return hexes
-            .Skip(1) // Skip attacker's hex
-            .SelectMany(hex => hex.GetTerrains()
-                .Select(terrain => new TerrainRollModifier
-                {
-                    Value = _rules.GetTerrainToHitModifier(terrain.Id),
-                    Location = hex.Coordinates,
-                    TerrainId = terrain.Id
-                }))
-            .Where(modifier => modifier.Value != 0)
-            .ToList();
+        var modifiers = new List<TerrainRollModifier>();
+        foreach (var hexInfo in losResult.HexPath)
+        {
+            if (hexInfo.InterveningFactor <= 0) continue;
+            foreach (var terrain in hexInfo.Hex.GetTerrains())
+            {
+                var modifier = _rules.GetTerrainToHitModifier(terrain.Id);
+                if (modifier != 0)
+                    modifiers.Add(new TerrainRollModifier
+                    {
+                        Value = modifier,
+                        Location = hexInfo.Hex.Coordinates,
+                        TerrainId = terrain.Id
+                    });
+            }
+        }
+        return modifiers;
     }
 }

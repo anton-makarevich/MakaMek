@@ -75,11 +75,6 @@ public interface IBattleMap
     BattleMapData ToData();
 
     /// <summary>
-    /// Gets hexes along the line of sight between two coordinates, including terrain information
-    /// </summary>
-    IReadOnlyList<Hex> GetHexesAlongLineOfSight(HexCoordinates from, HexCoordinates to);
-
-    /// <summary>
     /// Clears the line of sight cache.
     /// </summary>
     void ClearLosCache();

@@ -489,11 +489,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 reason: LineOfSightBlockReason.InvalidCoordinates,
                 attackerHeight: attackerHeight, targetHeight: targetHeight);
 
-        // The same hex — always has LOS, no intervening path
-        if (from == to)
-            return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight);
-
         var fromHex = GetHex(from);
         var toHex = GetHex(to);
 
@@ -502,6 +497,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 from: from, to: to,
                 blockingHex: fromHex == null ? from : to,
                 attackerHeight: attackerHeight, targetHeight: targetHeight);
+        
+        // The same hex — always has LOS, no intervening path
+        if (from == to)
+            return LineOfSightResult.Unblocked(from: from, to: to,
+                attackerHeight: attackerHeight, targetHeight: targetHeight,
+                hexPath: [CreateTargetHexInfo()]);
 
         // Get all hexes along the line, resolving any divided line segments
         var hexLine = ResolveHexesAlongTheLine(from, to);
@@ -511,7 +512,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (hexLine.Count == 0)
             return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight);
+                attackerHeight: attackerHeight, targetHeight: targetHeight,
+                hexPath: [CreateTargetHexInfo()]);
 
         var distance = 1;
         var totalDistance = hexLine.Count + 1;
@@ -548,7 +550,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 Hex = hex,
                 InterpolatedLosHeight = interpolatedLosHeight,
-                InterveningFactorContribution = contribution
+                InterveningFactor = contribution
             });
 
             // Elevation check: hex base level blocks the LOS line entirely
@@ -582,13 +584,25 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             distance++;
         }
 
+        // Add the target hex to the path with its contribution
+        hexPath.Add(CreateTargetHexInfo());
+
         return new LineOfSightResult
         {
             From = from, To = to,
             AttackerHeight = attackerHeight, TargetHeight = targetHeight,
             HasLineOfSight = true,
             HexPath = hexPath,
-            TotalInterveningFactor = totalInterveningFactor
+            TotalInterveningFactor = totalInterveningFactor // target contribution is not added here as target hex doesn't block the LOS
+        };
+        
+        LineOfSightHexInfo CreateTargetHexInfo() => new()
+        {
+            Hex = toHex,
+            InterpolatedLosHeight = toHex.Level + targetHeight,
+            InterveningFactor = toHex.GetCeiling() >= toHex.Level + targetHeight
+                ? toHex.GetTerrains().Sum(t => t.InterveningFactor)
+                : 0
         };
     }
 
@@ -727,15 +741,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         var result = new MovementPath(path, MovementType.Jump);
         _movementPathCache.Add(result);
         return result;
-    }
-
-    /// <summary>
-    /// Gets hexes along the line of sight between two coordinates, including terrain information
-    /// </summary>
-    public IReadOnlyList<Hex> GetHexesAlongLineOfSight(HexCoordinates from, HexCoordinates to)
-    {
-        var coordinates = ResolveHexesAlongTheLine(from, to);
-        return coordinates.Select(c => GetHex(c)!).ToList();
     }
 
     /// <summary>

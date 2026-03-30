@@ -62,7 +62,7 @@ public record LineOfSightResult
         TargetHeight = targetHeight,
         HasLineOfSight = true,
         HexPath = hexPath ?? [],
-        TotalInterveningFactor = hexPath?.Sum(h => h.InterveningFactorContribution) ?? 0
+        TotalInterveningFactor = hexPath?.Sum(h => h.InterveningFactor) ?? 0
     };
 
     /// <summary>
@@ -86,7 +86,7 @@ public record LineOfSightResult
         HexPath = hexPath ?? [],
         BlockingHexCoordinates = blockingHex,
         BlockReason = reason,
-        TotalInterveningFactor = hexPath?.Sum(h => h.InterveningFactorContribution) ?? 0
+        TotalInterveningFactor = hexPath?.Sum(h => h.InterveningFactor) ?? 0
     };
 }
 
