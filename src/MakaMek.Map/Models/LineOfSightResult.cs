@@ -13,10 +13,10 @@ public record LineOfSightResult
     public required HexCoordinates To { get; init; }
 
     /// <summary>Height of the attacking unit (in levels, added to attacker hex level).</summary>
-    public required int AttackerHeight { get; init; }
+    public required int AttackerLosLevel { get; init; }
 
     /// <summary>Height of the target unit (in levels, added to target hex level).</summary>
-    public required int TargetHeight { get; init; }
+    public required int TargetLosLevel { get; init; }
 
     /// <summary>True when there is a clear line of sight from <see cref="From"/> to <see cref="To"/>.</summary>
     public required bool HasLineOfSight { get; init; }
@@ -52,14 +52,14 @@ public record LineOfSightResult
     public static LineOfSightResult Unblocked(
         HexCoordinates from,
         HexCoordinates to,
-        int attackerHeight = 0,
-        int targetHeight = 0,
+        int attackerLosLevel = 0,
+        int targetLosLevel = 0,
         IReadOnlyList<LineOfSightHexInfo>? hexPath = null) => new()
     {
         From = from ,
         To = to,
-        AttackerHeight = attackerHeight,
-        TargetHeight = targetHeight,
+        AttackerLosLevel = attackerLosLevel,
+        TargetLosLevel = targetLosLevel,
         HasLineOfSight = true,
         HexPath = hexPath ?? [],
         TotalInterveningFactor = hexPath?.Sum(h => h.InterveningFactor) ?? 0
@@ -80,8 +80,8 @@ public record LineOfSightResult
     {
         From = from,
         To = to,
-        AttackerHeight = attackerHeight,
-        TargetHeight = targetHeight,
+        AttackerLosLevel = attackerHeight,
+        TargetLosLevel = targetHeight,
         HasLineOfSight = false,
         HexPath = hexPath ?? [],
         BlockingHexCoordinates = blockingHex,

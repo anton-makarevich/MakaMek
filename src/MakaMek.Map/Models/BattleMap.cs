@@ -486,8 +486,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return LineOfSightResult.Blocked(
                 from: from, to: to,
                 blockingHex: isFromOnMap ? to : from,
-                reason: LineOfSightBlockReason.InvalidCoordinates,
-                attackerHeight: attackerHeight, targetHeight: targetHeight);
+                reason: LineOfSightBlockReason.InvalidCoordinates);
 
         var fromHex = GetHex(from);
         var toHex = GetHex(to);
@@ -495,13 +494,15 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (fromHex == null || toHex == null)
             return LineOfSightResult.Blocked(
                 from: from, to: to,
-                blockingHex: fromHex == null ? from : to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight);
+                blockingHex: fromHex == null ? from : to);
+
+        var attackerLosLevel = fromHex.Level + attackerHeight;
+        var targetLosLevel = toHex.Level + targetHeight;
         
         // The same hex — always has LOS, no intervening path
         if (from == to)
             return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight,
+                attackerLosLevel: attackerLosLevel, targetLosLevel: targetLosLevel,
                 hexPath: [CreateTargetHexInfo()]);
 
         // Get all hexes along the line, resolving any divided line segments
@@ -512,7 +513,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (hexLine.Count == 0)
             return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight,
+                attackerLosLevel: attackerLosLevel, targetLosLevel: targetLosLevel,
                 hexPath: [CreateTargetHexInfo()]);
 
         var distance = 1;
@@ -527,7 +528,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return new LineOfSightResult
                 {
                     From = from, To = to,
-                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
                     HasLineOfSight = false,
                     HexPath = hexPath,
                     BlockingHexCoordinates = coordinates,
@@ -536,8 +537,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 };
 
             var interpolatedLosHeight = InterpolateHeight(
-                fromHex.Level + attackerHeight,
-                toHex.Level + targetHeight,
+                attackerLosLevel,
+                targetLosLevel,
                 distance,
                 totalDistance);
             
@@ -558,7 +559,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return new LineOfSightResult
                 {
                     From = from, To = to,
-                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
                     HasLineOfSight = false,
                     HexPath = hexPath,
                     BlockingHexCoordinates = coordinates,
@@ -573,7 +574,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return new LineOfSightResult
                 {
                     From = from, To = to,
-                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
                     HasLineOfSight = false,
                     HexPath = hexPath,
                     BlockingHexCoordinates = coordinates,
@@ -590,7 +591,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         return new LineOfSightResult
         {
             From = from, To = to,
-            AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+            AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
             HasLineOfSight = true,
             HexPath = hexPath,
             TotalInterveningFactor = totalInterveningFactor // target contribution is not added here as target hex doesn't block the LOS
@@ -599,8 +600,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         LineOfSightHexInfo CreateTargetHexInfo() => new()
         {
             Hex = toHex,
-            InterpolatedLosHeight = toHex.Level + targetHeight,
-            InterveningFactor = toHex.GetCeiling() >= toHex.Level + targetHeight
+            InterpolatedLosHeight = targetLosLevel,
+            InterveningFactor = toHex.GetCeiling() >= targetLosLevel
                 ? toHex.GetTerrains().Sum(t => t.InterveningFactor)
                 : 0
         };

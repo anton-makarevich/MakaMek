@@ -798,7 +798,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             var losResult = LineOfSightResult.Unblocked(
                 new HexCoordinates(0, 0),
                 new HexCoordinates(1, 0),
-                attackerHeight: 0,
+                attackerLosLevel: 0,
                 hexPath: hexPath);
 
             // Act
@@ -828,7 +828,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             var losResult = LineOfSightResult.Unblocked(
                 new HexCoordinates(0, 0),
                 new HexCoordinates(1, 0),
-                attackerHeight: 2, // Attacker height 2, target level 1 - target lower
+                attackerLosLevel: 2, // Attacker height 2, target level 1 - target lower
+                targetLosLevel: 1,
                 hexPath: hexPath);
 
             // Act
@@ -858,8 +859,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             var losResult = LineOfSightResult.Unblocked(
                 new HexCoordinates(0, 0),
                 new HexCoordinates(1, 0),
-                attackerHeight: 2, // Target height (1+1) = attacker height (0+2)
-                targetHeight: 1,
+                attackerLosLevel: 2, // Target height (2) = attacker height (2)
+                targetLosLevel: 2,
                 hexPath: hexPath);
 
             // Act
@@ -889,8 +890,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             var losResult = LineOfSightResult.Unblocked(
                 new HexCoordinates(0, 0),
                 new HexCoordinates(1, 0),
-                attackerHeight: 2, // Target height (2+2) > attacker height (0+2)
-                targetHeight: 2,
+                attackerLosLevel: 2, 
+                targetLosLevel: 3,
                 hexPath: hexPath);
 
             // Act

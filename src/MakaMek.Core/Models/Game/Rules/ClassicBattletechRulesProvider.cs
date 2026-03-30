@@ -499,11 +499,11 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         if (!targetUnit.CanHavePartialCover)
             return false;
 
-        // Get the hex adjacent to target (second to last in path)
+        // Get the hex adjacent to the target (second to last in path)
         var adjacentHexInfo = losResult.HexPath[^2];
         var adjacentHex = adjacentHexInfo.Hex;
 
-        // For partial cover, adjacent hex must be exactly +1 level higher than target
+        // For partial cover, the adjacent hex must be exactly +1 level higher than target
         var targetLevel = targetHex.Level;
         var adjacentLevel = adjacentHex.Level;
         
@@ -511,7 +511,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             return false;
 
         // Target height must be >= attacker's height
-        if (losResult.TargetHeight < losResult.AttackerHeight)
+        if (losResult.TargetLosLevel < losResult.AttackerLosLevel)
             return false;
 
         return true;
