@@ -512,7 +512,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (hexLine.Count == 0)
             return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerHeight: attackerHeight, targetHeight: targetHeight);
+                attackerHeight: attackerHeight, targetHeight: targetHeight,
+                hexPath: [CreateTargetHexInfo()]);
 
         var distance = 1;
         var totalDistance = hexLine.Count + 1;

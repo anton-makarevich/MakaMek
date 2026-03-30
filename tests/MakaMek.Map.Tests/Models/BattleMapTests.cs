@@ -1977,7 +1977,7 @@ public class BattleMapTests
         // Verify the target hex has the correct interpolated height (target level + target height = 0 + 2 = 2)
         lastHexInfo.InterpolatedLosHeight.ShouldBe(2);
         
-        // Clear terrain has ceiling 0, which is less than LOS height 4, so the contribution should be 0
+        // Clear terrain has ceiling 0, which is less than LOS height 2, so the contribution should be 0
         lastHexInfo.InterveningFactor.ShouldBe(0, "Clear terrain should not contribute to intervening factor when below LOS line");
     }
 
