@@ -730,4 +730,49 @@ public class ToHitCalculatorTests
         // Assert
         result.OtherModifiers.OfType<SecondaryTargetModifier>().ShouldHaveSingleItem();
     }
+
+    [Fact]
+    public void GetModifierBreakdown_WithTerrainBelowLosLine_ExcludesTerrainModifiers()
+    {
+        // Arrange
+        // Set up a scenario with attacker on elevated hex (1:1, level 2) shooting at target on elevated hex (1:4, level 2)
+        // Intervening hexes (1:2, 1:3) at level 0 containing HeavyWoods (height 2, ceiling 2)
+        // The LOS line at the intervening hex would be at approximately height 4 (level 2 + mech height 2)
+        // So, the terrain ceiling of 2 does not reach it - terrain should be excluded from modifiers
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
+        
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        
+        // Create a map with elevated attacker/target positions and low intervening hexes
+        var sut = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
+        
+        // Set up elevated positions for attacker and target (level 2)
+        var attackerHex = new Hex(new HexCoordinates(1, 1), 2);
+        attackerHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(attackerHex);
+        
+        var targetHex = new Hex(new HexCoordinates(1, 4), 2);
+        targetHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(targetHex);
+        
+        // Set up intervening hexes at level 0 with HeavyWoods (ceiling 2, which is below LOS line at height ~4)
+        for (var r = 2; r <= 3; r++)
+        {
+            var newHex = new Hex(new HexCoordinates(1, r)); // Level 0
+            newHex.AddTerrain(new HeavyWoodsTerrain()); // Ceiling = 2
+            sut.AddHex(newHex);
+        }
+        
+        _rules.GetTerrainToHitModifier(MakaMekTerrains.HeavyWoods).Returns(2);
+        
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, sut);
+        
+        // Assert
+        result.HasLineOfSight.ShouldBeTrue("LOS should be clear since terrain ceiling is below LOS line");
+        result.TerrainModifiers.Count.ShouldBe(0, "Terrain below LOS line should not contribute modifiers");
+        // Base gunnery (4) + no terrain modifiers = 4
+        result.Total.ShouldBe(4);
+    }
 }

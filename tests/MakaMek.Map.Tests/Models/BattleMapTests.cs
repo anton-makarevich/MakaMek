@@ -1953,4 +1953,60 @@ public class BattleMapTests
         var topRightEdge = edges.First(e => e.Direction == HexDirection.TopRight);
         topRightEdge.ElevationDifference.ShouldBe(0); // 3 - 3 = 0
     }
+
+    [Fact]
+    public void GetLineOfSight_Unblocked_IncludesTargetHexInPath()
+    {
+        // Arrange
+        var sut = new BattleMapFactory()
+            .GenerateMap(1, 5, new SingleTerrainGenerator(1, 5, new ClearTerrain()));
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 5);
+        
+        // Act
+        var result = sut.GetLineOfSight(from, to, 2, 2);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeTrue();
+        result.HexPath.Count.ShouldBe(4, "Path should include all intervening hexes plus target hex");
+        
+        // Verify the last hex in the path is the target hex
+        var lastHexInfo = result.HexPath[^1];
+        lastHexInfo.Hex.Coordinates.ShouldBe(to, "Last hex in path should be the target hex");
+        
+        // Verify the target hex has the correct interpolated height (target level + target height = 2 + 2 = 4)
+        lastHexInfo.InterpolatedLosHeight.ShouldBe(4);
+        
+        // Clear terrain has ceiling 0, which is less than LOS height 4, so the contribution should be 0
+        lastHexInfo.InterveningFactor.ShouldBe(0, "Clear terrain should not contribute to intervening factor when below LOS line");
+    }
+
+    [Fact]
+    public void GetLineOfSight_Unblocked_WithTargetWoods_IncludesTargetContribution()
+    {
+        // Arrange
+        var sut = new BattleMapFactory()
+            .GenerateMap(1,3, new SingleTerrainGenerator(1,3, new ClearTerrain()));
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+        
+        // Add heavy woods to target hex (ceiling = 2, intervening factor = 2)
+        var targetHex = sut.GetHex(to)!;
+        targetHex.AddTerrain(new HeavyWoodsTerrain());
+
+        // Act - Attacker height 2, target height 2, LOS line at target = 0 + 2 = 2
+        var result = sut.GetLineOfSight(from, to, 2, 2);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeTrue();
+        result.HexPath.Count.ShouldBe(2, "Path should include intervening hex plus target hex");
+        
+        // Find the target hex in a path
+        var targetHexInfo = result.HexPath[^1];
+        targetHexInfo.Hex.Coordinates.ShouldBe(to);
+        
+        // Heavy woods ceiling (2) >= LOS height (2), so it contributes
+        targetHexInfo.InterveningFactor.ShouldBe(2, "Heavy woods at target should contribute intervening factor");
+        result.TotalInterveningFactor.ShouldBe(0); // but the target hex doesn't contribute to the total factor
+    }
 }

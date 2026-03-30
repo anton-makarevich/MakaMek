@@ -18,14 +18,14 @@ public class LineOfSightResultTests
                 Hex = new Hex(new HexCoordinates(2,
                     2)),
                 InterpolatedLosHeight = 1,
-                InterveningFactorContribution = 2
+                InterveningFactor = 2
             },
             new()
             {
                 Hex = new Hex(new HexCoordinates(3,
                     3)),
                 InterpolatedLosHeight = 2,
-                InterveningFactorContribution = 3
+                InterveningFactor = 3
             }
         };
         
@@ -62,14 +62,14 @@ public class LineOfSightResultTests
                 Hex = new Hex(new HexCoordinates(2,
                     2)),
                 InterpolatedLosHeight = 1,
-                InterveningFactorContribution = 2
+                InterveningFactor = 2
             },
             new()
             {
                 Hex = new Hex(new HexCoordinates(3,
                     3)),
                 InterpolatedLosHeight = 2,
-                InterveningFactorContribution = 3
+                InterveningFactor = 3
             }
         };
         

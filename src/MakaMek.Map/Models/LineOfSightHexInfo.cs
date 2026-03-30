@@ -24,6 +24,6 @@ public record LineOfSightHexInfo
     /// This is 0 when the hex ceiling does not reach <see cref="InterpolatedLosHeight"/>
     /// (i.e. the terrain is below the LOS line and does not intervene).
     /// </summary>
-    public required int InterveningFactorContribution { get; init; }
+    public required int InterveningFactor { get; init; }
 }
 

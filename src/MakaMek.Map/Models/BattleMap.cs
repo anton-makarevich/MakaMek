@@ -548,7 +548,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 Hex = hex,
                 InterpolatedLosHeight = interpolatedLosHeight,
-                InterveningFactorContribution = contribution
+                InterveningFactor = contribution
             });
 
             // Elevation check: hex base level blocks the LOS line entirely
@@ -582,13 +582,26 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             distance++;
         }
 
+        // Add the target hex to the path with its contribution
+        var targetInterpolatedLosHeight = toHex.Level + targetHeight;
+        var targetContribution = 0;
+        if (toHex.GetCeiling() >= targetInterpolatedLosHeight)
+            targetContribution = toHex.GetTerrains().Sum(t => t.InterveningFactor);
+
+        hexPath.Add(new LineOfSightHexInfo
+        {
+            Hex = toHex,
+            InterpolatedLosHeight = targetInterpolatedLosHeight,
+            InterveningFactor = targetContribution
+        });
+
         return new LineOfSightResult
         {
             From = from, To = to,
             AttackerHeight = attackerHeight, TargetHeight = targetHeight,
             HasLineOfSight = true,
             HexPath = hexPath,
-            TotalInterveningFactor = totalInterveningFactor
+            TotalInterveningFactor = totalInterveningFactor // target contribution is not added here as target hex doesn't block the LOS
         };
     }
 
@@ -727,15 +740,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         var result = new MovementPath(path, MovementType.Jump);
         _movementPathCache.Add(result);
         return result;
-    }
-
-    /// <summary>
-    /// Gets hexes along the line of sight between two coordinates, including terrain information
-    /// </summary>
-    public IReadOnlyList<Hex> GetHexesAlongLineOfSight(HexCoordinates from, HexCoordinates to)
-    {
-        var coordinates = ResolveHexesAlongTheLine(from, to);
-        return coordinates.Select(c => GetHex(c)!).ToList();
     }
 
     /// <summary>
