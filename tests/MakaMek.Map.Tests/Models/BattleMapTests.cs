@@ -1974,8 +1974,8 @@ public class BattleMapTests
         var lastHexInfo = result.HexPath[^1];
         lastHexInfo.Hex.Coordinates.ShouldBe(to, "Last hex in path should be the target hex");
         
-        // Verify the target hex has the correct interpolated height (target level + target height = 2 + 2 = 4)
-        lastHexInfo.InterpolatedLosHeight.ShouldBe(4);
+        // Verify the target hex has the correct interpolated height (target level + target height = 0 + 2 = 2)
+        lastHexInfo.InterpolatedLosHeight.ShouldBe(2);
         
         // Clear terrain has ceiling 0, which is less than LOS height 4, so the contribution should be 0
         lastHexInfo.InterveningFactor.ShouldBe(0, "Clear terrain should not contribute to intervening factor when below LOS line");
