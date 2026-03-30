@@ -153,6 +153,61 @@ public class BattleMapTests
         // Assert
         result.HasLineOfSight.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void GetLineOfSight_WithMissingFromHex_ReturnsBlockedLos()
+    {
+        // Arrange
+        var sut = new BattleMap(4, 1);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(4, 1);
+        sut.AddHex(new Hex(end));
+
+        // Act
+        var result = sut.GetLineOfSight(start, end, 2);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.InvalidCoordinates);
+        result.BlockingHexCoordinates.ShouldBe(start);
+    }
+    
+    [Fact]
+    public void GetLineOfSight_WithMissingToHex_ReturnsBlockedLos()
+    {
+        // Arrange
+        var sut = new BattleMap(4, 1);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(4, 1);
+        sut.AddHex(new Hex(start));
+
+        // Act
+        var result = sut.GetLineOfSight(start, end, 2);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.InvalidCoordinates);
+        result.BlockingHexCoordinates.ShouldBe(end);
+    }
+    
+    [Fact]
+    public void GetLineOfSight_WithMissingHexInBetween_ReturnsBlockedLos()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 4);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(1, 4);
+        sut.AddHex(new Hex(start));
+        sut.AddHex(new Hex(end));
+
+        // Act
+        var result = sut.GetLineOfSight(start, end, 2);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.InvalidCoordinates);
+        result.BlockingHexCoordinates.ShouldBe(new HexCoordinates(1, 2));
+    }
 
     [Fact]
     public void GetLineOfSight_WithBlockingTerrain_HasLineOfSightFalse()
