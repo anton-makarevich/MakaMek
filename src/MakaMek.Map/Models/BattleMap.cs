@@ -538,6 +538,18 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 toHex.Level + targetHeight,
                 distance,
                 totalDistance);
+            
+            // Only terrain whose ceiling reaches the LOS line contributes an intervening factor
+            var contribution = 0;
+            if (hex.GetCeiling() >= interpolatedLosHeight)
+                contribution = hex.GetTerrains().Sum(t => t.InterveningFactor);
+
+            hexPath.Add(new LineOfSightHexInfo
+            {
+                Hex = hex,
+                InterpolatedLosHeight = interpolatedLosHeight,
+                InterveningFactorContribution = contribution
+            });
 
             // Elevation check: hex base level blocks the LOS line entirely
             if (hex.Level >= interpolatedLosHeight)
@@ -551,18 +563,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     BlockReason = LineOfSightBlockReason.Elevation,
                     TotalInterveningFactor = totalInterveningFactor
                 };
-
-            // Only terrain whose ceiling reaches the LOS line contributes an intervening factor
-            var contribution = 0;
-            if (hex.GetCeiling() >= interpolatedLosHeight)
-                contribution = hex.GetTerrains().Sum(t => t.InterveningFactor);
-
-            hexPath.Add(new LineOfSightHexInfo
-            {
-                Hex = hex,
-                InterpolatedLosHeight = interpolatedLosHeight,
-                InterveningFactorContribution = contribution
-            });
 
             totalInterveningFactor += contribution;
 
