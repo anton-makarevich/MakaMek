@@ -471,26 +471,37 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     }
 
     /// <summary>
-    /// Checks if there is a line of sight between two hexes
+    /// Calculates the line of sight between two hexes and returns a result with full context.
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
     /// <param name="to">Target hex coordinates</param>
     /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
-    public bool HasLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0)
+    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0)
     {
-        if (!IsOnMap(from) || !IsOnMap(to))
-            return false;
+        var isFromOnMap = IsOnMap(from);
+        var isToOnMap = IsOnMap(to);
+        
+        if (!isFromOnMap || !isToOnMap)
+            return LineOfSightResult.Blocked(
+                from: from, to: to,
+                blockingHex: isFromOnMap ? to : from,
+                reason: LineOfSightBlockReason.InvalidCoordinates,
+                attackerHeight: attackerHeight, targetHeight: targetHeight);
 
-        // If the same hex, always has LOS
+        // The same hex — always has LOS, no intervening path
         if (from == to)
-            return true;
+            return LineOfSightResult.Unblocked(from: from, to: to,
+                attackerHeight: attackerHeight, targetHeight: targetHeight);
 
         var fromHex = GetHex(from);
         var toHex = GetHex(to);
-        
+
         if (fromHex == null || toHex == null)
-            return false;
+            return LineOfSightResult.Blocked(
+                from: from, to: to,
+                blockingHex: fromHex == null ? from : to,
+                attackerHeight: attackerHeight, targetHeight: targetHeight);
 
         // Get all hexes along the line, resolving any divided line segments
         var hexLine = ResolveHexesAlongTheLine(from, to);
@@ -498,42 +509,87 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         // Remove the first and last hex (attacker and target positions)
         hexLine = hexLine.Skip(1).SkipLast(1).ToList();
 
-        if (!hexLine.Any())
-            return true; // No intervening hexes
+        if (hexLine.Count == 0)
+            return LineOfSightResult.Unblocked(from: from, to: to,
+                attackerHeight: attackerHeight, targetHeight: targetHeight);
 
         var distance = 1;
         var totalDistance = hexLine.Count + 1;
         var totalInterveningFactor = 0;
+        var hexPath = new List<LineOfSightHexInfo>();
+
         foreach (var coordinates in hexLine)
         {
             var hex = GetHex(coordinates);
             if (hex == null)
-                return false;
+                return new LineOfSightResult
+                {
+                    From = from, To = to,
+                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    HasLineOfSight = false,
+                    HexPath = hexPath,
+                    BlockingHexCoordinates = coordinates,
+                    BlockReason = LineOfSightBlockReason.InvalidCoordinates,
+                    TotalInterveningFactor = totalInterveningFactor
+                };
 
-            var requiredHeight = InterpolateHeight(
+            var interpolatedLosHeight = InterpolateHeight(
                 fromHex.Level + attackerHeight,
                 toHex.Level + targetHeight,
                 distance,
                 totalDistance);
+            
+            // Only terrain whose ceiling reaches the LOS line contributes an intervening factor
+            var contribution = 0;
+            if (hex.GetCeiling() >= interpolatedLosHeight)
+                contribution = hex.GetTerrains().Sum(t => t.InterveningFactor);
 
-            // If the hex level blocks the LOS line entirely, return false
-            if (hex.Level >= requiredHeight)
-                return false;
-
-            // Only count terrain whose ceiling reaches the LOS line at this position
-            if (hex.GetCeiling() >= requiredHeight)
+            hexPath.Add(new LineOfSightHexInfo
             {
-                totalInterveningFactor += hex.GetTerrains().Sum(t => t.InterveningFactor);
-            }
+                Hex = hex,
+                InterpolatedLosHeight = interpolatedLosHeight,
+                InterveningFactorContribution = contribution
+            });
 
-            // Early exit if a terrain intervening factor is too high
+            // Elevation check: hex base level blocks the LOS line entirely
+            if (hex.Level >= interpolatedLosHeight)
+                return new LineOfSightResult
+                {
+                    From = from, To = to,
+                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    HasLineOfSight = false,
+                    HexPath = hexPath,
+                    BlockingHexCoordinates = coordinates,
+                    BlockReason = LineOfSightBlockReason.Elevation,
+                    TotalInterveningFactor = totalInterveningFactor
+                };
+
+            totalInterveningFactor += contribution;
+
+            // Terrain intervening factor threshold check
             if (totalInterveningFactor >= 3)
-                return false;
+                return new LineOfSightResult
+                {
+                    From = from, To = to,
+                    AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+                    HasLineOfSight = false,
+                    HexPath = hexPath,
+                    BlockingHexCoordinates = coordinates,
+                    BlockReason = LineOfSightBlockReason.InterveningTerrain,
+                    TotalInterveningFactor = totalInterveningFactor
+                };
 
             distance++;
         }
 
-        return true;
+        return new LineOfSightResult
+        {
+            From = from, To = to,
+            AttackerHeight = attackerHeight, TargetHeight = targetHeight,
+            HasLineOfSight = true,
+            HexPath = hexPath,
+            TotalInterveningFactor = totalInterveningFactor
+        };
     }
 
     private List<HexCoordinates> ResolveHexesAlongTheLine(HexCoordinates from, HexCoordinates to)
