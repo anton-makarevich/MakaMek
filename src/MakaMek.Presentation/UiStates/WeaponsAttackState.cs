@@ -366,11 +366,11 @@ public class WeaponsAttackState : IUiState
                         var targetHeight = _viewModel.Units
                             .FirstOrDefault(u => u.Position?.Coordinates == h)
                             ?.Height ?? 0;
-                        return !Game.BattleMap.HasLineOfSight(
+                        return !Game.BattleMap.GetLineOfSight(
                             unitPosition.Coordinates,
                             h,
                             Attacker.Height,
-                            targetHeight);
+                            targetHeight).HasLineOfSight;
                     });
                 }
 

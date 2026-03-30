@@ -54,13 +54,17 @@ public interface IBattleMap
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
-    /// Checks if there is a line of sight between two hexes
+    /// Calculates the line of sight between two hexes and returns a result with full context.
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
     /// <param name="to">Target hex coordinates</param>
     /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
-    bool HasLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0);
+    /// <returns>
+    /// A <see cref="LineOfSightResult"/> whose <see cref="LineOfSightResult.HasLineOfSight"/> property
+    /// indicates whether LOS exists, with additional details about the blocking hex and reason.
+    /// </returns>
+    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0);
 
     IEnumerable<Hex> GetHexes();
 
