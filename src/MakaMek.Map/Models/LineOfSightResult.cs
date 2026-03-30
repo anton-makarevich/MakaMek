@@ -74,14 +74,14 @@ public record LineOfSightResult
         HexCoordinates to,
         HexCoordinates blockingHex,
         LineOfSightBlockReason reason = LineOfSightBlockReason.InvalidCoordinates,
-        int attackerHeight = 0,
-        int targetHeight = 0,
+        int attackerLosLevel = 0,
+        int targetLosLevel = 0,
         IReadOnlyList<LineOfSightHexInfo>? hexPath = null) => new()
     {
         From = from,
         To = to,
-        AttackerLosLevel = attackerHeight,
-        TargetLosLevel = targetHeight,
+        AttackerLosLevel = attackerLosLevel,
+        TargetLosLevel = targetLosLevel,
         HasLineOfSight = false,
         HexPath = hexPath ?? [],
         BlockingHexCoordinates = blockingHex,
