@@ -1,6 +1,6 @@
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -651,7 +651,6 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         {
             // Act
             var result = _sut.GetHeatAmmoExplosionAvoidNumber(heatLevel);
-
             // Assert
             result.ShouldBe(expectedAvoidNumber);
         }
@@ -664,6 +663,241 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
 
             // Assert
             result.ShouldBe(15);
+        }
+        
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenNoLineOfSight()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            var losResult = LineOfSightResult.Blocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                new HexCoordinates(0, 1));
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenEmptyHexPath()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0));
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenTargetHexDoesNotMatchUnitPosition()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(2, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var targetHex = new Hex(new HexCoordinates(1, 0));
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenUnitCannotHavePartialCover()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(false);
+
+            var targetHex = new Hex(new HexCoordinates(1, 0));
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenOnlyOneHexInPath()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var targetHex = new Hex(new HexCoordinates(1, 0));
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenAdjacentHexNotOneLevelHigher()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var adjacentHex = new Hex(new HexCoordinates(0, 0), 1); // Level 1
+            var targetHex = new Hex(new HexCoordinates(1, 0), 1);   // Level 1 - the same level, not +1
+
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                attackerHeight: 0,
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsFalse_WhenTargetLevelLowerThanAttackerHeight()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var adjacentHex = new Hex(new HexCoordinates(0, 0), 2); // Level 2
+            var targetHex = new Hex(new HexCoordinates(1, 0), 1);   // Level 1
+
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                attackerHeight: 2, // Attacker height 2, target level 1 - target lower
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsTrue_WhenAllConditionsMet()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var adjacentHex = new Hex(new HexCoordinates(0, 0), 2); // Level 2
+            var targetHex = new Hex(new HexCoordinates(1, 0), 1);   // Level 1 (adjacent is +1 higher)
+
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                attackerHeight: 2, // Target height (1+1) = attacker height (0+2)
+                targetHeight: 1,
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void HasPartialCover_ReturnsTrue_WhenTargetLevelHigherThanAttackerHeight()
+        {
+            // Arrange
+            var unit = Substitute.For<IUnit>();
+            unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+            unit.CanHavePartialCover.Returns(true);
+
+            var adjacentHex = new Hex(new HexCoordinates(0, 0), 3); // Level 3
+            var targetHex = new Hex(new HexCoordinates(1, 0), 2);   // Level 2 (adjacent is +1 higher)
+
+            var hexPath = new List<LineOfSightHexInfo>
+            {
+                new() { Hex = adjacentHex, InterpolatedLosHeight = 2.5, InterveningFactor = 0 },
+                new() { Hex = targetHex, InterpolatedLosHeight = 3, InterveningFactor = 0 }
+            };
+
+            var losResult = LineOfSightResult.Unblocked(
+                new HexCoordinates(0, 0),
+                new HexCoordinates(1, 0),
+                attackerHeight: 2, // Target height (2+2) > attacker height (0+2)
+                targetHeight: 2,
+                hexPath: hexPath);
+
+            // Act
+            var result = _sut.HasPartialCover(unit, losResult);
+
+            // Assert
+            result.ShouldBeTrue();
         }
     }
 }

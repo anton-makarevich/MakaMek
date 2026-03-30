@@ -64,6 +64,13 @@ public interface IUnit
     /// Gets the unit's height in levels. Used for line of sight calculations.
     /// </summary>
     int Height { get; }
+
+    /// <summary>
+    /// Determines if this unit can have partial cover from elevation.
+    /// Only standing mechs can have partial cover.
+    /// </summary>
+    bool CanHavePartialCover { get; }
+
     int DamageReducedMovement { get; }
     HeatMovementPenalty? MovementHeatPenalty { get; }
     HeatRollModifier? AttackHeatPenalty { get; }

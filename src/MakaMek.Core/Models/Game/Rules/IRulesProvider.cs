@@ -133,4 +133,13 @@ public interface IRulesProvider
     /// </summary>
     /// <returns>The external heat cap (typically 15 for Classic BattleTech)</returns>
     int GetExternalHeatCap();
+
+    /// <summary>
+    /// Determines if a target unit has partial cover from terrain.
+    /// Partial cover occurs when terrain blocks LOS to the lower portion of a standing mech.
+    /// </summary>
+    /// <param name="targetUnit">The unit being targeted</param>
+    /// <param name="losResult">The line of sight calculation result</param>
+    /// <returns>True if the target has partial cover, false otherwise</returns>
+    bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult);
 }

@@ -116,6 +116,12 @@ public abstract class Unit : IUnit
     /// </summary>
     public abstract int Height { get; }
 
+    /// <summary>
+    /// Determines if this unit can have partial cover from elevation.
+    /// Only standing mechs can have partial cover.
+    /// </summary>
+    public virtual bool CanHavePartialCover => false;
+
     // Base movement (walking)
     protected int BaseMovement
     {

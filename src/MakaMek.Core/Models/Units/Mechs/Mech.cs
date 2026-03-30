@@ -620,6 +620,12 @@ public class Mech : Unit
     public override int Height => IsProne ? 1 : 2;
 
     /// <summary>
+    /// Determines if this mech can have partial cover from elevation.
+    /// Only standing mechs (not prone) can have partial cover.
+    /// </summary>
+    public override bool CanHavePartialCover => !IsProne;
+
+    /// <summary>
     /// Resets the turn state for the mech, including torso rotation
     /// </summary>
     public override void ResetTurnState()
