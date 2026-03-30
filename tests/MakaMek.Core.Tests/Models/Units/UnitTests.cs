@@ -142,6 +142,19 @@ public class UnitTests
 
         return new TestUnit("Test", "Unit", tonnage, parts, id);
     }
+    
+    [Fact]
+    public void CanHavePartialCover_ReturnsFalse_ByDefault()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.CanHavePartialCover;
+        
+        // Assert
+        result.ShouldBeFalse();
+    }
 
     [Fact]
     public void GetWeaponsConfigurationOptions_AggregatesAndDeduplicatesByType()
