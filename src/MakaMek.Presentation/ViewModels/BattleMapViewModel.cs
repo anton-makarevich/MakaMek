@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -433,13 +434,46 @@ public class BattleMapViewModel : BaseViewModel
         HeatProjection.Unit = Attacker;
     }
 
-    internal void HighlightHexes(IReadOnlyList<HexCoordinates> coordinates, bool isHighlighted)
+    /// <summary>
+    /// Adds a highlight to the specified hexes
+    /// </summary>
+    /// <param name="coordinates">The hex coordinates to highlight</param>
+    /// <param name="highlightType">The type of highlight to add</param>
+    internal void AddHighlight(IReadOnlyList<HexCoordinates> coordinates, IHexHighlightType highlightType)
     {
         var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
         foreach (var hex in hexesToHighlight)
         {
-            hex.IsHighlighted = isHighlighted;
+            hex.AddHighlight(highlightType);
+        }
+    }
+
+    /// <summary>
+    /// Removes a specific highlight type from the specified hexes
+    /// </summary>
+    /// <param name="coordinates">The hex coordinates to remove highlight from</param>
+    /// <typeparam name="T">The type of highlight to remove</typeparam>
+    internal void RemoveHighlight<T>(IReadOnlyList<HexCoordinates> coordinates) where T : IHexHighlightType
+    {
+        var hexesToUnhighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
+        if (hexesToUnhighlight == null) return;
+        foreach (var hex in hexesToUnhighlight)
+        {
+            hex.RemoveHighlight<T>();
+        }
+    }
+
+    /// <summary>
+    /// Clears all highlights of a specific type from all hexes on the map
+    /// </summary>
+    internal void ClearHighlights()
+    {
+        var hexes = Game?.BattleMap?.GetHexes().ToList();
+        if (hexes == null) return;
+        foreach (var hex in hexes)
+        {
+            hex.ClearHighlights();
         }
     }
 

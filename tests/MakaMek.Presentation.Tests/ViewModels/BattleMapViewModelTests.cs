@@ -30,6 +30,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -1991,7 +1992,7 @@ public class BattleMapViewModelTests
         game.HandleCommand(standUpCommand);
 
         // Assert
-        var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.HasHighlight<MovementReachableHighlight>()).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
 

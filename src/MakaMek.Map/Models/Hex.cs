@@ -1,6 +1,7 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
@@ -13,6 +14,9 @@ public class Hex : IDisposable
     public HexCoordinates Coordinates { get; }
     public int Level { get; internal set; }
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
+    private readonly HashSet<IHexHighlightType> _highlights = [];
+    private readonly Subject<IReadOnlyCollection<IHexHighlightType>> _highlightsSubject = new();
+    private bool _disposed;
 
     /// <summary>
     /// The biome identifier for this hex, inherited from the map when added via BattleMap.AddHex()
@@ -66,27 +70,62 @@ public class Hex : IDisposable
         ? _terrains.Values.Max(t => t.MovementCost)
         : 1; // Default cost for empty hex
 
-    private readonly Subject<bool> _isHighlightedSubject = new();
-    private bool _disposed;
+    /// <summary>
+    /// Observable that emits when the highlights collection changes
+    /// </summary>
+    public IObservable<IReadOnlyCollection<IHexHighlightType>> HighlightsChanged => _highlightsSubject.AsObservable();
 
     /// <summary>
-    /// Observable that emits when the highlight state changes
+    /// Gets the current highlights on this hex
     /// </summary>
-    public IObservable<bool> IsHighlightedChanged => _isHighlightedSubject.AsObservable();
+    public IReadOnlyCollection<IHexHighlightType> Highlights => _highlights;
 
     /// <summary>
-    /// Gets or sets whether this hex is highlighted
+    /// Adds a highlight to this hex if not already present
     /// </summary>
-    public bool IsHighlighted
+    /// <param name="highlight">The highlight type to add</param>
+    public void AddHighlight(IHexHighlightType highlight)
     {
-        get;
-        set
+        if (_disposed) return;
+        if (_highlights.Add(highlight))
         {
-            if (field == value) return;
-            field = value;
-            if (_disposed) return;
-            _isHighlightedSubject.OnNext(value);
+            _highlightsSubject.OnNext(Highlights);
         }
+    }
+
+    /// <summary>
+    /// Removes any highlight of the specified type from this hex
+    /// </summary>
+    /// <typeparam name="T">The type of highlight to remove</typeparam>
+    public void RemoveHighlight<T>() where T : IHexHighlightType
+    {
+        if (_disposed) return;
+        var removed = _highlights.RemoveWhere(h => h is T);
+        if (removed > 0)
+        {
+            _highlightsSubject.OnNext(Highlights);
+        }
+    }
+
+    /// <summary>
+    /// Checks if this hex has a specific highlight type active
+    /// </summary>
+    /// <typeparam name="T">The type of highlight to check for</typeparam>
+    /// <returns>True if the highlight type is active</returns>
+    public bool HasHighlight<T>() where T : IHexHighlightType
+    {
+        return _highlights.OfType<T>().Any();
+    }
+
+    /// <summary>
+    /// Clears all highlights from this hex
+    /// </summary>
+    public void ClearHighlights()
+    {
+        if (_disposed) return;
+        if (_highlights.Count <= 0) return;
+        _highlights.Clear();
+        _highlightsSubject.OnNext(Highlights);
     }
 
     public MakaMekTerrains[] GetTerrainTypes()
@@ -120,8 +159,8 @@ public class Hex : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _isHighlightedSubject.OnCompleted();
-        _isHighlightedSubject.Dispose();
+        _highlightsSubject.OnCompleted();
+        _highlightsSubject.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

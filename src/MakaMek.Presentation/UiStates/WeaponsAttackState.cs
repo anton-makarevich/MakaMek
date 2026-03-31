@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -17,6 +18,7 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
+    private HashSet<HexCoordinates> _losBlockingHexes = [];
 
     public IClientGame Game { get; }
 
@@ -333,8 +335,10 @@ public class WeaponsAttackState : IUiState
         if (Attacker?.Position == null) return;
 
         var reachableHexes = new HashSet<HexCoordinates>();
+        var blockingHexes = new HashSet<HexCoordinates>();
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
+        _losBlockingHexes.Clear();
 
         foreach (var part in Attacker.Parts.Values)
         {
@@ -358,7 +362,7 @@ public class WeaponsAttackState : IUiState
                     weaponHexes.UnionWith(hexes);
                 }
 
-                // Filter out hexes without the line of sight
+                // Filter out hexes without the line of sight and collect blocking hexes
                 if (Game.BattleMap != null)
                 {
                     weaponHexes.RemoveWhere(h =>
@@ -366,11 +370,19 @@ public class WeaponsAttackState : IUiState
                         var targetHeight = _viewModel.Units
                             .FirstOrDefault(u => u.Position?.Coordinates == h)
                             ?.Height ?? 0;
-                        return !Game.BattleMap.GetLineOfSight(
+                        var losResult = Game.BattleMap.GetLineOfSight(
                             unitPosition.Coordinates,
                             h,
                             Attacker.Height,
-                            targetHeight).HasLineOfSight;
+                            targetHeight);
+                        
+                        // Collect blocking hex coordinates from failed LOS checks
+                        if (losResult is { HasLineOfSight: false, BlockingHexCoordinates: not null })
+                        {
+                            blockingHexes.Add(losResult.BlockingHexCoordinates);
+                        }
+                        
+                        return !losResult.HasLineOfSight;
                     });
                 }
 
@@ -379,38 +391,26 @@ public class WeaponsAttackState : IUiState
             }
         }
 
-        // Highlight the hexes
-        _viewModel.HighlightHexes(reachableHexes.ToList(), true);
+        // Store LOS blocking hexes for later cleanup
+        _losBlockingHexes = blockingHexes;
+
+        // Highlight reachable hexes with attack highlight
+        _viewModel.AddHighlight(reachableHexes.ToList(), new AttackReachableHighlight());
+        
+        // Highlight LOS blocking hexes
+        if (blockingHexes.Count > 0)
+        {
+            _viewModel.AddHighlight(blockingHexes.ToList(), new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain));
+        }
     }
 
     private void ClearWeaponRangeHighlights()
     {
-        if (Attacker?.Position == null) return;
-
-        // Get all hexes in maximum weapon range and unhighlight them
-        var weapons = Attacker.Parts.Values
-            .SelectMany(p => p.GetComponents<Weapon>())
-            .ToList();
-            
-        IEnumerable<HexCoordinates> allPossibleHexes;
-        // If there are no weapons, just clear all
-        if (weapons.Count == 0)
-        {
-            allPossibleHexes = Game.BattleMap?.GetHexes()
-                .Where(h=>h.IsHighlighted)
-                .Select(h=>h.Coordinates)??[];
-        }
-        else
-        {
-
-            var maxRange = weapons.Max(w => w.LongRange);
-
-            allPossibleHexes = Attacker.Position.Coordinates
-                .GetCoordinatesInRange(maxRange);
-        }
-
+        // Clear highlights
+        _viewModel.ClearHighlights();
+        
         _weaponRanges.Clear();
-        _viewModel.HighlightHexes(allPossibleHexes.ToList(), false);
+        _losBlockingHexes.Clear();
     }
 
     /// <summary>
@@ -495,12 +495,12 @@ public class WeaponsAttackState : IUiState
             vm.AimedHeadModifiersBreakdown = null;
             vm.AimedOtherModifiersBreakdown = null;
 
-            // Set modifiers breakdown when in range
+            // Set modifier breakdown when in range
             if (!isInRange) continue;
             // Check if this target is the primary target
             var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
 
-            // Get modifiers breakdown, passing the primary target information
+            // Get modifier breakdown, passing the primary target information
             if (Game.BattleMap == null || Attacker == null) continue;
             // Calculate base breakdown without aimed shot
             var baseBreakdown = Game.ToHitCalculator.GetModifierBreakdown(

@@ -30,6 +30,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
@@ -555,7 +556,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(_unit1);
 
         // Assert
-        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
     
@@ -571,7 +572,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(_unit1);
 
         // Assert
-        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldBeEmpty("No hexes should be highlighted for an immobile unit");
     }
 
@@ -590,14 +591,14 @@ public class WeaponsAttackStateTests
         unit2.Deploy(position2);
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position1.Coordinates));
         _sut.HandleUnitSelection(unit1);
-        var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
 
         // Act
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==position2.Coordinates));
         _sut.HandleUnitSelection(unit2);
 
         // Assert
-        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         secondHighlightedHexes.ShouldNotBeEmpty();
         // Check that at least some hexes are different (since units are in different positions)
         secondHighlightedHexes.ShouldNotBe(firstHighlightedHexes);
@@ -618,9 +619,9 @@ public class WeaponsAttackStateTests
         
         // Act
         _sut.HandleUnitSelection(_unit1);
-        var firstUnitHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstUnitHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         _sut.HandleUnitSelection(_unit2);
-        var secondUnitHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var secondUnitHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
 
         // Assert
         firstUnitHighlightedHexes.ShouldNotBeEmpty();
@@ -636,12 +637,12 @@ public class WeaponsAttackStateTests
         _unit1.Deploy(position);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
-        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         
         // Act
         ((Mech)_unit1).RotateTorso(HexDirection.BottomLeft);
         _sut.HandleTorsoRotation(_unit1.Id);
-        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
 
         // Assert
         firstHighlightedHexes.ShouldNotBeEmpty();
@@ -658,12 +659,12 @@ public class WeaponsAttackStateTests
         _unit1.Deploy(position);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
-        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         
         // Act
         ((Mech)_unit1).RotateTorso(HexDirection.BottomLeft);
         _sut.HandleTorsoRotation(Guid.NewGuid()); // Different unit ID
-        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var secondHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
 
         // Assert
         firstHighlightedHexes.ShouldNotBeEmpty();
@@ -690,7 +691,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(unitNoWeapons);
 
         // Assert
-        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldBeEmpty();
     }
 
@@ -739,7 +740,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(unit);
 
         // Assert
-        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
 

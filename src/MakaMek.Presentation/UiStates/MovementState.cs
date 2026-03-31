@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -67,7 +68,7 @@ public class MovementState : IUiState
     private void ClearHighlighting()
     {
         if (_reachabilityData != null)
-            _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, false);
+            _viewModel.RemoveHighlight<MovementReachableHighlight>(_reachabilityData.Value.AllReachableHexes.ToList());
         _reachabilityData = null;
     }
 
@@ -93,7 +94,7 @@ public class MovementState : IUiState
                 _prohibitedHexes,
                 _friendlyUnitsCoordinates);
 
-            _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, true);
+            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableHexes.ToList(), new MovementReachableHighlight());
         }
 
         _viewModel.NotifyStateChanged();

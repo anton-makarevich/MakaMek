@@ -11,6 +11,7 @@ using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -23,20 +24,28 @@ public class HexControl : Panel
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
     private readonly List<Image> _terrainImageLayers = [];
+    private readonly List<Polygon> _highlightPolygons = [];
     private readonly HexRenderConfiguration _renderConfiguration;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
-    private static readonly IBrush HighlightStroke = new SolidColorBrush(Color.Parse("#00BFFF")); // Light blue
-    private static readonly IBrush HighlightFill = new SolidColorBrush(Color.Parse("#3300BFFF")); // Semi-transparent light blue
     private static readonly IBrush TransparentFill = Brushes.Transparent;
 
+    // Highlight brush configurations by type
+    private static readonly IBrush MovementReachableStroke = new SolidColorBrush(Color.Parse("#00BFFF")); // Light blue
+    private static readonly IBrush MovementReachableFill = new SolidColorBrush(Color.Parse("#3300BFFF")); // Semi-transparent light blue
+    private static readonly IBrush AttackReachableStroke = new SolidColorBrush(Color.Parse("#FFB347")); // Light yellow/orange
+    private static readonly IBrush AttackReachableFill = new SolidColorBrush(Color.Parse("#33FFB347")); // Semi-transparent light yellow/orange
+    private static readonly IBrush LosBlockingStroke = new SolidColorBrush(Color.Parse("#8B0000")); // Dark red
+    private static readonly IBrush LosBlockingFill = new SolidColorBrush(Color.Parse("#338B0000")); // Semi-transparent dark red
+
     private const double DefaultStrokeThickness = 1;
-    private const double HighlightStrokeThickness = 2;
+    private const double HighlightStrokeThickness = 1;
 
     // Z-index constants for layer ordering
     private const int ZIndexBaseTerrain = 0;
     private const int ZIndexEdgeEffects = 10;
     private const int ZIndexOverlays = 20;
+    private const int ZIndexHighlightBase = 25; // Base for highlight layers (between overlays and polygon)
     private const int ZIndexPolygon = 30;
     private const int ZIndexLabel = 31;
 
@@ -111,13 +120,12 @@ public class HexControl : Panel
         }
 
         // Set the initial highlight state
-        Highlight(_hex.IsHighlighted ? HexHighlightType.Selected : HexHighlightType.None);
+        Highlight(_hex.Highlights);
 
         // Subscribe to highlight changes from the Hex model
-        _hexSubscription = _hex.IsHighlightedChanged
+        _hexSubscription = _hex.HighlightsChanged
             .ObserveOn(SynchronizationContext.Current!) // Ensure events are processed on the UI thread
-            .Subscribe(isHighlighted =>
-                Highlight(isHighlighted ? HexHighlightType.Selected : HexHighlightType.None));
+            .Subscribe(Highlight);
 
         // Set position
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
@@ -129,24 +137,67 @@ public class HexControl : Panel
 
     public Hex Hex => _hex;
 
-    private void Highlight(HexHighlightType type)
+    private void Highlight(IReadOnlyCollection<IHexHighlightType> highlights)
     {
-        switch (type)
+        // Clear existing highlight polygons
+        ClearHighlightPolygons();
+
+        // Reset base polygon to default appearance
+        _hexPolygon.Stroke = DefaultStroke;
+        _hexPolygon.StrokeThickness = DefaultStrokeThickness;
+        _hexPolygon.Fill = TransparentFill;
+        _hexPolygon.IsVisible = _renderConfiguration.ShowOutline;
+
+        // Create highlight overlay polygons ordered by RenderOrder (lower values first/underneath)
+        var orderedHighlights = highlights.OrderBy(h => h.RenderOrder).ToList();
+        foreach (var highlight in orderedHighlights)
         {
-            case HexHighlightType.Selected:
-                _hexPolygon.Stroke = HighlightStroke;
-                _hexPolygon.StrokeThickness = HighlightStrokeThickness;
-                _hexPolygon.Fill = HighlightFill;
-                _hexPolygon.IsVisible = true;
-                break;
-            case HexHighlightType.None:
-            default:
-                _hexPolygon.Stroke = DefaultStroke;
-                _hexPolygon.StrokeThickness = DefaultStrokeThickness;
-                _hexPolygon.Fill = TransparentFill;
-                _hexPolygon.IsVisible = _renderConfiguration.ShowOutline;
-                break;
+            var polygon = new Polygon
+            {
+                Points = GetHexPoints(),
+                IsVisible = true
+            };
+
+            // Apply brush configuration based on highlight type
+            switch (highlight)
+            {
+                case MovementReachableHighlight:
+                    polygon.Stroke = MovementReachableStroke;
+                    polygon.Fill = MovementReachableFill;
+                    polygon.StrokeThickness = HighlightStrokeThickness;
+                    break;
+                case AttackReachableHighlight:
+                    polygon.Stroke = AttackReachableStroke;
+                    polygon.Fill = AttackReachableFill;
+                    polygon.StrokeThickness = HighlightStrokeThickness;
+                    break;
+                case LosBlockingHighlight:
+                    polygon.Stroke = LosBlockingStroke;
+                    polygon.Fill = LosBlockingFill;
+                    polygon.StrokeThickness = HighlightStrokeThickness;
+                    break;
+                default:
+                    // Unknown highlight type - use default appearance
+                    polygon.Stroke = DefaultStroke;
+                    polygon.Fill = TransparentFill;
+                    polygon.StrokeThickness = DefaultStrokeThickness;
+                    break;
+            }
+
+            // Add polygon with z-index based on render order
+            Children.Add(polygon);
+            polygon.ZIndex = ZIndexHighlightBase + highlight.RenderOrder;
+            _highlightPolygons.Add(polygon);
         }
+    }
+
+    private void ClearHighlightPolygons()
+    {
+        foreach (var polygon in _highlightPolygons)
+        {
+            Children.Remove(polygon);
+        }
+        _highlightPolygons.Clear();
     }
 
     private void ClearImageLayers()

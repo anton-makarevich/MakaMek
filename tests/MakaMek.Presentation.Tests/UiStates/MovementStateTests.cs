@@ -23,6 +23,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -370,7 +371,7 @@ public class MovementStateTests
         // Assert
         foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
         {
-            hex.IsHighlighted.ShouldBeFalse();
+            hex.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
         }
     }
 
@@ -498,7 +499,7 @@ public class MovementStateTests
         // Assert
         // The hex behind the unit (at 1,2) should be reachable
         var hexBehind = _game.BattleMap!.GetHex(new HexCoordinates(1, 9));
-        hexBehind!.IsHighlighted.ShouldBeTrue();
+        hexBehind!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
     }
 
     [Fact]
@@ -515,7 +516,7 @@ public class MovementStateTests
         // Assert
         // The hex behind the unit (at 1,11) should not be reachable (12 running MP are not enough to reach it)
         var hexBehind = _game.BattleMap!.GetHex(new HexCoordinates(1, 11));
-        hexBehind!.IsHighlighted.ShouldBeFalse();
+        hexBehind!.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
     }
 
     [Fact]
@@ -582,7 +583,7 @@ public class MovementStateTests
         _battleMapViewModel.MovementPath.ShouldBeNull();
         foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
         {
-            hex.IsHighlighted.ShouldBeFalse();
+            hex.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
         }
     }
 
@@ -599,13 +600,13 @@ public class MovementStateTests
 
         // Assert
         var reachableHexes = _game.BattleMap!.GetHexes()
-            .Count(h => h.IsHighlighted);
+            .Count(h => h.HasHighlight<MovementReachableHighlight>());
         reachableHexes.ShouldBeGreaterThan(0, "Should highlight reachable hexes");
 
         // Verify only hexes within jump range are highlighted
         foreach (var hex in _game.BattleMap.GetHexes())
         {
-            if (hex.IsHighlighted)
+            if (hex.HasHighlight<MovementReachableHighlight>())
             {
                 hex.Coordinates.DistanceTo(position.Coordinates)
                     .ShouldBeLessThanOrEqualTo(_unit1.GetMovementPoints(MovementType.Jump),
@@ -662,7 +663,7 @@ public class MovementStateTests
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
-            .Where(h => h.IsHighlighted)
+            .Where(h => h.HasHighlight<MovementReachableHighlight>())
             .Select(h => h.Coordinates)
             .ToList();
         reachableHexes.ShouldContain(position.Coordinates);
@@ -706,7 +707,7 @@ public class MovementStateTests
         _battleMapViewModel.SelectedUnit.ShouldBeNull(); // Selection should be reset
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit); // Back to an initial step
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeFalse(); // No highlighted hexes
     }
 
@@ -742,7 +743,7 @@ public class MovementStateTests
         // Assert
         _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should not be reset
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeTrue();
     }
 
@@ -772,7 +773,7 @@ public class MovementStateTests
         _battleMapViewModel.SelectedUnit.ShouldBeNull(); // Selection should be reset
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit); // Back to initial step
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeFalse(); // No highlighted hexes
     }
 
@@ -814,7 +815,7 @@ public class MovementStateTests
         // Assert
         _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should NOT be reset
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeTrue(); // Hexes should still be highlighted
     }
 
@@ -1144,7 +1145,7 @@ public class MovementStateTests
         _sut.IsActionRequired.ShouldBeFalse();
         foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
         {
-            hex.IsHighlighted.ShouldBeFalse();
+            hex.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
         }
     }
 
@@ -1477,7 +1478,7 @@ public class MovementStateTests
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
-            .Where(h => h.IsHighlighted)
+            .Where(h => h.HasHighlight<MovementReachableHighlight>())
             .ToList();
         reachableHexes.ShouldNotBeEmpty();
     }
@@ -1506,7 +1507,7 @@ public class MovementStateTests
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
-            .Where(h => h.IsHighlighted)
+            .Where(h => h.HasHighlight<MovementReachableHighlight>())
             .ToList();
         reachableHexes.ShouldBeEmpty();
     }
@@ -1539,7 +1540,7 @@ public class MovementStateTests
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
-            .Where(h => h.IsHighlighted)
+            .Where(h => h.HasHighlight<MovementReachableHighlight>())
             .ToList();
         reachableHexes.ShouldBeEmpty();
     }
@@ -1667,7 +1668,7 @@ public class MovementStateTests
         _battleMapViewModel.SelectedUnit.ShouldBeNull();
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeFalse();
     }
 
@@ -1765,7 +1766,7 @@ public class MovementStateTests
         // Assert
         _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should NOT be reset
         _battleMapViewModel.Game.BattleMap.GetHexes()
-            .Any(h => h.IsHighlighted)
+            .Any(h => h.HasHighlight<MovementReachableHighlight>())
             .ShouldBeTrue(); // Hexes should still be highlighted
     }
     [Fact]
