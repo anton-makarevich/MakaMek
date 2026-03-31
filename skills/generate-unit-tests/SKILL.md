@@ -29,6 +29,7 @@ Locate the appropriate test project (in `tests/` directory). Determine if a new 
 
 ### Step 4: Generate Test Class Structure
 Create the test class with proper naming (`<ClassName>Tests`), namespace matching the test project structure, and `_sut` field for the system under test.
+Always use single test class in a separate file for each class under test.
 
 ```csharp
 public class GameManagerTests

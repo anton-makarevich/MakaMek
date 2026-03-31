@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -186,47 +187,198 @@ public class HexTests
     }
 
     [Fact]
-    public void IsHighlightedChanged_ShouldEmit_WhenIsHighlightedChanges()
+    public void HighlightsChanged_ShouldEmit_WhenHighlightAdded()
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        var emittedValues = new List<bool>();
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
-        using var subscription = sut.IsHighlightedChanged
+        using var subscription = sut.HighlightsChanged
             .Subscribe(emittedValues.Add);
 
         // Act
-        sut.IsHighlighted = true;
-        sut.IsHighlighted = false;
-        sut.IsHighlighted = true;
-
-        // Assert
-        sut.IsHighlighted.ShouldBeTrue();
-        emittedValues.Count.ShouldBe(3);
-        emittedValues[0].ShouldBeTrue();
-        emittedValues[1].ShouldBeFalse();
-        emittedValues[2].ShouldBeTrue();
+        sut.AddHighlight(new MovementReachableHighlight());
+        
+        // Assert - first highlight added
+        emittedValues.Count.ShouldBeGreaterThanOrEqualTo(1);
+        emittedValues[^1].Count.ShouldBe(1);
+        emittedValues[^1].ShouldContain(h => h is MovementReachableHighlight);
+        
+        // Act - second highlight
+        sut.AddHighlight(new AttackReachableHighlight());
+        
+        // Assert - now we should have 2 highlights
+        emittedValues.Count.ShouldBeGreaterThanOrEqualTo(2);
+        emittedValues[^1].Count.ShouldBe(2);
     }
 
     [Fact]
-    public void IsHighlightedChanged_ShouldNotEmit_WhenValueIsSame()
+    public void HighlightsChanged_ShouldNotEmit_WhenSameHighlightTypeAdded()
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        var emittedValues = new List<bool>();
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
-        using var subscription = sut.IsHighlightedChanged
+        using var subscription = sut.HighlightsChanged
             .Subscribe(emittedValues.Add);
 
         // Act
-        sut.IsHighlighted = false; // Default value
-        sut.IsHighlighted = false; // Same value
-        sut.IsHighlighted = true;  // Different value
-        sut.IsHighlighted = true;  // Same value
+        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight()); // Same type, should not emit
 
         // Assert
         emittedValues.Count.ShouldBe(1);
-        emittedValues[0].ShouldBeTrue();
+        emittedValues[0].Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void AddHighlight_ShouldAddToHighlightsCollection()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        var highlight = new MovementReachableHighlight();
+
+        // Act
+        sut.AddHighlight(highlight);
+
+        // Assert
+        sut.Highlights.Count.ShouldBe(1);
+        sut.Highlights.ShouldContain(highlight);
+    }
+
+    [Fact]
+    public void RemoveHighlight_ShouldRemoveSpecificType()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new AttackReachableHighlight());
+
+        // Act
+        sut.RemoveHighlight<MovementReachableHighlight>();
+
+        // Assert
+        sut.Highlights.Count.ShouldBe(1);
+        sut.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
+        sut.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RemoveHighlight_ShouldEmitHighlightsChanged()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddHighlight(new MovementReachableHighlight());
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
+        
+        using var subscription = sut.HighlightsChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        sut.RemoveHighlight<MovementReachableHighlight>();
+
+        // Assert
+        emittedValues.Count.ShouldBe(1);
+        emittedValues[0].Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void RemoveHighlight_ShouldNotEmit_WhenTypeNotPresent()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
+        
+        using var subscription = sut.HighlightsChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        sut.RemoveHighlight<MovementReachableHighlight>(); // No highlight of this type
+
+        // Assert
+        emittedValues.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void HasHighlight_ShouldReturnTrue_WhenTypePresent()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddHighlight(new MovementReachableHighlight());
+
+        // Act & Assert
+        sut.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        sut.HasHighlight<AttackReachableHighlight>().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ClearHighlights_ShouldRemoveAllHighlights()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new LosBlockingHighlight(LineOfSightBlockReason.Elevation));
+
+        // Act
+        sut.ClearHighlights();
+
+        // Assert
+        sut.Highlights.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ClearHighlights_ShouldEmitHighlightsChanged()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddHighlight(new MovementReachableHighlight());
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
+        
+        using var subscription = sut.HighlightsChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        sut.ClearHighlights();
+
+        // Assert
+        emittedValues.Count.ShouldBe(1);
+        emittedValues[0].Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ClearHighlights_ShouldNotEmit_WhenNoHighlights()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
+        
+        using var subscription = sut.HighlightsChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        sut.ClearHighlights();
+
+        // Assert
+        emittedValues.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Highlights_ShouldSupportMultipleTypesSimultaneously()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(0, 0));
+
+        // Act
+        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new LosBlockingHighlight(LineOfSightBlockReason.Elevation));
+
+        // Assert
+        sut.Highlights.Count.ShouldBe(3);
+        sut.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        sut.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+        sut.HasHighlight<LosBlockingHighlight>().ShouldBeTrue();
     }
 
     [Fact]
@@ -235,20 +387,20 @@ public class HexTests
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
         var completedCalled = false;
-        var emittedValues = new List<bool>();
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
-        using var subscription = sut.IsHighlightedChanged
+        using var subscription = sut.HighlightsChanged
             .Subscribe(
                 emittedValues.Add,
                 () => completedCalled = true);
 
         // Act
-        sut.IsHighlighted = true; // Should emit before disposal
+        sut.AddHighlight(new MovementReachableHighlight()); // Should emit before disposal
         sut.Dispose();
 
         // Assert
         emittedValues.Count.ShouldBe(1);
-        emittedValues[0].ShouldBeTrue();
+        emittedValues[0].Count.ShouldBe(1);
         completedCalled.ShouldBeTrue();
     }
 
@@ -257,16 +409,16 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        var emittedValues = new List<bool>();
+        var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
-        using var subscription = sut.IsHighlightedChanged
+        using var subscription = sut.HighlightsChanged
             .Subscribe(emittedValues.Add);
 
         // Act
         sut.Dispose();
         
         // This should not emit anything since the subject is disposed
-        sut.IsHighlighted = true;
+        sut.AddHighlight(new MovementReachableHighlight());
 
         // Assert
         emittedValues.Count.ShouldBe(0);
@@ -352,7 +504,7 @@ public class HexTests
         var sut = new Hex(new HexCoordinates(0, 0));
         var completedCalled = false;
         
-        using var subscription = sut.IsHighlightedChanged
+        using var subscription = sut.HighlightsChanged
             .Subscribe(_ => { }, () => completedCalled = true);
 
         // Act
