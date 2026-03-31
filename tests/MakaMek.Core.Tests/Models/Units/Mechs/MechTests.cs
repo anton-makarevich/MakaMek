@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Shouldly;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -80,52 +79,73 @@ public class MechTests
     public void Mech_CanWalkBackwards_ButCannotRun()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
-        mech.CanMoveBackward(MovementType.Walk).ShouldBeTrue();
-        mech.CanMoveBackward(MovementType.Run).ShouldBeFalse();
+        sut.CanMoveBackward(MovementType.Walk).ShouldBeTrue();
+        sut.CanMoveBackward(MovementType.Run).ShouldBeFalse();
     }
 
     [Fact]
     public void Height_Returns2_WhenStanding()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
-        mech.Height.ShouldBe(2, "standing mech should have height 2");
+        sut.Height.ShouldBe(2, "standing mech should have height 2");
     }
 
     [Fact]
     public void Height_Returns1_WhenProne()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.SetProne();
 
         // Act & Assert
-        mech.Height.ShouldBe(1, "prone mech should have height 1");
+        sut.Height.ShouldBe(1, "prone mech should have height 1");
+    }
+
+    [Fact]
+    public void CanHavePartialCover_ReturnsTrue_WhenStanding()
+    {
+        // Arrange & Act
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+
+        // Assert
+        sut.CanHavePartialCover.ShouldBeTrue("standing mech can have partial cover");
+    }
+
+    [Fact]
+    public void CanHavePartialCover_ReturnsFalse_WhenProne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.SetProne();
+
+        // Act & Assert
+        sut.CanHavePartialCover.ShouldBeFalse("prone mech cannot have partial cover");
     }
 
     [Fact]
     public void Constructor_InitializesAllParts()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
-        mech.Parts.Count.ShouldBe(8, "all mech locations should be initialized");
-        mech.Parts.ShouldContainKey(PartLocation.Head);
-        mech.Parts.ShouldContainKey(PartLocation.CenterTorso);
-        mech.Parts.ShouldContainKey(PartLocation.LeftTorso);
-        mech.Parts.ShouldContainKey(PartLocation.RightTorso);
-        mech.Parts.ShouldContainKey(PartLocation.LeftArm);
-        mech.Parts.ShouldContainKey(PartLocation.RightArm);
-        mech.Parts.ShouldContainKey(PartLocation.LeftLeg);
-        mech.Parts.ShouldContainKey(PartLocation.RightLeg);
+        sut.Parts.Count.ShouldBe(8, "all mech locations should be initialized");
+        sut.Parts.ShouldContainKey(PartLocation.Head);
+        sut.Parts.ShouldContainKey(PartLocation.CenterTorso);
+        sut.Parts.ShouldContainKey(PartLocation.LeftTorso);
+        sut.Parts.ShouldContainKey(PartLocation.RightTorso);
+        sut.Parts.ShouldContainKey(PartLocation.LeftArm);
+        sut.Parts.ShouldContainKey(PartLocation.RightArm);
+        sut.Parts.ShouldContainKey(PartLocation.LeftLeg);
+        sut.Parts.ShouldContainKey(PartLocation.RightLeg);
         
-        mech.Class.ShouldBe(WeightClass.Medium);
+        sut.Class.ShouldBe(WeightClass.Medium);
     }
 
     [Theory]
@@ -911,7 +931,7 @@ public class MechTests
         // First, hit slot 3
         centerTorso.CriticalHit(3);
 
-        // Setup dice roller to return values that would hit slot 1
+        // Set up dice roller to return values that would hit slot 1
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(4)] // Total 9 for crit roll (1 crit)
         );

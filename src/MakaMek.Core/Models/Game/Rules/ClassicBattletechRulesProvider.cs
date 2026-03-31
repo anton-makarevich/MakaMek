@@ -480,4 +480,40 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return 15;
     }
+
+    public bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult)
+    {
+        // No partial cover if no line of sight or short path
+        if (!losResult.HasLineOfSight || losResult.HexPath.Count < 2)
+            return false;
+
+        // Get the last hex in the path (target hex)
+        var targetHexInfo = losResult.HexPath[^1];
+        var targetHex = targetHexInfo.Hex;
+
+        // Validate that the target hex matches the unit's position
+        if (targetUnit.Position == null || targetHex.Coordinates != targetUnit.Position.Coordinates)
+            return false;
+
+        // Only standing mechs can have partial cover
+        if (!targetUnit.CanHavePartialCover)
+            return false;
+
+        // Get the hex adjacent to the target (second to last in path)
+        var adjacentHexInfo = losResult.HexPath[^2];
+        var adjacentHex = adjacentHexInfo.Hex;
+
+        // For partial cover, the adjacent hex must be exactly +1 level higher than target
+        var targetLevel = targetHex.Level;
+        var adjacentLevel = adjacentHex.Level;
+        
+        if (adjacentLevel != targetLevel + 1)
+            return false;
+
+        // Target height must be >= attacker's height
+        if (losResult.TargetLosLevel < losResult.AttackerLosLevel)
+            return false;
+
+        return true;
+    }
 }
