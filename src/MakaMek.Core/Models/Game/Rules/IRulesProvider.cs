@@ -135,6 +135,12 @@ public interface IRulesProvider
     int GetExternalHeatCap();
 
     /// <summary>
+    /// Gets the to-hit modifier for a target with partial cover
+    /// </summary>
+    /// <returns>The modifier value for partial cover</returns>
+    int GetPartialCoverModifier();
+
+    /// <summary>
     /// Determines if a target unit has partial cover from terrain.
     /// Partial cover occurs when terrain blocks LOS to the lower portion of a standing mech.
     /// </summary>

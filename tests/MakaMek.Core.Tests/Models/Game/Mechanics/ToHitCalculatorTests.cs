@@ -775,4 +775,64 @@ public class ToHitCalculatorTests
         // Base gunnery (4) + no terrain modifiers = 4
         result.Total.ShouldBe(4);
     }
+    [Fact]
+    public void GetModifierBreakdown_WithPartialCover_IncludesPartialCoverModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
+        
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        
+        var sut = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
+        
+        // Target at level 0
+        var targetHex = new Hex(new HexCoordinates(1, 4));
+        targetHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(targetHex);
+        
+        // Adjacent hex at level 1 to provide partial cover
+        var adjacentHex = new Hex(new HexCoordinates(1, 3), 1);
+        adjacentHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(adjacentHex);
+        
+        // Other hexes at level 0
+        var attackerHex = new Hex(new HexCoordinates(1, 1));
+        attackerHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(attackerHex);
+        
+        var interveningHex = new Hex(new HexCoordinates(1, 2));
+        interveningHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(interveningHex);
+        
+        _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        _rules.GetPartialCoverModifier().Returns(1);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, sut);
+
+        // Assert
+        result.OtherModifiers.OfType<PartialCoverModifier>().ShouldHaveSingleItem()
+            .Value.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithoutPartialCover_DoesNotIncludePartialCoverModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
+        
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        
+        var sut = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
+        
+        _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, sut);
+
+        // Assert
+        result.OtherModifiers.OfType<PartialCoverModifier>().ShouldBeEmpty();
+    }
 }

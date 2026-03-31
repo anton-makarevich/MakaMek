@@ -481,6 +481,11 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return 15;
     }
 
+    public int GetPartialCoverModifier()
+    {
+        return 1;
+    }
+
     public bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult)
     {
         // No partial cover if no line of sight or short path

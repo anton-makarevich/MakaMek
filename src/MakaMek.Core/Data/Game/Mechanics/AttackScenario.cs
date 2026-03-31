@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -66,6 +66,11 @@ public record AttackScenario
     public int TargetHeight { get; private init; }
     
     /// <summary>
+    /// The actual target unit, if available, for evaluating cover rules.
+    /// </summary>
+    public IUnit? TargetUnit { get; private init; }
+    
+    /// <summary>
     /// Creates an AttackScenario from actual units in their current state.
     /// Used for real combat calculations.
     /// </summary>
@@ -106,7 +111,8 @@ public record AttackScenario
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget,
             AttackerHeight = attacker.Height,
-            TargetHeight = target.Height
+            TargetHeight = target.Height,
+            TargetUnit = target
         };
     }
     

@@ -72,8 +72,16 @@ public class ToHitCalculator : IToHitCalculator
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
 
-        var otherModifiers = GetDetailedOtherModifiers(scenario);
+        var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
         var terrainModifiers = GetTerrainModifiers(losResult);
+
+        if (scenario.TargetUnit != null && _rules.HasPartialCover(scenario.TargetUnit, losResult))
+        {
+            otherModifiers.Add(new PartialCoverModifier
+            {
+                Value = _rules.GetPartialCoverModifier()
+            });
+        }
 
         return new ToHitBreakdown
         {
