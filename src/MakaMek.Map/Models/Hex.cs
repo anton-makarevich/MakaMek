@@ -18,6 +18,8 @@ public class Hex : IDisposable
     private readonly Subject<IReadOnlyCollection<IHexHighlightType>> _highlightsSubject = new();
     private bool _disposed;
 
+    private IReadOnlyCollection<IHexHighlightType> HighlightsSnaphot => _highlights.ToArray();
+
     /// <summary>
     /// The biome identifier for this hex, inherited from the map when added via BattleMap.AddHex()
     /// </summary>
@@ -78,7 +80,7 @@ public class Hex : IDisposable
     /// <summary>
     /// Gets the current highlights on this hex
     /// </summary>
-    public IReadOnlyCollection<IHexHighlightType> Highlights => _highlights;
+    public IReadOnlyCollection<IHexHighlightType> Highlights => HighlightsSnaphot;
 
     /// <summary>
     /// Adds a highlight to this hex if not already present
@@ -89,7 +91,7 @@ public class Hex : IDisposable
         if (_disposed) return;
         if (_highlights.Add(highlight))
         {
-            _highlightsSubject.OnNext(Highlights);
+            _highlightsSubject.OnNext(HighlightsSnaphot);
         }
     }
 
@@ -103,7 +105,7 @@ public class Hex : IDisposable
         var removed = _highlights.RemoveWhere(h => h is T);
         if (removed > 0)
         {
-            _highlightsSubject.OnNext(Highlights);
+            _highlightsSubject.OnNext(HighlightsSnaphot);
         }
     }
 
@@ -125,7 +127,7 @@ public class Hex : IDisposable
         if (_disposed) return;
         if (_highlights.Count <= 0) return;
         _highlights.Clear();
-        _highlightsSubject.OnNext(Highlights);
+        _highlightsSubject.OnNext(HighlightsSnaphot);
     }
 
     public MakaMekTerrains[] GetTerrainTypes()
