@@ -439,7 +439,7 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     /// <param name="coordinates">The hex coordinates to highlight</param>
     /// <param name="highlightType">The type of highlight to add</param>
-    internal void AddHighlight(IReadOnlyList<HexCoordinates> coordinates, IHexHighlightType highlightType)
+    internal void AddHighlight(IReadOnlySet<HexCoordinates> coordinates, IHexHighlightType highlightType)
     {
         var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
@@ -454,7 +454,7 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     /// <param name="coordinates">The hex coordinates to remove highlight from</param>
     /// <typeparam name="T">The type of highlight to remove</typeparam>
-    internal void RemoveHighlight<T>(IReadOnlyList<HexCoordinates> coordinates) where T : IHexHighlightType
+    internal void RemoveHighlight<T>(IReadOnlySet<HexCoordinates> coordinates) where T : IHexHighlightType
     {
         var hexesToUnhighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToUnhighlight == null) return;

@@ -395,12 +395,12 @@ public class WeaponsAttackState : IUiState
         _losBlockingHexes = blockingHexes;
 
         // Highlight reachable hexes with attack highlight
-        _viewModel.AddHighlight(reachableHexes.ToList(), new AttackReachableHighlight());
+        _viewModel.AddHighlight(reachableHexes.ToHashSet(), new AttackReachableHighlight());
         
         // Highlight LOS blocking hexes
         if (blockingHexes.Count > 0)
         {
-            _viewModel.AddHighlight(blockingHexes.ToList(), new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain));
+            _viewModel.AddHighlight(blockingHexes.ToHashSet(), new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain));
         }
     }
 
