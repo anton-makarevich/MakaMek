@@ -465,7 +465,7 @@ public class BattleMapViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Clears all highlights of a specific type from all hexes on the map
+    /// Clears all highlights from all hexes on the map
     /// </summary>
     internal void ClearHighlights()
     {
