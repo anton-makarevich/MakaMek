@@ -18,7 +18,7 @@ public class Hex : IDisposable
     private readonly Subject<IReadOnlyCollection<IHexHighlightType>> _highlightsSubject = new();
     private bool _disposed;
 
-    private IReadOnlyCollection<IHexHighlightType> HighlightsSnaphot => _highlights.ToArray();
+    private IReadOnlyCollection<IHexHighlightType> HighlightsSnapshot  => _highlights.ToArray();
 
     /// <summary>
     /// The biome identifier for this hex, inherited from the map when added via BattleMap.AddHex()
@@ -73,14 +73,14 @@ public class Hex : IDisposable
         : 1; // Default cost for empty hex
 
     /// <summary>
-    /// Observable that emits when the highlights collection changes
+    /// Observable that emits when the highlight collection changes
     /// </summary>
     public IObservable<IReadOnlyCollection<IHexHighlightType>> HighlightsChanged => _highlightsSubject.AsObservable();
 
     /// <summary>
     /// Gets the current highlights on this hex
     /// </summary>
-    public IReadOnlyCollection<IHexHighlightType> Highlights => HighlightsSnaphot;
+    public IReadOnlyCollection<IHexHighlightType> Highlights => HighlightsSnapshot ;
 
     /// <summary>
     /// Adds a highlight to this hex if not already present
@@ -91,7 +91,7 @@ public class Hex : IDisposable
         if (_disposed) return;
         if (_highlights.Add(highlight))
         {
-            _highlightsSubject.OnNext(HighlightsSnaphot);
+            _highlightsSubject.OnNext(HighlightsSnapshot );
         }
     }
 
@@ -105,7 +105,7 @@ public class Hex : IDisposable
         var removed = _highlights.RemoveWhere(h => h is T);
         if (removed > 0)
         {
-            _highlightsSubject.OnNext(HighlightsSnaphot);
+            _highlightsSubject.OnNext(HighlightsSnapshot );
         }
     }
 
@@ -127,7 +127,7 @@ public class Hex : IDisposable
         if (_disposed) return;
         if (_highlights.Count <= 0) return;
         _highlights.Clear();
-        _highlightsSubject.OnNext(HighlightsSnaphot);
+        _highlightsSubject.OnNext(HighlightsSnapshot );
     }
 
     public MakaMekTerrains[] GetTerrainTypes()
