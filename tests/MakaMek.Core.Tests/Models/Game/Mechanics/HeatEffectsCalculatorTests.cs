@@ -399,7 +399,7 @@ public class HeatEffectsCalculatorTests
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
         return new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>()).Create(mechData);
     }

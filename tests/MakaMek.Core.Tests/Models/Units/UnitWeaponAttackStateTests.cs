@@ -29,7 +29,7 @@ public class UnitWeaponAttackStateTests
         
         var localizationService = Substitute.For<ILocalizationService>();
         _mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             localizationService);
         

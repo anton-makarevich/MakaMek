@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -7,7 +6,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
-public class ClassicBattletechRulesProvider : IRulesProvider
+public class TotalWarfareRulesProvider : IRulesProvider
 {
     public Dictionary<PartLocation, int> GetStructureValues(int tonnage)
     {
@@ -479,6 +478,13 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     public int GetExternalHeatCap()
     {
         return 15;
+    }
+    
+    private const int PartialCoverModifier = 1;
+
+    public int GetPartialCoverModifier()
+    {
+        return PartialCoverModifier;
     }
 
     public bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult)

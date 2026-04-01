@@ -32,7 +32,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
 public class BaseGameTests : BaseGame
 {
-    private static readonly IRulesProvider RulesProviderInstance = new ClassicBattletechRulesProvider();
+    private static readonly IRulesProvider RulesProviderInstance = new TotalWarfareRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     public BaseGameTests() : base(RulesProviderInstance,

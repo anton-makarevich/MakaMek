@@ -19,7 +19,7 @@ public class DamageTransferCalculatorTests
     public DamageTransferCalculatorTests()
     {
         // Setup rules provider for unit creation
-        IRulesProvider rules = new ClassicBattletechRulesProvider();
+        IRulesProvider rules = new TotalWarfareRulesProvider();
 
         // Setup localization service for unit creation
         var localizationService = Substitute.For<ILocalizationService>();

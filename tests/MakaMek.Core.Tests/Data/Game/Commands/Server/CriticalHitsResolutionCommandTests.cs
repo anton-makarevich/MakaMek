@@ -30,7 +30,7 @@ public class CriticalHitsResolutionCommandTests
 
         // Create a target unit using MechFactory
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var targetData = MechFactoryTests.CreateDummyMechData();

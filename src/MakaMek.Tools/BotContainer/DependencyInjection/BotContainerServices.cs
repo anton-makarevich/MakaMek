@@ -76,7 +76,7 @@ public static class BotContainerServices
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
 
         // Game Core
-        services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
+        services.AddSingleton<IRulesProvider, TotalWarfareRulesProvider>();
         services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
         services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();

@@ -23,7 +23,7 @@ public class DeploymentCommandBuilderTests
     {
         _builder = new DeploymentCommandBuilder(_gameId, _playerId);
         _unit = new MechFactory(
-                new ClassicBattletechRulesProvider(),
+                new TotalWarfareRulesProvider(),
                 new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());

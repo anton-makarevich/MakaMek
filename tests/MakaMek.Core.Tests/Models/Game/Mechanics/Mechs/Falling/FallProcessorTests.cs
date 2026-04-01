@@ -34,7 +34,7 @@ public class FallProcessorTests
 
     public FallProcessorTests()
     {
-        IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
+        IRulesProvider rulesProvider = new TotalWarfareRulesProvider();
         _mockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
         _mockFallingDamageCalculator = Substitute.For<IFallingDamageCalculator>();
 
@@ -364,7 +364,7 @@ public class FallProcessorTests
         var componentHits = new List<ComponentHitData>(); // No fall-inducing critical hits
 
         // Ensure heavy damage PSR is not triggered by mocking RulesProvider if necessary, 
-        // or rely on the default ClassicBattletechRulesProvider threshold (usually 20).
+        // or rely on the default TotalWarfareRulesProvider threshold (usually 20).
         // For this test, 5 damage should be safe.
 
         // Act

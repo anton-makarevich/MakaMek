@@ -34,7 +34,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private readonly Guid _player2Unit1Id;
     private readonly IUnit _player2Unit1;
     private readonly IGamePhase _mockNextPhase;
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 

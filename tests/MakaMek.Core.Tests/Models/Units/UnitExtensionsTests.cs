@@ -22,7 +22,7 @@ public class UnitExtensionsTests
 {
     private readonly MechFactory _mechFactory;
     private readonly UnitData _originalUnitData;
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
 
     public UnitExtensionsTests()

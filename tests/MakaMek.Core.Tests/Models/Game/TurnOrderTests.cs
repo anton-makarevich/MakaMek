@@ -19,7 +19,7 @@ public class TurnOrderTests
     private readonly IPlayer _player3;
     private readonly UnitData _unitData = MechFactoryTests.CreateDummyMechData();
     private readonly MechFactory _mechFactory = new(
-        new ClassicBattletechRulesProvider(),
+        new TotalWarfareRulesProvider(),
         new ClassicBattletechComponentProvider(),
         new FakeLocalizationService());
     

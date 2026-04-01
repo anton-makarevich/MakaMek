@@ -24,7 +24,7 @@ public class AimedShotLocationSelectorViewModelTests
     {
         var unitData = MechFactoryTests.CreateDummyMechData();
         _target = new MechFactory(
-                new ClassicBattletechRulesProvider(),
+                new TotalWarfareRulesProvider(),
                 new ClassicBattletechComponentProvider(),
                 Substitute.For<ILocalizationService>())
             .Create(unitData);

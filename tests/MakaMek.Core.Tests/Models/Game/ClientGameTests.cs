@@ -40,7 +40,7 @@ public class ClientGameTests
     private readonly ClientGame _sut;
     private readonly ICommandPublisher _commandPublisher;
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly Guid _idempotencyKey = Guid.NewGuid();
@@ -1694,7 +1694,7 @@ public class ClientGameTests
         // Create a new client game with local players
         var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         var mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),

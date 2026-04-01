@@ -77,7 +77,7 @@ public class WeaponsAttackStateTests
             _platformService);
         var playerId = Guid.NewGuid();
 
-        var rules = new ClassicBattletechRulesProvider();
+        var rules = new TotalWarfareRulesProvider();
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),

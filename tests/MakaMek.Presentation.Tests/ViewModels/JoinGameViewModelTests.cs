@@ -32,7 +32,7 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 public class JoinGameViewModelTests
 {
     private readonly JoinGameViewModel _sut;
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IPilotingSkillCalculator  _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();

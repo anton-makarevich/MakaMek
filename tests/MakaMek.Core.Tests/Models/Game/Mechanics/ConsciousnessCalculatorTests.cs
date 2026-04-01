@@ -26,7 +26,7 @@ public class ConsciousnessCalculatorTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         Unit unit = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>()).Create(unitData);
 
