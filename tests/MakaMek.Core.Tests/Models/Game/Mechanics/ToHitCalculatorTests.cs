@@ -784,32 +784,32 @@ public class ToHitCalculatorTests
         
         SetupAttackerAndTarget(attackerPosition, targetPosition);
         
-        var sut = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
         
         // Target at level 0
         var targetHex = new Hex(new HexCoordinates(1, 4));
         targetHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(targetHex);
+        map.AddHex(targetHex);
         
         // Adjacent hex at level 1 to provide partial cover
         var adjacentHex = new Hex(new HexCoordinates(1, 3), 1);
         adjacentHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(adjacentHex);
+        map.AddHex(adjacentHex);
         
         // Other hexes at level 0
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(attackerHex);
+        map.AddHex(attackerHex);
         
         var interveningHex = new Hex(new HexCoordinates(1, 2));
         interveningHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(interveningHex);
+        map.AddHex(interveningHex);
         
         _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
         _rules.GetPartialCoverModifier().Returns(1);
 
         // Act
-        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, sut);
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
         // Assert
         result.OtherModifiers.OfType<PartialCoverModifier>().ShouldHaveSingleItem()
@@ -825,12 +825,12 @@ public class ToHitCalculatorTests
         
         SetupAttackerAndTarget(attackerPosition, targetPosition);
         
-        var sut = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(1, 4, new SingleTerrainGenerator(1, 4, new ClearTerrain()));
         
         _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
 
         // Act
-        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, sut);
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
         // Assert
         result.OtherModifiers.OfType<PartialCoverModifier>().ShouldBeEmpty();
