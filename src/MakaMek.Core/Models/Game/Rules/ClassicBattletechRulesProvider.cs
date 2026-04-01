@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -480,10 +479,12 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return 15;
     }
+    
+    private const int PartialCoverModifier = 1;
 
     public int GetPartialCoverModifier()
     {
-        return 1;
+        return PartialCoverModifier;
     }
 
     public bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult)
