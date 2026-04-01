@@ -48,6 +48,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorOnly" => "  {0}: {1} armor",
             "Command_WeaponAttackResolution_HitLocationExplosionDamage_StructureOnly" => "  {0}: {1} structure",
             "Command_WeaponAttackResolution_AimedShotFailed" => "Aimed Shot targeting {0} failed, Roll: {1}",
+            "Command_WeaponAttackResolution_DamageAbsorbedByTerrain" => "Damage absorbed by terrain at {0}: {1}",
 
             // Critical Hits Resolution Command
             "Command_CriticalHitsResolution_Header" => "{0} suffered structure damage and requires critical hit rolls",

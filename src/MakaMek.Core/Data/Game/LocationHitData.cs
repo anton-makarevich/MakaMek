@@ -11,7 +11,8 @@ public record LocationHitData(
     IReadOnlyList<LocationDamageData> Damage,
     int[] AimedShotRoll,
     int[] LocationRoll,
-    PartLocation InitialLocation
+    PartLocation InitialLocation,
+    CoveringHexData? CoveringHexAbsorption = null
 )
 {
     /// <summary>
@@ -25,6 +26,14 @@ public record LocationHitData(
         
         if (Damage.Count == 0)
         {
+            if (CoveringHexAbsorption != null)
+            {
+                var absTemplate = localizationService.GetString(
+                    "Command_WeaponAttackResolution_DamageAbsorbedByTerrain");
+                stringBuilder.AppendFormat(absTemplate,
+                    CoveringHexAbsorption.CoveringHex,
+                    CoveringHexAbsorption.AbsorbedDamage);
+            }
             return stringBuilder.ToString();
         }
 

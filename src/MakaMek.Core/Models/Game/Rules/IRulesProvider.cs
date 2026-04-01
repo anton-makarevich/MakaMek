@@ -148,4 +148,12 @@ public interface IRulesProvider
     /// <param name="losResult">The line of sight calculation result</param>
     /// <returns>True if the target has partial cover, false otherwise</returns>
     bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult);
+
+    /// <summary>
+    /// Determines if a given hit location is protected by partial cover.
+    /// Partial cover protects the lower body (legs) of a mech.
+    /// </summary>
+    /// <param name="location">The hit location to check</param>
+    /// <returns>True if the location can be covered by partial cover, false otherwise</returns>
+    bool IsLocationCoveredByPartialCover(PartLocation location);
 }
