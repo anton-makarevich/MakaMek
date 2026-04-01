@@ -220,7 +220,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var clusterRoll = Game.DiceRoller.Roll2D6();
         var clusterRollTotal = clusterRoll.Sum(d => d.Result);
         
-        // Determine how many missiles hit to use the cluster hit table
+        // Determine how many missiles hit by the cluster hit table
         var missilesHit = Game.RulesProvider.GetClusterHits(clusterRollTotal, weapon.WeaponSize);
         
         // Calculate damage per missile
