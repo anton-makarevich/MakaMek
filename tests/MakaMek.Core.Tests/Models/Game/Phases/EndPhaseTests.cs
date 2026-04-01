@@ -673,7 +673,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotEndGame_WhenOnlyOnePlayerInGame()
     {
         // Arrange - Create a new game with only one player
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         var mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),

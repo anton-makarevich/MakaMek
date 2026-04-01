@@ -6,7 +6,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
-public class ClassicBattletechRulesProvider : IRulesProvider
+public class TotalWarfareRulesProvider : IRulesProvider
 {
     public Dictionary<PartLocation, int> GetStructureValues(int tonnage)
     {

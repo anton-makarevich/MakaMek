@@ -35,7 +35,7 @@ public class StartupUnitCommandTests
         mechData.Id = _unitId;
 
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var unit = mechFactory.Create(mechData);

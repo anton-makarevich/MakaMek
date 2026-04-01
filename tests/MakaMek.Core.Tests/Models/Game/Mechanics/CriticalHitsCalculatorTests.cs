@@ -26,7 +26,7 @@ public class CriticalHitsCalculatorTests
         _sut = new CriticalHitsCalculator(_mockDiceRoller, _mockDamageTransferCalculator);
 
         // Setup rules provider
-        IRulesProvider rules = new ClassicBattletechRulesProvider();
+        IRulesProvider rules = new TotalWarfareRulesProvider();
 
         // Setup localization service for unit creation
         var localizationService = Substitute.For<ILocalizationService>();

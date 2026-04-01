@@ -33,7 +33,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Create units using MechFactory
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var attackerData = MechFactoryTests.CreateDummyMechData(

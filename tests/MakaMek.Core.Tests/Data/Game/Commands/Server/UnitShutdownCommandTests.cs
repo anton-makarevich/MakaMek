@@ -28,7 +28,7 @@ public class UnitShutdownCommandTests
 
         // Create unit using MechFactory
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();

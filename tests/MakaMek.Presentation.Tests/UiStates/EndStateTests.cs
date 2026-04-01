@@ -65,7 +65,7 @@ public class EndStateTests
             Substitute.For<IPlatformService>());
         var playerId = Guid.NewGuid();
         
-        var rules = new ClassicBattletechRulesProvider();
+        var rules = new TotalWarfareRulesProvider();
         var unitData = MechFactoryTests.CreateDummyMechData();
         
         _player = new Player(playerId, "Player1", PlayerControlType.Human);

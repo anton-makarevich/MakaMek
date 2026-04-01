@@ -21,11 +21,11 @@ public class HeatProjectionViewModelTests
     public HeatProjectionViewModelTests()
     {
         var localizationService = new FakeLocalizationService();
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         _sut = new HeatProjectionViewModel(localizationService, rulesProvider);
 
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             localizationService);
         

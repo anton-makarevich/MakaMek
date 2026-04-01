@@ -27,7 +27,7 @@ public class UnitStartupCommandTests
 
         // Create a unit using MechFactory
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();

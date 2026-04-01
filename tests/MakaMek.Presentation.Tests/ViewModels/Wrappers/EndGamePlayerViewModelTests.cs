@@ -18,7 +18,7 @@ public class EndGamePlayerViewModelTests
     public EndGamePlayerViewModelTests()
     {
         _mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
     }

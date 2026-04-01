@@ -29,7 +29,7 @@ public class HeatUpdatedCommandTests
 
         // Create a unit using MechFactory
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var mechData = MechFactoryTests.CreateDummyMechData();

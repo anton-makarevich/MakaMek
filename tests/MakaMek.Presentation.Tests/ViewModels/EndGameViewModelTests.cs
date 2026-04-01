@@ -37,7 +37,7 @@ public class EndGameViewModelTests
         _sut.SetNavigationService(_navigationService);
 
         // Create a test game
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         _mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),

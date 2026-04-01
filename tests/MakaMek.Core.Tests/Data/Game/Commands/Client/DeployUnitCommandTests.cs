@@ -27,7 +27,7 @@ public class DeployUnitCommandTests
         _game.Players.Returns([_player1]);
         var unitData = MechFactoryTests.CreateDummyMechData();
         Unit unit = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService).Create(unitData);
         _player1.AddUnit(unit);

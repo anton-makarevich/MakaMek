@@ -313,9 +313,9 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var mockNextPhase = Substitute.For<IGamePhase>();
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
-        var game = new ServerGame(new ClassicBattletechRulesProvider(),
+        var game = new ServerGame(new TotalWarfareRulesProvider(),
             new MechFactory(
-                new ClassicBattletechRulesProvider(),
+                new TotalWarfareRulesProvider(),
                 new ClassicBattletechComponentProvider(),
                 Substitute.For<ILocalizationService>()),
             CommandPublisher, DiceRoller,

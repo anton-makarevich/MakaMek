@@ -24,7 +24,7 @@ public class TryStandupCommandTests
         _game.Players.Returns([_player]);
         var unitData = MechFactoryTests.CreateDummyMechData();
         _mech = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService).Create(unitData);
         _player.AddUnit(_mech);

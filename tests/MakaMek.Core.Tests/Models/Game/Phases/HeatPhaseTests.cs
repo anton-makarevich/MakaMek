@@ -67,7 +67,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldPublishAutomaticRestart_ForPreviouslyHeatShutdownMech()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         // Set up players and a single unit
         var playerId = Guid.NewGuid();
@@ -117,7 +117,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsNotShutdown()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         // Set up players and a single unit
         var playerId = Guid.NewGuid();
@@ -161,7 +161,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownInSameTurn()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         // Set up players and a single unit
         var playerId = Guid.NewGuid();
@@ -206,7 +206,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownVoluntarily()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         // Set up players and a single unit
         var playerId = Guid.NewGuid();
@@ -251,7 +251,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotPublishAutomaticRestart_WhenNotReturnedByCalculator()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         // Set up players and a single unit
         var playerId = Guid.NewGuid();
@@ -291,7 +291,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldPublishShutdownMech_WhenHeatShutdownCommandReturned()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         var playerId = Guid.NewGuid();
         Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
@@ -337,7 +337,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotPublishShutdownMech_WhenHeatShutdownCommandIsNotReturned()
     {
         // Arrange: rebuild the game to use MockHeatEffectsCalculator
-        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+        SetGameWithRulesProvider(new TotalWarfareRulesProvider());
 
         var playerId = Guid.NewGuid();
         Game.HandleCommand(CreateJoinCommand(playerId, "P1"));

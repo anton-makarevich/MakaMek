@@ -24,7 +24,7 @@ public class FallingDamageCalculatorTests
     public FallingDamageCalculatorTests()
     {
         // Setup mock rules provider
-        IRulesProvider rules = new ClassicBattletechRulesProvider();
+        IRulesProvider rules = new TotalWarfareRulesProvider();
 
         // Setup calculator with mock dice roller and rule provider
         _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);

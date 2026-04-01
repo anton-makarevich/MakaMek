@@ -24,7 +24,7 @@ public class MechFactoryTests
 
     public MechFactoryTests()
     {
-        var structureValueProvider = new ClassicBattletechRulesProvider();
+        var structureValueProvider = new TotalWarfareRulesProvider();
         var componentProvider = new ClassicBattletechComponentProvider();
         _mechFactory = new MechFactory(structureValueProvider, componentProvider,Substitute.For<ILocalizationService>());
     }

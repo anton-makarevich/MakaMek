@@ -1158,7 +1158,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
         
@@ -1224,7 +1224,7 @@ public class UnitTests
         // Arrange
         var unit = CreateTestUnit();
         var targetUnit = CreateTestUnit();
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         
         // Deploy and move the unit
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);

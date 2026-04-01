@@ -25,7 +25,7 @@ public class ComponentHitDataTest
     {
         var unitData = MechFactoryTests.CreateDummyMechData();
         _unit = new MechFactory(
-                new ClassicBattletechRulesProvider(),
+                new TotalWarfareRulesProvider(),
                 new ClassicBattletechComponentProvider(),
                 Substitute.For<ILocalizationService>())
             .Create(unitData);

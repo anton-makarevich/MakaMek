@@ -19,7 +19,7 @@ public class TargetSelectionViewModelTests
     public TargetSelectionViewModelTests()
     {
         // Create a real Mech instance instead of mocking Unit (which is abstract)
-        var structureValueProvider = new ClassicBattletechRulesProvider();
+        var structureValueProvider = new TotalWarfareRulesProvider();
         var componentProvider = new ClassicBattletechComponentProvider();
         var mechFactory = new MechFactory(
             structureValueProvider,

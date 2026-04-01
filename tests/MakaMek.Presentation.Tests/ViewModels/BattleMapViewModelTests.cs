@@ -76,7 +76,7 @@ public class BattleMapViewModelTests
         // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
-        var rules = new ClassicBattletechRulesProvider();
+        var rules = new TotalWarfareRulesProvider();
         
         _localizationService.GetString("Action_SelectTarget").Returns("Select Target");
         _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
@@ -2247,7 +2247,7 @@ public class BattleMapViewModelTests
 
     private ClientGame CreateClientGame()
     {
-        return new ClientGame(new ClassicBattletechRulesProvider(),
+        return new ClientGame(new TotalWarfareRulesProvider(),
             _mechFactory,
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),

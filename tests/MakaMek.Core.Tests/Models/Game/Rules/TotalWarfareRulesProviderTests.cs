@@ -9,9 +9,9 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
 
-public class ClassicBattletechRulesProviderTests
+public class TotalWarfareRulesProviderTests
 {
-    private readonly ClassicBattletechRulesProvider _sut = new();
+    private readonly TotalWarfareRulesProvider _sut = new();
 
     [Theory]
     [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]

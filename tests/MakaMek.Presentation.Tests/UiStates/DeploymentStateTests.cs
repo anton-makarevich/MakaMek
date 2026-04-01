@@ -34,7 +34,7 @@ public class DeploymentStateTests
     private readonly Hex _hex1;
     private readonly Hex _hex2;
     private readonly BattleMapViewModel _battleMapViewModel;
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();

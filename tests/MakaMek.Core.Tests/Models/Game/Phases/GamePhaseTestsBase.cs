@@ -37,13 +37,13 @@ public abstract class GamePhaseTestsBase
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
     private readonly IMechFactory _mechFactory = new MechFactory(
-        new ClassicBattletechRulesProvider(),
+        new TotalWarfareRulesProvider(),
         new ClassicBattletechComponentProvider(),
         Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
     {
-        IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
+        IRulesProvider rulesProvider = new TotalWarfareRulesProvider();
         
         Game = new ServerGame(rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             MockToHitCalculator,

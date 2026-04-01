@@ -44,7 +44,7 @@ public class MovementStateTests
     private readonly Hex _hex1;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
-    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();

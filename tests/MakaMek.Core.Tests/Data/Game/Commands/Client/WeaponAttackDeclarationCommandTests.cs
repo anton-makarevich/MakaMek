@@ -33,7 +33,7 @@ public class WeaponAttackDeclarationCommandTests
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id=Guid.NewGuid();
         var mechFactory = new MechFactory(
-            new ClassicBattletechRulesProvider(),
+            new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
         _attacker = mechFactory.Create(attackerData);

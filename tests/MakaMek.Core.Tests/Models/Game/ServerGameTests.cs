@@ -302,7 +302,7 @@ public class ServerGameTests
         
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var diceRoller = Substitute.For<IDiceRoller>();
-        var rulesProvider = new ClassicBattletechRulesProvider();
+        var rulesProvider = new TotalWarfareRulesProvider();
         
         // Set up the phase manager to return our mock phase
                 phaseManager.GetNextPhase(PhaseNames.Start, Arg.Any<ServerGame>()).Returns(mockPhase);
