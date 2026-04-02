@@ -420,7 +420,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
 
             // Apply external heat if the weapon has ExternalHeat property
-            if (weapon.ExternalHeat > 0)
+            if (weapon.ExternalHeat > 0 
+                && resolution.HitLocationsData.HitLocations.Any(h => h.CoveringHexAbsorption == null))
             {
                 target.AddExternalHeat(weapon.Name, weapon.ExternalHeat);
             }
