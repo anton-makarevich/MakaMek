@@ -321,6 +321,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // If the aimed shot location is null, determine the hit location normally
         var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
         
+        // Check if partial cover absorbed this hit (legs are protected by partial cover)
+        if (hasPartialCover && coveringHex!=null &&
+            Game.RulesProvider.IsLocationCoveredByPartialCover(hitLocation))
+        {
+            return new LocationHitData(
+                [],
+                aimedShotRollResult,
+                locationRoll,
+                hitLocation,
+                new CoveringHexData(coveringHex, damage));
+        }
+        
         // Store the initial location in case we need to transfer
         var initialLocation = hitLocation;
         
@@ -333,19 +345,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
             hitLocation = nextLocation.Value;
         }
-
-        // Check if partial cover absorbed this hit (legs are protected by partial cover)
-        if (hasPartialCover && coveringHex!=null &&
-            Game.RulesProvider.IsLocationCoveredByPartialCover(hitLocation))
-        {
-            return new LocationHitData(
-                [],
-                aimedShotRollResult,
-                locationRoll,
-                initialLocation,
-                new CoveringHexData(coveringHex, damage));
-        }
-
+        
         // Use DamageTransferCalculator to calculate damage distribution
         // Pass accumulated hit locations so the calculator can apply previous cluster damage
         var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
