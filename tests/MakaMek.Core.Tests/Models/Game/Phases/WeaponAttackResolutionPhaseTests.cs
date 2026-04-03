@@ -1449,7 +1449,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure the rule provider to return LeftLeg as the hit location (covered by partial cover)
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftLeg);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -1482,7 +1482,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure the rule provider to return CenterTorso as the hit location (not covered by partial cover)
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.CenterTorso).Returns(false);
+        mockRulesProvider.CanPartBeCovered(PartLocation.CenterTorso).Returns(false);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -1509,7 +1509,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.LeftLeg);
         mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
         SetGameWithRulesProvider(mockRulesProvider);
         
         SetMap();
@@ -1577,7 +1577,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
         mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
-        mockRulesProvider.IsLocationCoveredByPartialCover(Arg.Any<PartLocation>()).Returns(false);
+        mockRulesProvider.CanPartBeCovered(Arg.Any<PartLocation>()).Returns(false);
         SetGameWithRulesProvider(mockRulesProvider);
         SetMap();
 

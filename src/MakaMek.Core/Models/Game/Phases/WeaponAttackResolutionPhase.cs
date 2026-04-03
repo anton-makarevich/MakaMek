@@ -104,10 +104,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
         
         // Find the weapon and target unit
-        var primaryAssignment = currentWeaponTarget.Weapon.Assignments.FirstOrDefault();
-        var currentWeapon = primaryAssignment != null ?
-            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
-            null;
+        var primaryAssignment = currentWeaponTarget.Weapon.Assignments[0];
+        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed
         var allUnits = Game.Players.SelectMany(p => p.Units); 
@@ -323,7 +321,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Check if partial cover absorbed this hit (legs are protected by partial cover)
         if (hasPartialCover && coveringHex!=null &&
-            Game.RulesProvider.IsLocationCoveredByPartialCover(hitLocation))
+            Game.RulesProvider.CanPartBeCovered(hitLocation))
         {
             return new LocationHitData(
                 [],

@@ -190,6 +190,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_ProneFiring", "Prone Firing: +{0}")]
     [InlineData("Modifier_PartialCover", "Partial Cover: +{0}")]
     [InlineData("WeaponRestriction_NotAvailable", "Weapon not available")]
+    [InlineData("WeaponRestriction_PartialCoverLegs", "Cannot fire leg weapons while in partial cover")]
     [InlineData("WeaponRestriction_ProneLegs", "Cannot fire leg weapons while prone")]
     [InlineData("WeaponRestriction_ProneOtherArm", "Only one arm can fire while prone")]
     [InlineData("Hits", "Hits")]

@@ -154,5 +154,5 @@ public interface IRulesProvider
     /// </summary>
     /// <param name="location">The hit location to check</param>
     /// <returns>True if the location can be covered by partial cover, false otherwise</returns>
-    bool IsLocationCoveredByPartialCover(PartLocation location);
+    bool CanPartBeCovered(PartLocation location);
 }

@@ -74,6 +74,12 @@ public class WeaponSelectionViewModel : BindableBase
         set => SetProperty(ref _isEnabled, value);
     }
 
+    public string? RestrictionReason
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
     public IUnit? Target
     {
         get;
@@ -167,6 +173,8 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if the target number is impossible
             if (ModifiersBreakdown.Total > 12)
                 return _localizationService.GetString("Attack_ImpossibleToHit");
+            if (!string.IsNullOrEmpty(RestrictionReason))
+                return RestrictionReason;
             // Unavailable for some other reason
             if (!IsEnabled)
                 return Weapon.GetWeaponRestrictionReason(_localizationService);

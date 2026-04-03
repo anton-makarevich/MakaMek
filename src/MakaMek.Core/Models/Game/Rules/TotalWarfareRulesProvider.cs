@@ -523,7 +523,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return true;
     }
 
-    public bool IsLocationCoveredByPartialCover(PartLocation location)
+    public bool CanPartBeCovered(PartLocation location)
     {
         return location.IsLeg();
     }
