@@ -2,10 +2,10 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -164,11 +164,22 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Determine an attack direction once for this weapon attack
         attackDirection = DetermineAttackDirection(attacker, target);
 
+        // Compute LOS and check for partial cover
+        var losResult = Game.BattleMap.GetLineOfSight(
+            attacker.Position!.Coordinates,
+            target.Position!.Coordinates,
+            attacker.Height,
+            target.Height);
+        var hasPartialCover = Game.RulesProvider.HasPartialCover(target, losResult);
+        var coveringHex = hasPartialCover && losResult.HexPath.Count >= 2
+            ? losResult.HexPath[^2].Hex.Coordinates.ToData()
+            : null;
+
         // Check if it's a cluster weapon
         if (weapon.WeaponSize > 1)
         {
             // It's a cluster weapon, handle multiple hits
-            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection, weaponTargetData);
+            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection, weaponTargetData, hasPartialCover, coveringHex);
 
             // Create hit locations data with multiple hits
             return new AttackResolutionData(toHitNumber,
@@ -180,7 +191,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection, weapon.Damage, target, weapon, weaponTargetData);
+        var hitLocationData = DetermineHitLocation(attackDirection, weapon.Damage, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex);
 
         // Create hit locations data with a single hit
         hitLocationsData = new AttackHitLocationsData(
@@ -201,13 +212,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon,
         IUnit target,
         HitDirection attackDirection,
-        WeaponTargetData weaponTargetData)
+        WeaponTargetData weaponTargetData,
+        bool hasPartialCover = false,
+        HexCoordinateData? coveringHex = null)
     {
         // Roll for cluster hits
         var clusterRoll = Game.DiceRoller.Roll2D6();
         var clusterRollTotal = clusterRoll.Sum(d => d.Result);
         
-        // Determine how many missiles hit using the cluster hit table
+        // Determine how many missiles hit by the cluster hit table
         var missilesHit = Game.RulesProvider.GetClusterHits(clusterRollTotal, weapon.WeaponSize);
         
         // Calculate damage per missile
@@ -233,7 +246,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 target,
                 weapon,
                 weaponTargetData,
-                hitLocations);
+                hitLocations,
+                hasPartialCover,
+                coveringHex);
 
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -254,7 +269,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 target,
                 weapon,
                 weaponTargetData,
-                hitLocations);
+                hitLocations,
+                hasPartialCover,
+                coveringHex);
 
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -273,6 +290,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="weapon">The firing weapon</param>
     /// <param name="weaponTargetData">Weapon's target data</param>
     /// <param name="accumulatedHitLocations">Optional list of previously resolved hit locations from earlier clusters</param>
+    /// <param name="hasPartialCover">Whether the target has partial cover</param>
+    /// <param name="coveringHex">The coordinates of the hex providing cover (if any)</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
     private LocationHitData DetermineHitLocation(
         HitDirection attackDirection,
@@ -280,7 +299,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         IUnit target,
         Weapon weapon,
         WeaponTargetData weaponTargetData,
-        IReadOnlyList<LocationHitData>? accumulatedHitLocations = null)
+        IReadOnlyList<LocationHitData>? accumulatedHitLocations = null,
+        bool hasPartialCover = false,
+        HexCoordinateData? coveringHex = null)
     {
         // If the weapon target data specifies a specific location, use that
         PartLocation? aimedShotLocation = null;
@@ -299,6 +320,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         int[] locationRoll = [];
         // If the aimed shot location is null, determine the hit location normally
         var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
+        
+        // Check if partial cover absorbed this hit (legs are protected by partial cover)
+        if (hasPartialCover && coveringHex!=null &&
+            Game.RulesProvider.IsLocationCoveredByPartialCover(hitLocation))
+        {
+            return new LocationHitData(
+                [],
+                aimedShotRollResult,
+                locationRoll,
+                hitLocation,
+                new CoveringHexData(coveringHex, damage));
+        }
         
         // Store the initial location in case we need to transfer
         var initialLocation = hitLocation;
@@ -327,7 +360,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         bool IsAimedShotPossible(IUnit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
         {
             return unit.IsImmobile // Immobile target
-                   && weapon1.IsAimShotCapable // Aimed shot capable weapon
+                   && weapon1.IsAimShotCapable // Aimed shot-capable weapon
                    && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
         }
 
@@ -387,7 +420,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
 
             // Apply external heat if the weapon has ExternalHeat property
-            if (weapon.ExternalHeat > 0)
+            if (weapon.ExternalHeat > 0 
+                && resolution.HitLocationsData.HitLocations.Any(h => h.CoveringHexAbsorption == null))
             {
                 target.AddExternalHeat(weapon.Name, weapon.ExternalHeat);
             }

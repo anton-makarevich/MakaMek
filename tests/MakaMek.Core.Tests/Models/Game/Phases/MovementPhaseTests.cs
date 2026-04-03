@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -19,13 +18,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class MovementPhaseTests : GamePhaseTestsBase
 {
-    private readonly MovementPhase _sut;
+    private MovementPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _unit1Id;
-    private readonly IGamePhase _mockNextPhase;
+    private  Guid _unit1Id;
+    private IGamePhase _mockNextPhase = null!;
 
-    public MovementPhaseTests()
+    protected override void SetupSut()
     {
         // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();

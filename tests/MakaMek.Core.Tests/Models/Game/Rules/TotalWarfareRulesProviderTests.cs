@@ -907,4 +907,32 @@ public class TotalWarfareRulesProviderTests
         var result = _sut.GetPartialCoverModifier();
         result.ShouldBe(1);
     }
+    
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void IsLocationCoveredByPartialCover_ReturnsTrue_ForLegLocations(PartLocation location)
+    {
+        // Act
+        var result = _sut.IsLocationCoveredByPartialCover(location);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(PartLocation.Head)]
+    [InlineData(PartLocation.CenterTorso)]
+    [InlineData(PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightArm)]
+    public void IsLocationCoveredByPartialCover_ReturnsFalse_ForNonLegLocations(PartLocation location)
+    {
+        // Act
+        var result = _sut.IsLocationCoveredByPartialCover(location);
+
+        // Assert
+        result.ShouldBeFalse();
+    }
 }

@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Data;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game;
@@ -331,5 +332,48 @@ public class LocationHitDataTests
         result.ShouldContain("LA (Roll: 12) → LT: 6 armor, 2 structure damage");
         result.ShouldContain("Excess damage 3 armor, 1 structure transferred to CT");
         result.ShouldContain("Excess damage 2 armor transferred to RT");
+    }
+
+    [Fact]
+    public void Render_WithCoveringHexAbsorption_ShouldIncludeAbsorptionMessage()
+    {
+        // Arrange - A hit absorbed by covering hex (leg hit under partial cover)
+        var coveringHex = new HexCoordinateData(3, 5);
+        var sut = new LocationHitData(
+            [], // No damage — absorbed by covering hex
+            [],
+            [5, 4], // Location roll
+            PartLocation.LeftLeg,
+            new CoveringHexData(coveringHex, 7)
+        );
+
+        // Act
+        var result = sut.Render(_localizationService);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("3");  // hex Q
+        result.ShouldContain("5");  // hex R
+        result.ShouldContain("7");  // absorbed damage
+        result.ShouldContain("terrain");
+    }
+
+    [Fact]
+    public void Render_WithNullCoveringHexAbsorption_ShouldNotIncludeAbsorptionMessage()
+    {
+        // Arrange - Normal hit with no covering hex absorption
+        var sut = CreateHitDataForLocation(
+            PartLocation.CenterTorso,
+            5,
+            [],
+            [6]
+        );
+
+        // Act
+        var result = sut.Render(_localizationService);
+
+        // Assert
+        result.ShouldNotContain("terrain");
+        result.ShouldNotContain("absorbed");
     }
 }

@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
@@ -11,14 +10,14 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class PhysicalAttackPhaseTests : GamePhaseTestsBase
 {
-    private readonly PhysicalAttackPhase _sut;
+    private PhysicalAttackPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _unit1Id;
-    private readonly Guid _unit2Id;
-    private readonly IGamePhase _mockNextPhase;
+    private Guid _unit1Id;
+    private Guid _unit2Id;
+    private IGamePhase _mockNextPhase = null!;
 
-    public PhysicalAttackPhaseTests()
+    protected override void SetupSut()
     {
         // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();

@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -18,16 +17,16 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class HeatPhaseTests : GamePhaseTestsBase
 {
-    private readonly HeatPhase _sut;
+    private HeatPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _unit1Id;
-    private readonly Guid _unit2Id;
-    private readonly IUnit _unit1;
-    private readonly IUnit _unit2;
-    private readonly IGamePhase _mockNextPhase;
+    private Guid _unit1Id;
+    private Guid _unit2Id;
+    private IUnit _unit1 = null!;
+    private IUnit _unit2 = null!;
+    private IGamePhase _mockNextPhase = null!;
 
-    public HeatPhaseTests()
+    protected override void SetupSut()
     {
         // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
@@ -96,15 +95,12 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Initiative and deploy so heat processing runs
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
-
-        // New phase instance bound to rebuilt Game
-        var sut = new HeatPhase(Game);
-
+        
         // Clear noise
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert: restart command published for the mech
         CommandPublisher.Received().PublishCommand(
@@ -144,14 +140,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
 
-        // New phase instance bound to rebuilt Game
-        var sut = new HeatPhase(Game);
-
         // Clear noise
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
@@ -189,14 +182,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
 
-        // New phase instance bound to rebuilt Game
-        var sut = new HeatPhase(Game);
-
         // Clear noise
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
@@ -234,14 +224,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
 
-        // New phase instance bound to rebuilt Game
-        var sut = new HeatPhase(Game);
-
         // Clear noise
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
@@ -274,14 +261,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
 
-        // New phase instance bound to rebuilt Game
-        var sut = new HeatPhase(Game);
-
         // Clear noise
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert: restart command is not published
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
@@ -316,13 +300,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
 
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
-
-        var sut = new HeatPhase(Game);
-
+        
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert: command published with GameOriginId set and the unit is shutdown
         CommandPublisher.Received().PublishCommand(
@@ -354,13 +336,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
 
         Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
         Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
-
-        var sut = new HeatPhase(Game);
-
+        
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        sut.Enter();
+        _sut.Enter();
 
         // Assert: command published with GameOriginId set and the unit is shutdown
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());

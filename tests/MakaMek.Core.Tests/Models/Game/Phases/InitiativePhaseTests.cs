@@ -20,13 +20,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class InitiativePhaseTests : GamePhaseTestsBase
 {
-    private readonly InitiativePhase _sut;
+    private InitiativePhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly IGamePhase _mockNextPhase;
-    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
+    private IGamePhase _mockNextPhase = null!;
+    private static readonly BattleMapFactory BattleMapFactory = new BattleMapFactory();
 
-    public InitiativePhaseTests()
+    protected override void SetupSut()
     {
         Game.IsAutoRoll = false;
         

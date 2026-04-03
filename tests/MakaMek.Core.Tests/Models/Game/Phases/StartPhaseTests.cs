@@ -9,10 +9,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class StartPhaseTests : GamePhaseTestsBase
 {
-    private readonly StartPhase _sut;
-    private readonly IGamePhase _mockNextPhase;
+    private StartPhase _sut = null!;
+    private IGamePhase _mockNextPhase = null!;
 
-    public StartPhaseTests()
+    protected override void SetupSut()
     {
         // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
