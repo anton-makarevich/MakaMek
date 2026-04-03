@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 using Shouldly.ShouldlyExtensionMethods;
@@ -584,11 +585,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
 
-        // Configure rules provider to return the heavy damage threshold of 20
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
-        SetGameWithRulesProvider(mockRulesProvider);
         // Create a high-damage weapon (20 points) to reach the heavy damage threshold
         var highDamageWeapon = new TestWeapon(damage: 20);
         var part1 = _player1Unit1.Parts[0];
@@ -1446,8 +1442,214 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     // Helper to invoke private method
+    [Fact]
+    public void DetermineHitLocation_ShouldAbsorbDamageByCoveringHex_WhenPartialCoverAppliesToLeg()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+
+        // Create a mech with parts
+        var leftLeg = new Leg("LeftLeg", PartLocation.LeftLeg, 10, 5);
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
+
+        var mech = new Mech("TestChassis", "TestModel", 50, [leftLeg, centerTorso]);
+
+        // Configure the rule provider to return LeftLeg as the hit location (covered by partial cover)
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftLeg);
+        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(4)] // 9 for hit location roll (LeftLeg)
+        );
+
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
+
+        // Assert
+        // Should have empty damage (absorbed by covering hex)
+        data.Damage.ShouldBeEmpty();
+        data.CoveringHexAbsorption.ShouldNotBeNull();
+        data.CoveringHexAbsorption!.AbsorbedDamage.ShouldBe(5);
+        data.CoveringHexAbsorption.CoveringHex.ShouldBe(new HexCoordinateData(1, 1));
+        data.InitialLocation.ShouldBe(PartLocation.LeftLeg);
+    }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldApplyDamageNormally_WhenPartialCoverButNotCoveredLocation()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+
+        // Create a mech with parts
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
+
+        var mech = new Mech("TestChassis", "TestModel", 50, [centerTorso]);
+
+        // Configure the rule provider to return CenterTorso as the hit location (not covered by partial cover)
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.CenterTorso).Returns(false);
+
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(4)] // 7 for hit location roll (CenterTorso)
+        );
+
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
+
+        // Assert
+        // Should have damage applied normally (not absorbed)
+        data.Damage.ShouldNotBeEmpty();
+        data.CoveringHexAbsorption.ShouldBeNull();
+        data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
+    }
+
+    [Fact]
+    public void Enter_ShouldNotApplyExternalHeat_WhenAllHitsAbsorbedByPartialCover()
+    {
+        // Arrange
+        // Setup rules provider to simulate partial cover absorbing the leg hit
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.LeftLeg);
+        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        SetMap();
+
+        // Set up a single weapon attack from player1 to player2
+        var weapon1 = new TestWeapon(externalHeat: 5);
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weaponTargets1 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
+        
+        // Setup ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls: attack hits (8), hits leg (9)
+        SetupDiceRolls(8, 9);
+
+        // Set up damage calculator to return empty damage (simulating partial cover absorption)
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>());
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify external heat was NOT applied (all hits absorbed by partial cover)
+        var externalHeat = _player2Unit1.GetHeatData(_rulesProvider).ExternalHeatPoints;
+        externalHeat.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Enter_ShouldApplyExternalHeat_WhenSomeHitsNotAbsorbedByPartialCover()
+    {
+        // Arrange
+        SetMap();
+
+        // Set up a weapon with external heat
+        var weapon1 = new TestWeapon(externalHeat: 5);
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weaponTargets1 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
+
+        // Setup ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls: attack hits (8), hits center torso (7 - not covered by partial cover)
+        SetupDiceRolls(8, 7);
+
+        // Setup rules provider - no partial cover for center torso
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
+        mockRulesProvider.IsLocationCoveredByPartialCover(Arg.Any<PartLocation>()).Returns(false);
+        SetGameWithRulesProvider(mockRulesProvider);
+
+        // Set up damage calculator to return normal damage (no partial cover)
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns(callInfo => [new LocationDamageData(callInfo.Arg<PartLocation>(), callInfo.Arg<int>(), 0, false)]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify external heat WAS applied (hit not absorbed by partial cover)
+        var externalHeat = _player2Unit1.GetHeatData(_rulesProvider).ExternalHeatPoints;
+        externalHeat.ShouldBe(5);
+    }
+
     private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
-        Unit? target, WeaponTargetData? weaponTargetData = null)
+        Unit? target, WeaponTargetData? weaponTargetData = null, bool hasPartialCover = false, HexCoordinateData? coveringHex = null)
     {
         weaponTargetData ??= new WeaponTargetData
         {
@@ -1463,7 +1665,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData, null, false, null])!;
+        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex])!;
     }
     
     private void SetupPlayer1WeaponTargets()
@@ -1620,11 +1822,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         });
     }
 
-    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5)
+    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5, int externalHeat = 2)
         : Weapon(new WeaponDefinition(
             "Test Weapon", damage, 3,
             0, 3, 6, 9,
-            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, 2));
+            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, externalHeat));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
