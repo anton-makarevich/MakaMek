@@ -404,7 +404,7 @@ public class WeaponSelectionViewModelTests
          // Arrange
          CreateSut(isEnabled: true);
          var wasActionCalled = false;
-         const bool expectedValue = true;
+         var expectedValue = true;
          _selectionChangedAction = (weapon, selected) =>
          {
              weapon.ShouldBe(_weapon);
@@ -421,6 +421,7 @@ public class WeaponSelectionViewModelTests
          wasActionCalled.ShouldBeTrue();
     
          // Test deselection
+         expectedValue = false;
          wasActionCalled = false;
          _sut.IsSelected = false;
     
