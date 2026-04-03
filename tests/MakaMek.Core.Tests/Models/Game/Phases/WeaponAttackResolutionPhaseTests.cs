@@ -198,7 +198,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_WhenNoWeaponTargets_ShouldTransitionToNextPhase()
     {
-        // Arrange - No weapon targets set up
+        // Arrange
+        SetMap();
 
         // Act
         _sut.Enter();
