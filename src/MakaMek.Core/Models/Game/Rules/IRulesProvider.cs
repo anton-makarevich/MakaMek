@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -150,7 +149,7 @@ public interface IRulesProvider
     bool HasPartialCover(IUnit targetUnit, LineOfSightResult losResult);
 
     /// <summary>
-    /// Determines if a given hit location is protected by partial cover.
+    /// Determines if partial cover protects a given hit location.
     /// Partial cover protects the lower body (legs) of a mech.
     /// </summary>
     /// <param name="location">The hit location to check</param>
