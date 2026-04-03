@@ -54,6 +54,8 @@ public abstract class GamePhaseTestsBase
             MockHeatEffectsCalculator,
             MockFallProcessor,
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
+        
+        SetupSut();
     }
     
     protected void SetGameWithRulesProvider(IRulesProvider rulesProvider)
@@ -67,7 +69,11 @@ public abstract class GamePhaseTestsBase
             MockHeatEffectsCalculator,
             MockFallProcessor,
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
+        
+        SetupSut();
     }
+
+    protected abstract void SetupSut();
 
     protected void SetMap()
     {

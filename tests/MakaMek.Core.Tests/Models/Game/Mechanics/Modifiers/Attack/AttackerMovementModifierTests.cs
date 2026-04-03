@@ -1,7 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;

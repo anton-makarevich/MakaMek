@@ -26,20 +26,20 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 {
-    private readonly WeaponAttackResolutionPhase _sut;
+    private  WeaponAttackResolutionPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _player1Unit1Id;
-    private readonly IUnit _player1Unit1;
-    private readonly IUnit _player1Unit2;
-    private readonly Guid _player2Unit1Id;
-    private readonly IUnit _player2Unit1;
-    private readonly IGamePhase _mockNextPhase;
+    private  Guid _player1Unit1Id;
+    private  IUnit _player1Unit1 = null!;
+    private  IUnit _player1Unit2 = null!;
+    private  Guid _player2Unit1Id;
+    private  IUnit _player2Unit1 = null!;
+    private  IGamePhase _mockNextPhase = null!;
     private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
-    public WeaponAttackResolutionPhaseTests()
+    protected override void SetupSut()
     {
         // Create a next phase mock and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
@@ -761,11 +761,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
+        
         // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech);
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
@@ -801,11 +799,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
+        
         // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech);
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -844,11 +840,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             IsPrimaryTarget = false,
             AimedShotTarget = PartLocation.LeftArm
         };
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
+        
         // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should hit the intended location (LeftArm) due to a successful aimed shot
@@ -895,11 +889,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             IsPrimaryTarget = false,
             AimedShotTarget = PartLocation.LeftArm
         };
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
+        
         // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should hit location from the table (CenterTorso) due to unsuccessful aimed shot
@@ -1463,11 +1455,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(4)] // 9 for hit location roll (LeftLeg)
         );
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
+        
         // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
 
         // Assert
         // Should have empty damage (absorbed by covering hex)
@@ -1583,6 +1573,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldApplyExternalHeat_WhenSomeHitsNotAbsorbedByPartialCover()
     {
         // Arrange
+        // Setup rules provider - no partial cover for center torso
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
+        mockRulesProvider.IsLocationCoveredByPartialCover(Arg.Any<PartLocation>()).Returns(false);
+        SetGameWithRulesProvider(mockRulesProvider);
         SetMap();
 
         // Set up a weapon with external heat
@@ -1622,13 +1618,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Setup dice rolls: attack hits (8), hits center torso (7 - not covered by partial cover)
         SetupDiceRolls(8, 7);
-
-        // Setup rules provider - no partial cover for center torso
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
-        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
-        mockRulesProvider.IsLocationCoveredByPartialCover(Arg.Any<PartLocation>()).Returns(false);
-        SetGameWithRulesProvider(mockRulesProvider);
 
         // Set up damage calculator to return normal damage (no partial cover)
         MockDamageTransferCalculator.CalculateStructureDamage(

@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -20,13 +19,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class EndPhaseTests : GamePhaseTestsBase
 {
-    private readonly EndPhase _sut;
+    private  EndPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
     private readonly Guid _player3Id = Guid.NewGuid();
-    private readonly IGamePhase _mockNextPhase;
+    private  IGamePhase _mockNextPhase = null!;
 
-    public EndPhaseTests()
+    protected override void SetupSut()
     {
         // Create mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();

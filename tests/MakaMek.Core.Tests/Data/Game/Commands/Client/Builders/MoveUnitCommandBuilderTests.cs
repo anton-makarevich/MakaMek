@@ -1,7 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Utils;

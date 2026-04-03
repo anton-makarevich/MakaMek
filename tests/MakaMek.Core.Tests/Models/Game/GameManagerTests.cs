@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;

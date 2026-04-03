@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
@@ -12,13 +11,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class WeaponsAttackPhaseTests : GamePhaseTestsBase
 {
-    private readonly WeaponsAttackPhase _sut;
+    private WeaponsAttackPhase _sut = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _unit1Id;
-    private readonly IGamePhase _mockNextPhase;
+    private Guid _unit1Id;
+    private IGamePhase _mockNextPhase = null!;
 
-    public WeaponsAttackPhaseTests()
+    protected  override void SetupSut()
     {
         // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
