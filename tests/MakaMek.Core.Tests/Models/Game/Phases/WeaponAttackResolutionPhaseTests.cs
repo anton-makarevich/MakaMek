@@ -2279,7 +2279,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Setup rules provider to simulate attacker having partial cover
         var mockRulesProvider = Substitute.For<IRulesProvider>();
-        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(true);
         mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
         SetGameWithRulesProvider(mockRulesProvider);
         
@@ -2341,7 +2341,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Setup rules provider to simulate NO partial cover
         var mockRulesProvider = Substitute.For<IRulesProvider>();
-        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(false);
         mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
         SetGameWithRulesProvider(mockRulesProvider);
         
@@ -2403,7 +2403,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Setup rules provider to simulate attacker having partial cover
         var mockRulesProvider = Substitute.For<IRulesProvider>();
-        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(true);
         mockRulesProvider.CanPartBeCovered(PartLocation.CenterTorso).Returns(false);
         SetGameWithRulesProvider(mockRulesProvider);
         
