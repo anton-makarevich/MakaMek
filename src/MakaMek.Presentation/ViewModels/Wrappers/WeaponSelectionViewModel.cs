@@ -159,8 +159,13 @@ public class WeaponSelectionViewModel : BindableBase
             if (!IsInRange)
                 return _localizationService.GetString("Attack_OutOfRange");
             // Check if a weapon is targeting a different target
-            if (!IsEnabled && Target != null)
+            if (!_isEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
+            if (!string.IsNullOrEmpty(RestrictionReason))
+                return RestrictionReason;
+            // Unavailable for some other reason
+            if (!_isEnabled)
+                return Weapon.GetWeaponRestrictionReason(_localizationService);
             // Check if we have modifiers breakdown
             if (ModifiersBreakdown == null)
                 return _localizationService.GetString("Attack_NoModifiersCalculated");
@@ -173,11 +178,6 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if the target number is impossible
             if (ModifiersBreakdown.Total > 12)
                 return _localizationService.GetString("Attack_ImpossibleToHit");
-            if (!string.IsNullOrEmpty(RestrictionReason))
-                return RestrictionReason;
-            // Unavailable for some other reason
-            if (!IsEnabled)
-                return Weapon.GetWeaponRestrictionReason(_localizationService);
             // If we get here, show the modifiers breakdown
             var lines = new List<string>
             {
