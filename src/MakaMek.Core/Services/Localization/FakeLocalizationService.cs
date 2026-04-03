@@ -147,6 +147,7 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_PartialCover" => "Partial Cover: +{0}",
             // Weapon Restriction Reasons
             "WeaponRestriction_NotAvailable" => "Weapon not available",
+            "WeaponRestriction_PartialCoverLegs" => "Cannot fire leg weapons while in partial cover",
             "WeaponRestriction_ProneLegs" => "Cannot fire leg weapons while prone",
             "WeaponRestriction_ProneOtherArm" => "Only one arm can fire while prone",
             "Hits" => "Hits",

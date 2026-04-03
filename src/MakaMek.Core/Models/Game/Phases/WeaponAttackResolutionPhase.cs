@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -62,6 +63,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
     private void ResolveNextAttack()
     {
+        if (Game.BattleMap == null)
+        {
+            throw new Exception("Battle map is null");
+        }
+
         // Check if we've processed all players
         if (_currentPlayerIndex >= _playersInOrder.Count)
         {
@@ -104,19 +110,39 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
         
         // Find the weapon and target unit
-        var primaryAssignment = currentWeaponTarget.Weapon.Assignments.FirstOrDefault();
-        var currentWeapon = primaryAssignment != null ?
-            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
-            null;
+        var primaryAssignment = currentWeaponTarget.Weapon.Assignments[0];
+        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed
         var allUnits = Game.Players.SelectMany(p => p.Units); 
         var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
-        if (currentWeapon != null && targetUnit != null)
+        if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position!=null)
         {
-            var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
-            FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
+            // Check if attacker has partial cover from target's perspective (reversed LOS)
+            // Leg-mounted weapons cannot fire when the attacker has partial cover
+            var reversedLosResult = Game.BattleMap.GetLineOfSight(
+                targetUnit.Position.Coordinates,
+                currentUnit.Position.Coordinates,
+                targetUnit.Height,
+                currentUnit.Height);
+            var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
+            
+            // Check if this weapon can receive cover
+            var canBeCovered = Game.RulesProvider.CanPartBeCovered(primaryAssignment.Location);
+            
+            if (attackerHasPartialCover && canBeCovered)
+            {
+                // Skip leg weapon attack when attacker has partial cover
+                Game.Logger.LogInformation(
+                    "Skipping leg-mounted weapon {WeaponName} attack from {AttackerName} to {TargetName} - attacker has partial cover",
+                    currentWeapon.Name, currentUnit.Name, targetUnit.Name);
+            }
+            else
+            {
+                var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
+                FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
+            }
         }
 
         // Move to the next weapon
@@ -128,7 +154,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
     private AttackResolutionData ResolveAttack(IUnit attacker, IUnit target, Weapon weapon, WeaponTargetData weaponTargetData)
     {
-
         if (Game.BattleMap == null)
         {
             throw new Exception("Battle map is null");
@@ -323,7 +348,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Check if partial cover absorbed this hit (legs are protected by partial cover)
         if (hasPartialCover && coveringHex!=null &&
-            Game.RulesProvider.IsLocationCoveredByPartialCover(hitLocation))
+            Game.RulesProvider.CanPartBeCovered(hitLocation))
         {
             return new LocationHitData(
                 [],

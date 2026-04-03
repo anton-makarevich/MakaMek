@@ -806,6 +806,116 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
+    public void HandleUnitSelection_UpdatesWeaponViewModels_AndRestrictsLegWeapons_WhenAttackerHasPartialCover()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        // Target at (1, 3)
+        var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition);
+
+        // Attacker at (1, 1)
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+
+        // Add a leg weapon at slot 4 (slots 0-3 are actuators)
+        attacker.Parts[PartLocation.RightLeg].TryAddComponent(new MediumLaser(), [4]).ShouldBeTrue();
+        
+        // Create partial cover from target to attacker by setting (1, 2) to level 1
+        var hillHex = _game.BattleMap!.GetHexes().First(h => h.Coordinates == new HexCoordinates(1, 2));
+        var levelProperty = typeof(Hex).GetProperty(nameof(Hex.Level));
+        levelProperty!.SetValue(hillHex, 1);
+        
+        _localizationService.GetString("WeaponRestriction_PartialCoverLegs").Returns("Partial cover legs restriction");
+
+        // Act
+        // 1. Select attacker
+        _sut.HandleUnitSelection(attacker);
+        // 2. Transition to target selection
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        // 3. Select target
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Assert
+        var legWeaponVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon.FirstMountPart?.Location == PartLocation.RightLeg);
+        legWeaponVm.IsEnabled.ShouldBeFalse();
+        legWeaponVm.RestrictionReason.ShouldBe("Partial cover legs restriction");
+    }
+
+    [Fact]
+    public void HandleUnitSelection_UpdatesWeaponViewModels_AndLeavesNonLegWeaponsEnabled_WhenAttackerHasPartialCover()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition);
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+
+        // Add an arm weapon at slot 4
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(), [4]).ShouldBeTrue();
+        
+        // Create partial cover
+        var hillHex = _game.BattleMap!.GetHexes().First(h => h.Coordinates == new HexCoordinates(1, 2));
+        typeof(Hex).GetProperty(nameof(Hex.Level))!.SetValue(hillHex, 1);
+
+        // Act
+        _sut.HandleUnitSelection(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Assert
+        var armWeaponVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon.FirstMountPart?.Location == PartLocation.RightArm);
+        armWeaponVm.IsEnabled.ShouldBeTrue(); 
+        armWeaponVm.RestrictionReason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void HandleUnitSelection_UpdatesWeaponViewModels_AndLegWeaponsRemainEnabled_WhenNoPartialCover()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition);
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+
+        attacker.Parts[PartLocation.RightLeg].TryAddComponent(new MediumLaser(), [4]).ShouldBeTrue();
+        
+        // No hill between them (level is 0)
+
+        // Act
+        _sut.HandleUnitSelection(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Assert
+        var legWeaponVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon.FirstMountPart?.Location == PartLocation.RightLeg);
+        legWeaponVm.RestrictionReason.ShouldBeNull();
+        legWeaponVm.IsEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
     public void GetWeaponSelectionItems_WhenNoAttackerOrTarget_ReturnsEmptyList()
     {
         // Act

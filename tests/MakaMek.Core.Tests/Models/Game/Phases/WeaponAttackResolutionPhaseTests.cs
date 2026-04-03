@@ -198,7 +198,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_WhenNoWeaponTargets_ShouldTransitionToNextPhase()
     {
-        // Arrange - No weapon targets set up
+        // Arrange
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -1449,7 +1450,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure the rule provider to return LeftLeg as the hit location (covered by partial cover)
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftLeg);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -1482,7 +1483,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure the rule provider to return CenterTorso as the hit location (not covered by partial cover)
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.CenterTorso).Returns(false);
+        mockRulesProvider.CanPartBeCovered(PartLocation.CenterTorso).Returns(false);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -1509,7 +1510,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.LeftLeg);
         mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
-        mockRulesProvider.IsLocationCoveredByPartialCover(PartLocation.LeftLeg).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
         SetGameWithRulesProvider(mockRulesProvider);
         
         SetMap();
@@ -1577,7 +1578,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
         mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
-        mockRulesProvider.IsLocationCoveredByPartialCover(Arg.Any<PartLocation>()).Returns(false);
+        mockRulesProvider.CanPartBeCovered(Arg.Any<PartLocation>()).Returns(false);
         SetGameWithRulesProvider(mockRulesProvider);
         SetMap();
 
@@ -2270,5 +2271,192 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             "WeaponAttackResolutionCommand should be published before CriticalHitsResolutionCommand");
         criticalHitsIndex.ShouldBeLessThan(consciousnessIndex,
             "CriticalHitsResolutionCommand should be published before PilotConsciousnessRollCommand");
+    }
+
+    [Fact]
+    public void Enter_ShouldSkipLegWeaponAttack_WhenAttackerHasPartialCover()
+    {
+        // Arrange
+        // Setup rules provider to simulate attacker having partial cover
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        SetMap();
+        
+        // Add a leg-mounted weapon to player1's unit
+        var legWeapon = new TestWeapon();
+        var legPart = _player1Unit1.Parts[PartLocation.LeftLeg];
+        legPart.TryAddComponent(legWeapon).ShouldBeTrue();
+
+        // Set up weapon targets for the leg weapon
+        var legWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = legWeapon.Name,
+                    Type = legWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(legPart.Location,
+                            legWeapon.MountedAtFirstLocationSlots.First(),
+                            legWeapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(legWeaponTargets);
+
+        // Set up ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls
+        SetupDiceRolls(8, 7);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that NO WeaponAttackResolutionCommand was published for the leg weapon
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id &&
+                cmd.WeaponData.Assignments.Any(a => a.Location == PartLocation.LeftLeg)));
+    }
+
+    [Fact]
+    public void Enter_ShouldResolveLegWeaponAttack_WhenAttackerDoesNotHavePartialCover()
+    {
+        // Arrange
+        // Setup rules provider to simulate NO partial cover
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(false);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        SetMap();
+
+        // Add a leg-mounted weapon to player1's unit
+        var legWeapon = new TestWeapon();
+        var legPart = _player1Unit1.Parts[PartLocation.LeftLeg];
+        legPart.TryAddComponent(legWeapon).ShouldBeTrue();
+
+        // Set up weapon targets for the leg weapon
+        var legWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = legWeapon.Name,
+                    Type = legWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(legPart.Location,
+                            legWeapon.MountedAtFirstLocationSlots.First(),
+                            legWeapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(legWeaponTargets);
+
+        // Set up ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls - attack hits
+        SetupDiceRolls(8, 7);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that WeaponAttackResolutionCommand WAS published for the leg weapon
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id &&
+                cmd.WeaponData.Assignments.Any(a => a.Location == PartLocation.LeftLeg)));
+    }
+
+    [Fact]
+    public void Enter_ShouldResolveNonLegWeaponAttack_WhenAttackerHasPartialCover()
+    {
+        // Arrange
+        // Setup rules provider to simulate attacker having partial cover
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.HasPartialCover(Arg.Is<IUnit>(u => u == _player1Unit1), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.CenterTorso).Returns(false);
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        SetMap();
+
+        // Add a torso-mounted weapon (non-leg) to player1's unit
+        var torsoWeapon = new TestWeapon();
+        var torsoPart = _player1Unit1.Parts[PartLocation.CenterTorso];
+        torsoPart.TryAddComponent(torsoWeapon).ShouldBeTrue();
+
+        // Set up weapon targets for the torso weapon
+        var torsoWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = torsoWeapon.Name,
+                    Type = torsoWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(torsoPart.Location,
+                            torsoWeapon.MountedAtFirstLocationSlots.First(),
+                            torsoWeapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(torsoWeaponTargets);
+
+        // Set up ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls - attack hits
+        SetupDiceRolls(8, 7);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that WeaponAttackResolutionCommand WAS published for the torso weapon
+        // (non-leg weapons should fire even when attacker has partial cover)
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.AttackerId == _player1Unit1.Id &&
+                cmd.WeaponData.Assignments.Any(a => a.Location == PartLocation.CenterTorso)));
     }
 }

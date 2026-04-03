@@ -470,9 +470,20 @@ public class WeaponsAttackState : IUiState
 
     private void UpdateWeaponViewModels()
     {
-        if (Attacker == null || SelectedTarget?.Position == null) return;
+        if (Attacker?.Position == null || SelectedTarget?.Position == null) return;
 
         var targetCoords = SelectedTarget.Position.Coordinates;
+
+        // Compute reversed LOS and partial cover for the attacker
+        var reversedLosResult = Game.BattleMap?.GetLineOfSight(
+            SelectedTarget.Position.Coordinates,
+            Attacker.Position.Coordinates,
+            SelectedTarget.Height,
+            Attacker.Height);
+        
+        var attackerHasPartialCover = reversedLosResult != null && 
+                                      Game.RulesProvider.HasPartialCover(Attacker, reversedLosResult);
+
         foreach (var (weapon, vm) in _weaponViewModels)
         {
             // Only process available weapons
@@ -487,8 +498,25 @@ public class WeaponsAttackState : IUiState
             vm.IsInRange = isInRange;
             vm.IsSelected = isSelected;
             var isWeaponAvailable = Attacker != null && weapon.IsAvailableForAttack();
+            
+            // Clear restriction reason before applying logic
+            vm.RestrictionReason = null;
+
             vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) 
                                                 && isInRange && isWeaponAvailable;
+
+            // Apply partial cover restriction for leg weapons
+            if (attackerHasPartialCover)
+            {
+                var location = weapon.FirstMountPart?.Location;
+                if (location.HasValue 
+                    && Game.RulesProvider.CanPartBeCovered(location.Value))
+                {
+                    vm.IsEnabled = false;
+                    vm.RestrictionReason = _viewModel.LocalizationService.GetString("WeaponRestriction_PartialCoverLegs");
+                }
+            }
+
             vm.Target = target;
 
             vm.ModifiersBreakdown = null;

@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
@@ -327,23 +326,25 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
-            _toHitCalculator);
-        _sut.ModifiersBreakdown = new ToHitBreakdown
+            _toHitCalculator)
         {
-            HasLineOfSight = true,
-            FiringArc = null,
-            GunneryBase = new GunneryRollModifier { Value = 4 },
-            AttackerMovement = new AttackerMovementModifier { Value = 1, MovementType = MovementType.StandingStill },
-            TargetMovement = new TargetMovementModifier { Value = 2, HexesMoved = 0 },
-            OtherModifiers = [],
-            RangeModifier = new RangeRollModifier
+            ModifiersBreakdown = new ToHitBreakdown
             {
-                Value = 1,
-                Range = WeaponRange.Medium,
-                Distance = 5,
-                WeaponName = "Test"
-            },
-            TerrainModifiers = []
+                HasLineOfSight = true,
+                FiringArc = null,
+                GunneryBase = new GunneryRollModifier { Value = 4 },
+                AttackerMovement = new AttackerMovementModifier { Value = 1, MovementType = MovementType.StandingStill },
+                TargetMovement = new TargetMovementModifier { Value = 2, HexesMoved = 0 },
+                OtherModifiers = [],
+                RangeModifier = new RangeRollModifier
+                {
+                    Value = 1,
+                    Range = WeaponRange.Medium,
+                    Distance = 5,
+                    WeaponName = "Test"
+                },
+                TerrainModifiers = []
+            }
         };
 
         // Act
@@ -370,8 +371,10 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
-            _toHitCalculator);
-        _sut.ModifiersBreakdown = CreateTestBreakdown(13);
+            _toHitCalculator)
+        {
+            ModifiersBreakdown = CreateTestBreakdown(13)
+        };
 
         // Act
         var result = _sut.AttackPossibilityDescription;
@@ -633,6 +636,42 @@ public class WeaponSelectionViewModelTests
         
         // Act & Assert
         _sut.AttackPossibilityDescription.ShouldBe("NotAvailable");
+        _localizationService.Received().GetString("WeaponRestriction_NotAvailable");
+    }
+
+    [Fact]
+    public void AttackPossibilityDescription_ReturnsRestrictionReason_WhenSetAndDisabled()
+    {
+        // Arrange
+        CreateSut(isEnabled: false, target: null);
+        var breakdown = CreateTestBreakdown(8, hasLineOfSight: true);
+        _sut.ModifiersBreakdown = breakdown;
+        const string expectedReason = "Test restriction reason";
+        _sut.RestrictionReason = expectedReason;
+        
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+        
+        // Assert
+        result.ShouldBe(expectedReason);
+    }
+    
+    [Fact]
+    public void AttackPossibilityDescription_FallsBackToGetWeaponRestrictionReason_WhenRestrictionReasonIsNullAndDisabled()
+    {
+        // Arrange
+        CreateSut(isEnabled: false, target: null);
+        var breakdown = CreateTestBreakdown(8, hasLineOfSight: true);
+        _sut.ModifiersBreakdown = breakdown;
+        _sut.RestrictionReason = null;
+        _weapon.UnMount(); // Just to trigger a specific reason
+        _localizationService.GetString("WeaponRestriction_NotAvailable").Returns("NotAvailable");
+        
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+        
+        // Assert
+        result.ShouldBe("NotAvailable");
         _localizationService.Received().GetString("WeaponRestriction_NotAvailable");
     }
     

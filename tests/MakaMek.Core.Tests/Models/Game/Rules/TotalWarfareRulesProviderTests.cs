@@ -911,10 +911,10 @@ public class TotalWarfareRulesProviderTests
     [Theory]
     [InlineData(PartLocation.LeftLeg)]
     [InlineData(PartLocation.RightLeg)]
-    public void IsLocationCoveredByPartialCover_ReturnsTrue_ForLegLocations(PartLocation location)
+    public void CanLocationBeCoveredByPartialCover_ReturnsTrue_ForLegLocations(PartLocation location)
     {
         // Act
-        var result = _sut.IsLocationCoveredByPartialCover(location);
+        var result = _sut.CanPartBeCovered(location);
 
         // Assert
         result.ShouldBeTrue();
@@ -927,10 +927,10 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PartLocation.RightTorso)]
     [InlineData(PartLocation.LeftArm)]
     [InlineData(PartLocation.RightArm)]
-    public void IsLocationCoveredByPartialCover_ReturnsFalse_ForNonLegLocations(PartLocation location)
+    public void CanLocationBeCoveredByPartialCover_ReturnsFalse_ForNonLegLocations(PartLocation location)
     {
         // Act
-        var result = _sut.IsLocationCoveredByPartialCover(location);
+        var result = _sut.CanPartBeCovered(location);
 
         // Assert
         result.ShouldBeFalse();
