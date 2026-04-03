@@ -642,7 +642,7 @@ public class WeaponSelectionViewModelTests
     public void AttackPossibilityDescription_ReturnsRestrictionReason_WhenSetAndDisabled()
     {
         // Arrange
-        CreateSut(isEnabled: false, target: _target);
+        CreateSut(isEnabled: false, target: null);
         var breakdown = CreateTestBreakdown(8, hasLineOfSight: true);
         _sut.ModifiersBreakdown = breakdown;
         const string expectedReason = "Test restriction reason";
