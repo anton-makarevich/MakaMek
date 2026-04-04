@@ -2,7 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Client;

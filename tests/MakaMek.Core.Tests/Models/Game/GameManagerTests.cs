@@ -9,11 +9,11 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Services.Logging;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;

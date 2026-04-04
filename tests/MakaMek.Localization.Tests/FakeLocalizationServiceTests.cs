@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Localization.Tests;

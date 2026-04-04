@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Mechanics;

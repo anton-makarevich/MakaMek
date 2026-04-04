@@ -1,7 +1,7 @@
 ﻿using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
