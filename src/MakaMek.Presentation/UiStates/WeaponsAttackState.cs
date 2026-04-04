@@ -18,7 +18,7 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
-    private HashSet<HexCoordinates> _losBlockingHexes = [];
+    private Dictionary<HexCoordinates, LosBlockingHighlight> _blockedHexes = new();
 
     public IClientGame Game { get; }
 
@@ -335,10 +335,10 @@ public class WeaponsAttackState : IUiState
         if (Attacker?.Position == null) return;
 
         var reachableHexes = new HashSet<HexCoordinates>();
-        var blockingHexes = new HashSet<HexCoordinates>();
+        var blockedHexes = new Dictionary<HexCoordinates, LosBlockingHighlight>();
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
-        _losBlockingHexes.Clear();
+        _blockedHexes.Clear();
 
         foreach (var part in Attacker.Parts.Values)
         {
@@ -355,14 +355,14 @@ public class WeaponsAttackState : IUiState
                 var weaponHexes = new HashSet<HexCoordinates>();
                 // For arms, we need to check both forward and side arcs
                 var arcs = weapon.GetFiringArcs();
-                
+
                 foreach (var arc in arcs)
                 {
                     var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, arc, maxRange);
                     weaponHexes.UnionWith(hexes);
                 }
 
-                // Filter out hexes without the line of sight and collect blocking hexes
+                // Filter out hexes without the line of sight and collect blocked hexes
                 if (Game.BattleMap != null)
                 {
                     weaponHexes.RemoveWhere(h =>
@@ -375,13 +375,14 @@ public class WeaponsAttackState : IUiState
                             h,
                             Attacker.Height,
                             targetHeight);
-                        
-                        // Collect blocking hex coordinates from failed LOS checks
-                        if (losResult is { HasLineOfSight: false, BlockingHexCoordinates: not null })
+
+                        // Store the blocked target hex with its highlight
+                        if (losResult is { HasLineOfSight: false, BlockReason: not null })
                         {
-                            blockingHexes.Add(losResult.BlockingHexCoordinates);
+                            var reason = losResult.BlockReason;
+                            blockedHexes[h] = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
                         }
-                        
+
                         return !losResult.HasLineOfSight;
                     });
                 }
@@ -391,16 +392,16 @@ public class WeaponsAttackState : IUiState
             }
         }
 
-        // Store LOS blocking hexes for later cleanup
-        _losBlockingHexes = blockingHexes;
+        // Store blocked hexes for later cleanup
+        _blockedHexes = blockedHexes;
 
         // Highlight reachable hexes with attack highlight
         _viewModel.AddHighlight(reachableHexes.ToHashSet(), new AttackReachableHighlight());
-        
-        // Highlight LOS blocking hexes
-        if (blockingHexes.Count > 0)
+
+        // Highlight blocked target hexes individually (each may have a different blocking hex/reason)
+        foreach (var (coords, highlight) in blockedHexes)
         {
-            _viewModel.AddHighlight(blockingHexes.ToHashSet(), new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain));
+            _viewModel.AddHighlight(new HashSet<HexCoordinates> { coords }, highlight);
         }
     }
 
@@ -410,7 +411,7 @@ public class WeaponsAttackState : IUiState
         _viewModel.ClearHighlights();
         
         _weaponRanges.Clear();
-        _losBlockingHexes.Clear();
+        _blockedHexes.Clear();
     }
 
     /// <summary>
