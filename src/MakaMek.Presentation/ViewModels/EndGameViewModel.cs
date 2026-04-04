@@ -2,7 +2,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 

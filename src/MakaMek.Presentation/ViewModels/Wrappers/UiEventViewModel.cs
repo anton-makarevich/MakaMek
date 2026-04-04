@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers
 {

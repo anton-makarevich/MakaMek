@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Services.Localization;
+namespace Sanet.MakaMek.Localization;
 
 public class FakeLocalizationService: ILocalizationService
 {

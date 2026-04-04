@@ -1,9 +1,9 @@
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 using System.Globalization;
+using Sanet.MakaMek.Localization;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 

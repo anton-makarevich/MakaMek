@@ -1,5 +1,5 @@
 using System.Text;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 

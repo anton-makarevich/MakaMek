@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;

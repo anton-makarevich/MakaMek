@@ -10,8 +10,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 

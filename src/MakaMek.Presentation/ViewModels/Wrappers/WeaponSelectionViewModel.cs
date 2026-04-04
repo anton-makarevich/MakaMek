@@ -2,8 +2,8 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;

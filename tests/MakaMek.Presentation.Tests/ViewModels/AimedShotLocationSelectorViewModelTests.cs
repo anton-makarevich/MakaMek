@@ -6,9 +6,9 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
 

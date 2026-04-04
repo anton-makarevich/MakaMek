@@ -12,8 +12,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 

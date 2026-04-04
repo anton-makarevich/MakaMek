@@ -1,7 +1,6 @@
 using Shouldly;
-using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Tests.Services.Localization;
+namespace Sanet.MakaMek.Localization.Tests;
 
 public class FakeLocalizationServiceTests
 {
