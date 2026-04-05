@@ -3,7 +3,7 @@ using Sanet.MakaMek.Localization;
 namespace Sanet.MakaMek.Map.Models.Highlights;
 
 /// <summary>
-/// Highlight for hexes reachable during movement phase.
+/// Highlight for hexes reachable during the movement phase.
 /// Rendered with light blue stroke/fill.
 /// </summary>
 public record MovementReachableHighlight(MovementType MovementType) : IHexHighlightType

@@ -93,4 +93,13 @@ public class LosBlockingHighlightTests
 
         sut.Render(_localization).ShouldBe("Invalid coordinates");
     }
+
+    [Fact]
+    public void Render_UnknownReason_ThrowsArgumentOutOfRangeException()
+    {
+        const LineOfSightBlockReason invalidReason = (LineOfSightBlockReason)999;
+        var sut = new LosBlockingHighlight(invalidReason);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Render(_localization));
+    }
 }
