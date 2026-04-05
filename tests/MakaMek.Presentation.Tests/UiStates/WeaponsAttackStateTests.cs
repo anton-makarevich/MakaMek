@@ -745,6 +745,40 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
+    public void HighlightWeaponRanges_DoesNotHighlightBlockingHex_OnlyBlockedTargetHex()
+    {
+        // Arrange - use the actual game map and configure hexes for LOS blocking
+        var attackerCoords = new HexCoordinates(1, 1);
+        var blockedTargetCoords = new HexCoordinates(1, 4);
+        var blockingHexCoords = new HexCoordinates(1, 3);
+
+        // Get the actual map from the game
+        var map = _game.BattleMap!;
+        
+        var blockedTargetHex = map.GetHex(blockedTargetCoords);
+        
+        // Add blocking level
+        var blockingHex = new Hex(blockingHexCoords,5);
+        map.AddHex(blockingHex);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(new HexPosition(attackerCoords, HexDirection.Bottom));
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+
+        // Act
+        _sut.HandleUnitSelection(attacker);
+
+        // Assert — blocked target hex is highlighted, but the blocking hex itself is not
+        blockedTargetHex!.HasHighlight<LosBlockingHighlight>().ShouldBeTrue();
+        blockingHex.HasHighlight<LosBlockingHighlight>().ShouldBeFalse();
+        var blockingLosHighlight = blockedTargetHex
+            .Highlights.First(h=>h is LosBlockingHighlight) as LosBlockingHighlight;
+        blockingLosHighlight!.BlockingHex.ShouldBe(blockingHexCoords);
+        blockingLosHighlight.Reason.ShouldBe(LineOfSightBlockReason.Elevation);
+    }
+
+    [Fact]
     public void GetWeaponsInRange_ReturnsEmptyList_WhenNoUnitSelected()
     {
         // Arrange

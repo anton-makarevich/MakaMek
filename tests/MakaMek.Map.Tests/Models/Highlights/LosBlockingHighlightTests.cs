@@ -35,4 +35,25 @@ public class LosBlockingHighlightTests
         // Assert
         sut.Reason.ShouldBe(LineOfSightBlockReason.Elevation);
     }
+
+    [Fact]
+    public void BlockingHex_ShouldStoreCoordinates_WhenProvided()
+    {
+        // Arrange & Act
+        var coords = new HexCoordinates(3, 4);
+        var sut = new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain, coords);
+
+        // Assert
+        sut.BlockingHex.ShouldBe(coords);
+    }
+
+    [Fact]
+    public void BlockingHex_ShouldBeNull_WhenNotProvided()
+    {
+        // Arrange & Act
+        var sut = new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain);
+
+        // Assert
+        sut.BlockingHex.ShouldBeNull();
+    }
 }
