@@ -745,95 +745,21 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
-    public void HighlightWeaponRanges_HighlightsBlockedTargetHex_WithCorrectBlockingHexAndReason()
-    {
-        // Arrange
-        var mockMap = Substitute.For<IBattleMap>();
-
-        var attackerCoords = new HexCoordinates(1, 1);
-        var blockedTargetCoords = new HexCoordinates(1, 4);
-        var blockingHexCoords = new HexCoordinates(1, 3);
-
-        var blockedTargetHex = new Hex(blockedTargetCoords);
-
-        // Default: all LOS checks return unblocked
-        mockMap.GetLineOfSight(
-                Arg.Any<HexCoordinates>(),
-                Arg.Any<HexCoordinates>(),
-                Arg.Any<int>(),
-                Arg.Any<int>())
-            .Returns(callInfo => LineOfSightResult.Unblocked(
-                callInfo.ArgAt<HexCoordinates>(0),
-                callInfo.ArgAt<HexCoordinates>(1)));
-
-        // LOS to blockedTargetCoords is blocked by blockingHexCoords
-        mockMap.GetLineOfSight(
-                Arg.Any<HexCoordinates>(),
-                Arg.Is<HexCoordinates>(c => c == blockedTargetCoords),
-                Arg.Any<int>(),
-                Arg.Any<int>())
-            .Returns(LineOfSightResult.Blocked(
-                attackerCoords,
-                blockedTargetCoords,
-                blockingHexCoords,
-                LineOfSightBlockReason.InterveningTerrain));
-
-        // GetHexes must return the hex objects so AddHighlight can find them
-        mockMap.GetHexes().Returns([blockedTargetHex]);
-
-        _game.SetBattleMap(mockMap);
-
-        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(new HexPosition(attackerCoords, HexDirection.Bottom));
-        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
-        attacker.AssignPilot(_pilot);
-
-        // Act
-        _sut.HandleUnitSelection(attacker);
-
-        // Assert — blocked TARGET hex gets LosBlockingHighlight with correct metadata
-        blockedTargetHex.HasHighlight<LosBlockingHighlight>().ShouldBeTrue();
-        var highlight = blockedTargetHex.Highlights.OfType<LosBlockingHighlight>().First();
-        highlight.Reason.ShouldBe(LineOfSightBlockReason.InterveningTerrain);
-        highlight.BlockingHex.ShouldBe(blockingHexCoords);
-    }
-
-    [Fact]
     public void HighlightWeaponRanges_DoesNotHighlightBlockingHex_OnlyBlockedTargetHex()
     {
-        // Arrange
-        var mockMap = Substitute.For<IBattleMap>();
-
+        // Arrange - use the actual game map and configure hexes for LOS blocking
         var attackerCoords = new HexCoordinates(1, 1);
         var blockedTargetCoords = new HexCoordinates(1, 4);
         var blockingHexCoords = new HexCoordinates(1, 3);
 
-        var blockedTargetHex = new Hex(blockedTargetCoords);
-        var blockingHex = new Hex(blockingHexCoords);
-
-        mockMap.GetLineOfSight(
-                Arg.Any<HexCoordinates>(),
-                Arg.Any<HexCoordinates>(),
-                Arg.Any<int>(),
-                Arg.Any<int>())
-            .Returns(callInfo => LineOfSightResult.Unblocked(
-                callInfo.ArgAt<HexCoordinates>(0),
-                callInfo.ArgAt<HexCoordinates>(1)));
-
-        mockMap.GetLineOfSight(
-                Arg.Any<HexCoordinates>(),
-                Arg.Is<HexCoordinates>(c => c == blockedTargetCoords),
-                Arg.Any<int>(),
-                Arg.Any<int>())
-            .Returns(LineOfSightResult.Blocked(
-                attackerCoords,
-                blockedTargetCoords,
-                blockingHexCoords,
-                LineOfSightBlockReason.InterveningTerrain));
-
-        mockMap.GetHexes().Returns([blockedTargetHex, blockingHex]);
-
-        _game.SetBattleMap(mockMap);
+        // Get the actual map from the game
+        var map = _game.BattleMap!;
+        
+        var blockedTargetHex = map.GetHex(blockedTargetCoords);
+        
+        // Add blocking level
+        var blockingHex = new Hex(blockingHexCoords,5);
+        map.AddHex(blockingHex);
 
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(new HexPosition(attackerCoords, HexDirection.Bottom));
@@ -844,8 +770,12 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(attacker);
 
         // Assert — blocked target hex is highlighted, but the blocking hex itself is not
-        blockedTargetHex.HasHighlight<LosBlockingHighlight>().ShouldBeTrue();
+        blockedTargetHex!.HasHighlight<LosBlockingHighlight>().ShouldBeTrue();
         blockingHex.HasHighlight<LosBlockingHighlight>().ShouldBeFalse();
+        var blockingLosHighlight = blockedTargetHex
+            .Highlights.First(h=>h is LosBlockingHighlight) as LosBlockingHighlight;
+        blockingLosHighlight!.BlockingHex.ShouldBe(blockingHexCoords);
+        blockingLosHighlight.Reason.ShouldBe(LineOfSightBlockReason.Elevation);
     }
 
     [Fact]
