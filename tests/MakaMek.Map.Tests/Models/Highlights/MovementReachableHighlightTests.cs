@@ -29,11 +29,15 @@ public class MovementReachableHighlightTests
         sut.Name.ShouldBe(nameof(MovementReachableHighlight));
     }
 
-    [Fact]
-    public void Render_ShouldReturnLocalizedMovementType()
+    [Theory]
+    [InlineData(MovementType.Walk)]
+    [InlineData(MovementType.Run)]
+    [InlineData(MovementType.Jump)]
+    [InlineData((MovementType)0)]
+    public void Render_ShouldReturnLocalizedMovementType(MovementType type)
     {
-        var sut = new MovementReachableHighlight(MovementType.Run);
+        var sut = new MovementReachableHighlight(type);
 
-        sut.Render(_localization).ShouldBe("Run");
+        sut.Render(_localization).ShouldBe(type.ToString());
     }
 }
