@@ -18,7 +18,6 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
-    private Dictionary<HexCoordinates, LosBlockingHighlight> _blockedHexes = new();
 
     public IClientGame Game { get; }
 
@@ -335,10 +334,8 @@ public class WeaponsAttackState : IUiState
         if (Attacker?.Position == null) return;
 
         var reachableHexes = new HashSet<HexCoordinates>();
-        var blockedHexes = new Dictionary<HexCoordinates, LosBlockingHighlight>();
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
-        _blockedHexes.Clear();
 
         foreach (var part in Attacker.Parts.Values)
         {
@@ -380,7 +377,8 @@ public class WeaponsAttackState : IUiState
                         if (losResult is { HasLineOfSight: false, BlockReason: not null })
                         {
                             var reason = losResult.BlockReason;
-                            blockedHexes[h] = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
+                            var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
+                            _viewModel.AddHighlight(new HashSet<HexCoordinates> { h }, highlight);
                         }
 
                         return !losResult.HasLineOfSight;
@@ -391,18 +389,8 @@ public class WeaponsAttackState : IUiState
                 reachableHexes.UnionWith(weaponHexes);
             }
         }
-
-        // Store blocked hexes for later cleanup
-        _blockedHexes = blockedHexes;
-
         // Highlight reachable hexes with attack highlight
         _viewModel.AddHighlight(reachableHexes.ToHashSet(), new AttackReachableHighlight());
-
-        // Highlight blocked target hexes individually (each may have a different blocking hex/reason)
-        foreach (var (coords, highlight) in blockedHexes)
-        {
-            _viewModel.AddHighlight(new HashSet<HexCoordinates> { coords }, highlight);
-        }
     }
 
     private void ClearWeaponRangeHighlights()
@@ -411,7 +399,6 @@ public class WeaponsAttackState : IUiState
         _viewModel.ClearHighlights();
         
         _weaponRanges.Clear();
-        _blockedHexes.Clear();
     }
 
     /// <summary>
