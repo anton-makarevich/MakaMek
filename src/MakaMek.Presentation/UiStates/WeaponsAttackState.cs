@@ -333,7 +333,6 @@ public class WeaponsAttackState : IUiState
     {
         if (Attacker?.Position == null) return;
 
-        var reachableHexes = new HashSet<HexCoordinates>();
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
 
@@ -390,11 +389,28 @@ public class WeaponsAttackState : IUiState
                 }
 
                 _weaponRanges[weapon] = weaponHexes;
-                reachableHexes.UnionWith(weaponHexes);
             }
         }
-        // Highlight reachable hexes with attack highlight
-        _viewModel.AddHighlight(reachableHexes.ToHashSet(), new AttackReachableHighlight());
+
+        var hexToWeaponNames = new Dictionary<HexCoordinates, List<string>>();
+        foreach (var (weapon, hexes) in _weaponRanges)
+        {
+            foreach (var h in hexes)
+            {
+                if (!hexToWeaponNames.TryGetValue(h, out var list))
+                {
+                    list = [];
+                    hexToWeaponNames[h] = list;
+                }
+
+                list.Add(weapon.Name);
+            }
+        }
+
+        foreach (var (hex, weaponNames) in hexToWeaponNames)
+        {
+            _viewModel.AddHighlight(new HashSet<HexCoordinates> { hex }, new AttackReachableHighlight(weaponNames));
+        }
     }
 
     private void ClearWeaponRangeHighlights()

@@ -94,7 +94,7 @@ public class MovementState : IUiState
                 _prohibitedHexes,
                 _friendlyUnitsCoordinates);
 
-            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableHexes.ToHashSet(), new MovementReachableHighlight());
+            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableHexes.ToHashSet(), new MovementReachableHighlight(movementType));
         }
 
         _viewModel.NotifyStateChanged();

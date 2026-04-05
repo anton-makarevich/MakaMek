@@ -197,7 +197,7 @@ public class HexTests
             .Subscribe(emittedValues.Add);
 
         // Act
-        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
         
         // Assert - first highlight added
         emittedValues.Count.ShouldBeGreaterThanOrEqualTo(1);
@@ -205,7 +205,7 @@ public class HexTests
         emittedValues[^1].ShouldContain(h => h is MovementReachableHighlight);
         
         // Act - second highlight
-        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new AttackReachableHighlight([]));
         
         // Assert - now we should have 2 highlights
         emittedValues.Count.ShouldBeGreaterThanOrEqualTo(2);
@@ -223,8 +223,8 @@ public class HexTests
             .Subscribe(emittedValues.Add);
 
         // Act
-        sut.AddHighlight(new MovementReachableHighlight());
-        sut.AddHighlight(new MovementReachableHighlight()); // Same type, should not emit
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk)); // Same type, should not emit
 
         // Assert
         emittedValues.Count.ShouldBe(1);
@@ -236,7 +236,7 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        var highlight = new MovementReachableHighlight();
+        var highlight = new MovementReachableHighlight(MovementType.Walk);
 
         // Act
         sut.AddHighlight(highlight);
@@ -251,8 +251,8 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddHighlight(new MovementReachableHighlight());
-        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
+        sut.AddHighlight(new AttackReachableHighlight([]));
 
         // Act
         sut.RemoveHighlight<MovementReachableHighlight>();
@@ -268,7 +268,7 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
         var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
         using var subscription = sut.HighlightsChanged
@@ -304,7 +304,7 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
 
         // Act & Assert
         sut.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
@@ -316,8 +316,8 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddHighlight(new MovementReachableHighlight());
-        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
+        sut.AddHighlight(new AttackReachableHighlight([]));
         sut.AddHighlight(new LosBlockingHighlight(LineOfSightBlockReason.Elevation));
 
         // Act
@@ -332,7 +332,7 @@ public class HexTests
     {
         // Arrange
         var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
         var emittedValues = new List<IReadOnlyCollection<IHexHighlightType>>();
         
         using var subscription = sut.HighlightsChanged
@@ -370,8 +370,8 @@ public class HexTests
         var sut = new Hex(new HexCoordinates(0, 0));
 
         // Act
-        sut.AddHighlight(new MovementReachableHighlight());
-        sut.AddHighlight(new AttackReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
+        sut.AddHighlight(new AttackReachableHighlight([]));
         sut.AddHighlight(new LosBlockingHighlight(LineOfSightBlockReason.Elevation));
 
         // Assert
@@ -395,7 +395,7 @@ public class HexTests
                 () => completedCalled = true);
 
         // Act
-        sut.AddHighlight(new MovementReachableHighlight()); // Should emit before disposal
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk)); // Should emit before disposal
         sut.Dispose();
 
         // Assert
@@ -418,7 +418,7 @@ public class HexTests
         sut.Dispose();
         
         // This should not emit anything since the subject is disposed
-        sut.AddHighlight(new MovementReachableHighlight());
+        sut.AddHighlight(new MovementReachableHighlight(MovementType.Walk));
 
         // Assert
         emittedValues.Count.ShouldBe(0);
