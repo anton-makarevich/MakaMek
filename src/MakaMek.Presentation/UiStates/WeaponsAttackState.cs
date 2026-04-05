@@ -359,9 +359,13 @@ public class WeaponsAttackState : IUiState
                     weaponHexes.UnionWith(hexes);
                 }
 
-                // Filter out hexes without the line of sight and collect blocked hexes
+                // Filter out hexes not on the map first to skip unnecessary LOS calculations
                 if (Game.BattleMap != null)
                 {
+                    // Remove hexes that are not on the map
+                    weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
+                    
+                    // Filter out hexes without line of sight and collect blocked hexes
                     weaponHexes.RemoveWhere(h =>
                     {
                         var targetHeight = _viewModel.Units
