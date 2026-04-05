@@ -559,6 +559,29 @@ public class WeaponsAttackStateTests
         var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
+
+    [Fact]
+    public void HandleUnitSelection_AttackReachableHighlight_WeaponNamesMatchGetWeaponsInRange_PerHex()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        // Act
+        _sut.HandleUnitSelection(_unit1);
+
+        // Assert — reverse hex → weapon list must match the same range data exposed by GetWeaponsInRange
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
+        highlightedHexes.ShouldNotBeEmpty();
+
+        foreach (var hex in highlightedHexes)
+        {
+            var highlight = hex.Highlights.OfType<AttackReachableHighlight>().Single();
+            var expectedNames = _sut.GetWeaponsInRange(hex.Coordinates).Select(w => w.Name).OrderBy(n => n).ToList();
+            highlight.WeaponNames.OrderBy(n => n).ToList().ShouldBe(expectedNames);
+        }
+    }
     
     [Fact]
     public void HandleUnitSelection_ShouldNotHighlightHexes_WhenUnitIsImmobile()
