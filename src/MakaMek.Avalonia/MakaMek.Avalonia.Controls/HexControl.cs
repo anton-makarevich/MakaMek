@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
@@ -21,10 +22,12 @@ public class HexControl : Panel
     private readonly Polygon _hexPolygon;
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILogger _logger;
+    private readonly ILocalizationService? _localizationService;
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
     private readonly List<Image> _terrainImageLayers = [];
     private readonly HexRenderConfiguration _renderConfiguration;
+    private TextBlock? _highlightTextLabel;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
     private static readonly IBrush TransparentFill = Brushes.Transparent;
@@ -56,10 +59,12 @@ public class HexControl : Panel
     }
 
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
+        ILocalizationService? localizationService = null,
         IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
+        _localizationService = localizationService;
 
         _logger = logger;
         _edges = edges?.ToArray();
@@ -128,8 +133,9 @@ public class HexControl : Panel
 
     private void Highlight(IReadOnlyCollection<IHexHighlightType> highlights)
     {
-        // Clear existing highlight layers
+        // Clear existing highlight layers and text label
         ClearHighlightPolygons();
+        ClearHighlightTextLabel();
 
         // Reset base polygon to default appearance
         _hexPolygon.Stroke = DefaultStroke;
@@ -145,6 +151,36 @@ public class HexControl : Panel
             var layer = new HexHighlightLayer(highlight, points);
             Children.Add(layer);
         }
+
+        // Render highlight label from highest RenderOrder
+        if (_renderConfiguration.ShowHighlightLabels && highlights.Count > 0 && _localizationService != null)
+        {
+            var highestHighlight = highlights.OrderByDescending(h => h.RenderOrder).First();
+            var text = highestHighlight.Render(_localizationService);
+            RenderHighlightLabel(text);
+        }
+    }
+
+    private void RenderHighlightLabel(string text)
+    {
+        _highlightTextLabel = new TextBlock
+        {
+            Text = text,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = Brushes.White,
+            FontSize = 12
+        };
+
+        Children.Add(_highlightTextLabel);
+        _highlightTextLabel.ZIndex = ZIndexLabel - 1;
+    }
+
+    private void ClearHighlightTextLabel()
+    {
+        if (_highlightTextLabel == null) return;
+        Children.Remove(_highlightTextLabel);
+        _highlightTextLabel = null;
     }
 
     private void ClearHighlightPolygons()

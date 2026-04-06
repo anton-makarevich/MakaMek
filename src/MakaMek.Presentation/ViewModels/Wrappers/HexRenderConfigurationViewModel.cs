@@ -17,8 +17,14 @@ public class HexRenderConfigurationViewModel : BindableBase
         set => SetProperty(ref field, value);
     } = true;
 
+    public bool ShowHighlightLabels
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
     public HexRenderConfiguration ToConfiguration()
     {
-        return new HexRenderConfiguration(ShowLabels, ShowOutline);
+        return new HexRenderConfiguration(ShowLabels, ShowOutline, ShowHighlightLabels);
     }
 }

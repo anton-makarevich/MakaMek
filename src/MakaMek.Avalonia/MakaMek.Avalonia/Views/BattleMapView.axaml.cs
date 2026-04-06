@@ -49,11 +49,12 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var maxV = 0d;
 
         var hexConfiguration = ViewModel?.HexConfiguration.ToConfiguration();
+        var localizationService = ViewModel?.LocalizationService;
 
         foreach (var hex in game.BattleMap?.GetHexes()??[])
         {
             var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
-            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, edges, hexConfiguration);
+            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges, hexConfiguration);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;
