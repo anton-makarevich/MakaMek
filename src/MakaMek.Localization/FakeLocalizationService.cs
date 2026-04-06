@@ -199,6 +199,10 @@ public class FakeLocalizationService: ILocalizationService
             "MovementType_Walk" => "Walk",
             "MovementType_Run" => "Run",
             "MovementType_Jump" => "Jump",
+
+            "HexHighlight_LosBlocked_Elevation" => "Elevation at {0}",
+            "HexHighlight_LosBlocked_InterveningTerrain" => "Terrain at {0}",
+            "HexHighlight_LosBlocked_InvalidCoordinates" => "Invalid coordinates",
             
             // Heat update command strings
             "Command_HeatUpdated_Header" => "Heat update for {0} (Previous: {1})",

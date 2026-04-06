@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Localization;
+
 namespace Sanet.MakaMek.Map.Models.Highlights;
 
 /// <summary>
@@ -15,4 +17,9 @@ public interface IHexHighlightType
     /// The name of this highlight type.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    /// Localized text describing this highlight for UI display.
+    /// </summary>
+    string Render(ILocalizationService localizationService);
 }

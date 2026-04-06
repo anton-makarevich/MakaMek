@@ -248,6 +248,10 @@ public class FakeLocalizationServiceTests
     [InlineData("MovementType_Walk", "Walk")]
     [InlineData("MovementType_Run", "Run")]
     [InlineData("MovementType_Jump", "Jump")]
+    // Hex highlight (LOS / tooltips)
+    [InlineData("HexHighlight_LosBlocked_Elevation", "Elevation at {0}")]
+    [InlineData("HexHighlight_LosBlocked_InterveningTerrain", "Terrain at {0}")]
+    [InlineData("HexHighlight_LosBlocked_InvalidCoordinates", "Invalid coordinates")]
     // Heat update command strings
     [InlineData("Command_HeatUpdated_Header", "Heat update for {0} (Previous: {1})")]
     [InlineData("Command_HeatUpdated_Sources", "Heat sources:")]

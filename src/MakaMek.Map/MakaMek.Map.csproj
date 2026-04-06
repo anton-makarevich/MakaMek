@@ -21,6 +21,10 @@
         <PackageReference Include="System.Reactive" Version="6.1.0" />
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\MakaMek.Localization\MakaMek.Localization.csproj" />
+    </ItemGroup>
+
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build">
         <Message Importance="high" Text="Project: $(MSBuildProjectName)" />

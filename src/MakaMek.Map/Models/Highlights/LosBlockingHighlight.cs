@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Localization;
+
 namespace Sanet.MakaMek.Map.Models.Highlights;
 
 /// <summary>
@@ -18,4 +20,18 @@ public record LosBlockingHighlight(LineOfSightBlockReason Reason, HexCoordinates
     /// The hex that blocks LOS to the highlighted hex.
     /// </summary>
     public HexCoordinates? BlockingHex { get; } = BlockingHex;
+
+    public string Render(ILocalizationService localizationService) =>
+        Reason switch
+        {
+            LineOfSightBlockReason.InvalidCoordinates =>
+                localizationService.GetString("HexHighlight_LosBlocked_InvalidCoordinates"),
+            LineOfSightBlockReason.Elevation when BlockingHex != null =>
+                string.Format(localizationService.GetString("HexHighlight_LosBlocked_Elevation"), BlockingHex),
+            LineOfSightBlockReason.InterveningTerrain when BlockingHex != null =>
+                string.Format(localizationService.GetString("HexHighlight_LosBlocked_InterveningTerrain"), BlockingHex),
+            LineOfSightBlockReason.Elevation or LineOfSightBlockReason.InterveningTerrain =>
+                localizationService.GetString("HexHighlight_LosBlocked_InvalidCoordinates"),
+            _ => throw new ArgumentOutOfRangeException(nameof(Reason), Reason, null)
+        };
 }
