@@ -312,6 +312,9 @@
                 <CheckBox Content="Show Hex Outlines"
                           IsChecked="{Binding HexConfiguration.ShowOutline}"
                           Foreground="{StaticResource TextBrush}"/>
+                <CheckBox Content="Show Hex Highlight Text"
+                          IsChecked="{Binding HexConfiguration.ShowHighlightLabels}"
+                          Foreground="{StaticResource TextBrush}"/>
             </StackPanel>
         </templatedControls:GamePanel>
     </Grid>

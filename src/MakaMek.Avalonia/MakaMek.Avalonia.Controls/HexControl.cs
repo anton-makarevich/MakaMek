@@ -169,7 +169,11 @@ public class HexControl : Panel
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = Brushes.White,
-            FontSize = 12
+            FontSize = 9,
+            TextWrapping = TextWrapping.Wrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxHeight = HexCoordinatesPixelExtensions.HexWidth-10,
+            MaxWidth = HexCoordinatesPixelExtensions.HexWidth-10,  // constrain width so wrapping actually triggers
         };
 
         Children.Add(_highlightTextLabel);
