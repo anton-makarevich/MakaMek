@@ -1,71 +1,90 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
-using Avalonia.Xaml.Interactivity;
 using System.Collections.Specialized;
 using System.Linq;
 
 namespace Sanet.MakaMek.Avalonia.Behaviors;
 
-public class AutoScrollBehavior : Behavior<ScrollViewer>
+public static class AutoScrollBehavior
 {
-    private INotifyCollectionChanged? _currentCollection;
+    public static readonly AttachedProperty<bool> EnableAutoScrollProperty =
+        AvaloniaProperty.RegisterAttached<ScrollViewer, bool>(
+            "EnableAutoScroll",
+            typeof(AutoScrollBehavior));
 
-    protected override void OnAttached()
+    public static bool GetEnableAutoScroll(ScrollViewer element) =>
+        element.GetValue(EnableAutoScrollProperty);
+
+    public static void SetEnableAutoScroll(ScrollViewer element, bool value) =>
+        element.SetValue(EnableAutoScrollProperty, value);
+
+    static AutoScrollBehavior()
     {
-        base.OnAttached();
-        if (AssociatedObject != null)
+        EnableAutoScrollProperty.Changed.AddClassHandler<ScrollViewer>(OnEnableAutoScrollChanged);
+    }
+
+    private static void OnEnableAutoScrollChanged(ScrollViewer scrollViewer, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
         {
-            AssociatedObject.PropertyChanged += OnScrollViewerPropertyChanged;
-            SubscribeToItemsControl();
+            scrollViewer.PropertyChanged += OnScrollViewerPropertyChanged;
+            SubscribeToItemsControl(scrollViewer);
+        }
+        else
+        {
+            scrollViewer.PropertyChanged -= OnScrollViewerPropertyChanged;
+            UnsubscribeFromCurrentCollection(scrollViewer);
         }
     }
 
-    protected override void OnDetaching()
-    {
-        base.OnDetaching();
-        if (AssociatedObject == null) return;
-        AssociatedObject.PropertyChanged -= OnScrollViewerPropertyChanged;
-        UnsubscribeFromCurrentCollection();
-    }
+    // Store per-instance state using a ConditionalWeakTable
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ScrollViewer, CollectionState> States = new();
 
-    private void OnScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    private static void OnScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property == ContentControl.ContentProperty)
+        if (sender is ScrollViewer scrollViewer && e.Property == ContentControl.ContentProperty)
         {
-            SubscribeToItemsControl();
+            SubscribeToItemsControl(scrollViewer);
         }
     }
 
-    private void SubscribeToItemsControl()
+    private static void SubscribeToItemsControl(ScrollViewer scrollViewer)
     {
-        UnsubscribeFromCurrentCollection();
+        UnsubscribeFromCurrentCollection(scrollViewer);
 
-        if (AssociatedObject == null) return;
-
-        // Try to find ItemsControl either as direct content or as a child
-        var itemsControl = AssociatedObject.Content as ItemsControl 
-            ?? AssociatedObject.GetLogicalDescendants().OfType<ItemsControl>().FirstOrDefault();
+        var itemsControl = scrollViewer.Content as ItemsControl
+            ?? scrollViewer.GetLogicalDescendants().OfType<ItemsControl>().FirstOrDefault();
 
         if (itemsControl?.Items is INotifyCollectionChanged collection)
         {
-            _currentCollection = collection;
-            _currentCollection.CollectionChanged += OnCollectionChanged;
+            var state = States.GetOrCreateValue(scrollViewer);
+            state.Collection = collection;
+            state.ScrollViewer = scrollViewer;
+            collection.CollectionChanged += state.OnCollectionChanged;
         }
     }
 
-    private void UnsubscribeFromCurrentCollection()
+    private static void UnsubscribeFromCurrentCollection(ScrollViewer scrollViewer)
     {
-        if (_currentCollection == null) return;
-        _currentCollection.CollectionChanged -= OnCollectionChanged;
-        _currentCollection = null;
+        if (States.TryGetValue(scrollViewer, out var state) && state.Collection != null)
+        {
+            state.Collection.CollectionChanged -= state.OnCollectionChanged;
+            state.Collection = null;
+        }
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private sealed class CollectionState
     {
-        if (e.Action == NotifyCollectionChangedAction.Add)
+        public INotifyCollectionChanged? Collection { get; set; }
+        public ScrollViewer? ScrollViewer { get; set; }
+
+        public void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            AssociatedObject?.ScrollToEnd();
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                ScrollViewer?.ScrollToEnd();
+            }
         }
     }
 }

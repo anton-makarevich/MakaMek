@@ -283,10 +283,8 @@
             Title="Command Log"
             CloseCommand="{Binding ToggleCommandLog}">
             <ScrollViewer
+                behaviors:AutoScrollBehavior.EnableAutoScroll="True"
                 MaxHeight="360">
-                <Interaction.Behaviors>
-                    <behaviors:AutoScrollBehavior />
-                </Interaction.Behaviors>
                 <ItemsControl ItemsSource="{Binding CommandLog}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
