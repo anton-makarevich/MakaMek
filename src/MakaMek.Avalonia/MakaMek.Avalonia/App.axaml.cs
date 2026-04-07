@@ -88,7 +88,7 @@ public partial class App : Application
                                                          ViewModel = viewModel
                                                      };
                 androidViewWrapper.Content = androidMenuView;
-                activityLifetime.MainViewFactory = () => androidMenuView;
+                activityLifetime.MainViewFactory = () => androidViewWrapper;
                 break;
             case ISingleViewApplicationLifetime singleViewPlatform:
                 var mainViewWrapper = new ContentControl();
