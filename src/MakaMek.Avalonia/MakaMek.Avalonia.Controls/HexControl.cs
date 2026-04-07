@@ -153,9 +153,10 @@ public class HexControl : Panel
         }
 
         // Render highlight label from highest RenderOrder
-        if (_renderConfiguration.ShowHighlightLabels && highlights.Count > 0 && _localizationService != null)
+        if (_renderConfiguration.ShowHighlightLabels 
+            && orderedHighlights.Count > 0 && _localizationService != null)
         {
-            var highestHighlight = highlights.OrderByDescending(h => h.RenderOrder).First();
+            var highestHighlight = orderedHighlights[^1];
             var text = highestHighlight.Render(_localizationService);
             RenderHighlightLabel(text);
         }
