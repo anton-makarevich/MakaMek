@@ -275,5 +275,3 @@ coveragereport/
 serve-wasm.ps1
 
 **/.avalonia-build-tasks
-
-.qwen
