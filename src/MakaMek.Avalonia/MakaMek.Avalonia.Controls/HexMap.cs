@@ -57,8 +57,8 @@ public class HexMap : Canvas
 
         var pinchGestureRecognizer = new PinchGestureRecognizer();
         GestureRecognizers.Add(pinchGestureRecognizer);
-        AddHandler(Gestures.PinchEvent, OnPinchChanged);
-        AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
+        AddHandler(PinchEvent, OnPinchChanged);
+        AddHandler(PinchEndedEvent, OnPinchEnded);
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
