@@ -41,6 +41,7 @@ public class HexRenderConfigurationViewModelTests
         // Assert
         config.ShowLabels.ShouldBeFalse();
         config.ShowOutline.ShouldBeTrue();
+        config.ShowHighlightLabels.ShouldBeFalse();
     }
 
     [Fact]
@@ -71,5 +72,20 @@ public class HexRenderConfigurationViewModelTests
 
         // Assert
         changedProperty.ShouldBe(nameof(HexRenderConfigurationViewModel.ShowOutline));
+    }
+    
+    [Fact]
+    public void ShowHighlightLabels_WhenChanged_RaisesPropertyChanged()
+    {
+        // Arrange
+        var sut = new HexRenderConfigurationViewModel();
+        string? changedProperty = null;
+        sut.PropertyChanged += (_, e) => changedProperty = e.PropertyName;
+
+        // Act
+        sut.ShowHighlightLabels = true;
+
+        // Assert
+        changedProperty.ShouldBe(nameof(HexRenderConfigurationViewModel.ShowHighlightLabels));
     }
 }
