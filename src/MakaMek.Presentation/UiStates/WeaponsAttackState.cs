@@ -369,7 +369,7 @@ public class WeaponsAttackState : IUiState
                 {
                     // Remove hexes that are not on the map
                     weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
-                    
+
                     // Filter out hexes without line of sight and collect blocked hexes
                     weaponHexes.RemoveWhere(h =>
                     {
@@ -415,7 +415,10 @@ public class WeaponsAttackState : IUiState
 
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
-            _viewModel.AddHighlight(new HashSet<HexCoordinates> { hex }, new AttackReachableHighlight(weaponNames.ToList()));
+            var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
+            _viewModel.AddHighlight(
+                new HashSet<HexCoordinates> { hex },
+                new AttackReachableHighlight(orderedWeaponNames));
         }
     }
 
