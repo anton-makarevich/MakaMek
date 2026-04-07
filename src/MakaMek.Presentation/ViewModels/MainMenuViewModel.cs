@@ -26,7 +26,7 @@ public class MainMenuViewModel : BaseViewModel
         _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
         _terrainAssetService = terrainAssetService ?? throw new ArgumentNullException(nameof(terrainAssetService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-        var logger1 = logger;
+        var currentLogger = logger;
 
         // Get version from entry assembly
         var assembly = GetType().Assembly;
@@ -42,17 +42,8 @@ public class MainMenuViewModel : BaseViewModel
         _biomeLoadingStatus = _localizationService.GetString("MainMenu_Loading_Biomes");
         UpdateLoadingText();
 
-        Task.WhenAll(PreloadUnits(), PreloadBiomes())
-            .ContinueWith(async _ => 
-            {
-                if (!_hasError)
-                {
-                    await Task.Delay(messageDelay);
-                    IsLoading = false;
-                }
-            }, TaskScheduler.Default)
-            .Unwrap()
-            .SafeFireAndForget(ex => logger1.LogError(ex, "Error preloading content"));
+        InitializeAsync(messageDelay)
+            .SafeFireAndForget(ex => currentLogger.LogError(ex, "Error preloading content"));
     }
 
     public ICommand StartNewGameCommand { get; }
@@ -81,6 +72,16 @@ public class MainMenuViewModel : BaseViewModel
     private void UpdateLoadingText()
     {
         LoadingText = $"{_unitLoadingStatus}\n{_biomeLoadingStatus}";
+    }
+
+    private async Task InitializeAsync(int messageDelay)
+    {
+        await Task.WhenAll(PreloadUnits(), PreloadBiomes());
+        if (!_hasError)
+        {
+            await Task.Delay(messageDelay);
+            IsLoading = false;
+        }
     }
 
     private async Task NavigateToViewModel<TViewModel>() where TViewModel : BaseViewModel
