@@ -86,6 +86,17 @@ public class HexRenderConfigurationViewModelTests
         sut.ShowHighlightLabels = true;
 
         // Assert
+        sut.ShowHighlightLabels.ShouldBeTrue();
         changedProperty.ShouldBe(nameof(HexRenderConfigurationViewModel.ShowHighlightLabels));
+    }
+    
+    [Fact]
+    public void ShowHighlightLabels_DefaultsToFalse()
+    {
+        // Arrange & Act
+        var sut = new HexRenderConfigurationViewModel();
+
+        // Assert
+        sut.ShowHighlightLabels.ShouldBeFalse();
     }
 }
