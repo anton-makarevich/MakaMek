@@ -628,6 +628,49 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
+    public void HandleUnitSelection_ShouldNotHighlightRangesForUnavailableWeapons()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        var weapon1 = new MediumLaser();
+        var weapon2 = new MediumLaser();
+        _unit1.Parts[PartLocation.LeftArm].TryAddComponent(weapon1, [1]).ShouldBeTrue();
+        _unit1.Parts[PartLocation.RightArm].TryAddComponent(weapon2, [1]).ShouldBeTrue();
+        _unit1.AssignPilot(_pilot);
+
+        // Get the weapon ranges when both weapons are available
+        _sut.HandleUnitSelection(_unit1);
+        var highlightedHexesWithBothWeapons = _game.BattleMap!.GetHexes()
+            .Where(h => h.HasHighlight<AttackReachableHighlight>())
+            .ToHashSet();
+
+        // Reset selection
+        _sut.HandleUnitSelection(_unit2);
+        _battleMapViewModel.ClearHighlights();
+        
+        // Destroy one weapon to make it unavailable
+        weapon1.Hit();
+        weapon1.IsDestroyed.ShouldBeTrue();
+
+        // Act
+        _sut.HandleUnitSelection(_unit1);
+
+        // Assert
+        var highlightedHexesWithOneWeapon = _game.BattleMap!.GetHexes()
+            .Where(h => h.HasHighlight<AttackReachableHighlight>())
+            .ToHashSet();
+
+        // The destroyed weapon should not contribute to highlighted hexes
+        highlightedHexesWithOneWeapon.Count.ShouldBeLessThan(highlightedHexesWithBothWeapons.Count);
+        
+        // Verify that only the available weapon is in the ranges
+        var weaponsInRange = _sut.GetWeaponsInRange(highlightedHexesWithOneWeapon.First().Coordinates);
+        weaponsInRange.ShouldNotBeEmpty();
+        weaponsInRange.ShouldAllBe(w => w.IsAvailableForAttack());
+    }
+
+    [Fact]
     public void ResetUnitSelection_ClearsWeaponRangeHighlights()
     {
         // Arrange

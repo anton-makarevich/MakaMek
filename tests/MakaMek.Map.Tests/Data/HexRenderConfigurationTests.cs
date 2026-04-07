@@ -12,5 +12,6 @@ public class HexRenderConfigurationTests
         var sut = HexRenderConfiguration.Default;
         sut.ShowLabels.ShouldBeTrue();
         sut.ShowOutline.ShouldBeTrue();
+        sut.ShowHighlightLabels.ShouldBeFalse();
     }
 }

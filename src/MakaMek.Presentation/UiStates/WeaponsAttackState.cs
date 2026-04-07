@@ -341,6 +341,12 @@ public class WeaponsAttackState : IUiState
             var weapons = part.GetComponents<Weapon>();
             foreach (var weapon in weapons)
             {
+                // Skip weapons that cannot fire at all
+                if (!weapon.IsAvailableForAttack())
+                {
+                    continue;
+                }
+
                 var maxRange = weapon.LongRange;
                 var facing = weapon.FirstMountPart?.Facing;
                 if (facing == null)
@@ -363,7 +369,7 @@ public class WeaponsAttackState : IUiState
                 {
                     // Remove hexes that are not on the map
                     weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
-                    
+
                     // Filter out hexes without line of sight and collect blocked hexes
                     weaponHexes.RemoveWhere(h =>
                     {
@@ -392,24 +398,27 @@ public class WeaponsAttackState : IUiState
             }
         }
 
-        var hexToWeaponNames = new Dictionary<HexCoordinates, List<string>>();
+        var hexToWeaponNames = new Dictionary<HexCoordinates, HashSet<string>>();
         foreach (var (weapon, hexes) in _weaponRanges)
         {
             foreach (var h in hexes)
             {
-                if (!hexToWeaponNames.TryGetValue(h, out var list))
+                if (!hexToWeaponNames.TryGetValue(h, out var set))
                 {
-                    list = [];
-                    hexToWeaponNames[h] = list;
+                    set = [];
+                    hexToWeaponNames[h] = set;
                 }
 
-                list.Add(weapon.Name);
+                set.Add(weapon.Name);
             }
         }
 
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
-            _viewModel.AddHighlight(new HashSet<HexCoordinates> { hex }, new AttackReachableHighlight(weaponNames));
+            var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
+            _viewModel.AddHighlight(
+                new HashSet<HexCoordinates> { hex },
+                new AttackReachableHighlight(orderedWeaponNames));
         }
     }
 
