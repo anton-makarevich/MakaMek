@@ -1,4 +1,4 @@
-using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
@@ -22,21 +22,21 @@ namespace MakaMek.Avalonia.Tests.Views
 {
     public class StartNewGameViewTests
     {
-        [AvaloniaFact]
+        [Fact]
         public void NewGameView_WhenCreated_ShouldInitializeCorrectly()
         {
             // Arrange & Act
-            var view = new StartNewGameViewNarrow();
+            var view = Dispatcher.UIThread.Invoke(() => new StartNewGameViewNarrow());
 
             // Assert
             view.ShouldNotBeNull();
         }
 
-        [AvaloniaFact]
+        [Fact]
         public void NewGameView_WhenViewModelSet_ShouldBindCorrectly()
         {
             // Arrange
-            var view = new StartNewGameViewNarrow();
+            var view = Dispatcher.UIThread.Invoke(() => new StartNewGameViewNarrow());
             var cachingService = Substitute.For<IFileCachingService>();
             cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
@@ -63,7 +63,7 @@ namespace MakaMek.Avalonia.Tests.Views
             );
 
             // Act
-            view.DataContext = viewModel;
+            Dispatcher.UIThread.Invoke(() => view.DataContext = viewModel);
 
             // Assert
             view.DataContext.ShouldBe(viewModel);
