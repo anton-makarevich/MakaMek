@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
@@ -21,7 +22,7 @@ namespace MakaMek.Avalonia.Tests.Views
 {
     public class StartNewGameViewTests
     {
-        [Fact]
+        [AvaloniaFact]
         public void NewGameView_WhenCreated_ShouldInitializeCorrectly()
         {
             // Arrange & Act
@@ -31,7 +32,7 @@ namespace MakaMek.Avalonia.Tests.Views
             view.ShouldNotBeNull();
         }
 
-        [Fact]
+        [AvaloniaFact]
         public void NewGameView_WhenViewModelSet_ShouldBindCorrectly()
         {
             // Arrange

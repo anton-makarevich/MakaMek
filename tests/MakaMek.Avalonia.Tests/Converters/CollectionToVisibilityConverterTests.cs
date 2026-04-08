@@ -99,7 +99,7 @@ public class CollectionToVisibilityConverterTests
         object? value = null;
 
         // Act & Assert
-        Assert.Throws<NotSupportedException>(() => 
+        Should.Throw<NotSupportedException>(() => 
             _sut.ConvertBack(value, typeof(object), null, CultureInfo.InvariantCulture));
     }
 }
