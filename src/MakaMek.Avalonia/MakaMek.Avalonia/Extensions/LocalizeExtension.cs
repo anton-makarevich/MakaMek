@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Avalonia.Extensions;
 
 /// <summary>
 /// Markup extension that resolves a localization key to a localized string.
-/// Usage in XAML: Text="{converters:Localize Key='Some_Key'}"
+/// Usage in XAML: Text="{extensions:Localize 'Some_Key'}"
 /// </summary>
 public class LocalizeExtension : MarkupExtension
 {
