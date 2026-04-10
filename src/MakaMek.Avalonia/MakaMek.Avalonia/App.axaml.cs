@@ -46,7 +46,8 @@ public partial class App : Application
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
         Converters.ModifierToTextConverter.Initialize(localizationService);
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
-        
+        Extensions.LocalizeExtension.Initialize(localizationService);
+
         var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
         Converters.ComponentStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
         Converters.EventTypeToBackgroundConverter.Initialize(avaloniaResourcesLocator);
