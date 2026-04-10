@@ -482,6 +482,17 @@ public class FakeLocalizationService: ILocalizationService
 
             // Window Title
             "Window_Title" => "MakaMek",
+            
+            // Phase names
+            "Phase_Start" => "Start",
+            "Phase_Deployment" => "Deployment",
+            "Phase_Initiative" => "Initiative",
+            "Phase_Movement" => "Movement",
+            "Phase_WeaponsAttack" => "Weapon Attack",
+            "Phase_WeaponAttackResolution" => "Weapon Attack Resolution",
+            "Phase_PhysicalAttack" => "Physical Attack",
+            "Phase_Heat" => "Heat",
+            "Phase_End" => "End",
             _ => key
         };
     }

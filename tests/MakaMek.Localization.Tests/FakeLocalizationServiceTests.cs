@@ -831,4 +831,26 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData("Phase_Start", "Start")]
+    [InlineData("Phase_Deployment", "Deployment")]
+    [InlineData("Phase_Initiative", "Initiative")]
+    [InlineData("Phase_Movement", "Movement")]
+    [InlineData("Phase_WeaponsAttack", "Weapon Attack")]
+    [InlineData("Phase_WeaponAttackResolution", "Weapon Attack Resolution")]
+    [InlineData("Phase_PhysicalAttack", "Physical Attack")]
+    [InlineData("Phase_Heat", "Heat")]
+    [InlineData("Phase_End", "End")]
+    public void GetString_PhaseNames_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }
