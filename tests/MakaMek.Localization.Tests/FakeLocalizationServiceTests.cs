@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Shouldly;
 
 namespace Sanet.MakaMek.Localization.Tests;
@@ -833,19 +834,20 @@ public class FakeLocalizationServiceTests
     }
 
     [Theory]
-    [InlineData("Phase_Start", "Start")]
-    [InlineData("Phase_Deployment", "Deployment")]
-    [InlineData("Phase_Initiative", "Initiative")]
-    [InlineData("Phase_Movement", "Movement")]
-    [InlineData("Phase_WeaponsAttack", "Weapon Attack")]
-    [InlineData("Phase_WeaponAttackResolution", "Weapon Attack Resolution")]
-    [InlineData("Phase_PhysicalAttack", "Physical Attack")]
-    [InlineData("Phase_Heat", "Heat")]
-    [InlineData("Phase_End", "End")]
-    public void GetString_PhaseNames_ReturnsExpectedString(string key, string expected)
+    [InlineData(PhaseNames.Start, "Start")]
+    [InlineData(PhaseNames.Deployment, "Deployment")]
+    [InlineData(PhaseNames.Initiative, "Initiative")]
+    [InlineData(PhaseNames.Movement, "Movement")]
+    [InlineData(PhaseNames.WeaponsAttack, "Weapon Attack")]
+    [InlineData(PhaseNames.WeaponAttackResolution, "Weapon Attack Resolution")]
+    [InlineData(PhaseNames.PhysicalAttack, "Physical Attack")]
+    [InlineData(PhaseNames.Heat, "Heat")]
+    [InlineData(PhaseNames.End, "End")]
+    public void GetString_PhaseNames_ReturnsExpectedString(PhaseNames phase, string expected)
     {
         // Arrange
         var localizationService = new FakeLocalizationService();
+        var key = $"Phase_{phase}";
 
         // Act
         var result = localizationService.GetString(key);
