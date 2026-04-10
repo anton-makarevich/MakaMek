@@ -335,6 +335,8 @@ public class HexControl : Panel
     /// <param name="configuration">The new render configuration to apply</param>
     public void UpdateRenderConfiguration(HexRenderConfiguration configuration)
     {
+        if (_renderConfiguration == configuration) return;
+        
         _renderConfiguration = configuration;
 
         // Update coordinate/level label visibility
