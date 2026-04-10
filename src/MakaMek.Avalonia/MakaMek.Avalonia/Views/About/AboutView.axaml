@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:DataType="viewModels:AboutViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.About.AboutView">
@@ -11,7 +12,7 @@
     <Grid Margin="10" RowDefinitions="Auto,*">
         <!-- Toolbar with Back Button -->
         <templatedControls:ToolBar
-            Title="About MakaMek"
+            Title="{extensions:Localize 'AboutView_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
@@ -28,7 +29,7 @@
                 <!-- Game Description -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="About the Game"
+                        <TextBlock Text="{extensions:Localize 'AboutView_AboutTheGame'}"
                                    Classes="h3"/>
                         <TextBlock Text="{Binding GameDescription}"
                                    TextWrapping="Wrap"
@@ -39,9 +40,9 @@
                 <!-- GitHub Link -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Source Code"
+                        <TextBlock Text="{extensions:Localize 'AboutView_SourceCode'}"
                                    Classes="h3"/>
-                        <Button Content="Visit GitHub Repository"
+                        <Button Content="{extensions:Localize 'AboutView_VisitGitHub'}"
                                 Command="{Binding OpenGitHubCommand}"
                                 Classes="primary"
                                 HorizontalAlignment="Left"/>
@@ -51,12 +52,12 @@
                 <!-- MegaMek Attribution -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Assets Attribution"
+                        <TextBlock Text="{extensions:Localize 'AboutView_AssetAttribution'}"
                                    Classes="h3"/>
                         <TextBlock Text="{Binding MegaMekAttribution}"
                                    TextWrapping="Wrap"
                                    Classes="body"/>
-                        <Button Content="Visit MegaMek Website"
+                        <Button Content="{extensions:Localize 'AboutView_VisitMegaMek'}"
                                 Command="{Binding OpenMegaMekCommand}"
                                 Classes="primary"
                                 HorizontalAlignment="Left"/>
@@ -66,12 +67,12 @@
                 <!-- Contact -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Contact"
+                        <TextBlock Text="{extensions:Localize 'AboutView_Contact'}"
                                    Classes="h3"/>
                         <TextBlock Text="{Binding ContactStatement}"
                                    TextWrapping="Wrap"
                                    Classes="body"/>
-                        <Button Content="Send Email"
+                        <Button Content="{extensions:Localize 'AboutView_SendEmail'}"
                                 Command="{Binding OpenContactEmailCommand}"
                                 Classes="primary"
                                 HorizontalAlignment="Left"/>
@@ -81,7 +82,7 @@
                 <!-- Free and Open Source Statement -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="License"
+                        <TextBlock Text="{extensions:Localize 'AboutView_License'}"
                                    Classes="h3"/>
                         <TextBlock Text="{Binding FreeAndOpenSourceStatement}"
                                    TextWrapping="Wrap"
@@ -92,7 +93,7 @@
                 <!-- Trademark Notices -->
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Trademark Notices"
+                        <TextBlock Text="{extensions:Localize 'AboutView_TrademarkNotices'}"
                                    Classes="h3"/>
                         <TextBlock Text="{Binding TrademarkNotice1}"
                                    TextWrapping="Wrap"
@@ -103,7 +104,7 @@
                         <TextBlock Text="{Binding GameContentRulesNotice}"
                                    TextWrapping="Wrap"
                                    Classes="body"/>
-                        <Button Content="View Game Content Usage Rules"
+                        <Button Content="{extensions:Localize 'AboutView_ViewContentRules'}"
                                 Command="{Binding OpenGameContentRulesCommand}"
                                 Classes="primary"
                                 HorizontalAlignment="Left"/>

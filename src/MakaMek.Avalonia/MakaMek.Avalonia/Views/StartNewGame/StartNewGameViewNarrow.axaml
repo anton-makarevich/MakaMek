@@ -5,34 +5,35 @@
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">
     <Grid Classes="pageContainer"
           RowDefinitions="Auto,*,Auto">
         <templatedControls:ToolBar
-            Title="Start New Game"
+            Title="{extensions:Localize 'StartNewGame_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
         
         <TabControl Grid.Row="1">
-            <TabItem Header="Players">
+            <TabItem Header="{extensions:Localize 'StartNewGame_Players'}">
                 <fragments1:PlayersFragment/>
             </TabItem>
-            <TabItem Header="Map">
+            <TabItem Header="{extensions:Localize 'StartNewGame_Map'}">
                 <ScrollViewer Classes="gameScrollViewer"
                               HorizontalScrollBarVisibility="Disabled">
                     <fragments1:MapConfigFragment DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="Network" IsVisible="{Binding CanStartLanServer}">
+            <TabItem Header="{extensions:Localize 'StartNewGame_Network'}" IsVisible="{Binding CanStartLanServer}">
                 <fragments1:NetworkFragment/>
             </TabItem>
         </TabControl>
         <Button Grid.Row="2"
                 Command="{Binding StartGameCommand}"
-                Content="Start Game"
+                Content="{extensions:Localize 'StartNewGame_StartGame'}"
                 Classes="primary"
                 IsEnabled="{Binding CanStartGame}"
                 HorizontalAlignment="Center"

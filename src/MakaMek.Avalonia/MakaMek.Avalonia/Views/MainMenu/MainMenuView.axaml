@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
              x:DataType="viewModels:MainMenuViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
@@ -26,17 +27,17 @@
                     VerticalAlignment="Center"
                     Spacing="20"
                     IsVisible="{Binding !IsLoading}">
-            <Button Content="Start New Game"
+            <Button Content="{extensions:Localize 'MainMenu_StartNewGame'}"
                     Classes="main-menu"
                     Command="{Binding StartNewGameCommand}"
                     HorizontalAlignment="Stretch"
                     MinWidth="200"/>
-            <Button Content="Join Game"
+            <Button Content="{extensions:Localize 'MainMenu_JoinGame'}"
                     Classes="main-menu"
                     Command="{Binding JoinGameCommand}"
                     HorizontalAlignment="Stretch"
                     MinWidth="200"/>
-            <Button Content="About"
+            <Button Content="{extensions:Localize 'MainMenu_About'}"
                     Classes="main-menu"
                     Command="{Binding AboutCommand}"
                     HorizontalAlignment="Stretch"

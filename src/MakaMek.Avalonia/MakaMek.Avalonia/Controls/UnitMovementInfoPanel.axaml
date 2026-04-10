@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitMovementInfoPanel"
              mc:Ignorable="d"
@@ -21,15 +22,15 @@
                 ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto">
                 <TextBlock Grid.Row="0" Grid.Column="0"
                            Classes="labelLarge"
-                           Text="Walk MP"
+                           Text="{extensions:Localize 'UnitMovement_WalkMP'}"
                            HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="1"
                            Classes="labelLarge"
-                           Text="Run MP"
+                           Text="{extensions:Localize 'UnitMovement_RunMP'}"
                            HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="2"
                            Classes="labelLarge"
-                           Text="Jump MP"
+                           Text="{extensions:Localize 'UnitMovement_JumpMP'}"
                            HorizontalAlignment="Center"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
@@ -54,15 +55,15 @@
                 ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
                 <TextBlock Grid.Row="0" Grid.Column="0"
                            Classes="labelLarge"
-                         Text="Type"
+                         Text="{extensions:Localize 'UnitMovement_Type'}"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="1"
                            Classes="labelLarge"
-                         Text="Points"
+                         Text="{extensions:Localize 'UnitMovement_Points'}"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="2"
                            Classes="labelLarge"
-                         Text="Traversed"
+                         Text="{extensions:Localize 'UnitMovement_Traversed'}"
                          HorizontalAlignment="Center"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0"

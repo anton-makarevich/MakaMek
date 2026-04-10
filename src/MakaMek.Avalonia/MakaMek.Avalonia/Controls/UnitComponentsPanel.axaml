@@ -5,6 +5,7 @@
              xmlns:components="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components;assembly=Sanet.MakaMek.Core"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitComponentsPanel">
     <UserControl.Resources>
@@ -12,10 +13,10 @@
         <converters:ComponentHitsConverter x:Key="ComponentHitsConverter"/>
     </UserControl.Resources>
     <Grid ColumnDefinitions="6*,2*,2*,3*" RowDefinitions="Auto,*" Margin="5">
-        <TextBlock Grid.Column="0" Text="Component" Classes="h4"/>
-        <TextBlock Grid.Column="1" Text="Slots" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="2" Text="Hits" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="3" Text="Status" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="0" Text="{extensions:Localize 'UnitComponents_Component'}" Classes="h4"/>
+        <TextBlock Grid.Column="1" Text="{extensions:Localize 'UnitComponents_Slots'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="2" Text="{extensions:Localize 'UnitComponents_Hits'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="3" Text="{extensions:Localize 'UnitComponents_Status'}" Classes="h4" Margin="5,0"/>
         <ScrollViewer Grid.ColumnSpan="4" Grid.Row="1">
             <ItemsControl x:Name="ComponentsGroup">
                 <ItemsControl.ItemTemplate>

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:mapControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
@@ -47,11 +48,11 @@
                     Padding="10,5">
                     <StackPanel Orientation="Horizontal" Classes="horizontalSpaced">
                         <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                            <TextBlock Text="TURN" 
+                            <TextBlock Text="{extensions:Localize 'BattleMap_Turn'}"
                                      Classes="turnInfoLabel"
                                      HorizontalAlignment="Center"
                                      Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                            <TextBlock Text="{Binding Turn}" 
+                            <TextBlock Text="{Binding Turn}"
                                      Classes="turnInfo"
                                      FontWeight="Bold" 
                                      HorizontalAlignment="Center"
@@ -59,11 +60,11 @@
                         </StackPanel>
                         
                         <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                            <TextBlock Text="PHASE" 
+                            <TextBlock Text="{extensions:Localize 'BattleMap_Phase'}"
                                      Classes="turnInfoLabel"
                                      HorizontalAlignment="Center"
                                      Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                            <TextBlock Text="{Binding TurnPhaseName}" 
+                            <TextBlock Text="{Binding TurnPhaseName}"
                                      Classes="turnInfo"
                                      FontWeight="Bold" 
                                      ClipToBounds="True"
@@ -80,11 +81,11 @@
                         Padding="10,5"
                         Margin="1,0,1,0">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                        <TextBlock Text="ACTIVE PLAYER" 
+                        <TextBlock Text="{extensions:Localize 'BattleMap_ActivePlayer'}"
                                  Classes="turnInfoLabel"
                                  HorizontalAlignment="Center"
                                  Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                        <TextBlock Text="{Binding ActivePlayerName}" 
+                        <TextBlock Text="{Binding ActivePlayerName}"
                                  Classes="turnInfo"
                                  FontWeight="Bold" 
                                  HorizontalAlignment="Center"
@@ -117,7 +118,7 @@
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
               Classes="card">
-            <Label Content="Select a Unit to deploy" Foreground="{StaticResource HighlightLightBrush}"/>
+            <Label Content="{extensions:Localize 'BattleMap_SelectUnitToDeploy'}" Foreground="{StaticResource HighlightLightBrush}"/>
             <ListBox Grid.Row="1"
                 Classes="gameList"
                 ItemsSource="{Binding UnitsToDeploy}"
@@ -141,7 +142,7 @@
         <!-- Body Part Selector for Aimed Shots -->
         <templatedControls:GamePanel
             IsVisible="{Binding IsUnitPartSelectorVisible}"
-            Title="Select Target Location"
+            Title="{extensions:Localize 'BattleMap_SelectTargetLocation'}"
             CloseCommand="{Binding HideBodyPartSelectorCommand}"
             HorizontalAlignment="Right"
             VerticalAlignment="Center">
@@ -155,28 +156,28 @@
             <!-- Center Map Button -->
             <templatedControls:ActionButton
                 Click="CenterMap"
-                ToolTip.Tip="Reset Map"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="M560.02 32c-1.96 0-3.98.37-5.96 1.16L384.01 96H384L212 35.28A64.252 64.252 0 0 0 191.76 32c-6.69 0-13.37 1.05-19.81 3.14L20.12 87.95A32.006 32.006 0 0 0 0 117.66v346.32C0 473.17 7.53 480 15.99 480c1.96 0 3.97-.37 5.96-1.16L192 416l172 60.71a63.98 63.98 0 0 0 40.05.15l151.83-52.81A31.996 31.996 0 0 0 576 394.34V48.02c0-9.19-7.53-16.02-15.98-16.02zM224 90.42l128 45.19v285.97l-128-45.19V90.42zM48 418.05V129.07l128-44.53v286.2l-.64.23L48 418.05zm480-35.13l-128 44.53V141.26l.64-.24L528 93.95v288.97z"/>
 
             <!-- Record Sheet Button -->
             <templatedControls:ActionButton
                 IsVisible="{Binding IsRecordSheetButtonVisible}"
                 Command="{Binding ToggleRecordSheet}"
-                ToolTip.Tip="Unit Info"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_UnitInfo'}"
                 IconData="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/>
 
             <!-- Command Log Button -->
             <templatedControls:ActionButton
                 IsVisible="{Binding !IsCommandLogExpanded}"
                 Command="{Binding ToggleCommandLog}"
-                ToolTip.Tip="Commands"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_Commands'}"
                 IconData="M232 96l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l80 0c13.3 0 24 10.7 24 24s-10.7 24-24 24zm0 48c37.1 0 67.6-28 71.6-64L320 80c8.8 0 16 7.2 16 16l0 352c0 8.8-7.2 16-16 16L64 464c-8.8 0-16-7.2-16-16L48 96c0-8.8 7.2-16 16-16l16.4 0c4 36 34.5 64 71.6 64l80 0zM291.9 32C279 12.7 257 0 232 0L152 0c-25 0-47 12.7-59.9 32L64 32C28.7 32 0 60.7 0 96L0 448c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-352c0-35.3-28.7-64-64-64l-28.1 0z"/>
 
             <!-- Map Settings Button -->
             <templatedControls:ActionButton
                 IsVisible="{Binding !IsMapSettingsPanelVisible}"
                 Command="{Binding ToggleMapSettings}"
-                ToolTip.Tip="Map Settings"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_MapSettings'}"
                 IconData="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/>
         </StackPanel>
 
@@ -280,7 +281,7 @@
         <!-- Command Log Panel -->
         <templatedControls:GamePanel
             IsVisible="{Binding IsCommandLogExpanded}"
-            Title="Command Log"
+            Title="{extensions:Localize 'BattleMap_CommandLog'}"
             CloseCommand="{Binding ToggleCommandLog}">
             <ScrollViewer
                 behaviors:AutoScrollBehavior.EnableAutoScroll="True"
@@ -301,16 +302,16 @@
         <!-- Map Settings Panel -->
         <templatedControls:GamePanel
             IsVisible="{Binding IsMapSettingsPanelVisible}"
-            Title="Settings"
+            Title="{extensions:Localize 'BattleMap_Settings'}"
             CloseCommand="{Binding ToggleMapSettings}">
             <StackPanel Margin="10" Spacing="10">
-                <CheckBox Content="Show Labels"
+                <CheckBox Content="{extensions:Localize 'BattleMap_ShowLabels'}"
                           IsChecked="{Binding HexConfiguration.ShowLabels}"
                           Foreground="{StaticResource TextBrush}"/>
-                <CheckBox Content="Show Hex Outlines"
+                <CheckBox Content="{extensions:Localize 'BattleMap_ShowHexOutlines'}"
                           IsChecked="{Binding HexConfiguration.ShowOutline}"
                           Foreground="{StaticResource TextBrush}"/>
-                <CheckBox Content="Show Hex Highlight Text"
+                <CheckBox Content="{extensions:Localize 'BattleMap_ShowHexHighlightText'}"
                           IsChecked="{Binding HexConfiguration.ShowHighlightLabels}"
                           Foreground="{StaticResource TextBrush}"/>
             </StackPanel>
