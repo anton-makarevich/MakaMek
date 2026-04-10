@@ -275,3 +275,6 @@ coveragereport/
 serve-wasm.ps1
 
 **/.avalonia-build-tasks
+
+# AI Tools
+.qwen

@@ -5,7 +5,6 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
@@ -139,9 +138,13 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
         else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
         {
-            if (ViewModel?.Game != null)
+            if (ViewModel?.HexConfiguration != null)
             {
-                RenderMap(ViewModel.Game);
+                var config = ViewModel.HexConfiguration.ToConfiguration();
+                foreach (var hexControl in MapCanvas.Children.OfType<HexControl>())
+                {
+                    hexControl.UpdateRenderConfiguration(config);
+                }
             }
         }
     }
