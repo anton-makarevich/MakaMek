@@ -70,19 +70,12 @@ public class MapConfigViewModel : BindableBase, IDisposable
         LoadAvailableMaps().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
     }
 
-    public string MapWidthLabel => "Map Width";
-    public string MapHeightLabel => "Map Height";
-    public string ForestCoverageLabel => "Forest Coverage";
-    public string LightWoodsLabel => "Light Woods Percentage";
-    public string HillCoverageLabel => "Hill Coverage";
-    public string MaxElevationLabel => "Max Elevation";
-
-    public string MapWidthFormatted => string.Format(_localizationService.GetString("MapConfig_Width"), MapWidth);
-    public string MapHeightFormatted => string.Format(_localizationService.GetString("MapConfig_Height"), MapHeight);
-    public string ForestCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_ForestCoverage"), ForestCoverage);
-    public string LightWoodsFormatted => string.Format(_localizationService.GetString("MapConfig_LightWoods"), LightWoodsPercentage);
-    public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage"), HillCoverage);
-    public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation"), MaxElevation);
+    public string MapWidthFormatted => string.Format(_localizationService.GetString("MapConfig_Width_Formatted"), MapWidth);
+    public string MapHeightFormatted => string.Format(_localizationService.GetString("MapConfig_Height_Formatted"), MapHeight);
+    public string ForestCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_ForestCoverage_Formatted"), ForestCoverage);
+    public string LightWoodsFormatted => string.Format(_localizationService.GetString("MapConfig_LightWoods_Formatted"), LightWoodsPercentage);
+    public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage_Formatted"), HillCoverage);
+    public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation_Formatted"), MaxElevation);
 
     /// <summary>
     /// Currently selected tab index. 0 = Select Map, 1 = Generate Map

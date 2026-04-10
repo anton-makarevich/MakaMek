@@ -36,13 +36,13 @@ public class MapConfigViewModelTests
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Configure localization service mock - return the key if not configured
-        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width" && k != "MapConfig_Height" && k != "MapConfig_ForestCoverage" && k != "MapConfig_LightWoods" && k != "MapConfig_HillCoverage" && k != "MapConfig_MaxElevation")).Returns(callInfo => callInfo.Arg<string>());
-        _localizationService.GetString("MapConfig_Width").Returns("Width: {0} hexes");
-        _localizationService.GetString("MapConfig_Height").Returns("Height: {0} hexes");
-        _localizationService.GetString("MapConfig_ForestCoverage").Returns("Forest Coverage: {0}%");
-        _localizationService.GetString("MapConfig_LightWoods").Returns("Light Woods: {0}%");
-        _localizationService.GetString("MapConfig_HillCoverage").Returns("Hill Coverage: {0}%");
-        _localizationService.GetString("MapConfig_MaxElevation").Returns("Max Elevation: {0}");
+        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted")).Returns(callInfo => callInfo.Arg<string>());
+        _localizationService.GetString("MapConfig_Width_Formatted").Returns("Width: {0} hexes");
+        _localizationService.GetString("MapConfig_Height_Formatted").Returns("Height: {0} hexes");
+        _localizationService.GetString("MapConfig_ForestCoverage_Formatted").Returns("Forest Coverage: {0}%");
+        _localizationService.GetString("MapConfig_LightWoods_Formatted").Returns("Light Woods: {0}%");
+        _localizationService.GetString("MapConfig_HillCoverage_Formatted").Returns("Hill Coverage: {0}%");
+        _localizationService.GetString("MapConfig_MaxElevation_Formatted").Returns("Max Elevation: {0}");
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
     }
@@ -141,42 +141,6 @@ public class MapConfigViewModelTests
         _sut.MaxElevation = newElevation;
 
         _sut.MaxElevation.ShouldBe(newElevation);
-    }
-
-    [Fact]
-    public void MapWidthLabel_ReturnsCorrectValue()
-    {
-        _sut.MapWidthLabel.ShouldBe("Width: ");
-    }
-
-    [Fact]
-    public void MapHeightLabel_ReturnsCorrectValue()
-    {
-        _sut.MapHeightLabel.ShouldBe("Height: ");
-    }
-
-    [Fact]
-    public void ForestCoverageLabel_ReturnsCorrectValue()
-    {
-        _sut.ForestCoverageLabel.ShouldBe("Forest Coverage");
-    }
-
-    [Fact]
-    public void LightWoodsLabel_ReturnsCorrectValue()
-    {
-        _sut.LightWoodsLabel.ShouldBe("Light Woods Percentage");
-    }
-    
-    [Fact]
-    public void HillCoverageLabel_ReturnsCorrectValue()
-    {
-        _sut.HillCoverageLabel.ShouldBe("Hill Coverage");
-    }
-    
-    [Fact]
-    public void MaxElevationLabel_ReturnsCorrectValue()
-    {
-        _sut.MaxElevationLabel.ShouldBe("Max Elevation");
     }
 
     [Fact]
