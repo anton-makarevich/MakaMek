@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -49,7 +50,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IFileService fileService,
         IHashService hashService,
         IBotManager botManager,
-        ILogger<StartNewGameViewModel> logger)
+        ILogger<StartNewGameViewModel> logger,
+        ILocalizationService localizationService)
         : base(rulesProvider,
             unitsLoader,
             commandPublisher,
@@ -68,7 +70,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mapFactory = mapFactory;
         _logger = logger;
-        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService);
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }

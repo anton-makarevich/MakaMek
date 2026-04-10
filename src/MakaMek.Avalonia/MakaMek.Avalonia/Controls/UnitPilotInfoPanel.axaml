@@ -47,7 +47,6 @@
                 </ProgressBar>
                 <TextBlock  Classes="progressBarLabel">
                     <TextBlock.Text>
-                        <!-- TODO: StringFormat with Localize may need special handling - consider binding to a formatted property in ViewModel instead -->
                         <MultiBinding StringFormat="{extensions:Localize 'UnitPilot_Injuries'}">
                             <Binding Path="Injuries"/>
                             <Binding Path="Health"/>

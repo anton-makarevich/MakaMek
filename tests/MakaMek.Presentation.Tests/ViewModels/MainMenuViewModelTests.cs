@@ -91,7 +91,8 @@ public class MainMenuViewModelTests
             Substitute.For<IFileService>(),
             _hashService,
             Substitute.For<IBotManager>(),
-            Substitute.For<ILogger<StartNewGameViewModel>>()
+            Substitute.For<ILogger<StartNewGameViewModel>>(),
+            _localizationService
         );
         _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 

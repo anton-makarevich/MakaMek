@@ -60,17 +60,17 @@ public class StartNewGameViewModelTests
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public StartNewGameViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
-        var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
         _battleMapViewModel =
             new BattleMapViewModel(imageService,
                 Substitute.For<ITerrainAssetService>(),
-                localizationService,
+                _localizationService,
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider,
                 Substitute.For<IPlatformService>());
@@ -131,7 +131,8 @@ public class StartNewGameViewModelTests
             _fileService,
             _hashService,
             _botManager,
-            _vmLogger);
+            _vmLogger,
+            _localizationService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -698,7 +699,8 @@ public class StartNewGameViewModelTests
             _fileService,
             _hashService,
             _botManager,
-            _vmLogger);
+            _vmLogger,
+            _localizationService);
         sut.AttachHandlers();
 
         // Assert
@@ -739,7 +741,8 @@ public class StartNewGameViewModelTests
             _fileService,
             _hashService,
             _botManager,
-            _vmLogger);
+            _vmLogger,
+            _localizationService);
         sut.AttachHandlers();
 
         // Act
@@ -775,7 +778,8 @@ public class StartNewGameViewModelTests
             _fileService,
             _hashService,
             _botManager,
-            _vmLogger);
+            _vmLogger,
+            _localizationService);
         await sut.InitializeLobbyAndSubscribe();
         sut.AttachHandlers();
         
@@ -809,7 +813,8 @@ public class StartNewGameViewModelTests
             _fileService,
             _hashService,
             _botManager,
-            _vmLogger);
+            _vmLogger,
+            _localizationService);
         await sut.InitializeLobbyAndSubscribe();
         sut.AttachHandlers();
 

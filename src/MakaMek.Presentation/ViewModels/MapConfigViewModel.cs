@@ -5,6 +5,7 @@ using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
@@ -33,6 +34,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
     private readonly ILogger _logger;
     private readonly IDispatcherService _dispatcherService;
+    private readonly ILocalizationService _localizationService;
 
     public MapConfigViewModel(
         IMapPreviewRenderer previewRenderer,
@@ -40,7 +42,8 @@ public class MapConfigViewModel : BindableBase, IDisposable
         IMapResourceProvider mapResourceProvider,
         IFileService fileService,
         ILogger logger,
-        IDispatcherService dispatcherService)
+        IDispatcherService dispatcherService,
+        ILocalizationService localizationService)
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
@@ -48,6 +51,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         _fileService = fileService;
         _logger = logger;
         _dispatcherService = dispatcherService;
+        _localizationService = localizationService;
         
         LoadMapCommand = new AsyncCommand(LoadMap);
 
@@ -72,6 +76,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public string LightWoodsLabel => "Light Woods Percentage";
     public string HillCoverageLabel => "Hill Coverage";
     public string MaxElevationLabel => "Max Elevation";
+
+    public string MapWidthFormatted => string.Format(_localizationService.GetString("MapConfig_Width"), MapWidth);
+    public string MapHeightFormatted => string.Format(_localizationService.GetString("MapConfig_Height"), MapHeight);
+    public string ForestCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_ForestCoverage"), ForestCoverage);
+    public string LightWoodsFormatted => string.Format(_localizationService.GetString("MapConfig_LightWoods"), LightWoodsPercentage);
+    public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage"), HillCoverage);
+    public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation"), MaxElevation);
 
     /// <summary>
     /// Currently selected tab index. 0 = Select Map, 1 = Generate Map
@@ -119,6 +130,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(MapWidthFormatted));
             StartMapUpdate();
         }
     } = 15;
@@ -135,6 +147,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(MapHeightFormatted));
             StartMapUpdate();
         }
     } = 17;
@@ -146,6 +159,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref _forestCoverage, value);
             NotifyPropertyChanged(nameof(IsLightWoodsEnabled));
+            NotifyPropertyChanged(nameof(ForestCoverageFormatted));
             StartMapUpdate();
         }
     }
@@ -156,6 +170,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(LightWoodsFormatted));
             StartMapUpdate();
         }
     } = 30;
@@ -166,6 +181,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(HillCoverageFormatted));
             StartMapUpdate();
         }
     }
@@ -176,6 +192,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(MaxElevationFormatted));
             StartMapUpdate();
         }
     } = 2;

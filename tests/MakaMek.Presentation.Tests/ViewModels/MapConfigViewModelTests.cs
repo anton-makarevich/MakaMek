@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
@@ -22,6 +23,7 @@ public class MapConfigViewModelTests
     private readonly IFileService _fileService = Substitute.For<IFileService>();
     private readonly ILogger _logger = Substitute.For<ILogger>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     private const string TestBiome = "makamek.biomes.desert";
     
@@ -33,7 +35,16 @@ public class MapConfigViewModelTests
         // Configure the dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
-        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        // Configure localization service mock - return the key if not configured
+        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width" && k != "MapConfig_Height" && k != "MapConfig_ForestCoverage" && k != "MapConfig_LightWoods" && k != "MapConfig_HillCoverage" && k != "MapConfig_MaxElevation")).Returns(callInfo => callInfo.Arg<string>());
+        _localizationService.GetString("MapConfig_Width").Returns("Width: {0} hexes");
+        _localizationService.GetString("MapConfig_Height").Returns("Height: {0} hexes");
+        _localizationService.GetString("MapConfig_ForestCoverage").Returns("Forest Coverage: {0}%");
+        _localizationService.GetString("MapConfig_LightWoods").Returns("Light Woods: {0}%");
+        _localizationService.GetString("MapConfig_HillCoverage").Returns("Hill Coverage: {0}%");
+        _localizationService.GetString("MapConfig_MaxElevation").Returns("Max Elevation: {0}");
+        
+        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
     }
 
     private static BattleMapData CreateSingleMapData() =>
@@ -135,13 +146,13 @@ public class MapConfigViewModelTests
     [Fact]
     public void MapWidthLabel_ReturnsCorrectValue()
     {
-        _sut.MapWidthLabel.ShouldBe("Map Width");
+        _sut.MapWidthLabel.ShouldBe("Width: ");
     }
 
     [Fact]
     public void MapHeightLabel_ReturnsCorrectValue()
     {
-        _sut.MapHeightLabel.ShouldBe("Map Height");
+        _sut.MapHeightLabel.ShouldBe("Height: ");
     }
 
     [Fact]
@@ -169,6 +180,90 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
+    public void MapWidthFormatted_ReturnsFormattedValue()
+    {
+        _sut.MapWidthFormatted.ShouldBe("Width: 15 hexes");
+    }
+
+    [Fact]
+    public void MapHeightFormatted_ReturnsFormattedValue()
+    {
+        _sut.MapHeightFormatted.ShouldBe("Height: 17 hexes");
+    }
+
+    [Fact]
+    public void ForestCoverageFormatted_ReturnsFormattedValue()
+    {
+        _sut.ForestCoverageFormatted.ShouldBe("Forest Coverage: 20%");
+    }
+
+    [Fact]
+    public void LightWoodsFormatted_ReturnsFormattedValue()
+    {
+        _sut.LightWoodsFormatted.ShouldBe("Light Woods: 30%");
+    }
+
+    [Fact]
+    public void HillCoverageFormatted_ReturnsFormattedValue()
+    {
+        _sut.HillCoverageFormatted.ShouldBe("Hill Coverage: 0%");
+    }
+
+    [Fact]
+    public void MaxElevationFormatted_ReturnsFormattedValue()
+    {
+        _sut.MaxElevationFormatted.ShouldBe("Max Elevation: 2");
+    }
+
+    [Fact]
+    public void MapWidthFormatted_UpdatesWhenMapWidthChanges()
+    {
+        _sut.MapWidth = 20;
+
+        _sut.MapWidthFormatted.ShouldBe("Width: 20 hexes");
+    }
+
+    [Fact]
+    public void MapHeightFormatted_UpdatesWhenMapHeightChanges()
+    {
+        _sut.MapHeight = 25;
+
+        _sut.MapHeightFormatted.ShouldBe("Height: 25 hexes");
+    }
+
+    [Fact]
+    public void ForestCoverageFormatted_UpdatesWhenForestCoverageChanges()
+    {
+        _sut.ForestCoverage = 35;
+
+        _sut.ForestCoverageFormatted.ShouldBe("Forest Coverage: 35%");
+    }
+
+    [Fact]
+    public void LightWoodsFormatted_UpdatesWhenLightWoodsPercentageChanges()
+    {
+        _sut.LightWoodsPercentage = 50;
+
+        _sut.LightWoodsFormatted.ShouldBe("Light Woods: 50%");
+    }
+
+    [Fact]
+    public void HillCoverageFormatted_UpdatesWhenHillCoverageChanges()
+    {
+        _sut.HillCoverage = 15;
+
+        _sut.HillCoverageFormatted.ShouldBe("Hill Coverage: 15%");
+    }
+
+    [Fact]
+    public void MaxElevationFormatted_UpdatesWhenMaxElevationChanges()
+    {
+        _sut.MaxElevation = 4;
+
+        _sut.MaxElevationFormatted.ShouldBe("Max Elevation: 4");
+    }
+
+    [Fact]
     public async Task Constructor_GeneratesInitialPreview()
     {
         // Arrange - setup mock to return a completed task
@@ -179,7 +274,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(objectImage));
             
         // Act - create a new instance
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         // Allow any pending async operations to complete
         var i = 0;
@@ -211,7 +306,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         // Allow any pending async operations to complete
         await Task.Delay(100);
@@ -234,7 +329,7 @@ public class MapConfigViewModelTests
             Task.FromResult<object?>(mockImage2));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -272,7 +367,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -308,7 +403,7 @@ public class MapConfigViewModelTests
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(previewImage));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadAvailableMaps();
@@ -340,7 +435,7 @@ public class MapConfigViewModelTests
             _mapFactory,
             _mapResourceProvider,
             _fileService,
-            _logger, _dispatcherService);
+            _logger, _dispatcherService, _localizationService);
         await sut.LoadAvailableMaps();
 
         // Act
@@ -369,7 +464,7 @@ public class MapConfigViewModelTests
             _mapFactory,
             _mapResourceProvider,
             _fileService,
-            _logger, _dispatcherService);
+            _logger, _dispatcherService, _localizationService);
         await sut.LoadAvailableMaps();
 
         // Act
@@ -407,7 +502,7 @@ public class MapConfigViewModelTests
     public void IsLoadingMaps_DefaultsToFalse()
     {
         // Arrange
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Assert
         sut.IsLoadingMaps.ShouldBeFalse();
@@ -420,7 +515,7 @@ public class MapConfigViewModelTests
         _mapResourceProvider.GetAvailableMapsAsync()
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadAvailableMaps();
@@ -455,7 +550,7 @@ public class MapConfigViewModelTests
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         await sut.LoadAvailableMaps();
 
@@ -470,7 +565,7 @@ public class MapConfigViewModelTests
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         // Arrange
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act & Assert - Should not throw
         sut.Dispose();
@@ -504,7 +599,7 @@ public class MapConfigViewModelTests
         var expectedMap = new BattleMap(2, 2);
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(expectedMap);
         
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         // Act
         await sut.LoadMapCommand.ExecuteAsync();
@@ -525,7 +620,7 @@ public class MapConfigViewModelTests
         _fileService.OpenFile(Arg.Any<string>())
             .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "   ")));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadMapCommand.ExecuteAsync();
@@ -543,7 +638,7 @@ public class MapConfigViewModelTests
         _fileService.OpenFile(Arg.Any<string>())
             .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", """{"HexData": []}""")));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadMapCommand.ExecuteAsync();
@@ -562,7 +657,7 @@ public class MapConfigViewModelTests
         _fileService.OpenFile(Arg.Any<string>())
             .Returns(_ => Task.FromException<(string? Name, string? Content)>(ex));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadMapCommand.ExecuteAsync();
@@ -588,7 +683,7 @@ public class MapConfigViewModelTests
 
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act
         await sut.LoadMapCommand.ExecuteAsync();
@@ -628,7 +723,7 @@ public class MapConfigViewModelTests
             });
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger,
-            _dispatcherService);
+            _dispatcherService, _localizationService);
 
         // Items should be populated immediately
         sut.AvailableMaps.Count.ShouldBe(3); 
@@ -702,7 +797,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<object?>(new object()));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         // Act
         await sut.LoadAvailableMaps();
@@ -734,7 +829,7 @@ public class MapConfigViewModelTests
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, BattleMapData MapData)>());
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act & Assert - Should not throw
         await sut.LoadAvailableMaps();
@@ -766,7 +861,7 @@ public class MapConfigViewModelTests
 
             });
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Act - Trigger multiple rapid updates
         sut.MapWidth = 20; // First update
@@ -803,7 +898,7 @@ public class MapConfigViewModelTests
                 return previewTask.Task;
             });
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
         
         // The constructor's UpdateMap() calls GeneratePreviewAsync synchronously before awaiting;
         // capturedToken is set by the time the constructor returns.
@@ -832,7 +927,7 @@ public class MapConfigViewModelTests
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
 
         // Wait for the initial generation to complete
         var i = 0;
