@@ -86,6 +86,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
         _localizationService.GetString("MovementType_Run").Returns("Run");
+        _localizationService.GetString("Phase_Deployment").Returns("Deployment");
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
@@ -110,7 +111,7 @@ public class BattleMapViewModelTests
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.Deployment
         });
-        _sut.TurnPhaseName.ShouldBe(PhaseNames.Deployment);
+        _sut.TurnPhaseName.ShouldBe("Deployment");
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
         _game.JoinGameWithUnits(player, [],[]);
         _game.HandleCommand(new JoinGameCommand

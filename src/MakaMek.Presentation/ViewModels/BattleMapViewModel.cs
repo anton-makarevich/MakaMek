@@ -365,7 +365,8 @@ public class BattleMapViewModel : BaseViewModel
             return;
         }
 
-        switch (TurnPhaseName)
+        var phase = Game.TurnPhase;
+        switch (phase)
         {
             case PhaseNames.Deployment when phaseState.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
@@ -496,7 +497,15 @@ public class BattleMapViewModel : BaseViewModel
 
     public int Turn => Game?.Turn ?? 0;
 
-    public PhaseNames TurnPhaseName => Game?.TurnPhase ?? PhaseNames.Start;
+    public string TurnPhaseName
+    {
+        get
+        {
+            var phase = Game?.TurnPhase ?? PhaseNames.Start;
+            var key = $"Phase_{phase}";
+            return _localizationService.GetString(key);
+        }
+    }
     
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 

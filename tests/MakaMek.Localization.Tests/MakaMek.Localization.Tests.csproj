@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MakaMek.Localization\MakaMek.Localization.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
   </ItemGroup>
 
 </Project>

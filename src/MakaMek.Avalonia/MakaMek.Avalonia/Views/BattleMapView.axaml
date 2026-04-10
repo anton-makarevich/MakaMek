@@ -46,8 +46,8 @@
                 <Border Grid.Column="0" 
                     Classes="statusSection"
                     Padding="10,5">
-                    <StackPanel Orientation="Horizontal" Classes="horizontalSpaced">
-                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Turn'}"
                                      Classes="turnInfoLabel"
                                      HorizontalAlignment="Center"
@@ -59,7 +59,7 @@
                                      Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
                         </StackPanel>
                         
-                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Phase'}"
                                      Classes="turnInfoLabel"
                                      HorizontalAlignment="Center"
@@ -67,12 +67,13 @@
                             <TextBlock Text="{Binding TurnPhaseName}"
                                      Classes="turnInfo"
                                      FontWeight="Bold" 
-                                     ClipToBounds="True"
-                                     TextTrimming="CharacterEllipsis"
+                                     TextWrapping="Wrap"
+                                     TextAlignment="Center"
+                                     VerticalAlignment="Center"
                                      HorizontalAlignment="Center"
                                      Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
                 
                 <!-- Active Player Section -->
