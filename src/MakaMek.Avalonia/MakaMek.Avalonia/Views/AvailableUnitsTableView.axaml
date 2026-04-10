@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
@@ -13,7 +14,7 @@
     <templatedControls:GamePanel
         HorizontalAlignment="Center"
         VerticalAlignment="Center"
-        Title="Available Units"
+        Title="{extensions:Localize 'AvailableUnits_Title'}"
         CloseCommand="{Binding CancelCommand}">
         
         <Border Padding="5">
@@ -23,7 +24,7 @@
                       ColumnDefinitions="Auto,*"
                       Margin="0,0,0,10">
                     <TextBlock Grid.Column="0"
-                               Text="Class:"
+                               Text="{extensions:Localize 'AvailableUnits_Class'}"
                                Classes="label"
                                VerticalAlignment="Center"
                                Margin="0,0,10,0"/>
@@ -58,7 +59,7 @@
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left">
                                 <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <TextBlock Text="Chassis"
+                                    <TextBlock Text="{extensions:Localize 'AvailableUnits_Chassis'}"
                                                Classes="label"
                                                Foreground="{StaticResource HighlightLightBrush}"
                                                FontWeight="Bold"
@@ -71,7 +72,7 @@
                                 </StackPanel>
                             </Button>
                             <TextBlock Grid.Column="1"
-                                       Text="Model"
+                                       Text="{extensions:Localize 'AvailableUnits_Model'}"
                                        Classes="label"
                                        Foreground="{StaticResource HighlightLightBrush}"
                                        FontWeight="Bold"
@@ -85,7 +86,7 @@
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left">
                                 <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <TextBlock Text="Mass"
+                                    <TextBlock Text="{extensions:Localize 'AvailableUnits_Mass'}"
                                                Classes="label"
                                                Foreground="{StaticResource HighlightLightBrush}"
                                                FontWeight="Bold"
@@ -140,10 +141,10 @@
                             Spacing="10"
                             HorizontalAlignment="Right"
                             Margin="0,10,0,0">
-                    <Button Content="Cancel"
+                    <Button Content="{extensions:Localize 'AvailableUnits_Cancel'}"
                             Command="{Binding CancelCommand}"
                             Classes="secondary"/>
-                    <Button Content="Add Unit"
+                    <Button Content="{extensions:Localize 'AvailableUnits_AddUnit'}"
                             Command="{Binding AddUnitCommand}"
                             IsEnabled="{Binding CanAddUnit}"
                             Classes="primary"/>

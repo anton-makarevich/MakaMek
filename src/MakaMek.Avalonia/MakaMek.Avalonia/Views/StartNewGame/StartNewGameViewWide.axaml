@@ -6,14 +6,15 @@
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
-    <Grid 
+    <Grid
         Margin="10"
         RowDefinitions="Auto,*, Auto">
         <templatedControls:ToolBar
-            Title="Start New Game"
+            Title="{extensions:Localize 'StartNewGame_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
@@ -30,11 +31,11 @@
                         ConverterParameter={x:Static converters:GridOrientation.Columns}}"
         >
             <Grid RowDefinitions="Auto,*">
-                <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
+                <TextBlock Text="{extensions:Localize 'StartNewGame_Players'}" Classes="h2" HorizontalAlignment="Center"/>
                 <fragments:PlayersFragment Grid.Row="1" Margin="10"/>
             </Grid>
-            <Grid RowDefinitions="Auto,*,Auto">      
-                <TextBlock Text="Map" Classes="h2" HorizontalAlignment="Center"/>
+            <Grid RowDefinitions="Auto,*,Auto">
+                <TextBlock Text="{extensions:Localize 'StartNewGame_Map'}" Classes="h2" HorizontalAlignment="Center"/>
                 <ScrollViewer Grid.Row="1" >
                     <fragments:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
@@ -43,7 +44,7 @@
         </UniformGrid>
         <Button Grid.Row="2"
                 Command="{Binding StartGameCommand}"
-                Content="Start Game"
+                Content="{extensions:Localize 'StartNewGame_StartGame'}"
                 Classes="primary"
                 IsEnabled="{Binding CanStartGame}"
                 HorizontalAlignment="Center"

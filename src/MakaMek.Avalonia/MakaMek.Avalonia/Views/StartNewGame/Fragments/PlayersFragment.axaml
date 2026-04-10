@@ -5,6 +5,7 @@
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
@@ -17,11 +18,11 @@
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="10">
-            <Button Content="Add Player"
+            <Button Content="{extensions:Localize 'Players_AddPlayer'}"
                     Command="{Binding AddPlayerCommand}"
                     Classes="primary"
                     IsEnabled="{Binding CanAddPlayer}"/>
-            <Button Content="Add Bot"
+            <Button Content="{extensions:Localize 'Players_AddBot'}"
                     x:Name="AddBotButton"
                     Command="{Binding AddBotCommand}"
                     Classes="primary"
@@ -56,21 +57,21 @@
                                     <Button Command="{Binding StartEditingName}"
                                             IsVisible="{Binding !IsEditingName}"
                                             IsEnabled="{Binding CanEditName}"
-                                            ToolTip.Tip="Edit player name"
+                                            ToolTip.Tip="{extensions:Localize 'Players_EditName'}"
                                             Classes="secondary"
                                             Padding="5,2">
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf304;"/>
                                     </Button>
                                     <Button Command="{Binding SaveName}"
                                             IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="Save name"
+                                            ToolTip.Tip="{extensions:Localize 'Players_SaveName'}"
                                             Classes="primary"
                                             Padding="5,2">
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00c;"/>
                                     </Button>
                                     <Button Command="{Binding CancelEditName}"
                                             IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="Cancel"
+                                            ToolTip.Tip="{extensions:Localize 'Players_Cancel'}"
                                             Classes="secondary"
                                             Padding="5,2">
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00d;"/>
@@ -82,7 +83,7 @@
                                         Command="{Binding $parent[UserControl].((viewModels1:NewGameViewModel)DataContext).RemovePlayerCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsRemovable}"
-                                        ToolTip.Tip="Remove player"
+                                        ToolTip.Tip="{extensions:Localize 'Players_RemovePlayer'}"
                                         Classes="secondary"
                                         Padding="5,2"
                                         VerticalAlignment="Center">
@@ -134,7 +135,7 @@
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         Command="{Binding ShowAvailableUnitsCommand}"
-                                                        ToolTip.Tip="Add Unit"
+                                                        ToolTip.Tip="{extensions:Localize 'Players_AddUnit'}"
                                                         Cursor="Hand">
                                                     <Button.Styles>
                                                         <Style Selector="Button:pointerover">
@@ -142,7 +143,7 @@
                                                         </Style>
                                                     </Button.Styles>
                                                 </Button>
-                                                <TextBlock Text="Add Unit" 
+                                                <TextBlock Text="{extensions:Localize 'Players_AddUnit'}"
                                                            Classes="bodySmall"
                                                            Foreground="{StaticResource TextBrush}"
                                                            TextAlignment="Center"
@@ -160,11 +161,11 @@
                                         Orientation="Horizontal"
                                         Spacing="10"
                                         Margin="10,5">
-                                <Button Content="Join Game"
+                                <Button Content="{extensions:Localize 'Players_JoinGame'}"
                                         Command="{Binding JoinGameCommand}"
                                         Classes="primary"
                                         IsVisible="{Binding CanJoin}"/>
-                                <Button Content="Set Ready"
+                                <Button Content="{extensions:Localize 'Players_SetReady'}"
                                         Command="{Binding SetReadyCommand}"
                                         Classes="primary"
                                         IsVisible="{Binding CanSetReady}"/>

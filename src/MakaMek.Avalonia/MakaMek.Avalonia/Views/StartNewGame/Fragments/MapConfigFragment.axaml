@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
@@ -14,7 +15,7 @@
     
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
         <!-- Tab 1: Select a Pre-existing Map -->
-        <TabItem Header="Select Map">
+        <TabItem Header="{extensions:Localize 'MapConfig_SelectMap'}">
             <Grid RowDefinitions="*,Auto">
                 <ItemsControl Grid.Row="0" ItemsSource="{Binding AvailableMaps}" Margin="8">
                     <ItemsControl.ItemsPanel>
@@ -47,10 +48,10 @@
                              IsVisible="{Binding IsLoadingMaps}"
                              IsIndeterminate="True"
                              VerticalAlignment="Top"/>
-                <Button Grid.Row="1" 
-                        Command="{Binding LoadMapCommand}" 
-                        Content="Load Map from File" 
-                        HorizontalAlignment="Stretch" 
+                <Button Grid.Row="1"
+                        Command="{Binding LoadMapCommand}"
+                        Content="{extensions:Localize 'MapConfig_LoadMap'}"
+                        HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         Margin="8"
                         Classes="primary"/>
@@ -58,7 +59,7 @@
         </TabItem>
         
         <!-- Tab 2: Generate Map -->
-        <TabItem Header="Generate Map">
+        <TabItem Header="{extensions:Localize 'MapConfig_GenerateMap'}">
             <UniformGrid
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
@@ -74,39 +75,45 @@
                 <!-- Configuration Sliders -->
                 <StackPanel Classes="verticalSpaced">
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_Width'}" Classes="label"/>
                         <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding MapWidthFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_Height'}" Classes="label"/>
                         <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding MapHeightFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_ForestCoverage'}" Classes="label"/>
                         <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding ForestCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_LightWoods'}" Classes="label"/>
                         <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding LightWoodsFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding HillCoverageLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_HillCoverage'}" Classes="label"/>
                         <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding HillCoverage, StringFormat='Hill Coverage: {0}%'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding HillCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
-                        <TextBlock Text="{Binding MaxElevationLabel}" Classes="label"/>
+                        <TextBlock Text="{extensions:Localize 'MapConfig_MaxElevation'}" Classes="label"/>
                         <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <TextBlock Text="{Binding MaxElevation, StringFormat='Max Elevation: {0}'}" Classes="bodySmall"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding MaxElevationFormatted}" Classes="bodySmall"/>
                     </StackPanel>
                 </StackPanel>
 

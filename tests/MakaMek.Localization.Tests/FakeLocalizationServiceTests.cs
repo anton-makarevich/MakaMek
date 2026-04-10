@@ -494,4 +494,341 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData("ConnectFragment_ServerAddress", "Server Address:")]
+    [InlineData("ConnectFragment_EnterServerIP", "Enter Server IP")]
+    [InlineData("ConnectFragment_Connect", "Connect")]
+    [InlineData("ConnectFragment_Connected", "Connected")]
+    public void GetString_ConnectFragment_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("BattleMap_Turn", "TURN")]
+    [InlineData("BattleMap_Phase", "PHASE")]
+    [InlineData("BattleMap_ActivePlayer", "ACTIVE PLAYER")]
+    [InlineData("BattleMap_SelectUnitToDeploy", "Select a Unit to deploy")]
+    [InlineData("BattleMap_SelectTargetLocation", "Select Target Location")]
+    [InlineData("BattleMap_ResetMap", "Reset Map")]
+    [InlineData("BattleMap_UnitInfo", "Unit Info")]
+    [InlineData("BattleMap_Commands", "Commands")]
+    [InlineData("BattleMap_MapSettings", "Map Settings")]
+    [InlineData("BattleMap_CommandLog", "Command Log")]
+    [InlineData("BattleMap_Settings", "Settings")]
+    [InlineData("BattleMap_ShowLabels", "Show Labels")]
+    [InlineData("BattleMap_ShowHexOutlines", "Show Hex Outlines")]
+    [InlineData("BattleMap_ShowHexHighlightText", "Show Hex Highlight Text")]
+    public void GetString_BattleMap_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitBasicInfo_TurnIndicator", "T")]
+    public void GetString_UnitBasicInfo_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitComponents_Component", "Component")]
+    [InlineData("UnitComponents_Slots", "Slots")]
+    [InlineData("UnitComponents_Hits", "Hits")]
+    [InlineData("UnitComponents_Status", "Status")]
+    public void GetString_UnitComponents_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitMovement_WalkMP", "Walk MP")]
+    [InlineData("UnitMovement_RunMP", "Run MP")]
+    [InlineData("UnitMovement_JumpMP", "Jump MP")]
+    [InlineData("UnitMovement_Type", "Type")]
+    [InlineData("UnitMovement_Points", "Points")]
+    [InlineData("UnitMovement_Traversed", "Traversed")]
+    public void GetString_UnitMovement_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitPilot_PilotInformation", "Pilot Information")]
+    [InlineData("UnitPilot_Name", "Name:")]
+    [InlineData("UnitPilot_Skills", "Skills")]
+    [InlineData("UnitPilot_Gunnery", "Gunnery:")]
+    [InlineData("UnitPilot_Piloting", "Piloting:")]
+    [InlineData("UnitPilot_HealthStatus", "Health Status")]
+    [InlineData("UnitPilot_Injuries", "Injuries: {0}/{1}")]
+    [InlineData("UnitPilot_Status", "Status")]
+    [InlineData("UnitPilot_Dead", "DEAD")]
+    public void GetString_UnitPilot_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitWeapons_Weapon", "Weapon")]
+    [InlineData("UnitWeapons_Damage", "DMG")]
+    [InlineData("UnitWeapons_Heat", "HT")]
+    [InlineData("UnitWeapons_Range", "Range")]
+    public void GetString_UnitWeapons_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("WeaponSelection_SelectWeapons", "Select weapons to attack")]
+    [InlineData("WeaponSelection_Primary", "PRIMARY")]
+    [InlineData("WeaponSelection_SetPrimary", "Set Primary")]
+    [InlineData("WeaponSelection_AimedShot", "Aimed Shot")]
+    public void GetString_WeaponSelection_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitItem_RemoveUnit", "Remove unit")]
+    public void GetString_UnitItem_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("AboutView_Title", "About MakaMek")]
+    [InlineData("AboutView_AboutTheGame", "About the Game")]
+    [InlineData("AboutView_VisitGitHub", "Visit GitHub Repository")]
+    [InlineData("AboutView_AssetAttribution", "Assets Attribution")]
+    [InlineData("AboutView_VisitMegaMek", "Visit MegaMek Website")]
+    [InlineData("AboutView_Contact", "Contact")]
+    [InlineData("AboutView_SendEmail", "Send Email")]
+    [InlineData("AboutView_License", "License")]
+    [InlineData("AboutView_TrademarkNotices", "Trademark Notices")]
+    [InlineData("AboutView_ViewContentRules", "View Game Content Usage Rules")]
+    [InlineData("AboutView_SourceCode", "Source Code")]
+    public void GetString_AboutView_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("AvailableUnits_Title", "Available Units")]
+    [InlineData("AvailableUnits_Class", "Class:")]
+    [InlineData("AvailableUnits_Chassis", "Chassis")]
+    [InlineData("AvailableUnits_Model", "Model")]
+    [InlineData("AvailableUnits_Mass", "Mass")]
+    [InlineData("AvailableUnits_Cancel", "Cancel")]
+    [InlineData("AvailableUnits_AddUnit", "Add Unit")]
+    public void GetString_AvailableUnits_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("JoinGame_Title", "Join Game")]
+    public void GetString_JoinGame_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("MainMenu_StartNewGame", "Start New Game")]
+    [InlineData("MainMenu_JoinGame", "Join Game")]
+    [InlineData("MainMenu_About", "About")]
+    public void GetString_MainMenu_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("StartNewGame_Title", "Start New Game")]
+    [InlineData("StartNewGame_Players", "Players")]
+    [InlineData("StartNewGame_Map", "Map")]
+    [InlineData("StartNewGame_Network", "Network")]
+    [InlineData("StartNewGame_StartGame", "Start Game")]
+    public void GetString_StartNewGame_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("MapConfig_SelectMap", "Select Map")]
+    [InlineData("MapConfig_LoadMap", "Load Map from File")]
+    [InlineData("MapConfig_GenerateMap", "Generate Map")]
+    [InlineData("MapConfig_Width", "Map Width")]
+    [InlineData("MapConfig_Height", "Map Height")]
+    [InlineData("MapConfig_ForestCoverage", "Forest Coverage")]
+    [InlineData("MapConfig_LightWoods", "Light Woods Percentage")]
+    [InlineData("MapConfig_HillCoverage", "Hill Coverage")]
+    [InlineData("MapConfig_MaxElevation", "Max Elevation")]
+    [InlineData("MapConfig_Width_Formatted", "Width: {0} hexes")]
+    [InlineData("MapConfig_Height_Formatted", "Height: {0} hexes")]
+    [InlineData("MapConfig_ForestCoverage_Formatted", "Forest Coverage: {0}%")]
+    [InlineData("MapConfig_LightWoods_Formatted", "Light Woods: {0}%")]
+    [InlineData("MapConfig_HillCoverage_Formatted", "Hill Coverage: {0}%")]
+    [InlineData("MapConfig_MaxElevation_Formatted", "Max Elevation: {0}")]
+    public void GetString_MapConfig_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("Network_NetworkSettings", "Network Settings")]
+    [InlineData("Network_Multiplayer", "Multiplayer")]
+    [InlineData("Network_ServerAddress", "Server Address")]
+    [InlineData("Network_ShareAddress", "Share this address with other players to connect")]
+    public void GetString_Network_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("Players_AddPlayer", "Add Player")]
+    [InlineData("Players_AddBot", "Add Bot")]
+    [InlineData("Players_EditName", "Edit player name")]
+    [InlineData("Players_SaveName", "Save name")]
+    [InlineData("Players_Cancel", "Cancel")]
+    [InlineData("Players_RemovePlayer", "Remove player")]
+    [InlineData("Players_AddUnit", "Add Unit")]
+    [InlineData("Players_JoinGame", "Join Game")]
+    [InlineData("Players_SetReady", "Set Ready")]
+    public void GetString_Players_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("Window_Title", "MakaMek")]
+    public void GetString_Window_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

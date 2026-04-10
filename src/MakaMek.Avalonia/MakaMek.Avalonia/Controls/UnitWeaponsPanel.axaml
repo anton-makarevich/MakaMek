@@ -5,6 +5,7 @@
              xmlns:weapons="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components.Weapons;assembly=Sanet.MakaMek.Core"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitWeaponsPanel">
     <UserControl.Resources>
@@ -14,10 +15,10 @@
     <Grid ColumnDefinitions="4*,2*,*,3*"
           RowDefinitions="Auto,*"
           Margin="5">
-        <TextBlock Grid.Column="0" Text="Weapon" Classes="h4"/>
-        <TextBlock Grid.Column="1" Text="DMG" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="2" Text="HT" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="3" Text="Range" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="0" Text="{extensions:Localize 'UnitWeapons_Weapon'}" Classes="h4"/>
+        <TextBlock Grid.Column="1" Text="{extensions:Localize 'UnitWeapons_Damage'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="2" Text="{extensions:Localize 'UnitWeapons_Heat'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="3" Text="{extensions:Localize 'UnitWeapons_Range'}" Classes="h4" Margin="5,0"/>
         <ScrollViewer
             Grid.ColumnSpan="4"
             Grid.Row="1"

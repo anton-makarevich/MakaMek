@@ -2,23 +2,24 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
              x:DataType="viewModels:JoinGameViewModel">
 
   <StackPanel Spacing="10">
-    <TextBlock Text="Server Address:" FontWeight="Bold"/>
+    <TextBlock Text="{extensions:Localize 'ConnectFragment_ServerAddress'}" FontWeight="Bold"/>
     <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
-             PlaceholderText="Enter Server IP"/>
-    <Button Content="Connect"
+             PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"/>
+    <Button Content="{extensions:Localize 'ConnectFragment_Connect'}"
             Command="{Binding ConnectCommand}"
-            IsEnabled="{Binding CanConnect}" 
+            IsEnabled="{Binding CanConnect}"
             HorizontalAlignment="Stretch"/>
      <!-- Optional: Add a status indicator -->
-     <TextBlock Text="Connected" 
-                IsVisible="{Binding IsConnected}" 
-                Foreground="Green"/> 
+     <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
+                IsVisible="{Binding IsConnected}"
+                Foreground="Green"/>
   </StackPanel>
 
 </UserControl>

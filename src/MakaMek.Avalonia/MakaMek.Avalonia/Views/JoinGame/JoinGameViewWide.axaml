@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
              x:DataType="viewModels:JoinGameViewModel"
@@ -13,7 +14,7 @@
     <Grid Margin="10" 
           RowDefinitions="Auto,*">
         <templatedControls:ToolBar
-            Title="Join Game"
+            Title="{extensions:Localize 'JoinGame_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"

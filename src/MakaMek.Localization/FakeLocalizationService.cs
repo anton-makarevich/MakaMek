@@ -343,6 +343,145 @@ public class FakeLocalizationService: ILocalizationService
             "Dialog_No" => "No",
             "Dialog_LeaveGame_Title" => "Leave Game",
             "Dialog_LeaveGame_Message" => "WARNING: This action ends the game for all players",
+
+            // Connect Fragment
+            "ConnectFragment_ServerAddress" => "Server Address:",
+            "ConnectFragment_EnterServerIP" => "Enter Server IP",
+            "ConnectFragment_Connect" => "Connect",
+            "ConnectFragment_Connected" => "Connected",
+
+            // Battle Map View
+            "BattleMap_Turn" => "TURN",
+            "BattleMap_Phase" => "PHASE",
+            "BattleMap_ActivePlayer" => "ACTIVE PLAYER",
+            "BattleMap_SelectUnitToDeploy" => "Select a Unit to deploy",
+            "BattleMap_SelectTargetLocation" => "Select Target Location",
+            "BattleMap_ResetMap" => "Reset Map",
+            "BattleMap_UnitInfo" => "Unit Info",
+            "BattleMap_Commands" => "Commands",
+            "BattleMap_MapSettings" => "Map Settings",
+            "BattleMap_CommandLog" => "Command Log",
+            "BattleMap_Settings" => "Settings",
+            "BattleMap_ShowLabels" => "Show Labels",
+            "BattleMap_ShowHexOutlines" => "Show Hex Outlines",
+            "BattleMap_ShowHexHighlightText" => "Show Hex Highlight Text",
+
+            // Unit Basic Info Panel
+            "UnitBasicInfo_TurnIndicator" => "T",
+
+            // Unit Components Panel
+            "UnitComponents_Component" => "Component",
+            "UnitComponents_Slots" => "Slots",
+            "UnitComponents_Hits" => "Hits",
+            "UnitComponents_Status" => "Status",
+
+            // Unit Movement Info Panel
+            "UnitMovement_WalkMP" => "Walk MP",
+            "UnitMovement_RunMP" => "Run MP",
+            "UnitMovement_JumpMP" => "Jump MP",
+            "UnitMovement_Type" => "Type",
+            "UnitMovement_Points" => "Points",
+            "UnitMovement_Traversed" => "Traversed",
+
+            // Unit Pilot Info Panel
+            "UnitPilot_PilotInformation" => "Pilot Information",
+            "UnitPilot_Name" => "Name:",
+            "UnitPilot_Skills" => "Skills",
+            "UnitPilot_Gunnery" => "Gunnery:",
+            "UnitPilot_Piloting" => "Piloting:",
+            "UnitPilot_HealthStatus" => "Health Status",
+            "UnitPilot_Injuries" => "Injuries: {0}/{1}",
+            "UnitPilot_Status" => "Status",
+            "UnitPilot_Dead" => "DEAD",
+
+            // Unit Weapons Panel
+            "UnitWeapons_Weapon" => "Weapon",
+            "UnitWeapons_Damage" => "DMG",
+            "UnitWeapons_Heat" => "HT",
+            "UnitWeapons_Range" => "Range",
+
+            // Weapon Selection Panel
+            "WeaponSelection_SelectWeapons" => "Select weapons to attack",
+            "WeaponSelection_Primary" => "PRIMARY",
+            "WeaponSelection_SetPrimary" => "Set Primary",
+            "WeaponSelection_AimedShot" => "Aimed Shot",
+
+            // Unit Item Control
+            "UnitItem_RemoveUnit" => "Remove unit",
+
+            // About View
+            "AboutView_Title" => "About MakaMek",
+            "AboutView_AboutTheGame" => "About the Game",
+            "AboutView_VisitGitHub" => "Visit GitHub Repository",
+            "AboutView_AssetAttribution" => "Assets Attribution",
+            "AboutView_VisitMegaMek" => "Visit MegaMek Website",
+            "AboutView_Contact" => "Contact",
+            "AboutView_SendEmail" => "Send Email",
+            "AboutView_License" => "License",
+            "AboutView_TrademarkNotices" => "Trademark Notices",
+            "AboutView_ViewContentRules" => "View Game Content Usage Rules",
+            "AboutView_SourceCode" => "Source Code",
+
+            // Available Units Table View
+            "AvailableUnits_Title" => "Available Units",
+            "AvailableUnits_Class" => "Class:",
+            "AvailableUnits_Chassis" => "Chassis",
+            "AvailableUnits_Model" => "Model",
+            "AvailableUnits_Mass" => "Mass",
+            "AvailableUnits_Cancel" => "Cancel",
+            "AvailableUnits_AddUnit" => "Add Unit",
+
+            // Join Game View
+            "JoinGame_Title" => "Join Game",
+
+            // Main Menu View
+            "MainMenu_StartNewGame" => "Start New Game",
+            "MainMenu_JoinGame" => "Join Game",
+            "MainMenu_About" => "About",
+
+            // Start New Game View
+            "StartNewGame_Title" => "Start New Game",
+            "StartNewGame_Players" => "Players",
+            "StartNewGame_Map" => "Map",
+            "StartNewGame_Network" => "Network",
+            "StartNewGame_StartGame" => "Start Game",
+
+            // Map Config Fragment
+            "MapConfig_SelectMap" => "Select Map",
+            "MapConfig_LoadMap" => "Load Map from File",
+            "MapConfig_GenerateMap" => "Generate Map",
+            "MapConfig_Width" => "Map Width",
+            "MapConfig_Height" => "Map Height",
+            "MapConfig_ForestCoverage" => "Forest Coverage",
+            "MapConfig_LightWoods" => "Light Woods Percentage",
+            "MapConfig_HillCoverage" => "Hill Coverage",
+            "MapConfig_MaxElevation" => "Max Elevation",
+            "MapConfig_Width_Formatted" => "Width: {0} hexes",
+            "MapConfig_Height_Formatted" => "Height: {0} hexes",
+            "MapConfig_ForestCoverage_Formatted" => "Forest Coverage: {0}%",
+            "MapConfig_LightWoods_Formatted" => "Light Woods: {0}%",
+            "MapConfig_HillCoverage_Formatted" => "Hill Coverage: {0}%",
+            "MapConfig_MaxElevation_Formatted" => "Max Elevation: {0}",
+
+            // Network Fragment
+            "Network_NetworkSettings" => "Network Settings",
+            "Network_Multiplayer" => "Multiplayer",
+            "Network_ServerAddress" => "Server Address",
+            "Network_ShareAddress" => "Share this address with other players to connect",
+
+            // Players Fragment
+            "Players_AddPlayer" => "Add Player",
+            "Players_AddBot" => "Add Bot",
+            "Players_EditName" => "Edit player name",
+            "Players_SaveName" => "Save name",
+            "Players_Cancel" => "Cancel",
+            "Players_RemovePlayer" => "Remove player",
+            "Players_AddUnit" => "Add Unit",
+            "Players_JoinGame" => "Join Game",
+            "Players_SetReady" => "Set Ready",
+
+            // Window Title
+            "Window_Title" => "MakaMek",
             _ => key
         };
     }
