@@ -26,7 +26,7 @@ public class HexControl : Panel
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
     private readonly List<Image> _terrainImageLayers = [];
-    private readonly HexRenderConfiguration _renderConfiguration;
+    private HexRenderConfiguration _renderConfiguration;
     private TextBlock? _highlightTextLabel;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
@@ -326,6 +326,25 @@ public class HexControl : Panel
         await UpdateBaseTerrainImage();
         await UpdateEdgeLayers();
         await UpdateOverlayLayers();
+    }
+
+    /// <summary>
+    /// Updates the render configuration in-place without recreating the control.
+    /// Updates label visibility, outline visibility, and highlight label visibility.
+    /// </summary>
+    /// <param name="configuration">The new render configuration to apply</param>
+    public void UpdateRenderConfiguration(HexRenderConfiguration configuration)
+    {
+        _renderConfiguration = configuration;
+
+        // Update coordinate/level label visibility
+        foreach (var label in Children.OfType<Label>())
+        {
+            label.IsVisible = configuration.ShowLabels;
+        }
+
+        // Re-apply highlight to refresh outline and highlight-label visibility
+        Highlight(_hex.Highlights);
     }
 
     /// <summary>
