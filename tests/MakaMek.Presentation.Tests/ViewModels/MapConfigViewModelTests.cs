@@ -301,7 +301,6 @@ public class MapConfigViewModelTests
     [Fact]
     public void MaxForestCoverage_DefaultsTo100MinusRoughCoverage()
     {
-        // RoughCoverage defaults to 0
         _sut.MaxForestCoverage.ShouldBe(100 - _sut.RoughCoverage);
     }
 
