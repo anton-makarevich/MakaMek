@@ -19,6 +19,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     private static readonly SKColor ClearTerrainColor = new(0x8F, 0xA5, 0x57); // PrimaryLightColor - light green
     private static readonly SKColor LightWoodsColor = new(0x6B, 0x8E, 0x23); // PrimaryColor - medium green
     private static readonly SKColor HeavyWoodsColor = new(0x55, 0x6B, 0x2F); // PrimaryDarkColor - dark green
+    private static readonly SKColor RoughColor = new(0x70, 0x78, 0x72); // gray
     private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0); // BackgroundColor
 
     /// <summary>
@@ -111,6 +112,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             MakaMekTerrains.Clear => ClearTerrainColor,
             MakaMekTerrains.LightWoods => LightWoodsColor,
             MakaMekTerrains.HeavyWoods => HeavyWoodsColor,
+            MakaMekTerrains.Rough => RoughColor,
             _ => ClearTerrainColor
         };
     }

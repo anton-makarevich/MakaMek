@@ -34,6 +34,7 @@ public abstract class Terrain
             MakaMekTerrains.Clear => new ClearTerrain(),
             MakaMekTerrains.LightWoods => new LightWoodsTerrain(),
             MakaMekTerrains.HeavyWoods => new HeavyWoodsTerrain(),
+            MakaMekTerrains.Rough => new RoughTerrain(),
             _ => throw new ArgumentException($"Unknown terrain type: {terrainType}")
         };
     }

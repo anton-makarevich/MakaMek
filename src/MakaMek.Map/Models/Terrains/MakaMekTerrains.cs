@@ -18,5 +18,10 @@ public enum MakaMekTerrains
     /// <summary>
     /// Heavy woods terrain
     /// </summary>
-    HeavyWoods
+    HeavyWoods,
+    
+    /// <summary>
+    /// Rough terrain - broken ground, rubble, or other difficult surface
+    /// </summary>
+    Rough
 }
