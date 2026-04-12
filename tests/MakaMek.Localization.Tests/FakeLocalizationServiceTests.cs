@@ -768,6 +768,8 @@ public class FakeLocalizationServiceTests
     [InlineData("MapConfig_LightWoods_Formatted", "Light Woods: {0}%")]
     [InlineData("MapConfig_HillCoverage_Formatted", "Hill Coverage: {0}%")]
     [InlineData("MapConfig_MaxElevation_Formatted", "Max Elevation: {0}")]
+    [InlineData("MapConfig_RoughTerrain", "Rough Terrain Coverage")]
+    [InlineData("MapConfig_RoughCoverage_Formatted", "Rough Coverage: {0}%")]
     public void GetString_MapConfig_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

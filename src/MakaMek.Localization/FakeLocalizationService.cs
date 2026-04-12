@@ -462,6 +462,8 @@ public class FakeLocalizationService: ILocalizationService
             "MapConfig_LightWoods_Formatted" => "Light Woods: {0}%",
             "MapConfig_HillCoverage_Formatted" => "Hill Coverage: {0}%",
             "MapConfig_MaxElevation_Formatted" => "Max Elevation: {0}",
+            "MapConfig_RoughTerrain" => "Rough Terrain Coverage",
+            "MapConfig_RoughCoverage_Formatted" => "Rough Coverage: {0}%",
 
             // Network Fragment
             "Network_NetworkSettings" => "Network Settings",

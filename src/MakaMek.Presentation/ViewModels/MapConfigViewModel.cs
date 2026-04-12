@@ -76,6 +76,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public string LightWoodsFormatted => string.Format(_localizationService.GetString("MapConfig_LightWoods_Formatted"), LightWoodsPercentage);
     public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage_Formatted"), HillCoverage);
     public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation_Formatted"), MaxElevation);
+    public string RoughCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_RoughCoverage_Formatted"), RoughCoverage);
+
+    /// <summary>
+    /// Maximum allowed rough terrain coverage to ensure a hex cannot contain both woods and rough terrain.
+    /// WoodCoverage + RoughCoverage cannot be greater than 100.
+    /// </summary>
+    public int MaxRoughCoverage => 100 - ForestCoverage;
 
     /// <summary>
     /// Currently selected tab index. 0 = Select Map, 1 = Generate Map
@@ -153,9 +160,22 @@ public class MapConfigViewModel : BindableBase, IDisposable
             SetProperty(ref _forestCoverage, value);
             NotifyPropertyChanged(nameof(IsLightWoodsEnabled));
             NotifyPropertyChanged(nameof(ForestCoverageFormatted));
+            NotifyPropertyChanged(nameof(MaxRoughCoverage));
+            NotifyPropertyChanged(nameof(RoughCoverageFormatted));
             StartMapUpdate();
         }
     }
+
+    public int RoughCoverage
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(RoughCoverageFormatted));
+            StartMapUpdate();
+        }
+    } = 10;
 
     public int LightWoodsPercentage
     {
@@ -352,6 +372,9 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
             if (ForestCoverage > 0)
                 builder = builder.WithForestPatches(ForestCoverage / 100.0, LightWoodsPercentage / 100.0);
+
+            if (RoughCoverage > 0)
+                builder = builder.WithTerrain<RoughTerrain>(RoughCoverage / 100.0);
 
             if (HillCoverage > 0)
                 builder = builder.WithHills(HillCoverage / 100.0, MaxElevation);

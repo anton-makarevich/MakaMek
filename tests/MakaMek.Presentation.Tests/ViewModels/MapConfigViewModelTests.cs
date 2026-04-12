@@ -36,13 +36,14 @@ public class MapConfigViewModelTests
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Configure localization service mock - return the key if not configured
-        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted")).Returns(callInfo => callInfo.Arg<string>());
+        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted")).Returns(callInfo => callInfo.Arg<string>());
         _localizationService.GetString("MapConfig_Width_Formatted").Returns("Width: {0} hexes");
         _localizationService.GetString("MapConfig_Height_Formatted").Returns("Height: {0} hexes");
         _localizationService.GetString("MapConfig_ForestCoverage_Formatted").Returns("Forest Coverage: {0}%");
         _localizationService.GetString("MapConfig_LightWoods_Formatted").Returns("Light Woods: {0}%");
         _localizationService.GetString("MapConfig_HillCoverage_Formatted").Returns("Hill Coverage: {0}%");
         _localizationService.GetString("MapConfig_MaxElevation_Formatted").Returns("Max Elevation: {0}");
+        _localizationService.GetString("MapConfig_RoughCoverage_Formatted").Returns("Rough Coverage: {0}%");
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
     }
@@ -70,6 +71,7 @@ public class MapConfigViewModelTests
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
+        _sut.RoughCoverage.ShouldBe(0);
     }
 
     [Theory]
@@ -225,6 +227,75 @@ public class MapConfigViewModelTests
         _sut.MaxElevation = 4;
 
         _sut.MaxElevationFormatted.ShouldBe("Max Elevation: 4");
+    }
+
+    [Fact]
+    public void RoughCoverage_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newCoverage = 15;
+
+        _sut.RoughCoverage = newCoverage;
+
+        _sut.RoughCoverage.ShouldBe(newCoverage);
+    }
+
+    [Fact]
+    public void RoughCoverageFormatted_ReturnsFormattedValue()
+    {
+        _sut.RoughCoverageFormatted.ShouldBe("Rough Coverage: 0%");
+    }
+
+    [Fact]
+    public void RoughCoverageFormatted_UpdatesWhenRoughCoverageChanges()
+    {
+        _sut.RoughCoverage = 20;
+
+        _sut.RoughCoverageFormatted.ShouldBe("Rough Coverage: 20%");
+    }
+
+    [Fact]
+    public void MaxRoughCoverage_DefaultsTo100MinusForestCoverage()
+    {
+        // ForestCoverage defaults to 20
+        _sut.MaxRoughCoverage.ShouldBe(80);
+    }
+
+    [Fact]
+    public void MaxRoughCoverage_UpdatesWhenForestCoverageChanges()
+    {
+        _sut.ForestCoverage = 50;
+
+        _sut.MaxRoughCoverage.ShouldBe(50);
+    }
+
+    [Fact]
+    public void ForestCoverage_WhenChanged_NotifiesMaxRoughCoverage()
+    {
+        var notified = false;
+        _sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MapConfigViewModel.MaxRoughCoverage))
+                notified = true;
+        };
+
+        _sut.ForestCoverage = 30;
+
+        notified.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ForestCoverage_WhenChanged_NotifiesRoughCoverageFormatted()
+    {
+        var notified = false;
+        _sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MapConfigViewModel.RoughCoverageFormatted))
+                notified = true;
+        };
+
+        _sut.ForestCoverage = 30;
+
+        notified.ShouldBeTrue();
     }
 
     [Fact]

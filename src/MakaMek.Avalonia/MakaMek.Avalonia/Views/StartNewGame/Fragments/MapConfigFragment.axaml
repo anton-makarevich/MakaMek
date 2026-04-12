@@ -103,6 +103,13 @@
                     </StackPanel>
 
                     <StackPanel Classes="formGroup">
+                        <TextBlock Text="{extensions:Localize 'MapConfig_RoughTerrain'}" Classes="label"/>
+                        <Slider Value="{Binding RoughCoverage}" Minimum="0" Maximum="{Binding MaxRoughCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding RoughCoverageFormatted}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
                         <TextBlock Text="{extensions:Localize 'MapConfig_HillCoverage'}" Classes="label"/>
                         <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->
