@@ -71,7 +71,7 @@ public class MapConfigViewModelTests
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
-        _sut.RoughCoverage.ShouldBe(0);
+        _sut.RoughCoverage.ShouldBe(10);
     }
 
     [Theory]
@@ -242,7 +242,7 @@ public class MapConfigViewModelTests
     [Fact]
     public void RoughCoverageFormatted_ReturnsFormattedValue()
     {
-        _sut.RoughCoverageFormatted.ShouldBe("Rough Coverage: 0%");
+        _sut.RoughCoverageFormatted.ShouldBe("Rough Coverage: 10%");
     }
 
     [Fact]
@@ -294,6 +294,36 @@ public class MapConfigViewModelTests
         };
 
         _sut.ForestCoverage = 30;
+
+        notified.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MaxForestCoverage_DefaultsTo100MinusRoughCoverage()
+    {
+        // RoughCoverage defaults to 0
+        _sut.MaxForestCoverage.ShouldBe(100 - _sut.RoughCoverage);
+    }
+
+    [Fact]
+    public void MaxForestCoverage_UpdatesWhenRoughCoverageChanges()
+    {
+        _sut.RoughCoverage = 30;
+
+        _sut.MaxForestCoverage.ShouldBe(70);
+    }
+
+    [Fact]
+    public void RoughCoverage_WhenChanged_NotifiesMaxForestCoverage()
+    {
+        var notified = false;
+        _sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MapConfigViewModel.MaxForestCoverage))
+                notified = true;
+        };
+
+        _sut.RoughCoverage = 20;
 
         notified.ShouldBeTrue();
     }

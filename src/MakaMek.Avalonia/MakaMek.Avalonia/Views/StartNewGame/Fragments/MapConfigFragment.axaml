@@ -90,7 +90,7 @@
 
                     <StackPanel Classes="formGroup">
                         <TextBlock Text="{extensions:Localize 'MapConfig_ForestCoverage'}" Classes="label"/>
-                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="{Binding MaxForestCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->
                         <TextBlock Text="{Binding ForestCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>

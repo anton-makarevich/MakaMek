@@ -85,6 +85,12 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public int MaxRoughCoverage => 100 - ForestCoverage;
 
     /// <summary>
+    /// Maximum allowed forest coverage to ensure a hex cannot contain both woods and rough terrain.
+    /// WoodCoverage + RoughCoverage cannot be greater than 100.
+    /// </summary>
+    public int MaxForestCoverage => 100 - RoughCoverage;
+
+    /// <summary>
     /// Currently selected tab index. 0 = Select Map, 1 = Generate Map
     /// </summary>
     public int SelectedTabIndex
@@ -173,6 +179,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(RoughCoverageFormatted));
+            NotifyPropertyChanged(nameof(MaxForestCoverage));
             StartMapUpdate();
         }
     } = 10;
