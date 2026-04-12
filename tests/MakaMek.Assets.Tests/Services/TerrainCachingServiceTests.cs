@@ -88,10 +88,13 @@ public class TerrainCachingServiceTests
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var lightwoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
         var heavyWoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "heavywoods");
+        var roughVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "rough");
 
         // Assert
         lightwoodsVariants.Count.ShouldBe(1);
         heavyWoodsVariants.Count.ShouldBe(1);
+        roughVariants.Count.ShouldBe(1);
+        roughVariants.ShouldContain(0); // rough.png has no suffix → variant 0
     }
 
     [Fact]
@@ -219,6 +222,21 @@ public class TerrainCachingServiceTests
 
         // Assert
         image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetTerrainOverlayImage_ShouldReturnImage_ForRoughTerrain()
+    {
+        // Arrange — rough.png is a variant-0 asset (no suffix)
+        using var mmtxStream = CreateMmtxPackageWithOverlays("test-biome");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+
+        // Act
+        var image = await _sut.GetTerrainOverlayImage("test-biome", "rough");
+
+        // Assert
+        image.ShouldNotBeNull();
+        image.Length.ShouldBeGreaterThan(0);
     }
     
     [Fact]
@@ -493,6 +511,13 @@ public class TerrainCachingServiceTests
             using (var heavyWoodsStream = heavyWoodsEntry.Open())
             {
                 heavyWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
+
+            // Add rough terrain overlay (variant 0 — no suffix)
+            var roughEntry = archive.CreateEntry("terrains/rough.png");
+            using (var roughStream = roughEntry.Open())
+            {
+                roughStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
             }
         }
         stream.Position = 0;
