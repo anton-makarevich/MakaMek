@@ -6,7 +6,7 @@ A cross-platform implementation of turn-based tabletop tactics BattleTech, built
 
 MakaMek is an open-source tactical combat game featuring giant walking war machines. The game is inspired by another computer implementation of BattleTech called [MegaMek](https://megamek.org/) but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.
 
-![MakaMek](docs/screenshots/win/260331.png)
+![MakaMek](docs/screenshots/win/260413.png)
 
 ## Implementation Phases
 <details>
@@ -50,11 +50,12 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 ### Phase 2. Support of map Levels and extended terrain types 🚧
 #### Implemented
-- Support of map Levels
+- Support of map Levels and detailed LOS highlighting
+- Support for rough terrain
 - [Map Editor](https://github.com/anton-makarevich/MakaMek.MapEditor) (separate project)
 
 #### Planned
-- Support of water and rough terrain types
+- Support of water
 - Support of roads and paved areas
 
 ### Future Phases
