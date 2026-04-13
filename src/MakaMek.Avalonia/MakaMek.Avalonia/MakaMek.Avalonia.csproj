@@ -54,6 +54,8 @@
       <EmbeddedResource Include="Resources\Maps\open-terrain-1.json" />
       <EmbeddedResource Include="Resources\Maps\open-terrain-2.json" />
       <EmbeddedResource Include="Resources\Maps\4sw-woodland.json" />
+      <None Remove="Resources\Maps\hills.json" />
+      <EmbeddedResource Include="Resources\Maps\hills.json" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->
