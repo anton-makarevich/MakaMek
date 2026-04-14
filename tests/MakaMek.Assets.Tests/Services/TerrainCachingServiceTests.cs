@@ -657,6 +657,125 @@ public class TerrainCachingServiceTests
         return stream;
     }
 
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnImage_WhenExists()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackageWithWaterTextures("test-biome");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldNotBeNull();
+        image.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnNull_WhenBiomeNotLoaded()
+    {
+        // Arrange
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("nonexistent-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnNull_WhenNoWaterTextureForBitmask()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackageWithWaterTextures("test-biome");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        // Bitmask 0b111111 (63) doesn't exist in the package
+        var canonicalBitmask = new CanonicalBitmaskResult(0b111111, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldLoadMultipleBitmasks()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackageWithMultipleWaterTextures("test-biome");
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+
+        // Act
+        var variantsForMask1 = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Water, "000001");
+        var variantsForMask3 = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Water, "000011");
+
+        // Assert
+        variantsForMask1.Count.ShouldBe(1);
+        variantsForMask1.ShouldContain(1);
+        variantsForMask3.Count.ShouldBe(1);
+        variantsForMask3.ShouldContain(1);
+    }
+
+    private static MemoryStream CreateMmtxPackageWithWaterTextures(string biomeId)
+    {
+        var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            // Add manifest
+            var manifestEntry = archive.CreateEntry("manifest.json");
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
+
+            // Add water texture for bitmask 000001 (mask value 1)
+            var waterEntry = archive.CreateEntry("terrains/water/000001-1.png");
+            using (var waterStream = waterEntry.Open())
+            {
+                waterStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
+        }
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateMmtxPackageWithMultipleWaterTextures(string biomeId)
+    {
+        var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            // Add manifest
+            var manifestEntry = archive.CreateEntry("manifest.json");
+            using (var entryStream = manifestEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
+                writer.Write(JsonSerializer.Serialize(manifest));
+            }
+
+            // Add water textures for multiple bitmasks
+            var waterEntry1 = archive.CreateEntry("terrains/water/000001-1.png");
+            using (var waterStream1 = waterEntry1.Open())
+            {
+                waterStream1.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
+
+            var waterEntry3 = archive.CreateEntry("terrains/water/000011-1.png");
+            using (var waterStream3 = waterEntry3.Open())
+            {
+                waterStream3.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+            }
+        }
+        stream.Position = 0;
+        return stream;
+    }
+
     private static MemoryStream CreateMmtxPackageWithNonIntegerVariant(string biomeId)
     {
         var stream = new MemoryStream();
