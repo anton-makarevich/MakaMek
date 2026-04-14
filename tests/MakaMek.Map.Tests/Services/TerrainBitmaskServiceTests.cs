@@ -302,7 +302,9 @@ public class TerrainBitmaskServiceTests
         // This is already the lowest rotation
         foreach (var direction in directions)
         {
-            var terrainType = direction is HexDirection.Top or HexDirection.TopRight ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            var terrainType = direction is HexDirection.Top or HexDirection.TopRight
+                ? MakaMekTerrains.Water
+                : MakaMekTerrains.Clear;
             SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
@@ -327,7 +329,9 @@ public class TerrainBitmaskServiceTests
         // Lowest is 3 at rotation 4
         foreach (var direction in directions)
         {
-            var terrainType = direction is HexDirection.BottomRight or HexDirection.Bottom ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            var terrainType = direction is HexDirection.BottomRight or HexDirection.Bottom
+                ? MakaMekTerrains.Water
+                : MakaMekTerrains.Clear;
             SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
@@ -402,7 +406,9 @@ public class TerrainBitmaskServiceTests
         // Lowest is 7 at rotation 3
         foreach (var direction in directions)
         {
-            var terrainType = direction is HexDirection.Bottom or HexDirection.BottomLeft or HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            var terrainType = direction is HexDirection.Bottom or HexDirection.BottomLeft or HexDirection.TopLeft
+                ? MakaMekTerrains.Water
+                : MakaMekTerrains.Clear;
             SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
@@ -476,7 +482,9 @@ public class TerrainBitmaskServiceTests
         // This has rotational symmetry of 3, lowest is 9 at rotation 0
         foreach (var direction in directions)
         {
-            var terrainType = direction is HexDirection.Top or HexDirection.Bottom ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            var terrainType = direction is HexDirection.Top or HexDirection.Bottom
+                ? MakaMekTerrains.Water
+                : MakaMekTerrains.Clear;
             SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
@@ -501,7 +509,9 @@ public class TerrainBitmaskServiceTests
         // Lowest is 3 (0b000011) at rotation 2
         foreach (var direction in directions)
         {
-            var terrainType = direction is HexDirection.BottomLeft or HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            var terrainType = direction is HexDirection.BottomLeft or HexDirection.TopLeft
+                ? MakaMekTerrains.Water
+                : MakaMekTerrains.Clear;
             SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
@@ -528,5 +538,19 @@ public class TerrainBitmaskServiceTests
 
         hex.AddTerrain(terrain);
         return hex;
+    }
+
+    [Fact]
+    public void CanonicalBitmaskResult_InvalidMask_Throws()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => _ = new CanonicalBitmaskResult(0b0100_0000, 0));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(6)]
+    public void CanonicalBitmaskResult_InvalidRotation_Throws(int steps)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => _ = new CanonicalBitmaskResult(0, steps));
     }
 }
