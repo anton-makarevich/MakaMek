@@ -132,7 +132,7 @@ public class TerrainBitmaskServiceTests
     }
 
     [Fact]
-    public void ComputeRawBitmap_NullNeighbor_DoesNotSetBit()
+    public void ComputeRawBitmask_NullNeighbor_DoesNotSetBit()
     {
         // Arrange
         var map = Substitute.For<IBattleMap>();
