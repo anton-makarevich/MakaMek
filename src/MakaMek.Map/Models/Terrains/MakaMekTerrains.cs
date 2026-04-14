@@ -27,7 +27,7 @@ public enum MakaMekTerrains
 
     /// <summary>
     /// Water terrain - lakes, rivers, or other bodies of water.
-    /// Depth is stored as a negative Height value: 0 = shallow/fordable, -1 = standard, -2+ = deep.
+    /// Depth is stored as a non-positive Height value: 0 = shallow/fordable, -1 = standard, -2+ = deep.
     /// </summary>
     Water
 }
