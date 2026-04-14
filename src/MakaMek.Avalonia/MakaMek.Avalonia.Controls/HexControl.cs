@@ -212,7 +212,7 @@ public class HexControl : Panel
         _terrainImageLayers.Clear();
     }
 
-    private void AddImageLayer(Bitmap? image, int zIndex)
+    private void AddImageLayer(Bitmap? image, int zIndex, double rotationAngle = 0)
     {
         if (image == null) return;
 
@@ -223,6 +223,11 @@ public class HexControl : Panel
             Stretch = Stretch.Fill,
             Source = image
         };
+
+        if (rotationAngle != 0)
+        {
+            imageControl.RenderTransform = new RotateTransform(rotationAngle, Width / 2, Height / 2);
+        }
 
         Children.Add(imageControl);
         imageControl.ZIndex = zIndex;
@@ -284,18 +289,7 @@ public class HexControl : Panel
         if (bitmap == null) return;
 
         var rotationAngle = _waterBitmask.RotationSteps * 60.0;
-        var imageControl = new Image
-        {
-            Width = Width,
-            Height = Height,
-            Stretch = Stretch.Fill,
-            Source = bitmap,
-            RenderTransform = new RotateTransform(rotationAngle, Width / 2, Height / 2)
-        };
-
-        Children.Add(imageControl);
-        imageControl.ZIndex = ZIndexWaterLayer;
-        _terrainImageLayers.Add(imageControl);
+        AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
     }
 
     private async Task UpdateOverlayLayers()
