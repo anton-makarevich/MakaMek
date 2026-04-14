@@ -550,57 +550,33 @@ public class TerrainCachingServiceTests
 
         public static MmtxPackageBuilder Create() => new();
 
-        public MmtxPackageBuilder WithBaseTerrain(params int[] variants)
-        {
-            foreach (var v in variants)
-            {
-                _entries.Add(v == 0
-                    ? ("base.png", PngHeader())
-                    : ($"base-{v}.png", PngHeader()));
-            }
-            return this;
-        }
+        public MmtxPackageBuilder WithBaseTerrain(params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? "base.png" : $"base-{v}.png");
 
-        public MmtxPackageBuilder WithOverlay(string name, params int[] variants)
-        {
-            foreach (var v in variants)
-            {
-                _entries.Add(v == 0
-                    ? ($"terrains/{name}.png", PngHeader())
-                    : ($"terrains/{name}-{v}.png", PngHeader()));
-            }
-            return this;
-        }
+        public MmtxPackageBuilder WithOverlay(string name, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"terrains/{name}.png" : $"terrains/{name}-{v}.png");
 
-        public MmtxPackageBuilder WithEdge(string edgeType, string direction, params int[] variants)
-        {
-            foreach (var v in variants)
-            {
-                _entries.Add(v == 0
-                    ? ($"edges/{edgeType}-{direction}.png", PngHeader())
-                    : ($"edges/{edgeType}-{direction}-{v}.png", PngHeader()));
-            }
-            return this;
-        }
+        public MmtxPackageBuilder WithEdge(string edgeType, string direction, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"edges/{edgeType}-{direction}.png" : $"edges/{edgeType}-{direction}-{v}.png");
 
-        public MmtxPackageBuilder WithEdgeUniqueContent(string edgeType, string direction, params int[] variants)
-        {
-            foreach (var v in variants)
-            {
-                _entries.Add(v == 0
-                    ? ($"edges/{edgeType}-{direction}.png", PngHeader())
-                    : ($"edges/{edgeType}-{direction}-{v}.png", [.. PngHeader(), (byte)v]));
-            }
-            return this;
-        }
+        public MmtxPackageBuilder WithEdgeUniqueContent(string edgeType, string direction, params int[] variants) =>
+            AddVariantEntries(
+                variants,
+                v => v == 0 ? $"edges/{edgeType}-{direction}.png" : $"edges/{edgeType}-{direction}-{v}.png",
+                v => v == 0 ? PngHeader() : [.. PngHeader(), (byte)v]);
 
-        public MmtxPackageBuilder WithWaterTexture(string bitmask, params int[] variants)
+        public MmtxPackageBuilder WithWaterTexture(string bitmask, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"terrains/water/{bitmask}.png" : $"terrains/water/{bitmask}-{v}.png");
+
+        private MmtxPackageBuilder AddVariantEntries(
+            int[] variants,
+            Func<int, string> pathFormatter,
+            Func<int, byte[]>? contentFactory = null)
         {
+            var content = contentFactory ?? (_ => PngHeader());
             foreach (var v in variants)
             {
-                _entries.Add(v == 0
-                    ? ($"terrains/water/{bitmask}.png", PngHeader())
-                    : ($"terrains/water/{bitmask}-{v}.png", PngHeader()));
+                _entries.Add((pathFormatter(v), content(v)));
             }
             return this;
         }
