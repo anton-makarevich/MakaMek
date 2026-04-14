@@ -32,6 +32,7 @@ using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
@@ -367,6 +368,52 @@ public class BattleMapViewModelTests
         _sut.HexConfiguration.ShouldNotBeNull();
     }
 
+    [Fact]
+    public void TerrainAssetService_ShouldBeInitialized_FromConstructor()
+    {
+        // Arrange & Act - _sut is already constructed in the test setup
+        var terrainAssetService = _sut.TerrainAssetService;
+
+        // Assert
+        terrainAssetService.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void TerrainBitmaskService_ShouldBeNull_WhenNotProvided()
+    {
+        // Arrange & Act - _sut is constructed without terrainBitmaskService parameter
+        var terrainBitmaskService = _sut.TerrainBitmaskService;
+
+        // Assert
+        terrainBitmaskService.ShouldBeNull();
+    }
+
+    [Fact]
+    public void TerrainBitmaskService_ShouldBeInitialized_WhenProvided()
+    {
+        // Arrange
+        var imageService = Substitute.For<IImageService>();
+        var terrainAssetService = Substitute.For<ITerrainAssetService>();
+        var terrainBitmaskService = Substitute.For<ITerrainBitmaskService>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        // Act
+        var viewModel = new BattleMapViewModel(
+            imageService,
+            terrainAssetService,
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            terrainBitmaskService);
+
+        // Assert
+        viewModel.TerrainBitmaskService.ShouldNotBeNull();
+        viewModel.TerrainBitmaskService.ShouldBe(terrainBitmaskService);
+    }
+    
     [Fact]
     public void IsMapSettingsPanelVisible_ShouldBeFalse_ByDefault()
     {
