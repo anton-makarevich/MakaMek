@@ -9,7 +9,21 @@ namespace Sanet.MakaMek.Map.Tests.Services;
 public class TerrainBitmaskServiceTests
 {
     private readonly TerrainBitmaskService _sut = new();
-    
+
+    private static void SetupNeighborsByBitmask(
+        IBattleMap map,
+        HexCoordinates centerCoords,
+        IEnumerable<HexDirection> directions,
+        MakaMekTerrains terrain)
+    {
+        foreach (var direction in directions)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = CreateHexWithTerrain(terrain);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+    }
+
     [Fact]
     public void ComputeRawBitmask_NoNeighborsWithTerrain_ReturnsZero()
     {
@@ -18,13 +32,7 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
         var directions = HexDirectionExtensions.AllDirections;
 
-        // All neighbors exist but have no water terrain
-        foreach (var direction in directions)
-        {
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Clear);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Clear);
 
         // Act
         var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Water);
@@ -41,13 +49,7 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
         var directions = HexDirectionExtensions.AllDirections;
 
-        // All neighbors have water terrain
-        foreach (var direction in directions)
-        {
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Water);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Water);
 
         // Act
         var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Water);
@@ -62,15 +64,12 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // Only Top neighbor has water
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i == 0 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction == HexDirection.Top ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -86,15 +85,12 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // Only TopLeft neighbor has water
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i == 5 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction == HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -110,18 +106,16 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Top (0), BottomRight (2), and BottomLeft (4) have water
         const byte expectedMask = 1 << 0 | 1 << 2 | 1 << 4; // 0b010101
 
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var hasWater = i is 0 or 2 or 4;
+            var hasWater = direction is HexDirection.Top or HexDirection.BottomRight or HexDirection.BottomLeft;
             var terrainType = hasWater ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -137,18 +131,16 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Top neighbor is null (out of bounds)
         var topCoords = centerCoords.GetNeighbour(HexDirection.Top);
         map.GetHex(topCoords).Returns((Hex?)null);
 
         // Other neighbors have water
-        for (var i = 1; i < 6; i++)
+        foreach (var direction in directions.Where(d => d != HexDirection.Top))
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Water);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            SetupNeighborsByBitmask(map, centerCoords, [direction], MakaMekTerrains.Water);
         }
 
         // Act
@@ -164,15 +156,9 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // All neighbors have LightWoods, but we're checking for Water
-        for (var i = 0; i < 6; i++)
-        {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.LightWoods);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.LightWoods);
 
         // Act
         var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Water);
@@ -187,15 +173,9 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // All neighbors have Water, but we're checking for LightWoods
-        for (var i = 0; i < 6; i++)
-        {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Water);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Water);
 
         // Act
         var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.LightWoods);
@@ -203,22 +183,16 @@ public class TerrainBitmaskServiceTests
         // Assert
         result.ShouldBe((byte)0);
     }
-    
+
     [Fact]
     public void ComputeCanonicalBitmask_AllBitsZero_ReturnsZeroWithZeroRotation()
     {
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // No neighbors with terrain
-        for (var i = 0; i < 6; i++)
-        {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Clear);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Clear);
 
         // Act
         var result = _sut.ComputeCanonicalBitmask(map, centerCoords, MakaMekTerrains.Water);
@@ -234,15 +208,9 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // All neighbors have water
-        for (var i = 0; i < 6; i++)
-        {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Water);
-            map.GetHex(neighborCoords).Returns(neighborHex);
-        }
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Water);
 
         // Act
         var result = _sut.ComputeCanonicalBitmask(map, centerCoords, MakaMekTerrains.Water);
@@ -258,15 +226,12 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // Only Top neighbor has water (bit 0 = 0b000001, already lowest)
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i == 0 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction == HexDirection.Top ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -283,16 +248,12 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // Only BottomRight (position 2) has water (0b000100)
-        // Should rotate 4 steps to become 0b000001
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i == 2 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction == HexDirection.BottomRight ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -309,24 +270,22 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
-        // Only TopLeft (position 5) has water (0b100000)
-        // RotateMask formula: ((mask << steps) | (mask >> (6-steps))) & 0x3F
-        // rot1: bit 5 wraps to bit 0 via the right-shift wrap: (0>>5)=1, so result = 0b000001
-        // 0b000001 (1) is already the lowest value, so rotation 1 wins
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i == 5 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction == HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
         var result = _sut.ComputeCanonicalBitmask(map, centerCoords, MakaMekTerrains.Water);
 
         // Assert
+        // Only TopLeft (position 5) has water (0b100000)
+        // RotateMask formula: ((mask << steps) | (mask >> (6-steps))) & 0x3F
+        // rot1: bit 5 wraps to bit 0 via the right-shift wrap: (0>>5)=1, so result = 0b000001
+        // 0b000001 (1) is already the lowest value, so rotation 1 wins
         result.CanonicalMask.ShouldBe((byte)0b000001);
         result.RotationSteps.ShouldBe(1);
     }
@@ -337,16 +296,14 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Top (0) and TopRight (1) have water: 0b000011
         // This is already the lowest rotation
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i is 0 or 1 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction is HexDirection.Top or HexDirection.TopRight ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -363,17 +320,15 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // BottomRight (2) and Bottom (3) have water: 0b001100
         // rot1: 0b011000 (24), rot2: 0b110000 (48), rot3: 0b100001 (33), rot4: 0b000011 (3)
         // Lowest is 3 at rotation 4
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i is 2 or 3 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction is HexDirection.BottomRight or HexDirection.Bottom ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -390,18 +345,16 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Positions 0, 2, 4 have water: 0b010101
         // This pattern has rotational symmetry - rotating by 2 gives the same pattern
         // 0b010101 (21), rot1: 0b101010 (42), rot2: 0b010101 (21), etc.
         // Lowest is 0b010101 (21) at rotation 0
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i % 2 == 0 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = (int)direction % 2 == 0 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -418,16 +371,14 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Positions 1, 3, 5 have water: 0b101010
         // Should rotate 1 step to become 0b010101
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i % 2 == 1 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = (int)direction % 2 == 1 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -444,17 +395,15 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Positions 3, 4, 5 have water: 0b111000
         // rot1: 0b011100 (28), rot2: 0b001110 (14), rot3: 0b000111 (7)
         // Lowest is 7 at rotation 3
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i is 3 or 4 or 5 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction is HexDirection.Bottom or HexDirection.BottomLeft or HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -471,11 +420,11 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(0, 0);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // All neighbors are null (map boundaries)
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
             var neighborCoords = centerCoords.GetNeighbour(direction);
             map.GetHex(neighborCoords).Returns((Hex?)null);
         }
@@ -496,14 +445,12 @@ public class TerrainBitmaskServiceTests
             // Arrange
             var map = Substitute.For<IBattleMap>();
             var centerCoords = new HexCoordinates(5, 5);
+            var directions = HexDirectionExtensions.AllDirections;
 
-            for (var i = 0; i < 6; i++)
+            foreach (var direction in directions)
             {
-                var direction = HexDirectionExtensions.AllDirections[i];
-                var neighborCoords = centerCoords.GetNeighbour(direction);
-                var terrainType = i == position ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-                var neighborHex = CreateHexWithTerrain(terrainType);
-                map.GetHex(neighborCoords).Returns(neighborHex);
+                var terrainType = (int)direction == position ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+                SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
             }
 
             // Act
@@ -522,17 +469,15 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Positions 0 and 3 have water (opposite): 0b001001
         // rot1: 0b100100 (36), rot2: 0b010010 (18), rot3: 0b001001 (9)
         // This has rotational symmetry of 3, lowest is 9 at rotation 0
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i is 0 or 3 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction is HexDirection.Top or HexDirection.Bottom ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
@@ -549,17 +494,15 @@ public class TerrainBitmaskServiceTests
         // Arrange
         var map = Substitute.For<IBattleMap>();
         var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
 
         // Positions 4 and 5 have water: 0b110000
         // rot1: (96|1)&63=33, rot2: (192|3)&63=3, rot3: 6, rot4: 12, rot5: 24
         // Lowest is 3 (0b000011) at rotation 2
-        for (var i = 0; i < 6; i++)
+        foreach (var direction in directions)
         {
-            var direction = HexDirectionExtensions.AllDirections[i];
-            var neighborCoords = centerCoords.GetNeighbour(direction);
-            var terrainType = i is 4 or 5 ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
-            var neighborHex = CreateHexWithTerrain(terrainType);
-            map.GetHex(neighborCoords).Returns(neighborHex);
+            var terrainType = direction is HexDirection.BottomLeft or HexDirection.TopLeft ? MakaMekTerrains.Water : MakaMekTerrains.Clear;
+            SetupNeighborsByBitmask(map, centerCoords, [direction], terrainType);
         }
 
         // Act
