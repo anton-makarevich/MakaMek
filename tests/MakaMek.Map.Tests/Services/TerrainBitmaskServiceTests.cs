@@ -311,13 +311,9 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
 
         // Only TopLeft (position 5) has water (0b100000)
-        // Should rotate 1 step to become 0b010000, then we need to find the lowest
-        // Actually 0b100000 rotated 1 = 0b010000 (32 -> 16), still not lowest
-        // 0b100000 rotated 2 = 0b001000 (32 -> 8), still not lowest
-        // etc. The lowest would be at rotation 1: 0b010000... no wait
-        // Let me trace: 0b100000 (32), rot1: 0b010000 (16), rot2: 0b001000 (8),
-        // rot3: 0b000100 (4), rot4: 0b000010 (2), rot5: 0b000001 (1)
-        // So rotation 5 gives us the lowest value (1)
+        // RotateMask formula: ((mask << steps) | (mask >> (6-steps))) & 0x3F
+        // rot1: bit 5 wraps to bit 0 via the right-shift wrap: (0>>5)=1, so result = 0b000001
+        // 0b000001 (1) is already the lowest value, so rotation 1 wins
         for (var i = 0; i < 6; i++)
         {
             var direction = HexDirectionExtensions.AllDirections[i];
@@ -332,7 +328,7 @@ public class TerrainBitmaskServiceTests
 
         // Assert
         result.CanonicalMask.ShouldBe((byte)0b000001);
-        result.RotationSteps.ShouldBe(5);
+        result.RotationSteps.ShouldBe(1);
     }
 
     [Fact]
@@ -369,7 +365,8 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
 
         // BottomRight (2) and Bottom (3) have water: 0b001100
-        // Should rotate 2 steps to become 0b000011
+        // rot1: 0b011000 (24), rot2: 0b110000 (48), rot3: 0b100001 (33), rot4: 0b000011 (3)
+        // Lowest is 3 at rotation 4
         for (var i = 0; i < 6; i++)
         {
             var direction = HexDirectionExtensions.AllDirections[i];
@@ -384,7 +381,7 @@ public class TerrainBitmaskServiceTests
 
         // Assert
         result.CanonicalMask.ShouldBe((byte)0b000011);
-        result.RotationSteps.ShouldBe(2);
+        result.RotationSteps.ShouldBe(4);
     }
 
     [Fact]
@@ -395,7 +392,7 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
 
         // Positions 0, 2, 4 have water: 0b010101
-        // This pattern has rotational symmetry - rotating by 2 gives same pattern
+        // This pattern has rotational symmetry - rotating by 2 gives the same pattern
         // 0b010101 (21), rot1: 0b101010 (42), rot2: 0b010101 (21), etc.
         // Lowest is 0b010101 (21) at rotation 0
         for (var i = 0; i < 6; i++)
@@ -554,8 +551,8 @@ public class TerrainBitmaskServiceTests
         var centerCoords = new HexCoordinates(3, 3);
 
         // Positions 4 and 5 have water: 0b110000
-        // rot1: 0b011000 (24), rot2: 0b001100 (12), rot3: 0b000110 (6), rot4: 0b000011 (3)
-        // Lowest is 3 at rotation 4
+        // rot1: (96|1)&63=33, rot2: (192|3)&63=3, rot3: 6, rot4: 12, rot5: 24
+        // Lowest is 3 (0b000011) at rotation 2
         for (var i = 0; i < 6; i++)
         {
             var direction = HexDirectionExtensions.AllDirections[i];
@@ -570,7 +567,7 @@ public class TerrainBitmaskServiceTests
 
         // Assert
         result.CanonicalMask.ShouldBe((byte)0b000011);
-        result.RotationSteps.ShouldBe(4);
+        result.RotationSteps.ShouldBe(2);
     }
 
     private static Hex CreateHexWithTerrain(MakaMekTerrains terrainType)
