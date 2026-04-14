@@ -493,16 +493,14 @@ public class TerrainCachingServiceTests
             .WithWaterTexture("000001", 1)
             .WithWaterTexture("000011", 1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
-
         // Act
-        var variantsForMask1 = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Water, "000001");
-        var variantsForMask3 = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Water, "000011");
-
+        var imageForMask1 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000001, 0));
+        var imageForMask3 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000011, 0));
         // Assert
-        variantsForMask1.Count.ShouldBe(1);
-        variantsForMask1.ShouldContain(1);
-        variantsForMask3.Count.ShouldBe(1);
-        variantsForMask3.ShouldContain(1);
+        imageForMask1.ShouldNotBeNull();
+        imageForMask3.ShouldNotBeNull();
+        imageForMask1.Length.ShouldBeGreaterThan(0);
+        imageForMask3.Length.ShouldBeGreaterThan(0);
     }
 
     private static MemoryStream CreateMmtxPackage(
