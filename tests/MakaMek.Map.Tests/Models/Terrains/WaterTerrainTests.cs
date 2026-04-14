@@ -71,4 +71,14 @@ public class WaterTerrainTests
         // Act & Assert
         terrain.MovementCost.ShouldBe(4);
     }
+    
+    [Fact]
+    public void GetTerrainType_WithWater_ReturnsWaterTerrain()
+    {
+        // Act
+        var terrain = Terrain.GetTerrainType(MakaMekTerrains.Water);
+
+        // Assert
+        terrain.ShouldBeOfType<WaterTerrain>();
+    }
 }
