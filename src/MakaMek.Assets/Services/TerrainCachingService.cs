@@ -102,6 +102,23 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
+    public async Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
+    {
+        await EnsureInitialized();
+
+        // Convert canonical mask to 6-digit binary string (e.g., mask 1 → "000001")
+        var bitmaskName = Convert.ToString(canonicalBitmask.CanonicalMask, 2).PadLeft(6, '0');
+
+        var variants = await GetAvailableVariants(biomeId, TerrainAssetType.Water, bitmaskName);
+        if (variants.Count == 0) return null;
+
+        var selectedVariant = SelectRandomVariant(variants, biomeId, bitmaskName, 0);
+        var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Water, bitmaskName, selectedVariant);
+
+        return _imageCache.GetValueOrDefault(cacheKey);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
         await EnsureInitialized();
@@ -225,10 +242,13 @@ public class TerrainCachingService : ITerrainAssetService
     {
         // Extract base terrain images
         await ExtractImagesFromDirectoryAsync(archive, biomeId, "", TerrainAssetType.Base);
-        
+
         // Extract terrain overlay images
         await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/", TerrainAssetType.Overlay);
-        
+
+        // Extract water bitmask textures from terrains/water/
+        await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/water/", TerrainAssetType.Water);
+
         // Extract edge images
         await ExtractEdgeImagesAsync(archive, biomeId);
     }

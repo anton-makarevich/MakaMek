@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -92,10 +93,12 @@ public class BattleMapViewModel : BaseViewModel
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         IRulesProvider rulesProvider,
-        IPlatformService platformService)
+        IPlatformService platformService,
+        ITerrainBitmaskService? terrainBitmaskService = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
+        TerrainBitmaskService = terrainBitmaskService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _platformService = platformService;
@@ -692,6 +695,8 @@ public class BattleMapViewModel : BaseViewModel
 
     public ICommand LeaveGameCommand { get; }
     public ITerrainAssetService TerrainAssetService { get; }
+
+    public ITerrainBitmaskService? TerrainBitmaskService { get; }
 
     private Task ProcessGameEnded(GameEndedCommand command)
     {
