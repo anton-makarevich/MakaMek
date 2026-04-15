@@ -23,5 +23,11 @@ public enum TerrainAssetType
     /// <summary>
     /// Bottom edge effect (cliff rising toward viewer)
     /// </summary>
-    EdgeBottom
+    EdgeBottom,
+
+    /// <summary>
+    /// Water terrain bitmask texture (from terrains/water/ folder).
+    /// Files are named using the 6-bit binary representation of the canonical bitmask, e.g. 000001.png.
+    /// </summary>
+    Water
 }

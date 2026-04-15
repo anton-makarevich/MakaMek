@@ -37,10 +37,12 @@ public class HexControl : Panel
     // Z-index constants for layer ordering
     private const int ZIndexBaseTerrain = 0;
     private const int ZIndexEdgeEffects = 10;
+    private const int ZIndexWaterLayer = 18;
     private const int ZIndexOverlays = 20;
     private const int ZIndexPolygon = 30;
     private const int ZIndexLabel = 31;
 
+    private readonly CanonicalBitmaskResult? _waterBitmask;
     private readonly IDisposable? _hexSubscription;
 
     private static Points GetHexPoints()
@@ -60,11 +62,13 @@ public class HexControl : Panel
 
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService = null,
-        IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null)
+        IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null,
+        CanonicalBitmaskResult? waterBitmask = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
+        _waterBitmask = waterBitmask;
 
         _logger = logger;
         _edges = edges?.ToArray();
@@ -208,7 +212,7 @@ public class HexControl : Panel
         _terrainImageLayers.Clear();
     }
 
-    private void AddImageLayer(Bitmap? image, int zIndex)
+    private void AddImageLayer(Bitmap? image, int zIndex, double rotationAngle = 0)
     {
         if (image == null) return;
 
@@ -219,6 +223,11 @@ public class HexControl : Panel
             Stretch = Stretch.Fill,
             Source = image
         };
+
+        if (rotationAngle != 0)
+        {
+            imageControl.RenderTransform = new RotateTransform(rotationAngle, Width / 2, Height / 2);
+        }
 
         Children.Add(imageControl);
         imageControl.ZIndex = zIndex;
@@ -268,6 +277,19 @@ public class HexControl : Panel
             AddImageLayer(bitmap, ZIndexEdgeEffects + edgeIndex);
             edgeIndex++;
         }
+    }
+
+    private async Task UpdateWaterLayer()
+    {
+        if (_waterBitmask == null) return;
+
+        var biomeId = _hex.Biome;
+        var imageBytes = await _terrainAssetService.GetWaterTextureImage(biomeId, _waterBitmask);
+        var bitmap = BytesToBitmap(imageBytes);
+        if (bitmap == null) return;
+
+        var rotationAngle = _waterBitmask.RotationSteps * 60.0;
+        AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
     }
 
     private async Task UpdateOverlayLayers()
@@ -325,6 +347,7 @@ public class HexControl : Panel
         ClearImageLayers();
         await UpdateBaseTerrainImage();
         await UpdateEdgeLayers();
+        await UpdateWaterLayer();
         await UpdateOverlayLayers();
     }
 

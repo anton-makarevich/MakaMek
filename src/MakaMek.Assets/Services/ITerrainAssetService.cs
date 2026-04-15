@@ -61,6 +61,17 @@ public interface ITerrainAssetService
     Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName);
     
     /// <summary>
+    /// Gets a water bitmask texture image for the specified canonical bitmask.
+    /// Files are stored in the <c>terrains/water/</c> folder of MMTX packages
+    /// and named using the 6-bit binary representation of <see cref="CanonicalBitmaskResult.CanonicalMask"/>,
+    /// e.g. <c>000001.png</c> or <c>000001-1.png</c> for variant 1.
+    /// </summary>
+    /// <param name="biomeId">The biome identifier</param>
+    /// <param name="canonicalBitmask">The canonical bitmask result containing the mask and rotation</param>
+    /// <returns>Image bytes if found, null otherwise</returns>
+    Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask);
+
+    /// <summary>
     /// Loads a terrain biome from an MMTX package stream
     /// </summary>
     /// <param name="mmtxStream">Stream containing the MMTX package data</param>

@@ -20,12 +20,12 @@ public class TerrainCachingServiceTests
             .Returns(Substitute.For<ILogger>());
         _sut = new TerrainCachingService([], _loggerFactory);
     }
-    
+
     [Fact]
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadManifest()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackage("test-biome", "Test Biome", "1.0.0");
+        using var mmtxStream = CreateMmtxPackage();
 
         // Act
         var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -54,7 +54,7 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldReturnNull_WhenMissingBiomeId()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackage("", "Test Biome", "1.0.0");
+        using var mmtxStream = CreateMmtxPackage("");
 
         // Act
         var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -67,7 +67,7 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadBaseTerrain()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -82,7 +82,10 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadTerrainOverlays()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithOverlays("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithOverlay("lightwoods", 1)
+            .WithOverlay("heavywoods", 1)
+            .WithOverlay("rough", 0));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -101,7 +104,9 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadEdgeImages()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithEdges("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdge("top", "0", 1)
+            .WithEdge("bottom", "3", 1));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -117,7 +122,9 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalAssetVariantsAsOneBased()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithOptionalAssetVariants("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithBaseTerrain(0, 1)
+            .WithOverlay("lightwoods", 0, 2));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -138,7 +145,9 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalEdgeVariantsAsOneBased()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithOptionalEdgeVariants("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdge("top", "0", 0, 1)
+            .WithEdge("bottom", "3", 2));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -158,7 +167,7 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadMultipleVariants()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithMultipleVariants("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1, 2, 3));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -170,12 +179,12 @@ public class TerrainCachingServiceTests
         variants.ShouldContain(2);
         variants.ShouldContain(3);
     }
-    
+
     [Fact]
     public async Task GetBaseTerrainImage_ShouldReturnImage_WhenLoaded()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -195,12 +204,12 @@ public class TerrainCachingServiceTests
         // Assert
         image.ShouldBeNull();
     }
-    
+
     [Fact]
     public async Task GetTerrainOverlayImage_ShouldReturnImage_WhenExists()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithOverlays("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("lightwoods", 1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -214,7 +223,7 @@ public class TerrainCachingServiceTests
     public async Task GetTerrainOverlayImage_ShouldReturnNull_WhenNotExists()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithOverlays("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("lightwoods", 1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -228,7 +237,7 @@ public class TerrainCachingServiceTests
     public async Task GetTerrainOverlayImage_ShouldReturnImage_ForRoughTerrain()
     {
         // Arrange — rough.png is a variant-0 asset (no suffix)
-        using var mmtxStream = CreateMmtxPackageWithOverlays("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("rough", 0));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -238,12 +247,14 @@ public class TerrainCachingServiceTests
         image.ShouldNotBeNull();
         image.Length.ShouldBeGreaterThan(0);
     }
-    
+
     [Fact]
     public async Task GetEdgeImage_ShouldReturnImage_WhenExists()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithEdges("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdge("top", "0", 1)
+            .WithEdge("bottom", "3", 1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
@@ -258,7 +269,9 @@ public class TerrainCachingServiceTests
     public async Task GetEdgeImage_ShouldReturnNull_WhenInvalidEdgeType()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithEdges("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdge("top", "0", 1)
+            .WithEdge("bottom", "3", 1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
@@ -273,7 +286,8 @@ public class TerrainCachingServiceTests
     public async Task GetEdgeImage_ShouldReturnConsistentVariant_ForSameCoordinates()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithMultipleEdgeVariants("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdgeUniqueContent("top", "0", 1, 2, 3));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
         var coordinates = new HexCoordinates(5, 10);
 
@@ -289,7 +303,8 @@ public class TerrainCachingServiceTests
     public async Task GetEdgeImage_ShouldUseMultipleVariants_AcrossDifferentCoordinates()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithMultipleEdgeVariants("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithEdgeUniqueContent("top", "0", 1, 2, 3));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -323,8 +338,8 @@ public class TerrainCachingServiceTests
     public async Task GetLoadedBiomes_ShouldReturnLoadedBiomes()
     {
         // Arrange
-        using var mmtxStream1 = CreateMmtxPackage("biome1", "Biome 1", "1.0.0");
-        using var mmtxStream2 = CreateMmtxPackage("biome2", "Biome 2", "1.0.0");
+        using var mmtxStream1 = CreateMmtxPackage("biome1", "Biome 1");
+        using var mmtxStream2 = CreateMmtxPackage("biome2", "Biome 2");
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream1);
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream2);
 
@@ -366,7 +381,7 @@ public class TerrainCachingServiceTests
     public async Task ClearCache_ShouldClearAllData()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithBaseTerrain("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
 
         // Act
@@ -381,7 +396,9 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldIgnoreAssetWithNonIntegerVariant()
     {
         // Arrange
-        using var mmtxStream = CreateMmtxPackageWithNonIntegerVariant("test-biome");
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("base-abc.png", PngHeader())
+            .WithRawEntry("base.png", PngHeader()));
 
         // Act
         await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
@@ -398,8 +415,8 @@ public class TerrainCachingServiceTests
     public async Task LoadTerrainFromMmtxStreamAsync_ShouldRejectDuplicateBiomeId()
     {
         // Arrange
-        using var firstStream = CreateMmtxPackageWithBaseTerrain("duplicate-biome");
-        using var secondStream = CreateMmtxPackageWithBaseTerrain("duplicate-biome");
+        using var firstStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        using var secondStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
 
         // Act - Load the first biome successfully
         var firstManifest = await _sut.LoadTerrainFromMmtxStreamAsync(firstStream);
@@ -410,19 +427,87 @@ public class TerrainCachingServiceTests
 
         // Assert
         secondManifest.ShouldBeNull(); // Should return null for duplicate
-        
+
         // Verify only the first biome is loaded
         var loadedBiomes = (await _sut.GetLoadedBiomes()).ToList();
         loadedBiomes.Count.ShouldBe(1);
-        loadedBiomes.ShouldContain("duplicate-biome");
-        
+        loadedBiomes.ShouldContain("test-biome");
+
         // Verify variants are only from the first load
-        var variants = await _sut.GetAvailableVariants("duplicate-biome", TerrainAssetType.Base, "base");
+        var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
         variants.Count.ShouldBe(1);
         variants.ShouldContain(1);
     }
-     
-    private static MemoryStream CreateMmtxPackage(string biomeId, string name, string version)
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnImage_WhenExists()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithWaterTexture("000001", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldNotBeNull();
+        image.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnNull_WhenBiomeNotLoaded()
+    {
+        // Arrange
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("nonexistent-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldReturnNull_WhenNoWaterTextureForBitmask()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithWaterTexture("000001", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var canonicalBitmask = new CanonicalBitmaskResult(0b111111, 0);
+
+        // Act
+        var image = await _sut.GetWaterTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetWaterTextureImage_ShouldLoadMultipleBitmasks()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithWaterTexture("000001", 1)
+            .WithWaterTexture("000011", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        // Act
+        var imageForMask1 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000001, 0));
+        var imageForMask3 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000011, 0));
+        // Assert
+        imageForMask1.ShouldNotBeNull();
+        imageForMask3.ShouldNotBeNull();
+        imageForMask1.Length.ShouldBeGreaterThan(0);
+        imageForMask3.Length.ShouldBeGreaterThan(0);
+    }
+
+    private static MemoryStream CreateMmtxPackage(
+        string biomeId = "test-biome",
+        string name = "Test Biome",
+        string version = "1.0.0",
+        MmtxPackageBuilder? builder = null)
     {
         var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
@@ -431,14 +516,11 @@ public class TerrainCachingServiceTests
             using (var entryStream = manifestEntry.Open())
             using (var writer = new StreamWriter(entryStream))
             {
-                var manifest = new
-                {
-                    id = biomeId,
-                    name,
-                    version
-                };
+                var manifest = new { id = biomeId, name, version };
                 writer.Write(JsonSerializer.Serialize(manifest));
             }
+
+            builder?.AddEntries(archive);
         }
         stream.Position = 0;
         return stream;
@@ -449,7 +531,6 @@ public class TerrainCachingServiceTests
         var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {
-            // Add a dummy file instead of a manifest
             var dummyEntry = archive.CreateEntry("dummy.txt");
             using (var entryStream = dummyEntry.Open())
             using (var writer = new StreamWriter(entryStream))
@@ -461,231 +542,59 @@ public class TerrainCachingServiceTests
         return stream;
     }
 
-    private static MemoryStream CreateMmtxPackageWithBaseTerrain(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
+    private static byte[] PngHeader() => [0x89, 0x50, 0x4E, 0x47];
 
-            // Add base terrain image
-            var baseEntry = archive.CreateEntry("base-1.png");
-            using (var baseStream = baseEntry.Open())
+    private sealed class MmtxPackageBuilder
+    {
+        private readonly List<(string Path, byte[] Content)> _entries = new();
+
+        public static MmtxPackageBuilder Create() => new();
+
+        public MmtxPackageBuilder WithBaseTerrain(params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? "base.png" : $"base-{v}.png");
+
+        public MmtxPackageBuilder WithOverlay(string name, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"terrains/{name}.png" : $"terrains/{name}-{v}.png");
+
+        public MmtxPackageBuilder WithEdge(string edgeType, string direction, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"edges/{edgeType}-{direction}.png" : $"edges/{edgeType}-{direction}-{v}.png");
+
+        public MmtxPackageBuilder WithEdgeUniqueContent(string edgeType, string direction, params int[] variants) =>
+            AddVariantEntries(
+                variants,
+                v => v == 0 ? $"edges/{edgeType}-{direction}.png" : $"edges/{edgeType}-{direction}-{v}.png",
+                v => v == 0 ? PngHeader() : [.. PngHeader(), (byte)v]);
+
+        public MmtxPackageBuilder WithWaterTexture(string bitmask, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"terrains/water/{bitmask}.png" : $"terrains/water/{bitmask}-{v}.png");
+
+        private MmtxPackageBuilder AddVariantEntries(
+            int[] variants,
+            Func<int, string> pathFormatter,
+            Func<int, byte[]>? contentFactory = null)
+        {
+            var content = contentFactory ?? (_ => PngHeader());
+            foreach (var v in variants)
             {
-                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4); // PNG header
+                _entries.Add((pathFormatter(v), content(v)));
             }
+            return this;
         }
-        stream.Position = 0;
-        return stream;
-    }
 
-    private static MemoryStream CreateMmtxPackageWithOverlays(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        public MmtxPackageBuilder WithRawEntry(string path, byte[] content)
         {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            // Add terrain overlay images
-            var lightWoodsEntry = archive.CreateEntry("terrains/lightwoods-1.png");
-            using (var lightWoodsStream = lightWoodsEntry.Open())
-            {
-                lightWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-
-            var heavyWoodsEntry = archive.CreateEntry("terrains/heavywoods-1.png");
-            using (var heavyWoodsStream = heavyWoodsEntry.Open())
-            {
-                heavyWoodsStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-
-            // Add rough terrain overlay (variant 0 — no suffix)
-            var roughEntry = archive.CreateEntry("terrains/rough.png");
-            using (var roughStream = roughEntry.Open())
-            {
-                roughStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
+            _entries.Add((path, content));
+            return this;
         }
-        stream.Position = 0;
-        return stream;
-    }
 
-    private static MemoryStream CreateMmtxPackageWithEdges(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        public void AddEntries(ZipArchive archive)
         {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            // Add edge images
-            var topEdgeEntry = archive.CreateEntry("edges/top-0-1.png");
-            using (var topEdgeStream = topEdgeEntry.Open())
-            {
-                topEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-
-            var bottomEdgeEntry = archive.CreateEntry("edges/bottom-3-1.png");
-            using (var bottomEdgeStream = bottomEdgeEntry.Open())
-            {
-                bottomEdgeStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-        }
-        stream.Position = 0;
-        return stream;
-    }
-
-    private static MemoryStream CreateMmtxPackageWithMultipleVariants(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            // Add multiple base terrain variants
-            for (var i = 1; i <= 3; i++)
-            {
-                var baseEntry = archive.CreateEntry($"base-{i}.png");
-                using var baseStream = baseEntry.Open();
-                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-        }
-        stream.Position = 0;
-        return stream;
-    }
-
-    private static MemoryStream CreateMmtxPackageWithOptionalAssetVariants(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            foreach (var path in new[] { "base.png", "base-1.png", "terrains/lightwoods.png", "terrains/lightwoods-2.png" })
+            foreach (var (path, content) in _entries)
             {
                 var entry = archive.CreateEntry(path);
                 using var entryStream = entry.Open();
-                entryStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
+                entryStream.Write(content, 0, content.Length);
             }
         }
-
-        stream.Position = 0;
-        return stream;
-    }
-
-    private static MemoryStream CreateMmtxPackageWithOptionalEdgeVariants(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            foreach (var path in new[] { "edges/top-0.png", "edges/top-0-1.png", "edges/bottom-3-2.png" })
-            {
-                var entry = archive.CreateEntry(path);
-                using var entryStream = entry.Open();
-                entryStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-        }
-
-        stream.Position = 0;
-        return stream;
-    }
-
-    private static MemoryStream CreateMmtxPackageWithMultipleEdgeVariants(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            // Add multiple edge variants for direction 0 with unique content per variant
-            for (int i = 1; i <= 3; i++)
-            {
-                var edgeEntry = archive.CreateEntry($"edges/top-0-{i}.png");
-                using var edgeStream = edgeEntry.Open();
-                edgeStream.Write([0x89, 0x50, 0x4E, 0x47, (byte)i], 0, 5); // unique trailing byte per variant
-            }
-        }
-        stream.Position = 0;
-        return stream;
-    }
-
-    private static MemoryStream CreateMmtxPackageWithNonIntegerVariant(string biomeId)
-    {
-        var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            // Add manifest
-            var manifestEntry = archive.CreateEntry("manifest.json");
-            using (var entryStream = manifestEntry.Open())
-            using (var writer = new StreamWriter(entryStream))
-            {
-                var manifest = new { id = biomeId, name = "Test Biome", version = "1.0.0" };
-                writer.Write(JsonSerializer.Serialize(manifest));
-            }
-
-            // Add base terrain with noninteger variant (should be ignored)
-            var baseEntry = archive.CreateEntry("base-abc.png");
-            using (var baseStream = baseEntry.Open())
-            {
-                baseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-
-            // Add valid base terrain to have something to test against
-            var validBaseEntry = archive.CreateEntry("base.png");
-            using (var validBaseStream = validBaseEntry.Open())
-            {
-                validBaseStream.Write([0x89, 0x50, 0x4E, 0x47], 0, 4);
-            }
-        }
-        stream.Position = 0;
-        return stream;
     }
 }

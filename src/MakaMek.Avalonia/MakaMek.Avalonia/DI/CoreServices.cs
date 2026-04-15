@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Services.Avalonia;
@@ -114,6 +115,7 @@ public static class CoreServices
             services.AddSingleton<IFallProcessor, FallProcessor>();
             services.AddSingleton<IGameFactory, GameFactory>();
             services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
+            services.AddSingleton<ITerrainBitmaskService, TerrainBitmaskService>();
             services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
             services.AddSingleton<IGameManager, GameManager>();
             services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
