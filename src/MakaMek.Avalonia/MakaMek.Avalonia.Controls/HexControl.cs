@@ -117,6 +117,22 @@ public class HexControl : Panel
             levelLabel.ZIndex = ZIndexLabel;
         }
 
+        // Add water depth label if hex has water terrain
+        if (hex.GetTerrain(MakaMekTerrains.Water) is WaterTerrain waterTerrain)
+        {
+            var waterLabel = new Label
+            {
+                Content = $"DEPTH {waterTerrain.Height}",
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = Brushes.White,
+                FontSize = 11,
+                IsVisible = _renderConfiguration.ShowLabels
+            };
+            Children.Add(waterLabel);
+            waterLabel.ZIndex = ZIndexLabel;
+        }
+
         // Set the initial highlight state
         Highlight(_hex.Highlights);
 
