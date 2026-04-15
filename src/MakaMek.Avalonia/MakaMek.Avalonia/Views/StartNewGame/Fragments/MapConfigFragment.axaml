@@ -122,6 +122,20 @@
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->
                         <TextBlock Text="{Binding MaxElevationFormatted}" Classes="bodySmall"/>
                     </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{extensions:Localize 'MapConfig_LakeCoverage'}" Classes="label"/>
+                        <Slider Value="{Binding LakeCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding LakeCoverageFormatted}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{extensions:Localize 'MapConfig_LakeMaxDepth'}" Classes="label"/>
+                        <Slider Value="{Binding LakeMaxDepth}" Minimum="1" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
+                        <TextBlock Text="{Binding LakeMaxDepthFormatted}" Classes="bodySmall"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Map Preview -->

@@ -22,7 +22,7 @@ public class CompositeGeneratorTests
         const int height = 5;
         var baseTerrain = new ClearTerrain();
         var levelProvider = Substitute.For<ILevelProvider>();
-        var overlays = new List<(HashSet<HexCoordinates>, Func<HexCoordinates, Random, Terrain>)>();
+        var overlays = new List<(Dictionary<HexCoordinates, int>, Func<HexCoordinates, int, Random, Terrain>)>();
         var random = new Random(42);
         var sut = new CompositeGenerator(width, height, baseTerrain, levelProvider, overlays, random);
         var coordinates = new HexCoordinates(q, r);

@@ -77,6 +77,8 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage_Formatted"), HillCoverage);
     public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation_Formatted"), MaxElevation);
     public string RoughCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_RoughCoverage_Formatted"), RoughCoverage);
+    public string LakeCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_LakeCoverage_Formatted"), LakeCoverage);
+    public string LakeMaxDepthFormatted => string.Format(_localizationService.GetString("MapConfig_LakeMaxDepth_Formatted"), LakeMaxDepth);
 
     /// <summary>
     /// Maximum allowed rough terrain coverage to ensure a hex cannot contain both woods and rough terrain.
@@ -213,6 +215,28 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(MaxElevationFormatted));
+            StartMapUpdate();
+        }
+    } = 2;
+
+    public int LakeCoverage
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(LakeCoverageFormatted));
+            StartMapUpdate();
+        }
+    }
+
+    public int LakeMaxDepth
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(LakeMaxDepthFormatted));
             StartMapUpdate();
         }
     } = 2;
@@ -385,6 +409,9 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
             if (HillCoverage > 0)
                 builder = builder.WithHills(HillCoverage / 100.0, MaxElevation);
+
+            if (LakeCoverage > 0)
+                builder = builder.WithLakes(LakeCoverage / 100.0, LakeMaxDepth);
 
             var generator = builder.Build();
 

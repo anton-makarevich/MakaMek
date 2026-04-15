@@ -18,10 +18,10 @@ public class MapGeneratorBuilder
     private LevelConfiguration? _levelConfig;
     private int? _seed;
 
-    // Each overlay entry: (patch-hex-set factory, terrain selector given (coords, rng))
+    // Each overlay entry: (patch-hex-set factory with distance map, terrain selector given (coords, distance, rng))
     private readonly List<(
         Func<Random, Dictionary<HexCoordinates, int>> PatchFactory,
-        Func<HexCoordinates, Random, Terrain> TerrainSelector)> _overlays = [];
+        Func<HexCoordinates, int, Random, Terrain> TerrainSelector)> _overlays = [];
 
     public MapGeneratorBuilder(int width, int height)
     {
@@ -48,7 +48,7 @@ public class MapGeneratorBuilder
 
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
-            (_, _) => new TTerrain()
+            (_, _, _) => new TTerrain()
         ));
         return this;
     }
@@ -68,7 +68,33 @@ public class MapGeneratorBuilder
         var lp = lightWoodsProbability;
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
-            (_, rng) => rng.NextDouble() < lp ? new LightWoodsTerrain() : new HeavyWoodsTerrain()
+            (_, _, rng) => rng.NextDouble() < lp ? new LightWoodsTerrain() : new HeavyWoodsTerrain()
+        ));
+        return this;
+    }
+
+    /// <summary>
+    /// Convenience method for lake generation.
+    /// Produces organic lake patches with depth increasing toward the center.
+    /// </summary>
+    /// <param name="coverage">Fraction of map hexes to cover (0.0–1.0).</param>
+    /// <param name="maxDepth">Maximum depth at patch centers (1–3). Deeper water costs more MP.</param>
+    public MapGeneratorBuilder WithLakes(double coverage, int maxDepth)
+    {
+        if (coverage is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(coverage), "Coverage must be between 0.0 and 1.0.");
+        if (maxDepth < 1)
+            throw new ArgumentOutOfRangeException(nameof(maxDepth), "MaxDepth must be at least 1.");
+
+        _overlays.Add((
+            rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
+            (coords, distance, rng) =>
+            {
+                // Depth tapers from -maxDepth at center (dist=0) toward 0 at edges,
+                // mirroring the hill elevation taper pattern.
+                var depth = -Math.Min(maxDepth, distance);
+                return new WaterTerrain(depth);
+            }
         ));
         return this;
     }
@@ -95,7 +121,7 @@ public class MapGeneratorBuilder
 
         // Materialize overlays: each gets its own Random so they don't interfere
         var builtOverlays = _overlays
-            .Select(o => (new HashSet<HexCoordinates>(o.PatchFactory(CreateRng()).Keys), o.TerrainSelector))
+            .Select(o => (new Dictionary<HexCoordinates, int>(o.PatchFactory(CreateRng())), o.TerrainSelector))
             .ToList();
 
         ILevelProvider levelProvider = _levelConfig is not null
