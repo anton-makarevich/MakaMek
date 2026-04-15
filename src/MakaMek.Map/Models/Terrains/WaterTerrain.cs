@@ -11,11 +11,13 @@ public class WaterTerrain : Terrain
 {
     private readonly int _depth;
 
+    public WaterTerrain() : this(0) { }
+    
     /// <param name="depth">
     /// Depth of the water body: 0 = shallow, -1 = standard, -2 or lower = deep.
     /// Stored as a negative Height to follow the existing terrain convention.
     /// </param>
-    public WaterTerrain(int depth = 0)
+    public WaterTerrain(int depth)
     {
         _depth = depth;
     }
@@ -28,7 +30,7 @@ public class WaterTerrain : Terrain
     public override int Height => _depth;
 
     /// <summary>
-    /// Water does not block line of sight by itself.
+    /// Water does not block the line of sight by itself.
     /// </summary>
     public override int InterveningFactor => 0;
 
