@@ -90,9 +90,8 @@ public class MapGeneratorBuilder
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
             (coords, distance, rng) =>
             {
-                // Depth tapers from -maxDepth at center (dist=0) toward 0 at edges,
-                // mirroring the hill elevation taper pattern.
-                var depth = -Math.Min(maxDepth, distance);
+                // Depth tapers from maxDepth at center (dist=0) toward 1 at patch edges.
+                var depth = -Math.Max(1, maxDepth - distance);
                 return new WaterTerrain(depth);
             }
         ));

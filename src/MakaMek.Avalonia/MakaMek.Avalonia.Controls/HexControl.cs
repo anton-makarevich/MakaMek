@@ -304,7 +304,7 @@ public class HexControl : Panel
         var bitmap = BytesToBitmap(imageBytes);
         if (bitmap == null) return;
 
-        var rotationAngle = _waterBitmask.RotationSteps * 60.0;
+        var rotationAngle = -_waterBitmask.RotationSteps * 60.0;
         AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
     }
 
