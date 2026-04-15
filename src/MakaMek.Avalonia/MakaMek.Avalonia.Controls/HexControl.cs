@@ -242,7 +242,7 @@ public class HexControl : Panel
 
         if (rotationAngle != 0)
         {
-            imageControl.RenderTransform = new RotateTransform(rotationAngle, Width / 2, Height / 2);
+            imageControl.RenderTransform = new RotateTransform(rotationAngle);
         }
 
         Children.Add(imageControl);
