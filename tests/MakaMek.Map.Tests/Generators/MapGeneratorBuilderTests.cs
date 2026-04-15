@@ -41,7 +41,7 @@ public class MapGeneratorBuilderTests
             .Build();
 
         var hasForest = AllCoords()
-            .Select(c => sut.Generate(c))
+            .Select(sut.Generate)
             .Any(h => h.HasTerrain(MakaMekTerrains.LightWoods) || h.HasTerrain(MakaMekTerrains.HeavyWoods));
 
         hasForest.ShouldBeTrue();
@@ -56,7 +56,7 @@ public class MapGeneratorBuilderTests
             .Build();
 
         var hasElevation = AllCoords()
-            .Select(c => sut.Generate(c))
+            .Select(sut.Generate)
             .Any(h => h.Level > 0);
 
         hasElevation.ShouldBeTrue();
@@ -72,7 +72,7 @@ public class MapGeneratorBuilderTests
             .WithSeed(99)
             .Build();
 
-        var hexes = AllCoords().Select(c => sut.Generate(c)).ToList();
+        var hexes = AllCoords().Select(sut.Generate).ToList();
 
         hexes.ShouldContain(h => h.HasTerrain(MakaMekTerrains.LightWoods));
         hexes.ShouldContain(h => h.Level > 0);
@@ -149,7 +149,7 @@ public class MapGeneratorBuilderTests
 
         // Assert
         var hasTerrain = AllCoords()
-            .Select(c => sut.Generate(c))
+            .Select(sut.Generate)
             .Any(h => h.HasTerrain(MakaMekTerrains.LightWoods));
 
         hasTerrain.ShouldBeTrue();
@@ -200,5 +200,62 @@ public class MapGeneratorBuilderTests
         var ex = Should.Throw<ArgumentOutOfRangeException>(() => new MapGeneratorBuilder(width, height));
         ex.ParamName.ShouldBe("height");
     }
-}
 
+    [Fact]
+    public void WithLakes_ProducesWaterHexes()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithLakes(coverage: 0.5, maxDepth: 2)
+            .WithSeed(42)
+            .Build();
+
+        var hasWater = AllCoords()
+            .Select(sut.Generate)
+            .Any(h => h.HasTerrain(MakaMekTerrains.Water));
+
+        hasWater.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(-0.1, 2)]
+    [InlineData(1.1, 2)]
+    public void WithLakes_WithInvalidCoverage_ThrowsArgumentOutOfRangeException(double coverage, int maxDepth)
+    {
+        // Arrange
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithLakes(coverage, maxDepth));
+        ex.ParamName.ShouldBe("coverage");
+    }
+
+    [Theory]
+    [InlineData(0.5, 0)]
+    [InlineData(0.5, -1)]
+    public void WithLakes_WithInvalidMaxDepth_ThrowsArgumentOutOfRangeException(double coverage, int maxDepth)
+    {
+        // Arrange
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithLakes(coverage, maxDepth));
+        ex.ParamName.ShouldBe("maxDepth");
+    }
+
+    [Fact]
+    public void CombiningLakesAndHills_SetsBothCorrectly()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithLakes(coverage: 0.4, maxDepth: 3)
+            .WithHills(coverage: 0.4, maxElevation: 3)
+            .WithSeed(99)
+            .Build();
+
+        var hexes = AllCoords().Select(sut.Generate).ToList();
+
+        hexes.ShouldContain(h => h.HasTerrain(MakaMekTerrains.Water));
+        hexes.ShouldContain(h => h.Level > 0);
+    }
+}
