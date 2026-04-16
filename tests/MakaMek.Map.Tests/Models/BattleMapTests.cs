@@ -1029,24 +1029,24 @@ public class BattleMapTests
         // Verify first hex data
         var hexData1 = hexDataList.HexData.First(h => h.Coordinates is { Q: 1, R: 1 });
         hexData1.Level.ShouldBe(0);
-        hexData1.TerrainTypes.ShouldContain(MakaMekTerrains.Clear);
+        hexData1.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.Clear);
 
         // Verify second hex data
         var hexData2 = hexDataList.HexData.First(h => h.Coordinates is { Q: 2, R: 2 });
         hexData2.Level.ShouldBe(1);
-        hexData2.TerrainTypes.ShouldContain(MakaMekTerrains.LightWoods);
+        hexData2.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.LightWoods);
 
         // Verify third hex data
         var hexData3 = hexDataList.HexData.First(h => h.Coordinates is { Q: 3, R: 3 });
         hexData3.Level.ShouldBe(2);
-        hexData3.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
+        hexData3.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.HeavyWoods);
 
-        // Verify third hex data
+        // Verify fourth hex data
         var hexData4 = hexDataList.HexData.First(h => h.Coordinates is { Q: 3, R: 1 });
         hexData4.Level.ShouldBe(2);
-        hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.Clear);
-        hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.LightWoods);
-        hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
+        hexData4.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.Clear);
+        hexData4.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.LightWoods);
+        hexData4.Terrains.Select(t => t.Type).ShouldContain(MakaMekTerrains.HeavyWoods);
     }
     
     [Theory]

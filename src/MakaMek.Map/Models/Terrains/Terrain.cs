@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Map.Data;
+
 namespace Sanet.MakaMek.Map.Models.Terrains;
 
 /// <summary>
@@ -27,7 +29,35 @@ public abstract class Terrain
     /// </summary>
     public abstract int MovementCost { get; }
 
-    public static Terrain GetTerrainType(MakaMekTerrains terrainType)
+    /// <summary>
+    /// Converts this terrain to a serializable data transfer object.
+    /// Default implementation returns data with just the terrain type (no height).
+    /// Override for terrains with variable properties like water depth.
+    /// </summary>
+    public virtual TerrainData ToData()
+    {
+        return new TerrainData
+        {
+            Type = Id,
+            Height = null
+        };
+    }
+
+    /// <summary>
+    /// Creates a terrain instance from serialized data.
+    /// Delegates to GetTerrainType with the height value from the data.
+    /// </summary>
+    public static Terrain FromData(TerrainData data)
+    {
+        return GetTerrainType(data.Type, data.Height);
+    }
+
+    /// <summary>
+    /// Creates a terrain instance by type.
+    /// For terrains with variable properties (like water depth), the height parameter is used.
+    /// For all other terrains, height is ignored.
+    /// </summary>
+    public static Terrain GetTerrainType(MakaMekTerrains terrainType, int? height = null)
     {
         return terrainType switch
         {
@@ -35,7 +65,7 @@ public abstract class Terrain
             MakaMekTerrains.LightWoods => new LightWoodsTerrain(),
             MakaMekTerrains.HeavyWoods => new HeavyWoodsTerrain(),
             MakaMekTerrains.Rough => new RoughTerrain(),
-            MakaMekTerrains.Water => new WaterTerrain(),
+            MakaMekTerrains.Water => new WaterTerrain(height ?? 0),
             _ => throw new ArgumentException($"Unknown terrain type: {terrainType}")
         };
     }

@@ -150,7 +150,7 @@ public class Hex : IDisposable
         return new HexData
         {
             Coordinates = Coordinates.ToData(),
-            TerrainTypes = GetTerrainTypes(),
+            Terrains = GetTerrains().Select(t => t.ToData()).ToArray(),
             Level = Level
         };
     }

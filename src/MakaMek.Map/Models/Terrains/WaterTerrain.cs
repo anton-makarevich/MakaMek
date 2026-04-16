@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Map.Data;
+
 namespace Sanet.MakaMek.Map.Models.Terrains;
 
 /// <summary>
@@ -46,4 +48,16 @@ public class WaterTerrain : Terrain
         -1 => 2,
         _ => 4
     };
+
+    /// <summary>
+    /// Returns TerrainData with the water depth preserved.
+    /// </summary>
+    public override TerrainData ToData()
+    {
+        return new TerrainData
+        {
+            Type = Id,
+            Height = _depth
+        };
+    }
 }
