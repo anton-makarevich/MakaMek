@@ -17,7 +17,7 @@ internal class CompositeGenerator : ITerrainGenerator
     private readonly int _height;
     private readonly Terrain _baseTerrain;
     private readonly ILevelProvider _levelProvider;
-    private readonly List<(HashSet<HexCoordinates> Hexes, Func<HexCoordinates, Random, Terrain> Selector)> _overlays;
+    private readonly List<(Dictionary<HexCoordinates, int> Distances, Func<HexCoordinates, int, Random, Terrain> Selector)> _overlays;
     private readonly Random _random;
 
     internal CompositeGenerator(
@@ -25,7 +25,7 @@ internal class CompositeGenerator : ITerrainGenerator
         int height,
         Terrain baseTerrain,
         ILevelProvider levelProvider,
-        List<(HashSet<HexCoordinates>, Func<HexCoordinates, Random, Terrain>)> overlays,
+        List<(Dictionary<HexCoordinates, int> Distances, Func<HexCoordinates, int, Random, Terrain> Selector)> overlays,
         Random random)
     {
         _width = width;
@@ -46,10 +46,10 @@ internal class CompositeGenerator : ITerrainGenerator
 
         // Start with the base terrain; last matching overlay wins
         var terrain = _baseTerrain;
-        foreach (var (hexes, selector) in _overlays)
+        foreach (var (distances, selector) in _overlays)
         {
-            if (hexes.Contains(coordinates))
-                terrain = selector(coordinates, _random);
+            if (distances.TryGetValue(coordinates, out var distance))
+                terrain = selector(coordinates, distance, _random);
         }
 
         var level = _levelProvider.GetLevel(coordinates);

@@ -36,7 +36,7 @@ public class MapConfigViewModelTests
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Configure localization service mock - return the key if not configured
-        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted")).Returns(callInfo => callInfo.Arg<string>());
+        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted" && k != "MapConfig_LakeCoverage_Formatted" && k != "MapConfig_LakeMaxDepth_Formatted")).Returns(callInfo => callInfo.Arg<string>());
         _localizationService.GetString("MapConfig_Width_Formatted").Returns("Width: {0} hexes");
         _localizationService.GetString("MapConfig_Height_Formatted").Returns("Height: {0} hexes");
         _localizationService.GetString("MapConfig_ForestCoverage_Formatted").Returns("Forest Coverage: {0}%");
@@ -44,6 +44,8 @@ public class MapConfigViewModelTests
         _localizationService.GetString("MapConfig_HillCoverage_Formatted").Returns("Hill Coverage: {0}%");
         _localizationService.GetString("MapConfig_MaxElevation_Formatted").Returns("Max Elevation: {0}");
         _localizationService.GetString("MapConfig_RoughCoverage_Formatted").Returns("Rough Coverage: {0}%");
+        _localizationService.GetString("MapConfig_LakeCoverage_Formatted").Returns("Lake Coverage: {0}%");
+        _localizationService.GetString("MapConfig_LakeMaxDepth_Formatted").Returns("Lake Max Depth: {0}");
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
     }
@@ -72,6 +74,9 @@ public class MapConfigViewModelTests
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
         _sut.RoughCoverage.ShouldBe(10);
+        _sut.LakeMaxDepth.ShouldBe(2);
+        _sut.IsMaxElevationEnabled.ShouldBeFalse();
+        _sut.IsLakeMaxDepthEnabled.ShouldBeFalse();
     }
 
     [Theory]
@@ -83,6 +88,28 @@ public class MapConfigViewModelTests
         _sut.ForestCoverage = coverage;
 
         _sut.IsLightWoodsEnabled.ShouldBe(expectedEnabled);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(50, true)]
+    public void HillCoverage_WhenChanged_UpdatesIsMaxElevationEnabled(int coverage, bool expectedEnabled)
+    {
+        _sut.HillCoverage = coverage;
+
+        _sut.IsMaxElevationEnabled.ShouldBe(expectedEnabled);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(50, true)]
+    public void LakeCoverage_WhenChanged_UpdatesIsLakeMaxDepthEnabled(int coverage, bool expectedEnabled)
+    {
+        _sut.LakeCoverage = coverage;
+
+        _sut.IsLakeMaxDepthEnabled.ShouldBe(expectedEnabled);
     }
 
     [Fact]
@@ -146,6 +173,26 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
+    public void LakeCoverage_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newCoverage = 15;
+
+        _sut.LakeCoverage = newCoverage;
+
+        _sut.LakeCoverage.ShouldBe(newCoverage);
+    }
+
+    [Fact]
+    public void LakeMaxDepth_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newDepth = 3;
+
+        _sut.LakeMaxDepth = newDepth;
+
+        _sut.LakeMaxDepth.ShouldBe(newDepth);
+    }
+
+    [Fact]
     public void MapWidthFormatted_ReturnsFormattedValue()
     {
         _sut.MapWidthFormatted.ShouldBe("Width: 15 hexes");
@@ -179,6 +226,18 @@ public class MapConfigViewModelTests
     public void MaxElevationFormatted_ReturnsFormattedValue()
     {
         _sut.MaxElevationFormatted.ShouldBe("Max Elevation: 2");
+    }
+
+    [Fact]
+    public void LakeCoverageFormatted_ReturnsFormattedValue()
+    {
+        _sut.LakeCoverageFormatted.ShouldBe("Lake Coverage: 0%");
+    }
+
+    [Fact]
+    public void LakeMaxDepthFormatted_ReturnsFormattedValue()
+    {
+        _sut.LakeMaxDepthFormatted.ShouldBe("Lake Max Depth: 2");
     }
 
     [Fact]
@@ -227,6 +286,22 @@ public class MapConfigViewModelTests
         _sut.MaxElevation = 4;
 
         _sut.MaxElevationFormatted.ShouldBe("Max Elevation: 4");
+    }
+
+    [Fact]
+    public void LakeCoverageFormatted_UpdatesWhenLakeCoverageChanges()
+    {
+        _sut.LakeCoverage = 10;
+
+        _sut.LakeCoverageFormatted.ShouldBe("Lake Coverage: 10%");
+    }
+
+    [Fact]
+    public void LakeMaxDepthFormatted_UpdatesWhenLakeMaxDepthChanges()
+    {
+        _sut.LakeMaxDepth = 3;
+
+        _sut.LakeMaxDepthFormatted.ShouldBe("Lake Max Depth: 3");
     }
 
     [Fact]

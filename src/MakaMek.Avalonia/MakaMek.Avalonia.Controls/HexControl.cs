@@ -117,6 +117,22 @@ public class HexControl : Panel
             levelLabel.ZIndex = ZIndexLabel;
         }
 
+        // Add water depth label if hex has water terrain
+        if (hex.GetTerrain(MakaMekTerrains.Water) is WaterTerrain waterTerrain)
+        {
+            var waterLabel = new Label
+            {
+                Content = $"DEPTH {waterTerrain.Height}",
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = Brushes.White,
+                FontSize = 11,
+                IsVisible = _renderConfiguration.ShowLabels
+            };
+            Children.Add(waterLabel);
+            waterLabel.ZIndex = ZIndexLabel;
+        }
+
         // Set the initial highlight state
         Highlight(_hex.Highlights);
 
@@ -226,7 +242,7 @@ public class HexControl : Panel
 
         if (rotationAngle != 0)
         {
-            imageControl.RenderTransform = new RotateTransform(rotationAngle, Width / 2, Height / 2);
+            imageControl.RenderTransform = new RotateTransform(rotationAngle);
         }
 
         Children.Add(imageControl);
@@ -288,7 +304,7 @@ public class HexControl : Panel
         var bitmap = BytesToBitmap(imageBytes);
         if (bitmap == null) return;
 
-        var rotationAngle = _waterBitmask.RotationSteps * 60.0;
+        var rotationAngle = -_waterBitmask.RotationSteps * 60.0;
         AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
     }
 

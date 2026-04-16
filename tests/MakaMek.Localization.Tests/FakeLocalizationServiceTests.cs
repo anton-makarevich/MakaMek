@@ -770,6 +770,10 @@ public class FakeLocalizationServiceTests
     [InlineData("MapConfig_MaxElevation_Formatted", "Max Elevation: {0}")]
     [InlineData("MapConfig_RoughTerrain", "Rough Terrain Coverage")]
     [InlineData("MapConfig_RoughCoverage_Formatted", "Rough Coverage: {0}%")]
+    [InlineData("MapConfig_LakeCoverage", "Lake Coverage")]
+    [InlineData("MapConfig_LakeMaxDepth", "Max Lake Depth")]
+    [InlineData("MapConfig_LakeCoverage_Formatted", "Lake Coverage: {0}%")]
+    [InlineData("MapConfig_LakeMaxDepth_Formatted", "Max Lake Depth: {0}")]
     public void GetString_MapConfig_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
