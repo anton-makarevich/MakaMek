@@ -166,7 +166,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref _forestCoverage, value);
-            NotifyPropertyChanged(nameof(IsLightWoodsEnabled));
+            NotifyPropertyChanged(nameof(HasForest));
             NotifyPropertyChanged(nameof(ForestCoverageFormatted));
             NotifyPropertyChanged(nameof(MaxRoughCoverage));
             NotifyPropertyChanged(nameof(RoughCoverageFormatted));
@@ -204,7 +204,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(HillCoverageFormatted));
-            NotifyPropertyChanged(nameof(IsMaxElevationEnabled));
+            NotifyPropertyChanged(nameof(HasHills));
             StartMapUpdate();
         }
     }
@@ -227,7 +227,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(LakeCoverageFormatted));
-            NotifyPropertyChanged(nameof(IsLakeMaxDepthEnabled));
+            NotifyPropertyChanged(nameof(HasLakes));
             StartMapUpdate();
         }
     }
@@ -243,11 +243,11 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
     } = 2;
 
-    public bool IsLightWoodsEnabled => _forestCoverage > 0;
+    public bool HasForest => _forestCoverage > 0;
 
-    public bool IsMaxElevationEnabled => HillCoverage > 0;
+    public bool HasHills => HillCoverage > 0;
 
-    public bool IsLakeMaxDepthEnabled => LakeCoverage > 0;
+    public bool HasLakes => LakeCoverage > 0;
 
     /// <summary>
     /// The active map depending on which tab is selected.

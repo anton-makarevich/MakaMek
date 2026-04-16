@@ -72,11 +72,11 @@ public class MapConfigViewModelTests
         _sut.MapHeight.ShouldBe(17);
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
-        _sut.IsLightWoodsEnabled.ShouldBeTrue();
+        _sut.HasForest.ShouldBeTrue();
         _sut.RoughCoverage.ShouldBe(10);
         _sut.LakeMaxDepth.ShouldBe(2);
-        _sut.IsMaxElevationEnabled.ShouldBeFalse();
-        _sut.IsLakeMaxDepthEnabled.ShouldBeFalse();
+        _sut.HasHills.ShouldBeFalse();
+        _sut.HasLakes.ShouldBeFalse();
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public class MapConfigViewModelTests
     {
         _sut.ForestCoverage = coverage;
 
-        _sut.IsLightWoodsEnabled.ShouldBe(expectedEnabled);
+        _sut.HasForest.ShouldBe(expectedEnabled);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class MapConfigViewModelTests
     {
         _sut.HillCoverage = coverage;
 
-        _sut.IsMaxElevationEnabled.ShouldBe(expectedEnabled);
+        _sut.HasHills.ShouldBe(expectedEnabled);
     }
 
     [Theory]
@@ -109,7 +109,7 @@ public class MapConfigViewModelTests
     {
         _sut.LakeCoverage = coverage;
 
-        _sut.IsLakeMaxDepthEnabled.ShouldBe(expectedEnabled);
+        _sut.HasLakes.ShouldBe(expectedEnabled);
     }
 
     [Fact]
