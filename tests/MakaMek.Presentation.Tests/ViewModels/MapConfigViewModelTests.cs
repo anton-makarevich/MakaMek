@@ -75,6 +75,8 @@ public class MapConfigViewModelTests
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
         _sut.RoughCoverage.ShouldBe(10);
         _sut.LakeMaxDepth.ShouldBe(2);
+        _sut.IsMaxElevationEnabled.ShouldBeFalse();
+        _sut.IsLakeMaxDepthEnabled.ShouldBeFalse();
     }
 
     [Theory]
@@ -86,6 +88,28 @@ public class MapConfigViewModelTests
         _sut.ForestCoverage = coverage;
 
         _sut.IsLightWoodsEnabled.ShouldBe(expectedEnabled);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(50, true)]
+    public void HillCoverage_WhenChanged_UpdatesIsMaxElevationEnabled(int coverage, bool expectedEnabled)
+    {
+        _sut.HillCoverage = coverage;
+
+        _sut.IsMaxElevationEnabled.ShouldBe(expectedEnabled);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(50, true)]
+    public void LakeCoverage_WhenChanged_UpdatesIsLakeMaxDepthEnabled(int coverage, bool expectedEnabled)
+    {
+        _sut.LakeCoverage = coverage;
+
+        _sut.IsLakeMaxDepthEnabled.ShouldBe(expectedEnabled);
     }
 
     [Fact]

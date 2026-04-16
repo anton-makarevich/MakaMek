@@ -204,6 +204,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(HillCoverageFormatted));
+            NotifyPropertyChanged(nameof(IsMaxElevationEnabled));
             StartMapUpdate();
         }
     }
@@ -226,6 +227,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(LakeCoverageFormatted));
+            NotifyPropertyChanged(nameof(IsLakeMaxDepthEnabled));
             StartMapUpdate();
         }
     }
@@ -242,6 +244,10 @@ public class MapConfigViewModel : BindableBase, IDisposable
     } = 2;
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
+
+    public bool IsMaxElevationEnabled => HillCoverage > 0;
+
+    public bool IsLakeMaxDepthEnabled => LakeCoverage > 0;
 
     /// <summary>
     /// The active map depending on which tab is selected.
