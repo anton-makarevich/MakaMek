@@ -112,7 +112,10 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             {
                 try
                 {
-                    await _cachingService.SaveToCache(resourceId, contentBytes, currentSha);
+                    await _cachingService.SaveToCache(
+                        resourceId,
+                        contentBytes,
+                        string.IsNullOrEmpty(currentSha) ? null : currentSha);
                 }
                 catch (Exception ex)
                 {
