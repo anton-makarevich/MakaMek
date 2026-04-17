@@ -83,7 +83,7 @@ public class MapConfigViewModelTests
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void ForestCoverage_WhenChanged_UpdatesLightWoodsEnabled(int coverage, bool expectedEnabled)
+    public void ForestCoverage_WhenChanged_UpdatesHasForest(int coverage, bool expectedEnabled)
     {
         _sut.ForestCoverage = coverage;
 
@@ -94,7 +94,7 @@ public class MapConfigViewModelTests
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void HillCoverage_WhenChanged_UpdatesIsMaxElevationEnabled(int coverage, bool expectedEnabled)
+    public void HillCoverage_WhenChanged_UpdatesHasHills(int coverage, bool expectedEnabled)
     {
         _sut.HillCoverage = coverage;
 
@@ -105,7 +105,7 @@ public class MapConfigViewModelTests
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void LakeCoverage_WhenChanged_UpdatesIsLakeMaxDepthEnabled(int coverage, bool expectedEnabled)
+    public void LakeCoverage_WhenChanged_UpdatesHasLakes(int coverage, bool expectedEnabled)
     {
         _sut.LakeCoverage = coverage;
 
