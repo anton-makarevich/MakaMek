@@ -212,7 +212,8 @@ public class FileSystemCachingService : IFileCachingService
             if (!File.Exists(versionFilePath))
                 return null;
 
-            return await File.ReadAllTextAsync(versionFilePath);
+            var version = await File.ReadAllTextAsync(versionFilePath);
+            return string.IsNullOrEmpty(version) ? null : version;
         }
         catch (Exception ex)
         {
