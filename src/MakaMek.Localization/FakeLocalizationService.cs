@@ -422,6 +422,15 @@ public class FakeLocalizationService: ILocalizationService
             "AboutView_ViewContentRules" => "View Game Content Usage Rules",
             "AboutView_SourceCode" => "Source Code",
 
+            // Settings View
+            "SettingsView_Title" => "Settings",
+            "Settings_Data_SectionTitle" => "Data",
+            "Settings_Data_CacheStatus" => "Loaded units: {0}, Loaded biomes: {1}",
+            "Settings_Data_ClearCache" => "Clear Cache",
+            "Settings_Data_ClearCacheDescription" => "Note: An app restart is required after clearing the cache.",
+            "Settings_Data_Clearing" => "Clearing cache...",
+            "Settings_Data_Cleared" => "Cache cleared successfully",
+
             // Available Units Table View
             "AvailableUnits_Title" => "Available Units",
             "AvailableUnits_Class" => "Class:",
@@ -438,6 +447,7 @@ public class FakeLocalizationService: ILocalizationService
             "MainMenu_StartNewGame" => "Start New Game",
             "MainMenu_JoinGame" => "Join Game",
             "MainMenu_About" => "About",
+            "MainMenu_Settings" => "Settings",
 
             // Start New Game View
             "StartNewGame_Title" => "Start New Game",

@@ -35,6 +35,7 @@ public class MainMenuViewModel : BaseViewModel
         StartNewGameCommand = new AsyncCommand(NavigateToNewGame);
         JoinGameCommand = new AsyncCommand(NavigateToJoinGame);
         AboutCommand = new AsyncCommand(NavigateToAbout);
+        SettingsCommand = new AsyncCommand(NavigateToSettings);
 
         // Start preloading units and biomes
         IsLoading = true;
@@ -49,6 +50,7 @@ public class MainMenuViewModel : BaseViewModel
     public ICommand StartNewGameCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand AboutCommand { get; }
+    public ICommand SettingsCommand { get; }
     public string Version { get; }
 
     /// <summary>
@@ -99,6 +101,8 @@ public class MainMenuViewModel : BaseViewModel
     private Task NavigateToJoinGame() => NavigateToViewModel<JoinGameViewModel>();
 
     private Task NavigateToAbout() => NavigateToViewModel<AboutViewModel>();
+
+    private Task NavigateToSettings() => NavigateToViewModel<SettingsViewModel>();
 
     /// <summary>
     /// Preloads unit data from all configured providers

@@ -42,6 +42,11 @@
                     Command="{Binding AboutCommand}"
                     HorizontalAlignment="Stretch"
                     MinWidth="200"/>
+            <Button Content="{extensions:Localize 'MainMenu_Settings'}"
+                    Classes="main-menu"
+                    Command="{Binding SettingsCommand}"
+                    HorizontalAlignment="Stretch"
+                    MinWidth="200"/>
         </StackPanel>
 
         <!-- Version TextBlock -->
