@@ -724,9 +724,7 @@ public class MapConfigViewModelTests
                                      "Q": 1,
                                      "R": 1
                                    },
-                                   "TerrainTypes": [
-                                     0
-                                   ],
+                                   "Terrains": [{"Type": 0 }],
                                    "Level": 0
                                  }
                                  ]
@@ -818,7 +816,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         _fileService.OpenFile(Arg.Any<string>())
-            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "{\"HexData\":[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]}")));
+            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "{\"HexData\":[{\"Coordinates\":{\"Q\":1,\"R\":1},\"Terrains\":[{\"Type\":0}],\"Level\":0}]}")));
 
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
 
