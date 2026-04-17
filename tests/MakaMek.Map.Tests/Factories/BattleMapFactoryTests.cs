@@ -104,7 +104,7 @@ public class BattleMapFactoryTests
             var clonedHex = clonedMap.GetHex(hex.Coordinates);
             clonedHex.ShouldNotBeNull();
             clonedHex.Level.ShouldBe(hex.Level);
-            clonedHex.GetTerrainTypes().ShouldBeEquivalentTo(hex.GetTerrainTypes());
+            clonedHex.GetTerrains().Select(t => t.ToData().Type).ShouldBeEquivalentTo(hex.GetTerrains().Select(t => t.ToData().Type));
             
             // Verify terrain properties are preserved
             foreach (var terrain in hex.GetTerrains())
