@@ -104,8 +104,67 @@ public class BattleMapFactoryTests
             var clonedHex = clonedMap.GetHex(hex.Coordinates);
             clonedHex.ShouldNotBeNull();
             clonedHex.Level.ShouldBe(hex.Level);
-            clonedHex.GetTerrainTypes().ShouldBeEquivalentTo(hex.GetTerrainTypes());
+            clonedHex.GetTerrains().Select(t => t.ToData().Type).ShouldBeEquivalentTo(hex.GetTerrains().Select(t => t.ToData().Type));
+            
+            // Verify terrain properties are preserved
+            foreach (var terrain in hex.GetTerrains())
+            {
+                var clonedTerrain = clonedHex.GetTerrain(terrain.Id);
+                clonedTerrain.ShouldNotBeNull();
+                clonedTerrain.Height.ShouldBe(terrain.Height);
+                clonedTerrain.MovementCost.ShouldBe(terrain.MovementCost);
+            }
         }
+    }
+
+    [Fact]
+    public void CreateFromData_ShouldPreserveWaterDepth()
+    {
+        // Arrange
+        var originalMap = new BattleMap(3, 3);
+        
+        // Add hexes with water at different depths
+        var shallowWaterHex = new Hex(new HexCoordinates(1, 1));
+        shallowWaterHex.AddTerrain(new WaterTerrain(0)); // Shallow water
+        originalMap.AddHex(shallowWaterHex);
+        
+        var standardWaterHex = new Hex(new HexCoordinates(2, 2));
+        standardWaterHex.AddTerrain(new WaterTerrain(-1)); // Standard depth
+        originalMap.AddHex(standardWaterHex);
+        
+        var deepWaterHex = new Hex(new HexCoordinates(3, 3));
+        deepWaterHex.AddTerrain(new WaterTerrain(-2)); // Deep water
+        originalMap.AddHex(deepWaterHex);
+        
+        var mapData = originalMap.ToData();
+
+        // Act
+        var clonedMap = _sut.CreateFromData(mapData);
+
+        // Assert
+        // Shallow water (depth 0)
+        var clonedShallow = clonedMap.GetHex(new HexCoordinates(1, 1));
+        clonedShallow.ShouldNotBeNull();
+        var shallowWater = clonedShallow.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
+        shallowWater.ShouldNotBeNull();
+        shallowWater.Height.ShouldBe(0);
+        shallowWater.MovementCost.ShouldBe(1); // Shallow water = 1 MP
+
+        // Standard water (depth -1)
+        var clonedStandard = clonedMap.GetHex(new HexCoordinates(2, 2));
+        clonedStandard.ShouldNotBeNull();
+        var standardWater = clonedStandard.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
+        standardWater.ShouldNotBeNull();
+        standardWater.Height.ShouldBe(-1);
+        standardWater.MovementCost.ShouldBe(2); // Standard depth = 2 MP
+
+        // Deep water (depth -2)
+        var clonedDeep = clonedMap.GetHex(new HexCoordinates(3, 3));
+        clonedDeep.ShouldNotBeNull();
+        var deepWater = clonedDeep.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
+        deepWater.ShouldNotBeNull();
+        deepWater.Height.ShouldBe(-2);
+        deepWater.MovementCost.ShouldBe(4); // Deep water = 4 MP
     }
 
     [Fact]

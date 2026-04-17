@@ -95,9 +95,9 @@
                         <TextBlock Text="{Binding ForestCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
-                    <StackPanel Classes="formGroup">
+                    <StackPanel Classes="formGroup" IsVisible="{Binding HasForest}">
                         <TextBlock Text="{extensions:Localize 'MapConfig_LightWoods'}" Classes="label"/>
-                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
+                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->
                         <TextBlock Text="{Binding LightWoodsFormatted}" Classes="bodySmall"/>
                     </StackPanel>
@@ -116,7 +116,7 @@
                         <TextBlock Text="{Binding HillCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
-                    <StackPanel Classes="formGroup">
+                    <StackPanel Classes="formGroup" IsVisible="{Binding HasHills}">
                         <TextBlock Text="{extensions:Localize 'MapConfig_MaxElevation'}" Classes="label"/>
                         <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->
@@ -130,7 +130,7 @@
                         <TextBlock Text="{Binding LakeCoverageFormatted}" Classes="bodySmall"/>
                     </StackPanel>
 
-                    <StackPanel Classes="formGroup">
+                    <StackPanel Classes="formGroup" IsVisible="{Binding HasLakes}">
                         <TextBlock Text="{extensions:Localize 'MapConfig_LakeMaxDepth'}" Classes="label"/>
                         <Slider Value="{Binding LakeMaxDepth}" Minimum="1" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                         <!-- Note: StringFormat localization should be handled via ViewModel binding -->

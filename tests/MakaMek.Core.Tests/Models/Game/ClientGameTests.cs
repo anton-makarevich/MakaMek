@@ -46,7 +46,7 @@ public class ClientGameTests
     private readonly Guid _idempotencyKey = Guid.NewGuid();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
-    // Keep this longer than WaitForPublishedCommand's worst-case polling window
+    // Keep this longer than WaitForPublishedCommand's worst-case polling window,
     // so pending client commands are still tracked when tests simulate a rebroadcast.
     private const int CommandAckTimeout = 1000;
     public ClientGameTests()
@@ -368,7 +368,7 @@ public class ClientGameTests
             PilotAssignments = []
         };
         var receivedCommands = new List<IGameCommand>();
-        using var subscription = _sut.Commands.Subscribe(cmd => receivedCommands.Add(cmd));
+        using var subscription = _sut.Commands.Subscribe(receivedCommands.Add);
 
         // Act
         _sut.HandleCommand(joinCommand);
@@ -1894,17 +1894,17 @@ public class ClientGameTests
             new()
             {
                 Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.LightWoods]
+                Terrains = [new TerrainData {Type=MakaMekTerrains.LightWoods}]
             },
             new()
             {
                 Coordinates = new HexCoordinateData(2, 2),
-                TerrainTypes = [MakaMekTerrains.Clear]
+                Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}]
             },
             new()
             {
                 Coordinates = new HexCoordinateData(3, 3),
-                TerrainTypes = [MakaMekTerrains.HeavyWoods]
+                Terrains = [new TerrainData {Type=MakaMekTerrains.HeavyWoods}]
             }
         ];
         

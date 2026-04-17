@@ -121,7 +121,7 @@ public class MapGeneratorBuilderTests
             var h1 = gen1.Generate(coords);
             var h2 = gen2.Generate(coords);
             h1.Level.ShouldBe(h2.Level);
-            h1.GetTerrainTypes().ShouldBe(h2.GetTerrainTypes());
+            h1.GetTerrains().Select(t => t.ToData().Type).ShouldBe(h2.GetTerrains().Select(t => t.ToData().Type));
         }
     }
 

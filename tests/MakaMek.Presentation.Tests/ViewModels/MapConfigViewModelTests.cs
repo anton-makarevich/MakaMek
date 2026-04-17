@@ -56,10 +56,10 @@ public class MapConfigViewModelTests
             Biome = TestBiome,
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(1, 1),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]
@@ -72,44 +72,44 @@ public class MapConfigViewModelTests
         _sut.MapHeight.ShouldBe(17);
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
-        _sut.IsLightWoodsEnabled.ShouldBeTrue();
+        _sut.HasForest.ShouldBeTrue();
         _sut.RoughCoverage.ShouldBe(10);
         _sut.LakeMaxDepth.ShouldBe(2);
-        _sut.IsMaxElevationEnabled.ShouldBeFalse();
-        _sut.IsLakeMaxDepthEnabled.ShouldBeFalse();
+        _sut.HasHills.ShouldBeFalse();
+        _sut.HasLakes.ShouldBeFalse();
     }
 
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void ForestCoverage_WhenChanged_UpdatesLightWoodsEnabled(int coverage, bool expectedEnabled)
+    public void ForestCoverage_WhenChanged_UpdatesHasForest(int coverage, bool expectedEnabled)
     {
         _sut.ForestCoverage = coverage;
 
-        _sut.IsLightWoodsEnabled.ShouldBe(expectedEnabled);
+        _sut.HasForest.ShouldBe(expectedEnabled);
     }
 
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void HillCoverage_WhenChanged_UpdatesIsMaxElevationEnabled(int coverage, bool expectedEnabled)
+    public void HillCoverage_WhenChanged_UpdatesHasHills(int coverage, bool expectedEnabled)
     {
         _sut.HillCoverage = coverage;
 
-        _sut.IsMaxElevationEnabled.ShouldBe(expectedEnabled);
+        _sut.HasHills.ShouldBe(expectedEnabled);
     }
 
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(50, true)]
-    public void LakeCoverage_WhenChanged_UpdatesIsLakeMaxDepthEnabled(int coverage, bool expectedEnabled)
+    public void LakeCoverage_WhenChanged_UpdatesHasLakes(int coverage, bool expectedEnabled)
     {
         _sut.LakeCoverage = coverage;
 
-        _sut.IsLakeMaxDepthEnabled.ShouldBe(expectedEnabled);
+        _sut.HasLakes.ShouldBe(expectedEnabled);
     }
 
     [Fact]
@@ -724,9 +724,7 @@ public class MapConfigViewModelTests
                                      "Q": 1,
                                      "R": 1
                                    },
-                                   "TerrainTypes": [
-                                     0
-                                   ],
+                                   "Terrains": [{"Type": 0 }],
                                    "Level": 0
                                  }
                                  ]
@@ -818,7 +816,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         _fileService.OpenFile(Arg.Any<string>())
-            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "{\"HexData\":[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]}")));
+            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "{\"HexData\":[{\"Coordinates\":{\"Q\":1,\"R\":1},\"Terrains\":[{\"Type\":0}],\"Level\":0}]}")));
 
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
 
@@ -889,10 +887,10 @@ public class MapConfigViewModelTests
         {
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(1, 1),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]
@@ -902,10 +900,10 @@ public class MapConfigViewModelTests
         {
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(2, 2),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]

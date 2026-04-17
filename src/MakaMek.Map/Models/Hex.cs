@@ -130,11 +130,6 @@ public class Hex : IDisposable
         _highlightsSubject.OnNext(HighlightsSnapshot );
     }
 
-    public MakaMekTerrains[] GetTerrainTypes()
-    {
-        return _terrains.Values.Select(t => t.Id).ToArray(); 
-    }
-    
     /// <summary>
     /// Gets the level difference between this hex and another hex
     /// </summary>
@@ -150,7 +145,7 @@ public class Hex : IDisposable
         return new HexData
         {
             Coordinates = Coordinates.ToData(),
-            TerrainTypes = GetTerrainTypes(),
+            Terrains = GetTerrains().Select(t => t.ToData()).ToArray(),
             Level = Level
         };
     }

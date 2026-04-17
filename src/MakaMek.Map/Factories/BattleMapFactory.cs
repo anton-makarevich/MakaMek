@@ -48,10 +48,10 @@ public class BattleMapFactory : IBattleMapFactory
         foreach (var hex in mapData.HexData)
         {
             var newHex = new Hex(new HexCoordinates(hex.Coordinates), hex.Level);
-            foreach (var terrainType in hex.TerrainTypes)
+            foreach (var terrainData in hex.Terrains)
             {
-                // Map terrain type strings to terrain classes
-                var terrain = Terrain.GetTerrainType(terrainType);
+                // Reconstruct terrain from data (preserves properties like water depth)
+                var terrain = Terrain.FromData(terrainData);
                 newHex.AddTerrain(terrain);
             }
             map.AddHex(newHex);

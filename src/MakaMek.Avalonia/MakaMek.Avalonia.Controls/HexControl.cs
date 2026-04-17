@@ -122,7 +122,7 @@ public class HexControl : Panel
         {
             var waterLabel = new Label
             {
-                Content = $"DEPTH {waterTerrain.Height}",
+                Content = $"DEPTH {Math.Abs(waterTerrain.Height)}",
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
