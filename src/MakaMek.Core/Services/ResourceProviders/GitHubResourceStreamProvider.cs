@@ -75,11 +75,11 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         if (!string.IsNullOrEmpty(currentSha))
         {
             var cachedVersion = await _cachingService.GetCacheVersion(resourceId);
-            if (cachedVersion != null && cachedVersion != currentSha)
+            if (cachedVersion != currentSha && await _cachingService.IsCached(resourceId))
             {
-                // Cache is stale, invalidate it
-                _logger.LogInformation("Cache version mismatch for {ResourceId}: cached {CachedVersion} vs current {CurrentVersion}. Invalidating cache.", 
-                    resourceId, cachedVersion, currentSha);
+                _logger.LogInformation(
+                    "Cache version mismatch for {ResourceId}: cached {CachedVersion} vs current {CurrentVersion}. Invalidating cache.",
+                    resourceId, cachedVersion ?? "<none>", currentSha);
                 await _cachingService.RemoveFromCache(resourceId);
             }
         }
