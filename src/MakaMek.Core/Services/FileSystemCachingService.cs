@@ -87,9 +87,7 @@ public class FileSystemCachingService : IFileCachingService
             }
             
             // Atomically move the temp file to the final location
-            if (File.Exists(filePath))
-                File.Delete(filePath);
-            File.Move(tempFilePath, filePath);
+            File.Move(tempFilePath, filePath, overwrite: true);
 
             // Write version file if version is provided
             if (version != null)
@@ -97,9 +95,7 @@ public class FileSystemCachingService : IFileCachingService
                 var versionFilePath = GetVersionFilePath(cacheKey);
                 var tempVersionFilePath = versionFilePath + ".tmp";
                 await File.WriteAllTextAsync(tempVersionFilePath, version);
-                if (File.Exists(versionFilePath))
-                    File.Delete(versionFilePath);
-                File.Move(tempVersionFilePath, versionFilePath);
+                File.Move(tempVersionFilePath, versionFilePath, overwrite: true);
             }
         }
         catch (Exception ex)
