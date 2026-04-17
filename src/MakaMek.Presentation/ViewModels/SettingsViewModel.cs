@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Localization;
@@ -14,19 +15,22 @@ public class SettingsViewModel : BaseViewModel
     private readonly IUnitCachingService _unitCachingService;
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
+    private readonly ILogger<SettingsViewModel> _logger;
 
     public SettingsViewModel(
         IFileCachingService fileCachingService,
         IUnitCachingService unitCachingService,
         ITerrainAssetService terrainAssetService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        ILogger<SettingsViewModel> logger)
     {
-        _fileCachingService = fileCachingService ?? throw new ArgumentNullException(nameof(fileCachingService));
-        _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
-        _terrainAssetService = terrainAssetService ?? throw new ArgumentNullException(nameof(terrainAssetService));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _fileCachingService = fileCachingService;
+        _unitCachingService = unitCachingService;
+        _terrainAssetService = terrainAssetService;
+        _localizationService = localizationService;
+        _logger = logger;
 
-        ClearCacheCommand = new AsyncCommand(ClearCacheAsync, _ => !IsBusy);
+        ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
 
         // Initialize cache status
         InitializeCacheStatusAsync().SafeFireAndForget(_ => 
@@ -63,8 +67,9 @@ public class SettingsViewModel : BaseViewModel
                 unitCount,
                 biomeCount);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to initialize cache status");
             CacheStatus = _localizationService.GetString("Settings_Data_CacheStatus");
         }
     }
@@ -83,8 +88,9 @@ public class SettingsViewModel : BaseViewModel
 
             CacheStatus = _localizationService.GetString("Settings_Data_Cleared");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to clear cache");
             CacheStatus = _localizationService.GetString("Settings_Data_CacheStatus");
         }
         finally
