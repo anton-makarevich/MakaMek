@@ -53,7 +53,7 @@ public partial class BrowserCachingService : IFileCachingService
     /// Checks if a cached file exists and returns its content if available
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <returns>Cached file content as byte array if found, null otherwise</returns>
+    /// <returns>Cached file content as a byte array if found, null otherwise</returns>
     public async Task<byte[]?> TryGetCachedFile(string cacheKey)
     {
         if (string.IsNullOrEmpty(cacheKey))
@@ -78,7 +78,7 @@ public partial class BrowserCachingService : IFileCachingService
     /// Saves a file to the cache with the specified key
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <param name="content">File content to cache as byte array</param>
+    /// <param name="content">File content to cache as a byte array</param>
     /// <param name="version">Optional version metadata to store alongside the cached content</param>
     /// <returns>Task representing the async operation</returns>
     public async Task SaveToCache(string cacheKey, byte[] content, string? version = null)
@@ -90,11 +90,16 @@ public partial class BrowserCachingService : IFileCachingService
         {
             await EnsureInitialized();
             var hashedKey = GetHashedCacheKey(cacheKey);
-            await SaveToCacheJs(hashedKey, content);
 
             if (version != null)
             {
-                await SaveVersionToCacheJs(hashedKey + ":version", version);
+                // Save content and version atomically in a single transaction
+                await SaveToCacheWithVersionJs(hashedKey, content, version);
+            }
+            else
+            {
+                // Save content only when no version is provided
+                await SaveToCacheJs(hashedKey, content);
             }
         }
         catch (Exception ex)
@@ -208,6 +213,10 @@ public partial class BrowserCachingService
     [JSImport("saveToCache", "cacheStorage")]
     private static partial Task SaveToCacheJs(string cacheKey, byte[] data);
 
+    // Save byte array and version to cache in a single transaction
+    [JSImport("saveToCacheWithVersion", "cacheStorage")]
+    private static partial Task SaveToCacheWithVersionJs(string cacheKey, byte[] data, string version);
+
     // Check if cached
     [JSImport("isCached", "cacheStorage")]
     private static partial Task<bool> IsCachedJs(string cacheKey);
@@ -219,10 +228,6 @@ public partial class BrowserCachingService
     // Clear all cache
     [JSImport("clearCache", "cacheStorage")]
     private static partial Task ClearCacheJs();
-
-    // Save version string to cache
-    [JSImport("saveVersionToCache", "cacheStorage")]
-    private static partial Task SaveVersionToCacheJs(string cacheKey, string version);
 
     // Get version as JSObject reference (workaround for Task<string> limitation)
     [JSImport("getVersionFromCacheAsObject", "cacheStorage")]

@@ -197,25 +197,30 @@ export function unwrapByteArray(jsObject) {
     return [];
 }
 
-// Save version string to cache
-export async function saveVersionToCache(cacheKey, version) {
+// Save content and version to cache in a single transaction to prevent race conditions
+export async function saveToCacheWithVersion(cacheKey, dataArray, version) {
     try {
         const db = await initDB();
-        
+
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            
-            const request = store.put(version, cacheKey);
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => {
-                console.error('Failed to save version to cache:', request.error);
-                reject(request.error);
+
+            // Convert the .NET byte array to Uint8Array for storage
+            const uint8Array = new Uint8Array(dataArray);
+
+            // Put content and version in the same transaction
+            store.put(uint8Array, cacheKey);
+            store.put(version, cacheKey + ':version');
+            // Wait for transaction to complete
+            transaction.oncomplete = () => resolve(true);
+            transaction.onerror = () => {
+                console.error('Failed to save content and version to cache:', transaction.error);
+                reject(transaction.error);
             };
         });
     } catch (error) {
-        console.error('Error in saveVersionToCache:', error);
+        console.error('Error in saveToCacheWithVersion:', error);
         return false;
     }
 }
