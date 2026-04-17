@@ -14,7 +14,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     private readonly string _apiUrl;
     private readonly string _fileExtension;
     private readonly bool _disposeHttpClient;
-    private readonly Lazy<Task<List<string>>> _availableResourceIds;
+    private readonly Lazy<Task<List<(string Url, string Sha)>>> _availableResourceIds;
     private readonly IFileCachingService _cachingService;
     private readonly ILogger<GitHubResourceStreamProvider> _logger;
 
@@ -41,7 +41,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         _cachingService = cachingService;
         _logger = logger;
 
-        _availableResourceIds = new Lazy<Task<List<string>>>(LoadAvailableResourceIds);
+        _availableResourceIds = new Lazy<Task<List<(string Url, string Sha)>>>(LoadAvailableResourceIds);
     }
 
     /// <summary>
@@ -50,7 +50,8 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// <returns>Collection of download URLs that serve as resource identifiers</returns>
     public async Task<IEnumerable<string>> GetAvailableResourceIds()
     {
-        return await _availableResourceIds.Value;
+        var resources = await _availableResourceIds.Value;
+        return resources.Select(r => r.Url);
     }
 
     /// <summary>
@@ -65,7 +66,25 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             return null;
         }
 
-        // Try to get from the cache first
+        // Look up the current SHA for this resource
+        var resources = await _availableResourceIds.Value;
+        var resourceInfo = resources.FirstOrDefault(r => r.Url == resourceId);
+        var currentSha = resourceInfo.Sha;
+
+        // If we have SHA info, check for stale cache
+        if (!string.IsNullOrEmpty(currentSha))
+        {
+            var cachedVersion = await _cachingService.GetCacheVersion(resourceId);
+            if (cachedVersion != null && cachedVersion != currentSha)
+            {
+                // Cache is stale, invalidate it
+                _logger.LogInformation("Cache version mismatch for {ResourceId}: cached {CachedVersion} vs current {CurrentVersion}. Invalidating cache.", 
+                    resourceId, cachedVersion, currentSha);
+                await _cachingService.RemoveFromCache(resourceId);
+            }
+        }
+
+        // Try to get from the cache first (either fresh or after invalidation)
         var cachedBytes = await _cachingService.TryGetCachedFile(resourceId);
         if (cachedBytes != null)
         {
@@ -88,12 +107,12 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             await contentStream.CopyToAsync(memoryStream);
             var contentBytes = memoryStream.ToArray();
 
-            // Cache the content (fire and forget)
+            // Cache the content with version metadata if available (fire and forget)
             Task.Run(async () =>
             {
                 try
                 {
-                    await _cachingService.SaveToCache(resourceId, contentBytes);
+                    await _cachingService.SaveToCache(resourceId, contentBytes, currentSha);
                 }
                 catch (Exception ex)
                 {
@@ -112,10 +131,10 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// <summary>
     /// Loads available resource IDs by querying the GitHub Contents API
     /// </summary>
-    /// <returns>List of download URLs for files with the specified extension</returns>
-    private async Task<List<string>> LoadAvailableResourceIds()
+    /// <returns>List of (download URL, SHA) tuples for files with the specified extension</returns>
+    private async Task<List<(string Url, string Sha)>> LoadAvailableResourceIds()
     {
-        var resourceIds = new List<string>();
+        var resourceIds = new List<(string Url, string Sha)>();
 
         try
         {
@@ -142,7 +161,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                     item.Name.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrEmpty(item.DownloadUrl))
                 {
-                    resourceIds.Add(item.DownloadUrl);
+                    resourceIds.Add((item.DownloadUrl, item.Sha ?? string.Empty));
                 }
             }
 
@@ -186,5 +205,11 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         /// </summary>
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The SHA hash of the file content for versioning
+        /// </summary>
+        [JsonPropertyName("sha")]
+        public string? Sha { get; set; }
     }
 }

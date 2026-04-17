@@ -79,8 +79,9 @@ public partial class BrowserCachingService : IFileCachingService
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
     /// <param name="content">File content to cache as byte array</param>
+    /// <param name="version">Optional version metadata to store alongside the cached content</param>
     /// <returns>Task representing the async operation</returns>
-    public async Task SaveToCache(string cacheKey, byte[] content)
+    public async Task SaveToCache(string cacheKey, byte[] content, string? version = null)
     {
         if (string.IsNullOrEmpty(cacheKey) || content.Length == 0)
             return;
@@ -88,7 +89,13 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            await SaveToCacheJs(GetHashedCacheKey(cacheKey), content);
+            var hashedKey = GetHashedCacheKey(cacheKey);
+            await SaveToCacheJs(hashedKey, content);
+
+            if (version != null)
+            {
+                await SaveVersionToCacheJs(hashedKey + ":version", version);
+            }
         }
         catch (Exception ex)
         {
@@ -148,11 +155,38 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            await RemoveFromCacheJs(GetHashedCacheKey(cacheKey));
+            var hashedKey = GetHashedCacheKey(cacheKey);
+            await RemoveFromCacheJs(hashedKey);
+            await RemoveFromCacheJs(hashedKey + ":version");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error removing file from cache '{cacheKey}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Gets the version metadata for a cached file
+    /// </summary>
+    /// <param name="cacheKey">Unique identifier for the cached file</param>
+    /// <returns>Version string if found, null otherwise</returns>
+    public async Task<string?> GetCacheVersion(string cacheKey)
+    {
+        if (string.IsNullOrEmpty(cacheKey))
+            return null;
+
+        try
+        {
+            await EnsureInitialized();
+            var versionKey = GetHashedCacheKey(cacheKey) + ":version";
+            var jsObject = await GetVersionFromCacheAsObjectJs(versionKey);
+            var result = UnwrapStringJs(jsObject);
+            return string.IsNullOrEmpty(result) ? null : result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading version for cached file '{cacheKey}': {ex.Message}");
+            return null;
         }
     }
 }
@@ -185,4 +219,18 @@ public partial class BrowserCachingService
     // Clear all cache
     [JSImport("clearCache", "cacheStorage")]
     private static partial Task ClearCacheJs();
+
+    // Save version string to cache
+    [JSImport("saveVersionToCache", "cacheStorage")]
+    private static partial Task SaveVersionToCacheJs(string cacheKey, string version);
+
+    // Get version as JSObject reference (workaround for Task<string> limitation)
+    [JSImport("getVersionFromCacheAsObject", "cacheStorage")]
+    [return: JSMarshalAs<JSType.Promise<JSType.Object>>()]
+    private static partial Task<JSObject> GetVersionFromCacheAsObjectJs(string cacheKey);
+
+    // Unwrap JSObject back to string
+    [JSImport("unwrapString", "cacheStorage")]
+    [return: JSMarshalAs<JSType.String>]
+    private static partial string UnwrapStringJs(JSObject stringObject);
 }

@@ -63,8 +63,9 @@ public class FileSystemCachingService : IFileCachingService
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
     /// <param name="content">File content to cache as a byte array</param>
+    /// <param name="version">Optional version metadata to store alongside the cached content</param>
     /// <returns>Task representing the async operation</returns>
-    public async Task SaveToCache(string cacheKey, byte[] content)
+    public async Task SaveToCache(string cacheKey, byte[] content, string? version = null)
     {
         if (string.IsNullOrEmpty(cacheKey))
             return;
@@ -89,6 +90,17 @@ public class FileSystemCachingService : IFileCachingService
             if (File.Exists(filePath))
                 File.Delete(filePath);
             File.Move(tempFilePath, filePath);
+
+            // Write version file if version is provided
+            if (version != null)
+            {
+                var versionFilePath = GetVersionFilePath(cacheKey);
+                var tempVersionFilePath = versionFilePath + ".tmp";
+                await File.WriteAllTextAsync(tempVersionFilePath, version);
+                if (File.Exists(versionFilePath))
+                    File.Delete(versionFilePath);
+                File.Move(tempVersionFilePath, versionFilePath);
+            }
         }
         catch (Exception ex)
         {
@@ -163,6 +175,7 @@ public class FileSystemCachingService : IFileCachingService
             return;
 
         var filePath = GetCacheFilePath(cacheKey);
+        var versionFilePath = GetVersionFilePath(cacheKey);
         
         await _semaphore.WaitAsync();
         try
@@ -170,6 +183,10 @@ public class FileSystemCachingService : IFileCachingService
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
+            }
+            if (File.Exists(versionFilePath))
+            {
+                File.Delete(versionFilePath);
             }
         }
         catch (Exception ex)
@@ -183,6 +200,32 @@ public class FileSystemCachingService : IFileCachingService
     }
 
     /// <summary>
+    /// Gets the version metadata for a cached file
+    /// </summary>
+    /// <param name="cacheKey">Unique identifier for the cached file</param>
+    /// <returns>Version string if found, null otherwise</returns>
+    public async Task<string?> GetCacheVersion(string cacheKey)
+    {
+        if (string.IsNullOrEmpty(cacheKey))
+            return null;
+
+        var versionFilePath = GetVersionFilePath(cacheKey);
+        
+        try
+        {
+            if (!File.Exists(versionFilePath))
+                return null;
+
+            return await File.ReadAllTextAsync(versionFilePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading version for cached file '{CacheKey}'", cacheKey);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Generates a safe file path for the given cache key
     /// </summary>
     /// <param name="cacheKey">The cache key to convert to a file path</param>
@@ -190,10 +233,29 @@ public class FileSystemCachingService : IFileCachingService
     private string GetCacheFilePath(string cacheKey)
     {
         // Create a hash of the cache key to ensure safe file names
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey));
-        var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        var hashString = GetHashedKey(cacheKey);
 
         return Path.Combine(_cacheDirectory, $"{hashString}.cache");
+    }
+
+    /// <summary>
+    /// Generates a safe file path for the version file of the given cache key
+    /// </summary>
+    /// <param name="cacheKey">The cache key to convert to a file path</param>
+    /// <returns>Safe file path for the version file</returns>
+    private string GetVersionFilePath(string cacheKey)
+    {
+        var hashString = GetHashedKey(cacheKey);
+        return Path.Combine(_cacheDirectory, $"{hashString}.version");
+    }
+
+    /// <summary>
+    /// Generates a hashed key from the cache key
+    /// </summary>
+    private static string GetHashedKey(string cacheKey)
+    {
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey));
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
     /// <summary>

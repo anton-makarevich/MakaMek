@@ -196,3 +196,64 @@ export function unwrapByteArray(jsObject) {
     }
     return [];
 }
+
+// Save version string to cache
+export async function saveVersionToCache(cacheKey, version) {
+    try {
+        const db = await initDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const request = store.put(version, cacheKey);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => {
+                console.error('Failed to save version to cache:', request.error);
+                reject(request.error);
+            };
+        });
+    } catch (error) {
+        console.error('Error in saveVersionToCache:', error);
+        return false;
+    }
+}
+
+// Get version string from cache as object (workaround for JS interop)
+export async function getVersionFromCacheAsObject(cacheKey) {
+    try {
+        const db = await initDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.get(cacheKey);
+            
+            request.onsuccess = () => {
+                const result = request.result;
+                if (typeof result === 'string') {
+                    resolve({ value: result });
+                } else {
+                    resolve({ value: '' });
+                }
+            };
+            
+            request.onerror = () => {
+                console.error('Failed to get version from cache:', request.error);
+                reject(request.error);
+            };
+        });
+    } catch (error) {
+        console.error('Error in getVersionFromCacheAsObject:', error);
+        return { value: '' };
+    }
+}
+
+// Unwrap JSObject to string (workaround for JS interop)
+export function unwrapString(jsObject) {
+    if (jsObject && typeof jsObject.value === 'string') {
+        return jsObject.value;
+    }
+    return '';
+}
