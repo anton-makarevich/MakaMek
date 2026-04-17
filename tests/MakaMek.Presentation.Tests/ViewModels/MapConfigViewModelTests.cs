@@ -56,10 +56,10 @@ public class MapConfigViewModelTests
             Biome = TestBiome,
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(1, 1),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]
@@ -889,10 +889,10 @@ public class MapConfigViewModelTests
         {
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(1, 1),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]
@@ -902,10 +902,10 @@ public class MapConfigViewModelTests
         {
             HexData =
             [
-                new()
+                new HexData
                 {
                     Coordinates = new HexCoordinateData(2, 2),
-                    TerrainTypes = [MakaMekTerrains.Clear],
+                    Terrains = [new TerrainData {Type=MakaMekTerrains.Clear}],
                     Level = 0
                 }
             ]
