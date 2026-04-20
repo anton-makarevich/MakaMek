@@ -37,22 +37,27 @@ function initDB() {
 }
 
 // Save data to cache
-export async function saveToCache(cacheKey, dataArray) {
+export async function saveToCache(cacheKey, dataArray, version = null) {
     try {
         const db = await initDB();
-        
+
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            
+
             // Convert the .NET byte array to Uint8Array for storage
             const uint8Array = new Uint8Array(dataArray);
-            const request = store.put(uint8Array, cacheKey);
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => {
-                console.error('Failed to save to cache:', request.error);
-                reject(request.error);
+
+            // Put content and version in the same transaction
+            store.put(uint8Array, cacheKey);
+            if (version !== null) {
+                store.put(version, cacheKey + ':version');
+            }
+
+            transaction.oncomplete = () => resolve(true);
+            transaction.onerror = () => {
+                console.error('Failed to save to cache:', transaction.error);
+                reject(transaction.error);
             };
         });
     } catch (error) {
@@ -123,16 +128,19 @@ export async function isCached(cacheKey) {
 export async function removeFromCache(cacheKey) {
     try {
         const db = await initDB();
-        
+
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.delete(cacheKey);
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => {
-                console.error('Failed to remove from cache:', request.error);
-                reject(request.error);
+
+            // Delete content and version sidecar in the same transaction
+            store.delete(cacheKey);
+            store.delete(cacheKey + ':version');
+
+            transaction.oncomplete = () => resolve(true);
+            transaction.onerror = () => {
+                console.error('Failed to remove from cache:', transaction.error);
+                reject(transaction.error);
             };
         });
     } catch (error) {
@@ -195,34 +203,6 @@ export function unwrapByteArray(jsObject) {
         return Array.from(jsObject);
     }
     return [];
-}
-
-// Save content and version to cache in a single transaction to prevent race conditions
-export async function saveToCacheWithVersion(cacheKey, dataArray, version) {
-    try {
-        const db = await initDB();
-
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
-
-            // Convert the .NET byte array to Uint8Array for storage
-            const uint8Array = new Uint8Array(dataArray);
-
-            // Put content and version in the same transaction
-            store.put(uint8Array, cacheKey);
-            store.put(version, cacheKey + ':version');
-            // Wait for transaction to complete
-            transaction.oncomplete = () => resolve(true);
-            transaction.onerror = () => {
-                console.error('Failed to save content and version to cache:', transaction.error);
-                reject(transaction.error);
-            };
-        });
-    } catch (error) {
-        console.error('Error in saveToCacheWithVersion:', error);
-        return false;
-    }
 }
 
 // Get version string from cache as object (workaround for JS interop)

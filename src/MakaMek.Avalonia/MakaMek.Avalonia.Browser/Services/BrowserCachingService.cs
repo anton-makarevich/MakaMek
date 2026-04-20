@@ -91,16 +91,8 @@ public partial class BrowserCachingService : IFileCachingService
             await EnsureInitialized();
             var hashedKey = GetHashedCacheKey(cacheKey);
 
-            if (version != null)
-            {
-                // Save content and version atomically in a single transaction
-                await SaveToCacheWithVersionJs(hashedKey, content, version);
-            }
-            else
-            {
-                // Save content only when no version is provided
-                await SaveToCacheJs(hashedKey, content);
-            }
+            // Save content and version atomically in a single transaction
+            await SaveToCacheJs(hashedKey, content, version);
         }
         catch (Exception ex)
         {
@@ -161,8 +153,9 @@ public partial class BrowserCachingService : IFileCachingService
         {
             await EnsureInitialized();
             var hashedKey = GetHashedCacheKey(cacheKey);
+
+            // Delete content and version sidecar atomically in a single transaction
             await RemoveFromCacheJs(hashedKey);
-            await RemoveFromCacheJs(hashedKey + ":version");
         }
         catch (Exception ex)
         {
@@ -209,13 +202,9 @@ public partial class BrowserCachingService
     [return: JSMarshalAs<JSType.Array<JSType.Number>>()]
     private static partial byte[] UnwrapByteArrayJs(JSObject byteArrayObject);
 
-    // Save byte array to cache
+    // Save byte array to cache (with optional version in same transaction)
     [JSImport("saveToCache", "cacheStorage")]
-    private static partial Task SaveToCacheJs(string cacheKey, byte[] data);
-
-    // Save byte array and version to cache in a single transaction
-    [JSImport("saveToCacheWithVersion", "cacheStorage")]
-    private static partial Task SaveToCacheWithVersionJs(string cacheKey, byte[] data, string version);
+    private static partial Task SaveToCacheJs(string cacheKey, byte[] data, string? version = null);
 
     // Check if cached
     [JSImport("isCached", "cacheStorage")]
