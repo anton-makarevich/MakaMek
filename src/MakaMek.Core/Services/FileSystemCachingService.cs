@@ -99,6 +99,14 @@ public class FileSystemCachingService : IFileCachingService
                 await File.WriteAllTextAsync(tempVersionFilePath, version);
                 File.Move(tempVersionFilePath, versionFilePath, overwrite: true);
             }
+            else
+            {
+                // Remove version file if version is null
+                if (File.Exists(versionFilePath))
+                {
+                    File.Delete(versionFilePath);
+                }
+            }
         }
         catch (Exception ex)
         {

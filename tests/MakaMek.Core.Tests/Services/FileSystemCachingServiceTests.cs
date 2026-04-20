@@ -262,6 +262,21 @@ public class FileSystemCachingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveToCache_ShouldRemoveVersionFile_WhenExistingVersionOverwrittenWithNull()
+    {
+        // Arrange
+        await _sut.ClearCache();
+        await _sut.SaveToCache(TestCacheKey, _testContent, "1.0.0");
+
+        // Act
+        await _sut.SaveToCache(TestCacheKey, _testContent, version: null);
+
+        // Assert
+        var retrievedVersion = await _sut.GetCacheVersion(TestCacheKey);
+        retrievedVersion.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task SaveToCache_ShouldOverwriteVersionFile_WhenVersionChanged()
     {
         // Arrange
