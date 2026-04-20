@@ -282,7 +282,7 @@ public class FileSystemCachingServiceTests : IDisposable
         // Arrange
         const string originalVersion = "1.0.0";
         const string newVersion = "2.0.0";
-        
+
         await _sut.SaveToCache(TestCacheKey, _testContent, originalVersion);
 
         // Act
