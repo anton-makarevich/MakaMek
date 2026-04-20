@@ -63,6 +63,8 @@ public class MainMenuViewModelTests
         // Assert
         _sut.StartNewGameCommand.ShouldNotBeNull();
         _sut.JoinGameCommand.ShouldNotBeNull();
+        _sut.AboutCommand.ShouldNotBeNull();
+        _sut.SettingsCommand.ShouldNotBeNull();
         _sut.Version.ShouldStartWith("v");
     }
 
@@ -182,8 +184,41 @@ public class MainMenuViewModelTests
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.AboutCommand)
             .ExecuteAsync())).Message.ShouldContain("AboutViewModel is not registered");
-    }   
-    
+    }
+
+    [Fact]
+    public async Task SettingsCommand_WhenExecuted_NavigatesToSettingsViewModel()
+    {
+        // Arrange
+        var command = _sut.SettingsCommand as IAsyncCommand;
+        command.ShouldNotBeNull();
+        var fileCachingService = Substitute.For<IFileCachingService>();
+        var settingsLogger = Substitute.For<ILogger<SettingsViewModel>>();
+        var settingsVm = new SettingsViewModel(
+            fileCachingService,
+            _unitCachingService,
+            _terrainAssetService,
+            _localizationService,
+            settingsLogger);
+        _navigationService.GetNewViewModel<SettingsViewModel>().Returns(settingsVm);
+
+        // Act
+        await command.ExecuteAsync();
+
+        // Assert
+        await _navigationService.Received(1).NavigateToViewModelAsync(settingsVm);
+    }
+
+    [Fact]
+    public async Task SettingsCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnSettingsViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<SettingsViewModel>().Returns((SettingsViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.SettingsCommand)
+            .ExecuteAsync())).Message.ShouldContain("SettingsViewModel is not registered");
+    }
+
     [Fact]
     public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
     {
