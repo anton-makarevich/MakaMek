@@ -15,8 +15,8 @@ public class SettingsViewModelTests
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
-    private readonly ILogger<SettingsViewModel> _logger;
-    private readonly SettingsViewModel _sut;
+    private ILogger<SettingsViewModel> _logger = null!;
+    private SettingsViewModel _sut = null!;
 
     private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 50)
     {
@@ -29,10 +29,9 @@ public class SettingsViewModelTests
         }
     }
 
-    public SettingsViewModelTests()
+    private void CreateSut()
     {
         _logger = Substitute.For<ILogger<SettingsViewModel>>();
-
         _sut = new SettingsViewModel(
             _fileCachingService,
             _unitCachingService,
@@ -44,6 +43,9 @@ public class SettingsViewModelTests
     [Fact]
     public void Constructor_ShouldInitializeClearCacheCommand()
     {
+        // Arrange
+        CreateSut();
+
         // Assert
         _sut.ClearCacheCommand.ShouldNotBeNull();
     }
@@ -51,6 +53,9 @@ public class SettingsViewModelTests
     [Fact]
     public void DataSectionTitle_ShouldReturnLocalizedString()
     {
+        // Arrange
+        CreateSut();
+
         // Act
         var result = _sut.DataSectionTitle;
 
@@ -61,6 +66,9 @@ public class SettingsViewModelTests
     [Fact]
     public void ClearCacheButton_ShouldReturnLocalizedString()
     {
+        // Arrange
+        CreateSut();
+
         // Act
         var result = _sut.ClearCacheButton;
 
@@ -71,6 +79,9 @@ public class SettingsViewModelTests
     [Fact]
     public void ClearCacheDescription_ShouldReturnLocalizedString()
     {
+        // Arrange
+        CreateSut();
+
         // Act
         var result = _sut.ClearCacheDescription;
 
@@ -85,6 +96,7 @@ public class SettingsViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
 
         // Act
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -102,6 +114,7 @@ public class SettingsViewModelTests
         _fileCachingService.ClearCache().Returns(Task.Delay(100));
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
 
         // Act
         var task = ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -119,6 +132,7 @@ public class SettingsViewModelTests
         _fileCachingService.ClearCache().Returns(Task.Delay(100));
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
 
         // Act
         var task = ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -134,6 +148,7 @@ public class SettingsViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
 
         // Act
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -148,6 +163,7 @@ public class SettingsViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
 
         // Act
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -161,6 +177,7 @@ public class SettingsViewModelTests
     {
         // Arrange
         _fileCachingService.ClearCache().Returns(Task.FromException(new Exception("Test error")));
+        CreateSut();
 
         // Act
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -179,6 +196,7 @@ public class SettingsViewModelTests
     {
         // Arrange
         _fileCachingService.ClearCache().Returns(Task.FromException(new Exception("Test error")));
+        CreateSut();
 
         // Act
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
@@ -218,6 +236,7 @@ public class SettingsViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
         _terrainAssetService.GetLoadedBiomes().Returns([]);
+        var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
         // Act
         var viewModel = new SettingsViewModel(
@@ -225,11 +244,11 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
-            _logger);
+            logger);
 
         // Assert - Poll for async initialization
-        await WaitFor(() => _logger.ReceivedCalls().Any(), timeoutMs: 1000);
-        _logger.Received(1).Log(
+        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
+        logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
@@ -244,6 +263,7 @@ public class SettingsViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         _terrainAssetService.GetLoadedBiomes().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
+        var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
         // Act
         var viewModel = new SettingsViewModel(
@@ -251,11 +271,11 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
-            _logger);
+            logger);
 
         // Assert - Poll for async initialization
-        await WaitFor(() => _logger.ReceivedCalls().Any(), timeoutMs: 1000);
-        _logger.Received(1).Log(
+        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
+        logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
