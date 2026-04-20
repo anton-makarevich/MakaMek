@@ -84,20 +84,14 @@ public class UrlMatchingMockHttpMessageHandler : HttpMessageHandler
             return new HttpResponseMessage { StatusCode = statusCode };
         }
 
-        // Find matching response by URL - prioritize longer, more specific matches
-        string? content = null;
-        string? bestMatch = null;
-        foreach (var kvp in _urlResponses)
+        // Exact match first; fall back to longest substring match for convenience.
+        if (!_urlResponses.TryGetValue(requestUrl, out var content))
         {
-            if (requestUrl.Contains(kvp.Key))
-            {
-                // Prefer the longest matching URL (most specific)
-                if (bestMatch == null || kvp.Key.Length > bestMatch.Length)
-                {
-                    bestMatch = kvp.Key;
-                    content = kvp.Value;
-                }
-            }
+            content = _urlResponses
+                .Where(kvp => requestUrl.Contains(kvp.Key, StringComparison.Ordinal))
+                .OrderByDescending(kvp => kvp.Key.Length)
+                .Select(kvp => kvp.Value)
+                .FirstOrDefault();
         }
 
         return new HttpResponseMessage
