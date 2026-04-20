@@ -274,6 +274,12 @@ public class FileSystemCachingServiceTests : IDisposable
         // Assert
         var retrievedVersion = await _sut.GetCacheVersion(TestCacheKey);
         retrievedVersion.ShouldBeNull();
+
+        var isCached = await _sut.IsCached(TestCacheKey);
+        isCached.ShouldBeTrue();
+
+        var cachedContent = await _sut.TryGetCachedFile(TestCacheKey);
+        cachedContent.ShouldBe(_testContent);
     }
 
     [Fact]
