@@ -89,10 +89,12 @@ public class FileSystemCachingService : IFileCachingService
             // Atomically move the temp file to the final location
             File.Move(tempFilePath, filePath, overwrite: true);
 
-            // Write version file if version is provided
+            var versionFilePath = GetVersionFilePath(cacheKey);
+            
+            // Keep version metadata in sync with the cached content
             if (version != null)
             {
-                var versionFilePath = GetVersionFilePath(cacheKey);
+                
                 var tempVersionFilePath = versionFilePath + ".tmp";
                 await File.WriteAllTextAsync(tempVersionFilePath, version);
                 File.Move(tempVersionFilePath, versionFilePath, overwrite: true);

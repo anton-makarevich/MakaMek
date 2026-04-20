@@ -155,9 +155,12 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
 
         // Assert
-        _logger.Received(1).LogError(
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to clear cache")),
             Arg.Any<Exception>(),
-            "Failed to clear cache");
+            Arg.Any<Func<object, Exception?, string>>()!);
     }
 
     [Fact]
