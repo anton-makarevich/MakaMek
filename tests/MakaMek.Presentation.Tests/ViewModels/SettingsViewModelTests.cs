@@ -8,7 +8,6 @@ using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
-
 public class SettingsViewModelTests
 {
     private readonly IFileCachingService _fileCachingService = Substitute.For<IFileCachingService>();
@@ -18,10 +17,16 @@ public class SettingsViewModelTests
     private readonly ILogger<SettingsViewModel> _logger;
     private readonly SettingsViewModel _sut;
 
-    public SettingsViewModelTests()
+    private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 50)
     {
-        _logger = Substitute.For<ILogger<SettingsViewModel>>();
-
+        var start = DateTime.UtcNow;
+        while (!condition())
+        {
+            if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
+                throw new TimeoutException("Condition not met within timeout");
+            await Task.Delay(intervalMs);
+        }
+    }
         _sut = new SettingsViewModel(
             _fileCachingService,
             _unitCachingService,
@@ -191,8 +196,8 @@ public class SettingsViewModelTests
             _localizationService,
             logger);
 
-        // Assert - Give time for SafeFireAndForget to complete
-        await Task.Delay(100);
+        // Assert - Poll for SafeFireAndForget completion
+        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
         logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
@@ -216,8 +221,8 @@ public class SettingsViewModelTests
             _localizationService,
             _logger);
 
-        // Assert - Give time for async initialization
-        await Task.Delay(100);
+        // Assert - Poll for async initialization
+        await WaitFor(() => _logger.ReceivedCalls().Any(), timeoutMs: 1000);
         _logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
@@ -242,8 +247,8 @@ public class SettingsViewModelTests
             _localizationService,
             _logger);
 
-        // Assert - Give time for async initialization
-        await Task.Delay(100);
+        // Assert - Poll for async initialization
+        await WaitFor(() => _logger.ReceivedCalls().Any(), timeoutMs: 1000);
         _logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
