@@ -175,4 +175,73 @@ public class SettingsViewModelTests
         // Assert
         _sut.IsBusy.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task Constructor_WhenInitializeCacheStatusAsyncFails_ShouldLogError()
+    {
+        // Arrange
+        _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
+        var logger = Substitute.For<ILogger<SettingsViewModel>>();
+
+        // Act and Assert - Give time for SafeFireAndForget to complete
+        await Task.Delay(100);
+        logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task InitializeCacheStatusAsync_WhenGetAvailableModelsThrows_ShouldLogErrorAndSetDefaultStatus()
+    {
+        // Arrange
+        _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
+        _terrainAssetService.GetLoadedBiomes().Returns([]);
+
+        // Act
+        var viewModel = new SettingsViewModel(
+            _fileCachingService,
+            _unitCachingService,
+            _terrainAssetService,
+            _localizationService,
+            _logger);
+
+        // Assert - Give time for async initialization
+        await Task.Delay(100);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+        viewModel.CacheStatus.ShouldBe("Loaded units: {0}, Loaded biomes: {1}");
+    }
+
+    [Fact]
+    public async Task InitializeCacheStatusAsync_WhenGetLoadedBiomesThrows_ShouldLogErrorAndSetDefaultStatus()
+    {
+        // Arrange
+        _unitCachingService.GetAvailableModels().Returns([]);
+        _terrainAssetService.GetLoadedBiomes().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
+
+        // Act
+        var viewModel = new SettingsViewModel(
+            _fileCachingService,
+            _unitCachingService,
+            _terrainAssetService,
+            _localizationService,
+            _logger);
+
+        // Assert - Give time for async initialization
+        await Task.Delay(100);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+        viewModel.CacheStatus.ShouldBe("Loaded units: {0}, Loaded biomes: {1}");
+    }
 }
