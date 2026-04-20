@@ -57,6 +57,57 @@ public class ExceptionThrowingHttpMessageHandler : HttpMessageHandler
     }
 }
 
+public class UrlMatchingMockHttpMessageHandler : HttpMessageHandler
+{
+    private readonly Dictionary<string, string> _urlResponses = new();
+    private readonly Dictionary<string, HttpStatusCode> _urlStatusCodes = new();
+
+    public void SetResponse(string url, string content)
+    {
+        _urlResponses[url] = content;
+    }
+
+    public void SetStatusCode(string url, HttpStatusCode statusCode)
+    {
+        _urlStatusCodes[url] = statusCode;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+
+        var requestUrl = request.RequestUri?.ToString() ?? string.Empty;
+
+        // Check if we have a specific status code for this URL
+        if (_urlStatusCodes.TryGetValue(requestUrl, out var statusCode) && statusCode != HttpStatusCode.OK)
+        {
+            return new HttpResponseMessage { StatusCode = statusCode };
+        }
+
+        // Find matching response by URL - prioritize longer, more specific matches
+        string? content = null;
+        string? bestMatch = null;
+        foreach (var kvp in _urlResponses)
+        {
+            if (requestUrl.Contains(kvp.Key))
+            {
+                // Prefer the longest matching URL (most specific)
+                if (bestMatch == null || kvp.Key.Length > bestMatch.Length)
+                {
+                    bestMatch = kvp.Key;
+                    content = kvp.Value;
+                }
+            }
+        }
+
+        return new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent(content ?? string.Empty, Encoding.UTF8, "application/octet-stream")
+        };
+    }
+}
+
 public class GitHubResourceStreamProviderTests
 {
     private readonly MockHttpMessageHandler _mockHttpMessageHandler;
@@ -492,5 +543,110 @@ public class GitHubResourceStreamProviderTests
         using var reader = new StreamReader(result);
         var content = await reader.ReadToEndAsync();
         content.ShouldBe(testContent);
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldInvalidateCache_WhenShaVersionMismatches()
+    {
+        // Arrange
+        const string testContent = "Test file content";
+        const string testUrl = "https://api.github.com/test/file.mmux";
+        const string cachedSha = "old-sha789";
+        const string currentSha = "abc123def456";
+        const string apiUrl = "https://api.github.com/test";
+
+        // Set up a URL-matching mock handler
+        var mockHandler = new UrlMatchingMockHttpMessageHandler();
+        mockHandler.SetResponse(apiUrl, $$"""
+            [
+                {
+                    "name": "file.mmux",
+                    "type": "file",
+                    "download_url": "{{testUrl}}",
+                    "sha": "{{currentSha}}"
+                }
+            ]
+            """);
+        mockHandler.SetResponse(testUrl, testContent);
+
+        var httpClient = new HttpClient(mockHandler);
+
+        // Set up the caching service to return a different SHA and indicate file is cached
+        _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
+        _cachingService.IsCached(testUrl).Returns(true);
+        _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null); // Return null after invalidation
+
+        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+            _cachingService,
+            _logger,
+            httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream(testUrl);
+
+        // Assert
+        result.ShouldNotBeNull();
+        using var reader = new StreamReader(result);
+        var content = await reader.ReadToEndAsync();
+        content.ShouldBe(testContent);
+
+        // Verify that cache invalidation was called
+        await _cachingService.Received(1).GetCacheVersion(testUrl);
+        await _cachingService.Received(1).IsCached(testUrl);
+        await _cachingService.Received(1).RemoveFromCache(testUrl);
+
+        // Verify log message about cache version mismatch
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cache version mismatch")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldNotInvalidateCache_WhenShaVersionMatches()
+    {
+        // Arrange
+        const string testContent = "Test file content";
+        const string testUrl = "https://api.github.com/test/file.mmux";
+        const string matchingSha = "abc123def456";
+        const string apiUrl = "https://api.github.com/test";
+
+        var mockHandler = new UrlMatchingMockHttpMessageHandler();
+        mockHandler.SetResponse(apiUrl, $$"""
+            [
+                {
+                    "name": "file.mmux",
+                    "type": "file",
+                    "download_url": "{{testUrl}}",
+                    "sha": "{{matchingSha}}"
+                }
+            ]
+            """);
+        mockHandler.SetResponse(testUrl, testContent);
+
+        var httpClient = new HttpClient(mockHandler);
+
+        // Set up the caching service to return the same SHA
+        _cachingService.GetCacheVersion(testUrl).Returns(matchingSha);
+        _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null);
+
+        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+            _cachingService,
+            _logger,
+            httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream(testUrl);
+
+        // Assert
+        result.ShouldNotBeNull();
+
+        // Verify that GetCacheVersion was called but IsCached and RemoveFromCache were NOT
+        // (IsCached is only called when there's an SHA mismatch)
+        await _cachingService.Received(1).GetCacheVersion(testUrl);
+        await _cachingService.DidNotReceive().IsCached(testUrl);
+        await _cachingService.DidNotReceive().RemoveFromCache(testUrl);
     }
 }
