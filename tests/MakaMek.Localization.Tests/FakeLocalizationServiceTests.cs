@@ -685,6 +685,26 @@ public class FakeLocalizationServiceTests
     }
 
     [Theory]
+    [InlineData("SettingsView_Title", "Settings")]
+    [InlineData("Settings_Data_SectionTitle", "Data")]
+    [InlineData("Settings_Data_CacheStatus", "Loaded units: {0}, Loaded biomes: {1}")]
+    [InlineData("Settings_Data_ClearCache", "Clear Cache")]
+    [InlineData("Settings_Data_ClearCacheDescription", "Note: An app restart is required after clearing the cache.")]
+    [InlineData("Settings_Data_Clearing", "Clearing cache...")]
+    [InlineData("Settings_Data_Cleared", "Cache cleared successfully")]
+    public void GetString_SettingsView_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("AvailableUnits_Title", "Available Units")]
     [InlineData("AvailableUnits_Class", "Class:")]
     [InlineData("AvailableUnits_Chassis", "Chassis")]
@@ -722,6 +742,7 @@ public class FakeLocalizationServiceTests
     [InlineData("MainMenu_StartNewGame", "Start New Game")]
     [InlineData("MainMenu_JoinGame", "Join Game")]
     [InlineData("MainMenu_About", "About")]
+    [InlineData("MainMenu_Settings", "Settings")]
     public void GetString_MainMenu_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

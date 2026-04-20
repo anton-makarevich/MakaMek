@@ -27,111 +27,109 @@ namespace Sanet.MakaMek.Avalonia.DI;
 
 public static class CoreServices
 {
-    extension(IServiceCollection services)
+    public static void RegisterServices(this IServiceCollection services)
     {
-        public void RegisterServices()
+        // Register unit caching service with stream providers (from MakaMek.Assets)
+        services.AddSingleton<IUnitCachingService>(sp =>
         {
-            // Register unit caching service with stream providers (from MakaMek.Assets)
-            services.AddSingleton<IUnitCachingService>(sp =>
+            var cachingService = sp.GetRequiredService<IFileCachingService>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var streamProviders = new List<IResourceStreamProvider>
             {
-                var cachingService = sp.GetRequiredService<IFileCachingService>();
-                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                var streamProviders = new List<IResourceStreamProvider>
-                {
-                    new GitHubResourceStreamProvider("mmux",
-                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
-                        cachingService,
-                        loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                    )
-                };
-                return new UnitCachingService(streamProviders, loggerFactory);
-            });
+                new GitHubResourceStreamProvider("mmux",
+                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                    cachingService,
+                    loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
+                )
+            };
+            return new UnitCachingService(streamProviders, loggerFactory);
+        });
 
-            // Register terrain caching service with stream providers
-            services.AddSingleton<ITerrainAssetService>(sp =>
-            {
-                var cachingService = sp.GetRequiredService<IFileCachingService>();
-                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                var streamProviders = new List<IResourceStreamProvider>
-                {
-                    new GitHubResourceStreamProvider("mmtx",
-                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
-                        cachingService,
-                        loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                    )
-                };
-                return new TerrainCachingService(streamProviders, loggerFactory);
-            });
-
-            // Register both image services
-            services.AddSingleton<AvaloniaAssetImageService>(_ =>
-                new AvaloniaAssetImageService("avares://Sanet.MakaMek.Avalonia/Assets"));
-            services.AddSingleton<CachedImageService>();
-
-            // Register a hybrid service that routes to the appropriate underlying service
-            services.AddSingleton<IImageService>(sp =>
-            {
-                var avaloniaService = sp.GetRequiredService<AvaloniaAssetImageService>();
-                var cachedService = sp.GetRequiredService<CachedImageService>();
-                var terrainService = sp.GetService<ITerrainAssetService>();
-                return new HybridImageService(avaloniaService, cachedService, terrainService);
-            });
-
-            // Register map preview renderer
-            services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
-
-            services.AddSingleton<IMapResourceProvider, EmbeddedMapResourceProvider>();
-            services.AddSingleton<IFileService, AvaloniaFileService>();
-
-            services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
-
-            services.AddSingleton<ILocalizationService, FakeLocalizationService>();
-            services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
-
-            // Register RxTransportPublisher for local players
-            services.AddSingleton<RxTransportPublisher>();
-
-            // Register CommandTransportAdapter with just the RxTransportPublisher initially
-            // The network publisher will be added dynamically when needed
-            services.AddTransient<CommandTransportAdapter>(sp =>
-            {
-                var rxPublisher = sp.GetRequiredService<RxTransportPublisher>();
-                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                return new CommandTransportAdapter(loggerFactory, rxPublisher);
-            });
-
-            services.AddTransient<ICommandPublisher, CommandPublisher>();
-            services.AddSingleton<IRulesProvider, TotalWarfareRulesProvider>();
-            services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
-            services.AddSingleton<IMechFactory, MechFactory>();
-            services.AddSingleton<IDiceRoller, RandomDiceRoller>();
-            services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
-            services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
-            services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
-            services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
-            services.AddSingleton<IToHitCalculator, ToHitCalculator>();
-            services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
-            services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
-            services.AddSingleton<IFallProcessor, FallProcessor>();
-            services.AddSingleton<IGameFactory, GameFactory>();
-            services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
-            services.AddSingleton<ITerrainBitmaskService, TerrainBitmaskService>();
-            services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
-            services.AddSingleton<IGameManager, GameManager>();
-            services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
-            services.AddSingleton<IHashService, HashService>();
-            services.AddSingleton<IBotManager, BotManager>();
-            services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
-        }
-
-        public void RegisterViewModels()
+        // Register terrain caching service with stream providers
+        services.AddSingleton<ITerrainAssetService>(sp =>
         {
-            services.AddTransient<MainMenuViewModel>();
-            services.AddTransient<StartNewGameViewModel>();
-            services.AddTransient<JoinGameViewModel>();
-            services.AddTransient<BattleMapViewModel>();
-            services.AddTransient<EndGameViewModel>();
-            services.AddTransient<AboutViewModel>();
-        }
+            var cachingService = sp.GetRequiredService<IFileCachingService>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var streamProviders = new List<IResourceStreamProvider>
+            {
+                new GitHubResourceStreamProvider("mmtx",
+                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
+                    cachingService,
+                    loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
+                )
+            };
+            return new TerrainCachingService(streamProviders, loggerFactory);
+        });
+
+        // Register both image services
+        services.AddSingleton<AvaloniaAssetImageService>(_ =>
+            new AvaloniaAssetImageService("avares://Sanet.MakaMek.Avalonia/Assets"));
+        services.AddSingleton<CachedImageService>();
+
+        // Register a hybrid service that routes to the appropriate underlying service
+        services.AddSingleton<IImageService>(sp =>
+        {
+            var avaloniaService = sp.GetRequiredService<AvaloniaAssetImageService>();
+            var cachedService = sp.GetRequiredService<CachedImageService>();
+            var terrainService = sp.GetService<ITerrainAssetService>();
+            return new HybridImageService(avaloniaService, cachedService, terrainService);
+        });
+
+        // Register map preview renderer
+        services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
+
+        services.AddSingleton<IMapResourceProvider, EmbeddedMapResourceProvider>();
+        services.AddSingleton<IFileService, AvaloniaFileService>();
+
+        services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
+
+        services.AddSingleton<ILocalizationService, FakeLocalizationService>();
+        services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
+
+        // Register RxTransportPublisher for local players
+        services.AddSingleton<RxTransportPublisher>();
+
+        // Register CommandTransportAdapter with just the RxTransportPublisher initially
+        // The network publisher will be added dynamically when needed
+        services.AddTransient<CommandTransportAdapter>(sp =>
+        {
+            var rxPublisher = sp.GetRequiredService<RxTransportPublisher>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            return new CommandTransportAdapter(loggerFactory, rxPublisher);
+        });
+
+        services.AddTransient<ICommandPublisher, CommandPublisher>();
+        services.AddSingleton<IRulesProvider, TotalWarfareRulesProvider>();
+        services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
+        services.AddSingleton<IMechFactory, MechFactory>();
+        services.AddSingleton<IDiceRoller, RandomDiceRoller>();
+        services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
+        services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
+        services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
+        services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
+        services.AddSingleton<IToHitCalculator, ToHitCalculator>();
+        services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
+        services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
+        services.AddSingleton<IFallProcessor, FallProcessor>();
+        services.AddSingleton<IGameFactory, GameFactory>();
+        services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
+        services.AddSingleton<ITerrainBitmaskService, TerrainBitmaskService>();
+        services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
+        services.AddSingleton<IGameManager, GameManager>();
+        services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
+        services.AddSingleton<IHashService, HashService>();
+        services.AddSingleton<IBotManager, BotManager>();
+        services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
+    }
+
+    public static void RegisterViewModels(this IServiceCollection services)
+    {
+        services.AddTransient<MainMenuViewModel>();
+        services.AddTransient<StartNewGameViewModel>();
+        services.AddTransient<JoinGameViewModel>();
+        services.AddTransient<BattleMapViewModel>();
+        services.AddTransient<EndGameViewModel>();
+        services.AddTransient<AboutViewModel>();
+        services.AddTransient<SettingsViewModel>();
     }
 }

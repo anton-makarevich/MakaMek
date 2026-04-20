@@ -10,6 +10,7 @@ using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.About;
 using Sanet.MakaMek.Avalonia.Views.EndGame;
 using Sanet.MakaMek.Avalonia.Views.JoinGame;
+using Sanet.MakaMek.Avalonia.Views.Settings;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
 using Sanet.MakaMek.Localization;
@@ -127,6 +128,7 @@ public partial class App : Application
         navigationService.RegisterViews(typeof(BattleMapView), typeof(BattleMapViewModel));
         navigationService.RegisterViews(typeof(EndGameView), typeof(EndGameViewModel));
         navigationService.RegisterViews(typeof(AboutView), typeof(AboutViewModel));
+        navigationService.RegisterViews(typeof(SettingsView), typeof(SettingsViewModel));
         navigationService.RegisterViews(typeof(AvailableUnitsTableView), typeof(AvailableUnitsTableViewModel));
     }
     private bool IsMobile()

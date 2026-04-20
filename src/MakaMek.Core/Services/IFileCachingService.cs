@@ -17,8 +17,9 @@ public interface IFileCachingService
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
     /// <param name="content">File content to cache as byte array</param>
+    /// <param name="version">Optional version metadata to store alongside the cached content</param>
     /// <returns>Task representing the async operation</returns>
-    Task SaveToCache(string cacheKey, byte[] content);
+    Task SaveToCache(string cacheKey, byte[] content, string? version = null);
 
     /// <summary>
     /// Clears all cached files
@@ -39,4 +40,11 @@ public interface IFileCachingService
     /// <param name="cacheKey">Unique identifier for the cached file to remove</param>
     /// <returns>Task representing the async operation</returns>
     Task RemoveFromCache(string cacheKey);
+
+    /// <summary>
+    /// Gets the version metadata for a cached file
+    /// </summary>
+    /// <param name="cacheKey">Unique identifier for the cached file</param>
+    /// <returns>Version string if found, null otherwise</returns>
+    Task<string?> GetCacheVersion(string cacheKey);
 }
