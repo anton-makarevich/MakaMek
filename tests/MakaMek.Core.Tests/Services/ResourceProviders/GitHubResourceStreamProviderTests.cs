@@ -554,6 +554,7 @@ public class GitHubResourceStreamProviderTests
         const string cachedSha = "old-sha789";
         const string currentSha = "abc123def456";
         const string apiUrl = "https://api.github.com/test";
+        var staleBytes = Encoding.UTF8.GetBytes("Stale content");
 
         // Set up a URL-matching mock handler
         var mockHandler = new UrlMatchingMockHttpMessageHandler();
@@ -574,7 +575,9 @@ public class GitHubResourceStreamProviderTests
         // Set up the caching service to return a different SHA and indicate file is cached
         _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
         _cachingService.IsCached(testUrl).Returns(true);
-        _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null); // Return null after invalidation
+        _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
+        _cachingService.When(x => x.RemoveFromCache(testUrl))
+            .Do(_ => _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null));
 
         var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
             _cachingService,
