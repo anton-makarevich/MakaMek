@@ -33,9 +33,9 @@ public class SettingsViewModel : BaseViewModel
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
 
         // Initialize cache status
-        InitializeCacheStatusAsync().SafeFireAndForget(_ => 
+        InitializeCacheStatusAsync().SafeFireAndForget(ex => 
         {
-            // Log error if needed
+            _logger.LogError(ex, "Failed to initialize cache status");
         });
     }
 
@@ -49,7 +49,6 @@ public class SettingsViewModel : BaseViewModel
 
     // Localized string properties
     public string DataSectionTitle => _localizationService.GetString("Settings_Data_SectionTitle");
-    public string CacheStatusLabel => _localizationService.GetString("Settings_Data_CacheStatus");
     public string ClearCacheButton => _localizationService.GetString("Settings_Data_ClearCache");
     public string ClearCacheDescription => _localizationService.GetString("Settings_Data_ClearCacheDescription");
 

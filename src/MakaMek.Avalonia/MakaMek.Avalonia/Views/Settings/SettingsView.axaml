@@ -26,8 +26,6 @@
                     <StackPanel Spacing="10">
                         <TextBlock Text="{Binding DataSectionTitle}"
                                    Classes="h3"/>
-                        <TextBlock Text="{Binding CacheStatusLabel}"
-                                   Classes="body"/>
                         <TextBlock Text="{Binding CacheStatus}"
                                    Classes="body"
                                    FontWeight="SemiBold"/>
