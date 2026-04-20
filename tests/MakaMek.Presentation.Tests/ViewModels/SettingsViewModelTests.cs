@@ -8,6 +8,7 @@ using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
+
 public class SettingsViewModelTests
 {
     private readonly IFileCachingService _fileCachingService = Substitute.For<IFileCachingService>();
@@ -27,6 +28,11 @@ public class SettingsViewModelTests
             await Task.Delay(intervalMs);
         }
     }
+
+    public SettingsViewModelTests()
+    {
+        _logger = Substitute.For<ILogger<SettingsViewModel>>();
+
         _sut = new SettingsViewModel(
             _fileCachingService,
             _unitCachingService,
