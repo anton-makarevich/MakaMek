@@ -233,6 +233,151 @@ public class FileSystemCachingServiceTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task SaveToCache_ShouldCreateVersionFile_WhenVersionProvided()
+    {
+        // Arrange
+        const string version = "1.0.0";
+
+        // Act
+        await _sut.SaveToCache(TestCacheKey, _testContent, version);
+
+        // Assert
+        var retrievedVersion = await _sut.GetCacheVersion(TestCacheKey);
+        retrievedVersion.ShouldBe(version);
+    }
+
+    [Fact]
+    public async Task SaveToCache_ShouldNotCreateVersionFile_WhenVersionIsNull()
+    {
+        // Arrange
+        await _sut.ClearCache();
+        
+        // Act
+        await _sut.SaveToCache(TestCacheKey, _testContent, version: null);
+
+        // Assert
+        var retrievedVersion = await _sut.GetCacheVersion(TestCacheKey);
+        retrievedVersion.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SaveToCache_ShouldOverwriteVersionFile_WhenVersionChanged()
+    {
+        // Arrange
+        const string originalVersion = "1.0.0";
+        const string newVersion = "2.0.0";
+        
+        await _sut.SaveToCache(TestCacheKey, _testContent, originalVersion);
+
+        // Act
+        await _sut.SaveToCache(TestCacheKey, _testContent, newVersion);
+
+        // Assert
+        var retrievedVersion = await _sut.GetCacheVersion(TestCacheKey);
+        retrievedVersion.ShouldBe(newVersion);
+    }
+
+    [Fact]
+    public async Task GetCacheVersion_ShouldReturnNull_WhenVersionFileDoesNotExist()
+    {
+        // Arrange
+        await _sut.ClearCache();
+        await _sut.SaveToCache(TestCacheKey, _testContent, version: null);
+
+        // Act
+        var result = await _sut.GetCacheVersion(TestCacheKey);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetCacheVersion_ShouldReturnNull_WhenCacheKeyIsEmpty()
+    {
+        // Act
+        var result = await _sut.GetCacheVersion("");
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetCacheVersion_ShouldReturnNull_WhenCacheKeyIsNull()
+    {
+        // Act
+        var result = await _sut.GetCacheVersion(null!);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetCacheVersion_ShouldReturnNull_WhenFileNotCached()
+    {
+        // Act
+        var result = await _sut.GetCacheVersion("non-existent-key");
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task RemoveFromCache_ShouldRemoveVersionFile_WhenVersionExists()
+    {
+        // Arrange
+        const string version = "1.0.0";
+        await _sut.SaveToCache(TestCacheKey, _testContent, version);
+        var versionBeforeRemoval = await _sut.GetCacheVersion(TestCacheKey);
+        versionBeforeRemoval.ShouldBe(version);
+
+        // Act
+        await _sut.RemoveFromCache(TestCacheKey);
+
+        // Assert
+        var versionAfterRemoval = await _sut.GetCacheVersion(TestCacheKey);
+        versionAfterRemoval.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task RemoveFromCache_ShouldNotThrow_WhenVersionFileDoesNotExist()
+    {
+        // Arrange
+        await _sut.SaveToCache(TestCacheKey, _testContent, version: null);
+
+        // Act & Assert
+        await Should.NotThrowAsync(async () => await _sut.RemoveFromCache(TestCacheKey));
+    }
+
+    [Fact]
+    public async Task ClearCache_ShouldRemoveVersionFiles()
+    {
+        // Arrange
+        const string key1 = "test-key-1";
+        const string key2 = "test-key-2";
+        const string version1 = "1.0.0";
+        const string version2 = "2.0.0";
+        var content1 = "Content 1"u8.ToArray();
+        var content2 = "Content 2"u8.ToArray();
+        
+        await _sut.SaveToCache(key1, content1, version1);
+        await _sut.SaveToCache(key2, content2, version2);
+        
+        var version1BeforeClear = await _sut.GetCacheVersion(key1);
+        var version2BeforeClear = await _sut.GetCacheVersion(key2);
+        version1BeforeClear.ShouldBe(version1);
+        version2BeforeClear.ShouldBe(version2);
+
+        // Act
+        await _sut.ClearCache();
+
+        // Assert
+        var version1AfterClear = await _sut.GetCacheVersion(key1);
+        var version2AfterClear = await _sut.GetCacheVersion(key2);
+        version1AfterClear.ShouldBeNull();
+        version2AfterClear.ShouldBeNull();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
