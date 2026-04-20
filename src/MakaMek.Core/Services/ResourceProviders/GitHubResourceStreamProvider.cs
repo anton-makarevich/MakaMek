@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Services.ResourceProviders;
@@ -107,21 +106,18 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             await contentStream.CopyToAsync(memoryStream);
             var contentBytes = memoryStream.ToArray();
 
-            // Cache the content with version metadata if available (fire and forget)
-            Task.Run(async () =>
+            // Cache the content with version metadata if available
+            try
             {
-                try
-                {
-                    await _cachingService.SaveToCache(
-                        resourceId,
-                        contentBytes,
-                        string.IsNullOrEmpty(currentSha) ? null : currentSha);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
-                }
-            }).SafeFireAndForget(ex => _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId)); 
+                await _cachingService.SaveToCache(
+                    resourceId,
+                    contentBytes,
+                    string.IsNullOrEmpty(currentSha) ? null : currentSha);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
+            }
             return new MemoryStream(contentBytes);
         }
         catch (Exception ex)

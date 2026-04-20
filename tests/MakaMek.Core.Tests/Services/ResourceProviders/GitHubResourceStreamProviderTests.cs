@@ -470,11 +470,7 @@ public class GitHubResourceStreamProviderTests
         // Verify caching service was called for cache lookup
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
 
-        // Wait for the background caching task to complete
-        // The caching happens asynchronously in a fire-and-forget task
-        await Task.Delay(100); // Increased delay for CI environments
-
-        // Verify that SaveToCache was called (the background task should have completed)
+        // Verify that SaveToCache was called
         await _cachingService.Received(1).SaveToCache(testUrl, Arg.Any<byte[]>());
     }
 
