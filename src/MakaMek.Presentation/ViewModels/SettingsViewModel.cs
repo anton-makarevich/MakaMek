@@ -33,10 +33,7 @@ public class SettingsViewModel : BaseViewModel
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
 
         // Initialize cache status
-        InitializeCacheStatusAsync().SafeFireAndForget(ex => 
-        {
-            _logger.LogError(ex, "Failed to initialize cache status");
-        });
+        InitializeCacheStatusAsync().SafeFireAndForget();
     }
 
     public ICommand ClearCacheCommand { get; }

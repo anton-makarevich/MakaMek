@@ -594,6 +594,11 @@ public class GitHubResourceStreamProviderTests
         await _cachingService.Received(1).GetCacheVersion(testUrl);
         await _cachingService.Received(1).IsCached(testUrl);
         await _cachingService.Received(1).RemoveFromCache(testUrl);
+        
+        await _cachingService.Received(1).SaveToCache(
+            testUrl,
+            Arg.Is<byte[]>(bytes => Encoding.UTF8.GetString(bytes) == testContent),
+            currentSha);
 
         // Verify log message about cache version mismatch
         _logger.Received(1).Log(
