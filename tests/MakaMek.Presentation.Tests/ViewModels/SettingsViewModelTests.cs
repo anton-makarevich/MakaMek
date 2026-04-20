@@ -183,7 +183,15 @@ public class SettingsViewModelTests
         _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
         var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
-        // Act and Assert - Give time for SafeFireAndForget to complete
+        // Act
+        _ = new SettingsViewModel(
+            _fileCachingService,
+            _unitCachingService,
+            _terrainAssetService,
+            _localizationService,
+            logger);
+
+        // Assert - Give time for SafeFireAndForget to complete
         await Task.Delay(100);
         logger.Received(1).Log(
             LogLevel.Error,
