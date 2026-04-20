@@ -176,7 +176,13 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            var versionKey = GetHashedCacheKey(cacheKey) + ":version";
+            var baseKey = GetHashedCacheKey(cacheKey);
+
+            // Check if primary content exists; if not, the version sidecar is stale
+            if (!await IsCachedJs(baseKey))
+                return null;
+
+            var versionKey = baseKey + ":version";
             var jsObject = await GetVersionFromCacheAsObjectJs(versionKey);
             var result = UnwrapStringJs(jsObject);
             return string.IsNullOrEmpty(result) ? null : result;
