@@ -49,6 +49,7 @@ public class HexMap : Canvas
         transformGroup.Children.Add(_mapScaleTransform);
         transformGroup.Children.Add(_mapTranslateTransform);
         RenderTransform = transformGroup;
+        RenderTransformOrigin = new RelativePoint(new Point(0, 0), RelativeUnit.Absolute);
 
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
@@ -138,7 +139,6 @@ public class HexMap : Canvas
     {
         _isManipulating = false;
         _isZooming = false;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
@@ -149,7 +149,8 @@ public class HexMap : Canvas
         var newScale = _mapScaleTransform.ScaleX * scaleFactor;
         if (newScale < MinScale || newScale > MaxScale) return;
 
-        RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
+        _mapTranslateTransform.X = _mapTranslateTransform.X * scaleFactor + origin.X * (1 - scaleFactor);
+        _mapTranslateTransform.Y = _mapTranslateTransform.Y * scaleFactor + origin.Y * (1 - scaleFactor);
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
     }
@@ -163,7 +164,6 @@ public class HexMap : Canvas
         _mapTranslateTransform.Y = 0;
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 
     /// <summary>
@@ -173,6 +173,5 @@ public class HexMap : Canvas
     {
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 }
