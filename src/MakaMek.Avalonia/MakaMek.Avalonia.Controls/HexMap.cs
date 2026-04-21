@@ -132,18 +132,44 @@ public class HexMap : Canvas
         _isManipulating = true;
         _isZooming = true;
 
-        // e.Scale is cumulative from gesture start — derive incremental factor
+        // Guard against degenerate scale values from out-of-bounds fingers
+        if (e.Scale <= 0) return;
+
         var incrementalFactor = e.Scale / _lastPinchScale;
+
+        // Clamp the incremental factor to a sane per-event range.
+        // Any single pinch event shouldn't zoom more than ~20% in one frame.
+        const double maxIncrementalFactor = 1.2;
+        const double minIncrementalFactor = 1.0 / maxIncrementalFactor;
+        incrementalFactor = Math.Clamp(incrementalFactor, minIncrementalFactor, maxIncrementalFactor);
+
         _lastPinchScale = e.Scale;
 
-        ApplyZoom(incrementalFactor, e.ScaleOrigin);
+        // Use the parent-relative bounds to clamp the zoom origin,
+        // preventing wild offsets when a finger drifts outside the control.
+        var safeOrigin = ClampOriginToParentBounds(e.ScaleOrigin);
+        ApplyZoom(incrementalFactor, safeOrigin);
+    }
+
+    private Point ClampOriginToParentBounds(Point origin)
+    {
+        // If we can determine the parent's size, clamp origin within it.
+        if (Parent is Visual parentVisual)
+        {
+            var bounds = parentVisual.Bounds;
+            return new Point(
+                Math.Clamp(origin.X, 0, bounds.Width),
+                Math.Clamp(origin.Y, 0, bounds.Height)
+            );
+        }
+        return origin;
     }
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
         _lastPinchScale = 1.0; // Reset for next gesture
         _isZooming = false;
-        // Do NOT reset _isManipulating here immediately; let pointer release handle it
+        _isPressed = false;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
