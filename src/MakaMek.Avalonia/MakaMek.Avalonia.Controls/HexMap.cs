@@ -22,6 +22,9 @@ public class HexMap : Canvas
     private CancellationTokenSource? _manipulationTokenSource;
     private Point? _clickPosition;
 
+    // Track last pinch scale to compute incremental factor
+    private double _lastPinchScale = 1.0;
+
     /// <summary>
     /// Gets or sets the minimum scale factor for zooming.
     /// </summary>
@@ -49,6 +52,7 @@ public class HexMap : Canvas
         transformGroup.Children.Add(_mapScaleTransform);
         transformGroup.Children.Add(_mapTranslateTransform);
         RenderTransform = transformGroup;
+        // Fix the origin at top-left forever — all math is explicit from here
         RenderTransformOrigin = new RelativePoint(new Point(0, 0), RelativeUnit.Absolute);
 
         PointerPressed += OnPointerPressed;
@@ -86,20 +90,15 @@ public class HexMap : Canvas
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs? e)
     {
-        // Cancel the manipulation timer
         _manipulationTokenSource?.Cancel();
+        _isManipulating = false; // Always reset on release
 
-        if (!_isManipulating)
+        if (_isPressed && e != null)
         {
-            if (!_isPressed) return;
             _isPressed = false;
-
-            _clickPosition = e?.GetPosition(this);
+            _clickPosition = e.GetPosition(this);
             if (_clickPosition.HasValue)
-            {
-                // Raise the ContentClicked event for consumers to handle
                 ContentClicked?.Invoke(this, _clickPosition.Value);
-            }
         }
     }
 
@@ -132,25 +131,35 @@ public class HexMap : Canvas
     {
         _isManipulating = true;
         _isZooming = true;
-        ApplyZoom(e.Scale, e.ScaleOrigin);
+
+        // e.Scale is cumulative from gesture start — derive incremental factor
+        var incrementalFactor = e.Scale / _lastPinchScale;
+        _lastPinchScale = e.Scale;
+
+        ApplyZoom(incrementalFactor, e.ScaleOrigin);
     }
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
-        _isManipulating = false;
+        _lastPinchScale = 1.0; // Reset for next gesture
         _isZooming = false;
+        // Do NOT reset _isManipulating here immediately; let pointer release handle it
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
     {
-        if (origin.X < 0 || origin.Y < 0) return;
-        if (origin.X > Bounds.Width || origin.Y > Bounds.Height) return;
+        var currentScale = _mapScaleTransform.ScaleX;
+        var newScale = currentScale * scaleFactor;
+        newScale = Math.Clamp(newScale, MinScale, MaxScale);
 
-        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (newScale < MinScale || newScale > MaxScale) return;
+        // Actual factor after clamping — avoids drift when hitting the boundary
+        var actualFactor = newScale / currentScale;
+        if (Math.Abs(actualFactor - 1.0) < 1e-9) return;
 
-        _mapTranslateTransform.X = _mapTranslateTransform.X * scaleFactor + origin.X * (1 - scaleFactor);
-        _mapTranslateTransform.Y = _mapTranslateTransform.Y * scaleFactor + origin.Y * (1 - scaleFactor);
+        // Fold origin into translate so the point under the finger stays fixed
+        _mapTranslateTransform.X = origin.X - actualFactor * (origin.X - _mapTranslateTransform.X);
+        _mapTranslateTransform.Y = origin.Y - actualFactor * (origin.Y - _mapTranslateTransform.Y);
+
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
     }
