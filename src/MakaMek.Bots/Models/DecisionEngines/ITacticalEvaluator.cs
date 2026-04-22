@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Bots.Data;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -14,12 +14,20 @@ public interface ITacticalEvaluator
     /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
+    /// <param name="enemyWeaponsCache">Optional pre-computed enemy weapons cache to avoid repeated enumeration</param>
     /// <returns>Position score including the path</returns>
     Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
-        ITurnState? turnState = null);
+        ITurnState? turnState = null,
+        Dictionary<Guid, IReadOnlyList<Weapon>>? enemyWeaponsCache = null);
+
+    /// <summary>
+    /// Builds a cache of available weapons for each enemy unit.
+    /// Call once per turn/batch and pass the result to EvaluatePath to avoid repeated enumeration.
+    /// </summary>
+    Dictionary<Guid, IReadOnlyList<Weapon>> BuildEnemyWeaponsCache(IReadOnlyList<IUnit> enemyUnits);
 
     /// <summary>
     /// Evaluates potential targets for a unit

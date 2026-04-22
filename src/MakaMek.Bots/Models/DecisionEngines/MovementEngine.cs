@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
@@ -186,6 +186,9 @@ public class MovementEngine : IBotDecisionEngine
 
         // Evaluate all candidate positions with all available movement types
         var candidateScores = new List<PositionScore>();
+        
+        // Pre-compute enemy weapons once for all path evaluations
+        var enemyWeaponsCache = _evaluator.BuildEnemyWeaponsCache(enemyUnits);
 
         foreach (var movementType in availableMovementTypes)
         {
@@ -222,7 +225,7 @@ public class MovementEngine : IBotDecisionEngine
                 {
                     try
                     {
-                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
+                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits, turnState, enemyWeaponsCache);
                         scores.Add(score);
                     }
                     catch (Exception ex)
