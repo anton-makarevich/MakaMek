@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -534,7 +535,40 @@ public class TacticalEvaluatorTests
         results[0].ShouldBe(cachedData);
         turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
     }
-    
+
+    [Fact]
+    public void BuildEnemyWeaponsCache_ShouldReturnAvailableWeaponsForEachEnemy()
+    {
+        // Arrange
+        var enemy1 = Substitute.For<IUnit>();
+        enemy1.Id.Returns(Guid.NewGuid());
+        var weapon1 = new TestWeapon(new WeaponDefinition("TestLaser1", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100));
+        var part1 = new Arm("RightArm", PartLocation.RightArm, 10, 5);
+        part1.TryAddComponent(weapon1);
+        enemy1.Parts.Returns(new Dictionary<PartLocation, UnitPart> { { PartLocation.RightArm, part1 } });
+        
+        var enemy2 = Substitute.For<IUnit>();
+        enemy2.Id.Returns(Guid.NewGuid());
+        var weapon2 = new TestWeapon(new WeaponDefinition("TestLaser2", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100));
+        var part2 = new Arm("LeftArm", PartLocation.LeftArm, 10, 5);
+        part2.TryAddComponent(weapon2);
+        enemy2.Parts.Returns(new Dictionary<PartLocation, UnitPart> { { PartLocation.LeftArm, part2 } });
+        
+        var enemies = new List<IUnit> { enemy1, enemy2 };
+
+        // Act
+        var cache = _sut.BuildEnemyWeaponsCache(enemies);
+
+        // Assert
+        cache.Count.ShouldBe(2);
+        cache.ShouldContainKey(enemy1.Id);
+        cache[enemy1.Id].Count.ShouldBe(1);
+        cache[enemy1.Id][0].ShouldBe(weapon1);
+        
+        cache.ShouldContainKey(enemy2.Id);
+        cache[enemy2.Id].Count.ShouldBe(1);
+        cache[enemy2.Id][0].ShouldBe(weapon2);
+    }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
