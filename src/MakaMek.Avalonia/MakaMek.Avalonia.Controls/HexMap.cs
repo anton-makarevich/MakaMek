@@ -91,11 +91,13 @@ public class HexMap : Canvas
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs? e)
     {
         _manipulationTokenSource?.Cancel();
+        var wasPressed = _isPressed;
+        var wasManipulating = _isManipulating;
+        _isPressed = false;
         _isManipulating = false; // Always reset on release
 
-        if (_isPressed && e != null)
+        if (wasPressed && !wasManipulating && e != null)
         {
-            _isPressed = false;
             _clickPosition = e.GetPosition(this);
             if (_clickPosition.HasValue)
                 ContentClicked?.Invoke(this, _clickPosition.Value);
