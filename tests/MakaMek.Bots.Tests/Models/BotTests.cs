@@ -39,22 +39,24 @@ public class BotTests : IDisposable
 
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
-        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
+        _clientGame.TurnPhase.ReturnsForAnyArgs(PhaseNames.Movement);
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.PhaseStepChanges.Returns(_phaseStepChanges.AsObservable());
         _clientGame.PhaseChanges.Returns(_phaseSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
+        _clientGame.PhaseStepState.Returns((PhaseStepState?)null);
 
         // Set up Players collection to return the player
         _clientGame.Players.Returns(new List<IPlayer> { _player });
 
         // Configure a mock provider to return appropriate engines for different phases
 
-        // Engine's MakeDecision now accepts IPlayer parameter
-        _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        // Engine's MakeDecision now accepts IPlayer parameter and BotSettings
+        _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>())
+            .Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
 
-        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider, BotSettings.Default);
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider, BotSettings.Default, decisionDelayMilliseconds: 0);
     }
 
     [Fact]
@@ -73,7 +75,7 @@ public class BotTests : IDisposable
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         // Act - Create a new bot and trigger phase change
-        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider);
+        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider, BotSettings.Default);
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Assert
@@ -106,7 +108,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await _movementEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>());
+        await _movementEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
     
     [Fact]
@@ -122,7 +124,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        await _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -136,7 +138,7 @@ public class BotTests : IDisposable
         _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, otherPlayer, 1));
 
         // Assert
-        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -146,7 +148,7 @@ public class BotTests : IDisposable
         _phaseStepChanges.OnNext(null);
 
         // Assert
-        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -195,7 +197,7 @@ public class BotTests : IDisposable
         _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
 
         // Assert - Should not make a decision after disposal
-        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -225,7 +227,7 @@ public class BotTests : IDisposable
 
         try
         {
-            using var bot = new Bot(playerId, clientGame, decisionEngineProvider);
+            using var bot = new Bot(playerId, clientGame, decisionEngineProvider, BotSettings.Default);
 
             // Set up the decision engine
             phaseSubject.OnNext(PhaseNames.Movement);
@@ -257,7 +259,7 @@ public class BotTests : IDisposable
     {
         // Arrange - Simulate End Phase (client-driven)
         var endPhaseEngine = Substitute.For<IBotDecisionEngine>();
-        endPhaseEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        endPhaseEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.End).Returns(endPhaseEngine);
         _clientGame.TurnPhase.Returns(PhaseNames.End);
 
@@ -268,7 +270,7 @@ public class BotTests : IDisposable
         // Assert - Bot should act in the End Phase
         // wait for bg task to complete
         await Task.Delay(100);
-        await endPhaseEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>());
+        await endPhaseEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -276,7 +278,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var weaponsEngine = Substitute.For<IBotDecisionEngine>();
-        weaponsEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        weaponsEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.WeaponsAttack).Returns(weaponsEngine);
         
         _clientGame.TurnPhase.Returns(PhaseNames.WeaponsAttack);
@@ -304,7 +306,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == weaponConfigCommand.UnitId));
+        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == weaponConfigCommand.UnitId), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -312,7 +314,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var weaponsEngine = Substitute.For<IBotDecisionEngine>();
-        weaponsEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        weaponsEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.WeaponsAttack).Returns(weaponsEngine);
         
         var otherPlayer = Substitute.For<IPlayer>();
@@ -343,7 +345,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await weaponsEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        await weaponsEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -352,7 +354,7 @@ public class BotTests : IDisposable
         // Arrange
         ITurnState? capturedTurnState = null;
         _movementEngine.MakeDecision(Arg.Any<IPlayer>(),
-            Arg.Do<ITurnState>(ts => capturedTurnState = ts)).Returns(Task.CompletedTask);
+            Arg.Do<ITurnState>(ts => capturedTurnState = ts), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         
         // Set up game properties
         var expectedGameId = Guid.NewGuid();
@@ -380,7 +382,7 @@ public class BotTests : IDisposable
         // Arrange
         ITurnState? capturedTurnState = null;
         _movementEngine.MakeDecision(Arg.Any<IPlayer>(), 
-            Arg.Do<ITurnState>(ts => capturedTurnState = ts)).Returns(Task.CompletedTask);
+            Arg.Do<ITurnState>(ts => capturedTurnState = ts), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         
         var expectedGameId = Guid.NewGuid();
         const int initialTurnNumber = 3;
@@ -421,7 +423,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var movementEngine = Substitute.For<IBotDecisionEngine>();
-        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
@@ -461,7 +463,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId));
+        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -469,7 +471,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var movementEngine = Substitute.For<IBotDecisionEngine>();
-        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
@@ -507,7 +509,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
     
     [Fact]
@@ -515,7 +517,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var movementEngine = Substitute.For<IBotDecisionEngine>();
-        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
@@ -544,7 +546,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId));
+        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId), Arg.Any<BotSettings>());
     }
 
     [Fact]
@@ -552,7 +554,7 @@ public class BotTests : IDisposable
     {
         // Arrange
         var movementEngine = Substitute.For<IBotDecisionEngine>();
-        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
@@ -579,7 +581,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
     
     [Fact]
@@ -588,7 +590,7 @@ public class BotTests : IDisposable
         // Arrange
         const PhaseNames phase = PhaseNames.WeaponsAttack;
         var decisionEngine = Substitute.For<IBotDecisionEngine>();
-        decisionEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        decisionEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(phase).Returns(decisionEngine);
 
         _clientGame.TurnPhase.Returns(phase);
@@ -617,7 +619,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await decisionEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+        await decisionEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
     public void Dispose()

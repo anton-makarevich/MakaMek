@@ -258,8 +258,7 @@ public class PlayerViewModel : BindableBase
     /// <returns>BotSettings with configured AggressivenessIndex, or Default for non-bots</returns>
     public BotSettings GetBotSettings()
     {
-        return IsBot
-            ? new BotSettings { AggressivenessIndex = _aggressivenessIndex }
-            : BotSettings.Default;
+        if (!IsBot) return BotSettings.Default;
+        return new BotSettings(_aggressivenessIndex);
     }
 }
