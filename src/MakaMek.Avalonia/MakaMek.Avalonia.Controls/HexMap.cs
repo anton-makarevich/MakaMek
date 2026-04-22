@@ -22,6 +22,9 @@ public class HexMap : Canvas
     private CancellationTokenSource? _manipulationTokenSource;
     private Point? _clickPosition;
 
+    // Track last pinch scale to compute incremental factor
+    private double _lastPinchScale = 1.0;
+
     /// <summary>
     /// Gets or sets the minimum scale factor for zooming.
     /// </summary>
@@ -49,6 +52,8 @@ public class HexMap : Canvas
         transformGroup.Children.Add(_mapScaleTransform);
         transformGroup.Children.Add(_mapTranslateTransform);
         RenderTransform = transformGroup;
+        // Fix the origin at top-left forever — all math is explicit from here
+        RenderTransformOrigin = new RelativePoint(new Point(0, 0), RelativeUnit.Absolute);
 
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
@@ -85,20 +90,17 @@ public class HexMap : Canvas
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs? e)
     {
-        // Cancel the manipulation timer
         _manipulationTokenSource?.Cancel();
+        var wasPressed = _isPressed;
+        var wasManipulating = _isManipulating;
+        _isPressed = false;
+        _isManipulating = false; // Always reset on release
 
-        if (!_isManipulating)
+        if (wasPressed && !wasManipulating && e != null)
         {
-            if (!_isPressed) return;
-            _isPressed = false;
-
-            _clickPosition = e?.GetPosition(this);
+            _clickPosition = e.GetPosition(this);
             if (_clickPosition.HasValue)
-            {
-                // Raise the ContentClicked event for consumers to handle
                 ContentClicked?.Invoke(this, _clickPosition.Value);
-            }
         }
     }
 
@@ -131,25 +133,60 @@ public class HexMap : Canvas
     {
         _isManipulating = true;
         _isZooming = true;
-        ApplyZoom(e.Scale, e.ScaleOrigin);
+
+        // Guard against degenerate scale values from out-of-bounds fingers
+        if (e.Scale <= 0) return;
+
+        var rawIncrementalFactor = e.Scale / _lastPinchScale;
+
+        // Clamp the incremental factor to a sane per-event range.
+        // Any single pinch event shouldn't zoom more than ~20% in one frame.
+        const double maxIncrementalFactor = 1.2;
+        const double minIncrementalFactor = 1.0 / maxIncrementalFactor;
+        var incrementalFactor = Math.Clamp(rawIncrementalFactor, minIncrementalFactor, maxIncrementalFactor);
+
+        _lastPinchScale = Math.Abs(rawIncrementalFactor - incrementalFactor) < 1e-9
+            ? e.Scale
+            : _lastPinchScale * incrementalFactor;
+
+        // Use the parent-relative bounds to clamp the zoom origin,
+        // preventing wild offsets when a finger drifts outside the control.
+        var safeOrigin = ClampOriginToBounds(e.ScaleOrigin);
+        ApplyZoom(incrementalFactor, safeOrigin);
+    }
+
+    private Point ClampOriginToBounds(Point origin)
+    {
+        // ScaleOrigin is already in HexMap-local coordinates.
+        // Just clamp it within the HexMap's own bounds to guard against
+        // fingers drifting outside the control.
+        return new Point(
+            Math.Clamp(origin.X, 0, Bounds.Width),
+            Math.Clamp(origin.Y, 0, Bounds.Height)
+        );
     }
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
-        _isManipulating = false;
+        _lastPinchScale = 1.0; // Reset for next gesture
         _isZooming = false;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
+        _isPressed = false;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
     {
-        if (origin.X < 0 || origin.Y < 0) return;
-        if (origin.X > Bounds.Width || origin.Y > Bounds.Height) return;
+        var currentScale = _mapScaleTransform.ScaleX;
+        var newScale = currentScale * scaleFactor;
+        newScale = Math.Clamp(newScale, MinScale, MaxScale);
 
-        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (newScale < MinScale || newScale > MaxScale) return;
+        // Actual factor after clamping — avoids drift when hitting the boundary
+        var actualFactor = newScale / currentScale;
+        if (Math.Abs(actualFactor - 1.0) < 1e-9) return;
 
-        RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
+        // Fold origin into translate so the point under the finger stays fixed
+        _mapTranslateTransform.X = origin.X - actualFactor * (origin.X - _mapTranslateTransform.X);
+        _mapTranslateTransform.Y = origin.Y - actualFactor * (origin.Y - _mapTranslateTransform.Y);
+
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
     }
@@ -163,7 +200,6 @@ public class HexMap : Canvas
         _mapTranslateTransform.Y = 0;
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 
     /// <summary>
@@ -173,6 +209,5 @@ public class HexMap : Canvas
     {
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
-        RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 }
