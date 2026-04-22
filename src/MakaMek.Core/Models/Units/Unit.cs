@@ -116,6 +116,26 @@ public abstract class Unit : IUnit
     /// </summary>
     public abstract int Height { get; }
 
+    private IReadOnlyList<Weapon>? _availableWeaponsCache;
+
+    /// <summary>
+    /// Returns a lazily‑cached list of this unit's available weapons (IsAvailable == true).
+    /// Cache is cleared when ResetPhaseState is called.
+    /// </summary>
+    public IReadOnlyList<Weapon> GetAvailableWeapons()
+    {
+        // Use cached list if present
+        if (_availableWeaponsCache != null)
+            return _availableWeaponsCache;
+
+        // Compute and cache
+        var weapons = GetAllComponents<Weapon>()
+            .Where(w => w.IsAvailable)
+            .ToList();
+        _availableWeaponsCache = weapons;
+        return weapons;
+    }
+
     /// <summary>
     /// Determines if this unit can have partial cover from elevation.
     /// Only standing mechs can have partial cover.
@@ -408,6 +428,8 @@ public abstract class Unit : IUnit
     public void ResetPhaseState()
     {
         TotalPhaseDamage = 0;
+        // Invalidate cached available weapons – they may have changed due to damage or ammo use
+        _availableWeaponsCache = null;
     }
 
     /// <summary>

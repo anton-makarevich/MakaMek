@@ -30,17 +30,17 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    /// <param name="enemyWeaponsCache">Precalculate list of available weapons per unit</param>
-    /// <returns>Position score including the path</returns>
-    public async Task<PositionScore> EvaluatePath(
-        IUnit unit,
-        MovementPath path,
-        IReadOnlyList<IUnit> enemyUnits,
-        ITurnState? turnState = null,
-        Dictionary<Guid, IReadOnlyList<Weapon>>? enemyWeaponsCache = null)
-    {
-        enemyWeaponsCache ??= BuildEnemyWeaponsCache(enemyUnits);
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height, enemyWeaponsCache);
+        /// <param name="enemyWeaponsCache">(Unused) Kept for compatibility – will be ignored.</param>
+        public async Task<PositionScore> EvaluatePath(
+            IUnit unit,
+            MovementPath path,
+            IReadOnlyList<IUnit> enemyUnits,
+            ITurnState? turnState = null,
+            Dictionary<Guid, IReadOnlyList<Weapon>>? enemyWeaponsCache = null)
+        {
+            // Enemy weapons are now obtained directly from each enemy via GetAvailableWeapons()
+            var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
+
         var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Any()
@@ -136,37 +136,17 @@ public class TacticalEvaluator : ITacticalEvaluator
     }
     
     /// <summary>
-    /// Builds a cache of available weapons for each enemy unit.
-    /// This avoids re-enumerating enemy parts and components on every call to CalculateDefensiveIndex.
-    /// </summary>
-    public Dictionary<Guid, IReadOnlyList<Weapon>> BuildEnemyWeaponsCache(IReadOnlyList<IUnit> enemyUnits)
-    {
-        var cache = new Dictionary<Guid, IReadOnlyList<Weapon>>(enemyUnits.Count);
-        foreach (var enemy in enemyUnits)
-        {
-            var weapons = enemy.Parts.Values
-                .SelectMany(p => p.GetComponents<Weapon>())
-                .Where(w => w.IsAvailable)
-                .ToList();
-            cache[enemy.Id] = weapons;
-        }
-        return cache;
-    }
-
-    /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
     /// </summary>
     /// <param name="defenderPath">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="defenderHeight">Height of the unit at the position</param>
-    /// <param name="enemyWeaponsCache">Precalculate list of available enemy weapons</param>
     /// <returns>Defensive threat index (lower is better)</returns>
     private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits,
-        int defenderHeight,
-        Dictionary<Guid, IReadOnlyList<Weapon>> enemyWeaponsCache)
+        int defenderHeight)
     {
         var enemiesInRearArc = 0;
         if (_game.BattleMap == null)
@@ -197,10 +177,8 @@ public class TacticalEvaluator : ITacticalEvaluator
 
             var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
 
-            // Use pre-computed enemy weapons from cache
-            if (!enemyWeaponsCache.TryGetValue(enemy.Id, out var weapons))
-                continue;
-            
+            // Retrieve enemy's available weapons directly (cached per unit)
+            var weapons = enemy.GetAvailableWeapons();
             var arcMultiplier = targetArc.GetArcMultiplier();
             
             foreach (var weapon in weapons)
