@@ -66,7 +66,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                     response.ErrorType,
                     response.ErrorMessage);
 
-                await FallbackEngine.MakeDecision(player, turnState);
+                await FallbackEngine.MakeDecision(player, turnState, settings);
                 return;
             }
 
@@ -76,7 +76,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                 _logger.LogWarning(
                     "{EngineType}: BotAgent returned invalid command type. Using fallback engine.",
                     GetType().Name);
-                await FallbackEngine.MakeDecision(player, turnState);
+                await FallbackEngine.MakeDecision(player, turnState, settings);
                 return;
             }
 
@@ -98,7 +98,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                 GetType().Name,
                 player.Name);
 
-            await FallbackEngine.MakeDecision(player, turnState);
+            await FallbackEngine.MakeDecision(player, turnState, settings);
         }
     }
 
