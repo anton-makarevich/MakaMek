@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -868,5 +869,118 @@ public class PlayerViewModelTests
 
         // Assert
         canJoin.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsBot_ShouldReturnTrue_WhenPlayerControlTypeIsBot()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot), true);
+
+        // Act
+        var isBot = sut.IsBot;
+
+        // Assert
+        isBot.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsBot_ShouldReturnFalse_WhenPlayerControlTypeIsHuman()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "HumanPlayer", PlayerControlType.Human), true);
+
+        // Act
+        var isBot = sut.IsBot;
+
+        // Assert
+        isBot.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsBot_ShouldReturnFalse_WhenPlayerControlTypeIsRemote()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "RemotePlayer", PlayerControlType.Remote), false);
+
+        // Act
+        var isBot = sut.IsBot;
+
+        // Assert
+        isBot.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AggressivenessIndex_ShouldDefaultToZero()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot), true);
+
+        // Act
+        var aggressiveness = sut.AggressivenessIndex;
+
+        // Assert
+        aggressiveness.ShouldBe(0.0f);
+    }
+
+    [Fact]
+    public void AggressivenessIndex_ShouldBeSettable()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot), true)
+            {
+                // Act
+                AggressivenessIndex = 0.75f
+            };
+
+        // Assert
+        sut.AggressivenessIndex.ShouldBe(0.75f);
+    }
+
+    [Fact]
+    public void AggressivenessIndex_ShouldNotifyPropertyChanged()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot), true);
+        var propertyChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.AggressivenessIndex))
+                propertyChanged = true;
+        };
+
+        // Act
+        sut.AggressivenessIndex = 0.5f;
+
+        // Assert
+        propertyChanged.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetBotSettings_ShouldReturnDefault_WhenPlayerIsNotBot()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "HumanPlayer", PlayerControlType.Human), true);
+        sut.AggressivenessIndex = 0.8f;
+
+        // Act
+        var botSettings = sut.GetBotSettings();
+
+        // Assert
+        botSettings.ShouldBe(BotSettings.Default);
+        botSettings.AggressivenessIndex.ShouldBe(0.0f);
+    }
+
+    [Fact]
+    public void GetBotSettings_ShouldReturnConfiguredSettings_WhenPlayerIsBot()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot), true);
+        sut.AggressivenessIndex = 0.6f;
+
+        // Act
+        var botSettings = sut.GetBotSettings();
+
+        // Assert
+        botSettings.AggressivenessIndex.ShouldBe(0.6f);
     }
 }

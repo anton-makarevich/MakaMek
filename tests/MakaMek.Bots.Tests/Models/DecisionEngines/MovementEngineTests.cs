@@ -950,4 +950,187 @@ public class MovementEngineTests
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(lowPriorityUnit.Id);
     }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_WithFullAggressiveness_ShouldUseOffensiveFirstSorting()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
+            .Returns(reachableHexes);
+
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var path1 = new MovementPath([pathSegment1], MovementType.Walk);
+        var path2 = new MovementPath([pathSegment2], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
+            .Returns(callInfo =>
+            {
+                var destination = callInfo.ArgAt<HexPosition>(1);
+                return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
+            });
+
+        // Position 1: High offensive (20), high defensive (20)
+        // Position 2: Low offensive (5), low defensive (5)
+        // With full aggressiveness (1.0), should prefer position 1 (offensive-first: higher offensive wins)
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+                var isPath1 = path.Destination.Coordinates.ToData() == targetHex1.ToData();
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = isPath1 ? 20 : 5,
+                    DefensiveIndex = isPath1 ? 20 : 5,
+                    EnemiesInRearArc = 0 // Equal rear arc exposure
+                };
+            });
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act - Use fully aggressive settings
+        var aggressiveSettings = new BotSettings(1.0f);
+        await _sut.MakeDecision(_player, _turnState, aggressiveSettings);
+
+        // Assert - Should select position 1 (higher offensive index)
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex1.ToData());
+    }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_WithZeroAggressiveness_ShouldUseDefensiveFirstSorting()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
+            .Returns(reachableHexes);
+
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var path1 = new MovementPath([pathSegment1], MovementType.Walk);
+        var path2 = new MovementPath([pathSegment2], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
+            .Returns(callInfo =>
+            {
+                var destination = callInfo.ArgAt<HexPosition>(1);
+                return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
+            });
+
+        // Position 1: High offensive (20), high defensive (20)
+        // Position 2: Low offensive (5), low defensive (5)
+        // With zero aggressiveness (0.0), should prefer position 2 (defensive-first: lower defensive wins)
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+                var isPath1 = path.Destination.Coordinates.ToData() == targetHex1.ToData();
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = isPath1 ? 20 : 5,
+                    DefensiveIndex = isPath1 ? 20 : 5,
+                    EnemiesInRearArc = 0 // Equal rear arc exposure
+                };
+            });
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act - Use fully defensive settings
+        var defensiveSettings = new BotSettings(0.0f);
+        await _sut.MakeDecision(_player, _turnState, defensiveSettings);
+
+        // Assert - Should select position 2 (lower defensive index is more defensive)
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
+    }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_WithRearArcDifference_ShouldPrioritizeRearArcRegardlessOfAggressiveness()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
+            .Returns(reachableHexes);
+
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var path1 = new MovementPath([pathSegment1], MovementType.Walk);
+        var path2 = new MovementPath([pathSegment2], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
+            .Returns(callInfo =>
+            {
+                var destination = callInfo.ArgAt<HexPosition>(1);
+                return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
+            });
+
+        // Position 1: High offensive (100), low defensive (5), but 2 enemies in rear arc
+        // Position 2: Low offensive (1), high defensive (20), but 0 enemies in rear arc
+        // Regardless of aggressiveness, position 2 should be preferred (fewer rear arc enemies)
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+                var isPath1 = path.Destination.Coordinates.ToData() == targetHex1.ToData();
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = isPath1 ? 100 : 1,
+                    DefensiveIndex = isPath1 ? 5 : 20,
+                    EnemiesInRearArc = isPath1 ? 2 : 0
+                };
+            });
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act - Test with full aggressiveness (should still prioritize rear arc)
+        var aggressiveSettings = new BotSettings(1.0f);
+        await _sut.MakeDecision(_player, _turnState, aggressiveSettings);
+
+        // Assert - Should select position 2 (fewer enemies in rear arc)
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
+    }
 }

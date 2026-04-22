@@ -256,7 +256,7 @@ public class MovementEngine : IBotDecisionEngine
         }
         else
         {
-            // Defensive-first: prioritize DefensiveIndex over OffensiveIndex (current default behavior)
+            // Defensive-first: prioritize DefensiveIndex over OffensiveIndex (lower defensive index is better)
             bestScores = candidateScores
                 .OrderBy(s => s.EnemiesInRearArc)
                 .ThenBy(s => s.DefensiveIndex)
