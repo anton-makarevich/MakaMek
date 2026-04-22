@@ -383,8 +383,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTargetData.ShouldNotBeNull();
@@ -453,8 +452,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weapon1Target.ShouldNotBeNull();
@@ -465,8 +463,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.RightArm &&
+                return primaryAssignment is { Location: PartLocation.RightArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 2, 3 }.OrderBy(s => s));
             });
         weapon2Target.ShouldNotBeNull();
@@ -648,8 +645,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTarget.ShouldNotBeNull();
@@ -829,6 +825,26 @@ public class UnitTests
         
         // Assert
         remainingShots.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetAvailableWeapons_ShouldReturnAllAvailableWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.Count.ShouldBe(2);
+        weapons.ShouldContain(weapon1);
+        weapons.ShouldContain(weapon2);
     }
     
     [Fact]
