@@ -481,13 +481,14 @@ public class MovementEngineTests
                     EnemiesInRearArc = 0
                 };
             });
-        
+
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
-        
-        // Act
-        await _sut.MakeDecision(_player, _turnState);
+
+        // Act - Use aggressive settings to prefer higher offensive index
+        var aggressiveSettings = new BotSettings(1.0f);
+        await _sut.MakeDecision(_player, _turnState, aggressiveSettings);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -496,7 +497,7 @@ public class MovementEngineTests
     
     [Theory]
     [InlineData(10, 5, 20, 10, 1)]
-    [InlineData(10, 5, 20, 5, 2)]
+    [InlineData(10, 10, 20, 5, 2)]
     public async Task ExecuteMoveForUnit_ShouldSelectOptimalPath(
         int offensiveIndex1,
         int defensiveIndex1,
@@ -546,14 +547,14 @@ public class MovementEngineTests
                     EnemiesInRearArc = 0
                 };
             });
-        
+
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
-        
-        // Act
+
+        // Act - Default aggressiveness (0.0) makes combined = -defensive, so lower defensive wins
         await _sut.MakeDecision(_player, _turnState);
-        
+
         // Assert
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementPath.Count.ShouldBe(1);
@@ -982,7 +983,10 @@ public class MovementEngineTests
 
         // Position 1: High offensive (20), high defensive (20)
         // Position 2: Low offensive (5), low defensive (5)
-        // With full aggressiveness (1.0), should prefer position 1 (offensive-first: higher offensive wins)
+        // With full aggressiveness (1.0): combined = 1.0 * offensive - 0 * defensive
+        // Position 1 combined: 1.0 * 20 - 0 * 20 = 20
+        // Position 2 combined: 1.0 * 5 - 0 * 5 = 5
+        // Should prefer position 1 (higher combined score)
         _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
@@ -1007,7 +1011,7 @@ public class MovementEngineTests
         var aggressiveSettings = new BotSettings(1.0f);
         await _sut.MakeDecision(_player, _turnState, aggressiveSettings);
 
-        // Assert - Should select position 1 (higher offensive index)
+        // Assert - Should select position 1 (higher combined score)
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex1.ToData());
     }
@@ -1043,7 +1047,10 @@ public class MovementEngineTests
 
         // Position 1: High offensive (20), high defensive (20)
         // Position 2: Low offensive (5), low defensive (5)
-        // With zero aggressiveness (0.0), should prefer position 2 (defensive-first: lower defensive wins)
+        // With zero aggressiveness (0.0): combined = 0 * offensive - 1.0 * defensive
+        // Position 1 combined: 0 * 20 - 1.0 * 20 = -20
+        // Position 2 combined: 0 * 5 - 1.0 * 5 = -5
+        // Should prefer position 2 (higher combined score, less defensive penalty)
         _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
@@ -1068,7 +1075,7 @@ public class MovementEngineTests
         var defensiveSettings = new BotSettings(0.0f);
         await _sut.MakeDecision(_player, _turnState, defensiveSettings);
 
-        // Assert - Should select position 2 (lower defensive index is more defensive)
+        // Assert - Should select position 2 (higher combined score, less defensive penalty)
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
     }
@@ -1104,7 +1111,7 @@ public class MovementEngineTests
 
         // Position 1: High offensive (100), low defensive (5), but 2 enemies in rear arc
         // Position 2: Low offensive (1), high defensive (20), but 0 enemies in rear arc
-        // Regardless of aggressiveness, position 2 should be preferred (fewer rear arc enemies)
+        // Regardless of aggressiveness, position 2 should be preferred (fewer rear arc enemies is primary sort key)
         _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {

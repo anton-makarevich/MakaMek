@@ -21,11 +21,13 @@ public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _evaluator;
+    private readonly Random _random;
 
-    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator)
+    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null)
     {
         _clientGame = clientGame;
         _evaluator = evaluator;
+        _random = random ?? new Random();
     }
 
     public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
@@ -241,28 +243,17 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Select the path with the best combined score
-        // Use aggressiveness index to choose between offensive-first and defensive-first sort orders
-        var randomValue = Random.Shared.NextDouble();
-        IOrderedEnumerable<PositionScore> bestScores;
-
-        if (randomValue < settings.AggressivenessIndex)
-        {
-            // Offensive-first: prioritize OffensiveIndex over DefensiveIndex
-            bestScores = candidateScores
-                .OrderBy(s => s.EnemiesInRearArc)
-                .ThenByDescending(s => s.OffensiveIndex)
-                .ThenBy(s => s.DefensiveIndex)
-                .ThenByDescending(s => s.Path.HexesTraveled);
-        }
-        else
-        {
-            // Defensive-first: prioritize DefensiveIndex over OffensiveIndex (lower defensive index is better)
-            bestScores = candidateScores
-                .OrderBy(s => s.EnemiesInRearArc)
-                .ThenBy(s => s.DefensiveIndex)
-                .ThenByDescending(s => s.OffensiveIndex)
-                .ThenByDescending(s => s.Path.HexesTraveled);
-        }
+        // Use aggressiveness index to create a smooth gradient between offensive and defensive preferences
+        var bestScores = candidateScores
+            .Select(s => new
+            {
+                Score = s,
+                CombinedScore = settings.AggressivenessIndex * s.OffensiveIndex - (1 - settings.AggressivenessIndex) * s.DefensiveIndex
+            })
+            .OrderBy(x => x.Score.EnemiesInRearArc)
+            .ThenByDescending(x => x.CombinedScore)
+            .ThenByDescending(x => x.Score.Path.HexesTraveled)
+            .Select(x => x.Score);
         
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N
@@ -293,7 +284,7 @@ public class MovementEngine : IBotDecisionEngine
     private async Task AttemptStandup(IPlayer player, Mech mech)
     {
         // Select a random facing direction
-        var newFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
+        var newFacing = HexDirectionExtensions.AllDirections[_random.Next(HexDirectionExtensions.AllDirections.Length)];
 
         var command = new TryStandupCommand
         {
