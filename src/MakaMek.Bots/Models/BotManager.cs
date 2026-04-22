@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Bots.Services;
+﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
@@ -24,7 +25,7 @@ public class BotManager : IBotManager
         DecisionEngineProvider = decisionEngineProvider;
     }
 
-    public void AddBot(IPlayer player)
+    public void AddBot(IPlayer player, BotSettings settings = default)
     {
         if (ClientGame == null || DecisionEngineProvider == null)
         {
@@ -38,7 +39,7 @@ public class BotManager : IBotManager
         }
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player.Id, ClientGame, DecisionEngineProvider);
+        var bot = new Bot(player.Id, ClientGame, DecisionEngineProvider, settings);
         _bots.Add(player.Id, bot);
     }
 

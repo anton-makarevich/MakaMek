@@ -495,6 +495,7 @@ public class FakeLocalizationService: ILocalizationService
             "Players_AddUnit" => "Add Unit",
             "Players_JoinGame" => "Join Game",
             "Players_SetReady" => "Set Ready",
+            "Players_Aggressiveness" => "Aggressiveness",
 
             // Window Title
             "Window_Title" => "MakaMek",

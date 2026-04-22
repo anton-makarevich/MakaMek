@@ -28,7 +28,7 @@ public class MovementEngine : IBotDecisionEngine
         _evaluator = evaluator;
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         IUnit? unitToMove = null;
         try
@@ -91,7 +91,7 @@ public class MovementEngine : IBotDecisionEngine
             _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name, unitToMove.GetTacticalRole(), bestCandidate.Priority);
 
             // 5. Execute Move for a selected unit
-            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState);
+            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState, settings);
         }
         catch (BotDecisionException ex)
         {
@@ -160,7 +160,8 @@ public class MovementEngine : IBotDecisionEngine
         IUnit unit, 
         IReadOnlyList<IUnit> enemyUnits,
         IReadOnlySet<HexCoordinates> friendlyPositions,
-        ITurnState? turnState)
+        ITurnState? turnState,
+        BotSettings settings)
     {
         // Handle prone mechs - try to stand up
         if (unit is Mech { IsProne: true } mech && mech.CanStandup())
@@ -240,11 +241,28 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Select the path with the best combined score
-        var bestScores = candidateScores
-            .OrderBy(s => s.EnemiesInRearArc)
-            .ThenBy(s => s.DefensiveIndex)
-            .ThenByDescending(s => s.OffensiveIndex)
-            .ThenByDescending(s => s.Path.HexesTraveled);
+        // Use aggressiveness index to choose between offensive-first and defensive-first sort orders
+        var randomValue = Random.Shared.NextDouble();
+        IOrderedEnumerable<PositionScore> bestScores;
+
+        if (randomValue < settings.AggressivenessIndex)
+        {
+            // Offensive-first: prioritize OffensiveIndex over DefensiveIndex
+            bestScores = candidateScores
+                .OrderBy(s => s.EnemiesInRearArc)
+                .ThenByDescending(s => s.OffensiveIndex)
+                .ThenBy(s => s.DefensiveIndex)
+                .ThenByDescending(s => s.Path.HexesTraveled);
+        }
+        else
+        {
+            // Defensive-first: prioritize DefensiveIndex over OffensiveIndex (current default behavior)
+            bestScores = candidateScores
+                .OrderBy(s => s.EnemiesInRearArc)
+                .ThenBy(s => s.DefensiveIndex)
+                .ThenByDescending(s => s.OffensiveIndex)
+                .ThenByDescending(s => s.Path.HexesTraveled);
+        }
         
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N

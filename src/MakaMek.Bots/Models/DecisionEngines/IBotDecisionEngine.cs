@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Players;
+﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -12,7 +13,8 @@ public interface IBotDecisionEngine
     /// </summary>
     /// <param name="player">The player for whom to make the decision</param>
     /// <param name="turnState">The turn state for caching data across phases</param>
+    /// <param name="settings">The bot settings that influence decision-making behavior</param>
     /// <returns>A task that completes when the decision has been made and executed</returns>
-    Task MakeDecision(IPlayer player, ITurnState? turnState = null);
+    Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default);
 }
 

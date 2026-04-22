@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
@@ -21,7 +22,7 @@ public class DeploymentEngine : IBotDecisionEngine
         _clientGame = clientGame;
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         try
         {

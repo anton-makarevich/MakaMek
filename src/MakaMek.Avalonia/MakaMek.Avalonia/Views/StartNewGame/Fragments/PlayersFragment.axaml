@@ -36,6 +36,7 @@
                         <Grid RowDefinitions="Auto,Auto,Auto,*">
                             <!-- Player Name with Edit Functionality and Delete Button -->
                             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" 
+                                  RowDefinitions="Auto, Auto"
                                   Margin="10,10,10,5">
                                 <StackPanel Grid.Column="0"
                                             Orientation="Horizontal"
@@ -89,6 +90,21 @@
                                         VerticalAlignment="Center">
                                     <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf2ed;"/>
                                 </Button>
+                                
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="5"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            IsVisible="{Binding IsBot}">
+                                    <TextBlock Text="{extensions:Localize 'Players_Aggressiveness'}"
+                                               VerticalAlignment="Center"
+                                               Classes="bodySmall"/>
+                                    <Slider Minimum="0"
+                                            Maximum="1"
+                                            Value="{Binding AggressivenessIndex}"
+                                            Width="100"
+                                            VerticalAlignment="Center"/>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Assigned Units - Horizontal Scrollable View with + Button -->

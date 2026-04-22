@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
@@ -13,7 +14,6 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
@@ -54,7 +54,7 @@ public class BotTests : IDisposable
         _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
 
-        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider,0);
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider, BotSettings.Default);
     }
 
     [Fact]
@@ -427,7 +427,7 @@ public class BotTests : IDisposable
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
         _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
         
-        // Setup unit belonging to bot
+        // Set up a unit belonging to bot
         var unitId = Guid.NewGuid();
         var botUnit = Substitute.For<IUnit>();
         botUnit.Id.Returns(unitId);
@@ -521,7 +521,7 @@ public class BotTests : IDisposable
         _clientGame.TurnPhase.Returns(PhaseNames.Movement);
         _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
         
-        // Setup unit belonging to bot
+        // Set up a unit belonging to bot
         var unitId = Guid.NewGuid();
         var botUnit = Substitute.For<IUnit>();
         botUnit.Id.Returns(unitId);
@@ -594,7 +594,7 @@ public class BotTests : IDisposable
         _clientGame.TurnPhase.Returns(phase);
         _clientGame.PhaseStepState.Returns(new PhaseStepState(phase, _player, 1));
         
-        // Setup unit belonging to bot
+        // Set up a unit belonging to bot
         var unitId = Guid.NewGuid();
         var botUnit = Substitute.For<IUnit>();
         botUnit.Id.Returns(unitId);

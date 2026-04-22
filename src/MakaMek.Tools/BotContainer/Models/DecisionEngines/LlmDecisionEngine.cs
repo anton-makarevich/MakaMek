@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -40,7 +41,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
         _logger = logger;
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         try
         {

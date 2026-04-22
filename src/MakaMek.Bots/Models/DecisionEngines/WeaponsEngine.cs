@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -31,7 +31,7 @@ public class WeaponsEngine : IBotDecisionEngine
         _tacticalEvaluator = tacticalEvaluator;
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         try
         {
