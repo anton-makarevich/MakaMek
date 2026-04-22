@@ -570,5 +570,42 @@ public class TacticalEvaluatorTests
         cache[enemy2.Id][0].ShouldBe(weapon2);
     }
 
+    [Fact]
+    public async Task EvaluatePath_WhenEnemyMissingFromWeaponsCache_ShouldSkipEnemy()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
+        enemy.Move(new MovementPath(new List<PathSegment>
+        {
+            new(enemyPos, enemyPos, 0)
+        }, MovementType.Walk));
+        
+        // Set up enemy weapon (but enemy won't be in cache)
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        var part = enemy.Parts[PartLocation.RightArm];
+        part.TryAddComponent(weapon);
+        
+        var enemies = new List<IUnit> { enemy };
+
+        // Setup LoS
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4)));
+        
+        // Create an empty cache (enemy not present)
+        var emptyCache = new Dictionary<Guid, IReadOnlyList<Weapon>>();
+
+        // Act
+        var result = await _sut.EvaluatePath(unit, path, enemies, null, emptyCache);
+
+        // Assert
+        // Enemy should be skipped since it's not in the cache
+        result.DefensiveIndex.ShouldBe(0);
+    }
+
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
