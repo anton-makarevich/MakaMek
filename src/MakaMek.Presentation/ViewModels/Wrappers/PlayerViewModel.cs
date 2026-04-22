@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MVVM.Core.ViewModels;
@@ -14,11 +15,10 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Func<PlayerViewModel, Task>? _showAvailableUnits;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
-    private bool _isEditingName;
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
-    private readonly bool _isDefaultPlayer;
     private readonly Func<bool> _isConnectionAvailable;
+    private float _aggressivenessIndex;
 
     public Player Player
     {
@@ -30,18 +30,26 @@ public class PlayerViewModel : BindableBase
     /// <summary>
     /// Indicates whether this player can be removed from the game setup
     /// </summary>
-    public bool IsRemovable => !_isDefaultPlayer && IsLocalPlayer && Status == PlayerStatus.NotJoined;
+    public bool IsRemovable => !field && IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
 
+    public bool IsBot => Player.ControlType == PlayerControlType.Bot;
+
+    public float AggressivenessIndex
+    {
+        get => _aggressivenessIndex;
+        set => SetProperty(ref _aggressivenessIndex, value);
+    }
+
     public bool IsEditingName
     {
-        get => _isEditingName;
+        get;
         set
         {
-            SetProperty(ref _isEditingName, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(CanEditName));
         }
     }
@@ -87,7 +95,7 @@ public class PlayerViewModel : BindableBase
         Player = player;
         _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
-        _isDefaultPlayer = isDefaultPlayer;
+        IsRemovable = isDefaultPlayer;
         _isConnectionAvailable = isConnectionAvailable ?? (() => true);
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
@@ -242,5 +250,15 @@ public class PlayerViewModel : BindableBase
     public void UpdatePilotForUnit(Guid unitId, PilotData pilotData)
     {
         _unitPilots[unitId] = pilotData;
+    }
+
+    /// <summary>
+    /// Gets the bot settings for this player
+    /// </summary>
+    /// <returns>BotSettings with configured AggressivenessIndex, or Default for non-bots</returns>
+    public BotSettings GetBotSettings()
+    {
+        if (!IsBot) return BotSettings.Default;
+        return new BotSettings(_aggressivenessIndex);
     }
 }

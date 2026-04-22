@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Bots.Services;
+﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
@@ -25,7 +26,8 @@ public interface IBotManager
     /// Adds a new bot player to the game
     /// </summary>
     /// <param name="player">The player to add as a bot</param>
-    void AddBot(IPlayer player);
+    /// <param name="settings">The bot settings that control behavior</param>
+    void AddBot(IPlayer player, BotSettings settings = default);
 
     /// <summary>
     /// Removes a bot player from the game

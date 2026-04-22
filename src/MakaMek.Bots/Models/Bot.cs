@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -24,16 +25,19 @@ public class Bot : IBot
     private readonly CancellationTokenSource _cts = new();
 
     public Guid PlayerId { get; }
+    public BotSettings Settings { get; }
 
     public Bot(
         Guid playerId,
         IClientGame clientGame,
         IDecisionEngineProvider decisionEngineProvider,
+        BotSettings settings = default,
         int decisionDelayMilliseconds = 1000)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
+        Settings = settings;
         _decisionDelayMilliseconds = decisionDelayMilliseconds;
 
         // Subscribe to phase changes to update the decision engine
@@ -124,7 +128,7 @@ public class Bot : IBot
     private async Task MakeDecision()
     {
         if (_isDisposed) return;
-            
+
         if (DecisionEngine == null) return;
 
         // Get the current Player instance from the game's Players collection
@@ -134,9 +138,9 @@ public class Bot : IBot
             _clientGame.Logger.LogWarning("Bot with PlayerId {PlayerId} not found in game players", PlayerId);
             return;
         }
-        
+
         await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
-        await DecisionEngine.MakeDecision(player, _currentTurnState);
+        await DecisionEngine.MakeDecision(player, _currentTurnState, Settings);
     }
 
     public IBotDecisionEngine? DecisionEngine { get; private set; }

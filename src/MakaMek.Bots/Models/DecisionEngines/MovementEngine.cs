@@ -21,14 +21,16 @@ public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _evaluator;
+    private readonly Random _random;
 
-    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator)
+    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null)
     {
         _clientGame = clientGame;
         _evaluator = evaluator;
+        _random = random ?? new Random();
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         IUnit? unitToMove = null;
         try
@@ -91,7 +93,7 @@ public class MovementEngine : IBotDecisionEngine
             _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name, unitToMove.GetTacticalRole(), bestCandidate.Priority);
 
             // 5. Execute Move for a selected unit
-            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState);
+            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState, settings);
         }
         catch (BotDecisionException ex)
         {
@@ -160,7 +162,8 @@ public class MovementEngine : IBotDecisionEngine
         IUnit unit, 
         IReadOnlyList<IUnit> enemyUnits,
         IReadOnlySet<HexCoordinates> friendlyPositions,
-        ITurnState? turnState)
+        ITurnState? turnState,
+        BotSettings settings)
     {
         // Handle prone mechs - try to stand up
         if (unit is Mech { IsProne: true } mech && mech.CanStandup())
@@ -240,11 +243,17 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Select the path with the best combined score
+        // Use aggressiveness index to create a smooth gradient between offensive and defensive preferences
         var bestScores = candidateScores
-            .OrderBy(s => s.EnemiesInRearArc)
-            .ThenBy(s => s.DefensiveIndex)
-            .ThenByDescending(s => s.OffensiveIndex)
-            .ThenByDescending(s => s.Path.HexesTraveled);
+            .Select(s => new
+            {
+                Score = s,
+                CombinedScore = settings.AggressivenessIndex * s.OffensiveIndex - (1 - settings.AggressivenessIndex) * s.DefensiveIndex
+            })
+            .OrderBy(x => x.Score.EnemiesInRearArc)
+            .ThenByDescending(x => x.CombinedScore)
+            .ThenByDescending(x => x.Score.Path.HexesTraveled)
+            .Select(x => x.Score);
         
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N
@@ -275,7 +284,7 @@ public class MovementEngine : IBotDecisionEngine
     private async Task AttemptStandup(IPlayer player, Mech mech)
     {
         // Select a random facing direction
-        var newFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
+        var newFacing = HexDirectionExtensions.AllDirections[_random.Next(HexDirectionExtensions.AllDirections.Length)];
 
         var command = new TryStandupCommand
         {

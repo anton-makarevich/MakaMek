@@ -834,6 +834,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Players_AddUnit", "Add Unit")]
     [InlineData("Players_JoinGame", "Join Game")]
     [InlineData("Players_SetReady", "Set Ready")]
+    [InlineData("Players_Aggressiveness", "Aggressiveness")]
     public void GetString_Players_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

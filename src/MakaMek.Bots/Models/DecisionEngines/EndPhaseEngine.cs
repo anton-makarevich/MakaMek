@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -19,7 +20,7 @@ public class EndPhaseEngine : IBotDecisionEngine
         _clientGame = clientGame;
     }
 
-    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
     {
         try
         {
