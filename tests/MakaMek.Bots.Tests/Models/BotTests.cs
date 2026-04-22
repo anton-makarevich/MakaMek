@@ -622,6 +622,28 @@ public class BotTests : IDisposable
         await decisionEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>(), Arg.Any<BotSettings>());
     }
 
+    [Fact]
+    public async Task MakeDecision_ShouldPassConfiguredBotSettings()
+    {
+        var settings = new BotSettings(0.7f);
+        using var bot = new Bot(
+            _player.Id,
+            _clientGame,
+            _decisionEngineProvider,
+            settings,
+            decisionDelayMilliseconds: 0);
+
+        _phaseSubject.OnNext(PhaseNames.Movement);
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        await Task.Delay(100);
+
+        await _movementEngine.Received().MakeDecision(
+            _player,
+            Arg.Any<ITurnState>(),
+            Arg.Is<BotSettings>(s => Math.Abs(s.AggressivenessIndex - 0.7f) < 0.05));
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
