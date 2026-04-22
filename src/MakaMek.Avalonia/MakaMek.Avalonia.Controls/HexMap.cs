@@ -151,22 +151,19 @@ public class HexMap : Canvas
 
         // Use the parent-relative bounds to clamp the zoom origin,
         // preventing wild offsets when a finger drifts outside the control.
-        var safeOrigin = ClampOriginToParentBounds(e.ScaleOrigin);
+        var safeOrigin = ClampOriginToBounds(e.ScaleOrigin);
         ApplyZoom(incrementalFactor, safeOrigin);
     }
 
-    private Point ClampOriginToParentBounds(Point origin)
+    private Point ClampOriginToBounds(Point origin)
     {
-        // If we can determine the parent's size, clamp origin within it.
-        if (Parent is Visual parentVisual)
-        {
-            var bounds = parentVisual.Bounds;
-            return new Point(
-                Math.Clamp(origin.X, 0, bounds.Width),
-                Math.Clamp(origin.Y, 0, bounds.Height)
-            );
-        }
-        return origin;
+        // ScaleOrigin is already in HexMap-local coordinates.
+        // Just clamp it within the HexMap's own bounds to guard against
+        // fingers drifting outside the control.
+        return new Point(
+            Math.Clamp(origin.X, 0, Bounds.Width),
+            Math.Clamp(origin.Y, 0, Bounds.Height)
+        );
     }
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
