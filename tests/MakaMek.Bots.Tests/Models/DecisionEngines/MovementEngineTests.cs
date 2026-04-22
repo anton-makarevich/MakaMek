@@ -1080,9 +1080,10 @@ public class MovementEngineTests
         capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
     }
 
-    [Fact]
-    public async Task ExecuteMoveForUnit_WithRearArcDifference_ShouldPrioritizeRearArcRegardlessOfAggressiveness()
-    {
+        [Theory]
+        [InlineData(0.0f)]
+        [InlineData(1.0f)]
+        public async Task ExecuteMoveForUnit_WithRearArcDifference_ShouldPrioritizeRearArcRegardlessOfAggressiveness(float aggressivenessIndex){
         // Arrange
         var mech = CreateTestMech();
         _player.AliveUnits.Returns([mech]);
@@ -1133,7 +1134,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
 
         // Act - Test with full aggressiveness (should still prioritize rear arc)
-        var aggressiveSettings = new BotSettings(1.0f);
+        var aggressiveSettings = new BotSettings(aggressivenessIndex);
         await _sut.MakeDecision(_player, _turnState, aggressiveSettings);
 
         // Assert - Should select position 2 (fewer enemies in rear arc)
