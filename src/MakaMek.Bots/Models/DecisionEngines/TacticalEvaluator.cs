@@ -40,7 +40,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
-            .Sum(t => t.ConfigurationScores.Any()
+            .Sum(t => t.ConfigurationScores.Count > 0
                 ? t.ConfigurationScores.Max(cs => cs.Score)
                 : 0);
 
@@ -72,6 +72,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             .Where(w => w.IsAvailable)
             .ToList();
 
+        // Pre-compute weapon configurations once (same for all targets with this attacker+position)
+        var allConfigs = BuildWeaponConfigurations(attacker, attackerPath);
+
         foreach (var target in potentialTargets)
         {
             if (target.Position == null)
@@ -95,6 +98,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 attackerPath,
                 targetPath,
                 weapons,
+                allConfigs,
                 target.Height);
 
             if (viableWeapons.Count <= 0) continue;
@@ -203,6 +207,29 @@ public class TacticalEvaluator : ITacticalEvaluator
     }
     
     /// <summary>
+    /// Builds the list of weapon configurations (no-rotation plus torso rotations) for an attacker at a given position.
+    /// Computed once per attacker+position and reused across all targets.
+    /// </summary>
+    private List<WeaponConfiguration> BuildWeaponConfigurations(IUnit attacker, MovementPath attackerPath)
+    {
+        var configOptions = attacker.GetWeaponsConfigurationOptions(attackerPath.Destination);
+        var torsoConfigs = configOptions
+            .Where(o => o.Type == WeaponConfigurationType.TorsoRotation)
+            .SelectMany(o => o.AvailableDirections.Select(d =>
+                new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = (int)d }))
+            .ToList();
+
+        // Prepend the "no rotation" option (current leg facing)
+        torsoConfigs.Insert(0, new WeaponConfiguration
+        {
+            Type = WeaponConfigurationType.None,
+            Value = (int)attackerPath.Destination.Facing
+        });
+
+        return torsoConfigs;
+    }
+
+    /// <summary>
     /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
     /// </summary>
     private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
@@ -210,6 +237,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath attackerPath,
         MovementPath targetPath,
         IReadOnlyList<Weapon> weapons,
+        IReadOnlyList<WeaponConfiguration> allConfigs,
         int targetHeight)
     {
         if (_game.BattleMap == null)
@@ -222,22 +250,6 @@ public class TacticalEvaluator : ITacticalEvaluator
             return configWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
-
-        // Get all weapon configurations (torso rotations)
-        var configOptions = attacker.GetWeaponsConfigurationOptions(attackerPath.Destination);
-        var torsoConfigs = configOptions
-            .Where(o => o.Type == WeaponConfigurationType.TorsoRotation)
-            .SelectMany(o => o.AvailableDirections.Select(d =>
-                new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = (int)d }))
-            .ToList();
-
-        // Add the "no rotation" option (current leg facing)
-        var noRotationConfig = new WeaponConfiguration
-        {
-            Type = WeaponConfigurationType.None,
-            Value = (int)attackerPath.Destination.Facing
-        };
-        var allConfigs = new[] { noRotationConfig }.Concat(torsoConfigs).ToList();
 
         // Evaluate weapons for each configuration
         foreach (var config in allConfigs)
