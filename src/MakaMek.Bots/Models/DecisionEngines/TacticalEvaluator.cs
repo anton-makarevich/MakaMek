@@ -75,6 +75,13 @@ public class TacticalEvaluator : ITacticalEvaluator
         // Pre-compute weapon configurations once (same for all targets with this attacker+position)
         var allConfigs = BuildWeaponConfigurations(attacker, attackerPath);
 
+        // Pre-compute per-part config type lookup to avoid repeated GetWeaponsConfigurationOptions calls
+        var partConfigTypes = attacker.Parts.Values.ToDictionary(
+            p => p,
+            p => p.GetWeaponsConfigurationOptions(attackerPath.Destination)
+                  .Select(o => o.Type)
+                  .ToHashSet());
+
         foreach (var target in potentialTargets)
         {
             if (target.Position == null)
@@ -99,6 +106,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 targetPath,
                 weapons,
                 allConfigs,
+                partConfigTypes,
                 target.Height);
 
             if (viableWeapons.Count <= 0) continue;
@@ -238,6 +246,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath targetPath,
         IReadOnlyList<Weapon> weapons,
         IReadOnlyList<WeaponConfiguration> allConfigs,
+        Dictionary<UnitPart, HashSet<WeaponConfigurationType>> partConfigTypes,
         int targetHeight)
     {
         if (_game.BattleMap == null)
@@ -264,8 +273,9 @@ public class TacticalEvaluator : ITacticalEvaluator
                 if (distanceToTarget > weapon.LongRange || weapon.FirstMountPart == null)
                     continue;
 
-                // Check configuration applicability
-                if (!weapon.FirstMountPart.IsWeaponConfigurationApplicable(config.Type, attackerPath.Destination))
+                // Check configuration applicability (using pre-computed lookup instead of per-call traversal)
+                if (config.Type != WeaponConfigurationType.None
+                    && !partConfigTypes[weapon.FirstMountPart].Contains(config.Type))
                     continue;
 
                 // Check arc using resolved facing
