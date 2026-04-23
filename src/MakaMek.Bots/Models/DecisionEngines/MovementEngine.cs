@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;

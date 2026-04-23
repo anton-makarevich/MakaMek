@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -534,7 +535,6 @@ public class TacticalEvaluatorTests
         results[0].ShouldBe(cachedData);
         turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
     }
-    
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }

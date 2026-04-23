@@ -383,8 +383,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTargetData.ShouldNotBeNull();
@@ -453,8 +452,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weapon1Target.ShouldNotBeNull();
@@ -465,8 +463,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.RightArm &&
+                return primaryAssignment is { Location: PartLocation.RightArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 2, 3 }.OrderBy(s => s));
             });
         weapon2Target.ShouldNotBeNull();
@@ -648,8 +645,7 @@ public class UnitTests
             ?.FirstOrDefault(wt =>
             {
                 var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTarget.ShouldNotBeNull();
@@ -829,6 +825,248 @@ public class UnitTests
         
         // Assert
         remainingShots.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetAvailableWeapons_ShouldReturnAllAvailableWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.Count.ShouldBe(2);
+        weapons.ShouldContain(weapon1);
+        weapons.ShouldContain(weapon2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldReturnCachedInstance_OnSubsequentCalls()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Act
+        var weapons1 = unit.GetAvailableWeapons();
+        var weapons2 = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons1.ShouldBeSameAs(weapons2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldRecompute_AfterResetPhaseState()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        
+        // Get initially cached result
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(1);
+        
+        // Add a new weapon
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Without reset, should still return cached result
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldBeSameAs(weapons1);
+        weapons2.Count.ShouldBe(1);
+        
+        // Act - reset phase state
+        unit.ResetPhaseState();
+        
+        // Assert - should now return updated result
+        var weapons3 = unit.GetAvailableWeapons();
+        weapons3.ShouldNotBeSameAs(weapons1);
+        weapons3.Count.ShouldBe(2);
+        weapons3.ShouldContain(weapon1);
+        weapons3.ShouldContain(weapon2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldFilterUnavailableWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Make weapon2 unavailable
+        weapon2.Hit();
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.Count.ShouldBe(1);
+        weapons.ShouldContain(weapon1);
+        weapons.ShouldNotContain(weapon2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldReturnEmptyList_WhenNoWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldInvalidateCache_AfterApplyDamage()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Get initially cached result
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(2);
+        
+        // Apply damage that destroys weapon2 by destroying the left arm
+        var hitLocations = new List<LocationHitData>
+        {
+            CreateHitDataForLocation(PartLocation.LeftArm, 20) // Enough to destroy the arm
+        };
+        
+        // Act
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        
+        // Assert - cache should be invalidated, returning only weapon1
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldNotBeSameAs(weapons1);
+        weapons2.Count.ShouldBe(1);
+        weapons2.ShouldContain(weapon1);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldInvalidateCache_AfterApplyCriticalHits()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Get initially cached result
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(2);
+        
+        // Apply critical hit that destroys weapon2
+        var criticalHitsData = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false)
+        };
+        
+        // Act
+        unit.ApplyCriticalHits(criticalHitsData);
+        
+        // Assert - cache should be invalidated
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldNotBeSameAs(weapons1);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldInvalidateCache_AfterFireWeapon_IfAmmoDepleted()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var ballisticWeapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ammo = AmmoTests.CreateAmmo(Ac5.Definition, 1); // Only 1 shot
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(ballisticWeapon).ShouldBeTrue();
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(ammo).ShouldBeTrue();
+        
+        // Get initially cached result - weapon should be available
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(1);
+        
+        // Fire the weapon, depleting ammo
+        var weaponData = new ComponentData
+        {
+            Name = "AC/5",
+            Type = MakaMekComponent.AC5,
+            Assignments = [
+                new LocationSlotAssignment(PartLocation.RightArm, 0, 2)
+            ]
+        };
+        
+        // Act
+        unit.FireWeapon(weaponData);
+        
+        // Assert - cache should be invalidated, weapon no longer available due to no ammo
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldNotBeSameAs(weapons1);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldNotInvalidateCache_AfterFireWeapon_IfAmmoNotDepleted()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var ballisticWeapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ammo = AmmoTests.CreateAmmo(Ac5.Definition, 2); // More than 1 shot
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(ballisticWeapon).ShouldBeTrue();
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(ammo).ShouldBeTrue();
+        
+        // Get initially cached result - weapon should be available
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(1);
+        
+        // Fire the weapon, depleting ammo
+        var weaponData = new ComponentData
+        {
+            Name = "AC/5",
+            Type = MakaMekComponent.AC5,
+            Assignments = [
+                new LocationSlotAssignment(PartLocation.RightArm, 0, 2)
+            ]
+        };
+        
+        // Act
+        unit.FireWeapon(weaponData);
+        
+        // Assert - cache should be invalidated, weapon no longer available due to no ammo
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldBeSameAs(weapons1);
     }
     
     [Fact]

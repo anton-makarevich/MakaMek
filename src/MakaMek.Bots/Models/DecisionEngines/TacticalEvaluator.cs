@@ -22,7 +22,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     {
         _game = game;
     }
-    
+
     /// <summary>
     /// Evaluates a single path with a specific movement type and returns its score
     /// </summary>
@@ -30,7 +30,6 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    /// <returns>Position score including the path</returns>
     public async Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
@@ -38,6 +37,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         ITurnState? turnState = null)
     {
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
+
         var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Any()
@@ -54,7 +54,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             EnemiesInRearArc = defensiveIndex.EnemiesInRearArc
         };
     }
-    
+
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>
@@ -131,7 +131,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>(results);
     }
-
+    
     /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
@@ -174,12 +174,8 @@ public class TacticalEvaluator : ITacticalEvaluator
 
             var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
 
-            // Get all enemy weapons
-            var weapons = enemy.Parts.Values
-                .SelectMany(p => p.GetComponents<Weapon>())
-                .Where(w => w.IsAvailable);
-            
-            
+            // Retrieve enemy's available weapons directly (cached per unit)
+            var weapons = enemy.GetAvailableWeapons();
             var arcMultiplier = targetArc.GetArcMultiplier();
             
             foreach (var weapon in weapons)

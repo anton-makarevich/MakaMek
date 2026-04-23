@@ -124,6 +124,13 @@ public interface IUnit
     IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null);
 
     /// <summary>
+    /// Returns a lazily‑cached list of this unit's available weapons (IsAvailable == true).
+    /// The cache is cleared when the unit's phase state is reset or when weapon availability
+    /// changes due to damage, critical hits, or ammo depletion.
+    /// </summary>
+    IReadOnlyList<Weapon> GetAvailableWeapons();
+
+    /// <summary>
     /// Checks if a weapon configuration has been applied to this unit
     /// </summary>
     /// <param name="config">The configuration to check</param>

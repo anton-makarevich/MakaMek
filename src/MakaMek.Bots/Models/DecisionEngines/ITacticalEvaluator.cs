@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Bots.Data;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -14,12 +14,12 @@ public interface ITacticalEvaluator
     /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    /// <returns>Position score including the path</returns>
     Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
         ITurnState? turnState = null);
+
 
     /// <summary>
     /// Evaluates potential targets for a unit
