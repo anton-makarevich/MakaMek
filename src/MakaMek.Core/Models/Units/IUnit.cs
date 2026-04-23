@@ -125,7 +125,8 @@ public interface IUnit
 
     /// <summary>
     /// Returns a lazily‑cached list of this unit's available weapons (IsAvailable == true).
-    /// The cache is cleared when the unit's phase state is reset.
+    /// The cache is cleared when the unit's phase state is reset or when weapon availability
+    /// changes due to damage, critical hits, or ammo depletion.
     /// </summary>
     IReadOnlyList<Weapon> GetAvailableWeapons();
 

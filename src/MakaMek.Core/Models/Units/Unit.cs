@@ -119,8 +119,17 @@ public abstract class Unit : IUnit
     private IReadOnlyList<Weapon>? _availableWeaponsCache;
 
     /// <summary>
+    /// Invalidates the cached available weapons list. Call this whenever weapon availability
+    /// may change (e.g., after damage, critical hits, or ammo depletion).
+    /// </summary>
+    private void InvalidateAvailableWeaponsCache()
+    {
+        _availableWeaponsCache = null;
+    }
+
+    /// <summary>
     /// Returns a lazily‑cached list of this unit's available weapons (IsAvailable == true).
-    /// Cache is cleared when ResetPhaseState is called.
+    /// Cache is cleared when ResetPhaseState is called or when weapon availability changes.
     /// </summary>
     public IReadOnlyList<Weapon> GetAvailableWeapons()
     {
@@ -429,7 +438,7 @@ public abstract class Unit : IUnit
     {
         TotalPhaseDamage = 0;
         // Invalidate cached available weapons – they may have changed due to damage or ammo use
-        _availableWeaponsCache = null;
+        InvalidateAvailableWeaponsCache();
     }
 
     /// <summary>
@@ -542,10 +551,12 @@ public abstract class Unit : IUnit
                 // Apply the damage 
                 targetPart.ApplyDamage(totalDamage, hitDirection);
             }
-            
         }
         
         UpdateDestroyedStatus();
+
+        // Invalidate cache since damage may have destroyed or disabled weapons
+        InvalidateAvailableWeaponsCache();
 
         if (IsDestroyed)
         {
@@ -603,6 +614,9 @@ public abstract class Unit : IUnit
         }
 
         UpdateDestroyedStatus();
+
+        // Invalidate cache since critical hits may have destroyed weapons or blown off parts
+        InvalidateAvailableWeaponsCache();
 
         if (IsDestroyed)
         {
@@ -748,6 +762,10 @@ public abstract class Unit : IUnit
                 
         // Use a shot from the ammo
         ammo.UseShot();
+
+        // Invalidate cache if ammo deplited
+        if (ammo.RemainingShots==0)
+            InvalidateAvailableWeaponsCache();
     }
 
     /// <summary>
