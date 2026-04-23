@@ -848,6 +848,94 @@ public class UnitTests
     }
     
     [Fact]
+    public void GetAvailableWeapons_ShouldReturnCachedInstance_OnSubsequentCalls()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Act
+        var weapons1 = unit.GetAvailableWeapons();
+        var weapons2 = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons1.ShouldBeSameAs(weapons2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldRecompute_AfterResetPhaseState()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        
+        // Get initial cached result
+        var weapons1 = unit.GetAvailableWeapons();
+        weapons1.Count.ShouldBe(1);
+        
+        // Add a new weapon
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Without reset, should still return cached result
+        var weapons2 = unit.GetAvailableWeapons();
+        weapons2.ShouldBeSameAs(weapons1);
+        weapons2.Count.ShouldBe(1);
+        
+        // Act - reset phase state
+        unit.ResetPhaseState();
+        
+        // Assert - should now return updated result
+        var weapons3 = unit.GetAvailableWeapons();
+        weapons3.ShouldNotBeSameAs(weapons1);
+        weapons3.Count.ShouldBe(2);
+        weapons3.ShouldContain(weapon1);
+        weapons3.ShouldContain(weapon2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldFilterUnavailableWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("TestLaser1", 2);
+        var weapon2 = new TestWeapon("TestLaser2", 2);
+        
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon1);
+        unit.Parts[PartLocation.LeftArm].TryAddComponent(weapon2);
+        
+        // Make weapon2 unavailable
+        weapon2.Hit();
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.Count.ShouldBe(1);
+        weapons.ShouldContain(weapon1);
+        weapons.ShouldNotContain(weapon2);
+    }
+    
+    [Fact]
+    public void GetAvailableWeapons_ShouldReturnEmptyList_WhenNoWeapons()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        
+        // Act
+        var weapons = unit.GetAvailableWeapons();
+        
+        // Assert
+        weapons.ShouldBeEmpty();
+    }
+    
+    [Fact]
     public void ApplyDamage_WithHitLocationsList_ShouldApplyDamageToCorrectParts()
     {
         // Arrange
