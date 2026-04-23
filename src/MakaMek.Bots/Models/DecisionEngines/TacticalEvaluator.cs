@@ -30,16 +30,13 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-        /// <param name="enemyWeaponsCache">(Unused) Kept for compatibility – will be ignored.</param>
-        public async Task<PositionScore> EvaluatePath(
-            IUnit unit,
-            MovementPath path,
-            IReadOnlyList<IUnit> enemyUnits,
-            ITurnState? turnState = null,
-            Dictionary<Guid, IReadOnlyList<Weapon>>? enemyWeaponsCache = null)
-        {
-            // Enemy weapons are now obtained directly from each enemy via GetAvailableWeapons()
-            var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
+    public async Task<PositionScore> EvaluatePath(
+        IUnit unit,
+        MovementPath path,
+        IReadOnlyList<IUnit> enemyUnits,
+        ITurnState? turnState = null)
+    {
+        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
 
         var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
@@ -57,7 +54,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             EnemiesInRearArc = defensiveIndex.EnemiesInRearArc
         };
     }
-    
+
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>

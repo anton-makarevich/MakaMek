@@ -14,13 +14,11 @@ public interface ITacticalEvaluator
     /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    /// <param name="enemyWeaponsCache">(Unused) Kept for compatibility – will be ignored.</param>
     Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
-        ITurnState? turnState = null,
-        Dictionary<Guid, IReadOnlyList<Weapon>>? enemyWeaponsCache = null);
+        ITurnState? turnState = null);
 
 
     /// <summary>
