@@ -49,7 +49,7 @@ public class WeaponsAttackTools
         }
 
         // Evaluate targets using TacticalEvaluator
-        var targetEvaluations = _gameStateProvider.TacticalEvaluator.EvaluateTargetsAsync(
+        var targetEvaluations = _gameStateProvider.TacticalEvaluator.EvaluateTargets(
             attacker, 
             attackerPath, 
             enemyUnits).GetAwaiter().GetResult();

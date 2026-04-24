@@ -83,7 +83,7 @@ public class WeaponsEngineTests
         _player.AliveUnits.Returns([attacker]);
 
         _clientGame.Players.Returns([_player]);
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([]);
 
         WeaponAttackDeclarationCommand capturedCommand = default;
@@ -118,7 +118,7 @@ public class WeaponsEngineTests
 
         _clientGame.Players.Returns([_player, enemyPlayer]);
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -166,7 +166,7 @@ public class WeaponsEngineTests
         var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -228,7 +228,7 @@ public class WeaponsEngineTests
         var zeroProb = new TestWeapon(new WeaponDefinition("ZeroProb", 999, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), 
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), 
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -299,7 +299,7 @@ public class WeaponsEngineTests
         var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 5, 10, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -387,7 +387,7 @@ public class WeaponsEngineTests
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -474,7 +474,7 @@ public class WeaponsEngineTests
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -563,7 +563,7 @@ public class WeaponsEngineTests
         attacker.GetRemainingAmmoShots(lowAmmoWeapon).Returns(1);
         attacker.GetRemainingAmmoShots(highAmmoWeapon).Returns(20);
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -626,7 +626,7 @@ public class WeaponsEngineTests
 
         _clientGame.Players.Returns([_player]);
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(ValueTask.FromException<IReadOnlyList<TargetEvaluationData>>(new InvalidOperationException("Unexpected")));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
@@ -655,14 +655,14 @@ public class WeaponsEngineTests
     
         _player.AliveUnits.Returns([attacker]);
         _clientGame.Players.Returns([_player]);
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), 
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), 
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([]);
     
         await _sut.MakeDecision(_player, _turnState);
 
-        _ = await _tacticalEvaluator.Received(1).EvaluateTargetsAsync(
+        _ = await _tacticalEvaluator.Received(1).EvaluateTargets(
             attacker,
             Arg.Is<MovementPath>(p => p == movementPath),
             Arg.Any<IReadOnlyList<IUnit>>(),
@@ -689,7 +689,7 @@ public class WeaponsEngineTests
         var enemyId = enemy.Id;
         var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([
@@ -749,7 +749,7 @@ public class WeaponsEngineTests
         var enemyId = enemy.Id;
         var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
 
-        _tacticalEvaluator.EvaluateTargetsAsync(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -822,7 +822,7 @@ public class WeaponsEngineTests
         };
 
         // 3. Mock evaluation to return something valid for Unit2 so it doesn't skip
-        _tacticalEvaluator.EvaluateTargetsAsync(unit2, Arg.Any<MovementPath>(), 
+        _tacticalEvaluator.EvaluateTargets(unit2, Arg.Any<MovementPath>(), 
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns([]); // Return empty list -> declares empty attack (sufficient to verify selection)
