@@ -8,5 +8,8 @@ public class AvaloniaPlatformService : IPlatformService
 {
     /// <inheritdoc />
     public bool IsMobile { get; } = OperatingSystem.IsIOS() || OperatingSystem.IsAndroid();
+
+    /// <inheritdoc />
+    public bool IsBrowser { get; } = OperatingSystem.IsBrowser();
 }
 

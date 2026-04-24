@@ -759,7 +759,7 @@ public class MovementEngineTests
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
         _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns(_ => throw new InvalidOperationException("Unexpected error"));
+            .Returns(ValueTask.FromException<PositionScore>(new InvalidOperationException("Unexpected error")));
         
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
@@ -771,6 +771,66 @@ public class MovementEngineTests
         // Assert
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementType.ShouldBe(MovementType.StandingStill);
+    }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_WhenSomePathEvaluationsFail_ShouldContinueProcessing()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        // Set up a valid reachable hex
+        var targetHex = new HexCoordinates(2, 2);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
+        
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
+            .Returns(reachableHexes);
+        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns([]);
+
+        var targetPosition = new HexPosition(targetHex, HexDirection.Top);
+        var pathSegment = new PathSegment(mech.Position!, targetPosition, 1);
+        var movementPath = new MovementPath([pathSegment], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
+            .Returns(movementPath);
+
+        // Track evaluation calls
+        var evaluationCount = 0;
+        
+        // Mock evaluator to throw on first call, succeed on second call
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(_ =>
+            {
+                evaluationCount++;
+                if (evaluationCount == 1)
+                {
+                    return ValueTask.FromException<PositionScore>(new InvalidOperationException("Evaluation failed"));
+                }
+                
+                return new ValueTask<PositionScore>(new PositionScore
+                {
+                    Position = targetPosition,
+                    MovementType = MovementType.Walk,
+                    Path = movementPath,
+                    OffensiveIndex = 10,
+                    DefensiveIndex = 5,
+                    EnemiesInRearArc = 0
+                });
+            });
+
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { _ = cmd; commandCaptured = true; }));
+
+        // Act - Should not throw despite evaluator throwing on first call
+        await _sut.MakeDecision(_player, _turnState);
+
+        // Assert - Should have tried evaluation at least twice (first failed, second succeeded)
+        evaluationCount.ShouldBeGreaterThanOrEqualTo(1);
+        commandCaptured.ShouldBeTrue();
     }
     
     private void SetupValidMovement()

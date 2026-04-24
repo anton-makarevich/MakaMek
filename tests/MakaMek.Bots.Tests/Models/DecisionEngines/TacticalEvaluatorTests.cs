@@ -35,7 +35,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenNoBattleMap_ShouldReturnZeroIndices()
+    public async Task EvaluatePath_WhenNoBattleMap_ShouldReturnZeroIndices()
     {
         // Arrange
         _game.BattleMap.Returns((IBattleMap?)null);
@@ -43,7 +43,7 @@ public class TacticalEvaluatorTests
         var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
 
         // Act
-        var result = _sut.EvaluatePath(unit, path,[]);
+        var result = await _sut.EvaluatePath(unit, path,[]);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
@@ -51,7 +51,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenEnemyVisible_ShouldCalculateDefensiveIndex()
+    public async Task EvaluatePath_WhenEnemyVisible_ShouldCalculateDefensiveIndex()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -82,7 +82,7 @@ public class TacticalEvaluatorTests
             .Returns(toHitNumber);
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBeGreaterThan(0);
@@ -94,7 +94,7 @@ public class TacticalEvaluatorTests
     }
     
     [Fact]
-    public void EvaluatePath_WhenEnemyNotVisible_ShouldNotAffectDefensiveIndex()
+    public async Task EvaluatePath_WhenEnemyNotVisible_ShouldNotAffectDefensiveIndex()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -120,14 +120,14 @@ public class TacticalEvaluatorTests
             new HexCoordinates(1, 1), new HexCoordinates(1, 4), new HexCoordinates(1, 2)));
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
     }
     
     [Fact]
-    public void EvaluatePath_WhenWeaponOutOfRange_ShouldIgnore()
+    public async Task EvaluatePath_WhenWeaponOutOfRange_ShouldIgnore()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -152,7 +152,7 @@ public class TacticalEvaluatorTests
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 12)));
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
@@ -161,7 +161,7 @@ public class TacticalEvaluatorTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void EvaluatePath_ShouldCalculateOffensiveIndex_WhenEnemyVisible(bool hasLos)
+    public async Task EvaluatePath_ShouldCalculateOffensiveIndex_WhenEnemyVisible(bool hasLos)
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -204,7 +204,7 @@ public class TacticalEvaluatorTests
             .Returns(toHitNumber);
         
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         if (hasLos)
@@ -218,7 +218,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenWeaponOutOfArc_ShouldIgnore()
+    public async Task EvaluatePath_WhenWeaponOutOfArc_ShouldIgnore()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -258,14 +258,14 @@ public class TacticalEvaluatorTests
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(toHitNumber);
         
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.OffensiveIndex.ShouldBe(0);
     }
     
     [Fact]
-    public void EvaluateTargets_ShouldReturnScores_WhenTargetsAreInRange()
+    public async Task EvaluateTargets_ShouldReturnScores_WhenTargetsAreInRange()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -312,7 +312,7 @@ public class TacticalEvaluatorTests
             .Returns(13);
 
         // Act
-        var results = _sut.EvaluateTargets(unit, path, potentialTargets);
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
         results.Count.ShouldBe(1);
@@ -325,7 +325,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenEnemyInRearArc_ShouldCorrectlyCountEnemiesInRearArc_EvenIfNoLoS()
+    public async Task EvaluatePath_WhenEnemyInRearArc_ShouldCorrectlyCountEnemiesInRearArc_EvenIfNoLoS()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -356,7 +356,7 @@ public class TacticalEvaluatorTests
             .Returns(toHitNumber);
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         // The enemy at (0112) should be correctly identified as being in the rear arc
@@ -365,7 +365,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluateTargets_ShouldExcludeWeapon_WhenTargetTooFar()
+    public async Task EvaluateTargets_ShouldExcludeWeapon_WhenTargetTooFar()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -396,7 +396,7 @@ public class TacticalEvaluatorTests
             .Returns(8);
 
         // Act
-        var results = _sut.EvaluateTargets(unit, path, potentialTargets);
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
         results.Count.ShouldBe(0, "Weapon should be excluded when target is beyond long range");
@@ -405,7 +405,7 @@ public class TacticalEvaluatorTests
     [Theory]
     [InlineData(PartLocation.RightLeg,0)]// Legs don't rotate with the torso
     [InlineData(PartLocation.RightTorso, 1)]
-    public void EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expectedConfigs)
+    public async Task EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expectedConfigs)
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -437,14 +437,14 @@ public class TacticalEvaluatorTests
             .Returns(8);
 
         // Act
-        var results = _sut.EvaluateTargets(unit, path, potentialTargets);
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
         results.Count.ShouldBe(expectedConfigs);
     }
     
     [Fact]
-    public void EvaluateTargets_WithTurnState_ShouldCacheResult()
+    public async Task EvaluateTargets_WithTurnState_ShouldCacheResult()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -477,7 +477,7 @@ public class TacticalEvaluatorTests
         turnState.TryGetTargetEvaluation(Arg.Any<TargetEvaluationKey>(), out Arg.Any<TargetEvaluationData>()).Returns(false);
 
         // Act
-        _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
+        await _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
 
         // Assert
         turnState.Received(1).AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
@@ -485,7 +485,7 @@ public class TacticalEvaluatorTests
     }
     
     [Fact]
-    public void EvaluateTargets_WithCachedResult_ShouldReturnCachedResult()
+    public async Task EvaluateTargets_WithCachedResult_ShouldReturnCachedResult()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -528,11 +528,94 @@ public class TacticalEvaluatorTests
             });
 
         // Act
-        var results = _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
 
         // Assert
         results[0].ShouldBe(cachedData);
         turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
+    }
+
+    [Fact]
+    public async Task EvaluateTargets_WithFiveTargets_ShouldTriggerYieldPoint()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Create 5 enemies to trigger yield point (DefaultYieldFrequency = 5)
+        var potentialTargets = new List<IUnit>();
+        for (var i = 0; i < 5; i++)
+        {
+            var enemy = MovementEngineTests.CreateTestMech();
+            var enemyPos = new HexPosition(new HexCoordinates(1, 4 + i), HexDirection.Top);
+            enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+            potentialTargets.Add(enemy);
+        }
+
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 8)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
+
+        // Assert
+        results.Count.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task EvaluatePath_WithFiveEnemies_ShouldTriggerYieldPoint()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        
+        // Create 5 enemies to trigger yield point (DefaultYieldFrequency = 5)
+        var enemies = new List<IUnit>();
+        for (var i = 0; i < 5; i++)
+        {
+            var enemy = MovementEngineTests.CreateTestMech();
+            var enemyPos = new HexPosition(new HexCoordinates(1, 4 + i), HexDirection.Top);
+            enemy.Move(new MovementPath(new List<PathSegment>
+            {
+                new(enemyPos, enemyPos, 0)
+            }, MovementType.Walk));
+            
+            // Set up enemy weapon
+            var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+            var weapon = new TestWeapon(weaponDef);
+            var part = enemy.Parts[PartLocation.RightArm];
+            part.TryAddComponent(weapon);
+            
+            enemies.Add(enemy);
+        }
+
+        // Setup LoS
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 8)));
+        
+        // Setup ToHit
+        const int toHitNumber = 6;
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(toHitNumber);
+
+        // Act
+        var result = await _sut.EvaluatePath(unit, path, enemies);
+
+        // Assert
+        result.DefensiveIndex.ShouldBeGreaterThan(0);
     }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);

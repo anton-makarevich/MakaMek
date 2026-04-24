@@ -19,7 +19,7 @@ public class MovementTools
     }
 
     [McpServerTool, Description("Get all reachable hexes for a unit, grouped by coordinates with tactical evaluation")]
-    public List<ReachableHexData> GetReachableHexes(Guid unitId)
+    public async Task<List<ReachableHexData>> GetReachableHexes(Guid unitId)
     {
         if (_gameStateProvider.ClientGame == null)
             throw new InvalidOperationException("Game is not initialized.");
@@ -86,7 +86,7 @@ public class MovementTools
                 {
                     try
                     {
-                        var score = _gameStateProvider.TacticalEvaluator.EvaluatePath(unit, path, enemyUnits);
+                        var score = await _gameStateProvider.TacticalEvaluator.EvaluatePath(unit, path, enemyUnits);
 
                         var option = new MovementOption(
                             moveType.ToString(),
