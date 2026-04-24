@@ -535,5 +535,88 @@ public class TacticalEvaluatorTests
         turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
     }
 
+    [Fact]
+    public async Task EvaluateTargets_WithFiveTargets_ShouldTriggerYieldPoint()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Create 5 enemies to trigger yield point (DefaultYieldFrequency = 5)
+        var potentialTargets = new List<IUnit>();
+        for (var i = 0; i < 5; i++)
+        {
+            var enemy = MovementEngineTests.CreateTestMech();
+            var enemyPos = new HexPosition(new HexCoordinates(1, 4 + i), HexDirection.Top);
+            enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+            potentialTargets.Add(enemy);
+        }
+
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 8)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
+
+        // Assert
+        results.Count.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task EvaluatePath_WithFiveEnemies_ShouldTriggerYieldPoint()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        
+        // Create 5 enemies to trigger yield point (DefaultYieldFrequency = 5)
+        var enemies = new List<IUnit>();
+        for (var i = 0; i < 5; i++)
+        {
+            var enemy = MovementEngineTests.CreateTestMech();
+            var enemyPos = new HexPosition(new HexCoordinates(1, 4 + i), HexDirection.Top);
+            enemy.Move(new MovementPath(new List<PathSegment>
+            {
+                new(enemyPos, enemyPos, 0)
+            }, MovementType.Walk));
+            
+            // Set up enemy weapon
+            var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+            var weapon = new TestWeapon(weaponDef);
+            var part = enemy.Parts[PartLocation.RightArm];
+            part.TryAddComponent(weapon);
+            
+            enemies.Add(enemy);
+        }
+
+        // Setup LoS
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 8)));
+        
+        // Setup ToHit
+        const int toHitNumber = 6;
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(toHitNumber);
+
+        // Act
+        var result = await _sut.EvaluatePath(unit, path, enemies);
+
+        // Assert
+        result.DefensiveIndex.ShouldBeGreaterThan(0);
+    }
+
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
