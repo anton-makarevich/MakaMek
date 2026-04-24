@@ -358,15 +358,6 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Gets the firing arc from which a position would be hit
     /// </summary>
-    private FiringArc GetFiringArcFromPosition(HexPosition unitPosition, HexCoordinates attackerPosition)
-    {
-        if (unitPosition.Coordinates.IsInFiringArc(attackerPosition, unitPosition.Facing, FiringArc.Front))
-            return FiringArc.Front;
-        if (unitPosition.Coordinates.IsInFiringArc(attackerPosition, unitPosition.Facing, FiringArc.Left))
-            return FiringArc.Left;
-        if (unitPosition.Coordinates.IsInFiringArc(attackerPosition, unitPosition.Facing, FiringArc.Right))
-            return FiringArc.Right;
-        
-        return FiringArc.Rear;
-    }
+    private static FiringArc GetFiringArcFromPosition(HexPosition unitPosition, HexCoordinates attackerPosition)
+        => unitPosition.Coordinates.GetFiringArc(attackerPosition, unitPosition.Facing);
 }

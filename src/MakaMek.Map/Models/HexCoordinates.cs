@@ -271,20 +271,12 @@ public record HexCoordinates
     {
         var result = new HashSet<HexCoordinates>();
         
-        // Get the cube direction vector for the facing direction
-        var facingVector = GetCubeDirectionVector(facing);
-        
         foreach (var hex in GetCoordinatesInRange(range))
         {
             if (hex == this) continue; // Skip the center hex
             
-            // Get the vector to the target hex in cube coordinates
-            var dx = hex.X - this.X;
-            var dy = hex.Y - this.Y;
-            var dz = hex.Z - this.Z;
-
-            // Check if the hex is in the arc using dot product
-            if (IsInArc(dx, dy, dz, facingVector.dx, facingVector.dy, facingVector.dz, arc))
+            // Check if the hex is in the arc using GetFiringArc
+            if (GetFiringArc(hex, facing) == arc)
             {
                 result.Add(hex);
             }
@@ -296,22 +288,55 @@ public record HexCoordinates
     /// <summary>
     /// Determines if a target hex is within a specific firing arc from this hex
     /// </summary>
-    /// <param name="targetCoordinates">The coordinates of the target hex</param>
+    /// <param name="targetCoordinates">The coordinates of the other unit relative to this one</param>
     /// <param name="facing">The direction the unit is facing</param>
     /// <param name="arc">The firing arc to check</param>
     /// <returns>True if the target is within the specified arc, false otherwise</returns>
     public bool IsInFiringArc(HexCoordinates targetCoordinates, HexDirection facing, FiringArc arc)
     {
-        // Get the cube direction vector for the facing direction
+        return GetFiringArc(targetCoordinates, facing) == arc;
+    }
+
+    /// <summary>
+    /// Reciprocal of the magnitude of all cube direction vectors.
+    /// All six direction vectors (e.g. (0,1,-1), (1,0,-1) …) have magnitude √2,
+    /// so storing 1/√2 avoids recomputing Math.Sqrt(2) on every arc determination.
+    /// </summary>
+    private const double InvFacingVectorLength = 0.7071067811865476; // 1.0 / Math.Sqrt(2)
+
+    /// <summary>
+    /// Determines which firing arc of this unit the target occupies, computing all
+    /// trigonometry (Sqrt, Acos, cross product) exactly once regardless of arc count.
+    /// </summary>
+    /// <param name="targetCoordinates">The coordinates of the other unit relative to this one</param>
+    /// <param name="facing">The direction this unit is facing</param>
+    /// <returns>The <see cref="FiringArc"/> the target occupies relative to this unit</returns>
+    public FiringArc GetFiringArc(HexCoordinates targetCoordinates, HexDirection facing)
+    {
         var facingVector = GetCubeDirectionVector(facing);
-        
-        // Get the vector to the target hex in cube coordinates
         var dx = targetCoordinates.X - this.X;
         var dy = targetCoordinates.Y - this.Y;
         var dz = targetCoordinates.Z - this.Z;
 
-        // Use the private IsInArc method to check if the target is in the arc
-        return IsInArc(dx, dy, dz, facingVector.dx, facingVector.dy, facingVector.dz, arc);
+        if (dx == 0 && dy == 0 && dz == 0)
+            throw new ArgumentException("Target cannot be the same hex as the source", nameof(targetCoordinates));
+
+        var dot = dx * facingVector.dx + dy * facingVector.dy + dz * facingVector.dz;
+        var targetLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+        // facingLength is always √2; multiply by InvFacingVectorLength instead of a second Sqrt
+        var cosAngle = Math.Clamp(dot * InvFacingVectorLength / targetLength, -1.0, 1.0);
+        var degrees = Math.Acos(cosAngle) * (180.0 / Math.PI);
+        const double epsilon = 0.0001;
+
+        if (degrees <= 60 + epsilon)
+            return FiringArc.Front;
+        if (degrees > 120 + epsilon)
+            return FiringArc.Rear;
+
+        // Side arc — determine left vs right with cross-product (only computed when needed)
+        var cross = facingVector.dx * dy - dx * facingVector.dy;
+        return cross > 0 ? FiringArc.Left : FiringArc.Right;
     }
 
     private (int dx, int dy, int dz) GetCubeDirectionVector(HexDirection dir)
@@ -325,40 +350,6 @@ public record HexCoordinates
             HexDirection.BottomLeft => (-1, 0, 1),  // -x, +z
             HexDirection.TopLeft => (-1, 1, 0),     // -x, +y
             _ => throw new ArgumentException("Invalid direction", nameof(dir))
-        };
-    }
-
-    private bool IsInArc(int dx, int dy, int dz, int fdx, int fdy, int fdz, FiringArc arc)
-    {
-        // Calculate dot product between the target vector and facing vector
-        var dot = dx * fdx + dy * fdy + dz * fdz;
-        var targetLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-        var facingLength = Math.Sqrt(fdx * fdx + fdy * fdy + fdz * fdz);
-        
-        // Calculate angle in radians
-        var cosAngle = dot / (targetLength * facingLength);
-        // Handle floating point precision issues
-        cosAngle = Math.Max(-1.0, Math.Min(1.0, cosAngle));
-        var angle = Math.Acos(cosAngle);
-        var degrees = angle * (180 / Math.PI);
-
-        const double epsilon = 0.0001; // Small value to handle floating point comparisons
-
-        // For side arcs, determine if the hex is to the left or right of facing direction
-        // Using cross-product to determine which side the hex is on
-        var cross = fdx * dy - dx * fdy;
-
-        return arc switch
-        {
-            // Forward arc: -60° to +60° inclusive
-            FiringArc.Front => degrees <= 60 + epsilon,
-            // Left arc: -60° to -120° exclusive of the forward boundary but inclusive of the rear boundary
-            FiringArc.Left => degrees is > 60 + epsilon and <= 120 + epsilon && cross > 0,
-            // Right arc: +60° to +120° exclusive of the forward boundary but inclusive of the rear boundary
-            FiringArc.Right => degrees is > 60 + epsilon and <= 120 + epsilon && cross < 0,
-            // Rear arc: +120° to +180° exclusive 
-            FiringArc.Rear => degrees is > 120 + epsilon and <= 180 + epsilon,
-            _ => throw new ArgumentException("Invalid arc", nameof(arc))
         };
     }
 
