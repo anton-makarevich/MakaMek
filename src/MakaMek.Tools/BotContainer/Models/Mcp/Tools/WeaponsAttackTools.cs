@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using ModelContextProtocol.Server;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp;
 using Sanet.MakaMek.Tools.BotContainer.Services;
@@ -18,7 +17,7 @@ public class WeaponsAttackTools
     }
 
     [McpServerTool, Description("Get combat options for a unit, including viable targets with weapon evaluations and required configurations")]
-    public async Task<List<TargetOptionData>> GetCombatOptions(Guid unitId)
+    public List<TargetOptionData> GetCombatOptions(Guid unitId)
     {
         if (_gameStateProvider.ClientGame == null)
             throw new InvalidOperationException("Game is not initialized.");
@@ -50,7 +49,7 @@ public class WeaponsAttackTools
         }
 
         // Evaluate targets using TacticalEvaluator
-        var targetEvaluations = await _gameStateProvider.TacticalEvaluator.EvaluateTargets(
+        var targetEvaluations = _gameStateProvider.TacticalEvaluator.EvaluateTargets(
             attacker, 
             attackerPath, 
             enemyUnits);

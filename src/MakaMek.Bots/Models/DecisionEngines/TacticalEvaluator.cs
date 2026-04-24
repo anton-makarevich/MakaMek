@@ -30,7 +30,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    public async Task<PositionScore> EvaluatePath(
+    public PositionScore EvaluatePath(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
@@ -38,7 +38,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     {
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
 
-        var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
+        var targetScores = EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Count > 0
                 ? t.ConfigurationScores.Max(cs => cs.Score)
@@ -58,11 +58,11 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>
-    public ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargets(
+    public IReadOnlyList<TargetEvaluationData> EvaluateTargets(
         IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets, ITurnState? turnState = null)
     {
         if (_game.BattleMap == null || attacker.Position == null)
-            return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>([]);
+            return [];
 
         var results = new List<TargetEvaluationData>();
 
@@ -141,7 +141,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             turnState?.AddTargetEvaluation(key, targetEvaluationData);
         }
 
-        return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>(results);
+        return results;
     }
     
     /// <summary>

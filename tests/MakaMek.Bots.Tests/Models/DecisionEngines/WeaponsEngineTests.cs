@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -628,7 +627,7 @@ public class WeaponsEngineTests
         _clientGame.Players.Returns([_player]);
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns<ValueTask<IReadOnlyList<TargetEvaluationData>>>(_ => throw new InvalidOperationException("Unexpected"));
+            .Returns(_ => throw new InvalidOperationException("Unexpected"));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
         var commandCaptured = false;
@@ -662,10 +661,10 @@ public class WeaponsEngineTests
             .Returns([]);
     
         await _sut.MakeDecision(_player, _turnState);
-    
-        await _tacticalEvaluator.Received(1).EvaluateTargets(
-            attacker, 
-            Arg.Is<MovementPath>(p => p == movementPath), 
+
+        _tacticalEvaluator.Received(1).EvaluateTargets(
+            attacker,
+            Arg.Is<MovementPath>(p => p == movementPath),
             Arg.Any<IReadOnlyList<IUnit>>(),
             Arg.Any<ITurnState>());
     }

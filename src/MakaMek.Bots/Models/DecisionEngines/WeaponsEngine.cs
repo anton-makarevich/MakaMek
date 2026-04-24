@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -57,7 +56,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 .ToList();
 
             var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
-            var targetScores = await _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies, turnState);
+            var targetScores = _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies, turnState);
 
             if (targetScores.Count == 0)
             {
