@@ -336,7 +336,7 @@ public record HexCoordinates
         var dz = targetCoordinates.Z - this.Z;
 
         if (dx == 0 && dy == 0 && dz == 0)
-            return FiringArc.Front; // Same hex: treat as front
+            throw new ArgumentException("Target cannot be the same hex as the source", nameof(targetCoordinates));
 
         var dot = dx * facingVector.dx + dy * facingVector.dy + dz * facingVector.dz;
         var targetLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);

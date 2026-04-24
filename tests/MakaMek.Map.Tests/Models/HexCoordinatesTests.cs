@@ -1414,8 +1414,6 @@ public class HexCoordinatesTests
     [InlineData(5, 5, 6, 4, HexDirection.Bottom, FiringArc.Left)]   // Left arc when facing bottom
     [InlineData(5, 5, 5, 4, HexDirection.Bottom, FiringArc.Rear)]   // Directly behind when facing bottom
     [InlineData(5, 5, 5, 6, HexDirection.Bottom, FiringArc.Front)]  // Directly in front when facing bottom
-    // Same-hex edge case: target == center should return Front (not NaN)
-    [InlineData(5, 5, 5, 5, HexDirection.Top,    FiringArc.Front)]
     public void GetFiringArc_ReturnsExpectedArc(int centerQ, int centerR, int targetQ, int targetR,
         HexDirection facing, FiringArc expectedArc)
     {
@@ -1429,5 +1427,15 @@ public class HexCoordinatesTests
         // Assert
         result.ShouldBe(expectedArc,
             $"Expected GetFiringArc for target ({targetQ},{targetR}) with facing {facing} to be {expectedArc}");
+    }
+
+    [Fact]
+    public void GetFiringArc_ThrowsWhenTargetIsSameHex()
+    {
+        // Arrange
+        var center = new HexCoordinates(5, 5);
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => center.GetFiringArc(center, HexDirection.Top));
     }
 }
