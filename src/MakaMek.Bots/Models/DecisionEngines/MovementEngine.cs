@@ -217,12 +217,12 @@ public class MovementEngine : IBotDecisionEngine
             const int maxConcurrency = 20;
             var scores = new ConcurrentBag<PositionScore>();
 
-            await Parallel.ForEachAsync(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
-                async (path, _) =>
+            Parallel.ForEach(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
+                (path, _) =>
                 {
                     try
                     {
-                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
+                        var score = _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
                         scores.Add(score);
                     }
                     catch (Exception ex)
