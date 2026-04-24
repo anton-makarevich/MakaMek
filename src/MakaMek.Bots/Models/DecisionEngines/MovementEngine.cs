@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Map.Models;
@@ -21,12 +22,7 @@ public class MovementEngine : IBotDecisionEngine
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _evaluator;
     private readonly Random _random;
-    
-    /// <summary>
-    /// Default chunk size for batched async processing.
-    /// </summary>
-    private static int DefaultChunkSize => 15;
-    
+
     public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null)
     {
         _clientGame = clientGame;
@@ -217,27 +213,29 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            var chunkResults = await ProcessInChunks(
-                reachablePaths,
-                async path =>
+            // Evaluate each path with controlled concurrency
+            const int maxConcurrency = 20;
+            var scores = new ConcurrentBag<PositionScore>();
+
+            Parallel.ForEach(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
+                (path, _) =>
                 {
                     try
                     {
-                        return await _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
+                        var score = _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
+                        scores.Add(score);
                     }
                     catch (Exception ex)
                     {
-                        _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}",
-                            path.Destination.Coordinates, ex.Message);
-                        return default; // fallback — will be filtered by valid scores below
+                        // Log and continue - don't let one bad path evaluation stop all evaluations
+                        _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
                     }
-                },
-                DefaultChunkSize);
-
-            candidateScores.AddRange(chunkResults);
+                });
+            
+            candidateScores.AddRange(scores);
         }
 
-        // If n valid paths, stand still
+        // If no valid paths, stand still
         if (candidateScores.Count == 0)
         {
             await SkipTurn(player, unit);
@@ -329,34 +327,6 @@ public class MovementEngine : IBotDecisionEngine
 
         // Send a StandingStill movement command
         await MoveUnit(player, unmovedUnit, MovementPath.CreateStandingStillPath(position));
-    }
-    
-    /// <summary>
-    /// Processes items in chunks using an asynchronous processor function,
-    /// yielding between chunks for cooperative scheduling.
-    /// </summary>
-    private static async Task<List<TResult>> ProcessInChunks<TItem, TResult>(
-        IReadOnlyList<TItem> items,
-        Func<TItem, Task<TResult>> processor,
-        int chunkSize = 15,
-        CancellationToken cancellationToken = default)
-    {
-        var results = new List<TResult>(items.Count);
-
-        for (var startIndex = 0; startIndex < items.Count; startIndex += chunkSize)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var endIndex = Math.Min(startIndex + chunkSize, items.Count);
-            for (var i = startIndex; i < endIndex; i++)
-            {
-                results.Add(await processor(items[i]));
-            }
-
-            await Task.Yield();
-        }
-
-        return results;
     }
 }
 

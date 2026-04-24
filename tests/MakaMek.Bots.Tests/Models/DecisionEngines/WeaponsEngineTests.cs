@@ -627,7 +627,7 @@ public class WeaponsEngineTests
         _clientGame.Players.Returns([_player]);
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns(ValueTask.FromException<IReadOnlyList<TargetEvaluationData>>(new InvalidOperationException("Unexpected")));
+            .Returns(_ => throw new InvalidOperationException("Unexpected"));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
         var commandCaptured = false;
@@ -662,7 +662,7 @@ public class WeaponsEngineTests
     
         await _sut.MakeDecision(_player, _turnState);
 
-        _ = await _tacticalEvaluator.Received(1).EvaluateTargets(
+        _tacticalEvaluator.Received(1).EvaluateTargets(
             attacker,
             Arg.Is<MovementPath>(p => p == movementPath),
             Arg.Any<IReadOnlyList<IUnit>>(),
