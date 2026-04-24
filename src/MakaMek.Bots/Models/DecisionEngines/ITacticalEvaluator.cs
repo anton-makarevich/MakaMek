@@ -13,7 +13,7 @@ public interface ITacticalEvaluator
     /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    PositionScore EvaluatePath(
+    ValueTask<PositionScore> EvaluatePathAsync(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
@@ -28,7 +28,7 @@ public interface ITacticalEvaluator
     /// <param name="potentialTargets">List of potential targets available</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
     /// <returns>List of scores for each target</returns>
-    IReadOnlyList<TargetEvaluationData> EvaluateTargets(
+    ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargetsAsync(
         IUnit attacker,
         MovementPath attackerPath,
         IReadOnlyList<IUnit> potentialTargets,

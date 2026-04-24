@@ -213,7 +213,7 @@ public class MovementEngineTests
             DefensiveIndex = 5,
             EnemiesInRearArc = 0
         };
-        _tacticalEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluatePathAsync(unit, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns(positionScore);
@@ -413,7 +413,7 @@ public class MovementEngineTests
         
         // Track which movement types were evaluated
         var evaluatedMovementTypes = new List<MovementType>();
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns(callInfo =>
@@ -464,7 +464,7 @@ public class MovementEngineTests
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score Jump highest
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns(callInfo =>
@@ -528,7 +528,7 @@ public class MovementEngineTests
             .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score options according to test data
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns(callInfo =>
@@ -597,7 +597,7 @@ public class MovementEngineTests
                 return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
             });
 
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(),
                 Arg.Any<IReadOnlyList<IUnit>>(),
                 Arg.Any<ITurnState>())
             .Returns(callInfo =>
@@ -657,7 +657,7 @@ public class MovementEngineTests
                 return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
             });
 
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -758,8 +758,8 @@ public class MovementEngineTests
             .Returns(movementPath);
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
-        _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns(_ => throw new InvalidOperationException("Unexpected error"));
+        _tacticalEvaluator.EvaluatePathAsync(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns(ValueTask.FromException<PositionScore>(new InvalidOperationException("Unexpected error")));
         
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
@@ -800,7 +800,7 @@ public class MovementEngineTests
             EnemiesInRearArc = 0
         };
         
-        _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePathAsync(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(positionScore);
     }
 
@@ -987,7 +987,7 @@ public class MovementEngineTests
         // Position 1 combined: 1.0 * 20 - 0 * 20 = 20
         // Position 2 combined: 1.0 * 5 - 0 * 5 = 5
         // Should prefer position 1 (higher combined score)
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -1051,7 +1051,7 @@ public class MovementEngineTests
         // Position 1 combined: 0 * 20 - 1.0 * 20 = -20
         // Position 2 combined: 0 * 5 - 1.0 * 5 = -5
         // Should prefer position 2 (higher combined score, less defensive penalty)
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -1113,7 +1113,7 @@ public class MovementEngineTests
         // Position 1: High offensive (100), low defensive (5), but 2 enemies in rear arc
         // Position 2: Low offensive (1), high defensive (20), but 0 enemies in rear arc
         // Regardless of aggressiveness, position 2 should be preferred (fewer rear arc enemies is primary sort key)
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+        _tacticalEvaluator.EvaluatePathAsync(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);

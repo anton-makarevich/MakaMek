@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Bots.Utilities;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
@@ -30,15 +31,15 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="turnState">Optional turn state for caching evaluation results</param>
-    public PositionScore EvaluatePath(
+    public async ValueTask<PositionScore> EvaluatePathAsync(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits,
         ITurnState? turnState = null)
     {
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
+        var defensiveIndex = await CalculateDefensiveIndexAsync(path, enemyUnits, unit.Height);
 
-        var targetScores = EvaluateTargets(unit, path, enemyUnits, turnState);
+        var targetScores = await EvaluateTargetsAsync(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Count > 0
                 ? t.ConfigurationScores.Max(cs => cs.Score)
@@ -58,7 +59,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>
-    public IReadOnlyList<TargetEvaluationData> EvaluateTargets(
+    public async ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargetsAsync(
         IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets, ITurnState? turnState = null)
     {
         if (_game.BattleMap == null || attacker.Position == null)
@@ -81,6 +82,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             p => p.GetWeaponsConfigurationOptions(attackerPath.Destination)
                   .Select(o => o.Type)
                   .ToHashSet());
+
+        var counter = 0;
+        var yieldFrequency = PlatformDetection.DefaultYieldFrequency;
 
         foreach (var target in potentialTargets)
         {
@@ -139,6 +143,13 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             results.Add(targetEvaluationData);
             turnState?.AddTargetEvaluation(key, targetEvaluationData);
+
+            counter++;
+            if (counter >= yieldFrequency)
+            {
+                await Task.Yield();
+                counter = 0;
+            }
         }
 
         return results;
@@ -152,7 +163,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="defenderHeight">Height of the unit at the position</param>
     /// <returns>Defensive threat index (lower is better)</returns>
-    private PathDefensiveScore CalculateDefensiveIndex(
+    private async ValueTask<PathDefensiveScore> CalculateDefensiveIndexAsync(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits,
         int defenderHeight)
@@ -163,7 +174,10 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         double defensiveIndex = 0;
         var position = defenderPath.Destination; 
-        
+
+        var counter = 0;
+        var yieldFrequency = PlatformDetection.DefaultYieldFrequency;
+
         foreach (var enemy in enemyUnits)
         {
             if (enemy.Position == null)
@@ -208,6 +222,13 @@ public class TacticalEvaluator : ITacticalEvaluator
                 // Calculate threat value
                 var threatValue = hitProbability * weapon.Damage * arcMultiplier;
                 defensiveIndex += threatValue;
+            }
+
+            counter++;
+            if (counter >= yieldFrequency)
+            {
+                await Task.Yield();
+                counter = 0;
             }
         }
 

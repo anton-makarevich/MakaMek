@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Utilities;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
@@ -213,26 +214,50 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            // Evaluate each path with controlled concurrency
-            const int maxConcurrency = 20;
-            var scores = new ConcurrentBag<PositionScore>();
+            // Evaluate each path — use parallel or sequential based on platform
+            if (PlatformDetection.UseParallelProcessing)
+            {
+                // Native builds: use parallel processing for performance
+                const int maxConcurrency = 20;
+                var scores = new ConcurrentBag<PositionScore>();
 
-            Parallel.ForEach(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
-                (path, _) =>
-                {
-                    try
+                Parallel.ForEach(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
+                    (path, _) =>
                     {
-                        var score = _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
-                        scores.Add(score);
-                    }
-                    catch (Exception ex)
+                        try
+                        {
+                            var score = await _evaluator.EvaluatePathAsync(unit, path, enemyUnits, turnState);
+                            scores.Add(score);
+                        }
+                        catch (Exception ex)
+                        {
+                            _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
+                        }
+                    });
+
+                candidateScores.AddRange(scores);
+            }
+            else
+            {
+                // WASM/browser: use async chunked processing with cooperative yielding
+                var chunkResults = await AsyncChunkProcessor.ProcessInChunksAsync(
+                    reachablePaths,
+                    async path =>
                     {
-                        // Log and continue - don't let one bad path evaluation stop all evaluations
-                        _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
-                    }
-                });
-            
-            candidateScores.AddRange(scores);
+                        try
+                        {
+                            return await _evaluator.EvaluatePathAsync(unit, path, enemyUnits, turnState);
+                        }
+                        catch (Exception ex)
+                        {
+                            _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
+                            return default; // fallback — will be filtered by valid scores below
+                        }
+                    },
+                    PlatformDetection.DefaultChunkSize);
+
+                candidateScores.AddRange(chunkResults.Where(s => s.Path is not null));
+            }
         }
 
         // If no valid paths, stand still

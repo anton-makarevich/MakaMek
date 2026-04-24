@@ -56,7 +56,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 .ToList();
 
             var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
-            var targetScores = _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies, turnState);
+            var targetScores = await _tacticalEvaluator.EvaluateTargetsAsync(attacker, attackerPath, enemies, turnState);
 
             if (targetScores.Count == 0)
             {
