@@ -342,7 +342,7 @@ public record HexCoordinates
         var targetLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
         // facingLength is always √2; multiply by InvFacingVectorLength instead of a second Sqrt
-        var cosAngle = Math.Max(-1.0, Math.Min(1.0, dot * InvFacingVectorLength / targetLength));
+        var cosAngle = Math.Clamp(dot * InvFacingVectorLength / targetLength, -1.0, 1.0);
         var degrees = Math.Acos(cosAngle) * (180.0 / Math.PI);
         const double epsilon = 0.0001;
 
@@ -351,7 +351,7 @@ public record HexCoordinates
         if (degrees > 120 + epsilon)
             return FiringArc.Rear;
 
-        // Side arc — determine left vs right with cross product (only computed when needed)
+        // Side arc — determine left vs right with cross-product (only computed when needed)
         var cross = facingVector.dx * dy - dx * facingVector.dy;
         return cross > 0 ? FiringArc.Left : FiringArc.Right;
     }
