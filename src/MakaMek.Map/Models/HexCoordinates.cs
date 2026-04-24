@@ -314,6 +314,48 @@ public record HexCoordinates
         return IsInArc(dx, dy, dz, facingVector.dx, facingVector.dy, facingVector.dz, arc);
     }
 
+    /// <summary>
+    /// Reciprocal of the magnitude of all cube direction vectors.
+    /// All six direction vectors (e.g. (0,1,-1), (1,0,-1) …) have magnitude √2,
+    /// so storing 1/√2 avoids recomputing Math.Sqrt(2) on every arc determination.
+    /// </summary>
+    private const double InvFacingVectorLength = 0.7071067811865476; // 1.0 / Math.Sqrt(2)
+
+    /// <summary>
+    /// Determines which firing arc of this unit the target occupies, computing all
+    /// trigonometry (Sqrt, Acos, cross product) exactly once regardless of arc count.
+    /// </summary>
+    /// <param name="targetCoordinates">The coordinates of the attacker/target hex</param>
+    /// <param name="facing">The direction this unit is facing</param>
+    /// <returns>The <see cref="FiringArc"/> the target occupies relative to this unit</returns>
+    public FiringArc GetFiringArc(HexCoordinates targetCoordinates, HexDirection facing)
+    {
+        var facingVector = GetCubeDirectionVector(facing);
+        var dx = targetCoordinates.X - this.X;
+        var dy = targetCoordinates.Y - this.Y;
+        var dz = targetCoordinates.Z - this.Z;
+
+        if (dx == 0 && dy == 0 && dz == 0)
+            return FiringArc.Front; // Same hex: treat as front
+
+        var dot = dx * facingVector.dx + dy * facingVector.dy + dz * facingVector.dz;
+        var targetLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+        // facingLength is always √2; multiply by InvFacingVectorLength instead of a second Sqrt
+        var cosAngle = Math.Max(-1.0, Math.Min(1.0, dot * InvFacingVectorLength / targetLength));
+        var degrees = Math.Acos(cosAngle) * (180.0 / Math.PI);
+        const double epsilon = 0.0001;
+
+        if (degrees <= 60 + epsilon)
+            return FiringArc.Front;
+        if (degrees > 120 + epsilon)
+            return FiringArc.Rear;
+
+        // Side arc — determine left vs right with cross product (only computed when needed)
+        var cross = facingVector.dx * dy - dx * facingVector.dy;
+        return cross > 0 ? FiringArc.Left : FiringArc.Right;
+    }
+
     private (int dx, int dy, int dz) GetCubeDirectionVector(HexDirection dir)
     {
         return dir switch

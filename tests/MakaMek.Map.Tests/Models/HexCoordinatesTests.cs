@@ -1400,4 +1400,34 @@ public class HexCoordinatesTests
         // Assert
         result.ShouldBe(expected, $"Expected IsInFiringArc for target ({targetQ},{targetR}) with facing {facing} and arc {arc} to be {expected}");
     }
+
+    [Theory]
+    // Same cases as IsInFiringArc, expressed as the expected FiringArc return value
+    [InlineData(5, 5, 5, 4, HexDirection.Top,    FiringArc.Front)]  // Target directly in front
+    [InlineData(5, 5, 6, 4, HexDirection.Top,    FiringArc.Front)]  // Target in front-right
+    [InlineData(5, 5, 4, 4, HexDirection.Top,    FiringArc.Front)]  // Target in front-left
+    [InlineData(5, 5, 5, 6, HexDirection.Top,    FiringArc.Rear)]   // Target directly behind
+    [InlineData(5, 5, 6, 5, HexDirection.Top,    FiringArc.Right)]  // Target to the right
+    [InlineData(5, 5, 4, 5, HexDirection.Top,    FiringArc.Left)]   // Target to the left
+    [InlineData(5, 5, 6, 6, HexDirection.Top,    FiringArc.Rear)]   // Target in back-right
+    [InlineData(5, 5, 4, 6, HexDirection.Top,    FiringArc.Rear)]   // Target in back-left
+    [InlineData(5, 5, 6, 4, HexDirection.Bottom, FiringArc.Left)]   // Left arc when facing bottom
+    [InlineData(5, 5, 5, 4, HexDirection.Bottom, FiringArc.Rear)]   // Directly behind when facing bottom
+    [InlineData(5, 5, 5, 6, HexDirection.Bottom, FiringArc.Front)]  // Directly in front when facing bottom
+    // Same-hex edge case: target == center should return Front (not NaN)
+    [InlineData(5, 5, 5, 5, HexDirection.Top,    FiringArc.Front)]
+    public void GetFiringArc_ReturnsExpectedArc(int centerQ, int centerR, int targetQ, int targetR,
+        HexDirection facing, FiringArc expectedArc)
+    {
+        // Arrange
+        var center = new HexCoordinates(centerQ, centerR);
+        var target = new HexCoordinates(targetQ, targetR);
+
+        // Act
+        var result = center.GetFiringArc(target, facing);
+
+        // Assert
+        result.ShouldBe(expectedArc,
+            $"Expected GetFiringArc for target ({targetQ},{targetR}) with facing {facing} to be {expectedArc}");
+    }
 }
