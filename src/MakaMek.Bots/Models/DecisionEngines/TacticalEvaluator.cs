@@ -218,7 +218,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// Builds the list of weapon configurations (no-rotation plus torso rotations) for an attacker at a given position.
     /// Computed once per attacker+position and reused across all targets.
     /// </summary>
-    private List<WeaponConfiguration> BuildWeaponConfigurations(IUnit attacker, MovementPath attackerPath)
+    private IReadOnlyList<WeaponConfiguration> BuildWeaponConfigurations(IUnit attacker, MovementPath attackerPath)
     {
         var configOptions = attacker.GetWeaponsConfigurationOptions(attackerPath.Destination);
         var torsoConfigs = configOptions
@@ -275,8 +275,9 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Check configuration applicability (using pre-computed lookup instead of per-call traversal)
                 if (config.Type != WeaponConfigurationType.None
-                    && !partConfigTypes[weapon.FirstMountPart].Contains(config.Type))
-                    continue;
+                    && (!partConfigTypes.TryGetValue(weapon.FirstMountPart, out var allowedTypes)
+                        || !allowedTypes.Contains(config.Type)))
+                    continue; 
 
                 // Check arc using resolved facing
                 var isInArc =
