@@ -52,7 +52,7 @@ public class WeaponsAttackTools
         var targetEvaluations = _gameStateProvider.TacticalEvaluator.EvaluateTargets(
             attacker, 
             attackerPath, 
-            enemyUnits).GetAwaiter().GetResult();
+            enemyUnits);
 
         // Convert to DTOs
         var result = new List<TargetOptionData>();
