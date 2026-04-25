@@ -32,9 +32,28 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// <param name="game">The game instance, used for accessing the map and other game state</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
     public PsrBreakdown GetPsrBreakdown(
-        Unit unit, 
+        Unit unit,
         PilotingSkillRollType rollType,
         IGame? game = null)
+        => BuildPsrBreakdown(unit, rollType, waterDepth: 0);
+
+    /// <summary>
+    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll, including water depth context.
+    /// Use this overload when the roll type is <see cref="PilotingSkillRollType.WaterEntry"/>.
+    /// </summary>
+    /// <param name="unit">The unit making the piloting skill roll</param>
+    /// <param name="rollType">The specific Piloting Skill Roll type to consider</param>
+    /// <param name="waterDepth">The water depth of the hex being entered (1, 2, or 3+)</param>
+    /// <param name="game">The game instance, used for accessing the map and other game state</param>
+    /// <returns>A breakdown of the piloting skill roll calculation including a water depth modifier</returns>
+    public PsrBreakdown GetPsrBreakdown(
+        Unit unit,
+        PilotingSkillRollType rollType,
+        int waterDepth,
+        IGame? game = null)
+        => BuildPsrBreakdown(unit, rollType, waterDepth);
+
+    private PsrBreakdown BuildPsrBreakdown(Unit unit, PilotingSkillRollType rollType, int waterDepth)
     {
         if (unit.Pilot == null)
         {
@@ -49,12 +68,12 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             };
 
         var modifiers = new List<RollModifier>();
-        
+
         // Add standard modifiers
         modifiers.AddRange(GetStandardModifiers(mech));
-        
+
         // Add special modifiers for specific roll types
-        modifiers.AddRange(GetModifiersForRoll(rollType));
+        modifiers.AddRange(GetModifiersForRoll(rollType, waterDepth));
 
         return new PsrBreakdown
         {
@@ -214,8 +233,9 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// Gets special modifiers that apply only to specific roll types
     /// </summary>
     /// <param name="rollType">The specific roll type</param>
+    /// <param name="waterDepth">The water depth for WaterEntry rolls (1, 2, or 3+); ignored for other roll types</param>
     /// <returns>A collection of special roll modifiers for the specified roll type</returns>
-    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType)
+    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, int waterDepth = 0)
     {
         var modifiers = new List<RollModifier>();
         if (rollType == PilotingSkillRollType.PilotDamageFromFall)
@@ -226,6 +246,15 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             {
                 Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
                 LevelsFallen = levelsFallen
+            });
+        }
+        else if (rollType == PilotingSkillRollType.WaterEntry && waterDepth > 0)
+        {
+            // Water depth modifier: depth 1 = -1, depth 2 = 0, depth 3+ = +1
+            modifiers.Add(new WaterDepthModifier
+            {
+                Value = _rules.GetWaterDepthModifier(waterDepth),
+                WaterDepth = waterDepth
             });
         }
         return modifiers;

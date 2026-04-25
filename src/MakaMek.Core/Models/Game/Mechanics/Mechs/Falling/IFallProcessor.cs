@@ -30,4 +30,14 @@ public interface IFallProcessor
     /// <param name="game">The game instance</param>
     /// <returns>FallContextData containing the result of the movement attempt</returns>
     FallContextData ProcessMovementAttempt(Mech mech, FallReasonType possibleFallReason, IGame game);
+
+    /// <summary>
+    /// Processes a water entry PSR for a mech entering a water hex.
+    /// The water depth is used to determine the difficulty modifier for the roll.
+    /// </summary>
+    /// <param name="mech">The mech entering the water hex</param>
+    /// <param name="waterDepth">The depth of the water hex (1, 2, or 3+)</param>
+    /// <param name="game">The game instance</param>
+    /// <returns>FallContextData containing the result of the water entry PSR</returns>
+    FallContextData ProcessWaterEntry(Mech mech, int waterDepth, IGame game);
 }

@@ -1017,6 +1017,87 @@ public class FallProcessorTests
             Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
+    private void SetupWaterEntryPsrFor(int waterDepth, int modifierValue, string modifierName)
+    {
+        _mockPilotingSkillCalculator.GetPsrBreakdown(
+                Arg.Any<Unit>(),
+                Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.WaterEntry),
+                Arg.Is<int>(d => d == waterDepth),
+                Arg.Any<IGame>())
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = [new TestModifier { Value = modifierValue, Name = modifierName }]
+            });
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ProcessWaterEntry_ShouldReturnFallContextData_WithWaterEntryPsr_WhenPsrSucceeds(int waterDepth)
+    {
+        // Arrange
+        SetupWaterEntryPsrFor(waterDepth, -1, "Water Depth");
+        SetupRollResult(true, PilotingSkillRollType.WaterEntry);
+
+        // Act
+        var result = _sut.ProcessWaterEntry(_testMech, waterDepth, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.WaterEntry);
+        result.IsFalling.ShouldBeFalse("Mech should not fall when water entry PSR succeeds");
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR for successful water entry");
+        result.FallingDamageData.ShouldBeNull("No falling damage for successful water entry");
+
+        // Verify the water-depth overload of GetPsrBreakdown was called
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            PilotingSkillRollType.WaterEntry,
+            waterDepth,
+            _game);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ProcessWaterEntry_ShouldReturnFallContextData_WithFallingData_WhenPsrFails(int waterDepth)
+    {
+        // Arrange
+        SetupWaterEntryPsrFor(waterDepth, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessWaterEntry(_testMech, waterDepth, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.WaterEntry);
+        result.IsFalling.ShouldBeTrue("Mech should fall when water entry PSR fails");
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll!.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+    }
+
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(

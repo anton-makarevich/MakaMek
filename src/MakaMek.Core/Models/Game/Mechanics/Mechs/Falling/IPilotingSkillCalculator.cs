@@ -18,6 +18,17 @@ public interface IPilotingSkillCalculator
     PsrBreakdown GetPsrBreakdown(Unit unit, PilotingSkillRollType rollType, IGame? game = null);
 
     /// <summary>
+    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll, including water depth context.
+    /// Use this overload when the roll type is <see cref="PilotingSkillRollType.WaterEntry"/>.
+    /// </summary>
+    /// <param name="unit">The unit making the piloting skill roll.</param>
+    /// <param name="rollType">The specific Piloting Skill Roll type to consider.</param>
+    /// <param name="waterDepth">The water depth of the hex being entered (1, 2, or 3+).</param>
+    /// <param name="game">The game instance, used for accessing the map and other game state.</param>
+    /// <returns>A breakdown of the piloting skill roll calculation including a water depth modifier.</returns>
+    PsrBreakdown GetPsrBreakdown(Unit unit, PilotingSkillRollType rollType, int waterDepth, IGame? game = null);
+
+    /// <summary>
     /// Evaluates a piloting skill roll and returns complete roll data.
     /// </summary>
     /// <param name="psrBreakdown">The PSR breakdown containing target number and modifiers.</param>

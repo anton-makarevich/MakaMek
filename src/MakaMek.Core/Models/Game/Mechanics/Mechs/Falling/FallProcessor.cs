@@ -91,6 +91,49 @@ public class FallProcessor : IFallProcessor
     {
         return GetFallContextForReasons([possibleFallReason], mech, game).First();
     }
+
+    public FallContextData ProcessWaterEntry(Mech mech, int waterDepth, IGame game)
+    {
+        const PilotingSkillRollType psrRollType = PilotingSkillRollType.WaterEntry;
+        var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, psrRollType, waterDepth, game);
+        var fallPsrData = _pilotingSkillCalculator.EvaluateRoll(psrBreakdown, mech, psrRollType);
+        var isFallingNow = !fallPsrData.IsSuccessful;
+
+        PilotingSkillRollData? pilotDamagePsr = null;
+
+        if (isFallingNow)
+        {
+            var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
+                mech,
+                PilotingSkillRollType.PilotDamageFromFall,
+                game);
+
+            if (pilotPsrBreakdown.Modifiers.Any())
+            {
+                pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(
+                    pilotPsrBreakdown,
+                    mech,
+                    PilotingSkillRollType.PilotDamageFromFall);
+            }
+        }
+
+        var fallingDamageData = isFallingNow
+            ? _fallingDamageCalculator.CalculateFallingDamage(mech, 0, false)
+            : null;
+
+        return new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = game.Id,
+            IsFalling = isFallingNow,
+            ReasonType = FallReasonType.WaterEntry,
+            PilotingSkillRoll = fallPsrData,
+            PilotDamagePilotingSkillRoll = pilotDamagePsr,
+            FallingDamageData = fallingDamageData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+    }
     
     private IEnumerable<FallContextData> GetFallContextForReasons(
         List<FallReasonType> fallReasons,

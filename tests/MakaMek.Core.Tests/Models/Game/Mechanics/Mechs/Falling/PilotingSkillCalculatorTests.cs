@@ -652,6 +652,67 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             result.Modifiers.ShouldNotContain(m => m is LegDestroyedModifier);
         }
 
+        [Theory]
+        [InlineData(1, -1)]
+        [InlineData(2, 0)]
+        [InlineData(3, 1)]
+        [InlineData(5, 1)]
+        public void GetPsrBreakdown_WaterEntry_AddsWaterDepthModifier(int waterDepth, int expectedModifierValue)
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetWaterDepthModifier(waterDepth).Returns(expectedModifierValue);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry, waterDepth);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.ShouldContain(m => m is WaterDepthModifier);
+            var waterModifier = result.Modifiers.OfType<WaterDepthModifier>().Single();
+            waterModifier.Value.ShouldBe(expectedModifierValue);
+            waterModifier.WaterDepth.ShouldBe(waterDepth);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + expectedModifierValue);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_WaterEntry_WithDamagedGyro_IncludesBothModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+            _mockRulesProvider.GetWaterDepthModifier(3).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry, waterDepth: 3);
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is DamagedGyroModifier);
+            result.Modifiers.ShouldContain(m => m is WaterDepthModifier);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 3 + 1);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_WaterEntry_ViaOriginalOverload_DoesNotAddWaterDepthModifier()
+        {
+            // Arrange — calling the original overload (no waterDepth) should not produce a WaterDepthModifier
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry);
+
+            // Assert
+            result.Modifiers.ShouldNotContain(m => m is WaterDepthModifier);
+        }
+
         [Fact]
         public void GetPsrBreakdown_BothLegsWithDifferentStates_AddsCorrectModifiers()
         {
