@@ -155,4 +155,16 @@ public interface IRulesProvider
     /// <param name="location">The hit location to check</param>
     /// <returns>True if the location can be covered by partial cover, false otherwise</returns>
     bool CanPartBeCovered(PartLocation location);
+
+    /// <summary>
+    /// Gets the piloting skill roll modifier based on water depth.
+    /// </summary>
+    /// <param name="waterDepth">The water depth level (1, 2, or 3+)</param>
+    /// <returns>
+    /// The modifier value:
+    /// - Depth 1: -1
+    /// - Depth 2: 0
+    /// - Depth 3+: +1
+    /// </returns>
+    int GetWaterDepthModifier(int waterDepth);
 }

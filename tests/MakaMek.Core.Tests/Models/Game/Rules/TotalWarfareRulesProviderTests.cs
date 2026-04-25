@@ -935,4 +935,20 @@ public class TotalWarfareRulesProviderTests
         // Assert
         result.ShouldBeFalse();
     }
+
+    [Theory]
+    [InlineData(1, -1)] // Depth 1: -1 modifier
+    [InlineData(2, 0)]  // Depth 2: 0 modifier
+    [InlineData(3, 1)]  // Depth 3: +1 modifier
+    [InlineData(4, 1)]  // Depth 4: +1 modifier
+    [InlineData(5, 1)]  // Depth 5: +1 modifier
+    [InlineData(10, 1)] // Depth 10: +1 modifier
+    public void GetWaterDepthModifier_ShouldReturnExpectedValues(int waterDepth, int expectedModifier)
+    {
+        // Act
+        var result = _sut.GetWaterDepthModifier(waterDepth);
+
+        // Assert
+        result.ShouldBe(expectedModifier);
+    }
 }

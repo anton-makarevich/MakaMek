@@ -527,4 +527,14 @@ public class TotalWarfareRulesProvider : IRulesProvider
     {
         return location.IsLeg();
     }
+
+    public int GetWaterDepthModifier(int waterDepth)
+    {
+        return waterDepth switch
+        {
+            1 => -1,  // Depth 1: -1 modifier
+            2 => 0,   // Depth 2: 0 modifier
+            _ => 1    // Depth 3+: +1 modifier
+        };
+    }
 }
