@@ -13,6 +13,7 @@ public class FallReasonTypeTests
     [InlineData(FallReasonType.HeavyDamage, PilotingSkillRollType.HeavyDamage)]
     [InlineData(FallReasonType.StandUpAttempt, PilotingSkillRollType.StandupAttempt)]
     [InlineData(FallReasonType.JumpWithDamage, PilotingSkillRollType.JumpWithDamage)]
+    [InlineData(FallReasonType.WaterEntry, PilotingSkillRollType.WaterEntry)]
     public void ToPilotingSkillRollType_ForTypesRequiringPSR_ReturnsCorrectType(FallReasonType reasonType, PilotingSkillRollType expected)
     {
         // Act
@@ -44,6 +45,7 @@ public class FallReasonTypeTests
     [InlineData(FallReasonType.LegDestroyed, false)]
     [InlineData(FallReasonType.StandUpAttempt, true)]
     [InlineData(FallReasonType.JumpWithDamage, true)]
+    [InlineData(FallReasonType.WaterEntry, true)]
     public void RequiresPilotingSkillRoll_ReturnsCorrectValue(FallReasonType reasonType, bool expected)
     {
         // Act

@@ -51,7 +51,12 @@ public enum FallReasonType
     /// Jump attempt with damaged gyro or foot/leg/hip actuators (requires PSR)
     /// </summary>
     JumpWithDamage,
-    UpperLegActuatorHit
+    UpperLegActuatorHit,
+
+    /// <summary>
+    /// Fall due to entering water hex (requires PSR)
+    /// </summary>
+    WaterEntry
 }
 
 /// <summary>
@@ -76,6 +81,7 @@ public static class FallReasonTypeExtensions
             FallReasonType.HeavyDamage => PilotingSkillRollType.HeavyDamage,
             FallReasonType.StandUpAttempt => PilotingSkillRollType.StandupAttempt,
             FallReasonType.JumpWithDamage => PilotingSkillRollType.JumpWithDamage,
+            FallReasonType.WaterEntry => PilotingSkillRollType.WaterEntry,
             _ => null // PSR is not required for that reason
         };
     }

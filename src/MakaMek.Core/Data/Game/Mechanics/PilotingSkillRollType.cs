@@ -48,8 +48,12 @@ public enum PilotingSkillRollType
 
     // Add other PSR types here in the future, e.g.:
     // Shutdown,
-    // EnteringDeepWater,
     // Skid
     StandupAttempt,
-    JumpWithDamage
+    JumpWithDamage,
+
+    /// <summary>
+    /// PSR required when a 'Mech enters water hex.
+    /// </summary>
+    WaterEntry
 }
