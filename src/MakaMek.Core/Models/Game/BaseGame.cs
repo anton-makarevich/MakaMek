@@ -254,7 +254,7 @@ public abstract class BaseGame : IGame
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == fallCommand.UnitId) as Mech;
         
-        if (fallCommand.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.StandupAttempt)
+        if (fallCommand.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.StandupAttempt)
         {
             mech?.AttemptStandup();
         }

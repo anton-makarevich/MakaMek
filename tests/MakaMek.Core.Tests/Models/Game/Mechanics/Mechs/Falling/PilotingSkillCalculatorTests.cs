@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -61,7 +62,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -85,7 +86,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -108,7 +109,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act & Assert
-            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit))
+            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit)))
                 .Message.ShouldContain("No gyro found");
         }
 
@@ -129,7 +130,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(10);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             // The base piloting skill + 10 should be >= 13, which is impossible on 2d6
@@ -148,11 +149,11 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+            var result = _sut.GetPsrBreakdown(mech, new PilotDamageFromFallRollContext(0));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
-            result.Modifiers.Count.ShouldBe(1); 
+            result.Modifiers.Count.ShouldBe(1);
             result.Modifiers.ShouldContain(m => m is FallingLevelsModifier);
             var fallingModifier = (FallingLevelsModifier)result.Modifiers.First(m => m is FallingLevelsModifier);
             fallingModifier.Value.ShouldBe(0); // 0 levels fallen means no modifier
@@ -174,7 +175,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act - request PilotDamageFromFall, but gyro is hit so standard modifier should apply
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+            var result = _sut.GetPsrBreakdown(mech, new PilotDamageFromFallRollContext(0));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -194,7 +195,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.LowerLegActuatorHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.LowerLegActuatorHit));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -216,7 +217,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // No setup for LowerLegActuatorHit, to ensure it's not called or added if not requested
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -242,7 +243,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
                     ,], HitDirection.Front);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.HeavyDamage));
 
             // Assert
             var heavyDamageModifier = result.Modifiers.OfType<HeavyDamageModifier>().FirstOrDefault();
@@ -264,7 +265,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
                 [CreateHitDataForLocation(PartLocation.CenterTorso, lowDamage, [],[]),], HitDirection.Front);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.HeavyDamage));
 
             // Assert
             result.Modifiers.ShouldNotContain(m => m is HeavyDamageModifier);
@@ -284,7 +285,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.ShouldContain(m => m is LowerLegActuatorHitModifier);
@@ -300,7 +301,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
@@ -320,7 +321,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.ShouldContain(m => m is UpperLegActuatorHitModifier);
@@ -334,7 +335,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             notMech.AssignPilot(new MechWarrior("Test", "Test"));
 
             // Act
-            var result = _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(notMech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.Count.ShouldBe(0);
@@ -347,7 +348,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, []);
 
             // Act & Assert
-            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit))
+            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit)))
                 .Message.ShouldContain("pilot");
         }
 
@@ -365,7 +366,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.ShouldContain(m => m is HipActuatorHitModifier && m.Value == 2);
@@ -385,7 +386,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             result.Modifiers.ShouldContain(m => m is FootActuatorHitModifier && m.Value == 1);
@@ -411,7 +412,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.PilotDamageFromFall));
 
             // Assert
             // Should have only the leg destroyed modifier, not individual component modifiers
@@ -435,7 +436,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.PilotDamageFromFall));
 
             // Assert
             var legModifiers = result.Modifiers.OfType<LegDestroyedModifier>().ToList();
@@ -457,7 +458,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed).Returns(6);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.PilotDamageFromFall));
 
             // Assert
             var gyroModifiers = result.Modifiers.OfType<DamagedGyroModifier>().ToList();
@@ -479,7 +480,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             var gyroModifiers = result.Modifiers.OfType<DamagedGyroModifier>().ToList();
@@ -505,10 +506,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             };
 
             // Act
-            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
-            result.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+            result.RollContext.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
             result.IsSuccessful.ShouldBeFalse();
             result.DiceResults.ShouldBe([]); // Automatic failure representation
             result.PsrBreakdown.ShouldBe(psrBreakdown);
@@ -534,10 +535,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
 
             // Act
-            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.StandupAttempt);
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt));
 
             // Assert
-            result.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+            result.RollContext.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
             result.IsSuccessful.ShouldBeTrue();
             result.DiceResults.ShouldBe([3, 4]);
             result.PsrBreakdown.ShouldBe(psrBreakdown);
@@ -562,10 +563,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockDiceRoller.Roll2D6().Returns([new DiceResult(2), new DiceResult(2)]);
 
             // Act
-            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.JumpWithDamage);
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage));
 
             // Assert
-            result.RollType.ShouldBe(PilotingSkillRollType.JumpWithDamage);
+            result.RollContext.RollType.ShouldBe(PilotingSkillRollType.JumpWithDamage);
             result.IsSuccessful.ShouldBeFalse();
             result.DiceResults.ShouldBe([2, 2]);
             result.PsrBreakdown.ShouldBe(psrBreakdown);
@@ -587,7 +588,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             };
 
             // Act & Assert
-            Should.Throw<ArgumentException>(() => _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.GyroHit))
+            Should.Throw<ArgumentException>(() => _sut.EvaluateRoll(psrBreakdown, mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit)))
                 .Message.ShouldContain("pilot");
         }
 
@@ -608,7 +609,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             // Should have only the leg destroyed modifier (+5), not individual component modifiers
@@ -642,7 +643,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             // Should have the hip actuator modifier
@@ -666,7 +667,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetWaterDepthModifier(waterDepth).Returns(expectedModifierValue);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry, waterDepth);
+            var result = _sut.GetPsrBreakdown(mech, new EnteringDeepWaterRollContext(waterDepth));
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
@@ -690,7 +691,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetWaterDepthModifier(3).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry, waterDepth: 3);
+            var result = _sut.GetPsrBreakdown(mech, new EnteringDeepWaterRollContext(3));
 
             // Assert
             result.Modifiers.ShouldContain(m => m is DamagedGyroModifier);
@@ -707,7 +708,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.WaterEntry);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.WaterEntry));
 
             // Assert
             result.Modifiers.ShouldNotContain(m => m is WaterDepthModifier);
@@ -739,7 +740,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+            var result = _sut.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.GyroHit));
 
             // Assert
             // Should have leg destroyed modifier for left leg (+5)

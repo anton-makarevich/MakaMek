@@ -1,10 +1,9 @@
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
-using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
@@ -73,7 +72,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
 
         // Use the FallProcessor to process the standup attempt and get context data
-        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game);
+        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
+            unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game);
         
         // Create and publish the appropriate command based on the result
         if (fallContextData.IsFalling)
@@ -96,7 +96,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     {
         // Use the FallProcessor to process the jump attempt with damaged gyro
         if (unit is not Mech mech) return;
-        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(mech, FallReasonType.JumpWithDamage, Game);
+        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
+            mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game);
         
         if (!fallContextData.IsFalling) return;
         // Jump failed - create and publish a fall command

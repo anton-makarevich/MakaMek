@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -24,7 +25,7 @@ public class MechStandUpCommandTests
     {
         return new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [3,4],
             IsSuccessful = true,
             PsrBreakdown = new PsrBreakdown

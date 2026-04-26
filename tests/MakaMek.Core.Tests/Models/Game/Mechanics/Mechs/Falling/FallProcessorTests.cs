@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -109,10 +110,10 @@ public class FallProcessorTests
         command.IsPilotTakingDamage.ShouldBe(true);
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeFalse();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeFalse();
-        command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        command.PilotDamagePilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.IsPilotingSkillRollRequired.ShouldBe(true);
     }
     [Fact]
@@ -142,10 +143,10 @@ public class FallProcessorTests
         _sut.ProcessPotentialFall(_testMech, _game, componentHits);
 
         // Assert
-        // Verify that GetPsrBreakdown was called 
+        // Verify that GetPsrBreakdown was called
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Any<PilotingSkillRollType>(),
+            Arg.Any<PilotingSkillRollContext>(),
             Arg.Any<IGame>());
     }
     
@@ -211,7 +212,7 @@ public class FallProcessorTests
         result.UnitId.ShouldBe(_testMech.Id);
         result.DamageData.ShouldBeNull(); // No fall, so no damage data
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // No fall, so no pilot damage PSR
@@ -220,7 +221,7 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for GyroHit
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Any<PilotingSkillRollType>(),
+            Arg.Any<PilotingSkillRollContext>(),
             Arg.Any<IGame>());
 
         // Verify no FallingDamage calculation occurred
@@ -266,27 +267,27 @@ public class FallProcessorTests
         results.Count.ShouldBe(1, "Mech falls on first command.");
 
         // First command (expected Gyro Hit)
-        var command = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
+        var command = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.GyroHit);
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll!.IsSuccessful.ShouldBeFalse();
         command.DamageData.ShouldBe(fallingDamageData);
         command.IsPilotTakingDamage.ShouldBeFalse(); // Pilot damage PSR is made because a fall occurred
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        command.PilotDamagePilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.GyroHit),
             Arg.Any<IGame>());
 
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HeavyDamage),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HeavyDamage),
             Arg.Any<IGame>());
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             Arg.Any<IGame>());
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -324,7 +325,7 @@ public class FallProcessorTests
         results.Count.ShouldBe(2, "Two commands should be returned for Gyro hit and Heavy Damage PSR successes.");
 
         // First command (expected Gyro Hit)
-        var gyroCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
+        var gyroCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.GyroHit);
         gyroCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
         gyroCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
         gyroCommand.DamageData.ShouldBeNull();
@@ -332,7 +333,7 @@ public class FallProcessorTests
         gyroCommand.PilotDamagePilotingSkillRoll.ShouldBeNull();
 
         // Second command (expected Heavy Damage)
-        var heavyDamageCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.HeavyDamage);
+        var heavyDamageCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.HeavyDamage);
         heavyDamageCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
         heavyDamageCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
         heavyDamageCommand.DamageData.ShouldBeNull();
@@ -341,17 +342,17 @@ public class FallProcessorTests
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.GyroHit),
             Arg.Any<IGame>());
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HeavyDamage),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HeavyDamage),
             Arg.Any<IGame>());
 
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             Arg.Any<IGame>());
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -376,16 +377,16 @@ public class FallProcessorTests
         // Verify no PSR calculations for fall reasons were attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             Arg.Is<Unit>(u => u == _testMech),
-            Arg.Is<PilotingSkillRollType>(type => 
-                type == PilotingSkillRollType.GyroHit || 
-                type == PilotingSkillRollType.LowerLegActuatorHit || 
-                type == PilotingSkillRollType.HeavyDamage),
+            Arg.Is<PilotingSkillRollContext>(ctx =>
+                ctx.RollType == PilotingSkillRollType.GyroHit ||
+                ctx.RollType == PilotingSkillRollType.LowerLegActuatorHit ||
+                ctx.RollType == PilotingSkillRollType.HeavyDamage),
             Arg.Any<IGame>());
 
         // Verify no pilot damage PSR was attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
-            Arg.Any<PilotingSkillRollType>(),
+            Arg.Any<PilotingSkillRollContext>(),
             _game);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -429,24 +430,24 @@ public class FallProcessorTests
 
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll.ShouldNotBeNull();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeFalse();
 
         command.DamageData.ShouldBe(fallingDamageData);
         command.IsPilotTakingDamage.ShouldBeFalse();
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        command.PilotDamagePilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.HeavyDamage),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HeavyDamage),
             _game);
-        
+
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.PilotDamageFromFall),
-            _game); // totalDamageDealt is passed for context, even if not directly used by PilotDamage PSR modifiers in this setup
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
+            _game);
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
     }
@@ -481,21 +482,21 @@ public class FallProcessorTests
 
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll.ShouldNotBeNull();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        
+
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBeFalse();
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.HeavyDamage),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HeavyDamage),
             _game);
-        
+
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -535,26 +536,26 @@ public class FallProcessorTests
         result.DamageData.ShouldBe(fallingDamageData); // Fall occurred, damage applied
 
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
 
         result.IsPilotingSkillRollRequired.ShouldBe(true);
-        result.IsPilotTakingDamage.ShouldBe(true); 
-        
+        result.IsPilotTakingDamage.ShouldBe(true);
+
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        
+
         // Verify GetPsrBreakdown was called for GyroHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.GyroHit),
             _game);
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
@@ -594,26 +595,26 @@ public class FallProcessorTests
         result.DamageData.ShouldBe(fallingDamageData);
 
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        
+
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
-        result.IsPilotTakingDamage.ShouldBeFalse(); 
-        
+        result.IsPilotTakingDamage.ShouldBeFalse();
+
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 5 vs target 4
-        
+
         // Verify GetPsrBreakdown was called for LowerLegActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.LowerLegActuatorHit),
             _game);
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
@@ -653,26 +654,26 @@ public class FallProcessorTests
         result.DamageData.ShouldBe(fallingDamageData);
 
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.UpperLegActuatorHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.UpperLegActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        
+
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
-        result.IsPilotTakingDamage.ShouldBeFalse(); 
-        
+        result.IsPilotTakingDamage.ShouldBeFalse();
+
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 5 vs target 4
-        
+
         // Verify GetPsrBreakdown was called for UpperLegActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.UpperLegActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.UpperLegActuatorHit),
             _game);
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
@@ -703,14 +704,14 @@ public class FallProcessorTests
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBeFalse();
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.LowerLegActuatorHit),
             _game);
             
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -746,19 +747,19 @@ public class FallProcessorTests
         result.DamageData.ShouldBe(fallingDamageData);
 
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        
+
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
 
         // Verify GetPsrBreakdown was called for HipActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HipActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HipActuatorHit),
             _game);
     }
 
@@ -785,14 +786,14 @@ public class FallProcessorTests
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBe(false);
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HipActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HipActuatorHit),
             _game);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -828,19 +829,19 @@ public class FallProcessorTests
         result.DamageData.ShouldBe(fallingDamageData);
 
         result.FallPilotingSkillRoll.ShouldNotBeNull();
-        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
+        result.FallPilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        
+
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
 
         // Verify GetPsrBreakdown was called for FootActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.FootActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.FootActuatorHit),
             _game);
     }
 
@@ -867,14 +868,14 @@ public class FallProcessorTests
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
+        command.FallPilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBe(false);
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.FootActuatorHit),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.FootActuatorHit),
             _game);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -923,7 +924,7 @@ public class FallProcessorTests
         // Verify that GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             Arg.Any<IGame>());
         
         // Verify falling damage was calculated
@@ -945,27 +946,26 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.StandupAttempt);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game);
 
         // Assert
         result.ShouldNotBeNull();
         result.UnitId.ShouldBe(_testMech.Id);
         result.GameId.ShouldBe(_gameId);
-        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
         result.IsFalling.ShouldBeFalse("Mech should not be falling when standup PSR succeeds");
-        
+
         result.PilotingSkillRoll.ShouldNotBeNull();
-        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        
+
         result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for successful standup");
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for successful standup");
-        
+
         // Verify GetPsrBreakdown was called for StandupAttempt
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.StandupAttempt),
-            _game); 
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.StandupAttempt),
+            _game);
             
         // Verify no falling damage calculation occurred
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
@@ -987,30 +987,29 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game);
 
         // Assert
         result.ShouldNotBeNull();
         result.UnitId.ShouldBe(_testMech.Id);
         result.GameId.ShouldBe(_gameId);
-        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
         result.IsFalling.ShouldBeTrue("Mech should be considered 'falling' (remaining prone) when standup PSR fails");
-        
+
         result.PilotingSkillRoll.ShouldNotBeNull();
-        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
-        
+
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 6 vs target 4
 
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
-        
+
         // Verify GetPsrBreakdown was called for StandupAttempt
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.StandupAttempt),
-            _game); 
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.StandupAttempt),
+            _game);
             
         // Verify falling damage calculation occurred
         _mockFallingDamageCalculator.Received().CalculateFallingDamage(
@@ -1021,8 +1020,8 @@ public class FallProcessorTests
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
-                Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.WaterEntry),
-                Arg.Is<int>(d => d == waterDepth),
+                Arg.Is<PilotingSkillRollContext>(ctx =>
+                    ctx is EnteringDeepWaterRollContext && ((EnteringDeepWaterRollContext)ctx).WaterDepth == waterDepth),
                 Arg.Any<IGame>())
             .Returns(new PsrBreakdown
             {
@@ -1042,25 +1041,23 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.WaterEntry);
 
         // Act
-        var result = _sut.ProcessWaterEntry(_testMech, waterDepth, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game);
 
         // Assert
         result.ShouldNotBeNull();
         result.UnitId.ShouldBe(_testMech.Id);
         result.GameId.ShouldBe(_gameId);
-        result.ReasonType.ShouldBe(FallReasonType.WaterEntry);
         result.IsFalling.ShouldBeFalse("Mech should not fall when water entry PSR succeeds");
         result.PilotingSkillRoll.ShouldNotBeNull();
-        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
+        result.PilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
         result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR for successful water entry");
         result.FallingDamageData.ShouldBeNull("No falling damage for successful water entry");
 
-        // Verify the water-depth overload of GetPsrBreakdown was called
+        // Verify GetPsrBreakdown was called with water entry context
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            PilotingSkillRollType.WaterEntry,
-            waterDepth,
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx is EnteringDeepWaterRollContext && ((EnteringDeepWaterRollContext)ctx).WaterDepth == waterDepth),
             _game);
     }
 
@@ -1082,27 +1079,26 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var result = _sut.ProcessWaterEntry(_testMech, waterDepth, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game);
 
         // Assert
         result.ShouldNotBeNull();
         result.UnitId.ShouldBe(_testMech.Id);
         result.GameId.ShouldBe(_gameId);
-        result.ReasonType.ShouldBe(FallReasonType.WaterEntry);
         result.IsFalling.ShouldBeTrue("Mech should fall when water entry PSR fails");
         result.PilotingSkillRoll.ShouldNotBeNull();
-        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
+        result.PilotingSkillRoll.RollContext.RollType.ShouldBe(PilotingSkillRollType.WaterEntry);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
         result.FallingDamageData.ShouldBe(fallingDamageData);
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        result.PilotDamagePilotingSkillRoll!.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll!.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
     }
 
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
-                Arg.Is<PilotingSkillRollType>(type => type == psrType),
+                Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == psrType),
                 Arg.Any<IGame>())
             .Returns(new PsrBreakdown
             {
@@ -1129,21 +1125,19 @@ public class FallProcessorTests
     {
         _mockPilotingSkillCalculator.EvaluateRoll(
                 Arg.Any<PsrBreakdown>(),
-                Arg.Any<Unit>(), 
-                rollType)
+                Arg.Any<Unit>(),
+                Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == rollType))
             .Returns(
             new PilotingSkillRollData
             {
-                DiceResults = [2,2],
+                DiceResults = [2, 2],
                 IsSuccessful = isSuccessful,
                 PsrBreakdown = new PsrBreakdown
                 {
                     BasePilotingSkill = 4,
-                    Modifiers =
-                    [
-                    ]
+                    Modifiers = []
                 },
-                RollType = rollType
+                RollContext = new PilotingSkillRollContext(rollType)
             });
     }
 

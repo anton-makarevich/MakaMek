@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 
@@ -24,12 +23,7 @@ public record FallContextData
     /// Whether the unit is falling (true)
     /// </summary>
     public bool IsFalling { get; init; }
-    
-    /// <summary>
-    /// The reason for the fall check
-    /// </summary>
-    public required FallReasonType ReasonType { get; init; }
-    
+
     /// <summary>
     /// The piloting skill roll data for the fall check
     /// </summary>

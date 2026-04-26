@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Localization;
 using Shouldly;
@@ -13,7 +14,7 @@ public class PilotingSkillRollDataTests
     {
         return new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.GyroHit,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
             DiceResults = [3, 4], // Total 7
             IsSuccessful = true,
             PsrBreakdown = new PsrBreakdown
@@ -31,7 +32,7 @@ public class PilotingSkillRollDataTests
     {
         return new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.GyroHit,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
             DiceResults = [2, 2], // Total 4
             IsSuccessful = false,
             PsrBreakdown = new PsrBreakdown
@@ -49,7 +50,7 @@ public class PilotingSkillRollDataTests
     {
         return new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.GyroHit,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
             DiceResults = [], // doesn't matter for impossible rolls
             IsSuccessful = false,
             PsrBreakdown = new PsrBreakdown

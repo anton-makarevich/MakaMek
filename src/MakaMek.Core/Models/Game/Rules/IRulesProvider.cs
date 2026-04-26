@@ -91,6 +91,14 @@ public interface IRulesProvider
 
     int GetPilotingSkillRollModifier(PilotingSkillRollType psrType);
 
+    /// <summary>
+    /// Determines whether a PSR is required for the given roll type,
+    /// or if it results in an automatic fall (e.g. GyroDestroyed, LegDestroyed).
+    /// </summary>
+    /// <param name="rollType">The piloting skill roll type to check</param>
+    /// <returns>True if a PSR roll is required; false if it is an automatic fall</returns>
+    bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType);
+
     int GetHeavyDamageThreshold();
 
     /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -287,7 +288,7 @@ public class MovementState : IUiState
                 {
                     // Calculate piloting skill roll breakdown and success probability for standing up
                     var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                        mech, PilotingSkillRollType.StandupAttempt);
+                        mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt));
 
                     var successProbability =
                         Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
@@ -389,7 +390,7 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech jumpMech && jumpMech.IsPsrForJumpRequired() && _viewModel.Game is not null)
             {
                 var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    jumpMech, PilotingSkillRollType.JumpWithDamage);
+                    jumpMech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage));
 
                 var successProbability =
                     Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);

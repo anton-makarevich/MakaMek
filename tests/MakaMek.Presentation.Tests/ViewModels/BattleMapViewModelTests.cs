@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game;
@@ -2003,7 +2004,7 @@ public class BattleMapViewModelTests
         unit.SetProne();
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
         
-        game.PilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -2024,7 +2025,7 @@ public class BattleMapViewModelTests
             UnitId = unit.Id,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.StandupAttempt,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
                 DiceResults = [5, 6],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown
@@ -2094,7 +2095,7 @@ public class BattleMapViewModelTests
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
         
         // Mock Psr for Standup (needed if we end up checking standup availability)
-        game.PilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -2105,7 +2106,7 @@ public class BattleMapViewModelTests
         var movementState = _sut.CurrentState as MovementState;
         movementState.ShouldNotBeNull();
         _sut.SelectedUnit.ShouldBe(unit);
-        
+
         // Select Movement Type (e.g., Walk) to initialize _selectedPath
         var action = movementState.GetAvailableActions()
             .First(a => a.Label.StartsWith("Walk"));

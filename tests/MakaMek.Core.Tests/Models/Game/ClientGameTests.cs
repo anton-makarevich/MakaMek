@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -2352,7 +2353,7 @@ public class ClientGameTests
             DamageData = fallingDamageData,
             PilotDamagePilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.GyroHit,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
                 DiceResults = [3,3],
                 IsSuccessful = !takesDamage,
                 PsrBreakdown = new PsrBreakdown
@@ -2448,7 +2449,7 @@ public class ClientGameTests
             Timestamp = DateTime.UtcNow,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.GyroHit,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
                 DiceResults = [3,4],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown

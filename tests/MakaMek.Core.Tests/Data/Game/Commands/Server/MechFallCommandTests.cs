@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -31,7 +32,7 @@ public class MechFallCommandTests
     {
         return new PilotingSkillRollData
         {
-            RollType = rollType,
+            RollContext = new PilotingSkillRollContext(rollType),
             DiceResults = diceResults,
             IsSuccessful = successful,
             PsrBreakdown = new PsrBreakdown

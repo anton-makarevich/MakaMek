@@ -111,7 +111,10 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_LegDestroyed" => "Leg Destroyed",
             "PilotingSkillRollType_StandupAttempt" => "Standup Attempt",
             "PilotingSkillRollType_JumpWithDamage" => "Jump with damage",
-            
+            "PilotingSkillRollType_WaterEntry" => "Water Entry",
+            "PilotingSkillRollType_WaterEntry_WithDepth" => "{0} (Depth {1})",
+            "PilotingSkillRollType_PilotDamageFromFall_WithLevels" => "{0} ({1} levels)",
+
             // Attack direction strings
             "AttackDirection_Left" => "Left",
             "AttackDirection_Right" => "Right",

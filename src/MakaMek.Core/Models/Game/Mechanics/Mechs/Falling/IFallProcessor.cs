@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -23,21 +24,13 @@ public interface IFallProcessor
         List<PartLocation>? destroyedPartLocations = null);
 
     /// <summary>
-    /// Processes a movement attempt that may result in a fall for a unit
+    /// Processes a movement attempt that may result in a fall for a unit, including entering a water hex.
+    /// Pass an <see cref="Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts.EnteringDeepWaterRollContext"/>
+    /// to handle water-entry PSRs without a separate method.
     /// </summary>
     /// <param name="mech">The mech performing the movement attempt</param>
-    /// <param name="possibleFallReason">FallReason/PSR type during movement phase</param>
+    /// <param name="rollContext">The PSR context for this movement attempt</param>
     /// <param name="game">The game instance</param>
     /// <returns>FallContextData containing the result of the movement attempt</returns>
-    FallContextData ProcessMovementAttempt(Mech mech, FallReasonType possibleFallReason, IGame game);
-
-    /// <summary>
-    /// Processes a water entry PSR for a mech entering a water hex.
-    /// The water depth is used to determine the difficulty modifier for the roll.
-    /// </summary>
-    /// <param name="mech">The mech entering the water hex</param>
-    /// <param name="waterDepth">The depth of the water hex (1, 2, or 3+)</param>
-    /// <param name="game">The game instance</param>
-    /// <returns>FallContextData containing the result of the water entry PSR</returns>
-    FallContextData ProcessWaterEntry(Mech mech, int waterDepth, IGame game);
+    FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game);
 }

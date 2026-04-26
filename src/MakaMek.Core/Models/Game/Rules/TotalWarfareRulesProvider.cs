@@ -419,6 +419,12 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    public bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType)
+    {
+        return rollType != PilotingSkillRollType.GyroDestroyed
+               && rollType != PilotingSkillRollType.LegDestroyed;
+    }
+
     public int GetHeavyDamageThreshold()
     {
         return 20;

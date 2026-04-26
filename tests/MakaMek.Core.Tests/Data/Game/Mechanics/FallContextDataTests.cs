@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
@@ -26,7 +26,7 @@ public class FallContextDataTests
         
         var pilotingSkillRoll = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.GyroHit,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
             DiceResults = [3, 4], // Total 7
             IsSuccessful = false,
             PsrBreakdown = new PsrBreakdown
@@ -35,10 +35,10 @@ public class FallContextDataTests
                 Modifiers = []
             }
         };
-        
+
         var pilotDamageRoll = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.PilotDamageFromFall,
+            RollContext = new PilotDamageFromFallRollContext(LevelsFallen: 0),
             DiceResults = [5, 6], // Total 11
             IsSuccessful = true,
             PsrBreakdown = new PsrBreakdown
@@ -47,13 +47,12 @@ public class FallContextDataTests
                 Modifiers = []
             }
         };
-        
+
         var fallContextData = new FallContextData
         {
             UnitId = _unitId,
             GameId = _gameId,
             IsFalling = true,
-            ReasonType = FallReasonType.GyroHit,
             PilotingSkillRoll = pilotingSkillRoll,
             PilotDamagePilotingSkillRoll = pilotDamageRoll,
             FallingDamageData = fallingDamageData,
@@ -82,7 +81,7 @@ public class FallContextDataTests
         // Arrange
         var pilotingSkillRoll = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [4, 5], // Total 9
             IsSuccessful = true,
             PsrBreakdown = new PsrBreakdown
@@ -91,13 +90,12 @@ public class FallContextDataTests
                 Modifiers = []
             }
         };
-        
+
         var fallContextData = new FallContextData
         {
             UnitId = _unitId,
             GameId = _gameId,
             IsFalling = false, // Not falling, attempting to stand up
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = pilotingSkillRoll
         };
         
@@ -118,7 +116,7 @@ public class FallContextDataTests
         // Arrange
         var pilotingSkillRoll = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [4, 5],
             IsSuccessful = true,
             PsrBreakdown = new PsrBreakdown
@@ -127,13 +125,12 @@ public class FallContextDataTests
                 Modifiers = []
             }
         };
-        
+
         var fallContextData = new FallContextData
         {
             UnitId = _unitId,
             GameId = _gameId,
             IsFalling = true, // Unit is falling, not standing up
-            ReasonType = FallReasonType.GyroHit,
             PilotingSkillRoll = pilotingSkillRoll
         };
         
@@ -153,7 +150,6 @@ public class FallContextDataTests
             UnitId = _unitId,
             GameId = _gameId,
             IsFalling = false,
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = null // No piloting skill roll data
         };
         
