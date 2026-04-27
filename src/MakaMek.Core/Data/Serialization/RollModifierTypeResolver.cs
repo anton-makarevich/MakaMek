@@ -14,10 +14,13 @@ public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
     public const string TypeDiscriminatorPropertyName = "$type";
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
+        // Only handle RollModifier and its derived types
+        if (type != typeof(RollModifier) && !typeof(RollModifier).IsAssignableFrom(type))
+            return null;
+
         var jsonTypeInfo = base.GetTypeInfo(type, options);
 
         // Configure polymorphic serialization for RollModifier
-        if (jsonTypeInfo.Type != typeof(RollModifier)) return jsonTypeInfo;
         jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
         {
             TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
