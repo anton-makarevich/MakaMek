@@ -1512,7 +1512,7 @@ public class BaseGameTests : BaseGame
         unit.IsShutdown.ShouldBeTrue();
     }
     
-        [Fact]
+    [Fact]
     public void TurnChanges_ShouldNotBeNull()
     {
         // Assert 
@@ -1556,7 +1556,9 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(joinCommand);
         var mech = Players.SelectMany(p => p.Units).First() as Mech;
         mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-
+        mech.SetProne(HexDirection.Bottom);
+        mech.StandupAttempts.ShouldBe(0);
+        
         var command = new MechFallCommand
         {
             GameOriginId = Id,
@@ -1578,8 +1580,8 @@ public class BaseGameTests : BaseGame
         // Act
         OnMechFalling(command);
 
-        // Assert - AttemptStandup should have been called (no exception thrown)
-        // The test passes if no exception is thrown and the method completes
+        // Assert - AttemptStandup was invoked: standup attempts counter incremented
+        mech.StandupAttempts.ShouldBe(1);
     }
 
     public override void HandleCommand(IGameCommand command)

@@ -820,7 +820,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         }
         
         [Fact]
-        public void GetPsrBreakdown_EnteringDeepWaterZeroDepth_NoWaterDepthModifier()
+        public void GetPsrBreakdown_EnteringWaterZeroDepth_NoWaterDepthModifier()
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
@@ -837,7 +837,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         }
         
         [Fact]
-        public void GetPsrBreakdown_EnteringDeepDeepWater_AddsWaterDepthModifier()
+        public void GetPsrBreakdown_EnteringDeepWater_AddsWaterDepthModifier()
         {
             // Arrange
             _mockRulesProvider.GetWaterDepthModifier(1).Returns(0);
