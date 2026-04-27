@@ -419,11 +419,14 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
-    public bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType)
+    // The default value is "PSR required". When adding new auto-fall PilotingSkillRollType values
+    // (e.g., future Shutdown/Skid auto-fall variants), add them to the false-returning list below.
+    public bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType) => rollType switch
     {
-        return rollType != PilotingSkillRollType.GyroDestroyed
-               && rollType != PilotingSkillRollType.LegDestroyed;
-    }
+        PilotingSkillRollType.GyroDestroyed => false,
+        PilotingSkillRollType.LegDestroyed => false,
+        _ => true
+    };
 
     public int GetHeavyDamageThreshold()
     {
