@@ -979,4 +979,13 @@ public class TotalWarfareRulesProviderTests
         // Assert
         result.ShouldBe(expectedModifier);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public void GetWaterDepthModifier_ThrowsException_ForInvalidWaterDepth(int waterDepth)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => 
+            _sut.GetWaterDepthModifier(waterDepth));
+    }
 }

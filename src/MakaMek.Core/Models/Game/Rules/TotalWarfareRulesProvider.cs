@@ -539,6 +539,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
 
     public int GetWaterDepthModifier(int waterDepth)
     {
+        if (waterDepth < 1)
+            throw new ArgumentOutOfRangeException(nameof(waterDepth), "Water depth must be at least 1.");
         return waterDepth switch
         {
             1 => -1,  // Depth 1: -1 modifier
