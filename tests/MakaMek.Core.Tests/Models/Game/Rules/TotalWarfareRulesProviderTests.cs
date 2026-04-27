@@ -498,6 +498,34 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(PilotingSkillRollType.GyroDestroyed, false)]
+    [InlineData(PilotingSkillRollType.LegDestroyed, false)]
+    public void RequiresPilotingSkillRoll_AutoFallTypes_ShouldReturnFalse(PilotingSkillRollType rollType, bool expected)
+    {
+        // Act
+        var result = _sut.RequiresPilotingSkillRoll(rollType);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(PilotingSkillRollType.GyroHit)]
+    [InlineData(PilotingSkillRollType.LowerLegActuatorHit)]
+    [InlineData(PilotingSkillRollType.HeavyDamage)]
+    [InlineData(PilotingSkillRollType.HipActuatorHit)]
+    [InlineData(PilotingSkillRollType.FootActuatorHit)]
+    [InlineData(PilotingSkillRollType.UpperLegActuatorHit)]
+    public void RequiresPilotingSkillRoll_NonAutoFallTypes_ShouldReturnTrue(PilotingSkillRollType rollType)
+    {
+        // Act
+        var result = _sut.RequiresPilotingSkillRoll(rollType);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Theory]
     [InlineData(1, HexDirection.Top, HexDirection.Top)] // Same direction
     [InlineData(2, HexDirection.Top, HexDirection.TopRight)] // 1 hexside right
     [InlineData(3, HexDirection.Top, HexDirection.BottomRight)] // 2 hexsides right
