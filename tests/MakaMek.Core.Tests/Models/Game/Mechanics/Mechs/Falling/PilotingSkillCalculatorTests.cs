@@ -755,5 +755,68 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // Total modifier should be +8 (5 + 2 + 1)
             result.ModifiedPilotingSkill.ShouldBe(result.BasePilotingSkill + 8);
         }
+
+        [Fact]
+        public void GetPsrBreakdown_PilotDamageFromFallOneLevel_AddsZeroValueModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new PilotDamageFromFallRollContext(1));
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.Count.ShouldBe(1);
+            result.Modifiers.ShouldContain(m => m is FallingLevelsModifier);
+            var fallingModifier = (FallingLevelsModifier)result.Modifiers.First(m => m is FallingLevelsModifier);
+            fallingModifier.Value.ShouldBe(0); // 1 level fallen means 0 modifier (Math.Max(0, 1-1))
+            fallingModifier.LevelsFallen.ShouldBe(1);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting); // No change to difficulty
+        }
+        
+        [Fact]
+        public void GetPsrBreakdown_PilotDamageFromFallTwoLevels_AddsOneValueModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new PilotDamageFromFallRollContext(2));
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.Count.ShouldBe(1);
+            result.Modifiers.ShouldContain(m => m is FallingLevelsModifier);
+            var fallingModifier = (FallingLevelsModifier)result.Modifiers.First(m => m is FallingLevelsModifier);
+            fallingModifier.Value.ShouldBe(1); // 2 levels fallen means 1 modifier (Math.Max(0, 2-1))
+            fallingModifier.LevelsFallen.ShouldBe(2);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + 1); // +1 difficulty
+        }
+        
+        [Fact]
+        public void GetPsrBreakdown_PilotDamageFromFallThreeLevels_AddsTwoValueModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new PilotDamageFromFallRollContext(3));
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.Count.ShouldBe(1);
+            result.Modifiers.ShouldContain(m => m is FallingLevelsModifier);
+            var fallingModifier = (FallingLevelsModifier)result.Modifiers.First(m => m is FallingLevelsModifier);
+            fallingModifier.Value.ShouldBe(2); // 3 levels fallen means 2 modifier (Math.Max(0, 3-1))
+            fallingModifier.LevelsFallen.ShouldBe(3);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + 2); // +2 difficulty
+        }
     }
 }
