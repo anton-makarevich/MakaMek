@@ -14,24 +14,33 @@ public partial class PilotingSkillRollContextTypeResolver : DefaultJsonTypeInfoR
     public const string TypeDiscriminatorPropertyName = "$type";
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        // Only handle the base PilotingSkillRollContext type for polymorphism configuration
-        if (type != typeof(PilotingSkillRollContext))
-            return null;
-
-        var jsonTypeInfo = base.GetTypeInfo(type, options);
-
-        // Configure polymorphic serialization for PilotingSkillRollContext
-        jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+        // Handle PilotingSkillRollContext base type and its derived types
+        if (type == typeof(PilotingSkillRollContext) || type.IsSubclassOf(typeof(PilotingSkillRollContext)))
         {
-            TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
-            IgnoreUnrecognizedTypeDiscriminators = false,
-            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
-        };
+            var jsonTypeInfo = base.GetTypeInfo(type, options);
 
-        // Call the generated method to register types found by the source generator
-        RegisterGeneratedTypes(jsonTypeInfo);
+            // Only configure polymorphism for the base type
+            if (type != typeof(PilotingSkillRollContext)) return jsonTypeInfo;
+            jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+            {
+                TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
+                IgnoreUnrecognizedTypeDiscriminators = false,
+                UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
+            };
 
-        return jsonTypeInfo;
+            // Call the generated method to register types found by the source generator
+            RegisterGeneratedTypes(jsonTypeInfo);
+
+            return jsonTypeInfo;
+        }
+
+        // Handle arrays of PilotingSkillRollContext
+        if (type.IsArray && type.GetElementType() == typeof(PilotingSkillRollContext))
+        {
+            return base.GetTypeInfo(type, options);
+        }
+
+        return null;
     }
     
     /// <summary>
