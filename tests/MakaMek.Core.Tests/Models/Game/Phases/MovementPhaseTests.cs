@@ -697,11 +697,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var fallDamageData = new FallingDamageData(
             HexDirection.Bottom,
             new HitLocationsData(
-                HitLocations: [new LocationHitData(
-                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], // Only armor damage
-                    [],
-                    [3, 4],
-                    PartLocation.CenterTorso)],
+                HitLocations:
+                [
+                    new LocationHitData(
+                        [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], // Only armor damage
+                        [],
+                        [3, 4],
+                        PartLocation.CenterTorso)
+                ],
                 TotalDamage: 5),
             new DiceResult(3),
             HitDirection.Front);
@@ -723,7 +726,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
+        Game.FallProcessor
+            .ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game)
+            .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -751,6 +756,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             Arg.Is<MechFallCommand>(cmd =>
                 cmd.UnitId == unit.Id &&
                 cmd.DamageData != null));
+    }
+
     [Fact]
     public void ProcessMoveCommand_ShouldProcessWaterEntry_AndTruncateOnFall()
     {
