@@ -61,7 +61,7 @@ public class MechStandUpCommandTests
             .Returns("{0} stood up {1}");
         
         // PSR rendering 
-        _localizationService.GetString("PilotingSkillRollType_StandUp").Returns("Stand Up");
+        _localizationService.GetString("PilotingSkillRollType_StandupAttempt").Returns("Stand Up");
         _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("{0} roll succeeded");
         _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("{0} roll failed");
         _localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll").Returns("{0} roll is impossible");
