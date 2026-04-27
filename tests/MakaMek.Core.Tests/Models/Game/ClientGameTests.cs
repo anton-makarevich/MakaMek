@@ -2353,7 +2353,7 @@ public class ClientGameTests
             DamageData = fallingDamageData,
             PilotDamagePilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.PilotDamageFromFall),
                 DiceResults = [3,3],
                 IsSuccessful = !takesDamage,
                 PsrBreakdown = new PsrBreakdown
@@ -2449,7 +2449,7 @@ public class ClientGameTests
             Timestamp = DateTime.UtcNow,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
                 DiceResults = [3,4],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown
