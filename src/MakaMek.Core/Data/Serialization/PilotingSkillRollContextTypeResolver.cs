@@ -14,8 +14,8 @@ public partial class PilotingSkillRollContextTypeResolver : DefaultJsonTypeInfoR
     public const string TypeDiscriminatorPropertyName = "$type";
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        // Only handle PilotingSkillRollContext and its derived types
-        if (type != typeof(PilotingSkillRollContext) && !typeof(PilotingSkillRollContext).IsAssignableFrom(type))
+        // Only handle the base PilotingSkillRollContext type for polymorphism configuration
+        if (type != typeof(PilotingSkillRollContext))
             return null;
 
         var jsonTypeInfo = base.GetTypeInfo(type, options);
