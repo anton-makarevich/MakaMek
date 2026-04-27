@@ -493,21 +493,14 @@ public class MovementState : IUiState
                 throw exception;
             }
 
-            if (!mech.CanStandup() || mech.GetMovementPoints(_selectedPath.MovementType) < 2)
+            if (!mech.CanStandup())
             {
                 _builder.SetMovementPath(_selectedPath);
                 CompleteMovement();
                 return;
             }
             
-            if (_selectedPath?.MovementType == null )
-            {
-                TransitionTo(new SelectingMovementTypeStep(this));
-                return;
-            }
-            
-            HighlightReachableHexes();
-            TransitionTo(new SelectingTargetHexStep(this));
+            TransitionTo(new SelectingMovementTypeStep(this));
         }
     }
 

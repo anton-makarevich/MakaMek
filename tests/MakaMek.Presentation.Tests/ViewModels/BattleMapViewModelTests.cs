@@ -2136,7 +2136,6 @@ public class BattleMapViewModelTests
         var actions = movementState.GetAvailableActions();
         actions.ShouldContain(a => a.Label.Contains("StayProne"));
     }
-    
 
     [Fact]
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
