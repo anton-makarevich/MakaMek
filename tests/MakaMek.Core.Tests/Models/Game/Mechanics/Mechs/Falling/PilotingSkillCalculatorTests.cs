@@ -818,5 +818,40 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             fallingModifier.LevelsFallen.ShouldBe(3);
             result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + 2); // +2 difficulty
         }
+        
+        [Fact]
+        public void GetPsrBreakdown_EnteringDeepWaterZeroDepth_NoWaterDepthModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new EnteringDeepWaterRollContext(0));
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.Count.ShouldBe(0); // No modifiers when water depth is 0
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting); // No change to difficulty
+        }
+        
+        [Fact]
+        public void GetPsrBreakdown_EnteringDeepDeepWater_AddsWaterDepthModifier()
+        {
+            // Arrange
+            _mockRulesProvider.GetWaterDepthModifier(1).Returns(0);
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new EnteringDeepWaterRollContext(1));
+
+            // Assert
+            result.Modifiers.Count.ShouldBe(1);
+            var enterWaterModifier = result.Modifiers[0] as WaterDepthModifier;
+            enterWaterModifier!.Value.ShouldBe(0);
+        }
     }
 }
