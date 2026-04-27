@@ -128,8 +128,7 @@ public class FallProcessor : IFallProcessor
                 var pilotDamageContext = new PilotDamageFromFallRollContext(LevelsFallen: 0);
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
 
-                if (pilotPsrBreakdown.Modifiers.Any())
-                    pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
+                pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
             }
 
             var fallingDamageData = isFallingNow
