@@ -45,18 +45,12 @@ public class PilotingSkillRollContextTypeResolverGenerator : IIncrementalGenerat
         if (typeSymbol is null || typeSymbol.IsAbstract)
             return null;
 
-        // Only consider records that might be related to PilotingSkillRollContext
-        var fullName = typeSymbol.ToDisplayString();
-        if (fullName.Contains("PilotingSkillRollContext"))
-        {
-            return new TypeInfo(
-                typeSymbol.Name,
-                typeSymbol.ContainingNamespace.ToDisplayString(),
-                typeSymbol.ToDisplayString(),
-                typeSymbol);
-        }
-
-        return null;
+        // Return all non-abstract record declarations; Execute's InheritsFrom is the authoritative gatekeeper
+        return new TypeInfo(
+            typeSymbol.Name,
+            typeSymbol.ContainingNamespace.ToDisplayString(),
+            typeSymbol.ToDisplayString(),
+            typeSymbol);
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<TypeInfo> types, SourceProductionContext context)
