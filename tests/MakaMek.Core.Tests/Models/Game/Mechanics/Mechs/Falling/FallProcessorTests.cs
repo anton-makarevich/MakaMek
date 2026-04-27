@@ -1127,8 +1127,7 @@ public class FallProcessorTests
                 Arg.Any<PsrBreakdown>(),
                 Arg.Any<Unit>(),
                 Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == rollType))
-            .Returns(
-            new PilotingSkillRollData
+            .Returns(call => new PilotingSkillRollData
             {
                 DiceResults = [2, 2],
                 IsSuccessful = isSuccessful,
@@ -1137,7 +1136,7 @@ public class FallProcessorTests
                     BasePilotingSkill = 4,
                     Modifiers = []
                 },
-                RollContext = new PilotingSkillRollContext(rollType)
+                RollContext = call.Arg<PilotingSkillRollContext>()
             });
     }
 
