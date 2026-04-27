@@ -6,7 +6,9 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -35,19 +37,82 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
     }
 
+    private List<(int SegmentIndex, int WaterDepth)> FindWaterEntrySegments(IReadOnlyList<PathSegmentData> movementPath)
+    {
+        var entries = new List<(int SegmentIndex, int WaterDepth)>();
+        for (var i = 0; i < movementPath.Count; i++)
+        {
+            var segment = movementPath[i];
+            if (segment.From.Coordinates == segment.To.Coordinates) continue;
+            
+            var destinationHex = Game.BattleMap?.GetHex(new HexCoordinates(segment.To.Coordinates));
+            if (destinationHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height : <= -1 } water)
+            {
+                entries.Add((i, -1*water.Height));
+            }
+        }
+        return entries;
+    }
+
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         // Find the unit
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
 
+        if (unit != null && moveCommand.MovementType != MovementType.Jump)
+        {
+            var waterEntries = FindWaterEntrySegments(moveCommand.MovementPath);
+            foreach (var entry in waterEntries)
+            {
+                var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
+                    unit, new EnteringDeepWaterRollContext(entry.WaterDepth), Game);
+                    
+                if (fallContextData.IsFalling)
+                {
+                    var truncatedSegments = moveCommand.MovementPath.Take(entry.SegmentIndex + 1).ToList();
+                    var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
+                    var truncatedCommand = moveCommand with { MovementPath = truncatedPath.ToData() };
+                    
+                    Game.OnMoveUnit(truncatedCommand);
+                    var broadcastCommand = truncatedCommand with { GameOriginId = Game.Id };
+                    Game.CommandPublisher.PublishCommand(broadcastCommand);
+                    
+                    var fallCommand = fallContextData.ToMechFallCommand();
+                    ProcessFallCommand(fallCommand, unit);
+                    return;
+                }
+            }
+        }
+
         Game.OnMoveUnit(moveCommand);
-        var broadcastCommand = moveCommand with { GameOriginId = Game.Id };
-        Game.CommandPublisher.PublishCommand(broadcastCommand);
+        var fullBroadcastCommand = moveCommand with { GameOriginId = Game.Id };
+        Game.CommandPublisher.PublishCommand(fullBroadcastCommand);
         
-        // Check if PSR is required for jumping with damaged gyro
-        if (unit?.IsPsrForJumpRequired() != true || moveCommand.MovementType != MovementType.Jump) return;
-        ProcessJumpWithDamage(unit);
+        if (unit != null && moveCommand.MovementType == MovementType.Jump)
+        {
+            var fell = false;
+            if (unit.IsPsrForJumpRequired())
+            {
+                fell = ProcessJumpWithDamage(unit);
+            }
+            
+            if (!fell && moveCommand.MovementPath.Count > 0)
+            {
+                var lastSegment = moveCommand.MovementPath.Last();
+                var destHex = Game.BattleMap?.GetHex(new HexCoordinates(lastSegment.To.Coordinates));
+                if (destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= 1 } water)
+                {
+                    var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
+                        unit, new EnteringDeepWaterRollContext(-1*water.Height), Game);
+                    if (fallContextData.IsFalling)
+                    {
+                        var fallCommand = fallContextData.ToMechFallCommand();
+                        ProcessFallCommand(fallCommand, unit);
+                    }
+                }
+            }
+        }
     }
 
     private void ProcessStandupCommand(TryStandupCommand tryStandUpCommand)
@@ -92,17 +157,18 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
     }
 
-    private void ProcessJumpWithDamage(Unit? unit)
+    private bool ProcessJumpWithDamage(Unit? unit)
     {
         // Use the FallProcessor to process the jump attempt with damaged gyro
-        if (unit is not Mech mech) return;
+        if (unit is not Mech mech) return false;
         var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
             mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game);
         
-        if (!fallContextData.IsFalling) return;
+        if (!fallContextData.IsFalling) return false;
         // Jump failed - create and publish a fall command
         var fallCommand = fallContextData.ToMechFallCommand();
         ProcessFallCommand(fallCommand, mech);
+        return true;
     }
     
     private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech)
