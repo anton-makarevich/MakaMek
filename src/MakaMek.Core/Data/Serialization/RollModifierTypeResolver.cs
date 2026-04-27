@@ -14,24 +14,33 @@ public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
     public const string TypeDiscriminatorPropertyName = "$type";
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        // Only handle the base RollModifier type for polymorphism configuration
-        if (type != typeof(RollModifier))
-            return null;
-
-        var jsonTypeInfo = base.GetTypeInfo(type, options);
-
-        // Configure polymorphic serialization for RollModifier
-        jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+        // Handle RollModifier base type and its derived types
+        if (type == typeof(RollModifier) || type.IsSubclassOf(typeof(RollModifier)))
         {
-            TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
-            IgnoreUnrecognizedTypeDiscriminators = false,
-            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
-        };
+            var jsonTypeInfo = base.GetTypeInfo(type, options);
 
-        // Call the generated method to register types found by the source generator
-        RegisterGeneratedTypes(jsonTypeInfo);
+            // Only configure polymorphism for the base type
+            if (type != typeof(RollModifier)) return jsonTypeInfo;
+            jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+            {
+                TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
+                IgnoreUnrecognizedTypeDiscriminators = false,
+                UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
+            };
 
-        return jsonTypeInfo;
+            // Call the generated method to register types found by the source generator
+            RegisterGeneratedTypes(jsonTypeInfo);
+
+            return jsonTypeInfo;
+        }
+
+        // Handle arrays of RollModifier
+        if (type.IsArray && type.GetElementType() == typeof(RollModifier))
+        {
+            return base.GetTypeInfo(type, options);
+        }
+
+        return null;
     }
     
     /// <summary>
