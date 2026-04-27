@@ -43,7 +43,7 @@ public class PilotingSkillRollContextTypeResolverTests
         var typeInfo = sut.GetTypeInfo(typeof(PilotingSkillRollContext), _options);
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.DerivedTypes.ShouldNotBeEmpty();
         
         // Check for specific known types
@@ -72,7 +72,7 @@ public class PilotingSkillRollContextTypeResolverTests
             .ToList();
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         
         // The number of registered types should match the number of derived types
         typeInfo.PolymorphismOptions.DerivedTypes.Count.ShouldBeGreaterThanOrEqualTo(derivedTypes.Count);
@@ -155,7 +155,7 @@ public class PilotingSkillRollContextTypeResolverTests
     public void Should_Deserialize_Array_Of_PilotingSkillRollContexts()
     {
         // Arrange
-        var contexts = new PilotingSkillRollContext[]
+        var contexts = new[]
         {
             new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
             new EnteringDeepWaterRollContext(2),

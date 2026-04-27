@@ -9,18 +9,23 @@ namespace Sanet.MakaMek.Core.Data.Serialization;
 /// Custom type resolver for PilotingSkillRollContext and its derived types
 /// Enables proper serialization/deserialization of PilotingSkillRollContext records
 /// </summary>
-public partial class PilotingSkillRollContextTypeResolver : DefaultJsonTypeInfoResolver
+public partial class PilotingSkillRollContextTypeResolver : IJsonTypeInfoResolver
 {
+    private readonly DefaultJsonTypeInfoResolver _default = new();
+    
     public const string TypeDiscriminatorPropertyName = "$type";
-    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+    
+    public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        // Handle PilotingSkillRollContext base type and its derived types
-        if (type == typeof(PilotingSkillRollContext) || type.IsSubclassOf(typeof(PilotingSkillRollContext)))
-        {
-            var jsonTypeInfo = base.GetTypeInfo(type, options);
+        if (type != typeof(PilotingSkillRollContext)
+            && !type.IsSubclassOf(typeof(PilotingSkillRollContext))
+            && !(type.IsArray && type.GetElementType() == typeof(PilotingSkillRollContext)))
+            return null;
 
-            // Only configure polymorphism for the base type
-            if (type != typeof(PilotingSkillRollContext)) return jsonTypeInfo;
+        var jsonTypeInfo = _default.GetTypeInfo(type, options);
+
+        if (type == typeof(PilotingSkillRollContext))
+        {
             jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
             {
                 TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
@@ -28,24 +33,11 @@ public partial class PilotingSkillRollContextTypeResolver : DefaultJsonTypeInfoR
                 UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
             };
 
-            // Call the generated method to register types found by the source generator
             RegisterGeneratedTypes(jsonTypeInfo);
-
-            return jsonTypeInfo;
         }
 
-        // Handle arrays of PilotingSkillRollContext
-        if (type.IsArray && type.GetElementType() == typeof(PilotingSkillRollContext))
-        {
-            return base.GetTypeInfo(type, options);
-        }
-
-        return null;
+        return jsonTypeInfo;
     }
-    
-    /// <summary>
-    /// Registers additional PilotingSkillRollContext derived types found by the source generator
-    /// This method is implemented by the source generator
-    /// </summary>
+
     static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo);
 }
