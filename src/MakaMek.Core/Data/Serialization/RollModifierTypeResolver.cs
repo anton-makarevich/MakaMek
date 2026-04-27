@@ -9,18 +9,24 @@ namespace Sanet.MakaMek.Core.Data.Serialization;
 /// Custom type resolver for RollModifier and its derived types
 /// Enables proper serialization/deserialization of abstract RollModifier class
 /// </summary>
-public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
+public partial class RollModifierTypeResolver : IJsonTypeInfoResolver
 {
-    public const string TypeDiscriminatorPropertyName = "$type";
-    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
-    {
-        // Handle RollModifier base type and its derived types
-        if (type == typeof(RollModifier) || type.IsSubclassOf(typeof(RollModifier)))
-        {
-            var jsonTypeInfo = base.GetTypeInfo(type, options);
+    private readonly DefaultJsonTypeInfoResolver _default = new();
 
-            // Only configure polymorphism for the base type
-            if (type != typeof(RollModifier)) return jsonTypeInfo;
+    private const string TypeDiscriminatorPropertyName = "$type";
+
+    public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
+    {
+        // Only handle RollModifier, its derived types, and arrays of RollModifier
+        if (type != typeof(RollModifier)
+            && !type.IsSubclassOf(typeof(RollModifier))
+            && !(type.IsArray && type.GetElementType() == typeof(RollModifier)))
+            return null;
+
+        var jsonTypeInfo = _default.GetTypeInfo(type, options);
+
+        if (type == typeof(RollModifier))
+        {
             jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
             {
                 TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
@@ -28,24 +34,11 @@ public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
                 UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
             };
 
-            // Call the generated method to register types found by the source generator
             RegisterGeneratedTypes(jsonTypeInfo);
-
-            return jsonTypeInfo;
         }
 
-        // Handle arrays of RollModifier
-        if (type.IsArray && type.GetElementType() == typeof(RollModifier))
-        {
-            return base.GetTypeInfo(type, options);
-        }
-
-        return null;
+        return jsonTypeInfo;
     }
-    
-    /// <summary>
-    /// Registers additional RollModifier derived types found by the source generator
-    /// This method is implemented by the source generator
-    /// </summary>
+
     static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo);
 }

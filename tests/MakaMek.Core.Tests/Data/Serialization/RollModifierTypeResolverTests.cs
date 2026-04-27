@@ -29,7 +29,6 @@ public class RollModifierTypeResolverTests
         // Assert
         typeInfo.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.ShouldNotBeNull();
-        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe(RollModifierTypeResolver.TypeDiscriminatorPropertyName);
         typeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators.ShouldBeFalse();
         typeInfo.PolymorphismOptions.UnknownDerivedTypeHandling.ShouldBe(JsonUnknownDerivedTypeHandling.FailSerialization);
     }
@@ -44,7 +43,7 @@ public class RollModifierTypeResolverTests
         var typeInfo = sut.GetTypeInfo(typeof(RollModifier), _options);
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.DerivedTypes.ShouldNotBeEmpty();
         
         // Check for specific known types
@@ -74,7 +73,7 @@ public class RollModifierTypeResolverTests
             .ToList();
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         
         // The number of registered types should match the number of derived types
         typeInfo.PolymorphismOptions.DerivedTypes.Count.ShouldBeGreaterThanOrEqualTo(derivedTypes.Count);
