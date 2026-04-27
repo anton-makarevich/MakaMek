@@ -46,11 +46,11 @@ public class PilotingSkillRollContextTypeResolverGenerator : IIncrementalGenerat
             return null;
 
         // Return all non-abstract record declarations; Execute's InheritsFrom is the authoritative gatekeeper
+        // Store only string metadata to avoid caching compilation-specific symbols
         return new TypeInfo(
             typeSymbol.Name,
             typeSymbol.ContainingNamespace.ToDisplayString(),
-            typeSymbol.ToDisplayString(),
-            typeSymbol);
+            typeSymbol.ToDisplayString());
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<TypeInfo> types, SourceProductionContext context)
@@ -73,7 +73,9 @@ public class PilotingSkillRollContextTypeResolverGenerator : IIncrementalGenerat
 
             foreach (var typeInfo in types)
             {
-                if (InheritsFrom(typeInfo.Symbol, pilotingSkillRollContextSymbol))
+                // Resolve the symbol from the current compilation to ensure proper incremental invalidation
+                var typeSymbol = compilation.GetTypeByMetadataName(typeInfo.FullName);
+                if (typeSymbol is not null && InheritsFrom(typeSymbol, pilotingSkillRollContextSymbol))
                 {
                     derivedTypes.Add(typeInfo);
                 }
@@ -101,12 +103,11 @@ public class PilotingSkillRollContextTypeResolverGenerator : IIncrementalGenerat
         }
     }
 
-    private class TypeInfo(string name, string ns, string fullName, INamedTypeSymbol symbol)
+    private class TypeInfo(string name, string ns, string fullName)
     {
         public string Name { get; } = name;
         public string Namespace { get; } = ns;
         public string FullName { get; } = fullName;
-        public INamedTypeSymbol Symbol { get; } = symbol;
     }
 
     private static bool InheritsFrom(INamedTypeSymbol typeSymbol, INamedTypeSymbol baseTypeSymbol)
