@@ -1831,10 +1831,10 @@ public class MovementStateTests
         // Deploy the mech so it has a valid position
         mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
         mech.SetProne();
-        
+
         // Ensure mech can stand up (it is by default if not shutdown/destroyed/etc and has MPs)
         mech.CanStandup().ShouldBeTrue();
-        
+
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
 
@@ -1843,6 +1843,8 @@ public class MovementStateTests
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
     [Fact]
     public void ResumeMovementAfterFall_ShouldLockMovementType_WhenMpSufficient()
     {

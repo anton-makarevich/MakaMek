@@ -762,22 +762,13 @@ public class MovementPhaseTests : GamePhaseTestsBase
     public void ProcessMoveCommand_ShouldProcessWaterEntry_AndTruncateOnFall()
     {
         // Arrange
+        SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
 
-        var waterHex = new Hex(new HexCoordinates(2, 2)) { Terrain = new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain { Depth = 1 } };
-        // If map is a real object, we might need to overwrite the hex or mock it.
-        // Assuming Game.BattleMap is mocked in the base test, let's mock the hex:
-        var originalHex = Game.BattleMap?.GetHex(new HexCoordinates(2, 2));
-        if (originalHex != null)
-        {
-            originalHex.Terrain = new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain { Depth = 1 };
-        }
-        else if (Game.BattleMap != null)
-        {
-            Game.BattleMap.GetHex(new HexCoordinates(2, 2)).Returns(waterHex);
-        }
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
 
         var moveCommand = new MoveUnitCommand
         {
@@ -819,7 +810,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => 
-            cmd.UnitId == _unit1Id && cmd.MovementPath.Length == 1 && cmd.MovementPath[0].To.Coordinates.X == 2));
+            cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.MovementPath[0].To.Coordinates.Q == 2));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
     }
 
@@ -827,20 +818,13 @@ public class MovementPhaseTests : GamePhaseTestsBase
     public void ProcessMoveCommand_ShouldProcessJumpWaterEntry()
     {
         // Arrange
+        SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
 
-        var waterHex = new Hex(new HexCoordinates(3, 2)) { Terrain = new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain { Depth = 1 } };
-        var originalHex = Game.BattleMap?.GetHex(new HexCoordinates(3, 2));
-        if (originalHex != null)
-        {
-            originalHex.Terrain = new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain { Depth = 1 };
-        }
-        else if (Game.BattleMap != null)
-        {
-            Game.BattleMap.GetHex(new HexCoordinates(3, 2)).Returns(waterHex);
-        }
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
 
         var moveCommand = new MoveUnitCommand
         {
@@ -880,7 +864,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(moveCommand);
 
         // Assert
-        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Length == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
     }
 }
