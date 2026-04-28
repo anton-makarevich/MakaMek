@@ -101,7 +101,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             {
                 var lastSegment = moveCommand.MovementPath.Last();
                 var destHex = Game.BattleMap?.GetHex(new HexCoordinates(lastSegment.To.Coordinates));
-                if (destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= 1 } water)
+                if (destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
                 {
                     var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
                         unit, new EnteringDeepWaterRollContext(-1*water.Height), Game);
