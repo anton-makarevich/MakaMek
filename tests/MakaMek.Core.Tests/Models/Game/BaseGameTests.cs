@@ -1584,6 +1584,50 @@ public class BaseGameTests : BaseGame
         mech.StandupAttempts.ShouldBe(1);
     }
 
+    [Fact]
+    public void OnMechFalling_ShouldNotCallAttemptStandup_WhenRollTypeIsNotStandupAttempt()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        mech.SetProne(HexDirection.Bottom);
+        mech.StandupAttempts.ShouldBe(0);
+        
+        var command = new MechFallCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech.Id,
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.HeavyDamage),
+                DiceResults = [2,2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 0,
+                    Modifiers = []
+                }
+            },
+            DamageData = null
+        };
+
+        // Act
+        OnMechFalling(command);
+
+        // Assert - AttemptStandup was NOT invoked: standup attempts counter remains 0
+        mech.StandupAttempts.ShouldBe(0);
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
         // No-op for tests unless mocked
