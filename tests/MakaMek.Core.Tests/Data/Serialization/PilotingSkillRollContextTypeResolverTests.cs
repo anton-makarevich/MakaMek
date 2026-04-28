@@ -74,8 +74,8 @@ public class PilotingSkillRollContextTypeResolverTests
         // Assert
         typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         
-        // The number of registered types should match the number of derived types
-        typeInfo.PolymorphismOptions.DerivedTypes.Count.ShouldBeGreaterThanOrEqualTo(derivedTypes.Count);
+        // The number of registered types should match the number of derived types exactly
+        typeInfo.PolymorphismOptions.DerivedTypes.Count.ShouldBe(derivedTypes.Count);
         
         // All derived types should be registered
         foreach (var derivedType in derivedTypes)
