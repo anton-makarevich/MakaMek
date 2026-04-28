@@ -32,6 +32,7 @@ public class RollModifierTypeResolverTests
         // Assert
         typeInfo.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe("$type");
         typeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators.ShouldBeFalse();
         typeInfo.PolymorphismOptions.UnknownDerivedTypeHandling.ShouldBe(JsonUnknownDerivedTypeHandling.FailSerialization);
     }
