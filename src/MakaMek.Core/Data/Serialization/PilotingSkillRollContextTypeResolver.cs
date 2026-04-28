@@ -1,31 +1,30 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 
 namespace Sanet.MakaMek.Core.Data.Serialization;
 
 /// <summary>
-/// Custom type resolver for RollModifier and its derived types
-/// Enables proper serialization/deserialization of abstract RollModifier class
+/// Custom type resolver for PilotingSkillRollContext and its derived types
+/// Enables proper serialization/deserialization of PilotingSkillRollContext records
 /// </summary>
-public partial class RollModifierTypeResolver : IJsonTypeInfoResolver
+public partial class PilotingSkillRollContextTypeResolver : IJsonTypeInfoResolver
 {
     private readonly DefaultJsonTypeInfoResolver _default = new();
-
-    private const string TypeDiscriminatorPropertyName = "$type";
-
+    
+    public const string TypeDiscriminatorPropertyName = "$type";
+    
     public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        // Only handle RollModifier, its derived types, and arrays of RollModifier
-        if (type != typeof(RollModifier)
-            && !type.IsSubclassOf(typeof(RollModifier))
-            && !(type.IsArray && type.GetElementType() == typeof(RollModifier)))
+        if (type != typeof(PilotingSkillRollContext)
+            && !type.IsSubclassOf(typeof(PilotingSkillRollContext))
+            && !(type.IsArray && type.GetElementType() == typeof(PilotingSkillRollContext)))
             return null;
 
         var jsonTypeInfo = _default.GetTypeInfo(type, options);
 
-        if (type == typeof(RollModifier))
+        if (type == typeof(PilotingSkillRollContext))
         {
             jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
             {

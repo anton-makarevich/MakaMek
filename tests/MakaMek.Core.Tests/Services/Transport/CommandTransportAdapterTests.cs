@@ -12,6 +12,11 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
@@ -627,5 +632,88 @@ public class CommandTransportAdapterTests
 
         // Verify we tested at least some commands
         allCommandTypes.Count.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void MechStandUpCommand_WithPolymorphicPilotingSkillRollData_RoundTripsCorrectly()
+    {
+        // Arrange
+        SetupAdapter();
+        TransportMessage? capturedMessage = null;
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(ci => capturedMessage = ci.Arg<TransportMessage>());
+
+        // Create a PilotingSkillRollContext with a concrete type (EnteringDeepWaterRollContext)
+        var rollContext = new EnteringDeepWaterRollContext(WaterDepth: 2);
+
+        // Create RollModifier instances with concrete types (DamagedGyroModifier and FallingLevelsModifier)
+        var modifiers = new List<RollModifier>
+        {
+            new DamagedGyroModifier { Value = 2, HitsCount = 1 },
+            new FallingLevelsModifier { Value = 1, LevelsFallen = 3 }
+        };
+
+        // Create a PsrBreakdown with the modifiers
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = modifiers
+        };
+
+        // Create PilotingSkillRollData with the context and breakdown
+        var pilotingSkillRollData = new PilotingSkillRollData
+        {
+            RollContext = rollContext,
+            DiceResults = [5, 3],
+            IsSuccessful = true,
+            PsrBreakdown = psrBreakdown
+        };
+
+        // Create MechStandUpCommand with the piloting skill roll data
+        var standUpCommand = new MechStandUpCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            UnitId = Guid.NewGuid(),
+            PilotingSkillRoll = pilotingSkillRollData,
+            NewFacing = HexDirection.Top
+        };
+
+        // Act - Publish the command
+        _sut.PublishCommand(standUpCommand);
+
+        // Assert serialization captured the message
+        capturedMessage.ShouldNotBeNull();
+
+        // Act - Deserialize the command back
+        var roundTripped = (MechStandUpCommand)_sut.DeserializeCommand(capturedMessage!);
+
+        // Assert - Verify the deserialized command retains all data
+        roundTripped.UnitId.ShouldBe(standUpCommand.UnitId);
+        roundTripped.NewFacing.ShouldBe(standUpCommand.NewFacing);
+
+        // Verify PilotingSkillRollContext polymorphic type is preserved
+        roundTripped.PilotingSkillRoll.RollContext.ShouldNotBeNull();
+        roundTripped.PilotingSkillRoll.RollContext.ShouldBeOfType<EnteringDeepWaterRollContext>();
+        var roundTrippedContext = (EnteringDeepWaterRollContext)roundTripped.PilotingSkillRoll.RollContext;
+        roundTrippedContext.WaterDepth.ShouldBe(2);
+
+        // Verify RollModifier polymorphic types are preserved
+        roundTripped.PilotingSkillRoll.PsrBreakdown.Modifiers.Count.ShouldBe(2);
+        roundTripped.PilotingSkillRoll.PsrBreakdown.Modifiers[0].ShouldBeOfType<DamagedGyroModifier>();
+        var roundTrippedGyroModifier = (DamagedGyroModifier)roundTripped.PilotingSkillRoll.PsrBreakdown.Modifiers[0];
+        roundTrippedGyroModifier.Value.ShouldBe(2);
+        roundTrippedGyroModifier.HitsCount.ShouldBe(1);
+
+        roundTripped.PilotingSkillRoll.PsrBreakdown.Modifiers[1].ShouldBeOfType<FallingLevelsModifier>();
+        var roundTrippedFallingModifier = (FallingLevelsModifier)roundTripped.PilotingSkillRoll.PsrBreakdown.Modifiers[1];
+        roundTrippedFallingModifier.Value.ShouldBe(1);
+        roundTrippedFallingModifier.LevelsFallen.ShouldBe(3);
+
+        // Verify other PilotingSkillRollData properties
+        roundTripped.PilotingSkillRoll.DiceResults.ShouldBeEquivalentTo(standUpCommand.PilotingSkillRoll.DiceResults);
+        roundTripped.PilotingSkillRoll.IsSuccessful.ShouldBe(standUpCommand.PilotingSkillRoll.IsSuccessful);
+        roundTripped.PilotingSkillRoll.PsrBreakdown.BasePilotingSkill.ShouldBe(4);
+        roundTripped.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7); // 4 + 2 + 1
     }
 }

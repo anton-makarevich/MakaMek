@@ -162,6 +162,9 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_LegDestroyed", "Leg Destroyed")]
     [InlineData("PilotingSkillRollType_StandupAttempt", "Standup Attempt")]
     [InlineData("PilotingSkillRollType_JumpWithDamage", "Jump with damage")]
+    [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
+    [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
+    [InlineData("PilotingSkillRollType_PilotDamageFromFall_WithLevels", "{0} ({1} levels)")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]
@@ -189,6 +192,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_LowerArmActuatorHit", "{0} Lower Arm Actuator Destroyed: +{1}")]
     [InlineData("Modifier_ProneFiring", "Prone Firing: +{0}")]
     [InlineData("Modifier_PartialCover", "Partial Cover: +{0}")]
+    [InlineData("Modifier_WaterDepth", "Water Depth ({0}): {1}")]
     [InlineData("WeaponRestriction_NotAvailable", "Weapon not available")]
     [InlineData("WeaponRestriction_PartialCoverLegs", "Cannot fire leg weapons while in partial cover")]
     [InlineData("WeaponRestriction_ProneLegs", "Cannot fire leg weapons while prone")]

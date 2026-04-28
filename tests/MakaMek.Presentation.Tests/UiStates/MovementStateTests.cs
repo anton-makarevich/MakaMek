@@ -4,6 +4,7 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -410,7 +411,7 @@ public class MovementStateTests
         unit!.Deploy(position);
         unit.AssignPilot(_pilot);
         unit.SetProne();
-        _pilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -717,7 +718,7 @@ public class MovementStateTests
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var proneMech = _battleMapViewModel.Units.First() as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -783,7 +784,7 @@ public class MovementStateTests
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var proneMech = _battleMapViewModel.Units.First() as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -926,7 +927,7 @@ public class MovementStateTests
     {
         // Arrange
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -981,7 +982,7 @@ public class MovementStateTests
     {
         // Arrange
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1005,7 +1006,7 @@ public class MovementStateTests
     public void GetAvailableActions_ProneMech_CannotStandup_StillHasStayProneAction()
     {
         // Arrange
-        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1232,7 +1233,7 @@ public class MovementStateTests
         unit!.Deploy(position);
         unit.AssignPilot(_pilot);
         unit.SetProne();
-        _pilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1257,7 +1258,7 @@ public class MovementStateTests
 
         // Set up a prone Mech
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1284,7 +1285,7 @@ public class MovementStateTests
 
         // Set up a prone Mech
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1366,7 +1367,7 @@ public class MovementStateTests
         };
 
         _pilotingSkillCalculator
-            .GetPsrBreakdown(mech, PilotingSkillRollType.JumpWithDamage)
+            .GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage))
             .Returns(psrBreakdown);
 
         // Act
@@ -1386,7 +1387,7 @@ public class MovementStateTests
         // Arrange
         _unit1.Deploy(new HexPosition(1,1,HexDirection.Bottom));
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1415,7 +1416,7 @@ public class MovementStateTests
         var proneMech = _unit1 as Mech;
 
         // Set up piloting skill calculator mock
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1460,7 +1461,7 @@ public class MovementStateTests
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         _unit1.Deploy(position);
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1490,7 +1491,7 @@ public class MovementStateTests
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         _unit1.Deploy(position);
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1519,7 +1520,7 @@ public class MovementStateTests
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         _unit1.Deploy(position);
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1733,7 +1734,7 @@ public class MovementStateTests
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var proneMech = _battleMapViewModel.Units.First() as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1830,10 +1831,10 @@ public class MovementStateTests
         // Deploy the mech so it has a valid position
         mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
         mech.SetProne();
-        
+
         // Ensure mech can stand up (it is by default if not shutdown/destroyed/etc and has MPs)
         mech.CanStandup().ShouldBeTrue();
-        
+
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
 

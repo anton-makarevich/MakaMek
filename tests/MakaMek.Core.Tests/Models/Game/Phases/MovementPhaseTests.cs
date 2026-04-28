@@ -3,9 +3,9 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
@@ -195,25 +195,24 @@ public class MovementPhaseTests : GamePhaseTestsBase
         
         var successfulPsrData = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [3, 3],
             IsSuccessful = true,
             PsrBreakdown = psrBreakdown
         };
-        
+
         var successfulStandupData = new FallContextData
         {
             UnitId = unit.Id,
             GameId = Game.Id,
             IsFalling = false, // Not falling = successful standup
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = successfulPsrData,
             LevelsFallen = 0,
             WasJumping = false
         };
-        
+
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(successfulStandupData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
         
@@ -254,25 +253,24 @@ public class MovementPhaseTests : GamePhaseTestsBase
         
         var failedPsrData = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [1, 1],
             IsSuccessful = false,
             PsrBreakdown = psrBreakdown
         };
-        
+
         var fallContextData = new FallContextData
         {
             UnitId = unit.Id,
             GameId = Game.Id,
             IsFalling = true, // failed standup
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = failedPsrData,
             LevelsFallen = 0,
             WasJumping = false
         };
-        
+
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -313,25 +311,24 @@ public class MovementPhaseTests : GamePhaseTestsBase
         
         var failedPsrData = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
             DiceResults = [1, 1],
             IsSuccessful = false,
             PsrBreakdown = psrBreakdown
         };
-        
+
         var fallContextData = new FallContextData
         {
             UnitId = unit.Id,
             GameId = Game.Id,
             IsFalling = true, // failed standup
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = failedPsrData,
             LevelsFallen = 0,
             WasJumping = false
         };
-        
+
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
 
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
@@ -439,17 +436,16 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             GameId = Game.Id,
             IsFalling = false,
-            ReasonType = FallReasonType.JumpWithDamage,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.JumpWithDamage,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
                 DiceResults = [6, 6],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(successfulFallContext);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(successfulFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -490,10 +486,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             GameId = Game.Id,
             IsFalling = true,
-            ReasonType = FallReasonType.JumpWithDamage,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.JumpWithDamage,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -505,7 +500,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -547,10 +542,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             GameId = Game.Id,
             IsFalling = true,
-            ReasonType = FallReasonType.JumpWithDamage,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.JumpWithDamage,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -562,7 +556,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -626,10 +620,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = unit.Id,
             GameId = Game.Id,
             IsFalling = true,
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.StandupAttempt,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
                 DiceResults = [1, 1],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -639,7 +632,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
 
         // Setup critical hits calculator to return critical hits for fall damage
         var fallCriticalHitsCommand = new CriticalHitsResolutionCommand
@@ -704,11 +697,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var fallDamageData = new FallingDamageData(
             HexDirection.Bottom,
             new HitLocationsData(
-                HitLocations: [new LocationHitData(
-                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], // Only armor damage
-                    [],
-                    [3, 4],
-                    PartLocation.CenterTorso)],
+                HitLocations:
+                [
+                    new LocationHitData(
+                        [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], // Only armor damage
+                        [],
+                        [3, 4],
+                        PartLocation.CenterTorso)
+                ],
                 TotalDamage: 5),
             new DiceResult(3),
             HitDirection.Front);
@@ -718,10 +714,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = unit.Id,
             GameId = Game.Id,
             IsFalling = true,
-            ReasonType = FallReasonType.StandUpAttempt,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.StandupAttempt,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
                 DiceResults = [1, 1],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -731,7 +726,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+        Game.FallProcessor
+            .ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game)
+            .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -759,5 +756,115 @@ public class MovementPhaseTests : GamePhaseTestsBase
             Arg.Is<MechFallCommand>(cmd =>
                 cmd.UnitId == unit.Id &&
                 cmd.DamageData != null));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldProcessWaterEntry_AndTruncateOnFall()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => 
+            cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.MovementPath[0].To.Coordinates.Q == 2));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldProcessJumpWaterEntry()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 2).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
     }
 }

@@ -91,6 +91,14 @@ public interface IRulesProvider
 
     int GetPilotingSkillRollModifier(PilotingSkillRollType psrType);
 
+    /// <summary>
+    /// Determines whether a PSR is required for the given roll type,
+    /// or if it results in an automatic fall (e.g. GyroDestroyed, LegDestroyed).
+    /// </summary>
+    /// <param name="rollType">The piloting skill roll type to check</param>
+    /// <returns>True if a PSR roll is required; false if it is an automatic fall</returns>
+    bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType);
+
     int GetHeavyDamageThreshold();
 
     /// <summary>
@@ -155,4 +163,16 @@ public interface IRulesProvider
     /// <param name="location">The hit location to check</param>
     /// <returns>True if the location can be covered by partial cover, false otherwise</returns>
     bool CanPartBeCovered(PartLocation location);
+
+    /// <summary>
+    /// Gets the piloting skill roll modifier based on water depth.
+    /// </summary>
+    /// <param name="waterDepth">The water depth level (1, 2, or 3+)</param>
+    /// <returns>
+    /// The modifier value:
+    /// - Depth 1: -1
+    /// - Depth 2: 0
+    /// - Depth 3+: +1
+    /// </returns>
+    int GetWaterDepthModifier(int waterDepth);
 }

@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
@@ -25,16 +26,20 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     }
     
     /// <summary>
-    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll with additional context
+    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll.
+    /// The context carries the roll type and any extra data (e.g. water depth, levels fallen).
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll</param>
-    /// <param name="rollType">The specific Piloting Skill Roll type to consider</param>
+    /// <param name="context">The piloting skill roll context</param>
     /// <param name="game">The game instance, used for accessing the map and other game state</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
     public PsrBreakdown GetPsrBreakdown(
-        Unit unit, 
-        PilotingSkillRollType rollType,
+        Unit unit,
+        PilotingSkillRollContext context,
         IGame? game = null)
+        => BuildPsrBreakdown(unit, context);
+
+    private PsrBreakdown BuildPsrBreakdown(Unit unit, PilotingSkillRollContext context)
     {
         if (unit.Pilot == null)
         {
@@ -49,12 +54,12 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             };
 
         var modifiers = new List<RollModifier>();
-        
+
         // Add standard modifiers
         modifiers.AddRange(GetStandardModifiers(mech));
-        
-        // Add special modifiers for specific roll types
-        modifiers.AddRange(GetModifiersForRoll(rollType));
+
+        // Add special modifiers derived from the context
+        modifiers.AddRange(GetModifiersForContext(context));
 
         return new PsrBreakdown
         {
@@ -68,9 +73,9 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// </summary>
     /// <param name="psrBreakdown">The PSR breakdown containing target number and modifiers</param>
     /// <param name="unit">The unit making the piloting skill roll</param>
-    /// <param name="rollType">The type of piloting skill roll</param>
+    /// <param name="context">The piloting skill roll context</param>
     /// <returns>Complete piloting skill roll data including dice results</returns>
-    public PilotingSkillRollData EvaluateRoll(PsrBreakdown psrBreakdown, Unit unit, PilotingSkillRollType rollType)
+    public PilotingSkillRollData EvaluateRoll(PsrBreakdown psrBreakdown, Unit unit, PilotingSkillRollContext context)
     {
         if (unit.Pilot == null)
         {
@@ -82,8 +87,8 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         {
             return new PilotingSkillRollData
             {
-                RollType = rollType,
-                DiceResults = [], 
+                RollContext = context,
+                DiceResults = [],
                 IsSuccessful = false,
                 PsrBreakdown = psrBreakdown
             };
@@ -96,7 +101,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         return new PilotingSkillRollData
         {
-            RollType = rollType,
+            RollContext = context,
             DiceResults = diceResults.Select(d => d.Result).ToArray(),
             IsSuccessful = isSuccessful,
             PsrBreakdown = psrBreakdown
@@ -211,21 +216,29 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     }
 
     /// <summary>
-    /// Gets special modifiers that apply only to specific roll types
+    /// Gets special modifiers derived from the roll context (e.g. water depth, levels fallen).
     /// </summary>
-    /// <param name="rollType">The specific roll type</param>
-    /// <returns>A collection of special roll modifiers for the specified roll type</returns>
-    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType)
+    /// <param name="context">The piloting skill roll context</param>
+    /// <returns>A collection of special roll modifiers for the given context</returns>
+    private IEnumerable<RollModifier> GetModifiersForContext(PilotingSkillRollContext context)
     {
         var modifiers = new List<RollModifier>();
-        if (rollType == PilotingSkillRollType.PilotDamageFromFall)
+        if (context is PilotDamageFromFallRollContext pilotDamageCtx)
         {
-            // Falling levels modifier
-            const int levelsFallen = 0; // TODO: Calculate levels fallen if game with map is provided
+            var levelsFallen = pilotDamageCtx.LevelsFallen;
             modifiers.Add(new FallingLevelsModifier
             {
-                Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
+                Value = Math.Max(0, levelsFallen - 1), // TODO move to rules provider
                 LevelsFallen = levelsFallen
+            }); 
+        }
+        else if (context is EnteringDeepWaterRollContext waterCtx && waterCtx.WaterDepth > 0)
+        {
+            // Water depth modifier: depth 1 = -1, depth 2 = 0, depth 3+ = +1
+            modifiers.Add(new WaterDepthModifier
+            {
+                Value = _rules.GetWaterDepthModifier(waterCtx.WaterDepth),
+                WaterDepth = waterCtx.WaterDepth
             });
         }
         return modifiers;

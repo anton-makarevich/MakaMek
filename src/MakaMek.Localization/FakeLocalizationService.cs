@@ -111,7 +111,10 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_LegDestroyed" => "Leg Destroyed",
             "PilotingSkillRollType_StandupAttempt" => "Standup Attempt",
             "PilotingSkillRollType_JumpWithDamage" => "Jump with damage",
-            
+            "PilotingSkillRollType_WaterEntry" => "Water Entry",
+            "PilotingSkillRollType_WaterEntry_WithDepth" => "{0} (Depth {1})",
+            "PilotingSkillRollType_PilotDamageFromFall_WithLevels" => "{0} ({1} levels)",
+
             // Attack direction strings
             "AttackDirection_Left" => "Left",
             "AttackDirection_Right" => "Right",
@@ -145,6 +148,8 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_ProneFiring" => "Prone Firing: +{0}",
             // Partial Cover Modifier
             "Modifier_PartialCover" => "Partial Cover: +{0}",
+            // Water Depth Modifier
+            "Modifier_WaterDepth" => "Water Depth ({0}): {1}",
             // Weapon Restriction Reasons
             "WeaponRestriction_NotAvailable" => "Weapon not available",
             "WeaponRestriction_PartialCoverLegs" => "Cannot fire leg weapons while in partial cover",

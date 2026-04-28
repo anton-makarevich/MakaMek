@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Serialization;
@@ -6,7 +7,6 @@ using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Exceptions;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
@@ -23,7 +23,11 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
-        TypeInfoResolver = new RollModifierTypeResolver(),
+        TypeInfoResolver = new CompositeJsonTypeInfoResolver(
+            new RollModifierTypeResolver(),
+            new PilotingSkillRollContextTypeResolver(),
+            new DefaultJsonTypeInfoResolver()
+        ),
         WriteIndented = true,
         Converters = {
             new EnumConverter<MakaMekComponent>(),

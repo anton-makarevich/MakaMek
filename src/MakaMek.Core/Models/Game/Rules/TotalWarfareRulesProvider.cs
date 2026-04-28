@@ -419,6 +419,15 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    // The default value is "PSR required". When adding new auto-fall PilotingSkillRollType values
+    // (e.g., future Shutdown/Skid auto-fall variants), add them to the false-returning list below.
+    public bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType) => rollType switch
+    {
+        PilotingSkillRollType.GyroDestroyed => false,
+        PilotingSkillRollType.LegDestroyed => false,
+        _ => true
+    };
+
     public int GetHeavyDamageThreshold()
     {
         return 20;
@@ -526,5 +535,17 @@ public class TotalWarfareRulesProvider : IRulesProvider
     public bool CanPartBeCovered(PartLocation location)
     {
         return location.IsLeg();
+    }
+
+    public int GetWaterDepthModifier(int waterDepth)
+    {
+        if (waterDepth < 1)
+            throw new ArgumentOutOfRangeException(nameof(waterDepth), "Water depth must be at least 1.");
+        return waterDepth switch
+        {
+            1 => -1,  // Depth 1: -1 modifier
+            2 => 0,   // Depth 2: 0 modifier
+            _ => 1    // Depth 3+: +1 modifier
+        };
     }
 }

@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Sanet.MakaMek.Core.Data.Serialization;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
@@ -12,7 +14,9 @@ public class RollModifierTypeResolverTests
 {
     private readonly JsonSerializerOptions _options = new()
     {
-        TypeInfoResolver = new RollModifierTypeResolver(),
+        TypeInfoResolver = new CompositeJsonTypeInfoResolver(
+            new RollModifierTypeResolver(),
+            new DefaultJsonTypeInfoResolver()),
         WriteIndented = true
     };
 
@@ -28,7 +32,7 @@ public class RollModifierTypeResolverTests
         // Assert
         typeInfo.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.ShouldNotBeNull();
-        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe(RollModifierTypeResolver.TypeDiscriminatorPropertyName);
+        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe("$type");
         typeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators.ShouldBeFalse();
         typeInfo.PolymorphismOptions.UnknownDerivedTypeHandling.ShouldBe(JsonUnknownDerivedTypeHandling.FailSerialization);
     }
@@ -43,7 +47,7 @@ public class RollModifierTypeResolverTests
         var typeInfo = sut.GetTypeInfo(typeof(RollModifier), _options);
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.DerivedTypes.ShouldNotBeEmpty();
         
         // Check for specific known types
@@ -73,7 +77,7 @@ public class RollModifierTypeResolverTests
             .ToList();
         
         // Assert
-        typeInfo.PolymorphismOptions.ShouldNotBeNull();
+        typeInfo!.PolymorphismOptions.ShouldNotBeNull();
         
         // The number of registered types should match the number of derived types
         typeInfo.PolymorphismOptions.DerivedTypes.Count.ShouldBeGreaterThanOrEqualTo(derivedTypes.Count);

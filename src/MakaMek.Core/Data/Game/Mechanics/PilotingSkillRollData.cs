@@ -1,4 +1,5 @@
 using System.Text;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -9,9 +10,10 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 public record PilotingSkillRollData
 {
     /// <summary>
-    /// The type of piloting skill roll to make
+    /// The context of the piloting skill roll, carrying the roll type and optional extra data
+    /// (e.g., water depth for water-entry rolls, or levels fallen for pilot-damage rolls).
     /// </summary>
-    public required PilotingSkillRollType RollType { get; init; }
+    public required PilotingSkillRollContext RollContext { get; init; }
     
     /// <summary>
     /// The result of the piloting skill roll (2d6)
@@ -38,9 +40,8 @@ public record PilotingSkillRollData
         var rollTotal = DiceResults.Sum();
         var stringBuilder = new StringBuilder();
 
-        // Get the localized roll type name
-        var rollTypeKey = $"PilotingSkillRollType_{RollType}";
-        var rollTypeName = localizationService.GetString(rollTypeKey);
+        // Get the localized roll type name (including any context-specific details)
+        var rollTypeName = RollContext.Render(localizationService);
 
         // Check if the roll is impossible first
         if (PsrBreakdown.IsImpossible)

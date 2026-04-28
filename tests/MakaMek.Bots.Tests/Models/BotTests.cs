@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -441,7 +442,7 @@ public class BotTests : IDisposable
             UnitId = unitId,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.GyroHit,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
                 DiceResults = [],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown
@@ -483,11 +484,11 @@ public class BotTests : IDisposable
 
         var standUpCommand = new MechStandUpCommand
         {
-            GameOriginId = _clientGame.Id, 
+            GameOriginId = _clientGame.Id,
             UnitId = unitId, // Some other unit
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.GyroHit,
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.GyroHit),
                 DiceResults = [],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown

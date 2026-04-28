@@ -498,6 +498,38 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(PilotingSkillRollType.GyroDestroyed, false)]
+    [InlineData(PilotingSkillRollType.LegDestroyed, false)]
+    public void RequiresPilotingSkillRoll_AutoFallTypes_ShouldReturnFalse(PilotingSkillRollType rollType, bool expected)
+    {
+        // Act
+        var result = _sut.RequiresPilotingSkillRoll(rollType);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(PilotingSkillRollType.GyroHit)]
+    [InlineData(PilotingSkillRollType.LowerLegActuatorHit)]
+    [InlineData(PilotingSkillRollType.HeavyDamage)]
+    [InlineData(PilotingSkillRollType.HipActuatorHit)]
+    [InlineData(PilotingSkillRollType.FootActuatorHit)]
+    [InlineData(PilotingSkillRollType.UpperLegActuatorHit)]
+    [InlineData(PilotingSkillRollType.PilotDamageFromFall)]
+    [InlineData(PilotingSkillRollType.StandupAttempt)]
+    [InlineData(PilotingSkillRollType.JumpWithDamage)]
+    [InlineData(PilotingSkillRollType.WaterEntry)]
+    public void RequiresPilotingSkillRoll_NonAutoFallTypes_ShouldReturnTrue(PilotingSkillRollType rollType)
+    {
+        // Act
+        var result = _sut.RequiresPilotingSkillRoll(rollType);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Theory]
     [InlineData(1, HexDirection.Top, HexDirection.Top)] // Same direction
     [InlineData(2, HexDirection.Top, HexDirection.TopRight)] // 1 hexside right
     [InlineData(3, HexDirection.Top, HexDirection.BottomRight)] // 2 hexsides right
@@ -934,5 +966,30 @@ public class TotalWarfareRulesProviderTests
 
         // Assert
         result.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(1, -1)] // Depth 1: -1 modifier
+    [InlineData(2, 0)]  // Depth 2: 0 modifier
+    [InlineData(3, 1)]  // Depth 3: +1 modifier
+    [InlineData(4, 1)]  // Depth 4: +1 modifier
+    [InlineData(5, 1)]  // Depth 5: +1 modifier
+    [InlineData(10, 1)] // Depth 10: +1 modifier
+    public void GetWaterDepthModifier_ShouldReturnExpectedValues(int waterDepth, int expectedModifier)
+    {
+        // Act
+        var result = _sut.GetWaterDepthModifier(waterDepth);
+
+        // Assert
+        result.ShouldBe(expectedModifier);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public void GetWaterDepthModifier_ThrowsException_ForInvalidWaterDepth(int waterDepth)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => 
+            _sut.GetWaterDepthModifier(waterDepth));
     }
 }
