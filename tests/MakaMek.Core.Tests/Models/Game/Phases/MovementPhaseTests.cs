@@ -465,7 +465,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
-        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
 
     [Fact]
@@ -866,5 +867,105 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldPublishPsrCommand_WhenWaterEntrySucceeds_DuringWalk()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [6, 6],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => 
+            cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldPublishPsrCommand_WhenWaterEntrySucceeds_DuringJump()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
+        hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 2).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [6, 6],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => 
+            cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
 }

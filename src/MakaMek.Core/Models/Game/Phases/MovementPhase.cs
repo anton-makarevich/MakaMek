@@ -82,6 +82,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     ProcessFallCommand(fallCommand, unit);
                     return;
                 }
+                
+                var psrCommand = fallContextData.ToMechFallCommand();
+                Game.CommandPublisher.PublishCommand(psrCommand);
             }
         }
 
@@ -109,6 +112,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     {
                         var fallCommand = fallContextData.ToMechFallCommand();
                         ProcessFallCommand(fallCommand, unit);
+                    }
+                    else
+                    {
+                        var psrCommand = fallContextData.ToMechFallCommand();
+                        Game.CommandPublisher.PublishCommand(psrCommand);
                     }
                 }
             }
@@ -164,7 +172,12 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
             mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game);
         
-        if (!fallContextData.IsFalling) return false;
+        if (!fallContextData.IsFalling)
+        {
+            var psrCommand = fallContextData.ToMechFallCommand();
+            Game.CommandPublisher.PublishCommand(psrCommand);
+            return false;
+        }
         // Jump failed - create and publish a fall command
         var fallCommand = fallContextData.ToMechFallCommand();
         ProcessFallCommand(fallCommand, mech);
