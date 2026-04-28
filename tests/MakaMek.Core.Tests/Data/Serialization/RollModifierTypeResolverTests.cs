@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Sanet.MakaMek.Core.Data.Serialization;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
@@ -13,7 +14,9 @@ public class RollModifierTypeResolverTests
 {
     private readonly JsonSerializerOptions _options = new()
     {
-        TypeInfoResolver = JsonTypeInfoResolver.Combine(new RollModifierTypeResolver(), new DefaultJsonTypeInfoResolver()),
+        TypeInfoResolver = new CompositeJsonTypeInfoResolver(
+            new RollModifierTypeResolver(),
+            new DefaultJsonTypeInfoResolver()),
         WriteIndented = true
     };
 
