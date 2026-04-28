@@ -166,11 +166,16 @@ public class PilotingSkillRollContextTypeResolverTests
         var json = JsonSerializer.Serialize(contexts, _options);
         var deserializedContexts = JsonSerializer.Deserialize<PilotingSkillRollContext[]>(json, _options);
         
-        // Assert
+        // Assert - runtime types
         deserializedContexts.ShouldNotBeNull();
         deserializedContexts.Length.ShouldBe(3);
         deserializedContexts[0].ShouldBeOfType<PilotingSkillRollContext>();
         deserializedContexts[1].ShouldBeOfType<EnteringDeepWaterRollContext>();
         deserializedContexts[2].ShouldBeOfType<PilotDamageFromFallRollContext>();
+
+        // Assert - wire contract validation
+        json.ShouldContain("\"$type\"");
+        json.ShouldContain("EnteringDeepWaterRollContext");
+        json.ShouldContain("PilotDamageFromFallRollContext");
     }
 }
