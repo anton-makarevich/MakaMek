@@ -149,7 +149,7 @@ public class FakeLocalizationService: ILocalizationService
             // Partial Cover Modifier
             "Modifier_PartialCover" => "Partial Cover: +{0}",
             // Water Depth Modifier
-            "Modifier_WaterDepth" => "Water Depth ({0}): +{1}",
+            "Modifier_WaterDepth" => "Water Depth ({0}): {1}",
             // Weapon Restriction Reasons
             "WeaponRestriction_NotAvailable" => "Weapon not available",
             "WeaponRestriction_PartialCoverLegs" => "Cannot fire leg weapons while in partial cover",

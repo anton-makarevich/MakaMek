@@ -18,7 +18,7 @@ public class WaterDepthModifierTests
             Value = 2,
             WaterDepth = 1
         };
-        _localizationService.GetString("Modifier_WaterDepth").Returns("Water Depth ({0}): +{1}");
+        _localizationService.GetString("Modifier_WaterDepth").Returns("Water Depth ({0}): {1}");
 
         // Act
         var result = sut.Render(_localizationService);
@@ -76,12 +76,30 @@ public class WaterDepthModifierTests
             Value = value,
             WaterDepth = waterDepth
         };
-        _localizationService.GetString("Modifier_WaterDepth").Returns("Water Depth ({0}): +{1}");
+        _localizationService.GetString("Modifier_WaterDepth").Returns("Water Depth ({0}): {1}");
 
         // Act
         var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe($"Water Depth ({waterDepth}): +{value}");
+    }
+
+    [Fact]
+    public void Render_WithNegativeValue_ShouldFormatCorrectly()
+    {
+        // Arrange
+        var sut = new WaterDepthModifier
+        {
+            Value = -1,
+            WaterDepth = 2
+        };
+        _localizationService.GetString("Modifier_WaterDepth").Returns("Water Depth ({0}): {1}");
+
+        // Act
+        var result = sut.Render(_localizationService);
+
+        // Assert
+        result.ShouldBe("Water Depth (2): -1");
     }
 }

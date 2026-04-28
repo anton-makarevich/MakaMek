@@ -192,7 +192,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_LowerArmActuatorHit", "{0} Lower Arm Actuator Destroyed: +{1}")]
     [InlineData("Modifier_ProneFiring", "Prone Firing: +{0}")]
     [InlineData("Modifier_PartialCover", "Partial Cover: +{0}")]
-    [InlineData("Modifier_WaterDepth", "Water Depth ({0}): +{1}")]
+    [InlineData("Modifier_WaterDepth", "Water Depth ({0}): {1}")]
     [InlineData("WeaponRestriction_NotAvailable", "Weapon not available")]
     [InlineData("WeaponRestriction_PartialCoverLegs", "Cannot fire leg weapons while in partial cover")]
     [InlineData("WeaponRestriction_ProneLegs", "Cannot fire leg weapons while prone")]

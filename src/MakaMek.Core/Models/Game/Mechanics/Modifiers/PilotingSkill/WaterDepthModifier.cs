@@ -19,6 +19,6 @@ public record WaterDepthModifier : RollModifier
     /// <returns>A string describing this modifier with depth context.</returns>
     public override string Render(ILocalizationService localizationService)
     {
-        return string.Format(localizationService.GetString("Modifier_WaterDepth"), WaterDepth, Value);
+        return string.Format(localizationService.GetString("Modifier_WaterDepth"), WaterDepth, Value.ToString("+0;-0"));
     }
 }
