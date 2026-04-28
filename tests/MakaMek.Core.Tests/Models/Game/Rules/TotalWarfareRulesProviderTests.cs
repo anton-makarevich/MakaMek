@@ -516,6 +516,10 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.HipActuatorHit)]
     [InlineData(PilotingSkillRollType.FootActuatorHit)]
     [InlineData(PilotingSkillRollType.UpperLegActuatorHit)]
+    [InlineData(PilotingSkillRollType.PilotDamageFromFall)]
+    [InlineData(PilotingSkillRollType.StandupAttempt)]
+    [InlineData(PilotingSkillRollType.JumpWithDamage)]
+    [InlineData(PilotingSkillRollType.WaterEntry)]
     public void RequiresPilotingSkillRoll_NonAutoFallTypes_ShouldReturnTrue(PilotingSkillRollType rollType)
     {
         // Act
