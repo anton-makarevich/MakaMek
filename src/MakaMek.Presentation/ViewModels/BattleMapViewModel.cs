@@ -255,7 +255,8 @@ public class BattleMapViewModel : BaseViewModel
                 ProcessMechStandUp(standUpCommand.UnitId, false);
                 break;
             case MechFallCommand fallCommand:
-                ProcessMechStandUp(fallCommand.UnitId, true);
+                if (fallCommand.DamageData != null)
+                    ProcessMechStandUp(fallCommand.UnitId, true);
                 break;
             case GameEndedCommand gameEndedCommand:
                 // Server ended the game - track state to allow UI to respond
