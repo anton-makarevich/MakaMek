@@ -2132,9 +2132,10 @@ public class BattleMapViewModelTests
         // Assert
         _localizationService.GetString("Action_StayProne").Returns("StayProne");
 
-        // Verify that we have the "StayProne" action, which signifies we are handling a prone unit in SelectingMovementTypeStep
-        var actions = movementState.GetAvailableActions();
-        actions.ShouldContain(a => a.Label.Contains("StayProne"));
+        // Verify that there is only one option to continue movement
+        var actions = movementState.GetAvailableActions().ToList();
+        actions.Count.ShouldBe(1);
+        actions.ShouldContain(a => a.Label.Contains("Walk"));
     }
 
     [Fact]
