@@ -272,6 +272,47 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech { IsProne: true } mech
                 && _viewModel.Game is not null)
             {
+                // Post-fall: _selectedPath being non-null means the unit was already moving when it fell.
+                // Lock the standup to the originally declared movement type — no Stay Prone,
+                // no alternate type, no facing change.
+                if (_selectedPath != null)
+                {
+                    var lockedType = _selectedPath.MovementType;
+                    var lockedProneActions = new List<StateAction>();
+
+                    if (!mech.CanStandup()) return lockedProneActions;
+
+                    var lockedPsrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
+                        mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt));
+                    var lockedSuccessProbability =
+                        Core.Utils.DiceUtils.Calculate2d6Probability(lockedPsrBreakdown.ModifiedPilotingSkill);
+                    var lockedProbabilityText = $" ({lockedSuccessProbability:0}%)";
+
+                    if (mech.IsMinimumMovement)
+                    {
+                        lockedProneActions.Add(new StateAction(
+                            _viewModel.LocalizationService.GetString("Action_AttemptStandup") + lockedProbabilityText,
+                            true,
+                            () => AttemptStandup(lockedType)));
+                    }
+                    else
+                    {
+                        var lockedTypeKey = lockedType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk";
+                        var lockedActionText = string.Format(
+                            _viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                            _viewModel.LocalizationService.GetString(lockedTypeKey),
+                            _selectedUnit.GetMovementPoints(lockedType)) + lockedProbabilityText;
+
+                        lockedProneActions.Add(new StateAction(
+                            lockedActionText,
+                            true,
+                            () => AttemptStandup(lockedType)));
+                    }
+
+                    return lockedProneActions;
+                }
+
+                // Start-of-phase prone: full choice available.
                 var proneActions = new List<StateAction>
                 {
                     // Add stay prone action (equivalent to standing still for prone mechs)

@@ -1844,4 +1844,71 @@ public class MovementStateTests
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
     }
+
+    [Theory]
+    [InlineData(MovementType.Walk)]
+    [InlineData(MovementType.Run)]
+    public void GetAvailableActions_PostFallProneMech_OnlyShowsLockedMovementTypeStandupOption(MovementType selectedBeforeFall)
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // Simulate: player selected a movement type before the fall — _selectedPath gets set
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(selectedBeforeFall);
+
+        // Unit falls during movement resolution
+        mech.SetProne();
+
+        // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
+        _sut.ResumeMovementAfterFall();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert — exactly one action locked to the originally declared movement type
+        actions.Count.ShouldBe(1, "Post-fall should only offer the single locked standup option");
+
+        var expectedTypeLabel = selectedBeforeFall == MovementType.Run ? "Run" : "Walk";
+        actions[0].Label.ShouldContain(expectedTypeLabel);
+
+        actions.ShouldNotContain(a => a.Label.Contains("Stay Prone"));
+        actions.ShouldNotContain(a => a.Label.Contains("Change Facing"));
+
+        var otherTypeLabel = selectedBeforeFall == MovementType.Run ? "Walk" : "Run";
+        actions.ShouldNotContain(a => a.Label.Contains(otherTypeLabel));
+    }
+
+    [Fact]
+    public void GetAvailableActions_PostFallProneMech_LockedStandupAction_TransitionsToStandingUpDirectionStep()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.SetProne();
+        _sut.ResumeMovementAfterFall();
+
+        var actions = _sut.GetAvailableActions().ToList();
+        actions.Count.ShouldBe(1);
+
+        // Act — execute the locked standup action
+        actions[0].OnExecute();
+
+        // Assert — should transition to direction selection for standup
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingStandingUpDirection);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+    }
 }
