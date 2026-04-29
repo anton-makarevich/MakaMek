@@ -1911,4 +1911,41 @@ public class MovementStateTests
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingStandingUpDirection);
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
     }
+
+    [Fact]
+    public void GetAvailableActions_PostFallProneMech_MinimumMovement_ShowsAttemptStandupLabel()
+    {
+        // Arrange — mech with a destroyed leg has IsMinimumMovement = true (1 MP walk, prone, no standup attempts yet)
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+
+        // Destroy one leg to reduce walk MPs to 1
+        var leg = mech.Parts[PartLocation.LeftLeg];
+        leg.ApplyDamage(20, HitDirection.Front);
+
+        // SetProne before checking IsMinimumMovement — the property requires IsProne == true
+        mech.SetProne();
+        mech.IsMinimumMovement.ShouldBeTrue();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // Simulate fall during movement: select unit, pick Walk (sets _selectedPath), then unit already fell
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk); // sets _selectedPath with Walk type
+        _sut.ResumeMovementAfterFall();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert — exactly one action using the "Attempt Standup" label (not the "Walk | MP: X" form)
+        actions.Count.ShouldBe(1);
+        actions[0].Label.ShouldStartWith("Attempt Standup");
+        actions[0].Label.ShouldContain("%"); // probability appended
+        actions[0].Label.ShouldNotContain("Walk | MP:");
+    }
 }
+
