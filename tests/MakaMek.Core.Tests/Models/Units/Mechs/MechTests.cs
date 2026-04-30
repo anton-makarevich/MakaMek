@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
@@ -1132,6 +1133,125 @@ public class MechTests
 
         // Act & Assert
         sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldReturnZero_WhenInDepth2Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(0,
+            "Mech submerged in depth 2+ water cannot fire jump jets");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldExcludeLegJumpJets_WhenInDepth1Water()
+    {
+        // Arrange - 1 JJ in each leg + 3 in torsos = 5 total, but only 3 usable in depth 1 water
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
+        rightLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+        var leftTorso = parts.Single(p => p.Location == PartLocation.LeftTorso);
+        leftTorso.TryAddComponent(new JumpJets());
+        var rightTorso = parts.Single(p => p.Location == PartLocation.RightTorso);
+        rightTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(3,
+            "Mech in depth 1 water can only use non-leg jump jets");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldReturnAllJumpJets_WhenInDepth0Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(0));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(2,
+            "Mech in depth 0 (shallow) water should use all available jump jets");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnFalse_WhenInDepth2Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Mech submerged in depth 2+ water cannot jump");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnTrue_WhenInDepth1WaterWithTorsoJumpJets()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeTrue(
+            "Mech in depth 1 water with torso jump jets should be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnFalse_WhenInDepth1WaterWithOnlyLegJumpJets()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse(
+            "Mech in depth 1 water with only leg jump jets cannot jump");
     }
 
     [Fact]
