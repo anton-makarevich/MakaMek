@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -57,7 +58,7 @@ public class Mech : Unit
         {
             MovementType.Walk => ModifiedMovement,
             MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
-            MovementType.Jump =>  GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
+            MovementType.Jump => GetJumpMovementPoints(),
             _ => 0
         };
     }
@@ -477,6 +478,43 @@ public class Mech : Unit
 
             return true;
         }
+    }
+
+    /// <summary>
+    /// Gets the water depth at the mech's current hex.
+    /// Returns 0 if not in water or not deployed.
+    /// </summary>
+    private int GetWaterDepth()
+    {
+        if (_hex?.GetTerrain(MakaMekTerrains.Water) is not WaterTerrain water) return 0;
+        return water.Height;
+    }
+
+    /// <summary>
+    /// Calculates jump movement points, accounting for water depth restrictions:
+    /// Depth 2+: cannot fire jump jets while submerged (0 MP)
+    /// Depth 1: leg-mounted jump jets cannot fire; only torso/arm/head jets count
+    /// No water: all jump jets count
+    /// </summary>
+    private int GetJumpMovementPoints()
+    {
+        var waterDepth = GetWaterDepth();
+
+        // Submerged (depth 2+): jump jets cannot be fired
+        if (waterDepth <= -2) return 0;
+
+        // Depth 1: exclude leg-mounted jump jets
+        if (waterDepth == -1)
+        {
+            return _parts
+                .Where(p => !p.Key.IsLeg())
+                .SelectMany(p => p.Value.GetComponents<JumpJets>())
+                .Where(j => j.IsAvailable)
+                .Sum(j => j.JumpMp);
+        }
+
+        // No water restriction: all available jump jets
+        return GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp);
     }
     
     public bool CanRun {

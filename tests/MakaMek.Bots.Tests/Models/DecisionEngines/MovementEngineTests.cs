@@ -887,7 +887,7 @@ public class MovementEngineTests
         
         // Deploy the mech
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         return mech;
     }

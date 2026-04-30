@@ -36,7 +36,7 @@ public class ArmTests
         var sut = new Arm("Left Arm", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.Facing.ShouldBe(position.Facing);
     }
@@ -51,7 +51,7 @@ public class ArmTests
         var centerTorso = new CenterTorso("Center Torso", 15, 10, 15);
         var mech = new Mech("Test", "TST-1A", 4, [leftArm, rightArm, leftTorso, rightTorso, centerTorso]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         leftArm.Facing.ShouldBe(position.Facing);
         rightArm.Facing.ShouldBe(position.Facing);
@@ -98,7 +98,7 @@ public class ArmTests
     {
         var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [arm], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = arm.GetWeaponsConfigurationOptions();
 
@@ -112,7 +112,7 @@ public class ArmTests
     {
         var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [arm], canFlipArms: true);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = arm.GetWeaponsConfigurationOptions();
 
@@ -126,7 +126,7 @@ public class ArmTests
     {
         var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [arm], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         
         arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
     }
@@ -144,7 +144,7 @@ public class ArmTests
     {
         var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [arm], canFlipArms: true);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         
         arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.ArmsFlip).ShouldBeTrue();
     }

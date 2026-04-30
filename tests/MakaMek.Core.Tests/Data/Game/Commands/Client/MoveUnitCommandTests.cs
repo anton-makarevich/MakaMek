@@ -52,7 +52,7 @@ public class MoveUnitCommandTests
     {
         // Arrange
         var command = CreateCommand();
-        _unit.Deploy(new HexPosition(1, 1, HexDirection.Top));
+        _unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
         _localizationService.GetString("Command_MoveUnit").Returns("formatted move command");
 
         // Act

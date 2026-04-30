@@ -43,10 +43,10 @@ public class UnitWeaponAttackStateTests
         
         _torsoWeapon = CreateWeapon(PartLocation.CenterTorso, _attacker);
         
-        // Setup attacker position for primary target calculation
-        _attacker.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
-        _target1.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        _target2.Deploy(new HexPosition(new HexCoordinates(3, 4), HexDirection.Bottom));
+        // Set up the attacker position for primary target calculation
+        _attacker.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom), null);
+        _target1.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        _target2.Deploy(new HexPosition(new HexCoordinates(3, 4), HexDirection.Bottom), null);
     }
 
     private Weapon CreateWeapon(PartLocation location, Mech mech)
@@ -234,7 +234,7 @@ public class UnitWeaponAttackStateTests
         
         // Create a third target positioned in the forward arc (south of attacker)
         var target3 = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
-        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom));
+        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom), null);
         var rightArmWeapon = CreateWeapon(PartLocation.RightArm, _attacker);
         _sut.SetWeaponTarget(rightArmWeapon, target3, _attacker);
         
@@ -262,7 +262,7 @@ public class UnitWeaponAttackStateTests
         
         // Create a third target positioned in the forward arc (south of attacker)
         var target3 = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
-        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom));
+        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom), null);
         var rightArmWeapon = CreateWeapon(PartLocation.RightArm, _attacker);
         _sut.SetWeaponTarget(rightArmWeapon, target3, _attacker);
         
@@ -275,7 +275,7 @@ public class UnitWeaponAttackStateTests
         _attacker.RemoveFromBoard();
         
         // Act - This should trigger the forward arc logic in UpdatePrimaryTarget
-        // Since no primary target is set and attacker is not deployed there is no way to calculate arcs,
+        // Since no primary target is set and attacker is not deployed, there is no way to calculate arcs,
         // and it should fall back to first available target
         _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker); // This calls UpdatePrimaryTarget
         

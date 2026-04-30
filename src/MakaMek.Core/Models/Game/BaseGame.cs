@@ -177,7 +177,9 @@ public abstract class BaseGame : IGame
         var player = _players.FirstOrDefault(p => p.Id == command.PlayerId);
         if (player == null) return;
         var unit = player.Units.FirstOrDefault(u => u.Id == command.UnitId && !u.IsDeployed);
-        unit?.Deploy(new HexPosition(new HexCoordinates(command.Position), (HexDirection)command.Direction));
+        var position = new HexPosition(new HexCoordinates(command.Position), (HexDirection)command.Direction);
+        var hex = BattleMap?.GetHex(position.Coordinates);
+        unit?.Deploy(position, hex);
     }
     
     internal void OnMoveUnit(MoveUnitCommand moveCommand)
@@ -185,7 +187,10 @@ public abstract class BaseGame : IGame
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         if (player == null) return;
         var unit = player.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
-        unit?.Move(new MovementPath(moveCommand.MovementPath, moveCommand.MovementType));
+        if (unit == null) return;
+        var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
+        var hex = BattleMap?.GetHex(path.Destination.Coordinates);
+        unit.Move(path, hex);
     }
     
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)

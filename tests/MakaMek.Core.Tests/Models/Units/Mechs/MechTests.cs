@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
@@ -175,10 +176,10 @@ public class MechTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         var path = new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk);
-        mech.Deploy(deployPosition);
+        mech.Deploy(deployPosition, null);
 
         // Act
-        mech.Move(path);
+        mech.Move(path, null);
 
         // Assert
         mech.Position.ShouldBe(newCoordinates);
@@ -197,7 +198,7 @@ public class MechTests
         // Act
         var act = () => mech.Move(new MovementPath([
             new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1)],
-            MovementType.Walk));
+            MovementType.Walk), null);
     
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -211,8 +212,8 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
-        mech.Deploy(deployPosition);
-        mech.Move(new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk));
+        mech.Deploy(deployPosition, null);
+        mech.Move(new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk), null);
 
         // Act
         mech.ResetTurnState();
@@ -321,7 +322,7 @@ public class MechTests
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Act
         mech.SetProne(HexDirection.Bottom);
@@ -335,7 +336,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         sut.SetProne();
 
         // Act
@@ -363,7 +364,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing), null);
 
         // Act
         sut.RotateTorso(targetFacing);
@@ -381,7 +382,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var configuration = new WeaponConfiguration
             {
@@ -403,7 +404,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var configuration = new WeaponConfiguration
             {
@@ -425,7 +426,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Assert
         sut.HasUsedTorsoTwist.ShouldBeFalse();
@@ -437,7 +438,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Act
         sut.RotateTorso(HexDirection.TopRight);
@@ -455,7 +456,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Act & Assert
         sut.CanRotateTorso.ShouldBe(expected);
@@ -467,7 +468,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Act
         sut.RotateTorso(HexDirection.TopRight);
@@ -613,7 +614,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
         var mech = new Mech("Test", "TST-1A", 50, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
 
         // Rotate torsos in a different direction
         mech.RotateTorso(HexDirection.Bottom);
@@ -643,7 +644,7 @@ public class MechTests
         // Attach a weapon to a part (e.g., right arm)
         var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.TryAddComponent(weapon);
-        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
         // Set a dummy target
         var dummyTarget = new Mech("Dummy", "DMY-1A", 50, CreateBasicPartsData());
         sut.DeclareWeaponAttack([
@@ -1132,6 +1133,125 @@ public class MechTests
 
         // Act & Assert
         sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldReturnZero_WhenInDepth2Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(0,
+            "Mech submerged in depth 2+ water cannot fire jump jets");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldExcludeLegJumpJets_WhenInDepth1Water()
+    {
+        // Arrange - 1 JJ in each leg + 3 in torsos = 5 total, but only 3 usable in depth 1 water
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
+        rightLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+        var leftTorso = parts.Single(p => p.Location == PartLocation.LeftTorso);
+        leftTorso.TryAddComponent(new JumpJets());
+        var rightTorso = parts.Single(p => p.Location == PartLocation.RightTorso);
+        rightTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(3,
+            "Mech in depth 1 water can only use non-leg jump jets");
+    }
+
+    [Fact]
+    public void GetMovementPoints_Jump_ShouldReturnAllJumpJets_WhenInDepth0Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(0));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(2,
+            "Mech in depth 0 (shallow) water should use all available jump jets");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnFalse_WhenInDepth2Water()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Mech submerged in depth 2+ water cannot jump");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnTrue_WhenInDepth1WaterWithTorsoJumpJets()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeTrue(
+            "Mech in depth 1 water with torso jump jets should be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_ShouldReturnFalse_WhenInDepth1WaterWithOnlyLegJumpJets()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse(
+            "Mech in depth 1 water with only leg jump jets cannot jump");
     }
 
     [Fact]
@@ -1797,11 +1917,11 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AssignPilot(new MechWarrior("John", "Doe"));
-        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         sut.Move(new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
-            MovementType.Jump));
+            MovementType.Jump), null);
         sut.SetProne();
 
         // Act
@@ -2516,7 +2636,7 @@ public class MechTests
         // Arrange 
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
-        // Setup dice roller to return valid critical hit roll
+        // Set up the dice roller to return valid critical hit roll
         _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
         _diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
 
@@ -2556,7 +2676,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         // Act
         sut.RotateTorso(HexDirection.TopRight);
@@ -2572,7 +2692,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        sut.Deploy(position);
+        sut.Deploy(position, null);
 
         // Assert
         sut.Facing.ShouldBe(position.Facing);
@@ -2615,7 +2735,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var configuration = new WeaponConfiguration
             {
@@ -2636,7 +2756,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var configuration = new WeaponConfiguration
             {
@@ -2654,7 +2774,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         
         var configuration = new WeaponConfiguration
             {

@@ -884,7 +884,7 @@ public class BattleMapViewModelTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First();
         unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         
         // Select unit
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
@@ -947,7 +947,7 @@ public class BattleMapViewModelTests
         // Place unit
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         
         // Select unit
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
@@ -1025,11 +1025,11 @@ public class BattleMapViewModelTests
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var target = _sut.Units.First(u => u.Owner!.Id == player2.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Select attacker
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
@@ -1112,11 +1112,11 @@ public class BattleMapViewModelTests
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var target = _sut.Units.First(u => u.Owner!.Id == player2.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Select attacker
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
@@ -1192,7 +1192,7 @@ public class BattleMapViewModelTests
         // Place units
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _sut.Units.First(u => u.Owner!.Id == player1.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
 
         // Act Select attacker
         _sut.HandleHexSelection(game.BattleMap!.GetHexes()
@@ -1292,8 +1292,8 @@ public class BattleMapViewModelTests
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
-        attacker.Deploy(attackerPosition);
-        target.Deploy(targetPosition);
+        attacker.Deploy(attackerPosition, null);
+        target.Deploy(targetPosition, null);
         
         // Get a weapon from the attacker to use in the command
         var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
@@ -1409,9 +1409,9 @@ public class BattleMapViewModelTests
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
-        attacker1.Deploy(attacker1Position);
-        attacker2.Deploy(attacker2Position);
-        target.Deploy(targetPosition);
+        attacker1.Deploy(attacker1Position, null);
+        attacker2.Deploy(attacker2Position, null);
+        target.Deploy(targetPosition, null);
         
         // Get weapons from the attackers
         var weapon1 = attacker1.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
@@ -1548,8 +1548,8 @@ public class BattleMapViewModelTests
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
-        attacker.Deploy(attackerPosition);
-        target.Deploy(targetPosition);
+        attacker.Deploy(attackerPosition, null);
+        target.Deploy(targetPosition, null);
         
         // Get two weapons from the attacker
         var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
@@ -1727,9 +1727,9 @@ public class BattleMapViewModelTests
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
 
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Get a weapon from the attacker
         var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
@@ -2000,7 +2000,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         unit!.AssignPilot(pilot);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         unit.SetProne();
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
         
@@ -2089,7 +2089,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         unit!.AssignPilot(pilot);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         // Unit starts standing
         
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
@@ -2182,7 +2182,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         unit!.AssignPilot(pilot);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         // Unit starts standing
 
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));

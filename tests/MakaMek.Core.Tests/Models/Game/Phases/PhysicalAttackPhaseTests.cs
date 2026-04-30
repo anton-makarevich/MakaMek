@@ -44,7 +44,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         // Deploy units
         foreach (var unit in player1.Units.Concat(player2.Units))
         {
-            unit.Deploy(new HexPosition(1, 1, HexDirection.Top));
+            unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
         }
     }
 

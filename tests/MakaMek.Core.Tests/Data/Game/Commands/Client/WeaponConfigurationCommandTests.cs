@@ -100,7 +100,7 @@ public class WeaponConfigurationCommandTests
     {
         // Arrange
         var command = CreateCommand();
-        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top));
+        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top), null);
         var expectedHex = _unit.Position!.Coordinates.GetNeighbour(HexDirection.Bottom);
 
         // Act
@@ -116,7 +116,7 @@ public class WeaponConfigurationCommandTests
     {
         // Arrange
         var command = CreateCommand();
-        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top));
+        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top), null);
         command.Configuration = new WeaponConfiguration
         {
             Type = WeaponConfigurationType.ArmsFlip,
@@ -136,7 +136,7 @@ public class WeaponConfigurationCommandTests
     {
         // Arrange
         var command = CreateCommand();
-        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top));
+        _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top), null);
         command.Configuration = new WeaponConfiguration
         {
             Type = WeaponConfigurationType.ArmsFlip,

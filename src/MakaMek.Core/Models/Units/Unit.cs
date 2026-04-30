@@ -24,6 +24,8 @@ public abstract class Unit : IUnit
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
 
+    protected Hex? _hex;
+
     protected Unit(string chassis, string model, int tonnage,
         IEnumerable<UnitPart> parts,
         Guid? id = null)
@@ -217,13 +219,14 @@ public abstract class Unit : IUnit
 
     public bool IsDeployed => Position != null;
 
-    public void Deploy(HexPosition position)
+    public void Deploy(HexPosition position, Hex? hex)
     {
         if (Position != null)
         {
             throw new InvalidOperationException($"{Name} is already deployed.");
         }
         Position = position;
+        _hex = hex;
     }
     
     /// <summary>
@@ -232,6 +235,7 @@ public abstract class Unit : IUnit
     public void RemoveFromBoard()
     {
         Position = null;
+        _hex = null;
     }
 
     // Heat management
@@ -714,7 +718,7 @@ public abstract class Unit : IUnit
            c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
-    public void Move(MovementPath movementPath)
+    public void Move(MovementPath movementPath, Hex? destination)
     {
         if (Position == null)
         {
@@ -725,7 +729,8 @@ public abstract class Unit : IUnit
             : movementPath.Destination;
         MovementTaken = movementPath;
         SpendMovementPoints(movementPath.TotalCost);
-        Position = position; 
+        Position = position;
+        _hex = destination;
     }
     
     /// <summary>
@@ -763,7 +768,7 @@ public abstract class Unit : IUnit
         // Use a shot from the ammo
         ammo.UseShot();
 
-        // Invalidate cache if ammo deplited
+        // Invalidate cache if ammo depleted
         if (ammo.RemainingShots==0)
             InvalidateAvailableWeaponsCache();
     }

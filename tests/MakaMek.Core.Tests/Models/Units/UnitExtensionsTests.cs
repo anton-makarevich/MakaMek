@@ -128,7 +128,7 @@ public class UnitExtensionsTests
         // Arrange
         var mech = _mechFactory.Create(_originalUnitData);
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
 
         // Act
         var convertedUnitData = mech.ToData();
@@ -415,7 +415,7 @@ public class UnitExtensionsTests
         serializedData.State?.UnitPartStates.ShouldNotBeNull();
         serializedData.State?.UnitPartStates?.Count.ShouldBe(5);
         
-        // Verify each part state
+        // Verify each part's state
         var rightArmState = serializedData.State?.UnitPartStates?.First(s => s.Location == PartLocation.RightArm);
         rightArmState?.IsBlownOff.ShouldBeTrue();
         
@@ -457,8 +457,8 @@ public class UnitExtensionsTests
         var startPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var endPos = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(startPos, endPos, 1)], MovementType.Walk);
-        mech.Deploy(startPos);
-        mech.Move(path);
+        mech.Deploy(startPos, null);
+        mech.Move(path, null);
 
         // Act
         var serializedData = mech.ToData();
@@ -473,7 +473,7 @@ public class UnitExtensionsTests
     {
         // Arrange
         var mech = _mechFactory.Create(_originalUnitData);
-        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         
         // Set weapon targets
         var weapon = new MediumLaser();

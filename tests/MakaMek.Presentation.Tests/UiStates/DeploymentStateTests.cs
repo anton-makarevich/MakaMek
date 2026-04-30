@@ -275,7 +275,7 @@ public class DeploymentStateTests
         // Deploy first unit
         _sut.HandleHexSelection(_hex1);
         _sut.HandleFacingSelection(HexDirection.Top);
-        _unit.Deploy(new HexPosition(_hex1.Coordinates,HexDirection.Top));
+        _unit.Deploy(new HexPosition(_hex1.Coordinates,HexDirection.Top), null);
         
         // Try to deploy the second unit to the same hex
         var secondUnit = new MechFactory(

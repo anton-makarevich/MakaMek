@@ -132,7 +132,7 @@ public class TorsoTests
         var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
         
         // Act & Assert
-        Should.NotThrow(() => sut.ResetRotation());
+        Should.NotThrow(sut.ResetRotation);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class TorsoTests
         var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         // Set different rotation
         sut.Rotate(HexDirection.Bottom);
@@ -266,7 +266,7 @@ public class TorsoTests
     {
         var torso = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
         var mech = new Mech("Test", "TST-1A", 50, [torso], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = torso.GetWeaponsConfigurationOptions();
 
@@ -280,7 +280,7 @@ public class TorsoTests
     {
         var sut = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
         var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
     }

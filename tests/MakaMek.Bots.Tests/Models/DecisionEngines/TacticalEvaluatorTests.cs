@@ -62,7 +62,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPos, enemyPos, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk),null);
         
         // Set up enemy weapon
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -105,7 +105,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPos, enemyPos, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk), null);
         
         // Set up enemy weapon
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -139,7 +139,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPos, enemyPos, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk), null);
         
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
@@ -175,14 +175,14 @@ public class TacticalEvaluatorTests
         {
             new(unitPos, unitPos, 0)
         }, MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
         
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPos, enemyPos, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk), null);
         
         // Set up friendly weapon
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -232,14 +232,14 @@ public class TacticalEvaluatorTests
         {
             new(unitPos, unitPos, 0)
         }, MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
         
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPos, enemyPos, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk), null);
         
         // Set up friendly weapon
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -276,17 +276,17 @@ public class TacticalEvaluatorTests
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
 
         // Enemy 1: In Range, hit prob > 0
         var enemy1 = MovementEngineTests.CreateTestMech();
         var enemy1Pos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
-        enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, 0)], MovementType.Walk));
+        enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, 0)], MovementType.Walk), null);
         
         // Enemy 2: In Range but hit prob 0 (e.g., obscured but technically LoS exists)
         var enemy2 = MovementEngineTests.CreateTestMech();
         var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
-        enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk));
+        enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
@@ -342,7 +342,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath(new List<PathSegment>
         {
             new(enemyPosition, enemyPosition, 0)
-        }, MovementType.Walk));
+        }, MovementType.Walk), null);
         
         var enemies = new List<IUnit> { enemy };
 
@@ -376,12 +376,12 @@ public class TacticalEvaluatorTests
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
 
         // Enemy at 10 hexes away - beyond long range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 11), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         // Weapon with long range of 9 (enemy is at range 10)
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -416,12 +416,12 @@ public class TacticalEvaluatorTests
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
 
         // Enemy at range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         // Mount on a leg part - legs don't support torso rotation
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
@@ -455,12 +455,12 @@ public class TacticalEvaluatorTests
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
 
         // Enemy at range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
@@ -496,12 +496,12 @@ public class TacticalEvaluatorTests
         // Unit at (1,1) Facing Bottom 
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
-        unit.Move(path);
+        unit.Move(path, null);
 
         // Enemy at range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);

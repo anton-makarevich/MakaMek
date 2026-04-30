@@ -33,8 +33,8 @@ public class HeatProjectionViewModelTests
         _target = mechFactory.Create(data);
         
         // Deploy units
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        _target.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        _target.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), null);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class HeatProjectionViewModelTests
         _sut.Unit = _attacker;
         
         var notificationCount = 0;
-        _sut.PropertyChanged += (_, args) =>
+        _sut.PropertyChanged += (_, _) =>
         {
             notificationCount++;
         };
@@ -244,7 +244,7 @@ public class HeatProjectionViewModelTests
         // Arrange
         _sut.Unit = _attacker;
 
-        // Damage the engine (1 hit = 5 heat points)
+        // Damage to the engine (1 hit = 5 heat points)
         var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
         engine.Hit();
 
@@ -283,7 +283,7 @@ public class HeatProjectionViewModelTests
         leftArm.TryAddComponent(weapon);
         _attacker.WeaponAttackState.SetWeaponTarget(weapon, _target, _attacker);
 
-        // Damage the engine (1 hit = 5 heat points)
+        // Damage to the engine (1 hit = 5 heat points)
         var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
         engine.Hit();
 
@@ -308,7 +308,7 @@ public class HeatProjectionViewModelTests
         leftArm.TryAddComponent(weapon);
         _attacker.WeaponAttackState.SetWeaponTarget(weapon, _target, _attacker);
     
-        // Damage the engine (1 hit = 5 heat points)
+        // Damage to the engine (1 hit = 5 heat points)
         var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
         engine.Hit();
         

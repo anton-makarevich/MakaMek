@@ -172,7 +172,7 @@ public class EndStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         var hex = new Hex(position.Coordinates);
 
         // Act

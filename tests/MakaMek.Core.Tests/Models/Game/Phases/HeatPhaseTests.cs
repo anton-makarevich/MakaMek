@@ -352,7 +352,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Arrange
         // Setup units with heat sources
         SetupUnitWithMovement(_unit1, MovementType.Run);
-        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         SetupUnitWithWeaponFired(_unit2);
 
         // Act
@@ -443,7 +443,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_WithWeaponHeat_ShouldCalculateAndApplyCorrectHeat()
     {
         // Arrange
-        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         SetupUnitWithWeaponFired(_unit2);
 
         // Act
@@ -629,8 +629,9 @@ public class HeatPhaseTests : GamePhaseTestsBase
     private static void SetupUnitWithMovement(IUnit unit, MovementType movementType)
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
-        unit.Deploy(deployPosition);
-        unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, 1)], movementType));
+        unit.Deploy(deployPosition, null);
+        unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, 1)]
+            , movementType), null);
     }
 
     private void SetupUnitWithWeaponFired(IUnit unit)
