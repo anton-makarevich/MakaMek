@@ -492,7 +492,8 @@ public class Mech : Unit
         if (IsShutdown) return false;
 
         // Cannot stand up in the same turn if falling during a jump
-        if (MovementTaken?.MovementType == MovementType.Jump) return false;
+        if (MovementTaken?.MovementType == MovementType.Jump) 
+            return false;
 
         if (!IsGyroAvailable) return false;
 

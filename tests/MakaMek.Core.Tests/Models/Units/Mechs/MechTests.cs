@@ -1777,8 +1777,8 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
-
-        var gyro = sut.GetAvailableComponents<Gyro>().First();
+        var gyro = sut.GetAvailableComponents<Gyro>().FirstOrDefault();
+        gyro.ShouldNotBeNull();
         gyro.Hit();
         gyro.Hit();
         gyro.IsDestroyed.ShouldBeTrue();
@@ -1789,7 +1789,28 @@ public class MechTests
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when gyro is destroyed");
     }
-    
+
+    [Fact]
+    public void CanStandup_ShouldReturnFalse_WhenMovementTakenWasJump()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        sut.Move(new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
+            MovementType.Jump));
+        sut.SetProne();
+
+        // Act
+        var canStandup = sut.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up in the same turn after falling during a jump");
+    }
+
     [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {

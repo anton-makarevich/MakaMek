@@ -1854,12 +1854,17 @@ public class MovementStateTests
         var mech = _unit1 as Mech;
         // Deploy the mech so it has a valid position
         mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        mech.SetProne(); // Simulate falling
-        mech.Move(new MovementPath([
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Jump);
+        // Simulate having taken a Jump movement before falling by setting MovementTaken directly
+        var jumpPath = new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
-            MovementType.Jump)); // Simulate having taken a Jump movement before falling
+            MovementType.Jump);
+        mech.Move(jumpPath);
 
+        mech.SetProne(); // Simulate falling
         // Ensure mech cannot stand up because it was jumping when it fell
         mech.CanStandup().ShouldBeFalse();
 
