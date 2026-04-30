@@ -147,7 +147,7 @@ public interface IUnit
     
     IReadOnlyList<MovementType> GetAvailableMovementTypes();
 
-    void Deploy(HexPosition position);
+    void Deploy(HexPosition position, Hex? hex);
 
     /// <summary>
     /// Removes the unit from the board
@@ -273,7 +273,7 @@ public interface IUnit
     /// <returns>Components of the specified type at the specified location containing the given slot</returns>
     T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component;
 
-    void Move(MovementPath movementPath);
+    void Move(MovementPath movementPath, Hex? destination);
 
     /// <summary>
     /// Fires a weapon based on the provided weapon data and consumes ammo if required.
