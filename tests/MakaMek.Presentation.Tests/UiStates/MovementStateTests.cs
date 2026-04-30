@@ -1867,10 +1867,7 @@ public class MovementStateTests
         mech.SetProne(); // Simulate falling
         // Ensure mech cannot stand up because it was jumping when it fell
         mech.CanStandup().ShouldBeFalse();
-
-        _sut.HandleUnitSelection(mech);
-        _sut.HandleMovementTypeSelection(MovementType.Jump); // Sets up _selectedPath with Jump
-
+        
         // Act
         _sut.ResumeMovementAfterFall();
 
