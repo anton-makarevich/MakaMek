@@ -489,7 +489,7 @@ public class ClientGameTests
         
         // Deploy another unit to the hex
         var unit2 = _sut.Players[0].Units.First(u => u.Id == unitData2.Id.Value);
-        unit2.Deploy(new HexPosition(hexToDeploy, HexDirection.Top));
+        unit2.Deploy(new HexPosition(hexToDeploy, HexDirection.Top), null);
         
         var deployCommand = new DeployUnitCommand
         {
@@ -1094,7 +1094,7 @@ public class ClientGameTests
         _sut.HandleCommand(targetJoinCommand);
         var targetPlayer = _sut.Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
-        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         
         // Create hit locations data
         var hitLocations = new List<LocationHitData>

@@ -174,9 +174,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1,2), HexDirection.Bottom);
-        unit.Deploy(deployPosition);
+        unit.Deploy(deployPosition, null);
         var movementPath = new MovementPath([new PathSegment(deployPosition, targetPosition, 1).ToData()], MovementType.Walk);
-        unit.Move(movementPath);
+        unit.Move(movementPath, null);
         
         unit.MovementTaken.ShouldBe(movementPath);
         
@@ -250,7 +250,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -286,7 +286,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         CommandPublisher.ClearReceivedCalls();
 
         var shutdownCommand = new ShutdownUnitCommand
@@ -310,7 +310,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         CommandPublisher.ClearReceivedCalls();
 
         var shutdownCommand = new ShutdownUnitCommand
@@ -334,7 +334,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Shutdown the unit first
         unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn });
@@ -362,7 +362,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Destroy the unit
         unit.ApplyDamage([
@@ -392,7 +392,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Shutdown the unit first
         unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
@@ -448,7 +448,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
         CommandPublisher.ClearReceivedCalls();
 
@@ -473,7 +473,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
         CommandPublisher.ClearReceivedCalls();
 
@@ -498,7 +498,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         // Unit is not shutdown
         CommandPublisher.ClearReceivedCalls();
 
@@ -523,7 +523,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Destroy the unit
         unit.ApplyDamage([CreateHitDataForLocation(
@@ -555,7 +555,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
 
         // Mock the heat effects calculator to return null (startup not possible)
@@ -590,9 +590,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
         var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
 
-        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom), null);
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom), null);
 
         // Destroy all units for player 2 and player 3
         player2Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
@@ -620,9 +620,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
         var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
 
-        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom), null);
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom), null);
 
         // Destroy all units for all players
         player1Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
@@ -651,9 +651,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
         var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
 
-        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom), null);
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom), null);
 
         // Destroy only one player's units
         player3Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
@@ -696,7 +696,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         singlePlayerGame.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
 
         var player = singlePlayerGame.Players.First(p => p.Id == playerId);
-        player.Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        player.Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         var singlePlayerEndPhase = new EndPhase(singlePlayerGame);
         CommandPublisher.ClearReceivedCalls();
@@ -746,7 +746,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         MockConsciousnessCalculator.MakeRecoveryConsciousnessRoll(pilot).Returns(consciousnessCommand);
 
         var publishedCommands = new List<IGameCommand>();
-        CommandPublisher.PublishCommand(Arg.Do<IGameCommand>(cmd => publishedCommands.Add(cmd)));
+        CommandPublisher.PublishCommand(Arg.Do<IGameCommand>(publishedCommands.Add));
 
         // Act
         _sut.Enter();

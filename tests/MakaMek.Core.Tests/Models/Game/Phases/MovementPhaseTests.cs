@@ -64,7 +64,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id);
-        unit.Deploy(new HexPosition(1,2,HexDirection.Top));
+        unit.Deploy(new HexPosition(1,2,HexDirection.Top), null);
         
         // Act
         _sut.HandleCommand(new MoveUnitCommand
@@ -123,7 +123,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Move all units of the first player
         foreach (var unit in Game.PhaseStepState!.Value.ActivePlayer.Units)
         {
-            unit.Deploy(new HexPosition(1,2,HexDirection.Top));
+            unit.Deploy(new HexPosition(1,2,HexDirection.Top), null);
             _sut.HandleCommand(new MoveUnitCommand
             {
                 MovementType = MovementType.Walk,
@@ -155,7 +155,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         {
             foreach (var unit in player.Units)
             {
-                unit.Deploy(new HexPosition(1,2,HexDirection.Top));
+                unit.Deploy(new HexPosition(1,2,HexDirection.Top), null);
                 _sut.HandleCommand(new MoveUnitCommand
                 {
                     MovementType = MovementType.Walk,
@@ -183,7 +183,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
         unit.SetProne();
         
         // Configure the FallProcessor to return successful standup data
@@ -241,7 +241,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
         unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data
@@ -299,7 +299,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
         unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data
@@ -424,7 +424,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         // Damage the gyro to require PSR
         var gyro = unit.GetAllComponents<Gyro>().First();
@@ -475,7 +475,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         // Damage the gyro to require PSR
         var gyro = unit.GetAllComponents<Gyro>().First();
@@ -531,7 +531,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         // Damage the gyro to require PSR
         var gyro = unit.GetAllComponents<Gyro>().First();
@@ -600,7 +600,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
         unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data with damage
@@ -691,7 +691,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
         unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data with armor-only damage
@@ -766,7 +766,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
         hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
@@ -822,7 +822,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
         hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
@@ -876,7 +876,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
         hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
@@ -926,7 +926,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         SetMap();
         _sut.Enter();
         var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
         hex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));

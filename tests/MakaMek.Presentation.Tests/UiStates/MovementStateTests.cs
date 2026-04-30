@@ -193,7 +193,7 @@ public class MovementStateTests
     public void HandleMovementTypeSelection_TransitionsToHexSelection()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -207,7 +207,7 @@ public class MovementStateTests
     public void HandleHexSelection_TransitionsToDirectionSelection()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -227,7 +227,7 @@ public class MovementStateTests
         var state = _battleMapViewModel.CurrentState;
         var position = new HexPosition(new HexCoordinates(1, 1),HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         var hex = new Hex(position.Coordinates);
 
         // Act
@@ -247,7 +247,7 @@ public class MovementStateTests
         var state = _battleMapViewModel.CurrentState;
         var position = new HexPosition(new HexCoordinates(1, 1),HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         var hex = new Hex(position.Coordinates);
         _battleMapViewModel.SelectedUnit = _unit2;
 
@@ -268,7 +268,7 @@ public class MovementStateTests
         var state = _battleMapViewModel.CurrentState;
         var position = new HexCoordinates(1, 1);
         var unit = _battleMapViewModel.Units.Last();
-        unit.Deploy(new HexPosition(position,HexDirection.Bottom));
+        unit.Deploy(new HexPosition(position,HexDirection.Bottom), null);
         var hex = new Hex(position);
 
         // Act
@@ -283,12 +283,12 @@ public class MovementStateTests
     {
         // Arrange
         var hex = new Hex(new HexCoordinates(1, 1));
-        _unit1.Deploy(new HexPosition(1, 2, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 2, HexDirection.Bottom), null);
         var newPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
         _unit1.Move(
             new MovementPath(
             [new PathSegment(new HexPosition(1, 2, HexDirection.Bottom), newPosition, 1)],
-            MovementType.Walk));
+            MovementType.Walk), null);
 
         // Act
         _sut.HandleHexSelection(hex);
@@ -335,7 +335,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -360,7 +360,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _battleMapViewModel.SelectedUnit = unit;
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
@@ -384,7 +384,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -408,7 +408,7 @@ public class MovementStateTests
 
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First() as Mech;
-        unit!.Deploy(position);
+        unit!.Deploy(position, null);
         unit.AssignPilot(_pilot);
         unit.SetProne();
         _pilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
@@ -437,7 +437,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -461,7 +461,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -491,7 +491,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -508,7 +508,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -525,7 +525,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
@@ -543,7 +543,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 4))!;
@@ -569,7 +569,7 @@ public class MovementStateTests
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
@@ -593,7 +593,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -621,7 +621,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Jump);
 
@@ -641,7 +641,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1,2), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -656,7 +656,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -675,7 +675,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         var currentHex = _battleMapViewModel.Game!.BattleMap!.GetHex(position.Coordinates);
@@ -694,7 +694,7 @@ public class MovementStateTests
         // Arrange
         var unit = _battleMapViewModel.Units.First();
         var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleUnitSelection(unit);
@@ -724,7 +724,7 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        proneMech!.Deploy(position);
+        proneMech!.Deploy(position, null);
         proneMech.AssignPilot(_pilot);
         proneMech.SetProne();
         var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
@@ -754,7 +754,7 @@ public class MovementStateTests
         // Arrange
         var unit = _battleMapViewModel.Units.First();
         var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleUnitSelection(unit);
@@ -790,7 +790,7 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        proneMech!.Deploy(position);
+        proneMech!.Deploy(position, null);
         proneMech.AssignPilot(_pilot);
         proneMech.SetProne();
         var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
@@ -838,7 +838,7 @@ public class MovementStateTests
     public void GetAvailableActions_NotInMovementTypeSelection_ReturnsEmpty(MovementType type)
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(type); // This moves us past movement type selection
 
@@ -1033,7 +1033,7 @@ public class MovementStateTests
     public void GetAvailableActions_ExecutingAction_UpdatesState(string startWithLabel)
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var walkAction = actions.First(a => a.Label.StartsWith(startWithLabel));
@@ -1049,7 +1049,7 @@ public class MovementStateTests
     public void GetAvailableActions_ExecutingStandingAction_CompletesState()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var walkAction = actions.First(a => a.Label.StartsWith("Stand"));
@@ -1069,7 +1069,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1092,7 +1092,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1127,7 +1127,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1158,7 +1158,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1184,7 +1184,7 @@ public class MovementStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1230,7 +1230,7 @@ public class MovementStateTests
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First() as Mech;
-        unit!.Deploy(position);
+        unit!.Deploy(position, null);
         unit.AssignPilot(_pilot);
         unit.SetProne();
         _pilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
@@ -1264,7 +1264,7 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        proneMech!.Deploy(new HexPosition(1,1,HexDirection.Bottom));
+        proneMech!.Deploy(new HexPosition(1,1,HexDirection.Bottom), null);
         proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
         var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Walk"));
@@ -1385,7 +1385,7 @@ public class MovementStateTests
     public void GetAvailableActions_ProneMech_StayProneAction_CompletesMovement()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1,1,HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1,1,HexDirection.Bottom), null);
         var proneMech = _unit1 as Mech;
         _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
@@ -1424,7 +1424,7 @@ public class MovementStateTests
             });
 
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        proneMech!.Deploy(position);
+        proneMech!.Deploy(position, null);
         proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
 
@@ -1459,7 +1459,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         var proneMech = _unit1 as Mech;
         _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
@@ -1489,7 +1489,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         var proneMech = _unit1 as Mech;
         _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
@@ -1518,7 +1518,7 @@ public class MovementStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         var proneMech = _unit1 as Mech;
         _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown
@@ -1551,7 +1551,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1571,7 +1571,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Run);
 
@@ -1591,7 +1591,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
@@ -1612,7 +1612,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Jump);
 
@@ -1632,7 +1632,7 @@ public class MovementStateTests
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(startPosition);
+        _unit1.Deploy(startPosition, null);
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.StandingStill);
 
@@ -1649,7 +1649,7 @@ public class MovementStateTests
         // Arrange
         var unit = _battleMapViewModel.Units.First();
         var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleUnitSelection(unit);
@@ -1679,7 +1679,7 @@ public class MovementStateTests
         // Arrange
         var unit = _battleMapViewModel.Units.First();
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleUnitSelection(unit);
@@ -1707,7 +1707,7 @@ public class MovementStateTests
         // Arrange
         var unit = _battleMapViewModel.Units.First();
         var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        unit.Deploy(startPosition);
+        unit.Deploy(startPosition, null);
         var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
         _sut.HandleUnitSelection(unit);
@@ -1740,7 +1740,7 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        proneMech!.Deploy(position);
+        proneMech!.Deploy(position, null);
         proneMech.AssignPilot(_pilot);
         proneMech.SetProne();
         var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
@@ -1775,7 +1775,7 @@ public class MovementStateTests
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
-        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         _sut.HandleUnitSelection(unit);
 
         // Act & Assert
@@ -1788,7 +1788,7 @@ public class MovementStateTests
     {
         // Arrange
         var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         mech.SetProne();
         _sut.HandleUnitSelection(mech);
 
@@ -1805,7 +1805,7 @@ public class MovementStateTests
         SetActivePlayer();
         var mech = _unit1 as Mech;
         // Deploy the mech so it has a valid position
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         mech.SetProne();
         mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 }); // Shutdown mech cannot stand up
 
@@ -1829,7 +1829,7 @@ public class MovementStateTests
         SetActivePlayer();
         var mech = _unit1 as Mech;
         // Deploy the mech so it has a valid position
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         mech.SetProne();
 
         // Ensure mech can stand up (it is by default if not shutdown/destroyed/etc and has MPs)
@@ -1853,7 +1853,7 @@ public class MovementStateTests
         SetActivePlayer();
         var mech = _unit1 as Mech;
         // Deploy the mech so it has a valid position
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
 
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Jump);
@@ -1862,7 +1862,7 @@ public class MovementStateTests
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
             MovementType.Jump);
-        mech.Move(jumpPath);
+        mech.Move(jumpPath, null);
 
         mech.SetProne(); // Simulate falling
         // Ensure mech cannot stand up because it was jumping when it fell
@@ -1885,7 +1885,7 @@ public class MovementStateTests
         SetPhase(PhaseNames.Movement);
         SetActivePlayer();
         var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
 
@@ -1923,7 +1923,7 @@ public class MovementStateTests
         SetPhase(PhaseNames.Movement);
         SetActivePlayer();
         var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
             .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
 
@@ -1950,7 +1950,7 @@ public class MovementStateTests
         SetPhase(PhaseNames.Movement);
         SetActivePlayer();
         var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
 
         // Destroy one leg to reduce walk MPs to 1
         var leg = mech.Parts[PartLocation.LeftLeg];

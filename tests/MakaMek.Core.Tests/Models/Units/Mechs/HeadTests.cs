@@ -119,7 +119,7 @@ public class HeadTests
         var sut = new Head("Head",  8, 3);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.Facing.ShouldBe(position.Facing);
     }
@@ -131,7 +131,7 @@ public class HeadTests
         var torso = new CenterTorso("CenterTorso", 10, 2, 6);
         var mech = new Mech("Test", "TST-1A", 4, [sut, torso]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.Facing.ShouldBe(position.Facing);
         
@@ -163,7 +163,7 @@ public class HeadTests
     {
         var sut = new Head("Head",  8, 3);
         var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = sut.GetWeaponsConfigurationOptions();
 
@@ -177,7 +177,7 @@ public class HeadTests
     {
         var sut = new Head("Head",  8, 3);
         var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
     }

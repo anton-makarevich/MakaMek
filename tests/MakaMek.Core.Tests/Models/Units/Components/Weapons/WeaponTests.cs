@@ -84,7 +84,7 @@ public class WeaponTests
         
         var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { torso, part, arm });
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         legWeapon.GetFiringArcs().ShouldBe([FiringArc.Front]);
         torsoWeapon.GetFiringArcs().ShouldBe([FiringArc.Front]);

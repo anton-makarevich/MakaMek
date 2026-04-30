@@ -71,7 +71,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var r = 1;
         foreach (var unit in player1.Units.Concat(player2.Units))
         {
-            unit.Deploy(new HexPosition(q, r, HexDirection.Top));
+            unit.Deploy(new HexPosition(q, r, HexDirection.Top), null);
             q++;
             r++;
         }
@@ -518,7 +518,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         SetMap();
-        // Setup PSR for heavy damage 36 > 20 to avoid NRE
+        // Set up a PSR for heavy damage 36 > 20 to avoid NRE
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
         var part1 = _player1Unit1.Parts.Values.First(p=>p.Location == PartLocation.LeftArm);
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
@@ -2321,7 +2321,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<PartLocation?>())
             .Returns(7);
 
-        // Setup dice rolls
+        // Set up dice rolls
         SetupDiceRolls(8, 7);
 
         // Act

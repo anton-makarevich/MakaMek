@@ -100,7 +100,7 @@ public class WeaponAttackDeclarationCommandTests
     {
         // Arrange
         var command = CreateCommand() with { WeaponTargets = [] };
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
 
         // Act
         var result = command.Render(_localizationService, _game);
@@ -126,8 +126,8 @@ public class WeaponAttackDeclarationCommandTests
             IsPrimaryTarget = false
         });
         
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top), null);
 
         // Act
         var result = command.Render(_localizationService, _game);
@@ -146,8 +146,8 @@ public class WeaponAttackDeclarationCommandTests
         var command = CreateCommand();
         command.WeaponTargets[0] = command.WeaponTargets[0] with { TargetId = Guid.NewGuid() };
         
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top), null);
 
         // Act
         var result = command.Render(_localizationService, _game);
@@ -163,8 +163,8 @@ public class WeaponAttackDeclarationCommandTests
     {
         // Arrange
         var command = CreateCommand();
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top), null);
 
         // Act
         var result = command.Render(_localizationService, _game);
@@ -194,8 +194,8 @@ public class WeaponAttackDeclarationCommandTests
             IsPrimaryTarget = false
         });
         
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top), null);
 
         // Act
         var result = command.Render(_localizationService, _game);

@@ -22,10 +22,10 @@ public class FallingDamageCalculatorTests
 
     public FallingDamageCalculatorTests()
     {
-        // Setup mock rules provider
+        // Set up a mock rules provider
         IRulesProvider rules = new TotalWarfareRulesProvider();
 
-        // Setup calculator with mock dice roller and rule provider
+        // Set up a calculator with mock dice roller and rule provider
         _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);
     }
 
@@ -97,12 +97,12 @@ public class FallingDamageCalculatorTests
     {
         // Arrange
         var mech = CreateTestMech(50);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         
-        // Setup dice roller for facing roll
+        // Set up a dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         
-        // Setup dice roller for hit locations
+        // Set up a dice roller for hit locations
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(3)] // First hit location roll
         );
@@ -119,7 +119,7 @@ public class FallingDamageCalculatorTests
     {
         // Arrange
         var mech = CreateTestMech(50);
-        mech.Deploy(new HexPosition(1,1, HexDirection.Top));
+        mech.Deploy(new HexPosition(1,1, HexDirection.Top), null);
         const int levelsFallen = 2; // 15 damage for a 50-ton mech (50/10 * (2+1)
         
         // Setup dice roller for facing roll
@@ -197,7 +197,7 @@ public class FallingDamageCalculatorTests
     {
         // Arrange
         var mech = CreateTestMech(40);
-        mech.Deploy(new HexPosition(1,1, HexDirection.Top));
+        mech.Deploy(new HexPosition(1,1, HexDirection.Top), null);
         const int levelsFallen = 1; // 8 damage for a 40-ton mech
         
         // Setup dice roller for facing roll
@@ -248,20 +248,20 @@ public class FallingDamageCalculatorTests
         // Arrange
         // Create a 35 ton
         var mech = CreateTestMech(35);
-        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         
         const int levelsFallen = 1; // 8 damage for a 35-ton mech
         
-        // Setup dice roller for facing roll
+        // Set up a dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         
-        // Setup dice roller for hit locations (1 group of 5 damage, 1 group of 3 damage)
+        // Set up a dice roller for hit locations (1 group of 5 damage, 1 group of 3 damage)
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(4)], // First hit location roll
             [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
         
-        // Setup structure damage calculator to return correct data
+        // Set up structure damage calculator to return correct data
         _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
@@ -299,12 +299,12 @@ public class FallingDamageCalculatorTests
     {
         // Arrange
         var mech = CreateTestMech(20);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         
-        // Setup dice roller for facing roll
+        // Set up the dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(3));
         
-        // Setup dice roller for hit locations
+        // Set up the dice roller for hit locations
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(3)] // Hit location roll
         );

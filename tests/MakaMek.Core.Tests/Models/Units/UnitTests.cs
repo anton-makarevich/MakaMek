@@ -355,8 +355,8 @@ public class UnitTests
         var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
         
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -410,9 +410,9 @@ public class UnitTests
         MountWeaponOnUnit(attacker, weapon1, PartLocation.LeftArm, [0, 1]);
         MountWeaponOnUnit(attacker, weapon2, PartLocation.RightArm, [2, 3]);
         
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        target1.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        target2.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        target1.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
+        target2.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), null);
         
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -485,7 +485,7 @@ public class UnitTests
         var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
 
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -523,7 +523,7 @@ public class UnitTests
         var weapon = new TestWeapon("Mounted Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
 
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -563,7 +563,7 @@ public class UnitTests
         var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
 
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -604,8 +604,8 @@ public class UnitTests
         var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
         
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         
         var weaponTargets = new List<WeaponTargetData>
         {
@@ -1397,11 +1397,11 @@ public class UnitTests
         var unit = CreateTestUnit();
         var rulesProvider = new TotalWarfareRulesProvider();
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Deploy(deployPosition);
+        unit.Deploy(deployPosition, null);
         
         // Move the unit with the Run movement type
         unit.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run));
+            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run), null);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -1422,7 +1422,7 @@ public class UnitTests
         var unit = CreateTestUnit();
         var targetUnit = CreateTestUnit();
         var rulesProvider = Substitute.For<IRulesProvider>();
-        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         
         // Add a weapon to the unit
         var weapon = new TestWeapon("Test Laser");
@@ -1465,7 +1465,7 @@ public class UnitTests
         
         // Deploy and move the unit
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Deploy(deployPosition);
+        unit.Deploy(deployPosition, null);
         
                 // Add a weapon to the unit
         var weapon = new TestWeapon("Test Laser");
@@ -1483,7 +1483,7 @@ public class UnitTests
 
         // Move the unit with the Jump movement type
         unit.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 3)], MovementType.Jump));
+            new PathSegment(deployPosition, deployPosition, 3)], MovementType.Jump), null);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -2551,7 +2551,7 @@ public class UnitTests
     {
         // Arrange
         var sut = CreateTestUnit();
-        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         sut.Position.ShouldNotBeNull();
         
         // Act
@@ -2676,11 +2676,11 @@ public class UnitTests
         _rulesProvider.GetExternalHeatCap().Returns(15);
         var sut = CreateTestUnit();
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        sut.Deploy(deployPosition);
+        sut.Deploy(deployPosition, null);
         
         // Add movement heat
         sut.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run));
+            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run), null);
         
         // Add external heat (10 Flamers × 2 = 20, capped at 15)
         for (var i = 0; i < 10; i++)
@@ -2782,7 +2782,7 @@ public class UnitTests
         // Arrange
         var sut = CreateTestUnit();
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        sut.Deploy(position);
+        sut.Deploy(position, null);
         
         // Assert
         sut.Facing.ShouldBe(position.Facing);
@@ -2838,7 +2838,7 @@ public class UnitTests
     {
         // Arrange
         var sut = CreateTestUnit();
-        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         var target = CreateTestUnit();
         var weapon1 = new MediumLaser();
         var weapon2 = new MediumLaser();

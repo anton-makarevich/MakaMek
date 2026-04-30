@@ -32,7 +32,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
-public class BaseGameTests : BaseGame
+public sealed class BaseGameTests : BaseGame
 {
     private static readonly IRulesProvider RulesProviderInstance = new TotalWarfareRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
@@ -49,11 +49,11 @@ public class BaseGameTests : BaseGame
         Substitute.For<IHeatEffectsCalculator>(),
         Substitute.For<ILogger<BaseGame>>())
     {
-        base.SetBattleMap(
+        SetBattleMap(
             BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
     
-    public virtual bool IsDisposed => false;
+    public bool IsDisposed => false;
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
         int damage,
@@ -201,7 +201,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(joinCommand);
         var player = Players.First();
         var mech = player.Units.First() as Mech;
-        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft), null);
 
         var command = new WeaponConfigurationCommand
         {
@@ -294,7 +294,7 @@ public class BaseGameTests : BaseGame
         var attackerMech = attackerPlayer.Units[0] as Mech;
         attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
         attackerMech.AssignPilot(new MechWarrior("John", "Doe"));
-        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
@@ -312,7 +312,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
-        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
 
         // Get a weapon from the attacker mech
         var weapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
@@ -367,7 +367,7 @@ public class BaseGameTests : BaseGame
         attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
         attackerMech.Parts[PartLocation.LeftArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
         attackerMech.AssignPilot(new MechWarrior("John", "Doe"));
-        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
 
         // Add first target player and unit
         var targetPlayerId1 = Guid.NewGuid();
@@ -387,9 +387,9 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(targetJoinCommand1);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId1);
         var targetMech1 = targetPlayer.Units[0] as Mech;
-        targetMech1!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech1!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         var targetMech2 = targetPlayer.Units[1] as Mech;
-        targetMech2!.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top));
+        targetMech2!.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), null);
 
         // Get weapons from the attacker mech
         var rightArmWeapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
@@ -480,7 +480,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units[0] as Mech;
-        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
 
         // Create hit locations data
         var hitLocations = new List<LocationHitData>
@@ -546,7 +546,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
-        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
 
         // Create the attack resolution command with a non-existent attacker ID
         var command = new WeaponAttackResolutionCommand
@@ -596,7 +596,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
-        attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         attackerMech.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
 
         // Add a target player and unit
@@ -615,7 +615,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
-        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+        targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
 
         // Get a weapon from the attacker mech
         var weapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
@@ -715,7 +715,7 @@ public class BaseGameTests : BaseGame
         var player = Players.First();
         var mech = player.Units.First() as Mech;
         mech!.AssignPilot(new MechWarrior("John", "Doe"));
-        mech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        mech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft), null);
 
         var command = new WeaponAttackDeclarationCommand
         {
@@ -749,7 +749,7 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(joinCommand);
         var player = Players.First();
         var mech = player.Units.First() as Mech;
-        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft), null);
         var sensors = mech!.GetAllComponents<Sensors>().First();
         sensors.Hit(); // First hit
         sensors.Hit(); // Second hit - destroys sensors
@@ -1555,7 +1555,7 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(joinCommand);
         var mech = Players.SelectMany(p => p.Units).First() as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         mech.SetProne(HexDirection.Bottom);
         mech.StandupAttempts.ShouldBe(0);
         
@@ -1599,7 +1599,7 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(joinCommand);
         var mech = Players.SelectMany(p => p.Units).First() as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         mech.SetProne(HexDirection.Bottom);
         mech.StandupAttempts.ShouldBe(0);
         

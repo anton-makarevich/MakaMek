@@ -114,7 +114,7 @@ public class HexCoordinatesExtensionsTests
         arm.TryAddComponent(weapon).ShouldBeTrue();
         
         var testUnit = new Mech("Test", "TST-1A", 50, [arm]);
-        testUnit.Deploy(new HexPosition(center, HexDirection.Top));
+        testUnit.Deploy(new HexPosition(center, HexDirection.Top), null);
         
         // Act
         var result = center.IsInWeaponFiringArc(target, weapon);
@@ -130,7 +130,7 @@ public class HexCoordinatesExtensionsTests
         var sut = new HexCoordinates(5, 5);
         
         var testUnit = new Mech("Test", "TST-1A", 50, []);
-        testUnit.Deploy(new HexPosition(sut, HexDirection.Top));
+        testUnit.Deploy(new HexPosition(sut, HexDirection.Top), null);
         var player = Substitute.For<IPlayer>();
         player.Units.Returns([testUnit]);
         var game = Substitute.For<IGame>();
@@ -151,7 +151,7 @@ public class HexCoordinatesExtensionsTests
         
         var testUnit = new Mech("Test", "TST-1A", 50, []);
         // Deploy the unit in a different hex
-        testUnit.Deploy(new HexPosition(new HexCoordinates(4, 4), HexDirection.Top));
+        testUnit.Deploy(new HexPosition(new HexCoordinates(4, 4), HexDirection.Top), null);
         var player = Substitute.For<IPlayer>();
         player.Units.Returns([testUnit]);
         var game = Substitute.For<IGame>();

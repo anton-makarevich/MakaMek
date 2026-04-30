@@ -13,7 +13,7 @@ public class MechPartExtensionsTests
     {
         var part = new Arm("Test", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [part], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = part.GetAvailableTorsoRotationOptions();
 
@@ -27,7 +27,7 @@ public class MechPartExtensionsTests
     {
         var part = new Arm("Test", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [part], possibleTorsoRotation: 0);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = part.GetAvailableTorsoRotationOptions();
 
@@ -51,7 +51,7 @@ public class MechPartExtensionsTests
     {
         var part = new Arm("Test", PartLocation.LeftArm, 4, 3);
         var unit = new UnitTests.TestUnit("Test", "TST-1A", 50, [part]);
-        unit.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        unit.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         var options = part.GetAvailableTorsoRotationOptions();
 
@@ -63,7 +63,7 @@ public class MechPartExtensionsTests
     {
         var part = new Arm("Test", PartLocation.LeftArm, 4, 3);
         var mech = new Mech("Test", "TST-1A", 50, [part], possibleTorsoRotation: 1);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         var forwardPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         
         var options = part.GetAvailableTorsoRotationOptions(forwardPosition);

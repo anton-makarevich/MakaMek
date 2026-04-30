@@ -28,7 +28,7 @@ public class LegTests
         var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.Facing.ShouldBe(position.Facing);
     }
@@ -40,7 +40,7 @@ public class LegTests
         var centerTorso = new CenterTorso("Center Torso", 15, 10, 15);
         var mech = new Mech("Test", "TST-1A", 4, [centerTorso, sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.Facing.ShouldBe(position.Facing);
         
@@ -85,7 +85,7 @@ public class LegTests
         var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        mech.Deploy(position);
+        mech.Deploy(position, null);
         
         sut.GetWeaponsConfigurationOptions().ShouldBeEmpty();
     }
@@ -97,7 +97,6 @@ public class LegTests
     {
         var leg = new Leg("Leg", legLocation, 8, 4);
         var torso = new SideTorso("Torso", torsoLocation, 10, 6, 4);
-        var mech = new Mech("Test", "TST-1A", 50, [leg, torso]);
 
         // Destroy the side torso by applying enough damage
         torso.ApplyDamage(16, HitDirection.Front);
@@ -110,7 +109,6 @@ public class LegTests
     public void IsDestroyed_ShouldBeTrue_WhenStructureReachesZero()
     {
         var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
-        var mech = new Mech("Test", "TST-1A", 50, [sut]);
 
         // Apply enough damage to destroy leg (armor 8 + structure 4 = 12)
         sut.ApplyDamage(12, HitDirection.Front);
@@ -122,7 +120,6 @@ public class LegTests
     public void IsDestroyed_ShouldBeTrue_WhenBlownOff()
     {
         var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
-        var mech = new Mech("Test", "TST-1A", 50, [sut]);
 
         sut.BlowOff();
 

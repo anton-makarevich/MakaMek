@@ -226,7 +226,7 @@ public class WeaponsAttackStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         var hex = new Hex(position.Coordinates);
 
         // Act
@@ -244,7 +244,7 @@ public class WeaponsAttackStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         var hex = new Hex(position.Coordinates);
         _battleMapViewModel.SelectedUnit = _unit2;
 
@@ -264,7 +264,7 @@ public class WeaponsAttackStateTests
         var state = _battleMapViewModel.CurrentState;
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         unit.DeclareWeaponAttack([]);
         var hex = new Hex(position.Coordinates);
 
@@ -285,7 +285,7 @@ public class WeaponsAttackStateTests
         // Set up attacker (player's unit)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
@@ -293,7 +293,7 @@ public class WeaponsAttackStateTests
         // Setup target (enemy unit)
         var targetPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Activate target selection
         var targetSelectionAction = _sut.GetAvailableActions()
@@ -324,7 +324,7 @@ public class WeaponsAttackStateTests
         // Set up the attacker (player's unit) with a weapon
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
@@ -332,7 +332,7 @@ public class WeaponsAttackStateTests
         // Set up another friendly unit within weapon range
         var friendlyPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var friendlyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id && u != attacker);
-        friendlyUnit.Deploy(friendlyPosition);
+        friendlyUnit.Deploy(friendlyPosition, null);
 
         // Activate target selection
         var targetSelectionAction = _sut.GetAvailableActions()
@@ -362,7 +362,7 @@ public class WeaponsAttackStateTests
         // Set up an enemy unit
         var enemyPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        enemyUnit.Deploy(enemyPosition);
+        enemyUnit.Deploy(enemyPosition, null);
         
         // Create hex with an enemy unit
         var enemyHex = new Hex(enemyPosition.Coordinates);
@@ -386,14 +386,14 @@ public class WeaponsAttackStateTests
         // Set up attacker (player's unit)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
 
         // Set up an enemy unit far away (out of weapon range)
         var enemyPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        enemyUnit.Deploy(enemyPosition);
+        enemyUnit.Deploy(enemyPosition, null);
 
         // Activate target selection
         var targetSelectionAction = _sut.GetAvailableActions()
@@ -427,7 +427,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_NotInActionSelectionStep_ReturnsEmpty()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         IEnumerable<StateAction> actions = _sut.GetAvailableActions().ToList();
         var torsoAction = actions.First(a => a.Label == "Turn Torso");
@@ -444,7 +444,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_ReturnsTorsoAndTargetOptions()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -477,7 +477,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_ShouldNotReturnTarget_WhenCanNotFire()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         // Destroy sensors
         var sensors = _unit1.GetAllComponents<Sensors>().First();
@@ -497,7 +497,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_TorsoRotationAction_TransitionsToWeaponsConfiguration()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var torsoAction = actions.First(a => a.Label == "Turn Torso");
@@ -530,7 +530,7 @@ public class WeaponsAttackStateTests
     public void HandleFacingSelection_HidesDirectionSelector()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var torsoAction = actions.First(a => a.Label == "Turn Torso");
@@ -549,7 +549,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         
         // Act
@@ -565,7 +565,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
 
         // Act
@@ -588,7 +588,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Shutdown(new ShutdownData{Reason = ShutdownReason.Voluntary, Turn = 0}); // Make the unit immobile
         
         // Act
@@ -607,11 +607,11 @@ public class WeaponsAttackStateTests
         var position2 = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         var unit1= _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var unit2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id == _player.Id);
-        unit1.Deploy(position1);
+        unit1.Deploy(position1, null);
         unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         unit2.AssignPilot(_pilot);
         unit2.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        unit2.Deploy(position2);
+        unit2.Deploy(position2, null);
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position1.Coordinates));
         _sut.HandleUnitSelection(unit1);
         var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
@@ -632,7 +632,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         var weapon1 = new MediumLaser();
         var weapon2 = new MediumLaser();
         _unit1.Parts[PartLocation.LeftArm].TryAddComponent(weapon1, [1]).ShouldBeTrue();
@@ -676,9 +676,9 @@ public class WeaponsAttackStateTests
         // Arrange
         var position1 = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var position2 = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
-        _unit1.Deploy(position1);
+        _unit1.Deploy(position1, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        _unit2.Deploy(position2);
+        _unit2.Deploy(position2, null);
         _unit2.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _unit1.AssignPilot(_pilot);
         _unit2.AssignPilot(new MechWarrior("Test", "Pilot"));
@@ -700,7 +700,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
         var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
@@ -722,7 +722,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
         var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
@@ -751,7 +751,7 @@ public class WeaponsAttackStateTests
            Equipment = []
         };
         var unitNoWeapons = _mechFactory.Create(unitDataNoWeapons);
-        unitNoWeapons.Deploy(position);
+        unitNoWeapons.Deploy(position, null);
 
         // Act
         _sut.HandleUnitSelection(unitNoWeapons);
@@ -800,7 +800,7 @@ public class WeaponsAttackStateTests
 
         var unit = _mechFactory.Create(unitData);
         unit.AssignPilot(_pilot);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
 
         // Act
         _sut.HandleUnitSelection(unit);
@@ -828,7 +828,7 @@ public class WeaponsAttackStateTests
         map.AddHex(blockingHex);
 
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(new HexPosition(attackerCoords, HexDirection.Bottom));
+        attacker.Deploy(new HexPosition(attackerCoords, HexDirection.Bottom), null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
 
@@ -862,7 +862,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
         var targetCoordinates = new HexCoordinates(1, 3); // Two hexes directly in front
@@ -889,7 +889,7 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        _unit1.Deploy(position);
+        _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
         // Get maximum weapon range
@@ -915,12 +915,12 @@ public class WeaponsAttackStateTests
         // Target at (1, 3)
         var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Attacker at (1, 1)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
 
         // Add a leg weapon at slot 4 (slots 0-3 are actuators)
@@ -957,11 +957,11 @@ public class WeaponsAttackStateTests
 
         var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
 
         // Add an arm weapon at slot 4
@@ -992,11 +992,11 @@ public class WeaponsAttackStateTests
 
         var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
 
         attacker.Parts[PartLocation.RightLeg].TryAddComponent(new MediumLaser(), [4]).ShouldBeTrue();
@@ -1032,7 +1032,7 @@ public class WeaponsAttackStateTests
         var unit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Deploy(position);
+        unit.Deploy(position, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
         _sut.HandleUnitSelection(unit);
@@ -1056,7 +1056,7 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
@@ -1080,11 +1080,11 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1112,11 +1112,11 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1147,11 +1147,11 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1186,13 +1186,13 @@ public class WeaponsAttackStateTests
         
         // Place units in a triangle
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         var target1Position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target1.Deploy(target1Position);
+        target1.Deploy(target1Position, null);
         var target2Position = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
-        target2.Deploy(target2Position);
+        target2.Deploy(target2Position, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1230,9 +1230,9 @@ public class WeaponsAttackStateTests
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Select attacker and target
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
@@ -1268,9 +1268,9 @@ public class WeaponsAttackStateTests
         // Position units on the map - far apart to ensure weapons are out of range
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Top);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Select attacker and target
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
@@ -1300,12 +1300,12 @@ public class WeaponsAttackStateTests
         var primaryTargetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         var secondaryTargetPosition = new HexPosition(new HexCoordinates(7, 4), HexDirection.Bottom);
         
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
-        primaryTarget.Deploy(primaryTargetPosition);
-        secondaryTarget.Deploy(secondaryTargetPosition);
+        primaryTarget.Deploy(primaryTargetPosition, null);
+        secondaryTarget.Deploy(secondaryTargetPosition, null);
         
         // Set up the calculator mock to return different breakdowns based on parameters
         var primaryBreakdown = new ToHitBreakdown
@@ -1400,10 +1400,10 @@ public class WeaponsAttackStateTests
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Set active player
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -1454,10 +1454,10 @@ public class WeaponsAttackStateTests
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Set active player
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -1503,10 +1503,10 @@ public class WeaponsAttackStateTests
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Set active player
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -1553,10 +1553,10 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Set up the state
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
@@ -1593,9 +1593,9 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         // Set up the state
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
@@ -1618,7 +1618,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_IncludesSkipAttackOption()
     {
         // Arrange
-        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -1640,7 +1640,7 @@ public class WeaponsAttackStateTests
         
         // Deploy unit
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         // Set active player
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -1674,7 +1674,7 @@ public class WeaponsAttackStateTests
         // Arrange 
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         
@@ -1694,11 +1694,11 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1729,10 +1729,10 @@ public class WeaponsAttackStateTests
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1756,7 +1756,7 @@ public class WeaponsAttackStateTests
         
         // Place unit
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
@@ -1783,9 +1783,9 @@ public class WeaponsAttackStateTests
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Set up the state (mirroring the reference test)
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
@@ -1830,7 +1830,7 @@ public class WeaponsAttackStateTests
         }
         
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unitWithNoWeapons.Deploy(position);
+        unitWithNoWeapons.Deploy(position, null);
 
         // Set the unit as the attacker in the state
         _sut.HandleUnitSelection(unitWithNoWeapons);
@@ -1845,7 +1845,7 @@ public class WeaponsAttackStateTests
         SetActivePlayer();
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(position);
+        attacker.Deploy(position, null);
         attacker.AssignPilot(_pilot);
 
         // Select a unit and start torso rotation
@@ -1877,13 +1877,13 @@ public class WeaponsAttackStateTests
 
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
 
         var targetPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Select the attacker and enter target selection
         _sut.HandleUnitSelection(attacker);
@@ -1919,17 +1919,17 @@ public class WeaponsAttackStateTests
 
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
 
         var target1Position = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var target1 = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        target1.Deploy(target1Position);
+        target1.Deploy(target1Position, null);
 
         var target2Position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var target2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
-        target2.Deploy(target2Position);
+        target2.Deploy(target2Position, null);
 
         // Select the attacker and enter target selection
         _sut.HandleUnitSelection(attacker);
@@ -1963,10 +1963,10 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
 
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
 
         // Set active player
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -2022,7 +2022,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         // Act
         _sut.HandleUnitSelection(attacker);
@@ -2039,7 +2039,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         
@@ -2061,7 +2061,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         
         _sut.HandleUnitSelection(attacker);
@@ -2082,7 +2082,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         _platformService.IsMobile.Returns(true); // Simulate mobile platform to display actions menu off map
         
@@ -2101,10 +2101,10 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
-        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
+        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom), null);
         _platformService.IsMobile.Returns(true);
 
         _sut.HandleUnitSelection(attacker);
@@ -2126,7 +2126,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         _sut.HandleUnitSelection(attacker);
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
@@ -2151,12 +2151,12 @@ public class WeaponsAttackStateTests
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
@@ -2196,7 +2196,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.AssignPilot(_pilot);
         
         _sut.HandleUnitSelection(attacker);
@@ -2218,7 +2218,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         _sut.HandleUnitSelection(attacker);
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
@@ -2247,7 +2247,7 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         
         _sut.HandleUnitSelection(attacker);
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
@@ -2272,12 +2272,12 @@ public class WeaponsAttackStateTests
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
+        attacker.Deploy(attackerPosition, null);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
+        target.Deploy(targetPosition, null);
         
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
