@@ -40,4 +40,19 @@ public class PartLocationTests
         // Assert
         result.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg, false)]
+    [InlineData(PartLocation.RightLeg, false)]
+    [InlineData(PartLocation.Head, false)]
+    [InlineData(PartLocation.CenterTorso, true)]
+    [InlineData(PartLocation.LeftTorso, true)]
+    [InlineData(PartLocation.RightTorso, true)]
+    [InlineData(PartLocation.RightArm, false)]
+    [InlineData(PartLocation.LeftArm, false)]
+    public void IsTorso_ChecksIfLocationIsTorso_ReturnsCorrectResult(PartLocation location, bool expected)
+    {
+        var result = location.IsTorso();
+        result.ShouldBe(expected);       
+    }
 }
