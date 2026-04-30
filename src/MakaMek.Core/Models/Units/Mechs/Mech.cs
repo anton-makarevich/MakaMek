@@ -490,7 +490,10 @@ public class Mech : Unit
     public bool CanStandup()
     {
         if (IsShutdown) return false;
-        
+
+        // Cannot stand up in the same turn if falling during a jump
+        if (MovementTaken?.MovementType == MovementType.Jump) return false;
+
         if (!IsGyroAvailable) return false;
 
         var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
@@ -633,7 +636,7 @@ public class Mech : Unit
         base.ResetTurnState();
 
         StandupAttempts = 0;
-        
+
         // Reset torso rotation
         foreach (var torso in _parts.Values.OfType<Torso>())
         {
