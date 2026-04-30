@@ -28,7 +28,7 @@ public class PilotingSkillRollContextTypeResolverTests
         // Assert
         typeInfo.ShouldNotBeNull();
         typeInfo.PolymorphismOptions.ShouldNotBeNull();
-        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe(PilotingSkillRollContextTypeResolver.TypeDiscriminatorPropertyName);
+        typeInfo.PolymorphismOptions.TypeDiscriminatorPropertyName.ShouldBe("$type");
         typeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators.ShouldBeFalse();
         typeInfo.PolymorphismOptions.UnknownDerivedTypeHandling.ShouldBe(JsonUnknownDerivedTypeHandling.FailSerialization);
     }
