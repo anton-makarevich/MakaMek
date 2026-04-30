@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 
 namespace Sanet.MakaMek.Core.Data.Serialization;

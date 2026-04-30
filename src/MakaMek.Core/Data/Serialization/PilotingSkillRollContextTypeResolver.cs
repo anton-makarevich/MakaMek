@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 
 namespace Sanet.MakaMek.Core.Data.Serialization;

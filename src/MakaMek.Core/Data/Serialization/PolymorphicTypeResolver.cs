@@ -12,8 +12,8 @@ namespace Sanet.MakaMek.Core.Data.Serialization;
 public abstract class PolymorphicTypeResolver<T> : IJsonTypeInfoResolver
 {
     private readonly DefaultJsonTypeInfoResolver _default = new();
-    
-    public const string TypeDiscriminatorPropertyName = "$type";
+
+    private const string TypeDiscriminatorPropertyName = "$type";
     
     public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
     {
