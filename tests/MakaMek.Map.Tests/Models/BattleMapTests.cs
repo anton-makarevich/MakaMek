@@ -2009,4 +2009,110 @@ public class BattleMapTests
         targetHexInfo.InterveningFactor.ShouldBe(2, "Heavy woods at target should contribute intervening factor");
         result.TotalInterveningFactor.ShouldBe(0); // but the target hex doesn't contribute to the total factor
     }
+
+    [Fact]
+    public void GetLineOfSight_Blocked_WhenAttackerSubmergedAndTargetNotSubmerged()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        // Attacker hex has deep water (depth -2) with unit height 1 (standing mech)
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(fromHex);
+        
+        // Target hex has no water
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(toHex);
+
+        // Act - Attacker is submerged (depth 2 >= height 1), target is not submerged (no water, height 1)
+        var result = sut.GetLineOfSight(from, to, 1, 1);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        result.BlockingHexCoordinates.ShouldBe(from);
+    }
+
+    [Fact]
+    public void GetLineOfSight_Blocked_WhenTargetSubmergedAndAttackerNotSubmerged()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        // Attacker hex has no water
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+
+        // Target hex has deep water (depth -2) with unit height 1 (standing mech)
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(toHex);
+
+        // Act - Attacker is not submerged (no water), target is submerged (depth 2 >= height 1)
+        var result = sut.GetLineOfSight(from, to, 1, 1);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        result.BlockingHexCoordinates.ShouldBe(to);
+    }
+
+    [Fact]
+    public void GetLineOfSight_Clear_WhenBothUnitsSubmerged()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        // Both hexes have deep water (depth -2) with unit height 1
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(toHex);
+
+        // Act - Both are submerged (depth 2 >= height 1), so LOS should be clear
+        var result = sut.GetLineOfSight(from, to, 1, 1);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetLineOfSight_Clear_WhenAttackerInShallowWater_NotSubmerged()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        // Attacker hex has shallow water (depth 0), unit is standing (height 1)
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new WaterTerrain(0));
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(toHex);
+
+        // Act - Shallow water (depth 0) < unit height (1), so not submerged. Target also not submerged (height 1)
+        var result = sut.GetLineOfSight(from, to, 1, 1);
+
+        // Assert
+        result.HasLineOfSight.ShouldBeTrue();
+    }
 }
