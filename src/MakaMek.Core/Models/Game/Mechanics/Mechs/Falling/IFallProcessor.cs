@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
@@ -31,6 +32,7 @@ public interface IFallProcessor
     /// <param name="mech">The mech performing the movement attempt</param>
     /// <param name="rollContext">The PSR context for this movement attempt</param>
     /// <param name="game">The game instance</param>
+    /// <param name="movementType">The type of movement being attempted</param>
     /// <returns>FallContextData containing the result of the movement attempt</returns>
-    FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game);
+    FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType);
 }

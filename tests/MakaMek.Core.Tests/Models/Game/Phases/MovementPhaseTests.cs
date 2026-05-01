@@ -212,7 +212,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(successfulStandupData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
         
@@ -270,7 +270,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, Arg.Any<MovementType>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -328,7 +328,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill).Returns(fallContextData);
 
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
@@ -445,7 +445,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(successfulFallContext);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game, MovementType.Jump).Returns(successfulFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -501,7 +501,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(failedFallContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game, MovementType.Jump).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -557,7 +557,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game).Returns(failedFallContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game, MovementType.Jump).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -633,7 +633,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill).Returns(fallContextData);
 
         // Setup critical hits calculator to return critical hits for fall damage
         var fallCriticalHitsCommand = new CriticalHitsResolutionCommand
@@ -728,7 +728,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         Game.FallProcessor
-            .ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game)
+            .ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -802,7 +802,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -857,7 +857,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -906,7 +906,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -956,7 +956,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 

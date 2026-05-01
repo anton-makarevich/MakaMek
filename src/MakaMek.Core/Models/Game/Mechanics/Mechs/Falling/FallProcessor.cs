@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
@@ -84,8 +85,8 @@ public class FallProcessor : IFallProcessor
             .Select(f => f.ToMechFallCommand());
     }
 
-    public FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game)
-        => ProcessRollContexts([rollContext], mech, game).First();
+    public FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType)
+        => ProcessRollContexts([rollContext], mech, game, movementType).First();
 
     /// <summary>
     /// Core processing loop: evaluates each roll context in order (auto-falls first),
@@ -94,7 +95,8 @@ public class FallProcessor : IFallProcessor
     private IEnumerable<FallContextData> ProcessRollContexts(
         List<PilotingSkillRollContext> rollContexts,
         Mech mech,
-        IGame game)
+        IGame game,
+        MovementType movementType = MovementType.StandingStill)
     {
         if (rollContexts.Count == 0)
             return [];
@@ -123,16 +125,28 @@ public class FallProcessor : IFallProcessor
 
             PilotingSkillRollData? pilotDamagePsr = null;
 
+            // Determine levels fallen based on context and movement type
+            var levelsFallen = 0;
+            var wasJumping = movementType == MovementType.Jump;
+
             if (isFallingNow)
             {
-                var pilotDamageContext = new PilotDamageFromFallRollContext(LevelsFallen: 0);
+                // WaterTerrain.Height stores depth as negative integers (0 = shallow, -1 = depth 1, -2 = depth 2).
+                // EnteringDeepWaterRollContext.WaterDepth is already the positive depth value (-1 * water.Height).
+                // For water entry falls while jumping, levelsFallen = WaterDepth.
+                if (context is EnteringDeepWaterRollContext waterCtx && wasJumping)
+                {
+                    levelsFallen = waterCtx.WaterDepth;
+                }
+
+                var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
 
                 pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
             }
 
             var fallingDamageData = isFallingNow
-                ? _fallingDamageCalculator.CalculateFallingDamage(mech, 0, false)
+                ? _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping)
                 : null;
 
             var fallContextData = new FallContextData
@@ -143,8 +157,8 @@ public class FallProcessor : IFallProcessor
                 PilotingSkillRoll = fallPsrData,
                 PilotDamagePilotingSkillRoll = pilotDamagePsr,
                 FallingDamageData = fallingDamageData,
-                LevelsFallen = 0,
-                WasJumping = false
+                LevelsFallen = levelsFallen,
+                WasJumping = wasJumping
             };
 
             results.Add(fallContextData);
