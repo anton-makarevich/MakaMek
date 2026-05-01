@@ -66,7 +66,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             foreach (var entry in waterEntries)
             {
                 var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
-                    unit, new EnteringDeepWaterRollContext(entry.WaterDepth), Game);
+                    unit, new EnteringDeepWaterRollContext(entry.WaterDepth), Game, moveCommand.MovementType);
                     
                 if (fallContextData.IsFalling)
                 {
@@ -107,7 +107,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 if (destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
                 {
                     var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
-                        unit, new EnteringDeepWaterRollContext(-1*water.Height), Game);
+                        unit, new EnteringDeepWaterRollContext(-1*water.Height), Game, MovementType.Jump);
                     if (fallContextData.IsFalling)
                     {
                         var fallCommand = fallContextData.ToMechFallCommand();
@@ -146,7 +146,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
         // Use the FallProcessor to process the standup attempt and get context data
         var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
-            unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game);
+            unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill);
         
         // Create and publish the appropriate command based on the result
         if (fallContextData.IsFalling)
@@ -170,7 +170,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Use the FallProcessor to process the jump attempt with damaged gyro
         if (unit is not Mech mech) return false;
         var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
-            mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game);
+            mech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), Game, MovementType.Jump);
         
         if (!fallContextData.IsFalling)
         {

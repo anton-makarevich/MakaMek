@@ -946,7 +946,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.StandupAttempt);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game, MovementType.StandingStill);
 
         // Assert
         result.ShouldNotBeNull();
@@ -987,7 +987,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game, MovementType.StandingStill);
 
         // Assert
         result.ShouldNotBeNull();
@@ -1016,6 +1016,172 @@ public class FallProcessorTests
             Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
+    [Fact]
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToWaterDepth_WhenJumpingIntoDeepWaterAndFalling()
+    {
+        // Arrange - WaterDepth: 1, Jump movement
+        SetupWaterEntryPsrFor(1, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 1, true)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(1), _game, MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(1);
+        result.WasJumping.ShouldBeTrue();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll!.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll.RollContext).LevelsFallen.ShouldBe(1);
+
+        // Verify FallingDamageCalculator received correct levelsFallen and wasJumping
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 1, true);
+    }
+
+    [Fact]
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToZero_WhenWalkingIntoDeepWaterAndFalling()
+    {
+        // Arrange - WaterDepth: 1, Walk movement
+        SetupWaterEntryPsrFor(1, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(1), _game, MovementType.Walk);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0);
+        result.WasJumping.ShouldBeFalse();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+    }
+
+    [Fact]
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToWaterDepth2_WhenJumpingIntoDepth2WaterAndFalling()
+    {
+        // Arrange - WaterDepth: 2, Jump movement
+        SetupWaterEntryPsrFor(2, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, true)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(2), _game, MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(2);
+        result.WasJumping.ShouldBeTrue();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(2);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 2, true);
+    }
+
+    [Fact]
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToZero_WhenRunningIntoDeepWaterAndFalling()
+    {
+        // Arrange - WaterDepth: 1, Run movement
+        SetupWaterEntryPsrFor(1, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(1), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0);
+        result.WasJumping.ShouldBeFalse();
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToZero_WhenJumpWithDamageFalls()
+    {
+        // Arrange - JumpWithDamage (non-water) should produce LevelsFallen = 0
+        SetupPsrFor(PilotingSkillRollType.JumpWithDamage, 1, "Jump with damage");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.JumpWithDamage);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, true)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage), _game, MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0, "Non-water jump falls should have LevelsFallen = 0");
+        result.WasJumping.ShouldBeTrue();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, true);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToZero_WhenStandupAttemptFails()
+    {
+        // Arrange - Standup attempt falls should produce LevelsFallen = 0
+        SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.StandupAttempt);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), _game, MovementType.StandingStill);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0, "Standup falls should have LevelsFallen = 0");
+        result.WasJumping.ShouldBeFalse();
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+    }
+
     private void SetupWaterEntryPsrFor(int waterDepth, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
@@ -1041,7 +1207,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.WaterEntry);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game, MovementType.Walk);
 
         // Assert
         result.ShouldNotBeNull();
@@ -1079,7 +1245,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, new EnteringDeepWaterRollContext(waterDepth), _game, MovementType.Walk);
 
         // Assert
         result.ShouldNotBeNull();
