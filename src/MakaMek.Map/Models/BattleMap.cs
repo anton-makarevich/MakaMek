@@ -765,6 +765,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <returns>True if the unit is submerged, false otherwise</returns>
     private static bool IsUnitSubmerged(Hex hex, int unitHeight)
     {
+        if (!hex.HasTerrain(MakaMekTerrains.Water))
+            return false;
         // Get the water terrain to check depth
         var waterTerrain = hex.GetTerrain(MakaMekTerrains.Water);
         var depth = -1*waterTerrain?.Height ?? 0;
