@@ -20,6 +20,11 @@ public enum LineOfSightBlockReason
     /// <summary>
     /// The source or target coordinates are off-map or the corresponding hex does not exist.
     /// </summary>
-    InvalidCoordinates
+    InvalidCoordinates,
+
+    /// <summary>
+    /// Line of sight is blocked because one unit is submerged underwater while the other is on the surface.
+    /// </summary>
+    WaterSubmersion
 }
 
