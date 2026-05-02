@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Exceptions;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -496,6 +497,18 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 from: from, to: to,
                 blockingHex: fromHex == null ? from : to);
 
+        // Check for water submersion blocking
+        var attackerSubmerged = IsUnitSubmerged(fromHex, attackerHeight);
+        var targetSubmerged = IsUnitSubmerged(toHex, targetHeight);
+        
+        if (attackerSubmerged != targetSubmerged)
+        {
+            return LineOfSightResult.Blocked(
+                from: from, to: to,
+                blockingHex: attackerSubmerged ? from : to,
+                reason: LineOfSightBlockReason.WaterSubmersion);
+        }
+
         var attackerLosLevel = fromHex.Level + attackerHeight;
         var targetLosLevel = toHex.Level + targetHeight;
         
@@ -742,6 +755,23 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         var result = new MovementPath(path, MovementType.Jump);
         _movementPathCache.Add(result);
         return result;
+    }
+
+    /// <summary>
+    /// Determines if a unit is submerged in water based on the terrain and unit height.
+    /// </summary>
+    /// <param name="hex">The hex to check for water submersion</param>
+    /// <param name="unitHeight">Height of the unit (1 for standing, 0 for prone)</param>
+    /// <returns>True if the unit is submerged, false otherwise</returns>
+    private static bool IsUnitSubmerged(Hex hex, int unitHeight)
+    {
+        if (!hex.HasTerrain(MakaMekTerrains.Water))
+            return false;
+        // Get the water terrain to check depth
+        var waterTerrain = hex.GetTerrain(MakaMekTerrains.Water);
+        var depth = -1*waterTerrain?.Height ?? 0;
+
+        return depth>=unitHeight;
     }
 
     /// <summary>

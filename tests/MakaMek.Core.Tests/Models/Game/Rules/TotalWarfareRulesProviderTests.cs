@@ -939,6 +939,111 @@ public class TotalWarfareRulesProviderTests
         var result = _sut.GetPartialCoverModifier();
         result.ShouldBe(1);
     }
+
+    [Fact]
+    public void HasPartialCover_ReturnsTrue_WhenUnitInDepth1WaterAndHeightGreaterThan1()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+        unit.CanHavePartialCover.Returns(true);
+        unit.Height.Returns(2); // Height > 1
+
+        var targetHex = new Hex(new HexCoordinates(1, 0), 1);
+        // Add water terrain with height -1 (depth 1)
+        targetHex.AddTerrain(new WaterTerrain(-1));
+
+        var adjacentHex = new Hex(new HexCoordinates(0, 0), 1);
+
+        var hexPath = new List<LineOfSightHexInfo>
+        {
+            new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+            new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+        };
+
+        var losResult = LineOfSightResult.Unblocked(
+            new HexCoordinates(0, 0),
+            new HexCoordinates(1, 0),
+            attackerLosLevel: 2,
+            targetLosLevel: 2,
+            hexPath: hexPath);
+
+        // Act
+        var result = _sut.HasPartialCover(unit, losResult);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HasPartialCover_ReturnsFalse_WhenUnitInDepth1WaterAndHeight1OrLess()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+        unit.CanHavePartialCover.Returns(true);
+        unit.Height.Returns(1); // Height <= 1
+
+        var targetHex = new Hex(new HexCoordinates(1, 0), 1);
+        // Add water terrain with height -1 (depth 1)
+        targetHex.AddTerrain(new WaterTerrain(-1));
+
+        var adjacentHex = new Hex(new HexCoordinates(0, 0), 1);
+
+        var hexPath = new List<LineOfSightHexInfo>
+        {
+            new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+            new() { Hex = targetHex, InterpolatedLosHeight = 1, InterveningFactor = 0 }
+        };
+
+        var losResult = LineOfSightResult.Unblocked(
+            new HexCoordinates(0, 0),
+            new HexCoordinates(1, 0),
+            attackerLosLevel: 2,
+            targetLosLevel: 1,
+            hexPath: hexPath);
+
+        // Act
+        var result = _sut.HasPartialCover(unit, losResult);
+
+        // Assert
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HasPartialCover_ReturnsFalse_WhenUnitInWaterDepthNotMinus1()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top));
+        unit.CanHavePartialCover.Returns(true);
+        unit.Height.Returns(2);
+
+        var targetHex = new Hex(new HexCoordinates(1, 0), 1);
+        // Add water terrain with height 0 (depth 2, not depth 1)
+        targetHex.AddTerrain(new WaterTerrain(0));
+        
+        var adjacentHex = new Hex(new HexCoordinates(0, 0), 1);
+        
+        var hexPath = new List<LineOfSightHexInfo>
+        {
+            new() { Hex = adjacentHex, InterpolatedLosHeight = 1.5, InterveningFactor = 0 },
+            new() { Hex = targetHex, InterpolatedLosHeight = 2, InterveningFactor = 0 }
+        };
+
+        var losResult = LineOfSightResult.Unblocked(
+            new HexCoordinates(0, 0),
+            new HexCoordinates(1, 0),
+            attackerLosLevel: 2,
+            targetLosLevel: 2,
+            hexPath: hexPath);
+
+        // Act
+        var result = _sut.HasPartialCover(unit, losResult);
+
+        // Assert
+        result.ShouldBeFalse();
+    }
     
     [Theory]
     [InlineData(PartLocation.LeftLeg)]
