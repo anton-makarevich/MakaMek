@@ -84,7 +84,7 @@ public class HexMap : Canvas
                 {
                     _isManipulating = true; // Set the flag if the delay completes
                 });
-            });
+            }, TaskContinuationOptions.OnlyOnRanToCompletion);
         _isPressed = true;
     }
 
@@ -107,7 +107,11 @@ public class HexMap : Canvas
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
         if (_isZooming) return;
-        if (!e.GetCurrentPoint(this.Parent as Visual ?? this).Properties.IsLeftButtonPressed) return;
+        var currentPoint = e.GetCurrentPoint(this.Parent as Visual ?? this);
+        var isMouseDragging = currentPoint.Properties.IsLeftButtonPressed;
+        var isTouchOrPen = currentPoint.Pointer.Type is PointerType.Touch or PointerType.Pen
+                           && _isPressed;
+        if (!isMouseDragging && !isTouchOrPen) return;
         var position = e.GetPosition(this.Parent as Visual ?? this);
         var delta = position - _lastPointerPosition;
         _lastPointerPosition = position;
@@ -169,8 +173,12 @@ public class HexMap : Canvas
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
         _lastPinchScale = 1.0; // Reset for next gesture
-        _isZooming = false;
-        _isPressed = false;
+        if (_isZooming)
+        {
+            _isZooming = false;
+            _isPressed = false;
+        }
+        _isManipulating = false;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
