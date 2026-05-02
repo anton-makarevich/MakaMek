@@ -6,11 +6,7 @@ public class JumpJets : Component
 {
     public static readonly EquipmentDefinition Definition = new(
         "Jump Jets",
-        MakaMekComponent.JumpJet,
-        0, // To be updated
-        1, // 1 slot
-        1, // 1 health point
-        true); // Removable
+        MakaMekComponent.JumpJet); // Removable
 
     public JumpJets(ComponentData? componentData = null)
         : base(Definition, componentData)
