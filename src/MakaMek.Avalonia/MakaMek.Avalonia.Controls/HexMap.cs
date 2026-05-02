@@ -169,8 +169,12 @@ public class HexMap : Canvas
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
         _lastPinchScale = 1.0; // Reset for next gesture
-        _isZooming = false;
-        _isPressed = false;
+        if (_isZooming)
+        {
+            _isZooming = false;
+            _isPressed = false;
+        }
+        _isManipulating = false;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
