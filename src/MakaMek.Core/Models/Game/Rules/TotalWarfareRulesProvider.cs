@@ -514,6 +514,11 @@ public class TotalWarfareRulesProvider : IRulesProvider
         if (!targetUnit.CanHavePartialCover)
             return false;
 
+        // Water-based partial cover check (Depth 1 water)
+        var waterTerrain = targetHex.GetTerrain(MakaMekTerrains.Water);
+        if (waterTerrain is { Height: -1 } && targetUnit.Height > 1)
+            return true;
+
         // Get the hex adjacent to the target (second to last in path)
         var adjacentHexInfo = losResult.HexPath[^2];
         var adjacentHex = adjacentHexInfo.Hex;
