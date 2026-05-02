@@ -109,7 +109,8 @@ public class HexMap : Canvas
         if (_isZooming) return;
         var currentPoint = e.GetCurrentPoint(this.Parent as Visual ?? this);
         var isMouseDragging = currentPoint.Properties.IsLeftButtonPressed;
-        var isTouchOrPen = currentPoint.Pointer.Type is PointerType.Touch or PointerType.Pen;
+        var isTouchOrPen = currentPoint.Pointer.Type is PointerType.Touch or PointerType.Pen
+                           && _isPressed;
         if (!isMouseDragging && !isTouchOrPen) return;
         var position = e.GetPosition(this.Parent as Visual ?? this);
         var delta = position - _lastPointerPosition;
