@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -16,4 +17,17 @@ public class JumpJets : Component
     }
 
     public int JumpMp { get; }
+
+    public override bool IsAvailable
+    {
+        get
+        {
+            if (!base.IsAvailable) return false;
+            var hex = MountedOn.FirstOrDefault()?.Unit?.Hex;
+            if (hex?.GetTerrain(MakaMekTerrains.Water) is not WaterTerrain water) return true;
+            if (water.Height <= -2) return false;
+            if (water.Height == -1 && MountedOn.Any(p => p.Location.IsLeg())) return false;
+            return true;
+        }
+    }
 }
