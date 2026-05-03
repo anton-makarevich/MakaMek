@@ -9,13 +9,11 @@ public sealed class LargeLaser : Weapon
         Name: "Large Laser",
         ElementaryDamage: 8,
         Heat: 8,
-        MinimumRange: 0,
-        ShortRange: 5,
-        MediumRange: 10,
-        LongRange: 15,
+        Range: new WeaponRange(0, 5, 10, 15),
         Type: WeaponType.Energy,
         BattleValue: 123,
         Size: 2,
+        UnderwaterRange: new WeaponRange(0, 3, 6, 9),
         WeaponComponentType: MakaMekComponent.LargeLaser);
 
     // Constructor uses the static definition

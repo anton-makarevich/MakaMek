@@ -11,12 +11,10 @@ public record WeaponDefinition(
     string Name,
     int ElementaryDamage,
     int Heat,
-    int MinimumRange,
-    int ShortRange,
-    int MediumRange,
-    int LongRange,
+    WeaponRange Range,
     WeaponType Type,
     int BattleValue,
+    WeaponRange? UnderwaterRange = null,
     int Clusters = 1,
     int ClusterSize = 1,
     int Size = 1,
@@ -43,25 +41,46 @@ public record WeaponDefinition(
     public int WeaponSize => Clusters * ClusterSize;
 
     /// <summary>
-    /// Gets the range bracket for a given distance
+    /// Indicates whether this weapon can fire underwater
     /// </summary>
-    public WeaponRange GetRangeBracket(int distance)
+    public bool CanFireUnderwater => UnderwaterRange != null;
+
+    /// <summary>
+    /// Gets the range bracket for a given distance using the standard range table
+    /// </summary>
+    public RangeBracket GetRangeBracket(int distance)
+    {
+        return GetRangeBracket(distance, Range);
+    }
+
+    /// <summary>
+    /// Gets the range bracket for a given distance using the underwater range table.
+    /// Returns OutOfRange if the weapon has no underwater range.
+    /// </summary>
+    public RangeBracket GetUnderwaterRangeBracket(int distance)
+    {
+        if (UnderwaterRange == null)
+            return RangeBracket.OutOfRange;
+        return GetRangeBracket(distance, UnderwaterRange);
+    }
+
+    private static RangeBracket GetRangeBracket(int distance, WeaponRange range)
     {
         if (distance <= 0)
-            return WeaponRange.OutOfRange;
-        
-        if (distance <= MinimumRange)
-            return WeaponRange.Minimum;
-            
-        if (distance <= ShortRange)
-            return WeaponRange.Short;
-            
-        if (distance <= MediumRange)
-            return WeaponRange.Medium;
-            
-        if (distance <= LongRange)
-            return WeaponRange.Long;
-            
-        return WeaponRange.OutOfRange;
+            return RangeBracket.OutOfRange;
+
+        if (distance <= range.MinimumRange)
+            return RangeBracket.Minimum;
+
+        if (distance <= range.ShortRange)
+            return RangeBracket.Short;
+
+        if (distance <= range.MediumRange)
+            return RangeBracket.Medium;
+
+        if (distance <= range.LongRange)
+            return RangeBracket.Long;
+
+        return RangeBracket.OutOfRange;
     }
 }

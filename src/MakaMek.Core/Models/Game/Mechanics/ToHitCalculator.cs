@@ -61,16 +61,41 @@ public class ToHitCalculator : IToHitCalculator
             scenario.TargetHeight);
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
-        var range = weapon.GetRangeBracket(distance);
+
+        // Determine if this is an underwater attack (both attacker and target submerged with LOS)
+        var isUnderwaterAttack = IsUnderwaterAttack(scenario, losResult.HasLineOfSight);
+        var useUnderwaterRange = isUnderwaterAttack && weapon.CanFireUnderwater;
+
+        // Get range bracket using appropriate range table
+        var range = useUnderwaterRange
+            ? weapon.WeaponDefinition.GetUnderwaterRangeBracket(distance)
+            : weapon.GetRangeBracket(distance);
+
+        // Get range value based on the determined bracket
         var rangeValue = range switch
         {
-            WeaponRange.Minimum => weapon.MinimumRange,
-            WeaponRange.Short => weapon.ShortRange,
-            WeaponRange.Medium => weapon.MediumRange,
-            WeaponRange.Long => weapon.LongRange,
-            WeaponRange.OutOfRange => weapon.LongRange+1,
-            _ => throw new ArgumentException($"Unknown weapon range: {range}")
+            RangeBracket.Minimum => weapon.MinimumRange,
+            RangeBracket.Short => weapon.ShortRange,
+            RangeBracket.Medium => weapon.MediumRange,
+            RangeBracket.Long => weapon.LongRange,
+            RangeBracket.OutOfRange => weapon.LongRange+1,
+            _ => throw new ArgumentException($"Unknown weapon rangeBracket: {range}")
         };
+
+        // For underwater attacks with underwater-capable weapons, use the underwater range values
+        if (useUnderwaterRange && weapon.WeaponDefinition.UnderwaterRange is not null)
+        {
+            var uwRange = weapon.WeaponDefinition.UnderwaterRange;
+            rangeValue = range switch
+            {
+                RangeBracket.Minimum => uwRange.MinimumRange,
+                RangeBracket.Short => uwRange.ShortRange,
+                RangeBracket.Medium => uwRange.MediumRange,
+                RangeBracket.Long => uwRange.LongRange,
+                RangeBracket.OutOfRange => uwRange.LongRange + 1,
+                _ => throw new ArgumentException($"Unknown weapon rangeBracket: {range}")
+            };
+        }
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
         var terrainModifiers = GetTerrainModifiers(losResult);
@@ -214,5 +239,25 @@ public class ToHitCalculator : IToHitCalculator
             }
         }
         return modifiers;
+    }
+
+    /// <summary>
+    /// Determines if an attack qualifies as an underwater attack.
+    /// Both attacker and target must be submerged at depth >= their height and have LOS.
+    /// </summary>
+    private static bool IsUnderwaterAttack(AttackScenario scenario, bool hasLineOfSight)
+    {
+        if (!hasLineOfSight)
+            return false;
+
+        // Check if attacker is submerged (water depth >= unit height)
+        if (scenario.AttackerWaterDepth is null || scenario.AttackerWaterDepth < scenario.AttackerHeight)
+            return false;
+
+        // Check if target is submerged (water depth >= unit height)
+        if (scenario.TargetWaterDepth is null || scenario.TargetWaterDepth < scenario.TargetHeight)
+            return false;
+
+        return true;
     }
 }

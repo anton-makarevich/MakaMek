@@ -69,7 +69,17 @@ public record AttackScenario
     /// The actual target unit, if available, for evaluating cover rules.
     /// </summary>
     public IUnit? TargetUnit { get; private init; }
-    
+
+    /// <summary>
+    /// The water depth at the attacker's hex (null if no water, 0 for shallow, 1+ for depth)
+    /// </summary>
+    public int? AttackerWaterDepth { get; private init; }
+
+    /// <summary>
+    /// The water depth at the target's hex (null if no water, 0 for shallow, 1+ for depth)
+    /// </summary>
+    public int? TargetWaterDepth { get; private init; }
+
     /// <summary>
     /// Creates an AttackScenario from actual units in their current state.
     /// Used for real combat calculations.
@@ -112,7 +122,9 @@ public record AttackScenario
             AimedShotTarget = aimedShotTarget,
             AttackerHeight = attacker.Height,
             TargetHeight = target.Height,
-            TargetUnit = target
+            TargetUnit = target,
+            AttackerWaterDepth = attacker.Hex?.GetWaterDepth(),
+            TargetWaterDepth = target.Hex?.GetWaterDepth()
         };
     }
     

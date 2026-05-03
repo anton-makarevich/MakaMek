@@ -89,7 +89,7 @@ public class Mech : Unit
         // Use the smaller number of steps
         var steps = Math.Min(clockwiseSteps, counterClockwiseSteps);
 
-        // Check if rotation is within the allowed range
+        // Check if rotation is within the allowed rangeBracket
         if (steps > PossibleTorsoRotation) return;
         foreach (var torso in _parts.Values.OfType<Torso>())
         {

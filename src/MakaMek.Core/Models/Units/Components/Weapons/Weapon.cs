@@ -28,19 +28,24 @@ public abstract class Weapon : Component
     }
 
     // Cast the base definition to WeaponDefinition for weapon-specific properties
-    private WeaponDefinition WeaponDefinition => (WeaponDefinition)_definition;
+    internal WeaponDefinition WeaponDefinition => (WeaponDefinition)_definition;
 
     public int Damage => WeaponDefinition.TotalDamage;
     public int Heat => WeaponDefinition.Heat;
     public int ExternalHeat => WeaponDefinition.ExternalHeat;
-    public int MinimumRange => WeaponDefinition.MinimumRange;
-    public int ShortRange => WeaponDefinition.ShortRange;
-    public int MediumRange => WeaponDefinition.MediumRange;
-    public int LongRange => WeaponDefinition.LongRange;
+    public int MinimumRange => WeaponDefinition.Range.MinimumRange;
+    public int ShortRange => WeaponDefinition.Range.ShortRange;
+    public int MediumRange => WeaponDefinition.Range.MediumRange;
+    public int LongRange => WeaponDefinition.Range.LongRange;
     public WeaponType Type => WeaponDefinition.Type;
     public int Clusters => WeaponDefinition.Clusters;
     public int ClusterSize => WeaponDefinition.ClusterSize;
     public int WeaponSize => WeaponDefinition.WeaponSize;
+
+    /// <summary>
+    /// Indicates whether this weapon can fire while submerged underwater
+    /// </summary>
+    public bool CanFireUnderwater => WeaponDefinition.CanFireUnderwater;
 
     public MakaMekComponent? AmmoType => WeaponDefinition.AmmoComponentType;
         
@@ -52,7 +57,7 @@ public abstract class Weapon : Component
     /// <summary>
     /// Gets the range bracket for a given distance
     /// </summary>
-    public WeaponRange GetRangeBracket(int distance) => WeaponDefinition.GetRangeBracket(distance);
+    public RangeBracket GetRangeBracket(int distance) => WeaponDefinition.GetRangeBracket(distance);
     
     /// <summary>
     /// Indicates whether this weapon is capable of making aimed shots
