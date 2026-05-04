@@ -64,38 +64,21 @@ public class ToHitCalculator : IToHitCalculator
 
         // Determine if this is an underwater attack (both attacker and target submerged with LOS)
         var isUnderwaterAttack = IsUnderwaterAttack(scenario, losResult.HasLineOfSight);
-        var useUnderwaterRange = isUnderwaterAttack && weapon.CanFireUnderwater;
 
-        // Get range bracket using appropriate range table
-        var range = useUnderwaterRange
-            ? weapon.WeaponDefinition.GetUnderwaterRangeBracket(distance)
-            : weapon.GetRangeBracket(distance);
+        // Get effective range (underwater or standard) and calculate range bracket
+        var effectiveRange = weapon.GetEffectiveRange(isUnderwaterAttack);
+        var range = effectiveRange.GetRangeBracket(distance);
 
         // Get range value based on the determined bracket
         var rangeValue = range switch
         {
-            RangeBracket.Minimum => weapon.MinimumRange,
-            RangeBracket.Short => weapon.ShortRange,
-            RangeBracket.Medium => weapon.MediumRange,
-            RangeBracket.Long => weapon.LongRange,
-            RangeBracket.OutOfRange => weapon.LongRange+1,
+            RangeBracket.Minimum => effectiveRange.MinimumRange,
+            RangeBracket.Short => effectiveRange.ShortRange,
+            RangeBracket.Medium => effectiveRange.MediumRange,
+            RangeBracket.Long => effectiveRange.LongRange,
+            RangeBracket.OutOfRange => effectiveRange.LongRange + 1,
             _ => throw new ArgumentException($"Unknown weapon rangeBracket: {range}")
         };
-
-        // For underwater attacks with underwater-capable weapons, use the underwater range values
-        if (useUnderwaterRange && weapon.WeaponDefinition.UnderwaterRange is not null)
-        {
-            var uwRange = weapon.WeaponDefinition.UnderwaterRange;
-            rangeValue = range switch
-            {
-                RangeBracket.Minimum => uwRange.MinimumRange,
-                RangeBracket.Short => uwRange.ShortRange,
-                RangeBracket.Medium => uwRange.MediumRange,
-                RangeBracket.Long => uwRange.LongRange,
-                RangeBracket.OutOfRange => uwRange.LongRange + 1,
-                _ => throw new ArgumentException($"Unknown weapon rangeBracket: {range}")
-            };
-        }
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
         var terrainModifiers = GetTerrainModifiers(losResult);

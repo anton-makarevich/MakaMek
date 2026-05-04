@@ -45,42 +45,4 @@ public record WeaponDefinition(
     /// </summary>
     public bool CanFireUnderwater => UnderwaterRange != null;
 
-    /// <summary>
-    /// Gets the range bracket for a given distance using the standard range table
-    /// </summary>
-    public RangeBracket GetRangeBracket(int distance)
-    {
-        return GetRangeBracket(distance, Range);
-    }
-
-    /// <summary>
-    /// Gets the range bracket for a given distance using the underwater range table.
-    /// Returns OutOfRange if the weapon has no underwater range.
-    /// </summary>
-    public RangeBracket GetUnderwaterRangeBracket(int distance)
-    {
-        if (UnderwaterRange == null)
-            return RangeBracket.OutOfRange;
-        return GetRangeBracket(distance, UnderwaterRange);
-    }
-
-    private static RangeBracket GetRangeBracket(int distance, WeaponRange range)
-    {
-        if (distance <= 0)
-            return RangeBracket.OutOfRange;
-
-        if (distance <= range.MinimumRange)
-            return RangeBracket.Minimum;
-
-        if (distance <= range.ShortRange)
-            return RangeBracket.Short;
-
-        if (distance <= range.MediumRange)
-            return RangeBracket.Medium;
-
-        if (distance <= range.LongRange)
-            return RangeBracket.Long;
-
-        return RangeBracket.OutOfRange;
-    }
 }

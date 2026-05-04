@@ -33,19 +33,34 @@ public abstract class Weapon : Component
     public int Damage => WeaponDefinition.TotalDamage;
     public int Heat => WeaponDefinition.Heat;
     public int ExternalHeat => WeaponDefinition.ExternalHeat;
-    public int MinimumRange => WeaponDefinition.Range.MinimumRange;
-    public int ShortRange => WeaponDefinition.Range.ShortRange;
-    public int MediumRange => WeaponDefinition.Range.MediumRange;
-    public int LongRange => WeaponDefinition.Range.LongRange;
-    public WeaponType Type => WeaponDefinition.Type;
-    public int Clusters => WeaponDefinition.Clusters;
-    public int ClusterSize => WeaponDefinition.ClusterSize;
-    public int WeaponSize => WeaponDefinition.WeaponSize;
+
+    /// <summary>
+    /// The standard range values for this weapon
+    /// </summary>
+    public WeaponRange Range => WeaponDefinition.Range;
+
+    /// <summary>
+    /// The underwater range values for this weapon (null if weapon cannot fire underwater)
+    /// </summary>
+    public WeaponRange? UnderwaterRange => WeaponDefinition.UnderwaterRange;
 
     /// <summary>
     /// Indicates whether this weapon can fire while submerged underwater
     /// </summary>
     public bool CanFireUnderwater => WeaponDefinition.CanFireUnderwater;
+
+    /// <summary>
+    /// Gets the appropriate range based on whether the attack is underwater
+    /// </summary>
+    public WeaponRange GetEffectiveRange(bool isUnderwater) =>
+        isUnderwater && CanFireUnderwater && UnderwaterRange != null
+            ? UnderwaterRange
+            : Range;
+
+    public WeaponType Type => WeaponDefinition.Type;
+    public int Clusters => WeaponDefinition.Clusters;
+    public int ClusterSize => WeaponDefinition.ClusterSize;
+    public int WeaponSize => WeaponDefinition.WeaponSize;
 
     public MakaMekComponent? AmmoType => WeaponDefinition.AmmoComponentType;
         
@@ -54,11 +69,6 @@ public abstract class Weapon : Component
     /// </summary>
     public bool RequiresAmmo => WeaponDefinition.RequiresAmmo;
 
-    /// <summary>
-    /// Gets the range bracket for a given distance
-    /// </summary>
-    public RangeBracket GetRangeBracket(int distance) => WeaponDefinition.GetRangeBracket(distance);
-    
     /// <summary>
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>
