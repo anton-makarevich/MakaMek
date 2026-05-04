@@ -21,7 +21,7 @@ public class ToHitBreakdownTest
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 0 },
             OtherModifiers = [],
             RangeModifier = new RangeRollModifier
-                { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
 
@@ -42,7 +42,7 @@ public class ToHitBreakdownTest
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 0 },
             OtherModifiers = [],
             RangeModifier = new RangeRollModifier
-                { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
 
@@ -63,7 +63,7 @@ public class ToHitBreakdownTest
             TargetMovement = new TargetMovementModifier { Value = 2, HexesMoved = 0 },
             OtherModifiers = [],
             RangeModifier = new RangeRollModifier
-                { Value = 1, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 1, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
 

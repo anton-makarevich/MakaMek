@@ -45,8 +45,8 @@ public class UnitTests
     private class TestWeapon(string name, int size =1, WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null)
         : Weapon(new WeaponDefinition(
             name, 5, 3,
-            0, 3, 6, 9,
-            type, 10, 1, 1, size, 1, MakaMekComponent.MachineGun, ammoType));
+            new WeaponRange(0, 3, 6, 9),
+            type, 10, null, 1, 1, size, 1, MakaMekComponent.MachineGun, ammoType));
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
         : UnitPart(name, location, maxArmor, maxStructure, slots)

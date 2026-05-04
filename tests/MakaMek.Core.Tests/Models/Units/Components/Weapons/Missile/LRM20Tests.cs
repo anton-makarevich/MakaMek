@@ -20,10 +20,10 @@ public class Lrm20Tests
         sut.Damage.ShouldBe(20); // Total damage for all missiles
         sut.BattleValue.ShouldBe(181);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoLRM20);
-        sut.MinimumRange.ShouldBe(6);
-        sut.ShortRange.ShouldBe(7);
-        sut.MediumRange.ShouldBe(14);
-        sut.LongRange.ShouldBe(21);
+        sut.Range.MinimumRange.ShouldBe(6);
+        sut.Range.ShortRange.ShouldBe(7);
+        sut.Range.MediumRange.ShouldBe(14);
+        sut.Range.LongRange.ShouldBe(21);
         sut.Type.ShouldBe(WeaponType.Missile);
         sut.Clusters.ShouldBe(4);
         sut.ClusterSize.ShouldBe(5);

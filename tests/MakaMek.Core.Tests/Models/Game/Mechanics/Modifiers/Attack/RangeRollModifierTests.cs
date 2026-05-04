@@ -17,17 +17,17 @@ public class RangeRollModifierTests
         var sut = new RangeRollModifier
         {
             Value = 2,
-            Range = WeaponRange.Medium,
+            Range = RangeBracket.Medium,
             Distance = 7,
             WeaponName = "Medium Laser"
         };
-        _localizationService.GetString("Modifier_Range").Returns("{0} at {1} hexes ({2} range): +{3}");
+        _localizationService.GetString("Modifier_Range").Returns("{0} at {1} hexes ({2} rangeBracket): +{3}");
 
         // Act
         var result = sut.Render(_localizationService);
 
         // Assert
-        result.ShouldBe("Medium Laser at 7 hexes (Medium range): +2");
+        result.ShouldBe("Medium Laser at 7 hexes (Medium rangeBracket): +2");
         _localizationService.Received(1).GetString("Modifier_Range");
     }
 }

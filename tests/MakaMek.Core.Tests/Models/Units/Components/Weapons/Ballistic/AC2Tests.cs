@@ -20,10 +20,10 @@ public class Ac2Tests
         sut.Damage.ShouldBe(2);
         sut.BattleValue.ShouldBe(37);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC2);
-        sut.MinimumRange.ShouldBe(4);
-        sut.ShortRange.ShouldBe(8);
-        sut.MediumRange.ShouldBe(16);
-        sut.LongRange.ShouldBe(24);
+        sut.Range.MinimumRange.ShouldBe(4);
+        sut.Range.ShortRange.ShouldBe(8);
+        sut.Range.MediumRange.ShouldBe(16);
+        sut.Range.LongRange.ShouldBe(24);
         sut.Type.ShouldBe(WeaponType.Ballistic);
         sut.ComponentType.ShouldBe(MakaMekComponent.AC2);
         sut.IsAimShotCapable.ShouldBeTrue();

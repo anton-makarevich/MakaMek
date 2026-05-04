@@ -20,10 +20,10 @@ public class FlamerTests
         sut.Damage.ShouldBe(2);
         sut.BattleValue.ShouldBe(6);
         sut.AmmoType.ShouldBe(null);
-        sut.MinimumRange.ShouldBe(0);
-        sut.ShortRange.ShouldBe(1);
-        sut.MediumRange.ShouldBe(2);
-        sut.LongRange.ShouldBe(3);
+        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range.ShortRange.ShouldBe(1);
+        sut.Range.MediumRange.ShouldBe(2);
+        sut.Range.LongRange.ShouldBe(3);
         sut.Type.ShouldBe(WeaponType.Energy);
         sut.ComponentType.ShouldBe(MakaMekComponent.Flamer);
         sut.IsAimShotCapable.ShouldBeTrue();

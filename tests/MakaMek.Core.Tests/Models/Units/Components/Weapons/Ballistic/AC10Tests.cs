@@ -20,10 +20,10 @@ public class Ac10Tests
         sut.Damage.ShouldBe(10);
         sut.BattleValue.ShouldBe(123);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC10);
-        sut.MinimumRange.ShouldBe(0);
-        sut.ShortRange.ShouldBe(5);
-        sut.MediumRange.ShouldBe(10);
-        sut.LongRange.ShouldBe(15);
+        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range.ShortRange.ShouldBe(5);
+        sut.Range.MediumRange.ShouldBe(10);
+        sut.Range.LongRange.ShouldBe(15);
         sut.Type.ShouldBe(WeaponType.Ballistic);
         sut.ComponentType.ShouldBe(MakaMekComponent.AC10);
         sut.IsAimShotCapable.ShouldBeTrue();

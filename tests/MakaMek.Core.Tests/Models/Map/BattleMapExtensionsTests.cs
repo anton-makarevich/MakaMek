@@ -693,7 +693,7 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
 
-        // Assert - Jump can reach all hexes within range regardless of level
+        // Assert - Jump can reach all hexes within rangeBracket regardless of level
         reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(2, 1));
         reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(3, 1));
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();

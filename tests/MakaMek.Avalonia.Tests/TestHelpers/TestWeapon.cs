@@ -14,12 +14,10 @@ public class TestWeapon : Weapon
             Name: "Test Weapon",
             ElementaryDamage: 1,
             Heat: 1,
-            MinimumRange: minimumRange,
-            ShortRange: shortRange,
-            MediumRange: mediumRange,
-            LongRange: longRange,
+            Range: new WeaponRange(minimumRange, shortRange, mediumRange, longRange),
             Type: WeaponType.Energy,
             BattleValue: 1,
+            null,
             WeaponComponentType: MakaMekComponent.MachineGun))
     {
     }

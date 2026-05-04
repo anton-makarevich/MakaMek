@@ -18,10 +18,10 @@ public class MachineGunTests
         sut.Size.ShouldBe(1);
         sut.Damage.ShouldBe(2);
         sut.Heat.ShouldBe(0);
-        sut.MinimumRange.ShouldBe(0);
-        sut.ShortRange.ShouldBe(1);
-        sut.MediumRange.ShouldBe(2);
-        sut.LongRange.ShouldBe(3);
+        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range.ShortRange.ShouldBe(1);
+        sut.Range.MediumRange.ShouldBe(2);
+        sut.Range.LongRange.ShouldBe(3);
         sut.Type.ShouldBe(WeaponType.Ballistic);
         sut.BattleValue.ShouldBe(5);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoMG);
