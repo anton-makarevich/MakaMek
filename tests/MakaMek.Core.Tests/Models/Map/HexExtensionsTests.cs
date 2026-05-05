@@ -52,4 +52,46 @@ public class HexExtensionsTests
         // Assert
         depth.ShouldBe(0);
     }
+
+    [Fact]
+    public void GetWaterDepth_ReturnsCorrectDepth_WhenHexHasMultipleTerrains()
+    {
+        // Arrange - hex with both clear and water terrain
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new ClearTerrain());
+        hex.AddTerrain(new WaterTerrain(-2));
+
+        // Act
+        var depth = hex.GetWaterDepth();
+
+        // Assert
+        depth.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetWaterDepth_ReturnsCorrectDepth_ForVeryDeepWater()
+    {
+        // Arrange - very deep water (beyond typical -3)
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-10));
+
+        // Act
+        var depth = hex.GetWaterDepth();
+
+        // Assert
+        depth.ShouldBe(10);
+    }
+
+    [Fact]
+    public void GetWaterDepth_ReturnsNull_WhenNoWater()
+    {
+        // Arrange - using the WithTerrain extension method
+        var hex = new Hex(new HexCoordinates(1, 1));
+
+        // Act
+        var depth = hex.GetWaterDepth();
+
+        // Assert
+        depth.ShouldBeNull();
+    }
 }
