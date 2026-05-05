@@ -29,9 +29,7 @@ public class WeaponTests
         // Assert
         result.ShouldBe(expectedRangeBracket);
     }
-    
 
-    
     [Theory]
     [InlineData(WeaponType.Energy, null, false)]
     [InlineData(WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5, true)]
