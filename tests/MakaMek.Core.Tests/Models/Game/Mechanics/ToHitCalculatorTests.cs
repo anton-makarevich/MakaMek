@@ -837,9 +837,7 @@ public class ToHitCalculatorTests
         // Assert
         result.OtherModifiers.OfType<PartialCoverModifier>().ShouldBeEmpty();
     }
-
-    // ========== Underwater Combat Tests ==========
-
+    
     [Fact]
     public void GetModifierBreakdown_UnderwaterAttack_UsesUnderwaterRangeTable()
     {
@@ -880,6 +878,10 @@ public class ToHitCalculatorTests
         var result = _sut.GetModifierBreakdown(_attacker, _target, _weapon, map);
 
         // Assert - underwater range at distance 3 should be Medium (2 hexes short, 2 hexes medium)
+        var scenario = AttackScenario.FromUnits(_attacker, _target, PartLocation.RightArm);
+        scenario.AttackerWaterDepth.ShouldBe(3);  // WaterTerrain(-3) → depth 3
+        scenario.TargetWaterDepth.ShouldBe(3);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
         result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
     }
 
