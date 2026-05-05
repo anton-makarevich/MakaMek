@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
