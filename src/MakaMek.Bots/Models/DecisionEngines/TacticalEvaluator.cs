@@ -193,7 +193,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             foreach (var weapon in weapons)
             {
                 // Check if the weapon can fire at this range
-                if (range < weapon.Range.MinimumRange || range > weapon.Range.LongRange)
+                if (weapon.Range == null 
+                    || range < weapon.Range.MinimumRange 
+                    || range > weapon.Range.LongRange)
                     continue;
                 
                 // Check firing arc
@@ -270,7 +272,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             foreach (var weapon in weapons)
             {
                 // Check if the weapon can fire at this range
-                if (distanceToTarget > weapon.Range.LongRange || weapon.FirstMountPart == null)
+                if (weapon.Range == null 
+                || distanceToTarget > weapon.Range.LongRange 
+                || weapon.FirstMountPart == null)
                     continue;
 
                 // Check configuration applicability (using pre-computed lookup instead of per-call traversal)

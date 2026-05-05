@@ -885,50 +885,6 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
-    public void GetModifierBreakdown_UnderwaterAttackWithNonUnderwaterWeapon_UsesStandardRange()
-    {
-        // Arrange - Use Machine Gun (cannot fire underwater) at distance 2
-        // Standard MG range: Short (0-1), Medium (2), Long (3)
-        // Distance 2 should be Medium in standard range
-        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom); // Distance 2
-
-        // Create fresh units for this test
-        var attackerData = MechFactoryTests.CreateDummyMechData();
-        _attacker = _mechFactory.Create(attackerData);
-        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
-        var attackerHex = new Hex(new HexCoordinates(1, 1));
-        attackerHex.AddTerrain(new WaterTerrain(-3));
-        _attacker.Deploy(attackerPosition, attackerHex);
-        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
-
-        var mg = new MachineGun();
-        _attacker.Parts[PartLocation.RightArm].TryAddComponent(mg);
-
-        var targetData = MechFactoryTests.CreateDummyMechData();
-        _target = _mechFactory.Create(targetData);
-        var targetStartPosition = new HexPosition(new HexCoordinates(0, 3), HexDirection.Bottom);
-        var targetHex = new Hex(new HexCoordinates(1, 3));
-        targetHex.AddTerrain(new WaterTerrain(-3));
-        _target.Deploy(targetStartPosition, targetHex);
-        _target.Move(new MovementPath([
-            new PathSegment(targetStartPosition, targetPosition, 1)],
-            MovementType.Walk), targetHex);
-
-        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-        map.AddHex(attackerHex);
-        map.AddHex(targetHex);
-
-        _rules.GetRangeModifier(RangeBracket.Medium, Arg.Any<int>(), Arg.Any<int>()).Returns(2);
-
-        // Act
-        var result = _sut.GetModifierBreakdown(_attacker, _target, mg, map);
-
-        // Assert - non-underwater weapons use standard range even in water
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
-    }
-
-    [Fact]
     public void GetModifierBreakdown_SurfaceAttack_UsesStandardRangeTable()
     {
         // Arrange - Medium Laser at distance 3 on clear terrain

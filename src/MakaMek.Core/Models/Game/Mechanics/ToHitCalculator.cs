@@ -62,11 +62,12 @@ public class ToHitCalculator : IToHitCalculator
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
 
-        // Determine if this is an underwater attack (both attacker and target submerged with LOS)
-        var isUnderwaterAttack = IsUnderwaterAttack(scenario, losResult.HasLineOfSight);
-
         // Get effective range (underwater or standard) and calculate range bracket
-        var effectiveRange = weapon.GetEffectiveRange(isUnderwaterAttack);
+        var effectiveRange = weapon.Range;
+        if (effectiveRange == null)
+        {
+            throw new ArgumentNullException(nameof(effectiveRange));
+        }
         var range = effectiveRange.GetRangeBracket(distance);
 
         // Get range value based on the determined bracket
@@ -77,7 +78,7 @@ public class ToHitCalculator : IToHitCalculator
             RangeBracket.Medium => effectiveRange.MediumRange,
             RangeBracket.Long => effectiveRange.LongRange,
             RangeBracket.OutOfRange => effectiveRange.LongRange + 1,
-            _ => throw new ArgumentException($"Unknown weapon rangeBracket: {range}")
+            _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
@@ -222,25 +223,5 @@ public class ToHitCalculator : IToHitCalculator
             }
         }
         return modifiers;
-    }
-
-    /// <summary>
-    /// Determines if an attack qualifies as an underwater attack.
-    /// Both attacker and target must be submerged at depth >= their height and have LOS.
-    /// </summary>
-    private static bool IsUnderwaterAttack(AttackScenario scenario, bool hasLineOfSight)
-    {
-        if (!hasLineOfSight)
-            return false;
-
-        // Check if attacker is submerged (water depth >= unit height)
-        if (scenario.AttackerWaterDepth is null || scenario.AttackerWaterDepth < scenario.AttackerHeight)
-            return false;
-
-        // Check if target is submerged (water depth >= unit height)
-        if (scenario.TargetWaterDepth is null || scenario.TargetWaterDepth < scenario.TargetHeight)
-            return false;
-
-        return true;
     }
 }

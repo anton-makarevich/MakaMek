@@ -18,7 +18,7 @@ public class MachineGunTests
         sut.Size.ShouldBe(1);
         sut.Damage.ShouldBe(2);
         sut.Heat.ShouldBe(0);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(1);
         sut.Range.MediumRange.ShouldBe(2);
         sut.Range.LongRange.ShouldBe(3);

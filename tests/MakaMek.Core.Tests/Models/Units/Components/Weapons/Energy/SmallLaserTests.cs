@@ -20,7 +20,7 @@ public class SmallLaserTests
         sut.Damage.ShouldBe(3);
         sut.BattleValue.ShouldBe(9);
         sut.AmmoType.ShouldBe(null);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(1);
         sut.Range.MediumRange.ShouldBe(2);
         sut.Range.LongRange.ShouldBe(3);

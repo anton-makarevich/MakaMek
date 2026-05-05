@@ -24,7 +24,7 @@ public class WeaponTests
     public void GetRangeBracket_ReturnsCorrectRange(int distance, RangeBracket expectedRangeBracket)
     {
         // Act
-        var result = _weapon.Range.GetRangeBracket(distance);
+        var result = _weapon.Range!.GetRangeBracket(distance);
 
         // Assert
         result.ShouldBe(expectedRangeBracket);

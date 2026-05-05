@@ -20,7 +20,7 @@ public class LargeLaserTests
         sut.Damage.ShouldBe(8);
         sut.BattleValue.ShouldBe(123);
         sut.AmmoType.ShouldBe(null);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(5);
         sut.Range.MediumRange.ShouldBe(10);
         sut.Range.LongRange.ShouldBe(15);

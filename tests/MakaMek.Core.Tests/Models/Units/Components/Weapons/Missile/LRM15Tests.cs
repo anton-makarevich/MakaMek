@@ -20,7 +20,7 @@ public class Lrm15Tests
         sut.Damage.ShouldBe(15); // Total damage for all missiles
         sut.BattleValue.ShouldBe(136);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoLRM15);
-        sut.Range.MinimumRange.ShouldBe(6);
+        sut.Range!.MinimumRange.ShouldBe(6);
         sut.Range.ShortRange.ShouldBe(7);
         sut.Range.MediumRange.ShouldBe(14);
         sut.Range.LongRange.ShouldBe(21);

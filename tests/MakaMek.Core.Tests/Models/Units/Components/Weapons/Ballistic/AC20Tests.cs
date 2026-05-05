@@ -20,7 +20,7 @@ public class Ac20Tests
         sut.Damage.ShouldBe(20);
         sut.BattleValue.ShouldBe(178);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC20);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(3);
         sut.Range.MediumRange.ShouldBe(6);
         sut.Range.LongRange.ShouldBe(9);

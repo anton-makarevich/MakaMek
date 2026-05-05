@@ -20,7 +20,7 @@ public class Srm6Tests
         sut.Damage.ShouldBe(12); // Total damage for all missiles
         sut.BattleValue.ShouldBe(59);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoSRM6);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(3);
         sut.Range.MediumRange.ShouldBe(6);
         sut.Range.LongRange.ShouldBe(9);

@@ -37,25 +37,14 @@ public abstract class Weapon : Component
     /// <summary>
     /// The standard range values for this weapon
     /// </summary>
-    public WeaponRange Range => WeaponDefinition.Range;
-
-    /// <summary>
-    /// The underwater range values for this weapon (null if weapon cannot fire underwater)
-    /// </summary>
-    public WeaponRange? UnderwaterRange => WeaponDefinition.UnderwaterRange;
+    public WeaponRange? Range => IsSubmerged
+        ? WeaponDefinition.UnderwaterRange
+        : WeaponDefinition.Range;
 
     /// <summary>
     /// Indicates whether this weapon can fire while submerged underwater
     /// </summary>
     public bool CanFireUnderwater => WeaponDefinition.CanFireUnderwater;
-
-    /// <summary>
-    /// Gets the appropriate range based on whether the attack is underwater
-    /// </summary>
-    public WeaponRange GetEffectiveRange(bool isUnderwater) =>
-        isUnderwater && CanFireUnderwater && UnderwaterRange != null
-            ? UnderwaterRange
-            : Range;
 
     public WeaponType Type => WeaponDefinition.Type;
     public int Clusters => WeaponDefinition.Clusters;

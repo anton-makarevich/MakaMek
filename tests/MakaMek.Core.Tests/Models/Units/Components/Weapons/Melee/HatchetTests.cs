@@ -20,7 +20,7 @@ public class HatchetTests
         sut.Damage.ShouldBe(0); // Damage is calculated based on mech tonnage
         sut.BattleValue.ShouldBe(5);
         sut.AmmoType.ShouldBe(null);
-        sut.Range.MinimumRange.ShouldBe(0);
+        sut.Range!.MinimumRange.ShouldBe(0);
         sut.Range.ShortRange.ShouldBe(0);
         sut.Range.MediumRange.ShouldBe(0);
         sut.Range.LongRange.ShouldBe(0);

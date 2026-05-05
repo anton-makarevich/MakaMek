@@ -20,7 +20,7 @@ public class Ac2Tests
         sut.Damage.ShouldBe(2);
         sut.BattleValue.ShouldBe(37);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC2);
-        sut.Range.MinimumRange.ShouldBe(4);
+        sut.Range!.MinimumRange.ShouldBe(4);
         sut.Range.ShortRange.ShouldBe(8);
         sut.Range.MediumRange.ShouldBe(16);
         sut.Range.LongRange.ShouldBe(24);
