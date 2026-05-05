@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
@@ -52,10 +51,11 @@ public abstract class Component : IManufacturedItem
     {
         get
         {
-            var hex = MountedOn.FirstOrDefault()?.Unit?.Hex;
+            var unit = MountedOn.FirstOrDefault()?.Unit;
+            var hex = unit?.Hex;
             var waterDepth = hex?.GetWaterDepth();
             if (waterDepth is null) return false;
-            var unitHeight = MountedOn.FirstOrDefault()?.Unit?.Height ?? 0;
+            var unitHeight = unit?.Height ?? 0;
             return waterDepth.Value >= unitHeight;
         }
     }
