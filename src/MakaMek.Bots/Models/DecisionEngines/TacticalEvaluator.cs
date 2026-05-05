@@ -192,9 +192,8 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             foreach (var weapon in weapons)
             {
-                // Check if the weapon can fire at this range
+                // Check if the weapon can fire at this range (minimum range penalty is handled by ToHitCalculator)
                 if (weapon.Range == null 
-                    || range < weapon.Range.MinimumRange 
                     || range > weapon.Range.LongRange)
                     continue;
                 
