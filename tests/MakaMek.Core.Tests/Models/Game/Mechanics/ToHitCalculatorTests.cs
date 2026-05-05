@@ -858,7 +858,7 @@ public class ToHitCalculatorTests
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new WaterTerrain(-3));
         _attacker.Deploy(attackerPosition, attackerHex);
-        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), null);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
         _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -869,7 +869,7 @@ public class ToHitCalculatorTests
         _target.Deploy(targetStartPosition, targetHex);
         _target.Move(new MovementPath([
             new PathSegment(targetStartPosition, targetPosition, 1)],
-            MovementType.Walk), null);
+            MovementType.Walk), targetHex);
 
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         map.AddHex(attackerHex);
@@ -900,7 +900,7 @@ public class ToHitCalculatorTests
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new WaterTerrain(-3));
         _attacker.Deploy(attackerPosition, attackerHex);
-        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), null);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
 
         var mg = new MachineGun();
         _attacker.Parts[PartLocation.RightArm].TryAddComponent(mg);
@@ -913,7 +913,7 @@ public class ToHitCalculatorTests
         _target.Deploy(targetStartPosition, targetHex);
         _target.Move(new MovementPath([
             new PathSegment(targetStartPosition, targetPosition, 1)],
-            MovementType.Walk), null);
+            MovementType.Walk), targetHex);
 
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         map.AddHex(attackerHex);
@@ -937,16 +937,25 @@ public class ToHitCalculatorTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom); // Distance 3
 
-        SetupAttackerAndTarget(attackerPosition, targetPosition);
-
-        // Deploy on clear terrain (not submerged)
+        // Create fresh units and deploy on clear terrain (not submerged)
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new ClearTerrain());
-        _attacker!.Deploy(attackerPosition, attackerHex);
+        _attacker.Deploy(attackerPosition, attackerHex);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
+        _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(0, 4), HexDirection.Bottom);
         var targetHex = new Hex(new HexCoordinates(1, 4));
         targetHex.AddTerrain(new ClearTerrain());
-        _target!.Deploy(targetPosition, targetHex);
+        _target.Deploy(targetStartPosition, targetHex);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, 1)],
+            MovementType.Walk), targetHex);
 
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
@@ -967,16 +976,25 @@ public class ToHitCalculatorTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom); // Distance 3
 
-        SetupAttackerAndTarget(attackerPosition, targetPosition);
-
-        // Deploy in shallow water (depth 0, not submerged)
+        // Create fresh units and deploy in shallow water (depth 0, not submerged)
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new WaterTerrain(0));
-        _attacker!.Deploy(attackerPosition, attackerHex);
+        _attacker.Deploy(attackerPosition, attackerHex);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
+        _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(0, 4), HexDirection.Bottom);
         var targetHex = new Hex(new HexCoordinates(1, 4));
         targetHex.AddTerrain(new WaterTerrain(0));
-        _target!.Deploy(targetPosition, targetHex);
+        _target.Deploy(targetStartPosition, targetHex);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, 1)],
+            MovementType.Walk), targetHex);
 
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
@@ -1003,7 +1021,7 @@ public class ToHitCalculatorTests
         var attackerHex = new Hex(new HexCoordinates(1, 1));
         attackerHex.AddTerrain(new WaterTerrain(-3));
         _attacker.Deploy(attackerPosition, attackerHex);
-        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), null);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
         _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -1014,7 +1032,7 @@ public class ToHitCalculatorTests
         _target.Deploy(targetStartPosition, targetHex);
         _target.Move(new MovementPath([
             new PathSegment(targetStartPosition, targetPosition, 1)],
-            MovementType.Walk), null);
+            MovementType.Walk), targetHex);
 
         // Use AttackScenario.FromUnits which includes water depth
         var scenario = AttackScenario.FromUnits(_attacker, _target, PartLocation.RightArm);

@@ -15,7 +15,8 @@ public sealed record WeaponRange(
     /// </summary>
     public RangeBracket GetRangeBracket(int distance)
     {
-        if (distance == 0 && MinimumRange > 0) return RangeBracket.Minimum;
+        if (distance <= 0) return RangeBracket.OutOfRange;
+        if (MinimumRange > 0 && distance <= MinimumRange) return RangeBracket.Minimum;
         if (distance <= ShortRange) return RangeBracket.Short;
         if (distance <= MediumRange) return RangeBracket.Medium;
         if (distance <= LongRange) return RangeBracket.Long;
