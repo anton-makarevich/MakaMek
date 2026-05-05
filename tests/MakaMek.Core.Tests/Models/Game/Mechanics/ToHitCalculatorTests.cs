@@ -988,7 +988,8 @@ public class ToHitCalculatorTests
         targetHex.AddTerrain(new WaterTerrain(-3));
         _target.Deploy(targetStartPosition, targetHex);
         _target.Move(new MovementPath([
-            new PathSegment(targetStartPosition, targetPosition, 1)],
+                new PathSegment(targetStartPosition, targetPosition, 1)
+            ],
             MovementType.Walk), targetHex);
 
         // Use AttackScenario.FromUnits which includes water depth
@@ -1004,8 +1005,8 @@ public class ToHitCalculatorTests
         var result = _sut.GetModifierBreakdown(scenario, _weapon, map);
 
         // Assert - underwater range should apply
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
         scenario.AttackerWaterDepth.ShouldBe(3);
         scenario.TargetWaterDepth.ShouldBe(3);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
     }
 }
