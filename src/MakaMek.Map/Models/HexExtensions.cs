@@ -25,10 +25,8 @@ public static class HexExtensions
         /// </summary>
         public int? GetWaterDepth()
         {
-            if (!hex.HasTerrain(MakaMekTerrains.Water))
-                return null;
             var waterTerrain = hex.GetTerrain(MakaMekTerrains.Water);
-            return waterTerrain is null ? 0 : -1 * waterTerrain.Height;
+            return -waterTerrain?.Height;
         }
     }
 }
