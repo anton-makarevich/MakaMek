@@ -64,14 +64,12 @@ public class ToHitCalculator : IToHitCalculator
 
         // Get effective range (underwater or standard) and calculate range bracket
         var effectiveRange = weapon.Range;
-        if (effectiveRange == null)
-        {
-            throw new ArgumentNullException(nameof(effectiveRange));
-        }
-        var range = effectiveRange.GetRangeBracket(distance);
+        var range = effectiveRange?.GetRangeBracket(distance) ?? RangeBracket.OutOfRange;
 
         // Get range value based on the determined bracket
-        var rangeValue = range switch
+        var rangeValue = effectiveRange==null 
+        ? 1
+        : range switch
         {
             RangeBracket.Minimum => effectiveRange.MinimumRange,
             RangeBracket.Short => effectiveRange.ShortRange,
