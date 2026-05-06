@@ -222,6 +222,7 @@ public class WeaponSelectionExtensionsTests
         mech.Deploy(position, hex);
 
         // Act & Assert
+        laser.IsSubmerged.ShouldBeTrue();
         laser.IsAvailableForAttack().ShouldBeTrue();
         laser.CanFireUnderwater.ShouldBeTrue();
     }

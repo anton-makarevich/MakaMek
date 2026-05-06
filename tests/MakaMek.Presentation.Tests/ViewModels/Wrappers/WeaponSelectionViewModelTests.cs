@@ -605,10 +605,10 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut(isInRange: false);
-        _localizationService.GetString("Attack_OutOfRange").Returns("Target out of rangeBracket");
+        _localizationService.GetString("Attack_OutOfRange").Returns("Target out of range");
         
         // Act & Assert
-        _sut.AttackPossibilityDescription.ShouldBe("Target out of rangeBracket");
+        _sut.AttackPossibilityDescription.ShouldBe("Target out of range");
         _localizationService.Received().GetString("Attack_OutOfRange");
     }
     
