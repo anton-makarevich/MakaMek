@@ -276,6 +276,7 @@ public class WeaponSelectionExtensionsTests
         var result = mg.GetWeaponRestrictionReason(_localizationService);
 
         // Assert
+        mg.IsSubmerged.ShouldBeTrue();
         result.ShouldBe("Cannot fire underwater");
     }
 }
