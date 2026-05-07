@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -882,7 +883,6 @@ public class ToHitCalculatorTests
         scenario.AttackerWaterDepth.ShouldBe(3);  // WaterTerrain(-3) → depth 3
         scenario.TargetWaterDepth.ShouldBe(3);
         result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Medium);
     }
 
     [Fact]
@@ -1091,5 +1091,49 @@ public class ToHitCalculatorTests
         var scenario = AttackScenario.FromUnits(_attacker, _target, PartLocation.RightArm);
         scenario.AttackerWaterDepth.ShouldBe(1);
         result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_UnderwaterAttack_WeaponWithNullUnderwaterRange_ReturnsImpossibleRoll()
+    {
+        // Arrange - Machine Gun underwater (UnderwaterRange is null)
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
+
+        var mg = new MachineGun();
+
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        var attackerHex = new Hex(new HexCoordinates(1, 1));
+        attackerHex.AddTerrain(new WaterTerrain(-3));
+        _attacker.Deploy(attackerPosition, attackerHex);
+        _attacker.Move(MovementPath.CreateStandingStillPath(attackerPosition), attackerHex);
+        _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.RightArm)!
+            .TryAddComponent(mg).ShouldBeTrue();
+
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(0, 4), HexDirection.Bottom);
+        var targetHex = new Hex(new HexCoordinates(1, 4));
+        targetHex.AddTerrain(new WaterTerrain(-3));
+        _target.Deploy(targetStartPosition, targetHex);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, 1)],
+            MovementType.Walk), targetHex);
+
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        map.AddHex(attackerHex);
+        map.AddHex(targetHex);
+
+        _rules.GetRangeModifier(RangeBracket.OutOfRange, 1, Arg.Any<int>()).Returns(ToHitBreakdown.ImpossibleRoll);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker, _target, mg, map);
+
+        // Assert
+        result.RangeModifier.Range.ShouldBe(RangeBracket.OutOfRange);
+        result.RangeModifier.Value.ShouldBe(ToHitBreakdown.ImpossibleRoll);
+        result.Total.ShouldBeGreaterThanOrEqualTo(ToHitBreakdown.ImpossibleRoll);
     }
 }
