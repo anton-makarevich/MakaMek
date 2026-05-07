@@ -120,7 +120,7 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private bool IsUnderwaterAttack(AttackScenario scenario, Weapon weapon)
+    private static bool IsUnderwaterAttack(AttackScenario scenario, Weapon weapon)
     {
         if (scenario.AttackerWaterDepth is null or 0)
             return false;
