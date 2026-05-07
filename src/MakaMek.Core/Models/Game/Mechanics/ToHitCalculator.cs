@@ -63,7 +63,7 @@ public class ToHitCalculator : IToHitCalculator
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
 
         // Get effective range (underwater or standard) and calculate range bracket
-        var effectiveRange = weapon.Range;
+        var effectiveRange = weapon.GetEffectiveRange(IsUnderwaterAttack(scenario, weapon));
         var range = effectiveRange?.GetRangeBracket(distance) ?? RangeBracket.OutOfRange;
 
         // Get range value based on the determined bracket
@@ -118,6 +118,15 @@ public class ToHitCalculator : IToHitCalculator
             HasLineOfSight = losResult.HasLineOfSight,
             FiringArc = arc
         };
+    }
+
+    private bool IsUnderwaterAttack(AttackScenario scenario, Weapon weapon)
+    {
+        if (scenario.AttackerWaterDepth is null or 0)
+            return false;
+        if (weapon.FirstMountPartLocation?.IsLeg() == true && scenario.AttackerWaterDepth >= 1)
+            return true;
+        return scenario.AttackerWaterDepth >= 2;
     }
 
     private FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)

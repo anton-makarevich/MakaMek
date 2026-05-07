@@ -37,9 +37,7 @@ public abstract class Weapon : Component
     /// <summary>
     /// The standard range values for this weapon
     /// </summary>
-    public WeaponRange? Range => IsSubmerged
-        ? WeaponDefinition.UnderwaterRange
-        : WeaponDefinition.Range;
+    public WeaponRange? Range => GetEffectiveRange(IsSubmerged);
 
     /// <summary>
     /// Indicates whether this weapon can fire while submerged underwater
@@ -69,6 +67,10 @@ public abstract class Weapon : Component
             return [];
         return FirstMountPart.GetFiringArcs(WeaponDefinition.MountingOptions);
     }
+    
+    public WeaponRange? GetEffectiveRange(bool isUnderwater)=>  isUnderwater
+        ? WeaponDefinition.UnderwaterRange
+        : WeaponDefinition.Range;
 
     /// <summary>
     /// Override to persist weapon-specific state data for serialization
