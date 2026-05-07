@@ -13,11 +13,15 @@ public static class WeaponSelectionExtensions
         // Basic weapon availability checks
         if (!weapon.IsAvailable)
             return false;
-            
+
+        // Underwater weapon restriction: submerged units can only use weapons that can fire underwater
+        if (weapon is { IsSubmerged: true, CanFireUnderwater: false })
+            return false;
+
         var attacker = weapon.FirstMountPart?.Unit;
 
         // Check prone-specific restrictions
-        return attacker is not Mech { IsProne: true } 
+        return attacker is not Mech { IsProne: true }
                || IsWeaponAvailableWhenProne(weapon, attacker);
     }
     
@@ -25,16 +29,20 @@ public static class WeaponSelectionExtensions
     {
         if (!weapon.IsAvailable)
             return localizationService.GetString("WeaponRestriction_NotAvailable");
-        
+
+        // Underwater weapon restriction reason
+        if (weapon is { IsSubmerged: true, CanFireUnderwater: false })
+            return localizationService.GetString("WeaponRestriction_Underwater");
+
         var attacker = weapon.FirstMountPart?.Unit;
 
         if (attacker is not Mech { IsProne: true }) return string.Empty; // No restriction
         var location = weapon.FirstMountPartLocation;
-                
+
         // Check leg weapon restriction
         if (location?.IsLeg() == true)
             return localizationService.GetString("WeaponRestriction_ProneLegs");
-                
+
         // Check arm weapon restriction
         if (location?.IsArm() == false) return string.Empty; // No restriction
         var committedArm = attacker.WeaponAttackState.CommittedArmLocation;

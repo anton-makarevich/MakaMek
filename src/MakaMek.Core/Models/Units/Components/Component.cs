@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -41,6 +42,23 @@ public abstract class Component : IManufacturedItem
                                && !IsDestroyed
                                && IsMounted
                                && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);
+
+    /// <summary>
+    /// Indicates whether this component is submerged in water.
+    /// A component is submerged when the water depth is greater than or equal to the unit's height.
+    /// </summary>
+    public bool IsSubmerged
+    {
+        get
+        {
+            var unit = MountedOn.FirstOrDefault()?.Unit;
+            var hex = unit?.Hex;
+            var waterDepth = hex?.GetWaterDepth();
+            if (waterDepth is null) return false;
+            var unitHeight = unit?.Height ?? 0;
+            return waterDepth.Value >= unitHeight;
+        }
+    }
 
     public int Size => _definition.Size;
     public string Manufacturer => _manufacturerOverride ?? "Unknown";
@@ -91,7 +109,7 @@ public abstract class Component : IManufacturedItem
             }
             else
             {
-                // Break in sequence → commit current range
+                // Break in sequence → commit current rangeBracket
                 Mount(new CriticalSlotAssignment
                 {
                     UnitPart = mountLocation,
@@ -99,13 +117,13 @@ public abstract class Component : IManufacturedItem
                     Length = length
                 });
 
-                // Start a new range
+                // Start a new rangeBracket
                 start = slots[i];
                 length = 1;
             }
         }
 
-        // Commit the last range
+        // Commit the last rangeBracket
         Mount(new CriticalSlotAssignment
         {
             UnitPart = mountLocation,

@@ -65,7 +65,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk),null);
         
         // Set up enemy weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -108,7 +108,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up enemy weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -141,7 +141,7 @@ public class TacticalEvaluatorTests
             new(enemyPos, enemyPos, 0)
         }, MovementType.Walk), null);
         
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -185,7 +185,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var part = unit.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -242,7 +242,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var part = unit.Parts[PartLocation.RightTorso];
         part.TryAddComponent(weapon);
@@ -288,7 +288,7 @@ public class TacticalEvaluatorTests
         var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
         enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
@@ -384,7 +384,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         // Weapon with long range of 9 (enemy is at range 10)
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
@@ -399,7 +399,7 @@ public class TacticalEvaluatorTests
         var results = _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
-        results.Count.ShouldBe(0, "Weapon should be excluded when target is beyond long range");
+        results.Count.ShouldBe(0, "Weapon should be excluded when target is beyond long rangeBracket");
     }
 
     [Theory]
@@ -424,7 +424,7 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
         // Mount on a leg part - legs don't support torso rotation
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         var legPart = unit.Parts[partLocation]; 
         legPart.TryAddComponent(weapon);
@@ -457,12 +457,12 @@ public class TacticalEvaluatorTests
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
         unit.Move(path, null);
 
-        // Enemy at range
+        // Enemy at rangeBracket
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
@@ -498,12 +498,12 @@ public class TacticalEvaluatorTests
         var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
         unit.Move(path, null);
 
-        // Enemy at range
+        // Enemy at rangeBracket
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
     

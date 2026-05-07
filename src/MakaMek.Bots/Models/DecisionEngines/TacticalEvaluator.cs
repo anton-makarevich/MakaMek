@@ -192,8 +192,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             foreach (var weapon in weapons)
             {
-                // Check if the weapon can fire at this range
-                if (range < weapon.MinimumRange || range > weapon.LongRange)
+                // Check if the weapon can fire at this range (minimum range penalty is handled by ToHitCalculator)
+                if (weapon.Range == null 
+                    || range > weapon.Range.LongRange)
                     continue;
                 
                 // Check firing arc
@@ -270,7 +271,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             foreach (var weapon in weapons)
             {
                 // Check if the weapon can fire at this range
-                if (distanceToTarget > weapon.LongRange || weapon.FirstMountPart == null)
+                if (weapon.Range == null 
+                || distanceToTarget > weapon.Range.LongRange 
+                || weapon.FirstMountPart == null)
                     continue;
 
                 // Check configuration applicability (using pre-computed lookup instead of per-call traversal)
@@ -317,7 +320,8 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath attackerPath,
         MovementPath targetPath,
         Weapon weapon,
-        HexDirection? attackerFacing = null)
+        HexDirection? attackerFacing = null,
+        IUnit? target = null)
     {
         if (_game.BattleMap == null || attacker.Pilot == null)
             return 0;
@@ -338,7 +342,15 @@ public class TacticalEvaluator : ITacticalEvaluator
         // Use provided facing or default to path destination facing
         var facing = attackerFacing ?? attackerPath.Destination.Facing;
 
-        // Create a hypothetical attack scenario
+        // Compute water depth at attacker's destination hex
+        var attackerDestinationHex = _game.BattleMap.GetHex(attackerPath.Destination.Coordinates);
+        var attackerWaterDepth = attackerDestinationHex?.GetWaterDepth();
+
+        // Compute water depth at target's destination hex
+        var targetDestinationHex = _game.BattleMap.GetHex(targetPath.Destination.Coordinates);
+        var targetWaterDepth = targetDestinationHex?.GetWaterDepth();
+
+        // Create a hypothetical attack scenario with destination-based submersion
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
             attackerPosition: attackerPath.Destination,
@@ -346,7 +358,11 @@ public class TacticalEvaluator : ITacticalEvaluator
             targetPosition: targetPosition,
             targetHexesMoved: targetPath.HexesTraveled,
             attackerModifiers: attackerModifiers,
-            attackerFacing: facing
+            attackerFacing: facing,
+            attackerHeight: attacker.Height,
+            targetHeight: target?.Height ?? attacker.Height,
+            attackerWaterDepth: attackerWaterDepth,
+            targetWaterDepth: targetWaterDepth
             );
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)

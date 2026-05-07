@@ -2,11 +2,14 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
@@ -195,5 +198,85 @@ public class WeaponSelectionExtensionsTests
 
         // Assert
         result.ShouldBe(string.Empty);
+    }
+    
+    private void DeployMechWithWeapon(Weapon weapon, Terrain terrain, PartLocation location = PartLocation.LeftArm)
+    {
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var mech = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(mechData);
+        mech.Parts[location].TryAddComponent(weapon);
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(terrain);
+        mech.Deploy(position, hex);
+    }
+
+    [Fact]
+    public void IsAvailableForAttack_SubmergedAttackerWithUnderwaterCapableWeapon_ReturnsTrue()
+    {
+        // Arrange - Laser can fire underwater
+        var laser = new MediumLaser();
+        DeployMechWithWeapon(laser, new WaterTerrain(-3)); // Depth 3
+
+        // Act & Assert
+        laser.IsSubmerged.ShouldBeTrue();
+        laser.IsAvailableForAttack().ShouldBeTrue();
+        laser.CanFireUnderwater.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAvailableForAttack_SubmergedAttackerWithNonUnderwaterWeapon_ReturnsFalse()
+    {
+        // Arrange - Machine Gun cannot fire underwater
+        var mg = new MachineGun();
+        DeployMechWithWeapon(mg, new WaterTerrain(-3)); // Depth 3
+
+        // Act & Assert
+        mg.CanFireUnderwater.ShouldBeFalse();
+        mg.IsAvailableForAttack().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAvailableForAttack_NonSubmergedAttacker_CanUseAnyWeapon()
+    {
+        // Arrange
+        var mg = new MachineGun();
+        DeployMechWithWeapon(mg, new ClearTerrain());
+
+        // Act & Assert
+        mg.IsAvailableForAttack().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAvailableForAttack_ShallowWaterAttacker_CanUseAnyWeapon()
+    {
+        // Arrange - shallow water (depth 0 < mech height 2), not submerged
+        var mg = new MachineGun();
+        DeployMechWithWeapon(mg, new WaterTerrain(0)); // Depth 0
+
+        // Act & Assert - not submerged, can use any weapon
+        mg.IsSubmerged.ShouldBeFalse();
+        mg.IsAvailableForAttack().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetWeaponRestrictionReason_SubmergedWithNonUnderwaterWeapon_ReturnsUnderwaterMessage()
+    {
+        // Arrange
+        var mg = new MachineGun();
+        DeployMechWithWeapon(mg, new WaterTerrain(-3));
+
+        _localizationService.GetString("WeaponRestriction_Underwater").Returns("Cannot fire underwater");
+
+        // Act
+        var result = mg.GetWeaponRestrictionReason(_localizationService);
+
+        // Assert
+        mg.IsSubmerged.ShouldBeTrue();
+        result.ShouldBe("Cannot fire underwater");
     }
 }

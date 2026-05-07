@@ -219,16 +219,16 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
-    public int GetRangeModifier(WeaponRange rangeType, int rangeValue, int distance)
+    public int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance)
     {
-        return rangeType switch
+        return rangeBracketType switch
         {
-            WeaponRange.Minimum => rangeValue - distance + 1,
-            WeaponRange.Short => 0,
-            WeaponRange.Medium => 2,
-            WeaponRange.Long => 4,
-            WeaponRange.OutOfRange => ToHitBreakdown.ImpossibleRoll,
-            _ => throw new ArgumentException($"Unknown weapon range: {rangeType}")
+            RangeBracket.Minimum => rangeValue - distance + 1,
+            RangeBracket.Short => 0,
+            RangeBracket.Medium => 2,
+            RangeBracket.Long => 4,
+            RangeBracket.OutOfRange => ToHitBreakdown.ImpossibleRoll,
+            _ => throw new ArgumentException($"Unknown weapon rangeBracket: {rangeBracketType}")
         };
     }
 

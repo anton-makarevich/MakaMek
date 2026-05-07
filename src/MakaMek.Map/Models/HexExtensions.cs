@@ -1,19 +1,32 @@
-using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
-namespace Sanet.MakaMek.Core.Utils;
+namespace Sanet.MakaMek.Map.Models;
 
 public static class HexExtensions
 {
-    public static Hex WithTerrain(this Hex hex, Terrain terrain)
+    extension(Hex hex)
     {
-        hex.AddTerrain(terrain);
-        return hex;
-    }
+        public Hex WithTerrain(Terrain terrain)
+        {
+            hex.AddTerrain(terrain);
+            return hex;
+        }
 
-    public static Hex WithLevel(this Hex hex, int level)
-    {
-        hex.Level = level;
-        return hex;
+        public Hex WithLevel(int level)
+        {
+            hex.Level = level;
+            return hex;
+        }
+
+        /// <summary>
+        /// Gets the water depth of the hex as a positive integer.
+        /// Returns null if the hex has no water terrain.
+        /// Returns 0 for shallow water (Height 0), 1 for depth -1, 2 for depth -2, etc.
+        /// </summary>
+        public int? GetWaterDepth()
+        {
+            var waterTerrain = hex.GetTerrain(MakaMekTerrains.Water);
+            return -waterTerrain?.Height;
+        }
     }
 }

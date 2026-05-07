@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;

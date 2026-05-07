@@ -61,14 +61,21 @@ public class ToHitCalculator : IToHitCalculator
             scenario.TargetHeight);
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
-        var range = weapon.GetRangeBracket(distance);
-        var rangeValue = range switch
+
+        // Get effective range (underwater or standard) and calculate range bracket
+        var effectiveRange = weapon.GetEffectiveRange(IsUnderwaterAttack(scenario, weapon));
+        var range = effectiveRange?.GetRangeBracket(distance) ?? RangeBracket.OutOfRange;
+
+        // Get range value based on the determined bracket
+        var rangeValue = effectiveRange==null 
+        ? 1
+        : range switch
         {
-            WeaponRange.Minimum => weapon.MinimumRange,
-            WeaponRange.Short => weapon.ShortRange,
-            WeaponRange.Medium => weapon.MediumRange,
-            WeaponRange.Long => weapon.LongRange,
-            WeaponRange.OutOfRange => weapon.LongRange+1,
+            RangeBracket.Minimum => effectiveRange.MinimumRange,
+            RangeBracket.Short => effectiveRange.ShortRange,
+            RangeBracket.Medium => effectiveRange.MediumRange,
+            RangeBracket.Long => effectiveRange.LongRange,
+            RangeBracket.OutOfRange => effectiveRange.LongRange + 1,
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
 
@@ -111,6 +118,15 @@ public class ToHitCalculator : IToHitCalculator
             HasLineOfSight = losResult.HasLineOfSight,
             FiringArc = arc
         };
+    }
+
+    private static bool IsUnderwaterAttack(AttackScenario scenario, Weapon weapon)
+    {
+        if (scenario.AttackerWaterDepth is null or 0)
+            return false;
+        if (weapon.FirstMountPartLocation?.IsLeg() == true && scenario.AttackerWaterDepth >= 1)
+            return true;
+        return scenario.AttackerWaterDepth >= 2;
     }
 
     private FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)

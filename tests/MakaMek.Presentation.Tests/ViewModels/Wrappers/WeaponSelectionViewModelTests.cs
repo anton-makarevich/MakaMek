@@ -339,7 +339,7 @@ public class WeaponSelectionViewModelTests
                 RangeModifier = new RangeRollModifier
                 {
                     Value = 1,
-                    Range = WeaponRange.Medium,
+                    Range = RangeBracket.Medium,
                     Distance = 5,
                     WeaponName = "Test"
                 },
@@ -1073,7 +1073,7 @@ public class WeaponSelectionViewModelTests
 
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 0 },
             RangeModifier = new RangeRollModifier
-                { Value = otherModifiers, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = otherModifiers, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             OtherModifiers = [],
             TerrainModifiers = [],
             HasLineOfSight = hasLineOfSight,
@@ -1084,8 +1084,9 @@ public class WeaponSelectionViewModelTests
     private class TestBallisticWeapon()
         : Weapon(new WeaponDefinition(
             "AC/5", 5, 1, 
-            0, 3, 6, 9, 
-            WeaponType.Ballistic, 10, 1, 1, 1,1,MakaMekComponent.AC5, MakaMekComponent.ISAmmoAC5))
+            new WeaponRange(0, 3, 6, 9), 
+            WeaponType.Ballistic, 10, null,
+            1, 1, 1, 1, MakaMekComponent.AC5, MakaMekComponent.ISAmmoAC5))
     {
     }
 }

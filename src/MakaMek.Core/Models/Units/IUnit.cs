@@ -87,6 +87,7 @@ public interface IUnit
 
     HexPosition? Position { get; }
     HexDirection? Facing { get; }
+    Hex? Hex { get; }
     bool IsDeployed { get; }
     int CurrentHeat { get; }
     int HeatDissipation { get; }

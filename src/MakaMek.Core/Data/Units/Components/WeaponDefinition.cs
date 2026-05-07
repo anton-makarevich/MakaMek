@@ -11,12 +11,10 @@ public record WeaponDefinition(
     string Name,
     int ElementaryDamage,
     int Heat,
-    int MinimumRange,
-    int ShortRange,
-    int MediumRange,
-    int LongRange,
+    WeaponRange Range,
     WeaponType Type,
     int BattleValue,
+    WeaponRange? UnderwaterRange = null,
     int Clusters = 1,
     int ClusterSize = 1,
     int Size = 1,
@@ -43,25 +41,8 @@ public record WeaponDefinition(
     public int WeaponSize => Clusters * ClusterSize;
 
     /// <summary>
-    /// Gets the range bracket for a given distance
+    /// Indicates whether this weapon can fire underwater
     /// </summary>
-    public WeaponRange GetRangeBracket(int distance)
-    {
-        if (distance <= 0)
-            return WeaponRange.OutOfRange;
-        
-        if (distance <= MinimumRange)
-            return WeaponRange.Minimum;
-            
-        if (distance <= ShortRange)
-            return WeaponRange.Short;
-            
-        if (distance <= MediumRange)
-            return WeaponRange.Medium;
-            
-        if (distance <= LongRange)
-            return WeaponRange.Long;
-            
-        return WeaponRange.OutOfRange;
-    }
+    public bool CanFireUnderwater => UnderwaterRange != null;
+
 }

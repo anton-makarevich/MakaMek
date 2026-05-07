@@ -19,10 +19,10 @@ public class Srm2Tests
         sut.Damage.ShouldBe(4); // Total damage for all missiles
         sut.BattleValue.ShouldBe(15);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoSRM2);
-        sut.MinimumRange.ShouldBe(0);
-        sut.ShortRange.ShouldBe(3);
-        sut.MediumRange.ShouldBe(6);
-        sut.LongRange.ShouldBe(9);
+        sut.Range!.MinimumRange.ShouldBe(0);
+        sut.Range.ShortRange.ShouldBe(3);
+        sut.Range.MediumRange.ShouldBe(6);
+        sut.Range.LongRange.ShouldBe(9);
         sut.Clusters.ShouldBe(2);
         sut.ClusterSize.ShouldBe(1);
         sut.WeaponSize.ShouldBe(2); // 2 clusters * 1 missile per cluster

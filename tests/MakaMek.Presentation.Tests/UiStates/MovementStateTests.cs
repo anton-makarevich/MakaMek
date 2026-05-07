@@ -604,14 +604,14 @@ public class MovementStateTests
             .Count(h => h.HasHighlight<MovementReachableHighlight>());
         reachableHexes.ShouldBeGreaterThan(0, "Should highlight reachable hexes");
 
-        // Verify only hexes within jump range are highlighted
+        // Verify only hexes within jump rangeBracket are highlighted
         foreach (var hex in _game.BattleMap.GetHexes())
         {
             if (hex.HasHighlight<MovementReachableHighlight>())
             {
                 hex.Coordinates.DistanceTo(position.Coordinates)
                     .ShouldBeLessThanOrEqualTo(_unit1.GetMovementPoints(MovementType.Jump),
-                        "Should only highlight hexes within jump range");
+                        "Should only highlight hexes within jump rangeBracket");
             }
         }
     }

@@ -24,7 +24,7 @@ public abstract class Unit : IUnit
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
 
-    protected Hex? _hex;
+    public Hex? Hex { get; private set; }
 
     protected Unit(string chassis, string model, int tonnage,
         IEnumerable<UnitPart> parts,
@@ -226,7 +226,7 @@ public abstract class Unit : IUnit
             throw new InvalidOperationException($"{Name} is already deployed.");
         }
         Position = position;
-        _hex = hex;
+        Hex = hex;
     }
     
     /// <summary>
@@ -235,7 +235,7 @@ public abstract class Unit : IUnit
     public void RemoveFromBoard()
     {
         Position = null;
-        _hex = null;
+        Hex = null;
     }
 
     // Heat management
@@ -730,7 +730,7 @@ public abstract class Unit : IUnit
         MovementTaken = movementPath;
         SpendMovementPoints(movementPath.TotalCost);
         Position = position;
-        _hex = destination;
+        Hex = destination;
     }
     
     /// <summary>

@@ -20,10 +20,10 @@ public class PpcTests
         sut.Damage.ShouldBe(10);
         sut.BattleValue.ShouldBe(176);
         sut.AmmoType.ShouldBe(null);
-        sut.MinimumRange.ShouldBe(3);
-        sut.ShortRange.ShouldBe(6);
-        sut.MediumRange.ShouldBe(12);
-        sut.LongRange.ShouldBe(18);
+        sut.Range!.MinimumRange.ShouldBe(3);
+        sut.Range.ShortRange.ShouldBe(6);
+        sut.Range.MediumRange.ShouldBe(12);
+        sut.Range.LongRange.ShouldBe(18);
         sut.Type.ShouldBe(WeaponType.Energy);
         sut.ComponentType.ShouldBe(MakaMekComponent.PPC);
         sut.IsAimShotCapable.ShouldBeTrue();

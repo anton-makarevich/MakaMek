@@ -203,7 +203,7 @@ public class AimedShotLocationSelectorViewModelTests
             RangeModifier = new RangeRollModifier
             {
                 Value = 0,
-                Range = WeaponRange.Long,
+                Range = RangeBracket.Long,
                 Distance = 5,
                 WeaponName = "Test"
             },
