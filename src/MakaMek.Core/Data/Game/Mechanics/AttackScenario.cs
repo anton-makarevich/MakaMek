@@ -143,6 +143,8 @@ public record AttackScenario
     /// <param name="aimedShotTarget">Body part being targeted for aimed shot, if any</param>
     /// <param name="attackerHeight">Height of the attacker unit in levels</param>
     /// <param name="targetHeight">Height of the target unit in levels</param>
+    /// <param name="attackerWaterDepth">Water depth at attacker's hex (null if no water, 0 for shallow, 1+ for depth)</param>
+    /// <param name="targetWaterDepth">Water depth at target's hex (null if no water, 0 for shallow, 1+ for depth)</param>
     /// <returns>AttackScenario representing the hypothetical attack</returns>
     public static AttackScenario FromHypothetical(
         int attackerGunnery,
@@ -155,7 +157,9 @@ public record AttackScenario
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null,
         int attackerHeight = 2, // assume the attacker is a mech
-        int targetHeight = 2) // assume the target is a mech
+        int targetHeight = 2, // assume the target is a mech
+        int? attackerWaterDepth = null,
+        int? targetWaterDepth = null)
     {
         return new AttackScenario
         {
@@ -169,7 +173,9 @@ public record AttackScenario
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget,
             AttackerHeight = attackerHeight,
-            TargetHeight = targetHeight
+            TargetHeight = targetHeight,
+            AttackerWaterDepth = attackerWaterDepth,
+            TargetWaterDepth = targetWaterDepth
         };
     }
 }
