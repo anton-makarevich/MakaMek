@@ -204,7 +204,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Calculate hit probability using ToHitCalculator with full accuracy
                 // For defensive calculation, we're the target
-                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon);
+                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon, null, defenderHeight);
                 
                 // Calculate threat value
                 var threatValue = hitProbability * weapon.Damage * arcMultiplier;
@@ -290,7 +290,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                     continue;
 
                 // Calculate hit probability with the configuration's facing
-                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing);
+                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing, targetHeight);
 
                 if (hitProbability <= 0)
                     continue;
@@ -321,7 +321,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath targetPath,
         Weapon weapon,
         HexDirection? attackerFacing = null,
-        IUnit? target = null)
+        int targetHeight = 0)
     {
         if (_game.BattleMap == null || attacker.Pilot == null)
             return 0;
@@ -360,7 +360,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             attackerModifiers: attackerModifiers,
             attackerFacing: facing,
             attackerHeight: attacker.Height,
-            targetHeight: target?.Height ?? attacker.Height,
+            targetHeight: targetHeight,
             attackerWaterDepth: attackerWaterDepth,
             targetWaterDepth: targetWaterDepth
             );
