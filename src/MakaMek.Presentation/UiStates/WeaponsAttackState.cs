@@ -347,7 +347,7 @@ public class WeaponsAttackState : IUiState
                     continue;
                 }
 
-                var maxRange = weapon.LongRange;
+                var maxRange = weapon.Range.LongRange;
                 var facing = weapon.FirstMountPart?.Facing;
                 if (facing == null)
                 {

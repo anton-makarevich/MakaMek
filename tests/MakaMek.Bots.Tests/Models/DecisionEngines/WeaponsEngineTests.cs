@@ -163,7 +163,7 @@ public class WeaponsEngineTests
 
         var enemyId = enemy.Id;
 
-        var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
@@ -219,13 +219,13 @@ public class WeaponsEngineTests
 
         var enemyId = enemy.Id;
 
-        var highProbHighDamage = new TestWeapon(new WeaponDefinition("HighProbHighDamage", 10, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var highProbHighDamage = new TestWeapon(new WeaponDefinition("HighProbHighDamage", 10, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var highProbLowDamage = new TestWeapon(new WeaponDefinition("HighProbLowDamage", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var highProbLowDamage = new TestWeapon(new WeaponDefinition("HighProbLowDamage", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var midProb = new TestWeapon(new WeaponDefinition("MidProb", 20, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var midProb = new TestWeapon(new WeaponDefinition("MidProb", 20, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var zeroProb = new TestWeapon(new WeaponDefinition("ZeroProb", 999, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var zeroProb = new TestWeapon(new WeaponDefinition("ZeroProb", 999, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), 
@@ -292,11 +292,11 @@ public class WeaponsEngineTests
 
         var enemyId = enemy.Id;
 
-        var lowHeat = new TestWeapon(new WeaponDefinition("LowHeat", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var lowHeat = new TestWeapon(new WeaponDefinition("LowHeat", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var someHeat = new TestWeapon(new WeaponDefinition("SomeHeat", 5, 2, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var someHeat = new TestWeapon(new WeaponDefinition("SomeHeat", 5, 2, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 5, 10, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 5, 10, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
@@ -364,12 +364,10 @@ public class WeaponsEngineTests
             "AmmoWeapon",
             10,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Ballistic,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.AC5,
             AmmoComponentType: MakaMekComponent.ISAmmoAC5));
 
@@ -377,12 +375,10 @@ public class WeaponsEngineTests
             "EnergyWeapon",
             5,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Energy,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.MediumLaser));
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
@@ -451,12 +447,10 @@ public class WeaponsEngineTests
             "AmmoWeapon",
             10,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Ballistic,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.AC5,
             AmmoComponentType: MakaMekComponent.ISAmmoAC5));
 
@@ -464,12 +458,10 @@ public class WeaponsEngineTests
             "EnergyWeapon",
             5,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Energy,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.MediumLaser));
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
@@ -538,12 +530,10 @@ public class WeaponsEngineTests
             "LowAmmoWeapon",
             10,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Ballistic,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.AC5,
             AmmoComponentType: MakaMekComponent.ISAmmoAC5));
 
@@ -551,12 +541,10 @@ public class WeaponsEngineTests
             "HighAmmoWeapon",
             10,
             0,
-            0,
-            3,
-            6,
-            9,
+            new WeaponRange(0, 3, 6, 9),
             WeaponType.Ballistic,
             100,
+            null,
             WeaponComponentType: MakaMekComponent.AC5,
             AmmoComponentType: MakaMekComponent.ISAmmoAC5));
 

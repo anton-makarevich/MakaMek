@@ -9,12 +9,10 @@ public sealed class SmallLaser : Weapon
         Name: "Small Laser",
         ElementaryDamage: 3,
         Heat: 1,
-        MinimumRange: 0,
-        ShortRange: 1,
-        MediumRange: 2,
-        LongRange: 3,
+        Range: new WeaponRange(0, 1, 2, 3),
         Type: WeaponType.Energy,
         BattleValue: 9,
+        UnderwaterRange: new WeaponRange(0, 1, 2, 0),
         WeaponComponentType: MakaMekComponent.SmallLaser);
 
     // Constructor uses the static definition

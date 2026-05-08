@@ -185,8 +185,7 @@ public abstract class BaseGame : IGame
     internal void OnMoveUnit(MoveUnitCommand moveCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
-        if (player == null) return;
-        var unit = player.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
         if (unit == null) return;
         var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
         var hex = BattleMap?.GetHex(path.Destination.Coordinates);

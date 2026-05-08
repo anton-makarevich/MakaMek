@@ -13,25 +13,23 @@ public class WeaponTests
     private readonly Weapon _weapon = new Lrm5();
 
     [Theory]
-    [InlineData(0, WeaponRange.OutOfRange)] // Attacker's position
-    [InlineData(6, WeaponRange.Minimum)] // At minimum range
-    [InlineData(7, WeaponRange.Short)] // At short range boundary
-    [InlineData(10, WeaponRange.Medium)] // Within short range
-    [InlineData(14, WeaponRange.Medium)] // At a medium range boundary
-    [InlineData(17, WeaponRange.Long)] // Within long range
-    [InlineData(21, WeaponRange.Long)] // At long range boundary
-    [InlineData(22, WeaponRange.OutOfRange)] // Beyond long range
-    public void GetRangeBracket_ReturnsCorrectRange(int distance, WeaponRange expectedRange)
+    [InlineData(0, RangeBracket.OutOfRange)] // Attacker's position
+    [InlineData(6, RangeBracket.Minimum)] // At minimum rangeBracket
+    [InlineData(7, RangeBracket.Short)] // At short rangeBracket boundary
+    [InlineData(10, RangeBracket.Medium)] // Within short rangeBracket
+    [InlineData(14, RangeBracket.Medium)] // At a medium rangeBracket boundary
+    [InlineData(17, RangeBracket.Long)] // Within long rangeBracket
+    [InlineData(21, RangeBracket.Long)] // At long rangeBracket boundary
+    [InlineData(22, RangeBracket.OutOfRange)] // Beyond long rangeBracket
+    public void GetRangeBracket_ReturnsCorrectRange(int distance, RangeBracket expectedRangeBracket)
     {
         // Act
-        var result = _weapon.GetRangeBracket(distance);
+        var result = _weapon.Range!.GetRangeBracket(distance);
 
         // Assert
-        result.ShouldBe(expectedRange);
+        result.ShouldBe(expectedRangeBracket);
     }
-    
 
-    
     [Theory]
     [InlineData(WeaponType.Energy, null, false)]
     [InlineData(WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5, true)]
@@ -55,10 +53,7 @@ public class WeaponTests
             Name: "Test Weapon",
             ElementaryDamage: 5,
             Heat: 3,
-            MinimumRange: 0,
-            ShortRange: 3,
-            MediumRange: 6,
-            LongRange: 9,
+            Range: new WeaponRange(0, 3, 6, 9),
             Type: type,
             BattleValue: 10,
             Clusters: 1,

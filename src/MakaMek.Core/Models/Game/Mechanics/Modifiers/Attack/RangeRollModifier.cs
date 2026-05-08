@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
 public record RangeRollModifier : RollModifier
 {
-    public required WeaponRange Range { get; init; }
+    public required RangeBracket Range { get; init; }
     public required int Distance { get; init; }
     public required string WeaponName { get; init; }
 

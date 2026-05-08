@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -826,7 +827,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(secondD6)] // in 6-8 range
+            [new DiceResult(5), new DiceResult(secondD6)] // in 6-8 rangeBracket
         );
         
         var weaponTargetData = new WeaponTargetData
@@ -875,7 +876,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 range
+            [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 rangeBracket
         );
         
         var weaponTargetData = new WeaponTargetData
@@ -1815,8 +1816,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5, int externalHeat = 2)
         : Weapon(new WeaponDefinition(
             "Test Weapon", damage, 3,
-            0, 3, 6, 9,
-            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, externalHeat));
+            new WeaponRange(0, 3, 6, 9),
+            type, 10, null, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, externalHeat));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
@@ -1827,8 +1828,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MakaMekComponent? ammoType = null)
         : Weapon(new WeaponDefinition(
             "Test Cluster Weapon", damage, 3,
-            0, 3, 6, 9,
-            type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
+            new WeaponRange(0, 3, 6, 9),
+            type, 10, null, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
 
     [Fact]
     public void Enter_ShouldCallCriticalHitsCalculatorAndPublishCommand_WhenStructureDamageOccurs()

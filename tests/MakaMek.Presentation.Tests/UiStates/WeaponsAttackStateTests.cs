@@ -124,7 +124,7 @@ public class WeaponsAttackStateTests
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
             OtherModifiers = [],
             RangeModifier = new RangeRollModifier
-                { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = [],
             HasLineOfSight = true,
             FiringArc = FiringArc.Front
@@ -329,7 +329,7 @@ public class WeaponsAttackStateTests
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
 
-        // Set up another friendly unit within weapon range
+        // Set up another friendly unit within weapon rangeBracket
         var friendlyPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var friendlyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id && u != attacker);
         friendlyUnit.Deploy(friendlyPosition, null);
@@ -339,7 +339,7 @@ public class WeaponsAttackStateTests
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
 
-        // Create hex with a friendly unit (within weapon range, so it's highlighted)
+        // Create hex with a friendly unit (within weapon rangeBracket, so it's highlighted)
         var friendlyHex = new Hex(friendlyPosition.Coordinates);
 
         // Act
@@ -390,7 +390,7 @@ public class WeaponsAttackStateTests
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
 
-        // Set up an enemy unit far away (out of weapon range)
+        // Set up an enemy unit far away (out of weapon rangeBracket)
         var enemyPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         enemyUnit.Deploy(enemyPosition, null);
@@ -406,7 +406,7 @@ public class WeaponsAttackStateTests
         // Act
         _sut.HandleHexSelection(enemyHex);
 
-        // Assert - should cancel target selection when clicking outside weapon range
+        // Assert - should cancel target selection when clicking outside weapon rangeBracket
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         _battleMapViewModel.SelectedUnit.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker);
@@ -571,7 +571,7 @@ public class WeaponsAttackStateTests
         // Act
         _sut.HandleUnitSelection(_unit1);
 
-        // Assert — reverse hex → weapon list must match the same range data exposed by GetWeaponsInRange
+        // Assert — reverse hex → weapon list must match the same rangeBracket data exposed by GetWeaponsInRange
         var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.HasHighlight<AttackReachableHighlight>()).ToList();
         highlightedHexes.ShouldNotBeEmpty();
 
@@ -892,11 +892,11 @@ public class WeaponsAttackStateTests
         _unit1.Deploy(position, null);
         _unit1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _sut.HandleUnitSelection(_unit1);
-        // Get maximum weapon range
+        // Get maximum weapon rangeBracket
         var maxRange = _unit1.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
-            .Max(w => w.LongRange);
-        var targetCoordinates = new HexCoordinates(1, maxRange + 2); // Beyond maximum range
+            .Max(w => w.Range.LongRange);
+        var targetCoordinates = new HexCoordinates(1, maxRange + 2); // Beyond maximum rangeBracket
 
         // Act
         var weapons = _sut.GetWeaponsInRange(targetCoordinates);
@@ -1098,7 +1098,7 @@ public class WeaponsAttackStateTests
 
         // Assert
         items.ShouldNotBeEmpty();
-        items.Any(i => i.IsEnabled).ShouldBeTrue(); // At least one weapon should be in range
+        items.Any(i => i.IsEnabled).ShouldBeTrue(); // At least one weapon should be in rangeBracket
         items.All(i => i.IsSelected == false).ShouldBeTrue();
         items.All(i => i.Target == null).ShouldBeTrue();
     }
@@ -1265,7 +1265,7 @@ public class WeaponsAttackStateTests
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
 
-        // Position units on the map - far apart to ensure weapons are out of range
+        // Position units on the map - far apart to ensure weapons are out of rangeBracket
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Top);
         attacker.Deploy(attackerPosition, null);
@@ -1278,10 +1278,10 @@ public class WeaponsAttackStateTests
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
 
-        // Act - try to select a target out of range
+        // Act - try to select a target out of rangeBracket
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
 
-        // Assert - selection should be canceled when clicking outside weapon range
+        // Assert - selection should be canceled when clicking outside weapon rangeBracket
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         _sut.SelectedTarget.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker);
@@ -1320,7 +1320,7 @@ public class WeaponsAttackStateTests
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
             RangeModifier = new RangeRollModifier
-                { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
         
@@ -1333,7 +1333,7 @@ public class WeaponsAttackStateTests
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
             RangeModifier = new RangeRollModifier
-                { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
+                { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
         
@@ -1898,7 +1898,7 @@ public class WeaponsAttackStateTests
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
         _sut.SelectedTarget.ShouldBe(target);
 
-        // Act - click on a hex outside weapon range
+        // Act - click on a hex outside weapon rangeBracket
         var farAwayHex = new Hex(new HexCoordinates(10, 10));
         _sut.HandleHexSelection(farAwayHex);
 

@@ -87,16 +87,16 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
-    [InlineData(WeaponRange.Minimum, 6, 6, 1)]
-    [InlineData(WeaponRange.Minimum, 6, 5, 2)]
-    [InlineData(WeaponRange.Short, 1, 1, 0)]
-    [InlineData(WeaponRange.Medium, 1, 1, 2)]
-    [InlineData(WeaponRange.Long, 1, 1, 4)]
-    [InlineData(WeaponRange.OutOfRange, 1, 1, ToHitBreakdown.ImpossibleRoll)]
-    public void GetRangeModifier_ShouldReturnExpectedValues(WeaponRange range, int rangeValue, int distance,
+    [InlineData(RangeBracket.Minimum, 6, 6, 1)]
+    [InlineData(RangeBracket.Minimum, 6, 5, 2)]
+    [InlineData(RangeBracket.Short, 1, 1, 0)]
+    [InlineData(RangeBracket.Medium, 1, 1, 2)]
+    [InlineData(RangeBracket.Long, 1, 1, 4)]
+    [InlineData(RangeBracket.OutOfRange, 1, 1, ToHitBreakdown.ImpossibleRoll)]
+    public void GetRangeModifier_ShouldReturnExpectedValues(RangeBracket rangeBracket, int rangeValue, int distance,
         int expectedModifier)
     {
-        _sut.GetRangeModifier(range, rangeValue, distance).ShouldBe(expectedModifier);
+        _sut.GetRangeModifier(rangeBracket, rangeValue, distance).ShouldBe(expectedModifier);
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public class TotalWarfareRulesProviderTests
     [Fact]
     public void GetRangeModifier_ShouldThrowArgumentException_WhenInvalidRange()
     {
-        var invalidRange = (WeaponRange)999;
+        var invalidRange = (RangeBracket)999;
         Should.Throw<ArgumentException>(() => _sut.GetRangeModifier(invalidRange, 999, 999));
     }
 

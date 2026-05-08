@@ -4,8 +4,11 @@ using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
@@ -124,7 +127,7 @@ public class ComponentTests
         sut.IsMounted.ShouldBeTrue();
 
         // Act & Assert
-        Should.Throw<ComponentException>(() => sut.UnMount())
+        Should.Throw<ComponentException>(sut.UnMount)
             .Message.ShouldBe($"Shoulder is not removable");
     }
 
@@ -419,5 +422,84 @@ public class ComponentTests
         // Assert
         sut.HasExploded.ShouldBeFalse();
         sut.IsDestroyed.ShouldBeTrue();
+    }
+    
+        [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenNotDeployed()
+    {
+        // Arrange
+        var sut = new JumpJets();
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.OfType<CenterTorso>().First();
+        centerTorso.TryAddComponent(sut).ShouldBeTrue();
+
+        // Act - not deployed, so no hex
+
+        // Assert
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenOnClearTerrain()
+    {
+        // Arrange
+        var sut = new JumpJets();
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.OfType<CenterTorso>().First();
+        centerTorso.TryAddComponent(sut).ShouldBeTrue();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new ClearTerrain());
+        mech.Deploy(position, hex);
+
+        // Act
+
+        // Assert
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(0, false)]   // Water depth 0 < unit height 2 → not submerged
+    [InlineData(-1, false)]  // Water depth 1 < unit height 2 → not submerged
+    [InlineData(-2, true)]   // Water depth 2 == unit height 2 → submerged
+    [InlineData(-3, true)]   // Water depth 3 > unit height 2 → submerged
+    public void IsSubmerged_ReturnsExpectedValue_ForWaterDepth(int waterTerrainArg, bool expected)
+    {
+        // Arrange
+        var sut = new JumpJets();
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.OfType<CenterTorso>().First();
+        centerTorso.TryAddComponent(sut).ShouldBeTrue();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new WaterTerrain(waterTerrainArg));
+        mech.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBe(expected);
+    }
+    
+    private static List<UnitPart> CreateBasicPartsData()
+    {
+        var engineData = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments =
+            [
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+            ],
+            SpecificData = new EngineStateData(EngineType.Fusion, 250)
+        };
+        var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        return
+        [
+            new Head("Head", 9, 3),
+            centerTorso,
+            new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
+        ];
     }
 }

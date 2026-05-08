@@ -9,10 +9,7 @@ public sealed class Hatchet : Weapon
         Name: "Hatchet",
         ElementaryDamage: 0, // Damage is calculated based on mech tonnage
         Heat: 0,
-        MinimumRange: 0,
-        ShortRange: 0,
-        MediumRange: 0,
-        LongRange: 0,
+        Range: new WeaponRange(0, 0, 0, 0),
         Type: WeaponType.Melee,
         BattleValue: 5,
         WeaponComponentType: MakaMekComponent.Hatchet);

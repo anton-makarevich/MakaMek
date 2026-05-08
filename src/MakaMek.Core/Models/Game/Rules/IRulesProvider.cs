@@ -21,9 +21,9 @@ public interface IRulesProvider
     int GetTargetMovementModifier(int hexesMoved);
 
     /// <summary>
-    /// Gets the modifier for firing at a specific range bracket
+    /// Gets the modifier for firing at a specific rangeBracket bracket
     /// </summary>
-    int GetRangeModifier(WeaponRange rangeType, int rangeValue, int distance);
+    int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance);
 
     /// <summary>
     /// Gets the to-hit modifier for a specific terrain type
