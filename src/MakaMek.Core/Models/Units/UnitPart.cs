@@ -258,6 +258,16 @@ public abstract class UnitPart
 
     public virtual int Level => Unit?.Height ?? 2;
 
+    public bool IsSubmerged
+    {
+        get
+        {
+            var waterDepth = Unit?.Hex?.GetWaterDepth();
+            if (waterDepth is null) return false;
+            return waterDepth.Value >= Level;
+        }
+    }
+
     /// <summary>
     /// Blows off this part as a result of a critical hit
     /// </summary>

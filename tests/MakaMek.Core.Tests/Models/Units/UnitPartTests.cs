@@ -8,6 +8,8 @@ using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
@@ -577,6 +579,84 @@ public class UnitPartTests
         
         // Act & Assert
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.None).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenNotAttachedToUnit()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenNotDeployed()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        var unit = new TestUnit();
+        unit.AddPart(sut);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_OnClearTerrain()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        var unit = new TestUnit();
+        unit.AddPart(sut);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new ClearTerrain());
+        unit.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(-1, false)]
+    [InlineData(-2, true)]
+    [InlineData(-3, true)]
+    public void IsSubmerged_ReturnsExpectedValue_ForStandardPart(int waterTerrainArg, bool expected)
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        var unit = new TestUnit();
+        unit.AddPart(sut);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new WaterTerrain(waterTerrainArg));
+        unit.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(-1, true)]
+    [InlineData(-2, true)]
+    [InlineData(-3, true)]
+    public void IsSubmerged_ReturnsExpectedValue_ForLegPart(int waterTerrainArg, bool expected)
+    {
+        // Arrange
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        var unit = new TestUnit();
+        unit.AddPart(sut);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new WaterTerrain(waterTerrainArg));
+        unit.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBe(expected);
     }
 
     public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())
