@@ -54,14 +54,14 @@ public class CenterTorsoTests
     }
 
     [Fact]
-    public void Level_ShouldReturn2_WhenNotDeployed()
+    public void Level_ShouldReturn2_WhenNotMounted()
     {
         var sut = new CenterTorso("CenterTorso", 10, 2, 6);
         sut.Level.ShouldBe(2);
     }
     
     [Fact]
-    public void Level_ShouldReturnUnitHeight_WhenDeployed()
+    public void Level_ShouldReturnUnitHeight_WhenMounted()
     {
         var sut = new CenterTorso("CenterTorso", 10, 2, 6);
         var mech = new Mech("Test", "TST-1A", 4, [sut]);

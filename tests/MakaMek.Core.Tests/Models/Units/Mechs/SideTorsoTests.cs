@@ -50,14 +50,14 @@ public class SideTorsoTests
     }
 
     [Fact]
-    public void Level_ShouldReturn2_WhenNotDeployed()
+    public void Level_ShouldReturn2_WhenNotMounted()
     {
         var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
         sut.Level.ShouldBe(2);
     }
     
     [Fact]
-    public void Level_ShouldReturnUnitHeight_WhenDeployed()
+    public void Level_ShouldReturnUnitHeight_WhenMounted()
     {
         var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
         var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
