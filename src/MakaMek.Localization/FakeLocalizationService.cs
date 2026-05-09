@@ -218,6 +218,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_HeatUpdated_ExternalHeat_Lost" => "- Wasted {0} points of external heat",
             "Command_HeatUpdated_TotalGenerated" => "Total heat generated: {0}",
             "Command_HeatUpdated_Dissipation" => "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat",
+            "Command_HeatUpdated_WaterDissipation" => "- Water cooling bonus: -{0} heat",
 
             // Consciousness roll command strings
             "Command_PilotConsciousnessRoll_Consciousness" => "consciousness",

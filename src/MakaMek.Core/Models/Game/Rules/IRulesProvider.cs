@@ -142,6 +142,12 @@ public interface IRulesProvider
     int GetExternalHeatCap();
 
     /// <summary>
+    /// Gets the maximum water heat dissipation bonus
+    /// </summary>
+    /// <returns>The water heat dissipation cap</returns>
+    int GetWaterHeatDissipationCap();
+
+    /// <summary>
     /// Gets the to-hit modifier for a target with partial cover
     /// </summary>
     /// <returns>The modifier value for partial cover</returns>

@@ -245,6 +245,11 @@ public abstract class Unit : IUnit
 
     public virtual int EngineHeatSinks => 0;
 
+    protected virtual int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider)
+    {
+        return 0;
+    }
+
     /// <summary>
     /// Calculates and returns heat data for this unit
     /// </summary>
@@ -293,11 +298,13 @@ public abstract class Unit : IUnit
         var heatSinks = GetAvailableComponents<HeatSink>().Count();
         var engineHeatSinks = EngineHeatSinks;
         var heatDissipation = HeatDissipation;
+        var waterDissipationBonus = GetWaterHeatDissipationBonus(rulesProvider);
         var dissipationData = new HeatDissipationData
         {
             HeatSinks = heatSinks,
             EngineHeatSinks = engineHeatSinks,
-            DissipationPoints = heatDissipation
+            DissipationPoints = heatDissipation + waterDissipationBonus,
+            WaterDissipationBonus = waterDissipationBonus
         };
 
         // Get external heat sources (from weapons like Flamers)

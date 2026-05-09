@@ -1188,7 +1188,8 @@ public class ClientGameTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints =20
+                DissipationPoints =20,
+                WaterDissipationBonus = 0
             }
         };
         
@@ -1257,7 +1258,8 @@ public class ClientGameTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints =20
+                DissipationPoints =20,
+                WaterDissipationBonus = 0
             }
         };
         
@@ -1326,7 +1328,8 @@ public class ClientGameTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints =20
+                DissipationPoints =20,
+                WaterDissipationBonus = 0
             }
         };
         

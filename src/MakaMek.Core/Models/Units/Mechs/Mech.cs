@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -174,6 +175,26 @@ public class Mech : Unit
     }
     
     public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
+
+    protected override int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider)
+    {
+        var bonus = 0;
+        foreach (var heatSink in GetAvailableComponents<HeatSink>())
+        {
+            if (heatSink.IsSubmerged)
+            {
+                bonus += heatSink.HeatDissipation;
+            }
+        }
+        
+        var engine = GetComponentsAtLocation<Engine>(PartLocation.CenterTorso).FirstOrDefault();
+        if (engine is { NumberOfHeatSinks: > 0, IsSubmerged: true })
+        {
+            bonus += engine.NumberOfHeatSinks;
+        }
+
+        return Math.Min(bonus, rulesProvider.GetWaterHeatDissipationCap());
+    }
 
     /// <summary>
     /// Gets the heat penalty caused by engine damage

@@ -84,6 +84,13 @@ public record struct HeatUpdatedCommand : IGameCommand
             HeatData.DissipationData.EngineHeatSinks,
             HeatData.DissipationData.DissipationPoints).AppendLine();
             
+        if (HeatData.DissipationData.WaterDissipationBonus > 0)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_HeatUpdated_WaterDissipation"),
+                HeatData.DissipationData.WaterDissipationBonus).AppendLine();
+        }
+            
         return stringBuilder.ToString().TrimEnd();
     }
 }

@@ -1022,7 +1022,8 @@ public class MechTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             },
             ExternalHeatSources = []
         });
@@ -1534,7 +1535,8 @@ public class MechTests
             {
                 DissipationPoints = 12,
                 HeatSinks = 0,
-                EngineHeatSinks = 0
+                EngineHeatSinks = 0,
+                WaterDissipationBonus = 0
             }
         });
 
@@ -1620,7 +1622,8 @@ public class MechTests
             {
                 DissipationPoints = 10,
                 HeatSinks = 0,
-                EngineHeatSinks = 0
+                EngineHeatSinks = 0,
+                WaterDissipationBonus = 0
             }
         });
 

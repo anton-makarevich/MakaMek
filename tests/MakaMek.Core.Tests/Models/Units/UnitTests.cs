@@ -2717,7 +2717,8 @@ public class UnitTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             }
         };
         
@@ -2755,7 +2756,8 @@ public class UnitTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             }
         };
         
@@ -2802,7 +2804,8 @@ public class UnitTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             }
         });
         
