@@ -51,12 +51,13 @@ public abstract class Component : IManufacturedItem
     {
         get
         {
-            var unit = MountedOn.FirstOrDefault()?.Unit;
+            var part = FirstMountPart;
+            var unit = part?.Unit;
             var hex = unit?.Hex;
             var waterDepth = hex?.GetWaterDepth();
-            if (waterDepth is null) return false;
-            var unitHeight = unit?.Height ?? 0;
-            return waterDepth.Value >= unitHeight;
+            if (waterDepth is null || part is null) return false;
+            
+            return waterDepth.Value >= part.Level;
         }
     }
 

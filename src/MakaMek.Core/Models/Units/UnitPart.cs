@@ -256,6 +256,8 @@ public abstract class UnitPart
 
     public virtual HexDirection? Facing => Unit?.Facing;
 
+    public virtual int Level => Unit?.Height ?? 2;
+
     /// <summary>
     /// Blows off this part as a result of a critical hit
     /// </summary>

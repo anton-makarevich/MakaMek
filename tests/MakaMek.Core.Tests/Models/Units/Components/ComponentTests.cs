@@ -480,6 +480,28 @@ public class ComponentTests
         // Act & Assert
         sut.IsSubmerged.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData(0, false)]   // Water depth 0 < leg level 1 → not submerged
+    [InlineData(-1, true)]   // Water depth 1 >= leg level 1 → submerged
+    [InlineData(-2, true)]   // Water depth 2 >= leg level 1 → submerged
+    [InlineData(-3, true)]   // Water depth 3 >= leg level 1 → submerged
+    public void IsSubmerged_ReturnsExpectedValue_ForWaterDepth_WhenLegMounted(int waterTerrainArg, bool expected)
+    {
+        // Arrange
+        var sut = new JumpJets();
+        var parts = CreateBasicPartsData();
+        var leg = parts.OfType<Leg>().First();
+        leg.TryAddComponent(sut).ShouldBeTrue();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new WaterTerrain(waterTerrainArg));
+        mech.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBe(expected);
+    }
     
     private static List<UnitPart> CreateBasicPartsData()
     {

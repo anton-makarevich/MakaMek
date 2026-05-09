@@ -124,9 +124,9 @@ public class ToHitCalculator : IToHitCalculator
     {
         if (scenario.AttackerWaterDepth is null or 0)
             return false;
-        if (weapon.FirstMountPartLocation?.IsLeg() == true && scenario.AttackerWaterDepth >= 1)
-            return true;
-        return scenario.AttackerWaterDepth >= 2;
+            
+        var partLevel = weapon.FirstMountPart?.Level ?? 2;
+        return scenario.AttackerWaterDepth >= partLevel;
     }
 
     private FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)
