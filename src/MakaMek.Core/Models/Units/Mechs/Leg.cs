@@ -26,6 +26,8 @@ public class Leg : UnitPart
     // Legs always face the direction of movement
     public override HexDirection? Facing => Unit?.Position?.Facing;
 
+    public override int Level => 1;
+
     public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
         return [];

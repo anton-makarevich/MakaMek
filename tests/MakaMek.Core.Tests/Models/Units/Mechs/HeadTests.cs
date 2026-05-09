@@ -189,4 +189,24 @@ public class HeadTests
         
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
     }
+
+    [Fact]
+    public void Level_ShouldReturn2_WhenNotMounted()
+    {
+        var sut = new Head("Head", 8, 3);
+        sut.Level.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void Level_ShouldReturnUnitHeight_WhenMounted()
+    {
+        var sut = new Head("Head", 8, 3);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        
+        sut.Level.ShouldBe(2);
+        
+        mech.SetProne();
+        
+        sut.Level.ShouldBe(1);
+    }
 }

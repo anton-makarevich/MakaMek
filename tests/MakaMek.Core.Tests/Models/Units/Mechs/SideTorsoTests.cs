@@ -48,4 +48,24 @@ public class SideTorsoTests
         
         sut.Facing.ShouldBe(HexDirection.Top);
     }
+
+    [Fact]
+    public void Level_ShouldReturn2_WhenNotMounted()
+    {
+        var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
+        sut.Level.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void Level_ShouldReturnUnitHeight_WhenMounted()
+    {
+        var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
+        
+        sut.Level.ShouldBe(2);
+        
+        mech.SetProne();
+        
+        sut.Level.ShouldBe(1);
+    }
 }

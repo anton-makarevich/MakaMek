@@ -24,12 +24,7 @@ public class JumpJets : Component
         get
         {
             if (!base.IsAvailable) return false;
-            var hex = MountedOn.FirstOrDefault()?.Unit?.Hex;
-            var waterDepth = hex?.GetWaterDepth();
-            if (waterDepth is null) return true;
-            if (waterDepth >= 2) return false;
-            if (waterDepth == 1 && MountedOn.Any(p => p.Location.IsLeg())) return false;
-            return true;
+            return !IsSubmerged;
         }
     }
 }
