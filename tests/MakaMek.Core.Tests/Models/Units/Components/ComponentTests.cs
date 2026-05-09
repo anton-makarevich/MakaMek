@@ -502,6 +502,31 @@ public class ComponentTests
         // Act & Assert
         sut.IsSubmerged.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData(0, false)] // No water -> neither is submerged
+    [InlineData(-1, true)] // Level 1 water -> Leg is submerged, Torso is not -> Component is submerged
+    [InlineData(-2, true)] // Level 2 water -> Both submerged -> Component is submerged
+    public void IsSubmerged_ReturnsExpectedValue_WhenMountedAcrossMultiplePartsWithDifferentLevels(int waterTerrainArg, bool expected)
+    {
+        // Arrange
+        var sut = new TestComponent("Multi-part Component", 2);
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.OfType<CenterTorso>().First(); // Level 2
+        var leg = parts.OfType<Leg>().First(); // Level 1
+        
+        sut.Mount(centerTorso, [0]);
+        sut.Mount(leg, [0]);
+        
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        hex.AddTerrain(new WaterTerrain(waterTerrainArg));
+        mech.Deploy(position, hex);
+
+        // Act & Assert
+        sut.IsSubmerged.ShouldBe(expected);
+    }
     
     private static List<UnitPart> CreateBasicPartsData()
     {

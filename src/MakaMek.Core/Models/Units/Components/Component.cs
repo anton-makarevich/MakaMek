@@ -45,21 +45,9 @@ public abstract class Component : IManufacturedItem
 
     /// <summary>
     /// Indicates whether this component is submerged in water.
-    /// A component is submerged when the water depth is greater than or equal to its mounted part level.
+    /// A component is submerged when any of its mounted parts are submerged.
     /// </summary>
-    public bool IsSubmerged
-    {
-        get
-        {
-            var part = FirstMountPart;
-            var unit = part?.Unit;
-            var hex = unit?.Hex;
-            var waterDepth = hex?.GetWaterDepth();
-            if (waterDepth is null || part is null) return false;
-            
-            return waterDepth.Value >= part.Level;
-        }
-    }
+    public bool IsSubmerged => MountedOn.Any(part => part.IsSubmerged);
 
     public int Size => _definition.Size;
     public string Manufacturer => _manufacturerOverride ?? "Unknown";
