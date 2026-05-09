@@ -983,4 +983,50 @@ public class PlayerViewModelTests
         // Assert
         botSettings.AggressivenessIndex.ShouldBe(0.6f);
     }
+
+    [Theory]
+    [InlineData(true, PlayerStatus.NotJoined, true)]
+    [InlineData(true, PlayerStatus.Joined, false)]
+    [InlineData(true, PlayerStatus.Ready, false)]
+    [InlineData(false, PlayerStatus.NotJoined, false)]
+    public void CanEditAggressiveness_ShouldReturnCorrectValue_ForDifferentStates(
+        bool isBot,
+        PlayerStatus status,
+        bool expected)
+    {
+        // Arrange
+        var controlType = isBot ? PlayerControlType.Bot : PlayerControlType.Human;
+        var player = new Player(Guid.NewGuid(), "Player1", controlType)
+        {
+            Status = status
+        };
+        var sut = new PlayerViewModel(player, true);
+
+        // Act
+        var canEdit = sut.CanEditAggressiveness;
+
+        // Assert
+        canEdit.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void RefreshStatus_ShouldNotifyCanEditAggressivenessPropertyChanged()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "BotPlayer", PlayerControlType.Bot),
+            isLocalPlayer: true);
+
+        var propertyChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.CanEditAggressiveness))
+                propertyChanged = true;
+        };
+
+        // Act
+        sut.RefreshStatus();
+
+        // Assert
+        propertyChanged.ShouldBeTrue();
+    }
 }
