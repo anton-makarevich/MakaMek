@@ -178,12 +178,15 @@ public class Mech : Unit
 
     protected override int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider)
     {
+        var cap = rulesProvider.GetWaterHeatDissipationCap();
         var bonus = 0;
         foreach (var heatSink in GetAvailableComponents<HeatSink>())
         {
             if (heatSink.IsSubmerged)
             {
                 bonus += heatSink.HeatDissipation;
+                if (bonus >= cap)
+                    return cap;
             }
         }
         
@@ -193,7 +196,7 @@ public class Mech : Unit
             bonus += engine.NumberOfHeatSinks;
         }
 
-        return Math.Min(bonus, rulesProvider.GetWaterHeatDissipationCap());
+        return Math.Min(bonus, cap);
     }
 
     /// <summary>
