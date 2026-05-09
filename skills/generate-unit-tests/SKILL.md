@@ -84,3 +84,9 @@ using Shouldly;
 ### Step 8: Write or Update Test File
 Create the new test file or append tests to the existing one, ensuring proper formatting and organization.
 If file location, class mapping, or coverage status is ambiguous, request clarification first.
+
+### Step 8. Common patterns
+1. When you need to add a component to a UnitPart with `.TryAddComponent` method, always assert result with `ShouldBeTrue()` to avoid silent failures that hard to debug:
+```csharp
+centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+```

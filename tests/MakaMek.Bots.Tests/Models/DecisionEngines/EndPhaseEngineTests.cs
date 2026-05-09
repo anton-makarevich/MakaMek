@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -178,7 +177,13 @@ public class EndPhaseEngineTests
                 MovementHeatSources = [new MovementHeatData { MovementType = MovementType.Walk, MovementPointsSpent = 0, HeatPoints = currentHeat }],
                 WeaponHeatSources = [],
                 ExternalHeatSources = [],
-                DissipationData = new HeatDissipationData { HeatSinks = 0, EngineHeatSinks = 0, DissipationPoints = 0 }
+                DissipationData = new HeatDissipationData
+                {
+                    HeatSinks = 0,
+                    EngineHeatSinks = 0,
+                    DissipationPoints = 0,
+                    WaterDissipationBonus = 0
+                }
             };
             mech.ApplyHeat(heatData);
         }

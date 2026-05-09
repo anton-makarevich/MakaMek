@@ -895,7 +895,7 @@ public class WeaponsAttackStateTests
         // Get maximum weapon rangeBracket
         var maxRange = _unit1.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
-            .Max(w => w.Range.LongRange);
+            .Max(w => w.Range!.LongRange);
         var targetCoordinates = new HexCoordinates(1, maxRange + 2); // Beyond maximum rangeBracket
 
         // Act

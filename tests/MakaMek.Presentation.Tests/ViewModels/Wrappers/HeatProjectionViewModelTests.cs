@@ -56,7 +56,8 @@ public class HeatProjectionViewModelTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             },
             ExternalHeatSources = []
         });
@@ -271,7 +272,8 @@ public class HeatProjectionViewModelTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             },
             ExternalHeatSources = []
         });
@@ -321,7 +323,8 @@ public class HeatProjectionViewModelTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             },
             ExternalHeatSources = []
         });

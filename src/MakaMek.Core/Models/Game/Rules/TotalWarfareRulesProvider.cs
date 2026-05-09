@@ -489,6 +489,11 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return 15;
     }
     
+    public int GetWaterHeatDissipationCap()
+    {
+        return 6;
+    }
+    
     private const int PartialCoverModifier = 1;
 
     public int GetPartialCoverModifier()

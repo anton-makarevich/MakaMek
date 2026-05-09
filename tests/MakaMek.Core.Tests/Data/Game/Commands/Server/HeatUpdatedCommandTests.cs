@@ -56,7 +56,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -97,7 +98,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -140,7 +142,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -184,7 +187,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -228,7 +232,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -279,7 +284,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -318,7 +324,8 @@ public class HeatUpdatedCommandTests
             {
                 HeatSinks = 10,
                 EngineHeatSinks = 10,
-                DissipationPoints = 20
+                DissipationPoints = 20,
+                WaterDissipationBonus = 0
             }
         };
 
@@ -336,5 +343,41 @@ public class HeatUpdatedCommandTests
 
         // Assert
         result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_WithWaterDissipationBonus_ReturnsExpectedString()
+    {
+        // Arrange
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            ExternalHeatSources = [],
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 10,
+                EngineHeatSinks = 10,
+                DissipationPoints = 26,
+                WaterDissipationBonus = 6
+            }
+        };
+
+        var command = new HeatUpdatedCommand
+        {
+            UnitId = _unit.Id,
+            HeatData = heatData,
+            PreviousHeat = 0,
+            GameOriginId = _gameId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
+        result.ShouldContain("Heat dissipation from 10 heat sinks and 10 engine heat sinks: -26 heat");
+        result.ShouldContain("- Water cooling bonus: -6 heat");
     }
 }

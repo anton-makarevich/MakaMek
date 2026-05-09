@@ -231,8 +231,8 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new HeatSink());
-        centerTorso.TryAddComponent(new HeatSink());
+        centerTorso.TryAddComponent(new HeatSink()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new HeatSink()).ShouldBeTrue();
         var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
@@ -248,7 +248,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new MediumLaser());
+        centerTorso.TryAddComponent(new MediumLaser()).ShouldBeTrue();
         var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
@@ -643,7 +643,7 @@ public class MechTests
         var weapon = new MediumLaser();
         // Attach a weapon to a part (e.g., right arm)
         var rightArm = sut.Parts[PartLocation.RightArm];
-        rightArm.TryAddComponent(weapon);
+        rightArm.TryAddComponent(weapon).ShouldBeTrue();
         sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
         // Set a dummy target
         var dummyTarget = new Mech("Dummy", "DMY-1A", 50, CreateBasicPartsData());
@@ -679,8 +679,8 @@ public class MechTests
         if (jumpMp > 0)
         {
             var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-            centerTorso.TryAddComponent(new JumpJets());
-            centerTorso.TryAddComponent(new JumpJets());
+            centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+            centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
         }
 
         var mech = new Mech("Test", "TST-1A", 50, parts);
@@ -723,7 +723,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
-            part.TryAddComponent(new TestComponent());
+            part.TryAddComponent(new TestComponent()).ShouldBeTrue();
         
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
@@ -756,7 +756,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < 7; i++)
-            part.TryAddComponent(new TestComponent());
+            part.TryAddComponent(new TestComponent()).ShouldBeTrue();
 
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
@@ -807,7 +807,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
-            part.TryAddComponent(new TestComponent());
+            part.TryAddComponent(new TestComponent()).ShouldBeTrue();
 
         _diceRoller.Roll2D6().Returns(
             [new(3), new(3)] // 6 total for crit roll (no crits)
@@ -842,7 +842,7 @@ public class MechTests
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
-            [new(4), new(5)] // 9 total for crit roll
+            [new DiceResult(4), new DiceResult(5)] // 9 total for crit roll
         );
         _diceRoller.RollD6().Returns(new DiceResult(1));
 
@@ -865,7 +865,7 @@ public class MechTests
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
-            [new(4), new(5)] // 9 total for crit roll
+            [new DiceResult(4), new DiceResult(5)] // 9 total for crit roll
         );
 
         // Act
@@ -883,7 +883,7 @@ public class MechTests
         var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
-            [new(6), new(6)] // 12 total for crit roll
+            [new DiceResult(6), new DiceResult(6)] // 12 total for crit roll
         );
 
         // Act
@@ -992,7 +992,7 @@ public class MechTests
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.TryAddComponent(jumpJets);
+        leftLeg.TryAddComponent(jumpJets).ShouldBeTrue();
 
         var originalJumpMp = jumpJets.JumpMp;
         sut.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
@@ -1022,7 +1022,8 @@ public class MechTests
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             },
             ExternalHeatSources = []
         });
@@ -1030,7 +1031,7 @@ public class MechTests
     
         var weapon = new MediumLaser();
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.TryAddComponent(weapon);
+        leftArm.TryAddComponent(weapon).ShouldBeTrue();
         sut.WeaponAttackState.SetWeaponTarget(weapon, Substitute.For<IUnit>(), sut);
     
         var engine = sut.GetAllComponents<Engine>().First();
@@ -1045,7 +1046,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
@@ -1060,7 +1061,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
@@ -1087,7 +1088,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         var jumpJets = new JumpJets();
-        leftLeg.TryAddComponent(jumpJets);
+        leftLeg.TryAddComponent(jumpJets).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
 
@@ -1104,7 +1105,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
 
@@ -1119,7 +1120,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
         rightLeg.BlowOff(); // Should still be able to jump with just one leg
         rightLeg.IsBlownOff.ShouldBeTrue();
@@ -1141,9 +1142,9 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new JumpJets());
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1161,15 +1162,15 @@ public class MechTests
         // Arrange - 1 JJ in each leg + 3 in torsos = 5 total, but only 3 usable in depth 1 water
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
-        rightLeg.TryAddComponent(new JumpJets());
+        rightLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new JumpJets());
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var leftTorso = parts.Single(p => p.Location == PartLocation.LeftTorso);
-        leftTorso.TryAddComponent(new JumpJets());
+        leftTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var rightTorso = parts.Single(p => p.Location == PartLocation.RightTorso);
-        rightTorso.TryAddComponent(new JumpJets());
+        rightTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1187,9 +1188,9 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new JumpJets());
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1207,7 +1208,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new JumpJets());
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1224,7 +1225,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new JumpJets());
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1242,7 +1243,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         var hex = new Hex(new HexCoordinates(1, 1));
@@ -1534,7 +1535,8 @@ public class MechTests
             {
                 DissipationPoints = 12,
                 HeatSinks = 0,
-                EngineHeatSinks = 0
+                EngineHeatSinks = 0,
+                WaterDissipationBonus = 0
             }
         });
 
@@ -1620,7 +1622,8 @@ public class MechTests
             {
                 DissipationPoints = 10,
                 HeatSinks = 0,
-                EngineHeatSinks = 0
+                EngineHeatSinks = 0,
+                WaterDissipationBonus = 0
             }
         });
 
@@ -2465,9 +2468,9 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
-        leftArm.TryAddComponent(upperArmActuator);
+        leftArm.TryAddComponent(upperArmActuator).ShouldBeTrue();
         var lowerArmActuator = new LowerArmActuator();
-        leftArm.TryAddComponent(lowerArmActuator);
+        leftArm.TryAddComponent(lowerArmActuator).ShouldBeTrue();
         upperArmActuator.Hit();
         lowerArmActuator.Hit();
     
@@ -2504,9 +2507,9 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
-        leftArm.TryAddComponent(upperArmActuator);
+        leftArm.TryAddComponent(upperArmActuator).ShouldBeTrue();
         var lowerArmActuator = new LowerArmActuator();
-        leftArm.TryAddComponent(lowerArmActuator);
+        leftArm.TryAddComponent(lowerArmActuator).ShouldBeTrue();
         var shoulderActuator = leftArm.GetComponent<ShoulderActuator>();
         shoulderActuator!.Hit();
         upperArmActuator.Hit();
@@ -2807,9 +2810,9 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets());
+        leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
-        rightLeg.TryAddComponent(new JumpJets());
+        rightLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
         var sut = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
@@ -2926,6 +2929,52 @@ public class MechTests
         // Assert
         torso.IsDestroyed.ShouldBeTrue();
         arm.IsBlownOff.ShouldBeTrue("arm should be blown off when side torso is destroyed");
-        leg.IsDestroyed.ShouldBeFalse("leg should NOT be destroyed just because side torso is destroyed");
-    }
+         leg.IsDestroyed.ShouldBeFalse("leg should NOT be destroyed just because side torso is destroyed");
+     }
+
+     [Fact]
+     public void GetWaterHeatDissipationBonus_WithSixPlusSubmergedHeatSinks_UsesEarlyReturn()
+     {
+         var rulesProvider = new TotalWarfareRulesProvider();
+         var parts = new List<UnitPart>
+         {
+             new Leg("Left Leg", PartLocation.LeftLeg, 10, 5),
+             new SideTorso("Center Torso", PartLocation.CenterTorso, 15, 2, 10),
+             new SideTorso("Left Torso", PartLocation.LeftTorso, 10, 2, 6),
+             new SideTorso("Right Torso", PartLocation.RightTorso, 10, 2, 6)
+         };
+         var mech = new Mech("Test", "Mech", 50, parts);
+         
+         var leftLeg = mech.Parts[PartLocation.LeftLeg];
+         leftLeg.TryAddComponent(new HeatSink(), [4]).ShouldBeTrue();
+         leftLeg.TryAddComponent(new HeatSink(), [5]).ShouldBeTrue();
+         
+         var leftTorso = mech.Parts[PartLocation.LeftTorso];
+         leftTorso.TryAddComponent(new HeatSink(), [0]).ShouldBeTrue();
+         leftTorso.TryAddComponent(new HeatSink(), [1]).ShouldBeTrue();
+         leftTorso.TryAddComponent(new HeatSink(), [2]).ShouldBeTrue();
+         
+         var rightTorso = mech.Parts[PartLocation.RightTorso];
+         rightTorso.TryAddComponent(new HeatSink(), [0]).ShouldBeTrue();
+         rightTorso.TryAddComponent(new HeatSink(), [1]).ShouldBeTrue();
+         
+         var centerTorso = mech.Parts[PartLocation.CenterTorso];
+         const int engineRating = 10 * 25;
+         var engineData = new ComponentData
+         {
+             Type = MakaMekComponent.Engine,
+             Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 0, 6)],
+             SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
+         };
+         centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 3, 4, 5]).ShouldBeTrue();
+         
+         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+         var hex = new Hex(position.Coordinates);
+         hex.AddTerrain(new WaterTerrain(-2));
+         mech.Deploy(position, hex);
+
+         var heatData = mech.GetHeatData(rulesProvider);
+
+         heatData.DissipationData.WaterDissipationBonus.ShouldBe(6, "cap should be reached from 2+5=7 heat sinks before engine is considered");
+     }
 }

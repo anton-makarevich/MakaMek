@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -11,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -479,7 +481,8 @@ public class HeatPhaseTests : GamePhaseTestsBase
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
-                DissipationPoints = 0
+                DissipationPoints = 0,
+                WaterDissipationBonus = 0
             }
         });
         var initialHeat = _unit1.CurrentHeat;
@@ -681,5 +684,73 @@ public class HeatPhaseTests : GamePhaseTestsBase
             ExternalHeatSources = [],
             DissipationData = default
         });
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0, 0, 0)] // No water: bonus equals 0
+    [InlineData(-1, 2, 0, 10, 2)] // Depth 1, 2 leg heat sinks, 10 engine heat sinks: bonus 2
+    [InlineData(-1, 0, 2, 10, 0)] // Depth 1, 0 leg heat sinks, 2 body heat sinks: bonus 0
+    [InlineData(-2, 2, 2, 10, 6)] // Depth 2, 2 leg heat sinks, 2 body heat sinks, 10 engine heat sinks: cap 6
+    [InlineData(-2, 0, 1, 2, 3)] // Depth 2, 0 leg, 1 body, 2 engine: bonus 3
+    [InlineData(-3, 1, 1, 2, 4)] // Depth 3 (treated same as depth 2+ for heat): bonus 4
+    public void GetHeatData_CalculatesWaterDissipationBonusCorrectly(
+        int waterDepth, 
+        int legHeatSinksCount, 
+        int bodyHeatSinksCount, 
+        int engineHeatSinksCount, 
+        int expectedBonus)
+    {
+        // Arrange
+        var rulesProvider = new TotalWarfareRulesProvider();
+        // Use SideTorso for center torso position to avoid pre-mounted Gyro occupying slots
+        var parts = new List<UnitPart>
+        {
+            new Leg("Left Leg", PartLocation.LeftLeg, 10, 5),
+            new SideTorso("Center Torso", PartLocation.CenterTorso, 15, 2, 10),
+            new SideTorso("Left Torso", PartLocation.LeftTorso, 10, 2, 5)
+        };
+        var mech = new Mech("Test", "Mech", 50, parts);
+            
+        // Leg slots 0-3 are pre-occupied by actuators; use slots 4 and 5
+        var leftLeg = mech.Parts[PartLocation.LeftLeg];
+        for (var i = 0; i < legHeatSinksCount; i++)
+        {
+            leftLeg.TryAddComponent(new HeatSink(), [4 + i]);
+        }
+        
+        // SideTorso for left torso has no pre-mounted components; use slots 0+
+        var leftTorso = mech.Parts[PartLocation.LeftTorso];
+        for (var i = 0; i < bodyHeatSinksCount; i++)
+        {
+            leftTorso.TryAddComponent(new HeatSink(), [i]);
+        }
+        
+        // Add engine to center torso if engine heat sinks are needed
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
+        if (engineHeatSinksCount > 0)
+        {
+            var engineRating = engineHeatSinksCount * 25;
+            var engineData = new Sanet.MakaMek.Core.Data.Units.Components.ComponentData
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 0, 6)],
+                SpecificData = new Sanet.MakaMek.Core.Data.Units.Components.EngineStateData(EngineType.Fusion, engineRating)
+            };
+            centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 3, 4, 5]);
+        }
+        
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var hex = new Hex(position.Coordinates);
+        if (waterDepth < 0)
+        {
+            hex.AddTerrain(new WaterTerrain(waterDepth));
+        }
+        mech.Deploy(position, hex);
+
+        // Act
+        var heatData = mech.GetHeatData(rulesProvider);
+
+        // Assert
+        heatData.DissipationData.WaterDissipationBonus.ShouldBe(expectedBonus);
     }
 }
