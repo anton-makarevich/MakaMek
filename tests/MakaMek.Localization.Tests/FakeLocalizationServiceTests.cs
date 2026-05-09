@@ -266,6 +266,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_HeatUpdated_ExternalHeat_Lost", "- Wasted {0} points of external heat")]
     [InlineData("Command_HeatUpdated_TotalGenerated", "Total heat generated: {0}")]
     [InlineData("Command_HeatUpdated_Dissipation", "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
+    [InlineData("Command_HeatUpdated_WaterDissipation", "- Water cooling bonus: -{0} heat")]
     // Start phase
     [InlineData("StartPhase_ActionLabel", "Ready to play")]
     [InlineData("StartPhase_PlayerActionLabel", "Ready")]
