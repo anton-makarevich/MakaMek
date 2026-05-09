@@ -52,4 +52,24 @@ public class CenterTorsoTests
         
         sut.Facing.ShouldBe(HexDirection.Top);
     }
+
+    [Fact]
+    public void Level_ShouldReturn2_WhenNotDeployed()
+    {
+        var sut = new CenterTorso("CenterTorso", 10, 2, 6);
+        sut.Level.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void Level_ShouldReturnUnitHeight_WhenDeployed()
+    {
+        var sut = new CenterTorso("CenterTorso", 10, 2, 6);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        
+        sut.Level.ShouldBe(2);
+        
+        mech.SetProne();
+        
+        sut.Level.ShouldBe(1);
+    }
 }

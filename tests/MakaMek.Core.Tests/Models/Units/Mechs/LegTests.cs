@@ -125,4 +125,17 @@ public class LegTests
 
         sut.IsDestroyed.ShouldBeTrue();
     }
+
+    [Fact]
+    public void Level_ShouldAlwaysReturn1()
+    {
+        var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
+        sut.Level.ShouldBe(1);
+        
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        sut.Level.ShouldBe(1);
+        
+        mech.SetProne();
+        sut.Level.ShouldBe(1);
+    }
 }

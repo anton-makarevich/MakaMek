@@ -148,4 +148,24 @@ public class ArmTests
         
         arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.ArmsFlip).ShouldBeTrue();
     }
+
+    [Fact]
+    public void Level_ShouldReturn2_WhenNotDeployed()
+    {
+        var sut = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        sut.Level.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void Level_ShouldReturnUnitHeight_WhenDeployed()
+    {
+        var sut = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        
+        sut.Level.ShouldBe(2);
+        
+        mech.SetProne();
+        
+        sut.Level.ShouldBe(1);
+    }
 }
