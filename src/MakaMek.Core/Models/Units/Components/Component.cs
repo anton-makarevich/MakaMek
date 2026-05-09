@@ -45,7 +45,7 @@ public abstract class Component : IManufacturedItem
 
     /// <summary>
     /// Indicates whether this component is submerged in water.
-    /// A component is submerged when the water depth is greater than or equal to the unit's height.
+    /// A component is submerged when the water depth is greater than or equal to its mounted part level.
     /// </summary>
     public bool IsSubmerged
     {
