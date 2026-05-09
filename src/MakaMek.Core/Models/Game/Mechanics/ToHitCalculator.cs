@@ -67,17 +67,7 @@ public class ToHitCalculator : IToHitCalculator
         var range = effectiveRange?.GetRangeBracket(distance) ?? RangeBracket.OutOfRange;
 
         // Get range value based on the determined bracket
-        var rangeValue = effectiveRange==null 
-        ? 1
-        : range switch
-        {
-            RangeBracket.Minimum => effectiveRange.MinimumRange,
-            RangeBracket.Short => effectiveRange.ShortRange,
-            RangeBracket.Medium => effectiveRange.MediumRange,
-            RangeBracket.Long => effectiveRange.LongRange,
-            RangeBracket.OutOfRange => effectiveRange.LongRange + 1,
-            _ => throw new ArgumentException($"Unknown weapon range: {range}")
-        };
+        var rangeValue = effectiveRange?.GetRangeValue(range) ?? 1;
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
         var terrainModifiers = GetTerrainModifiers(losResult);

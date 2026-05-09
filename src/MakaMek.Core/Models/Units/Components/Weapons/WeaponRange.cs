@@ -22,4 +22,20 @@ public sealed record WeaponRange(
         if (distance <= LongRange) return RangeBracket.Long;
         return RangeBracket.OutOfRange;
     }
+
+    /// <summary>
+    /// Gets the range value for a given bracket, the inverse of <see cref="GetRangeBracket"/>.
+    /// </summary>
+    public int GetRangeValue(RangeBracket bracket)
+    {
+        return bracket switch
+        {
+            RangeBracket.Minimum => MinimumRange,
+            RangeBracket.Short => ShortRange,
+            RangeBracket.Medium => MediumRange,
+            RangeBracket.Long => LongRange,
+            RangeBracket.OutOfRange => LongRange + 1,
+            _ => throw new ArgumentException($"Unknown weapon range bracket: {bracket}")
+        };
+    }
 }
