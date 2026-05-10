@@ -103,6 +103,7 @@
                                             Maximum="1"
                                             Value="{Binding AggressivenessIndex}"
                                             Width="100"
+                                            IsEnabled="{Binding CanEditAggressiveness}"
                                             VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>

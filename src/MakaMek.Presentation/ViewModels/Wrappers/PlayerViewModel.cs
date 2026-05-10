@@ -70,6 +70,7 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanSelectUnit));
         NotifyPropertyChanged(nameof(CanEditName));
         NotifyPropertyChanged(nameof(IsRemovable));
+        NotifyPropertyChanged(nameof(CanEditAggressiveness));
     }
 
     public ICommand ShowAvailableUnitsCommand { get; }
@@ -121,6 +122,8 @@ public class PlayerViewModel : BindableBase
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
+
+    public bool CanEditAggressiveness => IsBot && Status == PlayerStatus.NotJoined;
 
     private Task ExecuteJoinGame()
     {
