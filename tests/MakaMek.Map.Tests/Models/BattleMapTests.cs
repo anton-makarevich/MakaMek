@@ -2071,14 +2071,17 @@ public class BattleMapTests
         var sut = new BattleMap(1, 3);
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 3);
+        var midCoordinates = new HexCoordinates(1, 2);
 
         // Both hexes have deep water (depth -2) with unit height 1
         var fromHex = new Hex(from);
         fromHex.AddTerrain(new WaterTerrain(-2));
         sut.AddHex(fromHex);
-
-        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
-
+        
+        var midHex = new Hex(midCoordinates);
+        midHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(midHex);
+        
         var toHex = new Hex(to);
         toHex.AddTerrain(new WaterTerrain(-2));
         sut.AddHex(toHex);
