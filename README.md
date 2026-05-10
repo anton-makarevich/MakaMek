@@ -53,9 +53,9 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Support of map Levels and detailed LOS highlighting
 - Support for rough terrain
 - [Map Editor](https://github.com/anton-makarevich/MakaMek.MapEditor) (separate project)
+- Support of water (still some bugs to resolve)
 
 #### Planned
-- Support of water
 - Support of roads and paved areas
 
 ### Future Phases
