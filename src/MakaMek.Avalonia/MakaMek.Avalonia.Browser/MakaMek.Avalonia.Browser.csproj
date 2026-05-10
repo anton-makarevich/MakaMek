@@ -20,7 +20,7 @@
         <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Avalonia.Browser" Version="12.0.1" />
+        <PackageReference Include="Avalonia.Browser" Version="12.0.2" />
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" Version="10.0.203" PrivateAssets="all" />
     </ItemGroup>
 
