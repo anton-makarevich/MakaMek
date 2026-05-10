@@ -208,6 +208,7 @@ public class FakeLocalizationService: ILocalizationService
             "HexHighlight_LosBlocked_Elevation" => "Elevation at {0}",
             "HexHighlight_LosBlocked_InterveningTerrain" => "Terrain at {0}",
             "HexHighlight_LosBlocked_InvalidCoordinates" => "Invalid coordinates",
+            "HexHighlight_LosBlocked_WaterSubmersion" => "Water submersion",
             
             // Heat update command strings
             "Command_HeatUpdated_Header" => "Heat update for {0} (Previous: {1})",

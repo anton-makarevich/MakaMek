@@ -95,6 +95,14 @@ public class LosBlockingHighlightTests
     }
 
     [Fact]
+    public void Render_WaterSubmersion_ReturnsLocalizedMessage()
+    {
+        var sut = new LosBlockingHighlight(LineOfSightBlockReason.WaterSubmersion);
+
+        sut.Render(_localization).ShouldBe("Water submersion");
+    }
+
+    [Fact]
     public void Render_UnknownReason_ThrowsArgumentOutOfRangeException()
     {
         const LineOfSightBlockReason invalidReason = (LineOfSightBlockReason)999;
