@@ -119,7 +119,7 @@ public class HexControl : Panel
                 Foreground = Brushes.White,
                 FontSize = 11,
                 Padding = new Thickness(0),
-                IsVisible = _renderConfiguration.ShowLabels
+                IsVisible = true
             };
             levelDepthStackPanel.Children.Add(levelLabel);
         }
@@ -134,13 +134,14 @@ public class HexControl : Panel
                 Foreground = Brushes.White,
                 FontSize = 11,
                 Padding = new Thickness(0),
-                IsVisible = _renderConfiguration.ShowLabels
+                IsVisible = true
             };
             levelDepthStackPanel.Children.Add(waterLabel);
         }
 
         if (levelDepthStackPanel.Children.Count>0)
         {
+            levelDepthStackPanel.IsVisible = _renderConfiguration.ShowLabels;
             Children.Add(levelDepthStackPanel);
             levelDepthStackPanel.ZIndex = ZIndexLabel;
             _levelDepthStackPanel = levelDepthStackPanel;
