@@ -373,14 +373,14 @@ public class WeaponsAttackState : IUiState
                     weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
 
                     // Filter out hexes without line of sight and collect blocked hexes
-                    weaponHexes.RemoveWhere(h =>
+                    weaponHexes.RemoveWhere(hexCoordinates =>
                     {
                         var targetHeight = _viewModel.Units
-                            .FirstOrDefault(u => u.Position?.Coordinates == h)
+                            .FirstOrDefault(u => u.Position?.Coordinates == hexCoordinates)
                             ?.Height ?? 0;
                         var losResult = Game.BattleMap.GetLineOfSight(
                             unitPosition.Coordinates,
-                            h,
+                            hexCoordinates,
                             weapon.FirstMountPart.Level,
                             targetHeight);
 
@@ -389,7 +389,7 @@ public class WeaponsAttackState : IUiState
                         {
                             var reason = losResult.BlockReason;
                             var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                            _viewModel.AddHighlight(new HashSet<HexCoordinates> { h }, highlight);
+                            _viewModel.AddHighlight(new HashSet<HexCoordinates> { hexCoordinates }, highlight);
                         }
 
                         return !losResult.HasLineOfSight;
