@@ -124,7 +124,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var reversedLosResult = Game.BattleMap.GetLineOfSight(
                 targetUnit.Position.Coordinates,
                 currentUnit.Position.Coordinates,
-                targetUnit.Height,
+                targetUnit.Height, // highest weapon is ok here 
                 currentUnit.Height);
             var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
             
@@ -157,6 +157,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (Game.BattleMap == null)
         {
             throw new Exception("Battle map is null");
+        }
+
+        if (weapon.FirstMountPart == null)
+        {
+            throw new ArgumentException($"Weapon {weapon.Name} is not mounted", nameof(weapon));
         }
         
         // Calculate to-hit number, including aimed shot modifiers if applicable
@@ -193,7 +198,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var losResult = Game.BattleMap.GetLineOfSight(
             attacker.Position!.Coordinates,
             target.Position!.Coordinates,
-            attacker.Height,
+            weapon.FirstMountPart.Level,
             target.Height);
         var hasPartialCover = Game.RulesProvider.HasPartialCover(target, losResult);
         var coveringHex = hasPartialCover && losResult.HexPath.Count >= 2
