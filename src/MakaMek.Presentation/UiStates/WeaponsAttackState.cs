@@ -416,18 +416,25 @@ public class WeaponsAttackState : IUiState
         // Add LosBlockingHighlight only for hexes where ALL levels fail LOS
         if (Game.BattleMap != null)
         {
-            var allCandidateHexes = weaponCandidates
-                .SelectMany(wd => wd.CandidateHexes)
-                .ToHashSet();
-
-            foreach (var hex in allCandidateHexes)
+            // Pre-compute hex → distinct levels for O(1) lookup per hex
+            var hexToLevels = new Dictionary<HexCoordinates, List<int>>();
+            foreach (var (_, candidateHexes, mountLevel) in weaponCandidates)
             {
-                var levelsForHex = weaponCandidates
-                    .Where(wd => wd.CandidateHexes.Contains(hex))
-                    .Select(wd => wd.MountLevel)
-                    .Distinct()
-                    .ToList();
+                foreach (var hex in candidateHexes)
+                {
+                    if (!hexToLevels.TryGetValue(hex, out var levels))
+                    {
+                        levels = [];
+                        hexToLevels[hex] = levels;
+                    }
 
+                    if (!levels.Contains(mountLevel))
+                        levels.Add(mountLevel);
+                }
+            }
+
+            foreach (var (hex, levelsForHex) in hexToLevels)
+            {
                 var allLevelsBlocked = levelsForHex.All(level =>
                 {
                     var key = (hex, level);
@@ -437,7 +444,7 @@ public class WeaponsAttackState : IUiState
 
                 if (allLevelsBlocked && levelsForHex.Count > 0)
                 {
-                    var firstLevel = levelsForHex.First();
+                    var firstLevel = levelsForHex[0];
                     var losResult = losResults[(hex, firstLevel)];
                     if (losResult is { HasLineOfSight: false, BlockReason: not null })
                     {
