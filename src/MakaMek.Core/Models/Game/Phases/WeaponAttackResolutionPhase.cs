@@ -161,7 +161,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         if (weapon.FirstMountPart == null)
         {
-            throw new ArgumentException("Weapon is not mounted", weapon.Name);
+            throw new ArgumentException($"Weapon {weapon.Name} is not mounted", nameof(weapon));
         }
         
         // Calculate to-hit number, including aimed shot modifiers if applicable
