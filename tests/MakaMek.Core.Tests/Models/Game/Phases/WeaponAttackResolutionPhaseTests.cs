@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -2396,6 +2395,42 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.AttackerId == _player1Unit1.Id &&
                 cmd.WeaponData.Assignments.Any(a => a.Location == PartLocation.LeftLeg)));
+    }
+
+    [Fact]
+    public void ResolveAttack_ShouldThrowArgumentException_WhenWeaponIsNotMounted()
+    {
+        // Arrange
+        SetMap();
+
+        var unmountedWeapon = new TestWeapon();
+        unmountedWeapon.FirstMountPart.ShouldBeNull();
+
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new ComponentData
+            {
+                Name = unmountedWeapon.Name,
+                Type = unmountedWeapon.ComponentType,
+                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 1)]
+            },
+            TargetId = _player2Unit1.Id,
+            IsPrimaryTarget = true
+        };
+
+        var method = typeof(WeaponAttackResolutionPhase).GetMethod("ResolveAttack",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.ShouldNotBeNull();
+
+        // Act
+        var exception = Should.Throw<System.Reflection.TargetInvocationException>((Action)Act);
+        
+        // Assert
+        exception.InnerException.ShouldBeOfType<ArgumentException>();
+        exception.InnerException!.Message.ShouldBe("Weapon Test Weapon is not mounted (Parameter 'weapon')");
+        return;
+
+        void Act() => method.Invoke(_sut, [_player1Unit1, _player2Unit1, unmountedWeapon, weaponTargetData]);
     }
 
     [Fact]

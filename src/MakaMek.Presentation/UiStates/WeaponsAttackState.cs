@@ -396,9 +396,7 @@ public class WeaponsAttackState : IUiState
                 foreach (var hex in hexes)
                 {
                     var key = (hex, level);
-                    if (losResults.ContainsKey(key))
-                        continue;
-
+                    
                     var targetHeight = _viewModel.Units
                         .FirstOrDefault(u => u.Position?.Coordinates == hex)
                         ?.Height ?? 0;
