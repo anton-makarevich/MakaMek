@@ -342,13 +342,15 @@ public class WeaponsAttackState : IUiState
             foreach (var weapon in weapons)
             {
                 // Skip weapons that cannot fire at all
-                if (!weapon.IsAvailableForAttack())
+                if (!weapon.IsAvailableForAttack() 
+                    || weapon.Range == null
+                    || weapon.FirstMountPart == null)
                 {
                     continue;
                 }
 
                 var maxRange = weapon.Range.LongRange;
-                var facing = weapon.FirstMountPart?.Facing;
+                var facing = weapon.FirstMountPart.Facing;
                 if (facing == null)
                 {
                     continue;
@@ -379,7 +381,7 @@ public class WeaponsAttackState : IUiState
                         var losResult = Game.BattleMap.GetLineOfSight(
                             unitPosition.Coordinates,
                             h,
-                            Attacker.Height,
+                            weapon.FirstMountPart.Level,
                             targetHeight);
 
                         // Store the blocked target hex with its highlight
