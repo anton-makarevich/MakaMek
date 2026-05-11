@@ -28,6 +28,7 @@ public class HexControl : Panel
     private readonly List<Image> _terrainImageLayers = [];
     private HexRenderConfiguration _renderConfiguration;
     private TextBlock? _highlightTextLabel;
+    private readonly StackPanel? _levelDepthStackPanel;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
     private static readonly IBrush TransparentFill = Brushes.Transparent;
@@ -102,19 +103,24 @@ public class HexControl : Panel
         Children.Add(coordinateLabel);
         coordinateLabel.ZIndex = ZIndexLabel;
 
+        var levelDepthStackPanel = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
         if (hex.Level != 0)
         {
             var levelLabel = new Label
             {
                 Content = $"LEVEL {hex.Level}",
-                VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
                 FontSize = 11,
                 IsVisible = _renderConfiguration.ShowLabels
             };
-            Children.Add(levelLabel);
-            levelLabel.ZIndex = ZIndexLabel;
+            levelDepthStackPanel.Children.Add(levelLabel);
         }
 
         // Add water depth label if hex has water terrain
@@ -123,14 +129,19 @@ public class HexControl : Panel
             var waterLabel = new Label
             {
                 Content = $"DEPTH {Math.Abs(waterTerrain.Height)}",
-                VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
                 FontSize = 11,
                 IsVisible = _renderConfiguration.ShowLabels
             };
-            Children.Add(waterLabel);
-            waterLabel.ZIndex = ZIndexLabel;
+            levelDepthStackPanel.Children.Add(waterLabel);
+        }
+
+        if (levelDepthStackPanel.Children.Count>0)
+        {
+            Children.Add(levelDepthStackPanel);
+            levelDepthStackPanel.ZIndex = ZIndexLabel;
+            _levelDepthStackPanel = levelDepthStackPanel;
         }
 
         // Set the initial highlight state
@@ -378,11 +389,14 @@ public class HexControl : Panel
         
         _renderConfiguration = configuration;
 
-        // Update coordinate/level label visibility
+        // Update coordinate label visibility
         foreach (var label in Children.OfType<Label>())
         {
             label.IsVisible = configuration.ShowLabels;
         }
+
+        // Update level/depth stack panel visibility
+        _levelDepthStackPanel?.IsVisible = configuration.ShowLabels;
 
         // Re-apply highlight to refresh outline and highlight-label visibility
         Highlight(_hex.Highlights);
