@@ -57,7 +57,7 @@ public class ToHitCalculator : IToHitCalculator
         var losResult = map.GetLineOfSight(
             scenario.AttackerPosition.Coordinates,
             scenario.TargetPosition.Coordinates,
-            scenario.AttackerHeight,
+            weapon.FirstMountPart?.Level ?? scenario.AttackerHeight,
             scenario.TargetHeight);
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);

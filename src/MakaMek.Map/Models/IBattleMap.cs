@@ -58,13 +58,13 @@ public interface IBattleMap
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
     /// <param name="to">Target hex coordinates</param>
-    /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
+    /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
     /// <returns>
     /// A <see cref="LineOfSightResult"/> whose <see cref="LineOfSightResult.HasLineOfSight"/> property
     /// indicates whether LOS exists, with additional details about the blocking hex and reason.
     /// </returns>
-    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0);
+    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0);
 
     IEnumerable<Hex> GetHexes();
 

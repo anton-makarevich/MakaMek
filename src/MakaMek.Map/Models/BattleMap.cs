@@ -475,9 +475,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
     /// <param name="to">Target hex coordinates</param>
-    /// <param name="attackerHeight">Height of the attacking unit in levels (added to hex level).</param>
+    /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
-    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackerHeight, int targetHeight = 0)
+    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0)
     {
         var isFromOnMap = IsOnMap(from);
         var isToOnMap = IsOnMap(to);
@@ -498,7 +498,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         // Check for water submersion blocking
         var fromWaterDepth = fromHex.GetWaterDepth();
-        var attackerSubmerged = fromWaterDepth is > 0 && fromWaterDepth >= attackerHeight;
+        var attackerSubmerged = fromWaterDepth is > 0 && fromWaterDepth >= attackHeight;
         var toWaterDepth = toHex.GetWaterDepth();
         var targetSubmerged = toWaterDepth is > 0 && toWaterDepth >= targetHeight;
         
@@ -510,7 +510,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 reason: LineOfSightBlockReason.WaterSubmersion);
         }
 
-        var attackerLosLevel = fromHex.Level + attackerHeight-(fromWaterDepth??0);
+        var attackerLosLevel = fromHex.Level + attackHeight-(fromWaterDepth??0);
         var targetLosLevel = toHex.Level + targetHeight-(toWaterDepth??0);
         
         // The same hex — always has LOS, no intervening path
