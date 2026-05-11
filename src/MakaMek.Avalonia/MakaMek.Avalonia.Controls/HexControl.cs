@@ -118,6 +118,7 @@ public class HexControl : Panel
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
                 FontSize = 11,
+                Padding = new Thickness(0),
                 IsVisible = _renderConfiguration.ShowLabels
             };
             levelDepthStackPanel.Children.Add(levelLabel);
@@ -132,6 +133,7 @@ public class HexControl : Panel
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
                 FontSize = 11,
+                Padding = new Thickness(0),
                 IsVisible = _renderConfiguration.ShowLabels
             };
             levelDepthStackPanel.Children.Add(waterLabel);
