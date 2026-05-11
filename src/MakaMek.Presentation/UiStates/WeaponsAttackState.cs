@@ -336,13 +336,16 @@ public class WeaponsAttackState : IUiState
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
 
+        // Pass 1: Collect firing arc hexes per weapon with mount level (no LOS checks)
+        var weaponCandidates = new List<(Weapon Weapon, HashSet<HexCoordinates> CandidateHexes, int MountLevel)>();
+
         foreach (var part in Attacker.Parts.Values)
         {
             var weapons = part.GetComponents<Weapon>();
             foreach (var weapon in weapons)
             {
                 // Skip weapons that cannot fire at all
-                if (!weapon.IsAvailableForAttack() 
+                if (!weapon.IsAvailableForAttack()
                     || weapon.Range == null
                     || weapon.FirstMountPart == null)
                 {
@@ -366,38 +369,102 @@ public class WeaponsAttackState : IUiState
                     weaponHexes.UnionWith(hexes);
                 }
 
-                // Filter out hexes not on the map first to skip unnecessary LOS calculations
+                // Filter out hexes not on the map to skip unnecessary LOS calculations
                 if (Game.BattleMap != null)
                 {
-                    // Remove hexes that are not on the map
                     weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
-
-                    // Filter out hexes without line of sight and collect blocked hexes
-                    weaponHexes.RemoveWhere(hexCoordinates =>
-                    {
-                        var targetHeight = _viewModel.Units
-                            .FirstOrDefault(u => u.Position?.Coordinates == hexCoordinates)
-                            ?.Height ?? 0;
-                        var losResult = Game.BattleMap.GetLineOfSight(
-                            unitPosition.Coordinates,
-                            hexCoordinates,
-                            weapon.FirstMountPart.Level,
-                            targetHeight);
-
-                        // Store the blocked target hex with its highlight
-                        if (losResult is { HasLineOfSight: false, BlockReason: not null })
-                        {
-                            var reason = losResult.BlockReason;
-                            var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                            _viewModel.AddHighlight(new HashSet<HexCoordinates> { hexCoordinates }, highlight);
-                        }
-
-                        return !losResult.HasLineOfSight;
-                    });
                 }
 
-                _weaponRanges[weapon] = weaponHexes;
+                weaponCandidates.Add((weapon, weaponHexes, weapon.FirstMountPart.Level));
             }
+        }
+
+        // Pass 2: Deduplicate LOS checks by unique mount level
+        var losResults = new Dictionary<(HexCoordinates Hex, int Level), LineOfSightResult>();
+
+        if (Game.BattleMap != null)
+        {
+            // Gather the union of hexes per unique level
+            var levelHexUnions = weaponCandidates
+                .GroupBy(wd => wd.MountLevel)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.SelectMany(wd => wd.CandidateHexes).ToHashSet());
+
+            foreach (var (level, hexes) in levelHexUnions)
+            {
+                foreach (var hex in hexes)
+                {
+                    var key = (hex, level);
+                    if (losResults.ContainsKey(key))
+                        continue;
+
+                    var targetHeight = _viewModel.Units
+                        .FirstOrDefault(u => u.Position?.Coordinates == hex)
+                        ?.Height ?? 0;
+
+                    losResults[key] = Game.BattleMap.GetLineOfSight(
+                        unitPosition.Coordinates,
+                        hex,
+                        level,
+                        targetHeight);
+                }
+            }
+        }
+
+        // Pass 3: Combine per-level LOS results into final weapon ranges
+        // Add LosBlockingHighlight only for hexes where ALL levels fail LOS
+        if (Game.BattleMap != null)
+        {
+            var allCandidateHexes = weaponCandidates
+                .SelectMany(wd => wd.CandidateHexes)
+                .ToHashSet();
+
+            foreach (var hex in allCandidateHexes)
+            {
+                var levelsForHex = weaponCandidates
+                    .Where(wd => wd.CandidateHexes.Contains(hex))
+                    .Select(wd => wd.MountLevel)
+                    .Distinct()
+                    .ToList();
+
+                var allLevelsBlocked = levelsForHex.All(level =>
+                {
+                    var key = (hex, level);
+                    return losResults.TryGetValue(key, out var result)
+                           && !result.HasLineOfSight;
+                });
+
+                if (allLevelsBlocked && levelsForHex.Count > 0)
+                {
+                    var firstLevel = levelsForHex.First();
+                    var losResult = losResults[(hex, firstLevel)];
+                    if (losResult is { HasLineOfSight: false, BlockReason: not null })
+                    {
+                        var reason = losResult.BlockReason;
+                        var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
+                        _viewModel.AddHighlight(new HashSet<HexCoordinates> { hex }, highlight);
+                    }
+                }
+            }
+        }
+
+        // Populate _weaponRanges per weapon, filtering by pre-computed LOS
+        foreach (var (weapon, candidateHexes, mountLevel) in weaponCandidates)
+        {
+            var filteredHexes = new HashSet<HexCoordinates>(candidateHexes);
+
+            if (Game.BattleMap != null)
+            {
+                filteredHexes.RemoveWhere(hex =>
+                {
+                    var key = (hex, mountLevel);
+                    return losResults.TryGetValue(key, out var result)
+                           && !result.HasLineOfSight;
+                });
+            }
+
+            _weaponRanges[weapon] = filteredHexes;
         }
 
         var hexToWeaponNames = new Dictionary<HexCoordinates, HashSet<string>>();
