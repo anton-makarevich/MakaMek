@@ -890,7 +890,32 @@ public class StartNewGameViewModelTests
         // Assert
         _sut.CanAddPlayer.ShouldBeTrue(); // Should be able to add players again
     }
-    
+
+    [Fact]
+    public void RemovePlayer_ShouldUpdateCanStartGame()
+    {
+        // Arrange
+        var changedProps = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+        var defaultPlayer = _sut.Players.First();
+        defaultPlayer.AddUnit(_sut.AvailableUnits.First());
+        defaultPlayer.Player.Status = PlayerStatus.Ready;
+        defaultPlayer.RefreshStatus();
+        _sut.CanStartGame.ShouldBeTrue();
+
+        _sut.AddPlayerCommand!.Execute(null);
+        _sut.CanStartGame.ShouldBeFalse();
+
+        var playerToRemove = _sut.Players.Last();
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.CanStartGame.ShouldBeTrue();
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.CanStartGame));
+    }
+
     [Fact]
     public async Task ShowAvailableUnitsTable_ShouldAddUnitToPlayer()
     {

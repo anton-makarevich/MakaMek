@@ -231,6 +231,14 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         return result;
     }
     
+    // Override the base RemovePlayer to add additional notification
+    protected override Task RemovePlayer(PlayerViewModel? playerVm)
+    {
+        var result = base.RemovePlayer(playerVm);
+        NotifyPropertyChanged(nameof(CanStartGame));
+        return result;
+    }
+
     // Implementation of abstract property from base class
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
     
