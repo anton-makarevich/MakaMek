@@ -220,7 +220,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// </summary>
     /// <param name="playerVm">The player to remove</param>
     /// <returns>Task representing the async operation</returns>
-    private Task RemovePlayer(PlayerViewModel? playerVm)
+    protected virtual Task RemovePlayer(PlayerViewModel? playerVm)
     {
         if (!CanRemovePlayer(playerVm)) return Task.CompletedTask;
 
