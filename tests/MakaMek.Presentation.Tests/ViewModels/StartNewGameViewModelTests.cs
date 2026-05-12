@@ -895,6 +895,8 @@ public class StartNewGameViewModelTests
     public void RemovePlayer_ShouldUpdateCanStartGame()
     {
         // Arrange
+        var changedProps = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
         var defaultPlayer = _sut.Players.First();
         defaultPlayer.AddUnit(_sut.AvailableUnits.First());
         defaultPlayer.Player.Status = PlayerStatus.Ready;
@@ -911,6 +913,7 @@ public class StartNewGameViewModelTests
 
         // Assert
         _sut.CanStartGame.ShouldBeTrue();
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.CanStartGame));
     }
 
     [Fact]
