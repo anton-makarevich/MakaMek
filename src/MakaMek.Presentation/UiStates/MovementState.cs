@@ -523,10 +523,26 @@ public class MovementState : IUiState
         }
     }
 
-    public void ResumeMovementAfterFall()
+    public void ResumeMovementAfterFall(Guid unitId)
     {
         lock (_stateLock)
         {
+            if (_selectedUnit == null && _viewModel.Game is { } clientGame)
+            {
+                foreach (var player in clientGame.Players)
+                {
+                    foreach (var unit in player.Units)
+                    {
+                        if (unit.Id != unitId) continue;
+                        _selectedUnit = unit;
+                        _builder.SetUnit(unit);
+                        break;
+                    }
+
+                    if (_selectedUnit != null) break;
+                }
+            }
+
             if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
             {
                 var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");

@@ -274,7 +274,7 @@ public class BattleMapViewModel : BaseViewModel
         {
             if (isFalling)
             {
-                movementState.ResumeMovementAfterFall();
+                movementState.ResumeMovementAfterFall(unitId);
             }
             else
             {
