@@ -1262,4 +1262,74 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => 
             cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
+
+    [Fact]
+    public void Exit_ShouldClearDeferralState()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit1 = activePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit2 = activePlayer.Units.First(u => u.Id != _unit1Id) as Mech;
+        unit1!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        unit2!.Deploy(new HexPosition(5, 2, HexDirection.Top), null);
+
+        var waterHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        waterHex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit1.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk)
+            .Returns(fallContextData);
+
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+            ]
+        });
+
+        _sut.Exit();
+
+        var unit2PositionBefore = unit2.Position;
+        var newPosition = new HexPosition(5, 1, HexDirection.Bottom);
+
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit2.Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(5, 2, HexDirection.Top), newPosition, 1).ToData()
+            ]
+        });
+
+        unit2.Position.ShouldNotBe(unit2PositionBefore);
+        unit2.Position!.Coordinates.ShouldBe(newPosition.Coordinates);
+    }
 }
