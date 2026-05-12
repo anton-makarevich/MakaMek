@@ -14,17 +14,62 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class MovementPhase(ServerGame game) : MainGamePhase(game)
 {
+    private Guid? _deferredMovementUnitId;
+    private bool _requestDeferStepConsumption;
+
+    public override void Enter()
+    {
+        ClearMovementDeferralState();
+        base.Enter();
+    }
+
+    public override void Exit()
+    {
+        ClearMovementDeferralState();
+        base.Exit();
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
+        if (_deferredMovementUnitId is { } deferredId)
+        {
+            switch (command)
+            {
+                case MoveUnitCommand m when m.UnitId != deferredId:
+                case TryStandupCommand t when t.UnitId != deferredId:
+                    return;
+            }
+        }
+
         switch (command)
         {
             case MoveUnitCommand moveCommand:
                 HandleUnitAction(command, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
-                ProcessStandupCommand(standupCommand);  //HandleUnitAction moves to the new unit, should not happen here
+                ProcessStandupCommand(standupCommand);
                 break;
         }
+    }
+
+    protected override bool ShouldFinalizeUnitsTurn(IGameCommand command)
+    {
+        if (command is not MoveUnitCommand m)
+            return true;
+
+        if (_requestDeferStepConsumption)
+        {
+            _requestDeferStepConsumption = false;
+            _deferredMovementUnitId = m.UnitId;
+            return false;
+        }
+
+        if (_deferredMovementUnitId == m.UnitId)
+        {
+            _deferredMovementUnitId = null;
+        }
+
+        return true;
     }
 
     protected override void ProcessCommand(IGameCommand command)
@@ -80,6 +125,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
+                    if (unit.CanStandup())
+                        _requestDeferStepConsumption = true;
                     return;
                 }
                 
@@ -208,4 +255,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     }
 
     public override PhaseNames Name => PhaseNames.Movement;
+
+    private void ClearMovementDeferralState()
+    {
+        _deferredMovementUnitId = null;
+        _requestDeferStepConsumption = false;
+    }
 }
