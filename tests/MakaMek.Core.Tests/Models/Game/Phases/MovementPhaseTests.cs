@@ -83,6 +83,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     
         // Assert
         unit.Position?.Coordinates.ToString().ShouldBe("0301");
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
     }
 
     [Fact]
@@ -465,7 +466,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
-            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
+            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump && cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
@@ -523,7 +524,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.DamageData != null));
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
-            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
+            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump && cmd.IsCompleted));
     }
     
     [Fact]
@@ -812,7 +813,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => 
-            cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.MovementPath[0].To.Coordinates.Q == 2));
+            cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.MovementPath[0].To.Coordinates.Q == 2 && !cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
     }
 
@@ -866,6 +867,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         });
 
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && !cmd.IsCompleted));
     }
 
     [Fact]
@@ -939,6 +941,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         });
 
         CommandPublisher.Received().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && !cmd.IsCompleted));
     }
 
     [Fact]
@@ -1107,6 +1110,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         });
 
         CommandPublisher.Received(1).PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
     }
 
     [Fact]
@@ -1159,7 +1163,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(moveCommand);
 
         // Assert
-        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
     }
 
@@ -1208,7 +1212,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(moveCommand);
 
         // Assert
-        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => 
             cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
@@ -1258,7 +1262,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(moveCommand);
 
         // Assert
-        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => 
             cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
     }
@@ -1331,5 +1335,6 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         unit2.Position.ShouldNotBe(unit2PositionBefore);
         unit2.Position!.Coordinates.ShouldBe(newPosition.Coordinates);
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == unit2.Id && cmd.IsCompleted));
     }
 }
