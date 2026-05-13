@@ -16,6 +16,8 @@ public record struct MoveUnitCommand: IClientUnitCommand
     {
         var sb = new StringBuilder();
         sb.Append(IsCompleted ? '1' : '0');
+        sb.Append('|');
+        sb.Append((int)MovementType);
         foreach (var segment in MovementPath)
         {
             sb.Append('|');
