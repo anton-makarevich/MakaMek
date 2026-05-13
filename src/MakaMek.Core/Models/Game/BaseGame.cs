@@ -189,7 +189,7 @@ public abstract class BaseGame : IGame
         if (unit == null) return;
         var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
         var hex = BattleMap?.GetHex(path.Destination.Coordinates);
-        unit.Move(path, hex);
+        unit.Move(path, hex, moveCommand.IsCompleted);
     }
     
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)

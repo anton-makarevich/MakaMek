@@ -400,7 +400,7 @@ public abstract class Unit : IUnit
     public int MovementPointsSpent { get; private set; }
     public MovementPath? MovementTaken { get; private set; }
 
-    public bool HasMoved => MovementTaken!=null;
+    public bool HasMoved { get; private set; }
 
     // Damage tracking
     public int TotalPhaseDamage { get; private set; }
@@ -429,6 +429,7 @@ public abstract class Unit : IUnit
     {
         MovementPointsSpent = 0;
         MovementTaken = null;
+        HasMoved = false;
     }
     
     /// <summary>
@@ -725,7 +726,7 @@ public abstract class Unit : IUnit
            c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
-    public void Move(MovementPath movementPath, Hex? destination)
+    public void Move(MovementPath movementPath, Hex? destination, bool isCompleted = true)
     {
         if (Position == null)
         {
@@ -735,6 +736,7 @@ public abstract class Unit : IUnit
             ? Position
             : movementPath.Destination;
         MovementTaken = movementPath;
+        HasMoved = isCompleted;
         SpendMovementPoints(movementPath.TotalCost);
         Position = position;
         Hex = destination;

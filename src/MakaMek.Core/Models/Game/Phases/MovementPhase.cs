@@ -117,7 +117,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 {
                     var truncatedSegments = moveCommand.MovementPath.Take(entry.SegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
-                    var truncatedCommand = moveCommand with { MovementPath = truncatedPath.ToData() };
+                    var truncatedCommand = moveCommand with
+                    {
+                        MovementPath = truncatedPath.ToData(),
+                        IsCompleted = false
+                    };
                     
                     Game.OnMoveUnit(truncatedCommand);
                     var broadcastCommand = truncatedCommand with { GameOriginId = Game.Id };
@@ -125,7 +129,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
-                    _requestDeferStepConsumption = unit.CanStandup();
+                    var canStandup = unit.CanStandup();
+                    //TODO: if cannot stand up - complete a movement by sending another Command
+                    _requestDeferStepConsumption = canStandup;
                     return;
                 }
                 
@@ -135,7 +141,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
 
         Game.OnMoveUnit(moveCommand);
-        var fullBroadcastCommand = moveCommand with { GameOriginId = Game.Id };
+        var fullBroadcastCommand = moveCommand with
+        {
+            GameOriginId = Game.Id,
+            IsCompleted = true
+        };
         Game.CommandPublisher.PublishCommand(fullBroadcastCommand);
         
         if (unit != null && moveCommand.MovementType == MovementType.Jump)
@@ -181,7 +191,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             return;
         }
         
-        var broadcastCommand = tryStandUpCommand with { GameOriginId = Game.Id };
+        var broadcastCommand = tryStandUpCommand with
+        {
+            GameOriginId = Game.Id
+        };
         Game.CommandPublisher.PublishCommand(broadcastCommand);
 
         // Check if the unit can stand up (has sufficient MP, pilot is conscious, etc.)

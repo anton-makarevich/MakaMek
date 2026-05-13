@@ -19,7 +19,7 @@ public record struct MoveUnitCommand: IClientUnitCommand
         if (unit is not { Position: not null }) return string.Empty;
         var localizedTemplate = localizationService.GetString("Command_MoveUnit");
         var position = MovementPath.Count>0 ? 
-            MovementPath.Last().To
+            MovementPath[^1].To
             : unit.Position.ToData();
         var facingHex = new HexCoordinates(position.Coordinates).GetNeighbour((HexDirection)position.Facing);
         return string.Format(localizedTemplate,
@@ -34,4 +34,5 @@ public record struct MoveUnitCommand: IClientUnitCommand
     public required MovementType MovementType { get; init; }
     public required IReadOnlyList<PathSegmentData> MovementPath { get; init; }
     public Guid PlayerId { get; init; }
+    public bool IsCompleted { get; init; }
 }

@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -34,7 +33,8 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
             PlayerId = PlayerId,
             UnitId = _unitId.Value,
             MovementType = _movementPath.MovementType,
-            MovementPath = _movementPath.ToData()
+            MovementPath = _movementPath.ToData(),
+            IsCompleted = true
         };
     }
 

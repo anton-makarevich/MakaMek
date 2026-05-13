@@ -514,6 +514,8 @@ public class Mech : Unit
     public bool CanStandup()
     {
         if (IsShutdown) return false;
+        
+        if (HasMoved) return false;
 
         // Cannot stand up in the same turn if falling during a jump
         if (MovementTaken?.MovementType == MovementType.Jump) 
