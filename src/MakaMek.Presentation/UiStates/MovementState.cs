@@ -27,10 +27,18 @@ public class MovementState : IUiState
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
     private MovementPath? _selectedPath;
+    private Guid? _deferredMovementUnitId;
 
     private IMovementStep _step;
 
     public IClientGame? Game => _viewModel.Game;
+
+    public bool CanSelectUnit(IUnit? unit)
+    {
+        if (_deferredMovementUnitId is not { } lockedId) return true;
+        if (unit == null) return true;
+        return unit.Id == lockedId;
+    }
 
     public MovementState(BattleMapViewModel viewModel)
     {
@@ -170,6 +178,7 @@ public class MovementState : IUiState
         if (unit == null 
             || unit == _selectedUnit
             || unit.Owner?.Id != _viewModel.Game?.PhaseStepState?.ActivePlayer.Id) return false;
+        if (!CanSelectUnit(unit)) return false;
         ResetUnitSelection();
         _viewModel.SelectedUnit=unit;
         return true;
@@ -231,6 +240,7 @@ public class MovementState : IUiState
                 clientGame.MoveUnit(command.Value);
             }
 
+            _deferredMovementUnitId = null;
             _builder.Reset();
             ClearHighlighting();
             _selectedUnit = null;
@@ -523,7 +533,7 @@ public class MovementState : IUiState
         }
     }
 
-    public void ResumeMovementAfterFall()
+    public void ResumeMovementAfterFall(Guid unitId)
     {
         lock (_stateLock)
         {
@@ -534,13 +544,23 @@ public class MovementState : IUiState
                 throw exception;
             }
 
+            if (unitId != mech.Id)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}.",
+                    unitId,
+                    mech.Id);
+                return;
+            }
+
             if (!mech.CanStandup())
             {
                 _builder.SetMovementPath(_selectedPath);
                 CompleteMovement();
                 return;
             }
-            
+
+            _deferredMovementUnitId = unitId;
             TransitionTo(new SelectingMovementTypeStep(this));
         }
     }

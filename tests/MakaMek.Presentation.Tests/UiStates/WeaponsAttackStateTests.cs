@@ -2306,4 +2306,11 @@ public class WeaponsAttackStateTests
             cmd.WeaponTargets[0].TargetId == target.Id
         ));
     }
+
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var unit = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
+    }
 }

@@ -52,6 +52,12 @@ public class MovementStateTests
     private readonly IImageService _imageService = Substitute.For<IImageService>();
     private readonly ITerrainAssetService _terrainAssetsService = Substitute.For<ITerrainAssetService>();
 
+    private static void BindViewModelCurrentStateTo(MovementState state, BattleMapViewModel viewModel)
+    {
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(viewModel, [state]);
+    }
+
     public MovementStateTests()
     {
         // Mock localization service responses
@@ -1779,7 +1785,7 @@ public class MovementStateTests
         _sut.HandleUnitSelection(unit);
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(unit.Id))
             .Message.ShouldBe("Unit is not prone after fall or no movement path");
     }
 
@@ -1793,7 +1799,7 @@ public class MovementStateTests
         _sut.HandleUnitSelection(mech);
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(mech.Id))
             .Message.ShouldBe("Unit is not prone after fall or no movement path");
     }
 
@@ -1814,7 +1820,7 @@ public class MovementStateTests
         mech.CanStandup().ShouldBeFalse();
         
         // Act
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
@@ -1839,7 +1845,7 @@ public class MovementStateTests
         _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
 
         // Act
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
@@ -1869,7 +1875,7 @@ public class MovementStateTests
         mech.CanStandup().ShouldBeFalse();
         
         // Act
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
 
         // Assert - movement should complete without allowing standup
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
@@ -1897,7 +1903,7 @@ public class MovementStateTests
         mech.SetProne();
 
         // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
 
         // Act
@@ -1930,7 +1936,7 @@ public class MovementStateTests
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         mech.SetProne();
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
 
         var actions = _sut.GetAvailableActions().ToList();
         actions.Count.ShouldBe(1);
@@ -1966,7 +1972,7 @@ public class MovementStateTests
         // Simulate fall during movement: select unit, pick Walk (sets _selectedPath), then unit already fell
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk); // sets _selectedPath with Walk type
-        _sut.ResumeMovementAfterFall();
+        _sut.ResumeMovementAfterFall(mech.Id);
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
 
         // Act
@@ -1977,6 +1983,141 @@ public class MovementStateTests
         actions[0].Label.ShouldStartWith("Attempt Standup");
         actions[0].Label.ShouldContain("%"); // probability appended
         actions[0].Label.ShouldNotContain("Walk | MP:");
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_Ignores_WhenUnitIdDoesNotMatchSelectedUnit()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        var stepBefore = _sut.CurrentMovementStep;
+        mech.SetProne();
+
+        _sut.ResumeMovementAfterFall(Guid.NewGuid());
+
+        _sut.CurrentMovementStep.ShouldBe(stepBefore);
+        ((IUiState)_sut).CanSelectUnit(_unit2).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanSelectUnit_BlocksOtherFriendly_WhenDeferredAfterFall()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech1 = _unit1 as Mech;
+        mech1!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
+        var allyData = MechFactoryTests.CreateDummyMechData();
+        allyData.Id = Guid.NewGuid();
+        var ally = mechFactory.Create(allyData);
+        ally.AssignPilot(_pilot);
+        _player.AddUnit(ally);
+        ally.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), null);
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech1, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelection(mech1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech1.SetProne();
+        _sut.ResumeMovementAfterFall(mech1.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+
+        ((IUiState)_sut).CanSelectUnit(ally).ShouldBeFalse();
+        ((IUiState)_sut).CanSelectUnit(mech1).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleHexSelection_DoesNotChangeSelectedUnit_WhenDeferredBlocksOtherFriendly()
+    {
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech1 = _unit1 as Mech;
+        mech1!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
+        var allyData = MechFactoryTests.CreateDummyMechData();
+        allyData.Id = Guid.NewGuid();
+        var ally = mechFactory.Create(allyData);
+        ally.AssignPilot(_pilot);
+        _player.AddUnit(ally);
+        ally.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), null);
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech1, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _battleMapViewModel.SelectedUnit = mech1;
+        _sut.HandleUnitSelection(mech1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech1.SetProne();
+        _sut.ResumeMovementAfterFall(mech1.Id);
+
+        var allyHex = _game.BattleMap!.GetHex(ally.Position!.Coordinates)!;
+        _sut.HandleHexSelection(allyHex);
+
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech1);
+    }
+
+    [Fact]
+    public void SelectedUnitSetter_DoesNotChangeSelection_WhenCanSelectUnitFalse()
+    {
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech1 = _unit1 as Mech;
+        mech1!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
+        var allyData = MechFactoryTests.CreateDummyMechData();
+        allyData.Id = Guid.NewGuid();
+        var ally = mechFactory.Create(allyData);
+        ally.AssignPilot(_pilot);
+        _player.AddUnit(ally);
+        ally.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), null);
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech1, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _battleMapViewModel.SelectedUnit = mech1;
+        _sut.HandleUnitSelection(mech1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech1.SetProne();
+        _sut.ResumeMovementAfterFall(mech1.Id);
+
+        _battleMapViewModel.SelectedUnit = ally;
+
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech1);
+    }
+
+    [Fact]
+    public void HandleUnitSelection_AllowsDeferredUnit_WhenHasMoved()
+    {
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech1 = _unit1 as Mech;
+        mech1!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech1, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _battleMapViewModel.SelectedUnit = mech1;
+        _sut.HandleUnitSelection(mech1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech1.SetProne();
+        _sut.ResumeMovementAfterFall(mech1.Id);
+
+        mech1.Move(MovementPath.CreateStandingStillPath(mech1.Position!), null, isCompleted: true);
+        mech1.HasMoved.ShouldBeTrue();
+
+        _battleMapViewModel.SelectedUnit = null;
+        _battleMapViewModel.SelectedUnit = mech1;
+
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech1);
     }
 }
 

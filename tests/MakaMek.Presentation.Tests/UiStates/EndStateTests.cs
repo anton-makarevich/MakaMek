@@ -624,6 +624,13 @@ public class EndStateTests
         actions.ShouldNotContain(action => action.Label.Contains("Startup"));
     }
 
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var unit = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
+    }
+
     private void SetPhase(PhaseNames phase)
     {
         _game.HandleCommand(new ChangePhaseCommand

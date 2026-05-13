@@ -141,6 +141,13 @@ public class DeploymentStateTests
     }
 
     [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var other = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(other).ShouldBeTrue();
+    }
+
+    [Fact]
     public void HandleUnitSelection_TransitionsToHexSelection_IfActivePlayerIsLocal()
     {
         // Act

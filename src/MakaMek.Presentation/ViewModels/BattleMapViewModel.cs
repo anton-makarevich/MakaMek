@@ -274,7 +274,7 @@ public class BattleMapViewModel : BaseViewModel
         {
             if (isFalling)
             {
-                movementState.ResumeMovementAfterFall();
+                movementState.ResumeMovementAfterFall(unitId);
             }
             else
             {
@@ -531,6 +531,8 @@ public class BattleMapViewModel : BaseViewModel
         set
         {
             if (value == _selectedUnit) return;
+            if (value != null && !CurrentState.CanSelectUnit(value))
+                return;
             SetProperty(ref _selectedUnit, value);
             CurrentState.HandleUnitSelection(value);
             NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
