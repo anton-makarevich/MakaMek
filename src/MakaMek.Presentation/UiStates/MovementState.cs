@@ -401,7 +401,7 @@ public class MovementState : IUiState
             if (_selectedUnit.IsImmobile) return actions;
             
             // Walk
-            actions.Add(new(
+            actions.Add(new StateAction(
                 string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
                     _viewModel.LocalizationService.GetString("MovementType_Walk"),
                     _selectedUnit.GetMovementPoints(MovementType.Walk)),
@@ -523,26 +523,10 @@ public class MovementState : IUiState
         }
     }
 
-    public void ResumeMovementAfterFall(Guid unitId)
+    public void ResumeMovementAfterFall()
     {
         lock (_stateLock)
         {
-            if (_selectedUnit == null && _viewModel.Game is { } clientGame)
-            {
-                foreach (var player in clientGame.Players)
-                {
-                    foreach (var unit in player.Units)
-                    {
-                        if (unit.Id != unitId) continue;
-                        _selectedUnit = unit;
-                        _builder.SetUnit(unit);
-                        break;
-                    }
-
-                    if (_selectedUnit != null) break;
-                }
-            }
-
             if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
             {
                 var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");

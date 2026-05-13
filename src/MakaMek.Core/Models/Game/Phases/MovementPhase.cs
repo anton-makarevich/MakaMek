@@ -125,8 +125,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
-                    if (unit.CanStandup())
-                        _requestDeferStepConsumption = true;
+                    _requestDeferStepConsumption = unit.CanStandup();
                     return;
                 }
                 

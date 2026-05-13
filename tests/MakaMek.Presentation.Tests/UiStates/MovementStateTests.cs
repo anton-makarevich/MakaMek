@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Reactive.Concurrency;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
@@ -176,14 +175,6 @@ public class MovementStateTests
     {
         _game.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
         _game.CanActivePlayerAct.Returns(true);
-    }
-
-    // Clears MovementState's internal _selectedUnit (same field CompleteMovement() nulls) for post-command scenarios.
-    private static void ClearMovementStateInternalSelectedUnit(MovementState state)
-    {
-        var field = typeof(MovementState).GetField("_selectedUnit", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new InvalidOperationException("MovementState._selectedUnit field not found");
-        field.SetValue(state, null);
     }
 
 
@@ -1784,13 +1775,11 @@ public class MovementStateTests
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
-        var unitId = Guid.NewGuid();
-        unit.Id.Returns(unitId);
         unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         _sut.HandleUnitSelection(unit);
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(unitId))
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
             .Message.ShouldBe("Unit is not prone after fall or no movement path");
     }
 
@@ -1804,51 +1793,8 @@ public class MovementStateTests
         _sut.HandleUnitSelection(mech);
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(mech.Id))
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
             .Message.ShouldBe("Unit is not prone after fall or no movement path");
-    }
-
-    [Fact]
-    public void ResumeMovementAfterFall_PostCompleteMovementSelection_WhenCanStandup_TransitionsToSelectingMovementType()
-    {
-        // Water-fall: internal _selectedUnit is cleared after CompleteMovement() while MechFallCommand still arrives with unitId.
-        SetPhase(PhaseNames.Movement);
-        SetActivePlayer();
-        var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
-        mech.SetProne();
-        mech.CanStandup().ShouldBeTrue();
-
-        _sut.HandleUnitSelection(mech);
-        _sut.HandleMovementTypeSelection(MovementType.Walk);
-
-        ClearMovementStateInternalSelectedUnit(_sut);
-
-        _sut.ResumeMovementAfterFall(mech.Id);
-
-        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
-    }
-
-    [Fact]
-    public void ResumeMovementAfterFall_PostCompleteMovementSelection_WhenCannotStandup_CompletesMovement()
-    {
-        SetPhase(PhaseNames.Movement);
-        SetActivePlayer();
-        var mech = _unit1 as Mech;
-        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
-        mech.SetProne();
-        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
-        mech.CanStandup().ShouldBeFalse();
-
-        _sut.HandleUnitSelection(mech);
-        _sut.HandleMovementTypeSelection(MovementType.Walk);
-
-        ClearMovementStateInternalSelectedUnit(_sut);
-
-        _sut.ResumeMovementAfterFall(mech.Id);
-
-        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
-        _game.Received().MoveUnit(Arg.Any<MoveUnitCommand>());
     }
 
     [Fact]
@@ -1868,7 +1814,7 @@ public class MovementStateTests
         mech.CanStandup().ShouldBeFalse();
         
         // Act
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
@@ -1893,7 +1839,7 @@ public class MovementStateTests
         _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
 
         // Act
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
@@ -1923,7 +1869,7 @@ public class MovementStateTests
         mech.CanStandup().ShouldBeFalse();
         
         // Act
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
 
         // Assert - movement should complete without allowing standup
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
@@ -1951,7 +1897,7 @@ public class MovementStateTests
         mech.SetProne();
 
         // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
 
         // Act
@@ -1984,7 +1930,7 @@ public class MovementStateTests
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         mech.SetProne();
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
 
         var actions = _sut.GetAvailableActions().ToList();
         actions.Count.ShouldBe(1);
@@ -2020,7 +1966,7 @@ public class MovementStateTests
         // Simulate fall during movement: select unit, pick Walk (sets _selectedPath), then unit already fell
         _sut.HandleUnitSelection(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk); // sets _selectedPath with Walk type
-        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.ResumeMovementAfterFall();
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
 
         // Act
