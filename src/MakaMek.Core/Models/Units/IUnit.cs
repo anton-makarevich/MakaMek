@@ -274,7 +274,7 @@ public interface IUnit
     /// <returns>Components of the specified type at the specified location containing the given slot</returns>
     T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component;
 
-    void Move(MovementPath movementPath, Hex? destination, bool isCompleted = true);
+    void Move(MovementPath movementPath, Hex? destination, bool isCompleted);
 
     /// <summary>
     /// Fires a weapon based on the provided weapon data and consumes ammo if required.

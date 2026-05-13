@@ -43,7 +43,8 @@ public class MoveUnitCommandTests
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             UnitId = _unit.Id,
-            MovementPath = [pathSegment.ToData()]
+            MovementPath = [pathSegment.ToData()],
+            IsCompleted = true
         };
     }
 
@@ -54,12 +55,13 @@ public class MoveUnitCommandTests
         var command = CreateCommand();
         _unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
         _localizationService.GetString("Command_MoveUnit").Returns("formatted move command");
+        _localizationService.GetString("Command_MoveUnit_Completed").Returns("completed");
 
         // Act
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("formatted move command");
+        result.ShouldBe("formatted move command" + Environment.NewLine + "completed");
         _localizationService.Received(1).GetString("Command_MoveUnit");
     }
 
@@ -87,5 +89,37 @@ public class MoveUnitCommandTests
 
         // Assert
         result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_ShouldIncludeCompletedLine_WhenMovementIsCompleted()
+    {
+        // Arrange
+        var command = CreateCommand();
+        _unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+        _localizationService.GetString("Command_MoveUnit").Returns("move line");
+        _localizationService.GetString("Command_MoveUnit_Completed").Returns("completed");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("move line" + Environment.NewLine + "completed");
+    }
+
+    [Fact]
+    public void Render_ShouldIncludeIncompleteLine_WhenMovementIsNotCompleted()
+    {
+        // Arrange
+        var command = CreateCommand() with { IsCompleted = false };
+        _unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+        _localizationService.GetString("Command_MoveUnit").Returns("move line");
+        _localizationService.GetString("Command_MoveUnit_Incomplete").Returns("interrupted");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("move line" + Environment.NewLine + "interrupted");
     }
 }

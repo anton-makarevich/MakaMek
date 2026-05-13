@@ -1,3 +1,4 @@
+using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
@@ -22,12 +23,17 @@ public record struct MoveUnitCommand: IClientUnitCommand
             MovementPath[^1].To
             : unit.Position.ToData();
         var facingHex = new HexCoordinates(position.Coordinates).GetNeighbour((HexDirection)position.Facing);
-        return string.Format(localizedTemplate,
+        var stringBuilder = new StringBuilder();
+        stringBuilder.AppendFormat(localizedTemplate,
             player?.Name,
             unit.Model,
             new HexCoordinates(position.Coordinates),
             facingHex,
-            MovementType);
+            MovementType).AppendLine();
+        var completedKey = IsCompleted ? "Command_MoveUnit_Completed" : "Command_MoveUnit_Incomplete";
+        var completedTemplate = localizationService.GetString(completedKey);
+        stringBuilder.Append(completedTemplate);
+        return stringBuilder.ToString();
     }
 
     public required Guid UnitId { get; init; }

@@ -176,7 +176,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         var targetPosition = new HexPosition(new HexCoordinates(1,2), HexDirection.Bottom);
         unit.Deploy(deployPosition, null);
         var movementPath = new MovementPath([new PathSegment(deployPosition, targetPosition, 1).ToData()], MovementType.Walk);
-        unit.Move(movementPath, null);
+        unit.Move(movementPath, null, true);
         
         unit.MovementTaken.ShouldBe(movementPath);
         

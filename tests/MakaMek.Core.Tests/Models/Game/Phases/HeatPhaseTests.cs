@@ -634,7 +634,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition, null);
         unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, 1)]
-            , movementType), null);
+            , movementType), null, true);
     }
 
     private void SetupUnitWithWeaponFired(IUnit unit)
@@ -730,11 +730,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         if (engineHeatSinksCount > 0)
         {
             var engineRating = engineHeatSinksCount * 25;
-            var engineData = new Sanet.MakaMek.Core.Data.Units.Components.ComponentData
+            var engineData = new ComponentData
             {
                 Type = MakaMekComponent.Engine,
                 Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 0, 6)],
-                SpecificData = new Sanet.MakaMek.Core.Data.Units.Components.EngineStateData(EngineType.Fusion, engineRating)
+                SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
             };
             centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 3, 4, 5]);
         }
