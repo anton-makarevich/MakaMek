@@ -97,7 +97,9 @@ public class WeaponsAttackStateTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(idempotencyKey);
         
         var battleMap = BattleMapFactory.GenerateMap(

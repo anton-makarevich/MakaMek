@@ -58,7 +58,9 @@ public class ClientGameTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(_idempotencyKey);
         
         var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));

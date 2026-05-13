@@ -7,7 +7,7 @@ public class HashService: IHashService
 {
     /// <summary>
     /// Computes a deterministic idempotency key for a command.
-    /// The key is based on GameId, PlayerId, UnitId (optional), Phase, Turn, and CommandType.
+    /// The key is based on GameId, PlayerId, UnitId (optional), Phase, Turn, CommandType, and PayloadHash.
     /// </summary>
     public Guid ComputeCommandIdempotencyKey(Guid gameId,
         Guid playerId,
@@ -15,10 +15,11 @@ public class HashService: IHashService
         int turn,
         string phase,
         Guid? unitId = null,
-        int attempt = 0)
+        int attempt = 0,
+        string? payloadHash = null)
     {
         // Build the input string for hashing
-        var input = $"{gameId}:{playerId}:{unitId?.ToString() ?? "null"}:{phase}:{turn}:{commandType.Name}:{attempt}";
+        var input = $"{gameId}:{playerId}:{unitId?.ToString() ?? "null"}:{phase}:{turn}:{commandType.Name}:{attempt}:{payloadHash ?? "null"}";
 
         // Compute SHA256 hash
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));

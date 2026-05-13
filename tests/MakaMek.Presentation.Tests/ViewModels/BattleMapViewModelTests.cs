@@ -64,7 +64,9 @@ public class BattleMapViewModelTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(_idempotencyKey);
         var imageService = Substitute.For<IImageService>();
         var dispatcherService = Substitute.For<IDispatcherService>();

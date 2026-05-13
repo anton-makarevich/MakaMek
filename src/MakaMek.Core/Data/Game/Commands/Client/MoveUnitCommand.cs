@@ -12,6 +12,32 @@ public record struct MoveUnitCommand: IClientUnitCommand
     public DateTime Timestamp { get; set; }
     public Guid? IdempotencyKey { get; init; }
 
+    public string GetPayloadHash()
+    {
+        var sb = new StringBuilder();
+        sb.Append(IsCompleted ? '1' : '0');
+        foreach (var segment in MovementPath)
+        {
+            sb.Append('|');
+            sb.Append(segment.From.Coordinates.Q);
+            sb.Append(',');
+            sb.Append(segment.From.Coordinates.R);
+            sb.Append(',');
+            sb.Append(segment.From.Facing);
+            sb.Append(':');
+            sb.Append(segment.To.Coordinates.Q);
+            sb.Append(',');
+            sb.Append(segment.To.Coordinates.R);
+            sb.Append(',');
+            sb.Append(segment.To.Facing);
+            sb.Append(':');
+            sb.Append(segment.Cost);
+            sb.Append(':');
+            sb.Append(segment.IsReversed ? '1' : '0');
+        }
+        return sb.ToString();
+    }
+
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;

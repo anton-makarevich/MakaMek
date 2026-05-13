@@ -91,7 +91,9 @@ public class EndStateTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(idempotencyKey);
         
         _game.JoinGameWithUnits(_player,[],[]);
