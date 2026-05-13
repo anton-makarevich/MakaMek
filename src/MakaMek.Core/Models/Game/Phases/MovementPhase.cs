@@ -130,7 +130,18 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
                     var canStandup = unit.CanStandup();
-                    //TODO: if cannot stand up - complete a movement by sending another Command
+                    if (!canStandup)
+                    {
+                        var completionCommand = truncatedCommand with
+                        {
+                            IsCompleted = true,
+                            MovementPath = [truncatedCommand.MovementPath[^1]]
+                        };
+                        Game.OnMoveUnit(completionCommand);
+                        broadcastCommand = completionCommand with { GameOriginId = Game.Id };
+                        Game.CommandPublisher.PublishCommand(broadcastCommand);
+
+                    }
                     _requestDeferStepConsumption = canStandup;
                     return;
                 }
