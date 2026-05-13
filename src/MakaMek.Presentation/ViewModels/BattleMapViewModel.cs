@@ -269,18 +269,16 @@ public class BattleMapViewModel : BaseViewModel
 
     private void ProcessMechStandUp(Guid unitId, bool isFalling)
     {
-        if (CurrentState is MovementState movementState 
-            && unitId == SelectedUnit?.Id)
+        if (CurrentState is not MovementState movementState) return;
+        if (isFalling)
         {
-            if (isFalling)
-            {
-                movementState.ResumeMovementAfterFall(unitId);
-            }
-            else
-            {
-                movementState.ResumeMovementAfterStandup();
-            }
+            movementState.ResumeMovementAfterFall(unitId);
+            return;
         }
+
+        if (unitId == SelectedUnit?.Id)
+            return;
+        movementState.ResumeMovementAfterStandup();
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)
