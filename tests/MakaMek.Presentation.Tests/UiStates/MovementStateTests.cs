@@ -1777,6 +1777,48 @@ public class MovementStateTests
             .ShouldBeTrue(); // Hexes should still be highlighted
     }
     [Fact]
+    public void PostStandupContinuationMoveCommand_ShouldPreserveMovementType_AndStartFromCurrentPosition()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var proneMech = _battleMapViewModel.Units.First() as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+        proneMech!.Deploy(position, null);
+        proneMech.AssignPilot(_pilot);
+        proneMech.SetProne();
+
+        // Select unit and choose Walk movement type
+        _sut.HandleUnitSelection(proneMech);
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+
+        // Standup facing selection
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        proneMech.StandUp(HexDirection.Bottom);
+
+        // Resume movement after standup
+        _sut.ResumeMovementAfterStandup();
+
+        // Move to a reachable hex and select direction
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+
+        // Act - confirm the movement
+        _sut.ExecutePlayerAction();
+
+        // Assert - command was sent with the original movement type
+        _game.Received().MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.MovementType == MovementType.Walk &&
+            cmd.MovementPath.Count > 0 &&
+            cmd.MovementPath[0].From.Coordinates.Q == 1 &&
+            cmd.MovementPath[0].From.Coordinates.R == 1));
+    }
+
+    [Fact]
     public void ResumeMovementAfterFall_ShouldThrow_WhenUnitIsNotProneMech()
     {
         // Arrange

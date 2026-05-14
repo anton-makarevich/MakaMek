@@ -1114,6 +1114,119 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void ProcessMoveCommand_WhenWaterFallAndStandupAndContinue_ShouldPreserveCombinedPath()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var waterHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        waterHex!.AddTerrain(new Sanet.MakaMek.Map.Models.Terrains.WaterTerrain(-1));
+
+        // Setup water fall
+        var waterFallData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(
+                unit,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
+                Game,
+                MovementType.Walk)
+            .Returns(waterFallData);
+
+        // Setup successful standup
+        var successfulPsrData = new PilotingSkillRollData
+        {
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+            DiceResults = [5, 5],
+            IsSuccessful = true,
+            PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+        };
+        var successfulStandupData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = successfulPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+                unit,
+                Arg.Is<PilotingSkillRollContext>(c => c.RollType == PilotingSkillRollType.StandupAttempt),
+                Game,
+                MovementType.StandingStill)
+            .Returns(successfulStandupData);
+
+        // Act - Step 1: First move into water (triggers fall + truncation)
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+            ]
+        });
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(2, 2));
+
+        // Step 2: Successful standup
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow,
+            NewFacing = HexDirection.Top,
+            MovementTypeAfterStandup = MovementType.Walk
+        });
+
+        // Step 3: Continue movement to a new hex
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+            ]
+        });
+
+        // Assert - combined path preserves both segments
+        unit.MovementTaken.ShouldNotBeNull();
+        unit.MovementTaken.Segments.Count.ShouldBe(2, "Combined path should contain segments from both movement legs");
+        unit.MovementTaken.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(2, 2), "First segment should end at water hex");
+        unit.MovementTaken.Segments[1].To.Coordinates.ShouldBe(new HexCoordinates(3, 2), "Second segment should end at final hex");
+        unit.MovementPointsSpent.ShouldBe(5, "Combined cost of both legs plus standup");
+        unit.MovementTaken.HexesTraveled.ShouldBe(2, "Both legs contributed hexes traveled");
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(3, 2), "Unit should end at final destination");
+    }
+
+    [Fact]
     public void ProcessMoveCommand_ShouldProcessJumpWaterEntry()
     {
         // Arrange

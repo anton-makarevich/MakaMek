@@ -206,6 +206,79 @@ public class MechTests
     }
 
     [Fact]
+    public void Move_WhenCalledTwice_ShouldAppendPaths()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(deployPosition, null);
+
+        var firstPath = new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+        var secondPath = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+
+        // Act
+        mech.Move(firstPath, null);
+        mech.Move(secondPath, null);
+
+        // Assert
+        mech.MovementTaken.ShouldNotBeNull();
+        mech.MovementTaken.Segments.Count.ShouldBe(2);
+        mech.MovementPointsSpent.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Move_WhenCalledTwice_ShouldAccumulateHexesTraveled()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(deployPosition, null);
+
+        var firstPath = new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+        var secondPath = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+
+        // Act
+        mech.Move(firstPath, null);
+        mech.Move(secondPath, null);
+
+        // Assert - HexesTraveled counts both since both legs are in the same direction
+        mech.MovementTaken!.HexesTraveled.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Move_WhenCalledTwiceWithNonContinuousCoordinates_ShouldReplacePath()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(deployPosition, null);
+
+        var firstPath = new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+        var secondPath = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), new HexPosition(new HexCoordinates(6, 5), HexDirection.Top), 1)
+        ], MovementType.Walk);
+
+        // Act
+        mech.Move(firstPath, null);
+        mech.Move(secondPath, null);
+
+        // Assert - second path should replace, not append
+        mech.MovementTaken.ShouldNotBeNull();
+        mech.MovementTaken.Segments.Count.ShouldBe(1);
+        mech.MovementTaken.ShouldBe(secondPath);
+    }
+
+    [Fact]
     public void ResetTurnState_ShouldResetMovementTracking()
     {
         // Arrange
