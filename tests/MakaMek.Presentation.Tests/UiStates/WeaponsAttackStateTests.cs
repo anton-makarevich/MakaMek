@@ -97,7 +97,9 @@ public class WeaponsAttackStateTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(idempotencyKey);
         
         var battleMap = BattleMapFactory.GenerateMap(
@@ -2303,5 +2305,12 @@ public class WeaponsAttackStateTests
             cmd.WeaponTargets.Count == 1 &&
             cmd.WeaponTargets[0].TargetId == target.Id
         ));
+    }
+
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var unit = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
     }
 }

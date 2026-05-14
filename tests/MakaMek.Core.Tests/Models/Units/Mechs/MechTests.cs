@@ -348,6 +348,29 @@ public class MechTests
         sut.Position!.Facing.ShouldBe(HexDirection.Bottom);
     }
 
+    [Fact]
+    public void CanStandup_ReturnsFalse_WhenMovementCompleted()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
+        var deployPosition = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        sut.Deploy(deployPosition, null);
+        sut.SetProne();
+
+        sut.CanStandup().ShouldBeTrue();
+        
+        // Act
+        sut.Move(MovementPath.CreateStandingStillPath(deployPosition), null, isCompleted: true);
+
+        // Assert
+        sut.HasMoved.ShouldBeTrue();
+        sut.CanStandup().ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
     [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit

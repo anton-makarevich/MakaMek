@@ -9,5 +9,6 @@ public interface IHashService
         int turn,
         string phase,
         Guid? unitId = null,
-        int attempt = 0);
+        int attempt = 0,
+        string? payloadHash = null);
 }

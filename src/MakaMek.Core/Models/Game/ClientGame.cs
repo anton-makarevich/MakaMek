@@ -231,7 +231,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             Turn,
             TurnPhase.ToString(),
             unitId,
-            attempt);
+            attempt,
+            command.GetPayloadHash());
 
         // Check if this command is already pending
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))

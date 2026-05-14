@@ -14,6 +14,12 @@ public interface IUiState
     void HandleUnitSelection(IUnit? unit);
     void HandleHexSelection(Hex hex);
     void HandleFacingSelection(HexDirection direction);
+
+    /// <summary>
+    /// Whether the UI may select the given unit (e.g. list click or map). States that temporarily lock
+    /// selection to one unit can return false for others. Clearing selection (null) is not passed here.
+    /// </summary>
+    bool CanSelectUnit(IUnit? unit) => true;
     IEnumerable<StateAction> GetAvailableActions() => new List<StateAction>();
     
     /// <summary>

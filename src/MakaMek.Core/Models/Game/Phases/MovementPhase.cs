@@ -14,17 +14,62 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class MovementPhase(ServerGame game) : MainGamePhase(game)
 {
+    private Guid? _deferredMovementUnitId;
+    private bool _requestDeferStepConsumption;
+
+    public override void Enter()
+    {
+        ClearMovementDeferralState();
+        base.Enter();
+    }
+
+    public override void Exit()
+    {
+        ClearMovementDeferralState();
+        base.Exit();
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
+        if (_deferredMovementUnitId is { } deferredId)
+        {
+            switch (command)
+            {
+                case MoveUnitCommand m when m.UnitId != deferredId:
+                case TryStandupCommand t when t.UnitId != deferredId:
+                    return;
+            }
+        }
+
         switch (command)
         {
             case MoveUnitCommand moveCommand:
                 HandleUnitAction(command, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
-                ProcessStandupCommand(standupCommand);  //HandleUnitAction moves to the new unit, should not happen here
+                ProcessStandupCommand(standupCommand);
                 break;
         }
+    }
+
+    protected override bool ShouldFinalizeUnitsTurn(IGameCommand command)
+    {
+        if (command is not MoveUnitCommand m)
+            return true;
+
+        if (_requestDeferStepConsumption)
+        {
+            _requestDeferStepConsumption = false;
+            _deferredMovementUnitId = m.UnitId;
+            return false;
+        }
+
+        if (_deferredMovementUnitId == m.UnitId)
+        {
+            _deferredMovementUnitId = null;
+        }
+
+        return true;
     }
 
     protected override void ProcessCommand(IGameCommand command)
@@ -72,7 +117,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 {
                     var truncatedSegments = moveCommand.MovementPath.Take(entry.SegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
-                    var truncatedCommand = moveCommand with { MovementPath = truncatedPath.ToData() };
+                    var truncatedCommand = moveCommand with
+                    {
+                        MovementPath = truncatedPath.ToData(),
+                        IsCompleted = false
+                    };
                     
                     Game.OnMoveUnit(truncatedCommand);
                     var broadcastCommand = truncatedCommand with { GameOriginId = Game.Id };
@@ -80,6 +129,20 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
+                    var canStandup = unit.CanStandup();
+                    if (!canStandup)
+                    {
+                        var completionCommand = truncatedCommand with
+                        {
+                            IsCompleted = true,
+                            MovementPath = [truncatedCommand.MovementPath[^1]]
+                        };
+                        Game.OnMoveUnit(completionCommand);
+                        broadcastCommand = completionCommand with { GameOriginId = Game.Id };
+                        Game.CommandPublisher.PublishCommand(broadcastCommand);
+
+                    }
+                    _requestDeferStepConsumption = canStandup;
                     return;
                 }
                 
@@ -89,7 +152,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
 
         Game.OnMoveUnit(moveCommand);
-        var fullBroadcastCommand = moveCommand with { GameOriginId = Game.Id };
+        var fullBroadcastCommand = moveCommand with
+        {
+            GameOriginId = Game.Id,
+            IsCompleted = true
+        };
         Game.CommandPublisher.PublishCommand(fullBroadcastCommand);
         
         if (unit != null && moveCommand.MovementType == MovementType.Jump)
@@ -135,7 +202,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             return;
         }
         
-        var broadcastCommand = tryStandUpCommand with { GameOriginId = Game.Id };
+        var broadcastCommand = tryStandUpCommand with
+        {
+            GameOriginId = Game.Id
+        };
         Game.CommandPublisher.PublishCommand(broadcastCommand);
 
         // Check if the unit can stand up (has sufficient MP, pilot is conscious, etc.)
@@ -208,4 +278,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     }
 
     public override PhaseNames Name => PhaseNames.Movement;
+
+    private void ClearMovementDeferralState()
+    {
+        _deferredMovementUnitId = null;
+        _requestDeferStepConsumption = false;
+    }
 }

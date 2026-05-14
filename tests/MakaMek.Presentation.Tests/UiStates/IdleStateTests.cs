@@ -1,5 +1,7 @@
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Presentation.UiStates;
 using Shouldly;
+using NSubstitute;
 
 namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
@@ -24,5 +26,12 @@ public class IdleStateTests
     {
         // Assert
         _sut.IsActionRequired.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var unit = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
     }
 }

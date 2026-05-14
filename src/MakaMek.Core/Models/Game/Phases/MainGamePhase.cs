@@ -36,7 +36,10 @@ public abstract class MainGamePhase : GamePhase
         if (playerId != Game.PhaseStepState?.ActivePlayer.Id) return;
 
         ProcessCommand(command);
-        
+
+        if (!ShouldFinalizeUnitsTurn(command))
+            return;
+
         _remainingUnits--;
         if (_remainingUnits <= 0)
         {
@@ -45,6 +48,12 @@ public abstract class MainGamePhase : GamePhase
         }
         Game.SetActivePlayer(Game.PhaseStepState?.ActivePlayer, _remainingUnits);
     }
+
+    /// <summary>
+    /// When false, the phase does not advance the per-step unit counter or republish the active player
+    /// after this command (e.g. walk into water fall with standup still pending).
+    /// </summary>
+    protected virtual bool ShouldFinalizeUnitsTurn(IGameCommand command) => true;
 
     protected abstract void ProcessCommand(IGameCommand command);
 }

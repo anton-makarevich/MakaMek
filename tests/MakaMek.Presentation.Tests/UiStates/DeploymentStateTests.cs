@@ -80,7 +80,9 @@ public class DeploymentStateTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(idempotencyKey);
         
         _game.JoinGameWithUnits(player,[],[]);
@@ -136,6 +138,13 @@ public class DeploymentStateTests
         // Assert
         ((IUiState)_sut).CanExecutePlayerAction.ShouldBeFalse();
         ((IUiState)_sut).PlayerActionLabel.ShouldBe("");
+    }
+
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var other = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(other).ShouldBeTrue();
     }
 
     [Fact]

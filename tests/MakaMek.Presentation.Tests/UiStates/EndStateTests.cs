@@ -91,7 +91,9 @@ public class EndStateTests
             Arg.Any<Type>(),
             Arg.Any<int>(),
             Arg.Any<string>(),
-            Arg.Any<Guid?>())
+            Arg.Any<Guid?>(),
+            Arg.Any<int>(),
+            Arg.Any<string?>())
             .Returns(idempotencyKey);
         
         _game.JoinGameWithUnits(_player,[],[]);
@@ -620,6 +622,13 @@ public class EndStateTests
 
         // Assert
         actions.ShouldNotContain(action => action.Label.Contains("Startup"));
+    }
+
+    [Fact]
+    public void CanSelectUnit_UsesDefaultInterfaceImplementation()
+    {
+        var unit = Substitute.For<IUnit>();
+        ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
     }
 
     private void SetPhase(PhaseNames phase)
