@@ -115,7 +115,8 @@ public class MovementPath : IEquatable<MovementPath>
         if (MovementType != path.MovementType)
             throw new ArgumentException("Movement types must match", nameof(path));
 
-        if (Destination != path.Start)
+        // Facing discontinuity is intentionally allowed to support the standup-after-fall scenario
+        if (Destination.Coordinates != path.Start.Coordinates)
             throw new ArgumentException("Paths are not continuous", nameof(path));
 
         // If the current path has only one 0-cost segment and start equals destination, return the new path

@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -117,7 +118,7 @@ public class UnitTests
     
     public static TestUnit CreateTestUnit(Guid? id = null, int walkMp = 4)
     {
-        var tonnage = 20;
+        const int tonnage = 20;
         var engineData = new ComponentData
         {
             Type = MakaMekComponent.Engine,
@@ -2907,6 +2908,71 @@ public class UnitTests
         // Assert
         result.ShouldContain(MovementType.Walk);
         result.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetHeatData_AfterFallAndContinuedMovement_ShouldReflectFullPath()
+    {
+        // Arrange - simulate truncated movement + continuation after standup
+        var sut = CreateTestUnit();
+        var rulesProvider = new TotalWarfareRulesProvider();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+
+        // First leg (before fall)
+        var firstLeg = new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
+        ], MovementType.Run);
+        sut.Move(firstLeg, null);
+
+        // Second leg (after standup continuation)
+        var secondLeg = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 2)
+        ], MovementType.Run);
+
+        // Act
+        sut.Move(secondLeg, null);
+        var heatData = sut.GetHeatData(rulesProvider);
+
+        // Assert - heat should reflect the combined path with Run movement type
+        heatData.MovementHeatSources.ShouldNotBeEmpty();
+        heatData.MovementHeatSources.Count.ShouldBe(1);
+        heatData.MovementHeatSources[0].MovementType.ShouldBe(MovementType.Run);
+        heatData.MovementHeatSources[0].MovementPointsSpent.ShouldBe(4);
+    }
+
+    [Fact]
+    public void AttackScenario_AfterFallAndContinuedMovement_ShouldUseFullHexesTraveled()
+    {
+        // Arrange - simulate target with truncated + continuation movement
+        var target = CreateTestUnit();
+        var targetDeploy = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        target.Deploy(targetDeploy, null);
+
+        // First leg (before fall)
+        var firstLeg = new MovementPath([
+            new PathSegment(targetDeploy, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+        target.Move(firstLeg, null);
+
+        // Second leg (after standup continuation)
+        var secondLeg = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+        target.Move(secondLeg, null);
+
+        // Create attacker for AttackScenario
+        var attacker = CreateTestUnit();
+        attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        var attackerPos = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        attacker.Deploy(attackerPos, null);
+        attacker.Move(MovementPath.CreateStandingStillPath(attackerPos), null);
+
+        // Act
+        var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso);
+
+        // Assert - TargetHexesMoved should include both legs
+        scenario.TargetHexesMoved.ShouldBe(2);
     }
 
     // Helper class for testing explodable components
