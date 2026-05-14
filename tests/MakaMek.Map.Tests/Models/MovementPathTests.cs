@@ -394,6 +394,58 @@ public class MovementPathTests
     }
     
     [Fact]
+    public void Append_ShouldSucceed_WhenCoordinatesMatchButFacingDiffers()
+    {
+        // Arrange - path1 ends at (2,2,Top), path2 starts at (2,2,Bottom)
+        var path1 = new MovementPath([
+            new PathSegment(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(2, 2), HexDirection.Top),
+                1)], MovementType.Walk);
+        var path2 = new MovementPath([
+            new PathSegment(
+                new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(3, 2), HexDirection.Bottom),
+                1)], MovementType.Walk);
+        
+        // Act
+        var combined = path1.Append(path2);
+        
+        // Assert
+        combined.Segments.Count.ShouldBe(2);
+        combined.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(2, 2));
+        combined.Segments[1].To.Coordinates.ShouldBe(new HexCoordinates(3, 2));
+        // Facing from first segment should be preserved
+        combined.Segments[0].To.Facing.ShouldBe(HexDirection.Top);
+        combined.Segments[1].From.Facing.ShouldBe(HexDirection.Bottom);
+    }
+
+    [Fact]
+    public void Append_ShouldSucceed_WhenFacingChangesAtContinuationPoint()
+    {
+        // Arrange - simulate standup scenario where facing changes after fall
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var path1 = new MovementPath([
+            new PathSegment(
+                deployPosition,
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
+                1)], MovementType.Walk);
+        // After fall+standup, mech faces a different direction but stays on same hex
+        var path2 = new MovementPath([
+            new PathSegment(
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom),
+                1)], MovementType.Walk);
+        
+        // Act
+        var combined = path1.Append(path2);
+        
+        // Assert
+        combined.Segments.Count.ShouldBe(2);
+        combined.Segments[1].From.Facing.ShouldBe(HexDirection.Bottom);
+    }
+
+    [Fact]
     public void RemoveTrailingTurns_ShouldRemoveTurnsAtTheEndOfThePath()
     {
         // Arrange

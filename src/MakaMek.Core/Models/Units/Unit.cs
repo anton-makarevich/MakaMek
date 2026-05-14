@@ -731,11 +731,21 @@ public abstract class Unit : IUnit
         if (Position == null)
         {
             throw new InvalidOperationException("Unit is not deployed.");
-        } 
+        }
+
+        if (MovementTaken != null 
+            && MovementTaken.Destination.Coordinates == movementPath.Start.Coordinates)
+        {
+            MovementTaken = MovementTaken.Append(movementPath);
+        }
+        else
+        {
+            MovementTaken = movementPath;
+        }
+
         var position = movementPath.MovementType==MovementType.StandingStill || movementPath.Segments.Count == 0
             ? Position
             : movementPath.Destination;
-        MovementTaken = movementPath;
         HasMoved = isCompleted;
         SpendMovementPoints(movementPath.TotalCost);
         Position = position;
