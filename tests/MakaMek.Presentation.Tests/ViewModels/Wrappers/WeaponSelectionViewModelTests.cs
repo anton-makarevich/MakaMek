@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
@@ -102,6 +103,53 @@ public class WeaponSelectionViewModelTests
 
         // Act & Assert
         _sut.RangeInfo.ShouldBe("9");
+    }
+
+    [Fact]
+    public void RangeInfo_ReturnsDash_WhenWeaponHasNoRange()
+    {
+        // Arrange
+        var structureValueProvider = Substitute.For<IRulesProvider>();
+        structureValueProvider.GetStructureValues(20).Returns(new Dictionary<PartLocation, int>
+        {
+            { PartLocation.Head, 8 },
+            { PartLocation.CenterTorso, 10 },
+            { PartLocation.LeftTorso, 8 },
+            { PartLocation.RightTorso, 8 },
+            { PartLocation.LeftArm, 4 },
+            { PartLocation.RightArm, 4 },
+            { PartLocation.LeftLeg, 8 },
+            { PartLocation.RightLeg, 8 }
+        });
+        var mechFactory = new MechFactory(
+            structureValueProvider,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var attacker = mechFactory.Create(mechData);
+
+        var weapon = new TestBallisticWeapon();
+        var part = attacker.Parts[PartLocation.LeftArm];
+        part.TryAddComponent(weapon);
+
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        _sut = new WeaponSelectionViewModel(
+            weapon,
+            true,
+            false,
+            true,
+            null,
+            (_, _) => { },
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
+            _localizationService,
+            _toHitCalculator);
+
+        // Act & Assert
+        _sut.RangeInfo.ShouldBe("-");
     }
 
     [Fact]
@@ -405,10 +453,11 @@ public class WeaponSelectionViewModelTests
          CreateSut(isEnabled: true);
          var wasActionCalled = false;
          var expectedValue = true;
+         var value = expectedValue;
          _selectionChangedAction = (weapon, selected) =>
          {
              weapon.ShouldBe(_weapon);
-             selected.ShouldBe(expectedValue);
+             selected.ShouldBe(value);
              wasActionCalled = true;
          };
          _sut.ModifiersBreakdown = CreateTestBreakdown(5);
@@ -421,7 +470,6 @@ public class WeaponSelectionViewModelTests
          wasActionCalled.ShouldBeTrue();
     
          // Test deselection
-         expectedValue = false;
          wasActionCalled = false;
          _sut.IsSelected = false;
     
