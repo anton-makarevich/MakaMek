@@ -736,6 +736,10 @@ public abstract class Unit : IUnit
         if (MovementTaken != null 
             && MovementTaken.Destination.Coordinates == movementPath.Start.Coordinates)
         {
+            if (MovementTaken.MovementType != movementPath.MovementType)
+            {
+                movementPath = new MovementPath(movementPath.Segments, MovementTaken.MovementType);
+            }
             MovementTaken = MovementTaken.Append(movementPath);
         }
         else
