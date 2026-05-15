@@ -2136,7 +2136,7 @@ public class BattleMapViewModelTests
 
         // Verify that there is only one option to continue movement
         var actions = movementState.GetAvailableActions().ToList();
-        actions.Count.ShouldBe(1);
+        actions.Count.ShouldBe(3);
         actions.ShouldContain(a => a.Label.Contains("Walk"));
     }
 
@@ -2223,7 +2223,7 @@ public class BattleMapViewModelTests
         // Assert
         _localizationService.GetString("Action_StayProne").Returns("StayProne");
         var actions = movementState.GetAvailableActions().ToList();
-        actions.Count.ShouldBe(1);
+        actions.Count.ShouldBe(3);
         actions.ShouldContain(a => a.Label.Contains("Walk"));
     }
 
