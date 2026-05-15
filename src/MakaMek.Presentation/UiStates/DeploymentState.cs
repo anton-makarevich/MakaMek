@@ -57,11 +57,6 @@ public class DeploymentState : IUiState
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
-    {
-        SelectedUnit = unit;
-    }
-
     public void HandleHexSelection(Hex hex)
     {
         if (!this.CanHumanPlayerAct()) return;

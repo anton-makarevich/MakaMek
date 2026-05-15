@@ -11,7 +11,6 @@ public interface IUiState
     bool CanExecutePlayerAction => false;
     string PlayerActionLabel => string.Empty;
     IUnit? SelectedUnit { get => null; set { } }
-    void HandleUnitSelection(IUnit? unit);
     void HandleHexSelection(Hex hex);
     void HandleFacingSelection(HexDirection direction);
 

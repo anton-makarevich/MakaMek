@@ -151,7 +151,7 @@ public class DeploymentStateTests
     public void HandleUnitSelection_TransitionsToHexSelection_IfActivePlayerIsLocal()
     {
         // Act
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
 
         // Assert
         _sut.ActionLabel.ShouldBe("Select Hex");
@@ -164,7 +164,7 @@ public class DeploymentStateTests
         var player = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Remote);
         SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Act
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
 
         // Assert
         _sut.ActionLabel.ShouldBe("");
@@ -174,7 +174,7 @@ public class DeploymentStateTests
     public void HandleHexSelection_ForDeployment_UpdatesStepToSelectDirection()
     {
         // Arrange
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
         
         // Act
         _sut.HandleHexSelection(_hex1);
@@ -222,7 +222,7 @@ public class DeploymentStateTests
     public void HandleHexSelection_WhenSelectingHex_ShowsDirectionSelector()
     {
         // Arrange
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
         
         // Act
         _sut.HandleHexSelection(_hex1);
@@ -237,7 +237,7 @@ public class DeploymentStateTests
     public void HandleHexSelection_WhenSelectingHexTwice_ShouldSelectSecondHex()
     {
         // Arrange
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
         
         // Act
         _sut.HandleHexSelection(_hex1);
@@ -251,7 +251,7 @@ public class DeploymentStateTests
     public void HandleFacingSelection_WhenDirectionSelected_CompletesDeployment()
     {
         // Arrange
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
         _sut.HandleHexSelection(_hex1);
     
         // Act
@@ -280,7 +280,7 @@ public class DeploymentStateTests
     public void HandleHexSelection_WhenHexIsOccupied_ShouldNotShowDirectionSelector()
     {
         // Arrange
-        _sut.HandleUnitSelection(_unit);
+        _sut.SelectedUnit = _unit;
         // Deploy first unit
         _sut.HandleHexSelection(_hex1);
         _sut.HandleFacingSelection(HexDirection.Top);
@@ -292,7 +292,7 @@ public class DeploymentStateTests
             _componentProvider,
             _localizationService).Create(MechFactoryTests.CreateDummyMechData());
         _sut = new DeploymentState(_battleMapViewModel);
-        _sut.HandleUnitSelection(secondUnit);
+        _sut.SelectedUnit = secondUnit;
         
         // Act
         _sut.HandleHexSelection(_hex1);

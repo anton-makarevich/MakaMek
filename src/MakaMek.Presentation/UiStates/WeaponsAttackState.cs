@@ -111,11 +111,6 @@ public class WeaponsAttackState : IUiState
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
-    {
-        SelectedUnit = unit;
-    }
-
     public void HandleHexSelection(Hex hex)
     {
         // Handle cancellation when a direction selector is shown (torso rotation step)
