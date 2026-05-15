@@ -363,10 +363,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         }
 
         if (success) return;
-        var failedCommand = _commandLog.FirstOrDefault(c =>
-            c is IClientCommand { IdempotencyKey: not null } cmd && cmd.IdempotencyKey == idempotencyKey);
+        
         Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected",
-            failedCommand?.GetType().Name ?? pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
+            pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
     }
 
     public void Dispose()

@@ -2943,10 +2943,15 @@ public class ClientGameTests
 
         // Verify that a warning was logged about the rejected command
         var logCalls = _logger.ReceivedCalls()
-            .Where(c => c.GetArguments().Length > 0
-                        && c.GetArguments()[0] is LogLevel.Warning)
+            .Where(c => c.GetArguments().Length > 2
+                        && c.GetArguments()[0] is LogLevel.Warning
+                        && c.GetArguments()[2]?.ToString()?.Contains("was rejected") == true
+                        && c.GetArguments()[2]?.ToString()?.Contains(_idempotencyKey.ToString()) == true)
             .ToList();
-        logCalls.Count.ShouldBe(1);
+        var logCall = logCalls.Single();
+        var stateMessage = logCall.GetArguments()[2]?.ToString();
+        stateMessage.ShouldNotBeNull();
+        stateMessage.ShouldContain(_idempotencyKey.ToString());
     }
 
     [Fact]
