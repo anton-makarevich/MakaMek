@@ -56,6 +56,12 @@ public class WeaponsAttackStateTests
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
+    private static void BindViewModelCurrentStateTo(WeaponsAttackState state, BattleMapViewModel viewModel)
+    {
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(viewModel, [state]);
+    }
+
     public WeaponsAttackStateTests()
     {
         var imageService = Substitute.For<IImageService>();
@@ -144,6 +150,7 @@ public class WeaponsAttackStateTests
         AddPlayerUnits(idempotencyKey);
         SetActivePlayer();
         _sut = new WeaponsAttackState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
 
     private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
@@ -410,7 +417,7 @@ public class WeaponsAttackStateTests
 
         // Assert - should cancel target selection when clicking outside weapon rangeBracket
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
-        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+        _battleMapViewModel.SelectedUnit.ShouldBe(attacker);
         _sut.Attacker.ShouldBe(attacker);
         _sut.SelectedTarget.ShouldBeNull();
     }

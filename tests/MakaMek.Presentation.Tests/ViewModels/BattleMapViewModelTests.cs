@@ -627,6 +627,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetButtonVisible_NoSelectedUnit_ReturnsFalse()
     {
         // Arrange
+        _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = PhaseNames.End });
         _sut.SelectedUnit = null;
         _sut.IsRecordSheetExpanded = false;
 
@@ -638,6 +639,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetPanelVisible_NoSelectedUnit_ReturnsFalse()
     {
         // Arrange
+        _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = PhaseNames.End });
         _sut.SelectedUnit = null;
         _sut.IsRecordSheetExpanded = false;
 
@@ -648,9 +650,11 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetButtonVisible_HasSelectedUnitButExpanded_ReturnsFalse()
     {
-        // Arrange
+        var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
-        _sut.SelectedUnit = unit;
+        mockState.SelectedUnit.Returns(unit);
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -660,9 +664,11 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetButtonVisible_HasSelectedUnitNotExpanded_ReturnsTrue()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -672,9 +678,11 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitButExpanded_ReturnsTrue()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -684,9 +692,11 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitNotExpanded_ReturnsFalse()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -1948,8 +1958,13 @@ public class BattleMapViewModelTests
         unit.AddEvent(damageEvent);
         unit.AddEvent(explosionEvent);
         
+        var mockState = Substitute.For<IUiState>();
+        mockState.SelectedUnit.Returns(unit);
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+
         // Act
-        _sut.SelectedUnit = unit;
+        _sut.NotifySelectedUnitChanged();
         
         // Assert
         _sut.SelectedUnitEvents.ShouldNotBeNull();

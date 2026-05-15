@@ -16,6 +16,18 @@ public class EndState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly ILocalizationService _localizationService;
 
+    public IUnit? SelectedUnit
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            _viewModel.NotifySelectedUnitChanged();
+            _viewModel.NotifyStateChanged();
+        }
+    }
+
     public IClientGame? Game => _viewModel.Game;
 
     public EndState(BattleMapViewModel viewModel)
@@ -41,7 +53,7 @@ public class EndState : IUiState
     public void HandleUnitSelection(IUnit? unit)
     {
         // In EndState, we allow selecting any unit on the map for viewing
-        _viewModel.NotifyStateChanged();
+        SelectedUnit = unit;
     }
 
     public void HandleHexSelection(Hex hex)
@@ -50,9 +62,7 @@ public class EndState : IUiState
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
 
         // If there's a unit at this hex, select it
-        _viewModel.SelectedUnit = unit ??
-                                  // If no unit at this hex, deselect the current unit
-                                  null;
+        SelectedUnit = unit;
     }
 
     public void HandleFacingSelection(HexDirection direction)
@@ -64,11 +74,11 @@ public class EndState : IUiState
     {
         var actions = new List<StateAction>();
 
-        if (_viewModel.IsGameOver || !IsActivePlayer || _viewModel.Game == null || _viewModel.SelectedUnit == null)
+        if (_viewModel.IsGameOver || !IsActivePlayer || _viewModel.Game == null || SelectedUnit == null)
             return actions;
 
         // Only show actions for units belonging to the active player
-        var selectedUnit = _viewModel.SelectedUnit;
+        var selectedUnit = SelectedUnit;
         var activePlayer = _viewModel.Game.PhaseStepState?.ActivePlayer;
 
         if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed)

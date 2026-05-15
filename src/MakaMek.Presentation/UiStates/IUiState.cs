@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -11,6 +10,7 @@ public interface IUiState
     bool IsActionRequired { get; }
     bool CanExecutePlayerAction => false;
     string PlayerActionLabel => string.Empty;
+    IUnit? SelectedUnit { get => null; set { } }
     void HandleUnitSelection(IUnit? unit);
     void HandleHexSelection(Hex hex);
     void HandleFacingSelection(HexDirection direction);

@@ -32,7 +32,6 @@ public class BattleMapViewModel : BaseViewModel
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
-    private IUnit? _selectedUnit;
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
@@ -414,6 +413,7 @@ public class BattleMapViewModel : BaseViewModel
     {
         CurrentState = newState;
         NotifyStateChanged();
+        NotifySelectedUnitChanged();
     }
 
     public void NotifyStateChanged()
@@ -523,23 +523,28 @@ public class BattleMapViewModel : BaseViewModel
 
     public IUnit? SelectedUnit
     {
-        get => _selectedUnit;
+        get => CurrentState?.SelectedUnit;
         set
         {
-            if (value == _selectedUnit) return;
+            if (CurrentState == null) return;
             if (value != null && !CurrentState.CanSelectUnit(value))
                 return;
-            SetProperty(ref _selectedUnit, value);
-            CurrentState.HandleUnitSelection(value);
-            NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
-            NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
-            NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
-
-            UpdateSelectedUnitEvents();
-
-            // Update heat projection for a selected unit
-            SelectedUnitHeatProjection.Unit = value;
+            CurrentState.SelectedUnit = value;
+            NotifySelectedUnitChanged();
         }
+    }
+
+    public void NotifySelectedUnitChanged()
+    {
+        NotifyPropertyChanged(nameof(SelectedUnit));
+        NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
+        NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
+        NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
+
+        UpdateSelectedUnitEvents();
+
+        // Update heat projection for a selected unit
+        SelectedUnitHeatProjection.Unit = SelectedUnit;
     }
     
     public IUnit? Attacker => CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
@@ -655,13 +660,13 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     private void UpdateSelectedUnitEvents()
     {
-        if (_selectedUnit == null)
+        if (SelectedUnit == null)
         {
             _selectedUnitEvents = [];
         }
         else
         {
-            _selectedUnitEvents = _selectedUnit.Events
+            _selectedUnitEvents = SelectedUnit.Events
                 .Select(e => new UiEventViewModel(e, _localizationService))
                 .ToList();
         }

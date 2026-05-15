@@ -152,6 +152,7 @@ public class MovementStateTests
 
         _battleMapViewModel.Game = _game;
         _sut = new MovementState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
 
     [Fact]

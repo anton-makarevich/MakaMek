@@ -115,19 +115,41 @@ public class MovementState : IUiState
         return Math.Max(0, _selectedUnit.GetMovementPoints(_selectedPath.MovementType) - _selectedPath.TotalCost);
     }
 
+    public IUnit? SelectedUnit
+    {
+        get => _selectedUnit;
+        set
+        {
+            lock (_stateLock)
+            {
+                if (!this.CanHumanPlayerAct()) return;
+                if (value == null)
+                {
+                    ResetUnitSelection();
+                    return;
+                }
+                
+                if (value.Status == UnitStatus.Destroyed) return;
+                if (value.HasMoved && value.Id != _deferredMovementUnitId) return;
+
+                _selectedUnit = value;
+                _builder.SetUnit(value);
+                _isPostStandupMovement = false;
+                TransitionTo(new SelectingMovementTypeStep(this));
+                _viewModel.NotifySelectedUnitChanged();
+            }
+        }
+    }
+
     public void HandleUnitSelection(IUnit? unit)
     {
-        lock (_stateLock)
+        if (unit == _selectedUnit)
         {
-            if (!this.CanHumanPlayerAct()) return;
-            if (unit == null) return;
-            if (unit.Status == UnitStatus.Destroyed) return;
-            if (unit.HasMoved) return;
-
-            _selectedUnit = unit;
-            _builder.SetUnit(unit);
-            _isPostStandupMovement = false; // Reset post-standup state when selecting a new unit
-            TransitionTo(new SelectingMovementTypeStep(this));
+            SelectedUnit = null;
+        }
+        else
+        {
+            SelectedUnit = unit;
         }
     }
 
@@ -175,12 +197,20 @@ public class MovementState : IUiState
     private bool HandleUnitSelectionFromHex(Hex hex)
     {
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
-        if (unit == null 
-            || unit == _selectedUnit
-            || unit.Owner?.Id != _viewModel.Game?.PhaseStepState?.ActivePlayer.Id) return false;
+        if (unit == null) return false;
+        
+        if (unit == _selectedUnit)
+        {
+            if (CurrentMovementStep != MovementStep.SelectingUnit) return false;
+            SelectedUnit = null;
+            return true;
+        }
+
+        if (unit.Owner?.Id != _viewModel.Game?.PhaseStepState?.ActivePlayer.Id) return false;
         if (!CanSelectUnit(unit)) return false;
-        ResetUnitSelection();
-        _viewModel.SelectedUnit=unit;
+        
+        SelectedUnit = null;
+        SelectedUnit = unit;
         return true;
     }
 
@@ -189,13 +219,15 @@ public class MovementState : IUiState
         if (_isPostStandupMovement) return;
         lock (_stateLock)
         {
-            if (_viewModel.SelectedUnit == null) return;
-            _viewModel.SelectedUnit = null;
+            if (_selectedUnit == null) return;
             _selectedUnit = null;
+            _deferredMovementUnitId = null;
+            _builder.Reset();
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
             ClearHighlighting();
             TransitionTo(new SelectingUnitStep(this));
+            _viewModel.NotifySelectedUnitChanged();
         }
     }
 
@@ -244,6 +276,7 @@ public class MovementState : IUiState
             _builder.Reset();
             ClearHighlighting();
             _selectedUnit = null;
+            _viewModel.NotifySelectedUnitChanged();
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             TransitionTo(new CompletedStep(this));
         }

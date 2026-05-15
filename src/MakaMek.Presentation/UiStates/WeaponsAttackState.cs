@@ -73,38 +73,47 @@ public class WeaponsAttackState : IUiState
         }
     }
 
+    public IUnit? SelectedUnit
+    {
+        get => CurrentStep == WeaponsAttackStep.TargetSelection ? SelectedTarget : Attacker;
+        set
+        {
+            lock (_stateLock)
+            {
+                if (!this.CanHumanPlayerAct()) return;
+                if (value == null) return;
+                if (value.IsDestroyed) return;
+
+                if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+                {
+                    if (value.HasDeclaredWeaponAttack) return;
+
+                    Attacker = value;
+                    CreateWeaponViewModels();
+                    CurrentStep = WeaponsAttackStep.ActionSelection;
+
+                    if (value.CanFireWeapons)
+                    {
+                        // Highlight weapon ranges for the newly selected unit
+                        HighlightWeaponRanges();
+                    }
+                }
+
+                if (CurrentStep == WeaponsAttackStep.TargetSelection)
+                {
+                    SelectedTarget = value;
+                    UpdateWeaponViewModels();
+                    _viewModel.IsWeaponSelectionVisible = true;
+                }
+
+                _viewModel.NotifyStateChanged();
+            }
+        }
+    }
+
     public void HandleUnitSelection(IUnit? unit)
     {
-        lock (_stateLock)
-        {
-            if (!this.CanHumanPlayerAct()) return;
-            if (unit == null) return;
-            if (unit.IsDestroyed) return;
-
-            if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
-            {
-                if (unit.HasDeclaredWeaponAttack) return;
-
-                Attacker = unit;
-                CreateWeaponViewModels();
-                CurrentStep = WeaponsAttackStep.ActionSelection;
-
-                if (unit.CanFireWeapons)
-                {
-                    // Highlight weapon ranges for the newly selected unit
-                    HighlightWeaponRanges();
-                }
-            }
-
-            if (CurrentStep == WeaponsAttackStep.TargetSelection)
-            {
-                SelectedTarget = unit;
-                UpdateWeaponViewModels();
-                _viewModel.IsWeaponSelectionVisible = true;
-            }
-
-            _viewModel.NotifyStateChanged();
-        }
+        SelectedUnit = unit;
     }
 
     public void HandleHexSelection(Hex hex)
@@ -147,7 +156,7 @@ public class WeaponsAttackState : IUiState
                     ResetUnitSelection();
                 }
 
-                _viewModel.SelectedUnit = unit;
+                SelectedUnit = unit;
                 return;
             }
 
@@ -156,8 +165,7 @@ public class WeaponsAttackState : IUiState
                 if (unit.Owner == Game.PhaseStepState?.ActivePlayer) return;
                 if (!IsHexInWeaponRange(hex.Coordinates)) return;
 
-                _viewModel.SelectedUnit = null;
-                _viewModel.SelectedUnit = unit;
+                SelectedUnit = unit;
             }
 
             _viewModel.NotifyStateChanged();
@@ -517,7 +525,15 @@ public class WeaponsAttackState : IUiState
             .ToList();
     }
     
-    public IUnit? Attacker { get; private set; }
+    public IUnit? Attacker
+    {
+        get;
+        private set
+        {
+            field = value;
+            _viewModel.NotifySelectedUnitChanged();
+        }
+    }
 
     public IUnit? SelectedTarget
     {
@@ -525,8 +541,8 @@ public class WeaponsAttackState : IUiState
         private set
         {
             field = value;
-            _viewModel.SelectedUnit = value;
             UpdateSelectedTargetViewModel();
+            _viewModel.NotifySelectedUnitChanged();
         }
     }
 
