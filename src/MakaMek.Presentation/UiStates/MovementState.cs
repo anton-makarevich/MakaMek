@@ -470,7 +470,8 @@ public class MovementState : IUiState
             _selectedPath = new MovementPath([
                 new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
                 movementType);
-            // Ensure the builder has the movement type set
+            // Ensure the builder has the unit and movement type set
+            _builder.SetUnit(_selectedUnit);
             _builder.SetMovementPath(_selectedPath);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
@@ -555,6 +556,7 @@ public class MovementState : IUiState
 
             if (!mech.CanStandup())
             {
+                _builder.SetUnit(_selectedUnit);
                 _builder.SetMovementPath(_selectedPath);
                 CompleteMovement();
                 return;
