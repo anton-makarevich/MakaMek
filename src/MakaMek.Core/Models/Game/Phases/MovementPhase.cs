@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
-using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
@@ -30,6 +29,16 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         base.Exit();
     }
 
+    private bool HasUnitMoved(Guid playerId, Guid unitId, string commandType)
+    {
+        var player = Game.Players.FirstOrDefault(p => p.Id == playerId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == unitId);
+        if (unit is not { HasMoved: true }) return false;
+        Game.Logger.LogWarning(
+            "Ignoring {CommandType} command for unit {UnitId} — movement already completed", commandType, unit.Id);
+        return true;
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
         if (_deferredMovementUnitId is { } deferredId)
@@ -42,31 +51,19 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             }
         }
 
-        IPlayer? player;
-        IUnit? unit;
         switch (command)
         {
             case MoveUnitCommand moveCommand:
-                player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
-                unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
                 // Guard against processing commands for a unit that has already completed movement
-                if (unit is { HasMoved: true })
-                {
-                    Game.Logger.LogWarning(
-                        "Ignoring move command for unit {UnitId} — movement already completed", moveCommand.UnitId);
+                if (HasUnitMoved(moveCommand.PlayerId, moveCommand.UnitId, "MoveUnitCommand"))
                     return;
-                }
+                
                 HandleUnitAction(command, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
-                player = Game.Players.FirstOrDefault(p => p.Id == standupCommand.PlayerId);
-                unit = player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId);
-                if (unit is { HasMoved: true })
-                {
-                    Game.Logger.LogWarning(
-                        "Ignoring standup command for unit {UnitId} — movement already completed", unit.Id);
+                if (HasUnitMoved(standupCommand.PlayerId, standupCommand.UnitId, "TryStandupCommand"))
                     return;
-                }
+                
                 ProcessStandupCommand(standupCommand);
                 break;
         }
