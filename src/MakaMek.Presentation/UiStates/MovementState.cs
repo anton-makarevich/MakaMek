@@ -421,7 +421,7 @@ public class MovementState : IUiState
             // Run
             if (_selectedUnit is Mech { CanRun: true })
             {
-                actions.Add(new(
+                actions.Add(new StateAction(
                     string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
                         _viewModel.LocalizationService.GetString("MovementType_Run"),
                         _selectedUnit.GetMovementPoints(MovementType.Run)),

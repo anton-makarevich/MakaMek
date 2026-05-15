@@ -2161,5 +2161,82 @@ public class MovementStateTests
 
         _battleMapViewModel.SelectedUnit.ShouldBe(mech1);
     }
+
+    [Fact]
+    public void StandupWithZeroRemainingMp_CompletesMovement_WithCompletedCommand()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+
+        var lowMpEquipment = new List<ComponentData>
+        {
+            new()
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments =
+                [
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+                ],
+                SpecificData = new EngineStateData(EngineType.Fusion, 40)
+            }
+        };
+        var unitData = MechFactoryTests.CreateDummyMechData(lowMpEquipment, true);
+        var mech = new MechFactory(_rulesProvider, _componentProvider, _localizationService)
+            .Create(unitData);
+        mech.AssignPilot(_pilot);
+        _player.AddUnit(mech);
+
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        mech.Deploy(position, null);
+        mech.SetProne();
+
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2);
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelection(mech);
+        _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+
+        mech.AttemptStandup();
+        mech.StandUp(HexDirection.Bottom);
+
+        _sut.ResumeMovementAfterStandup();
+
+        _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.IsCompleted && cmd.MovementType == MovementType.Walk));
+    }
+
+    [Fact]
+    public void BuilderHasUnitIdAfterStandup_AllowsBuildingCommand()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var proneMech = _battleMapViewModel.Units.First() as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+        proneMech!.Deploy(position, null);
+        proneMech.AssignPilot(_pilot);
+        proneMech.SetProne();
+
+        _sut.HandleUnitSelection(proneMech);
+        _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        proneMech.AttemptStandup();
+        proneMech.StandUp(HexDirection.Bottom);
+        _sut.ResumeMovementAfterStandup();
+
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.ExecutePlayerAction();
+
+        _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.MovementType == MovementType.Walk && cmd.UnitId == proneMech.Id));
+    }
 }
 
