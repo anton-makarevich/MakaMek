@@ -453,11 +453,10 @@ public class WeaponSelectionViewModelTests
          CreateSut(isEnabled: true);
          var wasActionCalled = false;
          var expectedValue = true;
-         var value = expectedValue;
          _selectionChangedAction = (weapon, selected) =>
          {
              weapon.ShouldBe(_weapon);
-             selected.ShouldBe(value);
+             selected.ShouldBe(expectedValue);
              wasActionCalled = true;
          };
          _sut.ModifiersBreakdown = CreateTestBreakdown(5);
@@ -471,6 +470,7 @@ public class WeaponSelectionViewModelTests
     
          // Test deselection
          wasActionCalled = false;
+         expectedValue = false;
          _sut.IsSelected = false;
     
          _sut.IsSelected.ShouldBeFalse();
