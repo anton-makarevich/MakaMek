@@ -2976,6 +2976,34 @@ public class UnitTests
     }
 
     [Fact]
+    public void Move_WhenUnitHasAlreadyMoved_ShouldNotChangeState()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        var finalPosition = new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom);
+
+        // First move completes movement
+        sut.Move(new MovementPath([
+            new PathSegment(deployPosition, finalPosition, 2)
+        ], MovementType.Walk), null);
+        sut.HasMoved.ShouldBeTrue();
+        sut.MovementPointsSpent.ShouldBe(2);
+
+        // Act - second move should be no-op
+        var newPosition = new HexPosition(new HexCoordinates(5, 1), HexDirection.Bottom);
+        sut.Move(new MovementPath([
+            new PathSegment(finalPosition, newPosition, 2)
+        ], MovementType.Walk), null);
+
+        // Assert - state should remain unchanged from the first move
+        sut.HasMoved.ShouldBeTrue();
+        sut.MovementPointsSpent.ShouldBe(2);
+        sut.Position!.Coordinates.ShouldBe(finalPosition.Coordinates);
+    }
+
+    [Fact]
     public void Move_WithDifferentMovementTypeOnAppend_PreservesOriginalMovementType()
     {
         var sut = CreateTestUnit();

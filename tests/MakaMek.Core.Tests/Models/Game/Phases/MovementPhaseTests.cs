@@ -1457,6 +1457,94 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenUnitAlreadyMoved_ShouldIgnoreMoveCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        // First move completes normally
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        });
+        unit.HasMoved.ShouldBeTrue();
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act - send another move command for the same unit
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(3, 1, HexDirection.Bottom), new HexPosition(4, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        });
+
+        // Assert - no additional move command should be published, unit position unchanged
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.MovementPath[0].To.Coordinates.Q == 4));
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(3, 1));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenUnitAlreadyMoved_ShouldIgnoreStandupCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        // Complete movement first
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        });
+        unit.HasMoved.ShouldBeTrue();
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act - try standup after movement
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert - no standup or fall commands should be published
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        unit.StandupAttempts.ShouldBe(0);
+    }
+
+    [Fact]
     public void Exit_ShouldClearDeferralState()
     {
         SetMap();
