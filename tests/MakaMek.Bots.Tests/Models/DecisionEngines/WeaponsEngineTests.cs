@@ -637,7 +637,7 @@ public class WeaponsEngineTests
     {
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var pathPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
-        var movementPath = MovementPath.CreateStandingStillPath(pathPosition); 
+        var movementPath = MovementPath.CreateSingleSegmentPath(pathPosition); 
         var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false, position: position);
         attacker.MovementTaken.Returns(movementPath);
     

@@ -162,11 +162,11 @@ public class MovementPath : IEquatable<MovementPath>
         return HashCode.Combine(Start, Destination, IsJump, MaxLevelChange);
     }
     
-    public static MovementPath CreateStandingStillPath(HexPosition position)
+    public static MovementPath CreateSingleSegmentPath(HexPosition position, MovementType movementType = MovementType.StandingStill)
     {
         return new MovementPath(new List<PathSegment>
         {
             new(position, position, 0)
-        }, MovementType.StandingStill);
+        }, movementType);
     }
 }

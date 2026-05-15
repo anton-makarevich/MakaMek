@@ -437,7 +437,7 @@ public class MechTests
         sut.CanStandup().ShouldBeTrue();
         
         // Act
-        sut.Move(MovementPath.CreateStandingStillPath(deployPosition), null, isCompleted: true);
+        sut.Move(MovementPath.CreateSingleSegmentPath(deployPosition), null, isCompleted: true);
 
         // Assert
         sut.HasMoved.ShouldBeTrue();

@@ -40,7 +40,7 @@ public class TacticalEvaluatorTests
         // Arrange
         _game.BattleMap.Returns((IBattleMap?)null);
         var unit = Substitute.For<IUnit>();
-        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        var path = MovementPath.CreateSingleSegmentPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
 
         // Act
         var result = _sut.EvaluatePath(unit, path,[]);
@@ -55,7 +55,7 @@ public class TacticalEvaluatorTests
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
-        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        var path = MovementPath.CreateSingleSegmentPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
@@ -98,7 +98,7 @@ public class TacticalEvaluatorTests
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
-        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        var path = MovementPath.CreateSingleSegmentPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
@@ -131,7 +131,7 @@ public class TacticalEvaluatorTests
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
-        var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        var path = MovementPath.CreateSingleSegmentPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         var enemy = MovementEngineTests.CreateTestMech();
         // 11 hexes away
@@ -334,7 +334,7 @@ public class TacticalEvaluatorTests
         var startPosition = new HexPosition(new HexCoordinates(7, 15), HexDirection.Top);
         unit.Position.Returns(startPosition);
         var destinationPosition = new HexPosition(new HexCoordinates(6, 16), HexDirection.BottomRight);
-        var path = MovementPath.CreateStandingStillPath(destinationPosition);
+        var path = MovementPath.CreateSingleSegmentPath(destinationPosition);
         
         // Enemy at (0112) facing BottomRight - should be in the rear arc of destination position
         var enemy = MovementEngineTests.CreateTestMech();

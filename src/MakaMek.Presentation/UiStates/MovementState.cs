@@ -165,7 +165,7 @@ public class MovementState : IUiState
         if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination)
         {
             if (_selectedUnit?.Position == null) return;
-            path = MovementPath.CreateStandingStillPath(_selectedUnit.Position);
+            path = MovementPath.CreateSingleSegmentPath(_selectedUnit.Position);
             _builder.SetMovementPath(path);
         }
 
@@ -661,7 +661,7 @@ public class MovementState : IUiState
             if (movementType == MovementType.StandingStill)
             {
                 // For standing still, we create an empty movement path
-                var path = MovementPath.CreateStandingStillPath(State._selectedUnit.Position);
+                var path = MovementPath.CreateSingleSegmentPath(State._selectedUnit.Position);
                 State._builder.SetMovementPath(path);
                 State.CompleteMovement();
                 return;

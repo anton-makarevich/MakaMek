@@ -2153,7 +2153,7 @@ public class MovementStateTests
         mech1.SetProne();
         _sut.ResumeMovementAfterFall(mech1.Id);
 
-        mech1.Move(MovementPath.CreateStandingStillPath(mech1.Position!), null, isCompleted: true);
+        mech1.Move(MovementPath.CreateSingleSegmentPath(mech1.Position!), null, isCompleted: true);
         mech1.HasMoved.ShouldBeTrue();
 
         _battleMapViewModel.SelectedUnit = null;

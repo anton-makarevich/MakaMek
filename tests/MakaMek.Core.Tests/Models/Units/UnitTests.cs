@@ -2966,7 +2966,7 @@ public class UnitTests
         attacker.AssignPilot(new MechWarrior("John", "Doe"));
         var attackerPos = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         attacker.Deploy(attackerPos, null);
-        attacker.Move(MovementPath.CreateStandingStillPath(attackerPos), null);
+        attacker.Move(MovementPath.CreateSingleSegmentPath(attackerPos), null);
 
         // Act
         var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso);
