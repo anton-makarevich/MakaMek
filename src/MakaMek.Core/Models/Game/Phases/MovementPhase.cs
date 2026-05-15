@@ -104,6 +104,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         // Find the unit
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
+        
+        // Guard against processing movement for a unit that has already completed movement
+        if (unit is { HasMoved: true }) return;
 
         if (unit != null && moveCommand.MovementType != MovementType.Jump)
         {
@@ -203,6 +206,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             Game.Logger.LogWarning("Unit not found");
             return;
         }
+
+        // Guard against processing standup for a unit that has already completed movement
+        if (unit.HasMoved) return;
         
         var broadcastCommand = tryStandUpCommand with
         {

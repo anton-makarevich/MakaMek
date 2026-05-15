@@ -2919,11 +2919,11 @@ public class UnitTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         sut.Deploy(deployPosition, null);
 
-        // First leg (before fall)
+        // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
             new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
         ], MovementType.Run);
-        sut.Move(firstLeg, null);
+        sut.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
@@ -2949,11 +2949,11 @@ public class UnitTests
         var targetDeploy = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         target.Deploy(targetDeploy, null);
 
-        // First leg (before fall)
+        // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
             new PathSegment(targetDeploy, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
         ], MovementType.Walk);
-        target.Move(firstLeg, null);
+        target.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
@@ -2985,7 +2985,7 @@ public class UnitTests
         var firstLeg = new MovementPath([
             new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
         ], MovementType.Run);
-        sut.Move(firstLeg, null);
+        sut.Move(firstLeg, null, false);
 
         var secondLeg = new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)

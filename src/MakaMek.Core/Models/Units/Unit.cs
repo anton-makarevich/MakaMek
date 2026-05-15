@@ -733,6 +733,8 @@ public abstract class Unit : IUnit
             throw new InvalidOperationException("Unit is not deployed.");
         }
 
+        if (HasMoved) return;
+
         if (MovementTaken != null 
             && MovementTaken.Destination.Coordinates == movementPath.Start.Coordinates)
         {
