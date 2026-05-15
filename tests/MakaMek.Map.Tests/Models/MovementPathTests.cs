@@ -322,13 +322,13 @@ public class MovementPathTests
     }
     
     [Fact]
-    public void CreateStandingStillPath_ShouldCreatePathWithSingleSegment()
+    public void CreateSingleSegmentPath_ShouldCreatePath_WithSingleSegment_AndDefaultMovementType()
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         
         // Act
-        var path = MovementPath.CreateStandingStillPath(position);
+        var path = MovementPath.CreateSingleSegmentPath(position);
         
         // Assert
         path.Segments.Count.ShouldBe(1);
@@ -336,6 +336,24 @@ public class MovementPathTests
         path.Segments[0].To.ShouldBe(position);
         path.Segments[0].Cost.ShouldBe(0);
         path.MovementType.ShouldBe(MovementType.StandingStill);
+    }
+
+    [Fact]
+    public void CreateSingleSegmentPath_ShouldCreatePath_WithProvidedMovementType()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        const MovementType movementType = MovementType.Walk;
+        
+        // Act
+        var path = MovementPath.CreateSingleSegmentPath(position, movementType);
+        
+        // Assert
+        path.Segments.Count.ShouldBe(1);
+        path.Segments[0].From.ShouldBe(position);
+        path.Segments[0].To.ShouldBe(position);
+        path.Segments[0].Cost.ShouldBe(0);
+        path.MovementType.ShouldBe(movementType);
     }
     
     [Fact]

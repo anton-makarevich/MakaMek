@@ -34,7 +34,7 @@ public class WeaponsAttackTools
             throw new InvalidOperationException($"Unit {unitId} not found or not on map.");
 
         // Get attacker's movement path (or standing still)
-        var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
+        var attackerPath = attacker.MovementTaken ?? MovementPath.CreateSingleSegmentPath(attacker.Position);
 
         // Find enemy units
         var enemyUnits = game.Players

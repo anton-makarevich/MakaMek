@@ -100,7 +100,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 continue;
             }
 
-            var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
+            var targetPath = target.MovementTaken ?? MovementPath.CreateSingleSegmentPath(target.Position);
             var viableWeapons = EvaluateWeaponsForTarget(attacker,
                 attackerPath,
                 targetPath,
@@ -169,7 +169,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             if (enemy.Position == null)
                 continue;
             
-            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
+            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateSingleSegmentPath(enemy.Position);
 
             // Determine which arc of the friendly unit would be hit
             var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);

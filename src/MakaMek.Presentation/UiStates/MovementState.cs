@@ -165,7 +165,7 @@ public class MovementState : IUiState
         if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination)
         {
             if (_selectedUnit?.Position == null) return;
-            path = MovementPath.CreateStandingStillPath(_selectedUnit.Position);
+            path = MovementPath.CreateSingleSegmentPath(_selectedUnit.Position);
             _builder.SetMovementPath(path);
         }
 
@@ -421,7 +421,7 @@ public class MovementState : IUiState
             // Run
             if (_selectedUnit is Mech { CanRun: true })
             {
-                actions.Add(new(
+                actions.Add(new StateAction(
                     string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
                         _viewModel.LocalizationService.GetString("MovementType_Run"),
                         _selectedUnit.GetMovementPoints(MovementType.Run)),
@@ -470,7 +470,8 @@ public class MovementState : IUiState
             _selectedPath = new MovementPath([
                 new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
                 movementType);
-            // Ensure the builder has the movement type set
+            // Ensure the builder has the unit and movement type set
+            _builder.SetUnit(_selectedUnit);
             _builder.SetMovementPath(_selectedPath);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
@@ -555,6 +556,7 @@ public class MovementState : IUiState
 
             if (!mech.CanStandup())
             {
+                _builder.SetUnit(_selectedUnit);
                 _builder.SetMovementPath(_selectedPath);
                 CompleteMovement();
                 return;
@@ -659,7 +661,7 @@ public class MovementState : IUiState
             if (movementType == MovementType.StandingStill)
             {
                 // For standing still, we create an empty movement path
-                var path = MovementPath.CreateStandingStillPath(State._selectedUnit.Position);
+                var path = MovementPath.CreateSingleSegmentPath(State._selectedUnit.Position);
                 State._builder.SetMovementPath(path);
                 State.CompleteMovement();
                 return;

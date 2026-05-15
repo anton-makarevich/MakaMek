@@ -2966,13 +2966,37 @@ public class UnitTests
         attacker.AssignPilot(new MechWarrior("John", "Doe"));
         var attackerPos = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         attacker.Deploy(attackerPos, null);
-        attacker.Move(MovementPath.CreateStandingStillPath(attackerPos), null);
+        attacker.Move(MovementPath.CreateSingleSegmentPath(attackerPos), null);
 
         // Act
         var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso);
 
         // Assert - TargetHexesMoved should include both legs
         scenario.TargetHexesMoved.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Move_WithDifferentMovementTypeOnAppend_PreservesOriginalMovementType()
+    {
+        var sut = CreateTestUnit();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+
+        var firstLeg = new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
+        ], MovementType.Run);
+        sut.Move(firstLeg, null);
+
+        var secondLeg = new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+        ], MovementType.Walk);
+
+        sut.Move(secondLeg, null);
+
+        sut.MovementTaken.ShouldNotBeNull();
+        sut.MovementTaken.MovementType.ShouldBe(MovementType.Run);
+        sut.MovementTaken.TotalCost.ShouldBe(3);
+        sut.MovementPointsSpent.ShouldBe(3);
     }
 
     // Helper class for testing explodable components

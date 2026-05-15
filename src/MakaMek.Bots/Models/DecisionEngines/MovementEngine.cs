@@ -326,7 +326,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Send a StandingStill movement command
-        await MoveUnit(player, unmovedUnit, MovementPath.CreateStandingStillPath(position));
+        await MoveUnit(player, unmovedUnit, MovementPath.CreateSingleSegmentPath(position));
     }
 }
 
