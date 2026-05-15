@@ -255,7 +255,10 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         var pendingCommand = new PendingCommand(tcs, typeof(T).Name);
         if (!_pendingCommands.TryAdd(idempotencyKey, pendingCommand))
         {
-            return await _pendingCommands[idempotencyKey].Tcs.Task.ConfigureAwait(false);
+            if (_pendingCommands.TryGetValue(idempotencyKey, out var existingPending))
+                return await existingPending.Tcs.Task.ConfigureAwait(false);
+            // Key was removed between TryAdd failure and lookup; treat as not pending.
+            return false;
         }
 
         // Return the task that will be completed when the server responds
