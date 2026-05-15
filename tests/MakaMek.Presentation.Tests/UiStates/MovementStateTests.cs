@@ -2060,32 +2060,28 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_PostFallProneMech_DoesNotShowChangeFacingAction_WhenNoMP()
+    public void GetAvailableActions_ProneMech_DoesNotShowChangeFacingAction_WhenNoMP()
     {
         // Arrange
         SetPhase(PhaseNames.Movement);
         SetActivePlayer();
         var mech = _unit1 as Mech;
         mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
-        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
-            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
 
-        // Destroy both legs so mech has 0 walk MP
+        // Destroy both legs so mech has 0 walk MP (but not both arms, so IsImmobile is false)
         var leftLeg = mech.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(20, HitDirection.Front);
         var rightLeg = mech.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(20, HitDirection.Front);
 
         _sut.HandleUnitSelection(mech);
-        _sut.HandleMovementTypeSelection(MovementType.Walk);
         mech.SetProne();
-
-        _sut.ResumeMovementAfterFall(mech.Id);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
+        actions.ShouldNotBeEmpty("Prone mech should have at least 'Stay Prone' available");
         actions.ShouldNotContain(a => a.Label.Contains("Change Facing"));
     }
 
