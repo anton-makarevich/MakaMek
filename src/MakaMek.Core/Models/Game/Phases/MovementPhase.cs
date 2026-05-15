@@ -120,7 +120,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var truncatedCommand = moveCommand with
                     {
                         MovementPath = truncatedPath.ToData(),
-                        IsCompleted = false
+                        IsCompleted = false,
+                        IdempotencyKey = null
                     };
                     
                     Game.OnMoveUnit(truncatedCommand);
@@ -130,12 +131,13 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var fallCommand = fallContextData.ToMechFallCommand();
                     ProcessFallCommand(fallCommand, unit);
                     var canStandup = unit.CanStandup();
-                    if (!canStandup)
+                    if (!canStandup && unit.Position != null)
                     {
                         var completionCommand = truncatedCommand with
                         {
                             IsCompleted = true,
-                            MovementPath = [truncatedCommand.MovementPath[^1]]
+                            MovementPath = MovementPath.CreateSingleSegmentPath(unit.Position, truncatedCommand.MovementType).ToData(),
+                            IdempotencyKey = null
                         };
                         Game.OnMoveUnit(completionCommand);
                         broadcastCommand = completionCommand with { GameOriginId = Game.Id };
