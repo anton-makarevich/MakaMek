@@ -44,8 +44,9 @@ public class ClientGameTests
     private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly ILogger<ClientGame> _logger;
     private readonly Guid _idempotencyKey = Guid.NewGuid();
-    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
+    private static readonly BattleMapFactory BattleMapFactory = new();
     
     // Keep this longer than WaitForPublishedCommand's worst-case polling window,
     // so pending client commands are still tracked when tests simulate a rebroadcast.
@@ -63,6 +64,7 @@ public class ClientGameTests
             Arg.Any<string?>())
             .Returns(_idempotencyKey);
         
+        _logger = Substitute.For<ILogger<ClientGame>>();
         var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         IMechFactory mechFactory = new MechFactory(
@@ -79,7 +81,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService,
-            Substitute.For<ILogger<ClientGame>>(), CommandAckTimeout);
+            _logger, CommandAckTimeout);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -2938,6 +2940,13 @@ public class ClientGameTests
 
         var result = await deployTask;
         result.ShouldBeFalse();
+
+        // Verify that a warning was logged about the rejected command
+        var logCalls = _logger.ReceivedCalls()
+            .Where(c => c.GetArguments().Length > 0
+                        && c.GetArguments()[0] is LogLevel.Warning)
+            .ToList();
+        logCalls.Count.ShouldBe(1);
     }
 
     [Fact]

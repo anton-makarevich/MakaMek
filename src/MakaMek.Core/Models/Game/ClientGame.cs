@@ -358,6 +358,12 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         {
             tcs.TrySetResult(success);
         }
+
+        if (success) return;
+        var failedCommand = _commandLog.FirstOrDefault(c =>
+            c is IClientCommand { IdempotencyKey: not null } cmd && cmd.IdempotencyKey == idempotencyKey);
+        Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected",
+            failedCommand?.GetType().Name ?? "Unknown", idempotencyKey);
     }
 
     public void Dispose()
