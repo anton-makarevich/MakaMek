@@ -145,24 +145,29 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     };
                     
                     Game.OnMoveUnit(truncatedCommand);
-                    var broadcastCommand = truncatedCommand with { GameOriginId = Game.Id };
-                    Game.CommandPublisher.PublishCommand(broadcastCommand);
                     
                     var fallCommand = fallContextData.ToMechFallCommand();
-                    ProcessFallCommand(fallCommand, unit);
+                    ProcessFallCommand(fallCommand, unit,false);
+                    
                     var canStandup = unit.CanStandup();
+                    
+                    var broadcastCommand = truncatedCommand with
+                    {
+                        GameOriginId = Game.Id,
+                        IsCompleted = !canStandup
+                    };
+                    Game.CommandPublisher.PublishCommand(broadcastCommand);
+                    Game.CommandPublisher.PublishCommand(fallCommand);
+                    
                     if (!canStandup && unit.Position != null)
                     {
                         var completionCommand = truncatedCommand with
                         {
                             IsCompleted = true,
-                            MovementPath = MovementPath.CreateSingleSegmentPath(unit.Position, truncatedCommand.MovementType).ToData(),
-                            IdempotencyKey = null
+                            MovementPath = MovementPath.CreateSingleSegmentPath(unit.Position, truncatedCommand.MovementType).ToData()
                         };
+                        // this is only to complete movement on the server, on client it already handled by the prev command
                         Game.OnMoveUnit(completionCommand);
-                        broadcastCommand = completionCommand with { GameOriginId = Game.Id };
-                        Game.CommandPublisher.PublishCommand(broadcastCommand);
-
                     }
                     _requestDeferStepConsumption = canStandup;
                     return;
@@ -276,10 +281,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         return true;
     }
     
-    private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech)
+    private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech, bool publishCommand = true)
     {
         Game.OnMechFalling(fallCommand);
-        Game.CommandPublisher.PublishCommand(fallCommand);
+        if (publishCommand)
+            Game.CommandPublisher.PublishCommand(fallCommand);
 
         var locationsWithDamagedStructure = fallCommand.DamageData?.HitLocations.HitLocations
             .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
