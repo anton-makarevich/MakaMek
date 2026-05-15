@@ -221,7 +221,7 @@ public class MechTests
         ], MovementType.Walk);
 
         // Act
-        mech.Move(firstPath, null);
+        mech.Move(firstPath, null, false);
         mech.Move(secondPath, null);
 
         // Assert
@@ -246,7 +246,7 @@ public class MechTests
         ], MovementType.Walk);
 
         // Act
-        mech.Move(firstPath, null);
+        mech.Move(firstPath, null, false);
         mech.Move(secondPath, null);
 
         // Assert - HexesTraveled counts both since both legs are in the same direction
@@ -269,7 +269,7 @@ public class MechTests
         ], MovementType.Walk);
 
         // Act
-        mech.Move(firstPath, null);
+        mech.Move(firstPath, null, false);
         mech.Move(secondPath, null);
 
         // Assert - second path should replace, not append

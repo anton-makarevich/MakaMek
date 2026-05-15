@@ -2919,11 +2919,11 @@ public class UnitTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         sut.Deploy(deployPosition, null);
 
-        // First leg (before fall)
+        // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
             new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
         ], MovementType.Run);
-        sut.Move(firstLeg, null);
+        sut.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
@@ -2949,11 +2949,11 @@ public class UnitTests
         var targetDeploy = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         target.Deploy(targetDeploy, null);
 
-        // First leg (before fall)
+        // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
             new PathSegment(targetDeploy, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
         ], MovementType.Walk);
-        target.Move(firstLeg, null);
+        target.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
@@ -2976,6 +2976,34 @@ public class UnitTests
     }
 
     [Fact]
+    public void Move_WhenUnitHasAlreadyMoved_ShouldNotChangeState()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        var finalPosition = new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom);
+
+        // First move completes movement
+        sut.Move(new MovementPath([
+            new PathSegment(deployPosition, finalPosition, 2)
+        ], MovementType.Walk), null);
+        sut.HasMoved.ShouldBeTrue();
+        sut.MovementPointsSpent.ShouldBe(2);
+
+        // Act - second move should be no-op
+        var newPosition = new HexPosition(new HexCoordinates(5, 1), HexDirection.Bottom);
+        sut.Move(new MovementPath([
+            new PathSegment(finalPosition, newPosition, 2)
+        ], MovementType.Walk), null);
+
+        // Assert - state should remain unchanged from the first move
+        sut.HasMoved.ShouldBeTrue();
+        sut.MovementPointsSpent.ShouldBe(2);
+        sut.Position!.Coordinates.ShouldBe(finalPosition.Coordinates);
+    }
+
+    [Fact]
     public void Move_WithDifferentMovementTypeOnAppend_PreservesOriginalMovementType()
     {
         var sut = CreateTestUnit();
@@ -2985,7 +3013,7 @@ public class UnitTests
         var firstLeg = new MovementPath([
             new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
         ], MovementType.Run);
-        sut.Move(firstLeg, null);
+        sut.Move(firstLeg, null, false);
 
         var secondLeg = new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
