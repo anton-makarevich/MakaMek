@@ -26,7 +26,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
-    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
+    private record PendingCommand(TaskCompletionSource<bool> Tcs, string CommandType);
+
+    private readonly ConcurrentDictionary<Guid, PendingCommand> _pendingCommands = new();
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
     private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
@@ -235,10 +237,10 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             command.GetPayloadHash());
 
         // Check if this command is already pending
-        if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
+        if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCmd))
         {
             // Return the existing task
-            return await pendingCommand.Task.ConfigureAwait(false);
+            return await pendingCmd.Tcs.Task.ConfigureAwait(false);
         }
 
         // Assign the idempotency key to the command
@@ -250,9 +252,10 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         // Create a new task completion source for this command
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!_pendingCommands.TryAdd(idempotencyKey, tcs))
+        var pendingCommand = new PendingCommand(tcs, typeof(T).Name);
+        if (!_pendingCommands.TryAdd(idempotencyKey, pendingCommand))
         {
-            return await _pendingCommands[idempotencyKey].Task.ConfigureAwait(false);
+            return await _pendingCommands[idempotencyKey].Tcs.Task.ConfigureAwait(false);
         }
 
         // Return the task that will be completed when the server responds
@@ -354,16 +357,16 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// </summary>
     private void CompletePendingCommand(Guid idempotencyKey, bool success)
     {
-        if (_pendingCommands.TryRemove(idempotencyKey, out var tcs))
+        if (_pendingCommands.TryRemove(idempotencyKey, out var pendingCommand))
         {
-            tcs.TrySetResult(success);
+            pendingCommand.Tcs.TrySetResult(success);
         }
 
         if (success) return;
         var failedCommand = _commandLog.FirstOrDefault(c =>
             c is IClientCommand { IdempotencyKey: not null } cmd && cmd.IdempotencyKey == idempotencyKey);
         Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected",
-            failedCommand?.GetType().Name ?? "Unknown", idempotencyKey);
+            failedCommand?.GetType().Name ?? pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
     }
 
     public void Dispose()
@@ -376,7 +379,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         // Fail/cancel any pending waits to avoid hangs
         foreach (var kv in _pendingCommands)
-            kv.Value.TrySetCanceled();
+            kv.Value.Tcs.TrySetCanceled();
         _pendingCommands.Clear();
 
         // Complete and dispose subjects
