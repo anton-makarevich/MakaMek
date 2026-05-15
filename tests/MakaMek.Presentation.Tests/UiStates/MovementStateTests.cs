@@ -377,10 +377,8 @@ public class MovementStateTests
         _sut.HandleHexSelection(new Hex(position.Coordinates));
 
         // Assert
-        foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
-        {
-            hex.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
-        }
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(position.Coordinates);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
     }
 
     [Fact]
@@ -571,7 +569,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void HandleUnitSelection_ClearsHexHighlighting_WhenUnitSelectedAgain()
+    public void HandleUnitSelection_RedirectionsToStartHex_WhenUnitSelectedAgain()
     {
         // Arrange
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
@@ -588,11 +586,9 @@ public class MovementStateTests
         _sut.HandleHexSelection(unitHex);
 
         // Assert
-        _battleMapViewModel.MovementPath.ShouldBeNull();
-        foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
-        {
-            hex.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
-        }
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(startPosition.Coordinates);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.MovementPath.ShouldNotBeNull();
     }
 
     [Fact]

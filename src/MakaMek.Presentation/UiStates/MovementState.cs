@@ -143,14 +143,7 @@ public class MovementState : IUiState
 
     public void HandleUnitSelection(IUnit? unit)
     {
-        if (unit == _selectedUnit)
-        {
-            SelectedUnit = null;
-        }
-        else
-        {
-            SelectedUnit = unit;
-        }
+        SelectedUnit = unit;
     }
 
     public void HandleMovementTypeSelection(MovementType movementType)
@@ -221,7 +214,6 @@ public class MovementState : IUiState
         {
             if (_selectedUnit == null) return;
             _selectedUnit = null;
-            _deferredMovementUnitId = null;
             _builder.Reset();
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
