@@ -1951,14 +1951,16 @@ public class MovementStateTests
         // Act
         var actions = _sut.GetAvailableActions().ToList();
 
-        // Assert — exactly one action locked to the originally declared movement type
-        actions.Count.ShouldBe(1, "Post-fall should only offer the single locked standup option");
+        // Assert — Stay Prone is first, then standup locked to the originally declared movement type, then Change Facing
+        actions.Count.ShouldBe(3, "Post-fall should offer Stay Prone, locked standup, and Change Facing");
+
+        actions[0].Label.ShouldBe("Stay Prone");
 
         var expectedTypeLabel = selectedBeforeFall == MovementType.Run ? "Run" : "Walk";
-        actions[0].Label.ShouldContain(expectedTypeLabel);
+        actions[1].Label.ShouldContain(expectedTypeLabel);
 
-        actions.ShouldNotContain(a => a.Label.Contains("Stay Prone"));
-        actions.ShouldNotContain(a => a.Label.Contains("Change Facing"));
+        var changeFacingAction = actions[2];
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8");
 
         var otherTypeLabel = selectedBeforeFall == MovementType.Run ? "Walk" : "Run";
         actions.ShouldNotContain(a => a.Label.Contains(otherTypeLabel));
@@ -1981,10 +1983,11 @@ public class MovementStateTests
         _sut.ResumeMovementAfterFall(mech.Id);
 
         var actions = _sut.GetAvailableActions().ToList();
-        actions.Count.ShouldBe(1);
+        actions.Count.ShouldBe(3);
+        actions[0].Label.ShouldBe("Stay Prone");
 
-        // Act — execute the locked standup action
-        actions[0].OnExecute();
+        // Act — execute the locked standup action (at index 1, after Stay Prone)
+        actions[1].OnExecute();
 
         // Assert — should transition to direction selection for standup
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingStandingUpDirection);
@@ -2020,11 +2023,101 @@ public class MovementStateTests
         // Act
         var actions = _sut.GetAvailableActions().ToList();
 
-        // Assert — exactly one action using the "Attempt Standup" label (not the "Walk | MP: X" form)
-        actions.Count.ShouldBe(1);
-        actions[0].Label.ShouldStartWith("Attempt Standup");
-        actions[0].Label.ShouldContain("%"); // probability appended
-        actions[0].Label.ShouldNotContain("Walk | MP:");
+        // Assert — Stay Prone first, then Attempt Standup, then Change Facing
+        actions.Count.ShouldBe(3);
+        actions[0].Label.ShouldBe("Stay Prone");
+        actions[1].Label.ShouldStartWith("Attempt Standup");
+        actions[1].Label.ShouldContain("%"); // probability appended
+        actions[1].Label.ShouldNotContain("Walk | MP:");
+    }
+
+    [Fact]
+    public void GetAvailableActions_PostFallProneMech_StayProneAction_CompletesMovement()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.SetProne();
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        var actions = _sut.GetAvailableActions().ToList();
+        var stayProneAction = actions[0];
+        stayProneAction.Label.ShouldBe("Stay Prone");
+
+        // Act
+        stayProneAction.OnExecute();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+        _game.Received().MoveUnit(Arg.Any<MoveUnitCommand>());
+    }
+
+    [Fact]
+    public void GetAvailableActions_PostFallProneMech_DoesNotShowChangeFacingAction_WhenNoMP()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // Destroy both legs so mech has 0 walk MP
+        var leftLeg = mech.Parts[PartLocation.LeftLeg];
+        leftLeg.ApplyDamage(20, HitDirection.Front);
+        var rightLeg = mech.Parts[PartLocation.RightLeg];
+        rightLeg.ApplyDamage(20, HitDirection.Front);
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.SetProne();
+
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotContain(a => a.Label.Contains("Change Facing"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_PostFallProneMech_ChangeFacingAction_TransitionsToSelectingDirectionStep()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.SetProne();
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        var actions = _sut.GetAvailableActions().ToList();
+        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
+        changeFacingAction.ShouldNotBeNull();
+
+        // Act
+        changeFacingAction.OnExecute();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingDirection);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(mech.Position!.Coordinates);
+        _battleMapViewModel.AvailableDirections.ShouldNotBeNull();
+        _battleMapViewModel.AvailableDirections.ShouldNotBeEmpty();
     }
 
     [Fact]

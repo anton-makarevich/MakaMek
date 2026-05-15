@@ -288,7 +288,19 @@ public class MovementState : IUiState
                 if (_selectedPath != null)
                 {
                     var lockedType = _selectedPath.MovementType;
-                    var lockedProneActions = new List<StateAction>();
+                    var lockedProneActions = new List<StateAction>
+                    {
+                        // Stay Prone - always available in post-fall state
+                        new(
+                            _viewModel.LocalizationService.GetString("Action_StayProne"),
+                            true,
+                            () =>
+                            {
+                                _builder.SetUnit(_selectedUnit);
+                                _builder.SetMovementPath(_selectedPath);
+                                CompleteMovement();
+                            })
+                    };
 
                     if (!mech.CanStandup()) return lockedProneActions;
 
@@ -317,6 +329,16 @@ public class MovementState : IUiState
                             lockedActionText,
                             true,
                             () => AttemptStandup(lockedType)));
+                    }
+
+                    // Change Facing action - if mech can change facing while prone
+                    if (mech.CanChangeFacingWhileProne())
+                    {
+                        var availableMp = mech.GetMovementPoints(MovementType.Walk);
+                        lockedProneActions.Add(new StateAction(
+                            string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
+                            true,
+                            () => HandleProneFacingChange(mech)));
                     }
 
                     return lockedProneActions;
