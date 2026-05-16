@@ -129,6 +129,8 @@ public class MovementState : IUiState
                     return;
                 }
                 
+                if (!CanSelectUnit(value)) return;
+                
                 if (value.Status == UnitStatus.Destroyed) return;
                 if (value.HasMoved && value.Id != _deferredMovementUnitId) return;
 
