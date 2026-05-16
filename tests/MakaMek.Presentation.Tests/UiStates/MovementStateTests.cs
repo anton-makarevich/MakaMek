@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
@@ -2228,10 +2229,18 @@ public class MovementStateTests
     public void ResumeMovementAfterFall_LogsWarning_WhenSelectedUnitIsNull_AndUnitNotFound()
     {
         var unitId = Guid.NewGuid();
+        var logger = Substitute.For<ILogger>();
+        _game.Logger.Returns(logger);
 
         _sut.ResumeMovementAfterFall(unitId);
 
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
