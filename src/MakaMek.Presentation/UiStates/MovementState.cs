@@ -607,6 +607,8 @@ public class MovementState : IUiState
                     mech.Id);
                 return;
             }
+            
+            _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
 
             if (!mech.CanStandup())
             {
@@ -617,7 +619,9 @@ public class MovementState : IUiState
             }
 
             _deferredMovementUnitId = unitId;
+            
             TransitionTo(new SelectingMovementTypeStep(this));
+            _viewModel.NotifySelectedUnitChanged();
         }
     }
 
