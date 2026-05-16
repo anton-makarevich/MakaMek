@@ -99,6 +99,15 @@ public class BattleMapViewModelTests
         _sut.Game = _game;
     }
 
+    private static void SetCurrentState(BattleMapViewModel sut, IUiState state)
+    {
+        var property = typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))
+            ?? throw new MissingMemberException(nameof(BattleMapViewModel), nameof(BattleMapViewModel.CurrentState));
+        var setter = property.GetSetMethod(true)
+            ?? throw new MissingMethodException(nameof(BattleMapViewModel), "set_CurrentState");
+        setter.Invoke(sut, [state]);
+    }
+
     [Fact]
     public void GameUpdates_RaiseNotifyPropertyChanged()
     {
@@ -653,8 +662,7 @@ public class BattleMapViewModelTests
         var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
         mockState.SelectedUnit.Returns(unit);
-        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
-            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -667,8 +675,7 @@ public class BattleMapViewModelTests
         var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
         mockState.SelectedUnit.Returns(unit);
-        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
-            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -681,8 +688,7 @@ public class BattleMapViewModelTests
         var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
         mockState.SelectedUnit.Returns(unit);
-        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
-            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -695,8 +701,7 @@ public class BattleMapViewModelTests
         var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
         mockState.SelectedUnit.Returns(unit);
-        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
-            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -1960,8 +1965,7 @@ public class BattleMapViewModelTests
         
         var mockState = Substitute.For<IUiState>();
         mockState.SelectedUnit.Returns(unit);
-        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
-            .GetSetMethod(true)!.Invoke(_sut, [mockState]);
+        SetCurrentState(_sut, mockState);
 
         // Act
         _sut.NotifySelectedUnitChanged();
