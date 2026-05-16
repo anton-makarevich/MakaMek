@@ -263,21 +263,22 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            var command = _builder.Build();
-            if (command != null && _viewModel.Game is { } clientGame)
-            {
-                _viewModel.HideMovementPath();
-                _viewModel.HideDirectionSelector();
-                clientGame.MoveUnit(command.Value);
-            }
-
             _deferredMovementUnitId = null;
-            _builder.Reset();
+            
             ClearHighlighting();
             _selectedUnit = null;
+            _viewModel.HideMovementPath();
+            _viewModel.HideDirectionSelector();
             _viewModel.NotifySelectedUnitChanged();
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             TransitionTo(new CompletedStep(this));
+
+            var command = _builder.Build();
+            if (command != null && _viewModel.Game is { } clientGame)
+            {
+                _builder.Reset();
+                clientGame.MoveUnit(command.Value);
+            }
         }
     }
 
@@ -592,6 +593,19 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
+            if (_selectedUnit == null)
+            {
+                var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
+                if (fallenUnit == null)
+                {
+                    Game?.Logger.LogWarning(
+                        "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
+                    return;
+                }
+                _selectedUnit = fallenUnit;
+                _builder.SetUnit(fallenUnit);
+            }
+            
             if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
             {
                 var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");
