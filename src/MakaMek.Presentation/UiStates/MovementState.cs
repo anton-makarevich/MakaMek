@@ -143,8 +143,14 @@ public class MovementState : IUiState
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
+    public void HandleUnitSelectionFromList(IUnit? unit)
     {
+        if (unit != null && _selectedUnit != null && _selectedUnit != unit)
+        {
+            ResetUnitSelection();
+            if (_selectedUnit != null) return;
+        }
+
         SelectedUnit = unit;
     }
 

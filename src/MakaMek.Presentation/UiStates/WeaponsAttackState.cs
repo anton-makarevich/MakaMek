@@ -111,7 +111,7 @@ public class WeaponsAttackState : IUiState
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
+    public void HandleUnitSelectionFromList(IUnit? unit)
     {
         SelectedUnit = unit;
     }

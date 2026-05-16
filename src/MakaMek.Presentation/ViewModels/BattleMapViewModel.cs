@@ -528,7 +528,7 @@ public class BattleMapViewModel : BaseViewModel
         {
             if (value != null && !CurrentState.CanSelectUnit(value))
                 return;
-            CurrentState.HandleUnitSelection(value);
+            CurrentState.HandleUnitSelectionFromList(value);
             NotifySelectedUnitChanged();
         }
     }

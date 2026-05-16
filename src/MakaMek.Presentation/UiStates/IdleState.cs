@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 
 public class IdleState : IUiState
 {
-    public void HandleUnitSelection(IUnit? unit) { }
+    public void HandleUnitSelectionFromList(IUnit? unit) { }
     public void HandleHexSelection(Hex hex) { }
     public void HandleFacingSelection(HexDirection direction) { }
 

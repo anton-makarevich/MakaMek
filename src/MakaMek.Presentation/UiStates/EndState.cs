@@ -50,7 +50,7 @@ public class EndState : IUiState
 
     private bool CanActivePlayerAct => _viewModel.Game?.CanActivePlayerAct ?? false;
 
-    public void HandleUnitSelection(IUnit? unit)
+    public void HandleUnitSelectionFromList(IUnit? unit)
     {
         // In EndState, we allow selecting any unit on the map for viewing
         SelectedUnit = unit;

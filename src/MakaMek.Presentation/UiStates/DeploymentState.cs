@@ -13,6 +13,7 @@ public class DeploymentState : IUiState
     private readonly DeploymentCommandBuilder _builder;
     private readonly ILocalizationService _localizationService;
     private Hex? _selectedHex;
+    private IUnit? _selectedUnit;
     
     public IClientGame? Game => _viewModel.Game;
     
@@ -43,21 +44,22 @@ public class DeploymentState : IUiState
 
     public IUnit? SelectedUnit
     {
-        get;
+        get => _selectedUnit;
         private set
         {
             if (!this.CanHumanPlayerAct()) return;
             if (_currentSubState != SubState.SelectingUnit) return;
             if (value == null) return;
 
-            field = value;
+            _selectedUnit = value;
             _builder.SetUnit(value);
             _currentSubState = SubState.SelectingHex;
+            _viewModel.NotifySelectedUnitChanged();
             _viewModel.NotifyStateChanged();
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
+    public void HandleUnitSelectionFromList(IUnit? unit)
     {
         SelectedUnit = unit;
     }
@@ -102,10 +104,11 @@ public class DeploymentState : IUiState
         {
             clientGame.DeployUnit(command.Value);
         }
-        
+        _selectedUnit = null;
         _builder.Reset();
         _selectedHex = null;
         _currentSubState = SubState.Completed;
+        _viewModel.NotifySelectedUnitChanged();
         _viewModel.NotifyStateChanged();
     }
 
