@@ -315,24 +315,18 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech { IsProne: true } mech
                 && _viewModel.Game is not null)
             {
-                // Post-fall: _selectedPath being non-null means the unit was already moving when it fell.
-                // Lock the standup to the originally declared movement type — no Stay Prone,
-                // no alternate type, no facing change.
-                if (_selectedPath != null)
+                // Post-fall: MovementTaken being non-null means the unit was already moving when it fell.
+                // Lock the standup to the originally declared movement type
+                if (mech.MovementTaken != null)
                 {
-                    var lockedType = _selectedPath.MovementType;
+                    var lockedType = mech.MovementTaken.MovementType;
                     var lockedProneActions = new List<StateAction>
                     {
                         // Stay Prone - always available in post-fall state
                         new(
                             _viewModel.LocalizationService.GetString("Action_StayProne"),
                             true,
-                            () =>
-                            {
-                                _builder.SetUnit(_selectedUnit);
-                                _builder.SetMovementPath(_selectedPath);
-                                CompleteMovement();
-                            })
+                            () =>HandleMovementTypeSelection(MovementType.StandingStill))
                     };
 
                     if (!mech.CanStandup()) return lockedProneActions;

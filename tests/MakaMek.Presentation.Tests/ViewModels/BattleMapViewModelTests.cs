@@ -2132,6 +2132,8 @@ public class BattleMapViewModelTests
         var action = movementState.GetAvailableActions()
             .First(a => a.Label.StartsWith("Walk"));
         action.OnExecute();
+        
+        unit.Move(MovementPath.CreateSingleSegmentPath(position,MovementType.Walk), null, false);
 
         var fallCommand = new MechFallCommand
         {

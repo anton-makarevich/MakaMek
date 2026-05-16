@@ -2005,6 +2005,7 @@ public class MovementStateTests
         _sut.HandleMovementTypeSelection(selectedBeforeFall);
 
         // Unit falls during movement resolution
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, selectedBeforeFall), null, false);
         mech.SetProne();
 
         // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
@@ -2042,6 +2043,7 @@ public class MovementStateTests
 
         _sut.HandleUnitSelectionFromList(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk), null, false);
         mech.SetProne();
         _sut.ResumeMovementAfterFall(mech.Id);
 
