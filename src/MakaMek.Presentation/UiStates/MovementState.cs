@@ -303,6 +303,43 @@ public class MovementState : IUiState
         }
     }
 
+    private string GetPsrProbabilityText(Mech mech, PilotingSkillRollType rollType)
+    {
+        var psrBreakdown = _viewModel.Game!.PilotingSkillCalculator.GetPsrBreakdown(
+            mech, new PilotingSkillRollContext(rollType));
+        var probability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+        return $" ({probability:0}%)";
+    }
+
+    private StateAction CreateStayProneAction()
+    {
+        return new StateAction(
+            _viewModel.LocalizationService.GetString("Action_StayProne"),
+            true,
+            () => HandleMovementTypeSelection(MovementType.StandingStill));
+    }
+
+    private StateAction CreateProneFacingChangeAction(Mech mech)
+    {
+        var availableMp = mech.GetMovementPoints(MovementType.Walk);
+        return new StateAction(
+            string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
+            true,
+            () => HandleProneFacingChange(mech));
+    }
+
+    private string GetStandupActionText(MovementType movementType, string probabilityText)
+    {
+        if (_selectedUnit is Mech { IsMinimumMovement: true })
+            return _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText;
+
+        var typeKey = movementType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk";
+        return string.Format(
+            _viewModel.LocalizationService.GetString("Action_MovementPoints"),
+            _viewModel.LocalizationService.GetString(typeKey),
+            _selectedUnit!.GetMovementPoints(movementType)) + probabilityText;
+    }
+
     // TODO that should be a part of UnitPresentationExtensions
     public IEnumerable<StateAction> GetAvailableActions()
     {
@@ -311,192 +348,132 @@ public class MovementState : IUiState
             if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
                 return [];
 
-            // Check if the unit is a Mech and is prone
             if (_selectedUnit is Mech { IsProne: true } mech
                 && _viewModel.Game is not null)
             {
                 // Post-fall: MovementTaken being non-null means the unit was already moving when it fell.
                 // Lock the standup to the originally declared movement type
-                if (mech.MovementTaken != null)
-                {
-                    var lockedType = mech.MovementTaken.MovementType;
-                    var lockedProneActions = new List<StateAction>
-                    {
-                        // Stay Prone - always available in post-fall state
-                        new(
-                            _viewModel.LocalizationService.GetString("Action_StayProne"),
-                            true,
-                            () =>HandleMovementTypeSelection(MovementType.StandingStill))
-                    };
-
-                    if (!mech.CanStandup()) return lockedProneActions;
-
-                    var lockedPsrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                        mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt));
-                    var lockedSuccessProbability =
-                        Core.Utils.DiceUtils.Calculate2d6Probability(lockedPsrBreakdown.ModifiedPilotingSkill);
-                    var lockedProbabilityText = $" ({lockedSuccessProbability:0}%)";
-
-                    var lockedActionText = mech.IsMinimumMovement
-                        ? _viewModel.LocalizationService.GetString("Action_AttemptStandup") + lockedProbabilityText
-                        : string.Format(
-                            _viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                            _viewModel.LocalizationService.GetString(
-                                lockedType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk"),
-                            _selectedUnit.GetMovementPoints(lockedType)) + lockedProbabilityText;
-
-                    lockedProneActions.Add(new StateAction(
-                        lockedActionText,
-                        true,
-                        () => AttemptStandup(lockedType)));
-
-                    // Change Facing action - if mech can change facing while prone
-                    if (mech.CanChangeFacingWhileProne())
-                    {
-                        var availableMp = mech.GetMovementPoints(MovementType.Walk);
-                        lockedProneActions.Add(new StateAction(
-                            string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
-                            true,
-                            () => HandleProneFacingChange(mech)));
-                    }
-
-                    return lockedProneActions;
-                }
-
-                // Start-of-phase prone: full choice available.
-                var proneActions = new List<StateAction>
-                {
-                    // Add stay prone action (equivalent to standing still for prone mechs)
-                    new(
-                        _viewModel.LocalizationService.GetString("Action_StayProne"),
-                        true,
-                        () => HandleMovementTypeSelection(MovementType.StandingStill))
-                };
-
-                if (mech.IsImmobile) return proneActions;
-
-                // Add standup action if possible
-                if (mech.CanStandup())
-                {
-                    // Calculate piloting skill roll breakdown and success probability for standing up
-                    var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                        mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt));
-
-                    var successProbability =
-                        Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
-
-                    // Format the probability as percentage
-                    var probabilityText = $" ({successProbability:0}%)";
-
-                    // Check if this is a minimum movement situation
-                    if (mech.IsMinimumMovement)
-                    {
-                        // Minimum movement case: single "Attempt Standup" button
-                        proneActions.Add(new StateAction(
-                            _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
-                            true,
-                            () => AttemptStandup(MovementType.Walk)));
-                    }
-                    else
-                    {
-                        // Non-minimum movement case: separate Walk and Run actions
-                        // Walk standup action
-                        var walkActionText = string.Format(
-                            _viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                            _viewModel.LocalizationService.GetString("MovementType_Walk"),
-                            _selectedUnit.GetMovementPoints(MovementType.Walk)) + probabilityText;
-
-                        proneActions.Add(new StateAction(
-                            walkActionText,
-                            true,
-                            () => AttemptStandup(MovementType.Walk)));
-
-                        // Run standup action (only if mech can run)
-                        if (mech.CanRun)
-                        {
-                            var runActionText = string.Format(
-                                _viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                                _viewModel.LocalizationService.GetString("MovementType_Run"),
-                                _selectedUnit.GetMovementPoints(MovementType.Run)) + probabilityText;
-
-                            proneActions.Add(new StateAction(
-                                runActionText,
-                                true,
-                                () => AttemptStandup(MovementType.Run)));
-                        }
-                    }
-                }
-
-                // Add facing change action if possible
-                if (mech.CanChangeFacingWhileProne())
-                {
-                    var availableMp = mech.GetMovementPoints(MovementType.Walk);
-                    proneActions.Add(new StateAction(
-                        string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
-                        true,
-                        () => HandleProneFacingChange(mech)));
-                }
-
-                return proneActions;
+                return mech.MovementTaken != null
+                    ? GetLockedProneActions(mech) 
+                    : GetStartOfPhaseProneActions(mech);
             }
 
-            var actions = new List<StateAction>
-            {
-                // Stand Still
-                new(
-                    _viewModel.LocalizationService.GetString("Action_StandStill"),
-                    true,
-                    () => HandleMovementTypeSelection(MovementType.StandingStill)),
+            return GetNormalActions();
+        }
+    }
 
-            };
-            if (_selectedUnit.IsImmobile) return actions;
-            
-            // Walk
+    private List<StateAction> GetLockedProneActions(Mech mech)
+    {
+        var lockedType = mech.MovementTaken!.MovementType;
+        var lockedProneActions = new List<StateAction>
+        {
+            CreateStayProneAction()
+        };
+
+        if (!mech.CanStandup()) return lockedProneActions;
+
+        var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
+        lockedProneActions.Add(new StateAction(
+            GetStandupActionText(lockedType, probabilityText),
+            true,
+            () => AttemptStandup(lockedType)));
+
+        if (mech.CanChangeFacingWhileProne())
+            lockedProneActions.Add(CreateProneFacingChangeAction(mech));
+
+        return lockedProneActions;
+    }
+
+    private List<StateAction> GetStartOfPhaseProneActions(Mech mech)
+    {
+        var proneActions = new List<StateAction>
+        {
+            CreateStayProneAction()
+        };
+
+        if (mech.IsImmobile) return proneActions;
+
+        if (mech.CanStandup())
+        {
+            var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
+
+            if (mech.IsMinimumMovement)
+            {
+                proneActions.Add(new StateAction(
+                    _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
+                    true,
+                    () => AttemptStandup(MovementType.Walk)));
+            }
+            else
+            {
+                proneActions.Add(new StateAction(
+                    GetStandupActionText(MovementType.Walk, probabilityText),
+                    true,
+                    () => AttemptStandup(MovementType.Walk)));
+
+                if (mech.CanRun)
+                {
+                    proneActions.Add(new StateAction(
+                        GetStandupActionText(MovementType.Run, probabilityText),
+                        true,
+                        () => AttemptStandup(MovementType.Run)));
+                }
+            }
+        }
+
+        if (mech.CanChangeFacingWhileProne())
+            proneActions.Add(CreateProneFacingChangeAction(mech));
+
+        return proneActions;
+    }
+
+    private List<StateAction> GetNormalActions()
+    {
+        var actions = new List<StateAction>
+        {
+            new(
+                _viewModel.LocalizationService.GetString("Action_StandStill"),
+                true,
+                () => HandleMovementTypeSelection(MovementType.StandingStill))
+        };
+
+        if (_selectedUnit!.IsImmobile) return actions;
+
+        actions.Add(new StateAction(
+            string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                _viewModel.LocalizationService.GetString("MovementType_Walk"),
+                _selectedUnit.GetMovementPoints(MovementType.Walk)),
+            true,
+            () => HandleMovementTypeSelection(MovementType.Walk)));
+
+        if (_selectedUnit is Mech { CanRun: true })
+        {
             actions.Add(new StateAction(
                 string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                    _viewModel.LocalizationService.GetString("MovementType_Walk"),
-                    _selectedUnit.GetMovementPoints(MovementType.Walk)),
+                    _viewModel.LocalizationService.GetString("MovementType_Run"),
+                    _selectedUnit.GetMovementPoints(MovementType.Run)),
                 true,
-                () => HandleMovementTypeSelection(MovementType.Walk)));
-            
-            // Run
-            if (_selectedUnit is Mech { CanRun: true })
-            {
-                actions.Add(new StateAction(
-                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                        _viewModel.LocalizationService.GetString("MovementType_Run"),
-                        _selectedUnit.GetMovementPoints(MovementType.Run)),
-                    true,
-                    () => HandleMovementTypeSelection(MovementType.Run)));
-            }
-
-            // Jump
-            if (!(_selectedUnit is Mech { CanJump: true })) return actions;
-            var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
-
-            var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                _viewModel.LocalizationService.GetString("MovementType_Jump"),
-                jumpPoints);
-
-            // Check if PSR is required for jumping with damaged components and add probability
-            if (_selectedUnit is Mech jumpMech && jumpMech.IsPsrForJumpRequired() && _viewModel.Game is not null)
-            {
-                var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    jumpMech, new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage));
-
-                var successProbability =
-                    Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
-                var probabilityText = $" ({successProbability:0}%)";
-                jumpActionText += probabilityText;
-            }
-
-            actions.Add(new StateAction(
-                jumpActionText,
-                true,
-                () => HandleMovementTypeSelection(MovementType.Jump)));
-
-            return actions;
+                () => HandleMovementTypeSelection(MovementType.Run)));
         }
+
+        if (_selectedUnit is not Mech { CanJump: true }) return actions;
+        var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
+
+        var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+            _viewModel.LocalizationService.GetString("MovementType_Jump"),
+            jumpPoints);
+
+        if (_selectedUnit is Mech jumpMech && jumpMech.IsPsrForJumpRequired() && _viewModel.Game is not null)
+        {
+            jumpActionText += GetPsrProbabilityText(jumpMech, PilotingSkillRollType.JumpWithDamage);
+        }
+
+        actions.Add(new StateAction(
+            jumpActionText,
+            true,
+            () => HandleMovementTypeSelection(MovementType.Jump)));
+
+        return actions;
     }
 
     // A method to handle standup attempts
