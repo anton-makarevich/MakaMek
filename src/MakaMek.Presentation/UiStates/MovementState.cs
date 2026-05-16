@@ -141,6 +141,11 @@ public class MovementState : IUiState
         }
     }
 
+    public void HandleUnitSelection(IUnit? unit)
+    {
+        SelectedUnit = unit;
+    }
+
     public void HandleMovementTypeSelection(MovementType movementType)
     {
         lock (_stateLock)
