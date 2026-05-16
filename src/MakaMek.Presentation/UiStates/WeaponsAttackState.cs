@@ -86,6 +86,7 @@ public class WeaponsAttackState : IUiState
 
                 if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
                 {
+                    if (value.Owner?.Id != Game.PhaseStepState?.ActivePlayer.Id) return;
                     if (value.HasDeclaredWeaponAttack) return;
 
                     Attacker = value;
@@ -101,6 +102,9 @@ public class WeaponsAttackState : IUiState
 
                 if (CurrentStep == WeaponsAttackStep.TargetSelection)
                 {
+                    if (value.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id) return;
+                    if (value.Position == null || !IsHexInWeaponRange(value.Position.Coordinates)) return;
+
                     SelectedTarget = value;
                     UpdateWeaponViewModels();
                     _viewModel.IsWeaponSelectionVisible = true;

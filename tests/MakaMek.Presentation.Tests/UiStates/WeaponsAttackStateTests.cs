@@ -149,6 +149,9 @@ public class WeaponsAttackStateTests
         _battleMapViewModel.Game = _game;
         AddPlayerUnits(idempotencyKey);
         SetActivePlayer();
+        // Ensure test units have owners set
+        _player.AddUnit(_unit1);
+        _player.AddUnit(_unit2);
         _sut = new WeaponsAttackState(_battleMapViewModel);
         BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
@@ -760,6 +763,7 @@ public class WeaponsAttackStateTests
            Equipment = []
         };
         var unitNoWeapons = _mechFactory.Create(unitDataNoWeapons);
+        _player.AddUnit(unitNoWeapons);
         unitNoWeapons.Deploy(position, null);
 
         // Act
@@ -808,6 +812,7 @@ public class WeaponsAttackStateTests
         };
 
         var unit = _mechFactory.Create(unitData);
+        _player.AddUnit(unit);
         unit.AssignPilot(_pilot);
         unit.Deploy(position, null);
 
