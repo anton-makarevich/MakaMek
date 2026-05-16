@@ -2032,6 +2032,51 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void
+        GetAvailableActions_PostFallProneMech_WithMinimumMovement_ShowsAttemptStandupWithoutMovementType()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _pilotingSkillCalculator.GetPsrBreakdown(mech,
+                new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // Destroy a leg to make IsMinimumMovement true (walk MP becomes 1)
+        var leg = mech.Parts[PartLocation.LeftLeg];
+        leg.ApplyDamage(20, HitDirection.Front);
+
+        // Simulate: player selected a movement type before the fall
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Unit falls during movement resolution
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk), null, false);
+        mech.SetProne();
+
+        // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(3,
+            "Post-fall with minimum movement should offer Stay Prone, Attempt Standup, and Change Facing");
+
+        actions[0].Label.ShouldBe("Stay Prone");
+
+        // The standup action should NOT contain Walk/Run prefix - just "Attempt Standup (92%)"
+        var standupAction = actions[1];
+        standupAction.Label.ShouldBe("Attempt Standup (92%)");
+
+        var changeFacingAction = actions[2];
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 1");
+    }
+
+    [Fact]
     public void GetAvailableActions_PostFallProneMech_LockedStandupAction_TransitionsToStandingUpDirectionStep()
     {
         // Arrange
