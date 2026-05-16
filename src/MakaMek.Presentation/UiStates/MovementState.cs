@@ -337,26 +337,18 @@ public class MovementState : IUiState
                         Core.Utils.DiceUtils.Calculate2d6Probability(lockedPsrBreakdown.ModifiedPilotingSkill);
                     var lockedProbabilityText = $" ({lockedSuccessProbability:0}%)";
 
-                    if (mech.IsMinimumMovement)
-                    {
-                        lockedProneActions.Add(new StateAction(
-                            _viewModel.LocalizationService.GetString("Action_AttemptStandup") + lockedProbabilityText,
-                            true,
-                            () => AttemptStandup(lockedType)));
-                    }
-                    else
-                    {
-                        var lockedTypeKey = lockedType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk";
-                        var lockedActionText = string.Format(
+                    var lockedActionText = mech.IsMinimumMovement
+                        ? _viewModel.LocalizationService.GetString("Action_AttemptStandup") + lockedProbabilityText
+                        : string.Format(
                             _viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                            _viewModel.LocalizationService.GetString(lockedTypeKey),
+                            _viewModel.LocalizationService.GetString(
+                                lockedType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk"),
                             _selectedUnit.GetMovementPoints(lockedType)) + lockedProbabilityText;
 
-                        lockedProneActions.Add(new StateAction(
-                            lockedActionText,
-                            true,
-                            () => AttemptStandup(lockedType)));
-                    }
+                    lockedProneActions.Add(new StateAction(
+                        lockedActionText,
+                        true,
+                        () => AttemptStandup(lockedType)));
 
                     // Change Facing action - if mech can change facing while prone
                     if (mech.CanChangeFacingWhileProne())
