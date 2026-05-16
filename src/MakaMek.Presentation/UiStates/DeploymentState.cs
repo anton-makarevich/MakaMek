@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
@@ -14,6 +13,7 @@ public class DeploymentState : IUiState
     private readonly DeploymentCommandBuilder _builder;
     private readonly ILocalizationService _localizationService;
     private Hex? _selectedHex;
+    private IUnit? _selectedUnit;
     
     public IClientGame? Game => _viewModel.Game;
     
@@ -42,16 +42,26 @@ public class DeploymentState : IUiState
         _builder = new DeploymentCommandBuilder(_viewModel.Game.Id, _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id);
     }
 
-    public void  HandleUnitSelection(IUnit? unit)
+    public IUnit? SelectedUnit
     {
-        if (!this.CanHumanPlayerAct()) return;
-        if (_currentSubState != SubState.SelectingUnit) return;
-        
-        if (unit == null) return;
-        
-        _builder.SetUnit(unit);
-        _currentSubState = SubState.SelectingHex;
-        _viewModel.NotifyStateChanged();
+        get => _selectedUnit;
+        private set
+        {
+            if (!this.CanHumanPlayerAct()) return;
+            if (_currentSubState != SubState.SelectingUnit) return;
+            if (value == null) return;
+
+            _selectedUnit = value;
+            _builder.SetUnit(value);
+            _currentSubState = SubState.SelectingHex;
+            _viewModel.NotifySelectedUnitChanged();
+            _viewModel.NotifyStateChanged();
+        }
+    }
+
+    public void HandleUnitSelectionFromList(IUnit? unit)
+    {
+        SelectedUnit = unit;
     }
 
     public void HandleHexSelection(Hex hex)
@@ -94,10 +104,11 @@ public class DeploymentState : IUiState
         {
             clientGame.DeployUnit(command.Value);
         }
-        
+        _selectedUnit = null;
         _builder.Reset();
         _selectedHex = null;
         _currentSubState = SubState.Completed;
+        _viewModel.NotifySelectedUnitChanged();
         _viewModel.NotifyStateChanged();
     }
 

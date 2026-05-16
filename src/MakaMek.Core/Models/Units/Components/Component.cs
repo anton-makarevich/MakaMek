@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 

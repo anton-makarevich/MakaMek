@@ -73,38 +73,51 @@ public class WeaponsAttackState : IUiState
         }
     }
 
-    public void HandleUnitSelection(IUnit? unit)
+    public IUnit? SelectedUnit
     {
-        lock (_stateLock)
+        get => CurrentStep == WeaponsAttackStep.TargetSelection ? SelectedTarget : Attacker;
+        private set
         {
-            if (!this.CanHumanPlayerAct()) return;
-            if (unit == null) return;
-            if (unit.IsDestroyed) return;
-
-            if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+            lock (_stateLock)
             {
-                if (unit.HasDeclaredWeaponAttack) return;
+                if (!this.CanHumanPlayerAct()) return;
+                if (value == null) return;
+                if (value.IsDestroyed) return;
 
-                Attacker = unit;
-                CreateWeaponViewModels();
-                CurrentStep = WeaponsAttackStep.ActionSelection;
-
-                if (unit.CanFireWeapons)
+                if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
                 {
-                    // Highlight weapon ranges for the newly selected unit
-                    HighlightWeaponRanges();
+                    if (value.Owner?.Id != Game.PhaseStepState?.ActivePlayer.Id) return;
+                    if (value.HasDeclaredWeaponAttack) return;
+
+                    Attacker = value;
+                    CreateWeaponViewModels();
+                    CurrentStep = WeaponsAttackStep.ActionSelection;
+
+                    if (value.CanFireWeapons)
+                    {
+                        // Highlight weapon ranges for the newly selected unit
+                        HighlightWeaponRanges();
+                    }
                 }
-            }
 
-            if (CurrentStep == WeaponsAttackStep.TargetSelection)
-            {
-                SelectedTarget = unit;
-                UpdateWeaponViewModels();
-                _viewModel.IsWeaponSelectionVisible = true;
-            }
+                if (CurrentStep == WeaponsAttackStep.TargetSelection)
+                {
+                    if (value.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id) return;
+                    if (value.Position == null || !IsHexInWeaponRange(value.Position.Coordinates)) return;
 
-            _viewModel.NotifyStateChanged();
+                    SelectedTarget = value;
+                    UpdateWeaponViewModels();
+                    _viewModel.IsWeaponSelectionVisible = true;
+                }
+
+                _viewModel.NotifyStateChanged();
+            }
         }
+    }
+
+    public void HandleUnitSelectionFromList(IUnit? unit)
+    {
+        SelectedUnit = unit;
     }
 
     public void HandleHexSelection(Hex hex)
@@ -147,7 +160,7 @@ public class WeaponsAttackState : IUiState
                     ResetUnitSelection();
                 }
 
-                _viewModel.SelectedUnit = unit;
+                SelectedUnit = unit;
                 return;
             }
 
@@ -156,8 +169,7 @@ public class WeaponsAttackState : IUiState
                 if (unit.Owner == Game.PhaseStepState?.ActivePlayer) return;
                 if (!IsHexInWeaponRange(hex.Coordinates)) return;
 
-                _viewModel.SelectedUnit = null;
-                _viewModel.SelectedUnit = unit;
+                SelectedUnit = unit;
             }
 
             _viewModel.NotifyStateChanged();
@@ -517,7 +529,15 @@ public class WeaponsAttackState : IUiState
             .ToList();
     }
     
-    public IUnit? Attacker { get; private set; }
+    public IUnit? Attacker
+    {
+        get;
+        private set
+        {
+            field = value;
+            _viewModel.NotifySelectedUnitChanged();
+        }
+    }
 
     public IUnit? SelectedTarget
     {
@@ -525,8 +545,8 @@ public class WeaponsAttackState : IUiState
         private set
         {
             field = value;
-            _viewModel.SelectedUnit = value;
             UpdateSelectedTargetViewModel();
+            _viewModel.NotifySelectedUnitChanged();
         }
     }
 

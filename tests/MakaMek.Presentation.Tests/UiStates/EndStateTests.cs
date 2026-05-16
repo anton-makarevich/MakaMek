@@ -115,6 +115,7 @@ public class EndStateTests
     
         SetPhase(PhaseNames.End);
         _sut = new EndState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -629,6 +630,12 @@ public class EndStateTests
     {
         var unit = Substitute.For<IUnit>();
         ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
+    }
+
+    private static void BindViewModelCurrentStateTo(EndState state, BattleMapViewModel viewModel)
+    {
+        typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .GetSetMethod(true)!.Invoke(viewModel, [state]);
     }
 
     private void SetPhase(PhaseNames phase)

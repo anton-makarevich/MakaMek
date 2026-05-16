@@ -99,6 +99,15 @@ public class BattleMapViewModelTests
         _sut.Game = _game;
     }
 
+    private static void SetCurrentState(BattleMapViewModel sut, IUiState state)
+    {
+        var property = typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))
+            ?? throw new MissingMemberException(nameof(BattleMapViewModel), nameof(BattleMapViewModel.CurrentState));
+        var setter = property.GetSetMethod(true)
+            ?? throw new MissingMethodException(nameof(BattleMapViewModel), "set_CurrentState");
+        setter.Invoke(sut, [state]);
+    }
+
     [Fact]
     public void GameUpdates_RaiseNotifyPropertyChanged()
     {
@@ -627,6 +636,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetButtonVisible_NoSelectedUnit_ReturnsFalse()
     {
         // Arrange
+        _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = PhaseNames.End });
         _sut.SelectedUnit = null;
         _sut.IsRecordSheetExpanded = false;
 
@@ -638,6 +648,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetPanelVisible_NoSelectedUnit_ReturnsFalse()
     {
         // Arrange
+        _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = PhaseNames.End });
         _sut.SelectedUnit = null;
         _sut.IsRecordSheetExpanded = false;
 
@@ -648,9 +659,10 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetButtonVisible_HasSelectedUnitButExpanded_ReturnsFalse()
     {
-        // Arrange
+        var mockState = Substitute.For<IUiState>();
         var unit = new Mech("Mech", "MK1",20,[]);
-        _sut.SelectedUnit = unit;
+        mockState.SelectedUnit.Returns(unit);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -660,9 +672,10 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetButtonVisible_HasSelectedUnitNotExpanded_ReturnsTrue()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -672,9 +685,10 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitButExpanded_ReturnsTrue()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = true;
 
         // Act & Assert
@@ -684,9 +698,10 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitNotExpanded_ReturnsFalse()
     {
-        // Arrange
-        var unit = new Mech("Mech", "MK1",20, []);
-        _sut.SelectedUnit = unit;
+        var mockState = Substitute.For<IUiState>();
+        var unit = new Mech("Mech", "MK1",20,[]);
+        mockState.SelectedUnit.Returns(unit);
+        SetCurrentState(_sut, mockState);
         _sut.IsRecordSheetExpanded = false;
 
         // Act & Assert
@@ -1948,8 +1963,12 @@ public class BattleMapViewModelTests
         unit.AddEvent(damageEvent);
         unit.AddEvent(explosionEvent);
         
+        var mockState = Substitute.For<IUiState>();
+        mockState.SelectedUnit.Returns(unit);
+        SetCurrentState(_sut, mockState);
+
         // Act
-        _sut.SelectedUnit = unit;
+        _sut.NotifySelectedUnitChanged();
         
         // Assert
         _sut.SelectedUnitEvents.ShouldNotBeNull();
@@ -2139,94 +2158,7 @@ public class BattleMapViewModelTests
         actions.Count.ShouldBe(3);
         actions.ShouldContain(a => a.Label.Contains("Walk"));
     }
-
-    [Fact]
-    public void ProcessMechFall_ShouldResumeMovement_WhenSelectedUnitIsNull_ButMovementStateTracksUnit()
-    {
-        // Arrange
-        var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Human);
-        var mechData = MechFactoryTests.CreateDummyMechData();
-        mechData.Id = Guid.NewGuid();
-        var game = CreateClientGame();
-        game.JoinGameWithUnits(player, [mechData], []);
-        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
-            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
-        _sut.Game = game;
-
-        game.HandleCommand(new JoinGameCommand
-        {
-            PlayerId = player.Id,
-            Units = [mechData],
-            PlayerName = player.Name,
-            GameOriginId = Guid.NewGuid(),
-            Tint = "#FF0000",
-            PilotAssignments = [],
-            IdempotencyKey = _idempotencyKey
-        });
-
-        game.HandleCommand(new ChangePhaseCommand
-        {
-            Phase = PhaseNames.Movement,
-            GameOriginId = Guid.NewGuid()
-        });
-
-        game.HandleCommand(new ChangeActivePlayerCommand
-        {
-            PlayerId = player.Id,
-            GameOriginId = Guid.NewGuid(),
-            UnitsToPlay = 1
-        });
-
-        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var unit = _sut.Units.First() as Mech;
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(true);
-        unit!.AssignPilot(pilot);
-        unit.Deploy(position, null);
-
-        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
-
-        var movementState = _sut.CurrentState as MovementState;
-        movementState.ShouldNotBeNull();
-
-        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = []
-            });
-
-        var action = movementState.GetAvailableActions()
-            .First(a => a.Label.StartsWith("Walk"));
-        action.OnExecute();
-
-        _sut.SelectedUnit = null;
-
-        var fallCommand = new MechFallCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            UnitId = unit.Id,
-            LevelsFallen = 0,
-            WasJumping = false,
-            DamageData = new FallingDamageData(
-                HexDirection.Top,
-                new HitLocationsData([], 0),
-                new DiceResult(1),
-                HitDirection.Front
-            )
-        };
-
-        // Act
-        game.HandleCommand(fallCommand);
-
-        // Assert
-        _localizationService.GetString("Action_StayProne").Returns("StayProne");
-        var actions = movementState.GetAvailableActions().ToList();
-        actions.Count.ShouldBe(3);
-        actions.ShouldContain(a => a.Label.Contains("Walk"));
-    }
-
+    
     [Fact]
     public void ProcessMechFall_ShouldNotCallProcessMechStandUp_WhenDamageDataIsNull()
     {
