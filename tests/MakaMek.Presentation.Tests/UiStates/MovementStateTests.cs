@@ -2200,6 +2200,41 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void ResumeMovementAfterFall_FindsUnitFromViewModel_WhenSelectedUnitIsNull()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, null);
+
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_LogsWarning_WhenSelectedUnitIsNull_AndUnitNotFound()
+    {
+        var unitId = Guid.NewGuid();
+
+        _sut.ResumeMovementAfterFall(unitId);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+    }
+
+    [Fact]
     public void CanSelectUnit_BlocksOtherFriendly_WhenDeferredAfterFall()
     {
         SetPhase(PhaseNames.Movement);
