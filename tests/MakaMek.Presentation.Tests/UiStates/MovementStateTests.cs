@@ -1570,6 +1570,52 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void HandleHexSelection_DoesNotDeselectUnit_WhenClickingSameUnitHexAfterUnitSelection()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var unit = _battleMapViewModel.Units.First();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(position, null);
+        _sut.HandleUnitSelectionFromList(unit);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+
+        // Act - click the same unit's hex while not in SelectingUnit step
+        _sut.HandleHexSelection(new Hex(position.Coordinates));
+
+        // Assert - unit remains selected; hex click was delegated to the step (no-op in SelectingMovementType)
+        _battleMapViewModel.SelectedUnit.ShouldBe(unit);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
+    public void HandleHexSelection_DeselectsUnit_WhenClickingSameUnitHexInSelectingUnitStep()
+    { 
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var unit = _battleMapViewModel.Units.First();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(position, null);
+
+        // Set _selectedUnit directly via reflection to simulate being in SelectingUnit
+        // with a unit already selected — a state not reachable through the public setter
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, unit);
+
+        var unitHex = new Hex(position.Coordinates);
+
+        // Act
+        _sut.HandleHexSelection(unitHex);
+
+        // Assert - unit is deselected, hex click is consumed, step remains SelectingUnit
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+    }
+
+    [Fact]
     public void ConfirmMovementStep_ActionLabel_ReturnsConfirmOrSelectNextHex_WhenWalkWithRemainingMPs()
     {
         // Arrange
