@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
@@ -2005,6 +2006,7 @@ public class MovementStateTests
         _sut.HandleMovementTypeSelection(selectedBeforeFall);
 
         // Unit falls during movement resolution
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, selectedBeforeFall), null, false);
         mech.SetProne();
 
         // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
@@ -2030,6 +2032,51 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void
+        GetAvailableActions_PostFallProneMech_WithMinimumMovement_ShowsAttemptStandupWithoutMovementType()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        _pilotingSkillCalculator.GetPsrBreakdown(mech,
+                new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // Destroy a leg to make IsMinimumMovement true (walk MP becomes 1)
+        var leg = mech.Parts[PartLocation.LeftLeg];
+        leg.ApplyDamage(20, HitDirection.Front);
+
+        // Simulate: player selected a movement type before the fall
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Unit falls during movement resolution
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk), null, false);
+        mech.SetProne();
+
+        // Game calls ResumeMovementAfterFall, transitioning back to SelectingMovementTypeStep
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(3,
+            "Post-fall with minimum movement should offer Stay Prone, Attempt Standup, and Change Facing");
+
+        actions[0].Label.ShouldBe("Stay Prone");
+
+        // The standup action should NOT contain Walk/Run prefix - just "Attempt Standup (92%)"
+        var standupAction = actions[1];
+        standupAction.Label.ShouldBe("Attempt Standup (92%)");
+
+        var changeFacingAction = actions[2];
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 1");
+    }
+
+    [Fact]
     public void GetAvailableActions_PostFallProneMech_LockedStandupAction_TransitionsToStandingUpDirectionStep()
     {
         // Arrange
@@ -2042,6 +2089,7 @@ public class MovementStateTests
 
         _sut.HandleUnitSelectionFromList(mech);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk), null, false);
         mech.SetProne();
         _sut.ResumeMovementAfterFall(mech.Id);
 
@@ -2195,6 +2243,49 @@ public class MovementStateTests
 
         _sut.CurrentMovementStep.ShouldBe(stepBefore);
         ((IUiState)_sut).CanSelectUnit(_unit2).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_FindsUnitFromViewModel_WhenSelectedUnitIsNull()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, null);
+
+        _sut.ResumeMovementAfterFall(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_LogsWarning_WhenSelectedUnitIsNull_AndUnitNotFound()
+    {
+        var unitId = Guid.NewGuid();
+        var logger = Substitute.For<ILogger>();
+        _game.Logger.Returns(logger);
+
+        _sut.ResumeMovementAfterFall(unitId);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
