@@ -76,7 +76,7 @@ public class WeaponsAttackState : IUiState
     public IUnit? SelectedUnit
     {
         get => CurrentStep == WeaponsAttackStep.TargetSelection ? SelectedTarget : Attacker;
-        set
+        private set
         {
             lock (_stateLock)
             {

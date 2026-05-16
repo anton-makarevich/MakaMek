@@ -523,13 +523,12 @@ public class BattleMapViewModel : BaseViewModel
 
     public IUnit? SelectedUnit
     {
-        get => CurrentState?.SelectedUnit;
+        get => CurrentState.SelectedUnit;
         set
         {
-            if (CurrentState == null) return;
             if (value != null && !CurrentState.CanSelectUnit(value))
                 return;
-            CurrentState.SelectedUnit = value;
+            CurrentState.HandleUnitSelection(value);
             NotifySelectedUnitChanged();
         }
     }

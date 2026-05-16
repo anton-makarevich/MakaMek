@@ -118,7 +118,7 @@ public class MovementState : IUiState
     public IUnit? SelectedUnit
     {
         get => _selectedUnit;
-        set
+        private set
         {
             lock (_stateLock)
             {

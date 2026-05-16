@@ -44,7 +44,7 @@ public class DeploymentState : IUiState
     public IUnit? SelectedUnit
     {
         get;
-        set
+        private set
         {
             if (!this.CanHumanPlayerAct()) return;
             if (_currentSubState != SubState.SelectingUnit) return;

@@ -11,6 +11,8 @@ public class WeaponRangeConverter : IValueConverter
     {
         if (value is not Weapon weapon)
             return null;
+        if (weapon.Range == null)
+            return null;
 
         var minRange = weapon.Range.MinimumRange == 0 ? "-" : weapon.Range.MinimumRange.ToString();
         return $"{minRange}|{weapon.Range.ShortRange}|{weapon.Range.MediumRange}|{weapon.Range.LongRange}";

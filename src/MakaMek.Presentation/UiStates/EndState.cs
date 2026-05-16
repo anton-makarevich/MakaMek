@@ -19,7 +19,7 @@ public class EndState : IUiState
     public IUnit? SelectedUnit
     {
         get;
-        set
+        private set
         {
             if (field == value) return;
             field = value;
