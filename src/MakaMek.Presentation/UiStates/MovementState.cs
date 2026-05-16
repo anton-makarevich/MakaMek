@@ -148,7 +148,6 @@ public class MovementState : IUiState
         if (unit != null && _selectedUnit != null && _selectedUnit != unit)
         {
             ResetUnitSelection();
-            if (_selectedUnit != null) return;
         }
 
         SelectedUnit = unit;

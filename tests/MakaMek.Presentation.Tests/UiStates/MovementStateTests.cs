@@ -197,6 +197,26 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void HandleUnitSelectionFromList_ResetsAndSwitchesUnit_WhenDifferentUnitIsAlreadySelected()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        _unit1.Deploy(position, null);
+        _sut.HandleUnitSelectionFromList(_unit1);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        _battleMapViewModel.SelectedUnit.ShouldBe(_unit1);
+
+        // Act
+        _sut.HandleUnitSelectionFromList(_unit2);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBe(_unit2);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
     public void HandleMovementTypeSelection_TransitionsToHexSelection()
     {
         // Arrange
