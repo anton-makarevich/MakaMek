@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
@@ -87,6 +88,7 @@ public static class CoreServices
         services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
 
         // Register RxTransportPublisher for local players
+        services.AddSingleton<IScheduler>(TaskPoolScheduler.Default);
         services.AddSingleton<RxTransportPublisher>();
 
         // Register CommandTransportAdapter with just the RxTransportPublisher initially
