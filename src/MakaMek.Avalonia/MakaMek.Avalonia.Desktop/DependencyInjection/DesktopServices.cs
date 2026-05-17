@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Desktop.Services;
 using Sanet.MakaMek.Core.Services;
@@ -33,5 +34,8 @@ public static class DesktopServices
 
         // Register external navigation service for desktop platform
         services.AddSingleton<IExternalNavigationService, DesktopExternalNavigationService>();
+
+        // Register TaskPoolScheduler for desktop (multi-threaded)
+        services.AddSingleton<IScheduler>(TaskPoolScheduler.Default);
     }
 }
