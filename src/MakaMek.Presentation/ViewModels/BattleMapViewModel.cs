@@ -27,7 +27,7 @@ using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
-public class BattleMapViewModel : BaseViewModel
+public class BattleMapViewModel : BaseViewModel, IDisposable
 {
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
@@ -721,6 +721,24 @@ public class BattleMapViewModel : BaseViewModel
         return NavigationService.NavigateToViewModelAsync(endGameViewModel);
     }
     
+    public void Dispose()
+    {
+        _gameSubscription?.Dispose();
+        _commandSubscription?.Dispose();
+        if (Game is { IsDisposed: false })
+        {
+            Game.Dispose();
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    public override void DetachHandlers()
+    {
+        base.DetachHandlers();
+        _gameSubscription?.Dispose();
+        _commandSubscription?.Dispose();
+    }
+
     private async Task GoToMainMenu()
     {
         // Dispose of the game

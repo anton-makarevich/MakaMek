@@ -22,7 +22,7 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
-public class JoinGameViewModel : NewGameViewModel
+public class JoinGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly ITransportFactory _transportFactory;
     private readonly IBattleMapFactory _mapFactory;
@@ -176,7 +176,12 @@ public class JoinGameViewModel : NewGameViewModel
             var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
             adapter.AddPublisher(client);
             _commandPublisher.Subscribe(HandleServerCommand);
-            _localGame ??= _gameFactory.CreateClientGame(
+            if (_localGame != null)
+            {
+                _localGame.Dispose();
+                _localGame = null;
+            }
+            _localGame = _gameFactory.CreateClientGame(
                 _rulesProvider,
                 _mechFactory,
                 _commandPublisher,
@@ -206,6 +211,25 @@ public class JoinGameViewModel : NewGameViewModel
             _localGame?.Logger.LogError(ex, "Error connecting to server: {Message}", ex.Message);
             IsConnected = false;
         }
+    }
+
+    private void Disconnect()
+    {
+        if (_localGame != null)
+        {
+            _localGame.Dispose();
+            _localGame = null;
+        }
+        _commandPublisher.Unsubscribe(HandleServerCommand);
+        _commandPublisher.Adapter.ClearPublishers();
+        IsConnected = false;
+        (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+    }
+
+    public void Dispose()
+    {
+        Disconnect();
+        GC.SuppressFinalize(this);
     }
 
     // Implementation of template method from base class
