@@ -2423,6 +2423,56 @@ public class BattleMapViewModelTests
 
 
     [Fact]
+    public void DetachHandlers_ShouldStopProcessingCommands()
+    {
+        // Arrange - verify commands are processed initially
+        _sut.CommandLog.ShouldBeEmpty();
+        var command = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Test",
+            Units = [],
+            Tint = "#FF0000",
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
+        };
+        _game.HandleCommand(command);
+        _sut.CommandLog.ShouldNotBeEmpty();
+
+        // Act
+        _sut.DetachHandlers();
+        var logCount = _sut.CommandLog.Count;
+
+        // Send another command
+        var command2 = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Test2",
+            Units = [],
+            Tint = "#00FF00",
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
+        };
+        _game.HandleCommand(command2);
+
+        // Assert - command log should not have grown
+        _sut.CommandLog.Count.ShouldBe(logCount);
+    }
+
+    [Fact]
+    public void Dispose_ShouldDisposeGame()
+    {
+        // Arrange
+        _game.IsDisposed.ShouldBeFalse();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        _game.IsDisposed.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task NavigateToEndGame_WithVictoryReason_ShouldInitializeEndGameViewModel()
     {
         // Arrange

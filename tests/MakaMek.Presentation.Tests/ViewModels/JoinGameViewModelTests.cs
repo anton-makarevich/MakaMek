@@ -4,6 +4,7 @@ using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Map.Data;
@@ -238,6 +239,67 @@ public class JoinGameViewModelTests
             Arg.Any<IHeatEffectsCalculator>(),
             Arg.Any<IBattleMapFactory>(),
             Arg.Any<IHashService>());
+    }
+
+    [Fact]
+    public void Disconnect_ShouldDisposeLocalGame()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _clientGame.IsDisposed.ShouldBeFalse();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Disconnect_ShouldClearPublishers()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _adapter.Received(1).ClearPublishers();
+    }
+
+    [Fact]
+    public void Disconnect_ShouldSetIsConnectedToFalse()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _sut.IsConnected.ShouldBeTrue();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Dispose_ShouldCallDisconnect()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _clientGame.IsDisposed.ShouldBeFalse();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeFalse();
     }
     
     [Fact]

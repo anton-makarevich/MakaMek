@@ -213,7 +213,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
     }
 
-    private void Disconnect()
+    public void Disconnect()
     {
         if (_localGame != null)
         {
