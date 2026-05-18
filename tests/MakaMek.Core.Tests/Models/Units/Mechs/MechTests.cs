@@ -797,6 +797,53 @@ public class MechTests
     }
 
     [Theory]
+    [InlineData(7, 6, 1, 5)] // walk 7, run 11, spent 6 → remaining walk 1, run 5
+    [InlineData(7, 2, 5, 9)] // walk 7, run 11, spent 2 → remaining walk 5, run 9
+    [InlineData(5, 0, 5, 8)] // no movement spent
+    [InlineData(5, 5, 0, 3)] // walk 5, run 8, spent all 5 → remaining walk 0, run 3
+    public void GetMovement_ReturnsCorrectMPs_WhenSomeMPsAreSpent(int walkMp, int spentMp, int expectedWalk, int expectedRun)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData(walkMp * 50);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        // Act - spend MPs by moving
+        if (spentMp > 0)
+        {
+            mech.Move(new MovementPath([
+                new PathSegment(start, new HexPosition(new HexCoordinates(spentMp, 0), HexDirection.Top), spentMp)
+            ], MovementType.Walk), null);
+        }
+
+        // Assert
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalk);
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(expectedRun);
+    }
+
+    [Fact]
+    public void GetMovement_ReturnsCorrectRunMP_WhenSpentWhileRunning()
+    {
+        // The core bug: spent MPs were subtracted from walk base before the 1.5x run multiplier
+        // Walk 7 → Run 11. Spend 6 while running. Remaining run MP should be 5, not 2.
+        // Arrange
+        var parts = CreateBasicPartsData(350); // engine 350 / 50 tons = 7 walk MP
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        // Act - spend 6 MPs running (each hex costs 1)
+        mech.Move(new MovementPath([
+            new PathSegment(start, new HexPosition(new HexCoordinates(6, 0), HexDirection.Top), 6)
+        ], MovementType.Run), null);
+
+        // Assert - remaining should be total run MP minus spent
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(1);  // 7 - 6
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(5);   // 11 - 6 (was incorrectly 2 before fix)
+    }
+
+    [Theory]
     // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
     [InlineData(2, 0)]
     [InlineData(7, 0)]

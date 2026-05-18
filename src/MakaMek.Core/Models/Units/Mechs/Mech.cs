@@ -54,13 +54,14 @@ public class Mech : Unit
 
     public override int GetMovementPoints(MovementType type)
     {
-        return type switch
+        var baseMp = type switch
         {
             MovementType.Walk => ModifiedMovement,
             MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
             MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
             _ => 0
         };
+        return Math.Max(0, baseMp - MovementPointsSpent);
     }
     
     public override IReadOnlyList<MovementType> GetAvailableMovementTypes()
