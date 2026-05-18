@@ -167,8 +167,7 @@ public abstract class Unit : IUnit
     
     // Modified movement after applying effects (defaults to base movement)
     protected int ModifiedMovement => Math.Max(0, DamageReducedMovement 
-        - (MovementHeatPenalty?.Value ?? 0) 
-        - MovementPointsSpent);
+        - (MovementHeatPenalty?.Value ?? 0));
     public virtual int DamageReducedMovement => BaseMovement;
 
     // Movement heat penalty
@@ -190,7 +189,7 @@ public abstract class Unit : IUnit
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)
     {
-        return ModifiedMovement;
+        return Math.Max(0, ModifiedMovement - MovementPointsSpent);
     }
     
     public virtual IReadOnlyList<MovementType> GetAvailableMovementTypes()
