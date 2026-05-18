@@ -2453,6 +2453,73 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void ResumeMovementAfterStandup_LogsWarning_WhenSelectedUnitIsNull_AndUnitNotFound()
+    {
+        var unitId = Guid.NewGuid();
+        var logger = Substitute.For<ILogger>();
+        _game.Logger.Returns(logger);
+
+        _sut.ResumeMovementAfterStandup(unitId);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public void ResumeMovementAfterStandup_FindsUnitFromViewModel_WhenSelectedUnitIsNull()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, null);
+
+        _sut.ResumeMovementAfterStandup(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterStandup_FindsUnitFromViewModel_WhenSelectedUnitIdDoesNotMatch()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, _unit2);
+
+        _sut.ResumeMovementAfterStandup(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+    }
+
+    [Fact]
     public void BuilderHasUnitIdAfterStandup_AllowsBuildingCommand()
     {
         SetPhase(PhaseNames.Movement);

@@ -533,7 +533,7 @@ public class MovementState : IUiState
         {
             // Fallback: if _selectedUnit is null (e.g., cleared by ClearSelection during phase change),
             // try to find the unit from the view model
-            if (_selectedUnit == null)
+            if (_selectedUnit == null || _selectedUnit.Id != unitId)
             {
                 var stoodUpUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
                 if (stoodUpUnit == null)
@@ -570,7 +570,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_selectedUnit == null)
+            if (_selectedUnit == null || _selectedUnit.Id != unitId)
             {
                 var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
                 if (fallenUnit == null)
