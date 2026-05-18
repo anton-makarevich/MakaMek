@@ -137,8 +137,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var truncatedCommand = moveCommand with
                     {
                         MovementPath = truncatedPath.ToData(),
-                        IsCompleted = false,
-                        IdempotencyKey = null
+                        IsCompleted = false
                     };
                     
                     Game.OnMoveUnit(truncatedCommand);

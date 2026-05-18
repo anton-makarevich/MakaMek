@@ -759,7 +759,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
         var unreachableHex = _battleMapViewModel.Game!.BattleMap!.GetHex(new HexCoordinates(1, 11)); // Far away hex
 
         // Act
@@ -825,7 +825,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to direction selection step by clicking a reachable hex
         var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
@@ -1499,7 +1499,7 @@ public class MovementStateTests
         proneMech.StandUp(HexDirection.Bottom);
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1528,7 +1528,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1561,7 +1561,7 @@ public class MovementStateTests
         proneMech.AttemptStandup();
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1821,7 +1821,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to confirm step
         var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
@@ -1864,7 +1864,7 @@ public class MovementStateTests
         proneMech.StandUp(HexDirection.Bottom);
 
         // Resume movement after standup
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to a reachable hex and select direction
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
@@ -2446,7 +2446,7 @@ public class MovementStateTests
         mech.AttemptStandup();
         mech.StandUp(HexDirection.Bottom);
 
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(mech.Id);
 
         _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.IsCompleted && cmd.MovementType == MovementType.Walk));
@@ -2471,7 +2471,7 @@ public class MovementStateTests
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.AttemptStandup();
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
         _sut.HandleHexSelection(targetHex);

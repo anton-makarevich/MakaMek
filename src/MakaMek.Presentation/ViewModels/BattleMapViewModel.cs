@@ -275,7 +275,7 @@ public class BattleMapViewModel : BaseViewModel
             return;
         }
         
-        movementState.ResumeMovementAfterStandup();
+        movementState.ResumeMovementAfterStandup(unitId);
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)
