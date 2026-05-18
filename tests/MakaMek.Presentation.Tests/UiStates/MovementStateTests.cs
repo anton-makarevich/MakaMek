@@ -759,7 +759,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
         var unreachableHex = _battleMapViewModel.Game!.BattleMap!.GetHex(new HexCoordinates(1, 11)); // Far away hex
 
         // Act
@@ -825,7 +825,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to direction selection step by clicking a reachable hex
         var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
@@ -1499,7 +1499,7 @@ public class MovementStateTests
         proneMech.StandUp(HexDirection.Bottom);
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1528,7 +1528,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1561,7 +1561,7 @@ public class MovementStateTests
         proneMech.AttemptStandup();
 
         // Act
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
@@ -1821,7 +1821,7 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to confirm step
         var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
@@ -1864,7 +1864,7 @@ public class MovementStateTests
         proneMech.StandUp(HexDirection.Bottom);
 
         // Resume movement after standup
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         // Move to a reachable hex and select direction
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
@@ -2446,10 +2446,77 @@ public class MovementStateTests
         mech.AttemptStandup();
         mech.StandUp(HexDirection.Bottom);
 
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(mech.Id);
 
         _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.IsCompleted && cmd.MovementType == MovementType.Walk));
+    }
+
+    [Fact]
+    public void ResumeMovementAfterStandup_LogsWarning_WhenSelectedUnitIsNull_AndUnitNotFound()
+    {
+        var unitId = Guid.NewGuid();
+        var logger = Substitute.For<ILogger>();
+        _game.Logger.Returns(logger);
+
+        _sut.ResumeMovementAfterStandup(unitId);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public void ResumeMovementAfterStandup_FindsUnitFromViewModel_WhenSelectedUnitIsNull()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, null);
+
+        _sut.ResumeMovementAfterStandup(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterStandup_FindsUnitFromViewModel_WhenSelectedUnitIdDoesNotMatch()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.SetProne();
+
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var selectedUnitField = typeof(MovementState)
+            .GetField("_selectedUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        selectedUnitField.SetValue(_sut, _unit2);
+
+        _sut.ResumeMovementAfterStandup(mech.Id);
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
     }
 
     [Fact]
@@ -2471,7 +2538,7 @@ public class MovementStateTests
         _sut.HandleFacingSelection(HexDirection.Bottom);
         proneMech.AttemptStandup();
         proneMech.StandUp(HexDirection.Bottom);
-        _sut.ResumeMovementAfterStandup();
+        _sut.ResumeMovementAfterStandup(proneMech.Id);
 
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
         _sut.HandleHexSelection(targetHex);

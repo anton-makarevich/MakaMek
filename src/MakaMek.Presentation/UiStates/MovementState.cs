@@ -516,21 +516,35 @@ public class MovementState : IUiState
                 NewFacing = direction,
                 MovementTypeAfterStandup = _selectedPath.MovementType
             };
-
-            // Publish the command
-            _viewModel.Game.TryStandupUnit(standupCommand);
-
+            
             // Reset the movement state
             _viewModel.HideDirectionSelector();
             _viewModel.NotifyStateChanged();
+            
+            // Publish the command
+            _viewModel.Game.TryStandupUnit(standupCommand);
         }
     }
 
     // Method to resume movement after successful standup
-    public void ResumeMovementAfterStandup()
+    public void ResumeMovementAfterStandup(Guid unitId)
     {
         lock (_stateLock)
         {
+            // Fallback: if _selectedUnit is null (e.g., cleared by ClearSelection during phase change),
+            // try to find the unit from the view model
+            if (_selectedUnit == null || _selectedUnit.Id != unitId)
+            {
+                var stoodUpUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
+                if (stoodUpUnit == null)
+                {
+                    Game?.Logger.LogWarning("ResumeMovementAfterStandup: unit {UnitId} not found among alive units", unitId);
+                    return;
+                }
+                _selectedUnit = stoodUpUnit;
+                _builder.SetUnit(stoodUpUnit);
+            }
+            
             // Check if the unit is no longer prone (standup was successful)
             if (_selectedPath?.MovementType == null ||
                 _selectedUnit is not Mech { IsProne: false, Position: not null } mech) return;
@@ -556,7 +570,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_selectedUnit == null)
+            if (_selectedUnit == null || _selectedUnit.Id != unitId)
             {
                 var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
                 if (fallenUnit == null)
@@ -815,6 +829,7 @@ public class MovementState : IUiState
 
         public override void HandleFacingSelection(HexDirection direction)
         {
+            State.Game?.Logger.LogInformation("[TEMP] SelectingStandingUpDirectionStep.HandleFacingSelection: direction={Direction}", direction);
             State.CompleteStandupAttempt(direction);
         }
     }
