@@ -4,6 +4,7 @@ using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Map.Data;
@@ -238,6 +239,67 @@ public class JoinGameViewModelTests
             Arg.Any<IHeatEffectsCalculator>(),
             Arg.Any<IBattleMapFactory>(),
             Arg.Any<IHashService>());
+    }
+
+    [Fact]
+    public void Disconnect_ShouldDisposeLocalGame()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _clientGame.IsDisposed.ShouldBeFalse();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Disconnect_ShouldClearPublishers()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _adapter.Received(1).ClearPublishers();
+    }
+
+    [Fact]
+    public void Disconnect_ShouldSetIsConnectedToFalse()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _sut.IsConnected.ShouldBeTrue();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Dispose_ShouldCallDisconnect()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _clientGame.IsDisposed.ShouldBeFalse();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeFalse();
     }
     
     [Fact]
@@ -582,6 +644,42 @@ public class JoinGameViewModelTests
 
         // Assert
         _botManager.Received(1).AddBot(botPlayerVm.Player);
+    }
+
+    [Fact]
+    public void ConnectToServer_DisposesPreviousGame_WhenReconnectingAfterFailedAttempt()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+
+        var initializeCallCount = 0;
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ =>
+            {
+                initializeCallCount++;
+                if (initializeCallCount == 1)
+                    throw new Exception("Simulated initialization failure");
+            });
+
+        // Act - first call creates _localGame but fails before IsConnected=true
+        _sut.ConnectCommand.Execute(null);
+
+        // First attempt left _localGame set but not disposed and IsConnected=false
+        _clientGame.IsDisposed.ShouldBeFalse();
+        _sut.IsConnected.ShouldBeFalse();
+
+        _gameFactory.ClearReceivedCalls();
+
+        // Act - second call enters the block (line 179), disposes old, creates new
+        _sut.ConnectCommand.Execute(null);
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue(); // disposed at line 181
+        _gameFactory.Received(1).CreateClientGame(
+            _rulesProvider, _mechFactory, _commandPublisher,
+            _toHitCalculator, _pilotingSkillCalculator,
+            _consciousnessCalculator, _heatEffectsCalculator,
+            _mapFactory, _hashService);
     }
 
     [Fact]

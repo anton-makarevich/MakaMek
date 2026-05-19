@@ -192,6 +192,45 @@ public class CommandPublisherTests
     }
     
     [Fact]
+    public void Dispose_ClearsSubscribers()
+    {
+        // Arrange
+        var received = false;
+        _sut.Subscribe(_ => received = true);
+
+        // Act
+        _sut.Dispose();
+
+        // Assert - subscriber should not receive commands after dispose
+        var commandToSend = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            TurnNumber = 1
+        };
+        var payload = System.Text.Json.JsonSerializer.Serialize(commandToSend);
+        var message = new TransportMessage
+        {
+            MessageType = nameof(TurnIncrementedCommand),
+            SourceId = commandToSend.GameOriginId,
+            Timestamp = DateTime.UtcNow,
+            Payload = payload
+        };
+        _transportCallback!(message);
+        received.ShouldBeFalse("Subscriber should not be called after dispose");
+    }
+
+    [Fact]
+    public void Dispose_CanBeCalledMultipleTimes()
+    {
+        Should.NotThrow(() =>
+        {
+            _sut.Dispose();
+            _sut.Dispose();
+        });
+    }
+
+    [Fact]
     public void Unsubscribe_RemovesSubscriber()
     {
         // Arrange

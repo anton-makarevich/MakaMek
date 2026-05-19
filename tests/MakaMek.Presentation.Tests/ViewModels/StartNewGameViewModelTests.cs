@@ -5,6 +5,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
@@ -404,6 +405,22 @@ public class StartNewGameViewModelTests
         _sut.Dispose();
 
         _gameManager.DidNotReceive().Dispose();
+    }
+
+    [Fact]
+    public void Dispose_ShouldUnsubscribeFromCommandPublisher()
+    {
+        _sut.Dispose();
+
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public void DetachHandlers_ShouldUnsubscribeFromCommandPublisher()
+    {
+        _sut.DetachHandlers();
+
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     [Fact]

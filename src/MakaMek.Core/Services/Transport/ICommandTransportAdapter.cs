@@ -3,7 +3,7 @@ using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
-public interface ICommandTransportAdapter
+public interface ICommandTransportAdapter: IDisposable
 {
     IReadOnlyList<ITransportPublisher> TransportPublishers { get; }
 

@@ -233,4 +233,9 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
         });
     }
+
+    public void Dispose()
+    {
+        ClearPublishers();
+    }
 }

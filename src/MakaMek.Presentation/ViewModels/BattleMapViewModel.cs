@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
@@ -27,7 +28,7 @@ using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
-public class BattleMapViewModel : BaseViewModel
+public class BattleMapViewModel : BaseViewModel, IDisposable
 {
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
@@ -37,6 +38,7 @@ public class BattleMapViewModel : BaseViewModel
     private readonly IDispatcherService _dispatcherService;
     private readonly IPlatformService _platformService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
+    private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
 
 
     public HexCoordinates? DirectionSelectorPosition
@@ -111,7 +113,8 @@ public class BattleMapViewModel : BaseViewModel
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
         HexConfiguration = new HexRenderConfigurationViewModel();
-        HexConfiguration.PropertyChanged += (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
+        _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
+        HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
     }
 
     private async Task LeaveGame()
@@ -721,6 +724,26 @@ public class BattleMapViewModel : BaseViewModel
         return NavigationService.NavigateToViewModelAsync(endGameViewModel);
     }
     
+    public void Dispose()
+    {
+        HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
+        _gameSubscription?.Dispose();
+        _commandSubscription?.Dispose();
+        if (Game is { IsDisposed: false })
+        {
+            Game.Dispose();
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    public override void DetachHandlers()
+    {
+        HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
+        base.DetachHandlers();
+        _gameSubscription?.Dispose();
+        _commandSubscription?.Dispose();
+    }
+
     private async Task GoToMainMenu()
     {
         // Dispose of the game

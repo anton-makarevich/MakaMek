@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -106,7 +105,7 @@ public class GameManager : IGameManager
 
         // Dispose command logger
         _commandLogger?.Dispose();
-        _commandLogger = null;
+        _commandLogger = null; 
     }
 
     public async Task InitializeLobby()

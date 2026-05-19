@@ -247,8 +247,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public void Dispose()
     {
+        _commandPublisher.Unsubscribe(HandleServerCommand);
         MapConfig.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    public override void DetachHandlers()
+    {
+        base.DetachHandlers();
+        _commandPublisher.Unsubscribe(HandleServerCommand);
     }
 
     public override void AttachHandlers()
