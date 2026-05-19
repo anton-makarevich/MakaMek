@@ -105,7 +105,7 @@ public class GameManager : IGameManager
 
         // Dispose command logger
         _commandLogger?.Dispose();
-        _commandLogger = null;git 
+        _commandLogger = null; 
     }
 
     public async Task InitializeLobby()
