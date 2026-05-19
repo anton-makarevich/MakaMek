@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
@@ -37,6 +38,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IDispatcherService _dispatcherService;
     private readonly IPlatformService _platformService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
+    private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
 
 
     public HexCoordinates? DirectionSelectorPosition
@@ -111,7 +113,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
         HexConfiguration = new HexRenderConfigurationViewModel();
-        HexConfiguration.PropertyChanged += (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
+        _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
+        HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
     }
 
     private async Task LeaveGame()
@@ -723,6 +726,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     
     public void Dispose()
     {
+        HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         if (Game is { IsDisposed: false })
@@ -734,6 +738,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public override void DetachHandlers()
     {
+        HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
         base.DetachHandlers();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
