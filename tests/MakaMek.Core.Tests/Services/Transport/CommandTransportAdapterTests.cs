@@ -466,6 +466,42 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
+    public void Dispose_CallsClearPublishersAndDisposesAllDisposablePublishers()
+    {
+        // Arrange
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+
+        var sut = new CommandTransportAdapter(
+            _loggerFactory,
+            disposablePublisher1,
+            disposablePublisher2,
+            nonDisposablePublisher);
+        sut.Initialize((_, _) => { });
+
+        // Act
+        sut.Dispose();
+
+        // Assert - Dispose was called on disposable publishers
+        ((IDisposable)disposablePublisher1).Received(1).Dispose();
+        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+
+        // Assert - publishers list is cleared (publishing does nothing)
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+        sut.PublishCommand(command);
+
+        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+    }
+
+    [Fact]
     public void Initialize_CalledMultipleTimes_SubscribesOnlyOnce()
     {
         // Arrange
