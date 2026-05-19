@@ -108,8 +108,7 @@ public class GameManager : IGameManager
         _commandLogger = null;
 
         // Dispose the command publisher adapter to clean up transport subscriptions
-        if (_commandPublisher is IDisposable disposable)
-            disposable.Dispose();
+        _commandPublisher.Adapter.Dispose();
     }
 
     public async Task InitializeLobby()
