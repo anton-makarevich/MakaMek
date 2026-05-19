@@ -54,15 +54,32 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         switch (command)
         {
             case MoveUnitCommand moveCommand:
-                // Guard against processing commands for a unit that has already completed movement
                 if (HasUnitMoved(moveCommand.PlayerId, moveCommand.UnitId, "MoveUnitCommand"))
+                {
+                    Game.CommandPublisher.PublishCommand(new ErrorCommand
+                    {
+                        GameOriginId = Game.Id,
+                        IdempotencyKey = moveCommand.IdempotencyKey,
+                        ErrorCode = ErrorCode.InvalidGameState,
+                        Timestamp = DateTime.UtcNow
+                    });
                     return;
+                }
                 
                 HandleUnitAction(command, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
                 if (HasUnitMoved(standupCommand.PlayerId, standupCommand.UnitId, "TryStandupCommand"))
+                {
+                    Game.CommandPublisher.PublishCommand(new ErrorCommand
+                    {
+                        GameOriginId = Game.Id,
+                        IdempotencyKey = standupCommand.IdempotencyKey,
+                        ErrorCode = ErrorCode.InvalidGameState,
+                        Timestamp = DateTime.UtcNow
+                    });
                     return;
+                }
                 
                 ProcessStandupCommand(standupCommand);
                 break;
@@ -220,7 +237,13 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
         if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit)
         {
-            // TODO: Should return error command
+            Game.CommandPublisher.PublishCommand(new ErrorCommand
+            {
+                GameOriginId = Game.Id,
+                IdempotencyKey = tryStandUpCommand.IdempotencyKey,
+                ErrorCode = ErrorCode.InvalidGameState,
+                Timestamp = DateTime.UtcNow
+            });
             Game.Logger.LogWarning("Unit not found");
             return;
         }
