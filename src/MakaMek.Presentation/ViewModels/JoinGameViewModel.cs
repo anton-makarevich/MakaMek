@@ -224,6 +224,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         _commandPublisher.Adapter.ClearPublishers();
         IsConnected = false;
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        NotifyPropertyChanged(nameof(CanAddPlayer));
     }
 
     public void Dispose()
