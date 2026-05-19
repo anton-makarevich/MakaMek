@@ -105,10 +105,7 @@ public class GameManager : IGameManager
 
         // Dispose command logger
         _commandLogger?.Dispose();
-        _commandLogger = null;
-
-        // Dispose the command publisher adapter to clean up transport subscriptions
-        _commandPublisher.Adapter.Dispose();
+        _commandLogger = null;git 
     }
 
     public async Task InitializeLobby()
