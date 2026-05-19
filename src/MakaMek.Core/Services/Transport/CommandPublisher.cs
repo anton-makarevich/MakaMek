@@ -105,11 +105,11 @@ public class CommandPublisher : ICommandPublisher, IDisposable
 
     public void Dispose()
     {
-        Adapter.Dispose();
         lock (_syncLock)
         {
             _subscribers.Clear();
             _subscriberTransports.Clear();
         }
+        Adapter.Dispose();
     }
 }
