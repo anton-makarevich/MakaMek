@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -383,6 +384,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.ErrorCode == ErrorCode.InvalidGameState));
     }
 
     [Fact]
@@ -1425,6 +1428,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert - no additional move command should be published, unit position unchanged
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.MovementPath[0].To.Coordinates.Q == 4));
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.ErrorCode == ErrorCode.InvalidGameState));
         unit.Position!.Coordinates.ShouldBe(new HexCoordinates(3, 1));
     }
 
@@ -1466,6 +1471,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert - no standup or fall commands should be published
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.ErrorCode == ErrorCode.InvalidGameState));
         unit.StandupAttempts.ShouldBe(0);
     }
 
