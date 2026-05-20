@@ -5,7 +5,7 @@
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">

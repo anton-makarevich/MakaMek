@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="clr-namespace:Sanet.MakaMek.Core.Data.Units;assembly=Sanet.MakaMek.Core"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
              x:DataType="units:UnitData"

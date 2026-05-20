@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Views;
@@ -47,7 +48,7 @@ public partial class App : Application
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
         Converters.ModifierToTextConverter.Initialize(localizationService);
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
-        Extensions.LocalizeExtension.Initialize(localizationService);
+        LocalizeExtension.Initialize(localizationService);
 
         var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
         Converters.ComponentStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);

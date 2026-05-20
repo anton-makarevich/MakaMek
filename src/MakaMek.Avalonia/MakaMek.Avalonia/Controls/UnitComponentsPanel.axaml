@@ -5,7 +5,7 @@
              xmlns:components="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components;assembly=Sanet.MakaMek.Core"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitComponentsPanel">
     <UserControl.Resources>
