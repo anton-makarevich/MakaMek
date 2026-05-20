@@ -164,6 +164,7 @@ public class HexControl : Panel
     }
 
     public Hex Hex => _hex;
+    public CanonicalBitmaskResult? WaterBitmask => _waterBitmask;
 
     private void Highlight(IReadOnlyCollection<IHexHighlightType> highlights)
     {
