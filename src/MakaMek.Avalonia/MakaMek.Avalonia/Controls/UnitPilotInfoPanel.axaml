@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:pilots="clr-namespace:Sanet.MakaMek.Core.Models.Units.Pilots;assembly=Sanet.MakaMek.Core"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Extensions"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              x:DataType="pilots:IPilot"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPilotInfoPanel"
              mc:Ignorable="d">

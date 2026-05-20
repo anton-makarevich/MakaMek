@@ -1,8 +1,8 @@
 ﻿using NSubstitute;
-using Sanet.MakaMek.Avalonia.Extensions;
 using Sanet.MakaMek.Localization;
 using Shouldly;
 using System.Reflection;
+using Sanet.MakaMek.Avalonia.Controls.Extensions;
 
 namespace MakaMek.Avalonia.Tests.Extensions;
 

@@ -1,8 +1,7 @@
-﻿using System;
-using Avalonia.Markup.Xaml;
+﻿using Avalonia.Markup.Xaml;
 using Sanet.MakaMek.Localization;
 
-namespace Sanet.MakaMek.Avalonia.Extensions;
+namespace Sanet.MakaMek.Avalonia.Controls.Extensions;
 
 /// <summary>
 /// Markup extension that resolves a localization key to a localized string.
