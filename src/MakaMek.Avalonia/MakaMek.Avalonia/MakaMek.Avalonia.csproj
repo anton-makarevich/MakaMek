@@ -56,6 +56,8 @@
       <EmbeddedResource Include="Resources\Maps\4sw-woodland.json" />
       <None Remove="Resources\Maps\hills.json" />
       <EmbeddedResource Include="Resources\Maps\hills.json" />
+      <None Remove="Resources\Maps\battletech.json" />
+      <EmbeddedResource Include="Resources\Maps\battletech.json" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->
