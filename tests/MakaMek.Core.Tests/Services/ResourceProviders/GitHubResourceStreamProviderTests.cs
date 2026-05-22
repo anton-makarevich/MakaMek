@@ -61,6 +61,8 @@ public class UrlMatchingMockHttpMessageHandler : HttpMessageHandler
 {
     private readonly Dictionary<string, string> _urlResponses = new();
     private readonly Dictionary<string, HttpStatusCode> _urlStatusCodes = new();
+    private readonly HashSet<string> _throwUrls = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Exception> _throwExceptions = new(StringComparer.Ordinal);
 
     public void SetResponse(string url, string content)
     {
@@ -72,11 +74,31 @@ public class UrlMatchingMockHttpMessageHandler : HttpMessageHandler
         _urlStatusCodes[url] = statusCode;
     }
 
+    public void SetThrowUrl(string url)
+    {
+        _throwUrls.Add(url);
+    }
+
+    public void SetThrowException(string url, Exception exception)
+    {
+        _throwExceptions[url] = exception;
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         await Task.CompletedTask;
 
         var requestUrl = request.RequestUri?.ToString() ?? string.Empty;
+
+        if (_throwExceptions.TryGetValue(requestUrl, out var exception))
+        {
+            throw exception;
+        }
+
+        if (_throwUrls.Contains(requestUrl))
+        {
+            throw new HttpRequestException($"Simulated network error for {requestUrl}");
+        }
 
         // Check if we have a specific status code for this URL
         if (_urlStatusCodes.TryGetValue(requestUrl, out var statusCode) && statusCode != HttpStatusCode.OK)
@@ -731,6 +753,110 @@ public class GitHubResourceStreamProviderTests
         using var reader = new StreamReader(result);
         var content = await reader.ReadToEndAsync();
         content.ShouldBe("Cached content");
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldLogAndServeStaleCache_WhenDownloadThrowsAndCacheAvailable()
+    {
+        // Arrange
+        const string testContent = "Stale cached content";
+        const string testUrl = "https://api.github.com/test/file.mmux";
+        const string cachedSha = "old-sha789";
+        const string currentSha = "abc123def456";
+        const string apiUrl = "https://api.github.com/test";
+        var staleBytes = Encoding.UTF8.GetBytes(testContent);
+
+        var mockHandler = new UrlMatchingMockHttpMessageHandler();
+        mockHandler.SetResponse(apiUrl, $$"""
+            [
+                {
+                    "name": "file.mmux",
+                    "type": "file",
+                    "download_url": "{{testUrl}}",
+                    "sha": "{{currentSha}}"
+                }
+            ]
+            """);
+        mockHandler.SetThrowUrl(testUrl);
+
+        var httpClient = new HttpClient(mockHandler);
+
+        _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
+        _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
+
+        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+            _cachingService,
+            _logger,
+            httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream(testUrl);
+
+        // Assert
+        result.ShouldNotBeNull();
+        using var reader = new StreamReader(result);
+        var content = await reader.ReadToEndAsync();
+        content.ShouldBe(testContent);
+
+        // Verify "Serving stale cached content" is logged (line 135)
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Serving stale cached content")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldLogAndServeStaleCache_WhenDownloadThrowsGeneralExceptionAndCacheAvailable()
+    {
+        // Arrange
+        const string testContent = "Stale cached content";
+        const string testUrl = "https://api.github.com/test/file.mmux";
+        const string cachedSha = "old-sha789";
+        const string currentSha = "abc123def456";
+        const string apiUrl = "https://api.github.com/test";
+        var staleBytes = Encoding.UTF8.GetBytes(testContent);
+
+        var mockHandler = new UrlMatchingMockHttpMessageHandler();
+        mockHandler.SetResponse(apiUrl, $$"""
+            [
+                {
+                    "name": "file.mmux",
+                    "type": "file",
+                    "download_url": "{{testUrl}}",
+                    "sha": "{{currentSha}}"
+                }
+            ]
+            """);
+        mockHandler.SetThrowException(testUrl, new InvalidOperationException("Some other error"));
+
+        var httpClient = new HttpClient(mockHandler);
+
+        _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
+        _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
+
+        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+            _cachingService,
+            _logger,
+            httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream(testUrl);
+
+        // Assert
+        result.ShouldNotBeNull();
+        using var reader = new StreamReader(result);
+        var content = await reader.ReadToEndAsync();
+        content.ShouldBe(testContent);
+
+        // Verify "Serving stale cached content" is logged (line 135)
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Serving stale cached content")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]

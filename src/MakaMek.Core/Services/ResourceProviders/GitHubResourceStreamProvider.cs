@@ -134,7 +134,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             if (fallbackBytes == null) return null;
             _logger.LogInformation("Serving stale cached content for {ResourceId} due to download failure", resourceId);
             return new MemoryStream(fallbackBytes);
-
         }
     }
 
