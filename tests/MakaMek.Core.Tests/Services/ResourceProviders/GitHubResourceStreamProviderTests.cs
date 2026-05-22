@@ -943,4 +943,29 @@ public class GitHubResourceStreamProviderTests
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldLogError_WhenCachedManifestThrowsException()
+    {
+        // Arrange
+        _mockHttpMessageHandler.StatusCode = HttpStatusCode.InternalServerError;
+
+        _cachingService.TryGetCachedFile("https://api.github.com/test")
+            .Returns(Task.FromException<byte[]?>(new InvalidOperationException("Cache error")));
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+
+        // Verify "Error loading cached API manifest" is logged (lines 224-227)
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error loading cached API manifest")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
 }
