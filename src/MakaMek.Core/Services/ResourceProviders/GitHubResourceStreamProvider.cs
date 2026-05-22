@@ -156,7 +156,15 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             }
 
             var jsonContent = await response.Content.ReadAsStringAsync();
+            
+            var contentItems = JsonSerializer.Deserialize<GitHubContentItem[]>(jsonContent);
 
+            if (contentItems == null)
+            {
+                _logger.LogWarning("Failed to deserialize GitHub contents response");
+                return resourceIds;
+            }
+            
             // Cache the API response for offline use
             try
             {
@@ -165,14 +173,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error caching API manifest for {ApiUrl}", _apiUrl);
-            }
-
-            var contentItems = JsonSerializer.Deserialize<GitHubContentItem[]>(jsonContent);
-
-            if (contentItems == null)
-            {
-                _logger.LogWarning("Failed to deserialize GitHub contents response");
-                return resourceIds;
             }
 
             foreach (var item in contentItems)

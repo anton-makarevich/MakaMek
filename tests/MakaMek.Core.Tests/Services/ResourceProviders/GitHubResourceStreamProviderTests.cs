@@ -627,7 +627,8 @@ public class GitHubResourceStreamProviderTests
 
         // Set up the caching service to return the same SHA
         _cachingService.GetCacheVersion(testUrl).Returns(matchingSha);
-        _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null);
+        var cachedBytes = Encoding.UTF8.GetBytes("Cached file content");
+        _cachingService.TryGetCachedFile(testUrl).Returns(cachedBytes);
 
         var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
             _cachingService,
@@ -644,6 +645,7 @@ public class GitHubResourceStreamProviderTests
         await _cachingService.Received(1).GetCacheVersion(testUrl);
         await _cachingService.DidNotReceive().IsCached(Arg.Any<string>());
         await _cachingService.DidNotReceive().RemoveFromCache(Arg.Any<string>());
+        await _cachingService.DidNotReceive().SaveToCache(testUrl, Arg.Any<byte[]>(), Arg.Any<string?>());
     }
 
     [Fact]
