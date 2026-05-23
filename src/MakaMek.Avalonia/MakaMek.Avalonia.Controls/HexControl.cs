@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using AsyncAwaitBestPractices;
 using Avalonia;
@@ -64,12 +65,14 @@ public class HexControl : Panel
     public HexControl(Hex hex, ILogger logger,  ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService = null,
         IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null,
-        CanonicalBitmaskResult? waterBitmask = null)
+        CanonicalBitmaskResult? waterBitmask = null,
+        IScheduler? scheduler = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _waterBitmask = waterBitmask;
+        var localScheduler = scheduler ?? new SynchronizationContextScheduler(SynchronizationContext.Current!);
 
         _logger = logger;
         _edges = edges?.ToArray();
@@ -152,7 +155,7 @@ public class HexControl : Panel
 
         // Subscribe to highlight changes from the Hex model
         _hexSubscription = _hex.HighlightsChanged
-            .ObserveOn(SynchronizationContext.Current!) // Ensure events are processed on the UI thread
+            .ObserveOn(localScheduler)
             .Subscribe(Highlight);
 
         // Set position

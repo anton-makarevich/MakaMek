@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
@@ -703,6 +704,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public ITerrainAssetService TerrainAssetService { get; }
 
     public ITerrainBitmaskService? TerrainBitmaskService { get; }
+
+    public IScheduler Scheduler => _dispatcherService.Scheduler;
 
     private Task ProcessGameEnded(GameEndedCommand command)
     {
