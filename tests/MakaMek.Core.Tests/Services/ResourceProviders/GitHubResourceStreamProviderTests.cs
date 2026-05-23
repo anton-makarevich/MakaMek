@@ -682,6 +682,9 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldNotBeNull();
+        using var reader = new StreamReader(result);
+        var content = await reader.ReadToEndAsync();
+        content.ShouldBe("Cached file content");
 
         // Verify that GetCacheVersion was called but no staleness checks beyond that
         await _cachingService.Received(1).GetCacheVersion(testUrl);
