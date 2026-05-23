@@ -1,10 +1,12 @@
 using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Browser.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
-using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Services.Avalonia.Browser.Services;
 
 namespace Sanet.MakaMek.Avalonia.Browser.DependencyInjection;
 

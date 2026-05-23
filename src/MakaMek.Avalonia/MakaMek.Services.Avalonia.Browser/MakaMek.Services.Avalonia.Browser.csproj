@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-browser</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>Sanet.MakaMek.Services.Avalonia.Browser</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Services.Avalonia.Browser</RootNamespace>
+        <Description>Browser/WASM-specific service implementations for MakaMek</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../../../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="wwwroot\**" Pack="true" PackagePath="wwwroot\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\MakaMek.Services\MakaMek.Services.csproj" />
+    </ItemGroup>
+
+</Project>
