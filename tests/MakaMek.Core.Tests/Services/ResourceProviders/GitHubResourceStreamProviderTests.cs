@@ -375,6 +375,26 @@ public class GitHubResourceStreamProviderTests
     }
 
     [Fact]
+    public async Task GetAvailableResourceIds_ShouldLogWarning_WhenDeserializationReturnsNull()
+    {
+        // Arrange
+        _mockHttpMessageHandler.ResponseContent = "null";
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to deserialize GitHub contents response")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
     public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenHttpRequestExceptionThrown()
     {
         // Arrange - Create a mock handler that throws HttpRequestException
@@ -886,6 +906,39 @@ public class GitHubResourceStreamProviderTests
         await _cachingService.Received(1).SaveToCache(
             "https://api.github.com/test",
             Arg.Is<byte[]>(bytes => Encoding.UTF8.GetString(bytes) == jsonResponse));
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldLogError_WhenCachingApiManifestThrows()
+    {
+        // Arrange
+        const string jsonResponse = """
+                                    [
+                                        {
+                                            "name": "file1.mmux",
+                                            "type": "file",
+                                            "download_url": "https://raw.githubusercontent.com/test/file1.mmux",
+                                            "sha": "sha123"
+                                        }
+                                    ]
+                                    """;
+
+        _mockHttpMessageHandler.ResponseContent = jsonResponse;
+        _cachingService.When(x => x.SaveToCache("https://api.github.com/test", Arg.Any<byte[]>()))
+                         .Do(_ => throw new InvalidOperationException("Cache error"));
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(1);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error caching API manifest for")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
