@@ -63,7 +63,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
                 waterBitmask = bitmaskService.ComputeCanonicalBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Water);
             }
 
-            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges, hexConfiguration, waterBitmask);
+            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges, hexConfiguration, waterBitmask, ViewModel?.Scheduler);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;

@@ -427,6 +427,13 @@ public class BattleMapViewModelTests
     }
     
     [Fact]
+    public void Scheduler_ShouldReturnDispatcherServiceScheduler()
+    {
+        var scheduler = _sut.Scheduler;
+        scheduler.ShouldBe(Scheduler.Immediate);
+    }
+
+    [Fact]
     public void IsMapSettingsPanelVisible_ShouldBeFalse_ByDefault()
     {
         // Assert
