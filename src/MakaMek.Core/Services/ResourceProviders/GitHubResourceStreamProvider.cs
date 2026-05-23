@@ -161,7 +161,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             if (contentItems == null)
             {
                 _logger.LogWarning("Failed to deserialize GitHub contents response");
-                return resourceIds;
+                return await TryLoadCachedManifest(resourceIds);
             }
             
             // Cache the API response for offline use
