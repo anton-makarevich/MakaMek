@@ -26,5 +26,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\MakaMek.Avalonia\MakaMek.Avalonia.csproj"/>
+        <ProjectReference Include="..\MakaMek.Services.Avalonia.Browser\MakaMek.Services.Avalonia.Browser.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\MakaMek.Services.Avalonia.Browser\wwwroot\cacheStorage.js" Link="wwwroot\cacheStorage.js" />
     </ItemGroup>
 </Project>

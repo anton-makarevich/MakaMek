@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 

@@ -2,8 +2,8 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.ResourceProviders;
+using Sanet.MakaMek.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
