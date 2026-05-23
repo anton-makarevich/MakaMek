@@ -1,5 +1,20 @@
 <Project>
     <ItemGroup>
-        <Content Include="$(MSBuildThisFileDirectory)..\wwwroot\cacheStorage.js" Link="wwwroot\cacheStorage.js" />
+        <Content Include="$(MSBuildThisFileDirectory)..\wwwroot\cacheStorage.js">
+            <Link>wwwroot\cacheStorage.js</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <Visible>false</Visible>
+        </Content>
+
+        <!-- Prevent the project's own wwwroot copy from being included as a duplicate asset -->
+        <Content Remove="$(MSBuildProjectDirectory)\wwwroot\cacheStorage.js" />
     </ItemGroup>
+
+    <Target Name="CopyCacheStorageToProjectWwwroot" BeforeTargets="Build">
+        <Copy
+                SourceFiles="$(MSBuildThisFileDirectory)..\wwwroot\cacheStorage.js"
+                DestinationFolder="$(MSBuildProjectDirectory)\wwwroot"
+                SkipUnchangedFiles="true" />
+    </Target>
 </Project>
