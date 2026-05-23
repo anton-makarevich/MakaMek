@@ -8,14 +8,16 @@
         <AssemblyName>Sanet.MakaMek.Services.Avalonia.Browser</AssemblyName>
         <RootNamespace>Sanet.MakaMek.Services.Avalonia.Browser</RootNamespace>
         <Description>Browser/WASM-specific service implementations for MakaMek</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../../../README.md" Pack="true" PackagePath="" />
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
         <Content Include="wwwroot\**" Pack="true" PackagePath="wwwroot\" />
+        <Content Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive\" />
     </ItemGroup>
 
     <ItemGroup>
