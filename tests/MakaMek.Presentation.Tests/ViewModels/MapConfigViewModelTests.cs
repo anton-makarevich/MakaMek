@@ -1063,6 +1063,39 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
+    public async Task LoadMapCommand_AddsMapNormally_WhenNoPlaceholderPresent()
+    {
+        const string mapJson = """
+                               {
+                                 "Biome": "makamek.biomes.grasslands",
+                                 "HexData": [
+                                 {
+                                   "Coordinates": { "Q": 1, "R": 1 },
+                                   "Terrains": [{"Type": 0 }],
+                                   "Level": 0
+                                 }
+                                 ]
+                               }
+                               """;
+        _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>(("NewMap.json", mapJson)));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
+
+        sut.AvailableMaps.Clear();
+
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        sut.AvailableMaps.OfType<MapPreviewItem>().Count().ShouldBe(1);
+        sut.SelectedMap.ShouldNotBeNull();
+        sut.SelectedMap!.Name.ShouldBe("NewMap");
+    }
+
+    [Fact]
     public async Task UpdateMap_CancelsPreviousOperation_WhenCalledMultipleTimes()
     {
         // Arrange
