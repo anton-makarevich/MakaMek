@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
@@ -149,7 +150,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
@@ -171,7 +172,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_ShouldSetBattleMap()
     {
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
 
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
@@ -300,7 +301,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
     {
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         var playerId = Guid.NewGuid();
         const string playerName = "RemotePlayer";
         const string playerTint = "#00FF00";
@@ -331,7 +332,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task PublishJoinCommand_ForLocalPlayer_CallsJoinGameWithUnitsOnClientGame()
     {
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
@@ -347,7 +348,7 @@ public class StartNewGameViewModelTests
     public async Task PublishJoinCommand_ForBotPlayer_AddsBot_ToBotManager()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a bot player using AddBotCommand
         _sut.AddBotCommand!.Execute(null);
@@ -368,7 +369,7 @@ public class StartNewGameViewModelTests
     public async Task PublishJoinCommand_ForHumanPlayer_DoesNotAddBot_ToBotManager()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a human player using AddPlayerCommand
         _sut.AddPlayerCommand!.Execute(null);
@@ -427,7 +428,7 @@ public class StartNewGameViewModelTests
     public async Task HandleServerCommand_JoinGameCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
@@ -462,7 +463,7 @@ public class StartNewGameViewModelTests
     public async Task HandleServerCommand_JoinGameCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
@@ -498,7 +499,7 @@ public class StartNewGameViewModelTests
     public async Task ExecuteJoinGame_ShouldSetPlayerStatusToJoinRequested()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
@@ -519,7 +520,7 @@ public class StartNewGameViewModelTests
     public async Task ExecuteSetReady_ShouldCallSetPlayerReadyOnClientGame()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
@@ -558,7 +559,7 @@ public class StartNewGameViewModelTests
         HandleServerCommand_UpdatePlayerStatusCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         var localPlayerVm = _sut.Players.First();
         await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
@@ -587,7 +588,7 @@ public class StartNewGameViewModelTests
     public async Task HandleServerCommand_UpdatePlayerStatusCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
@@ -619,7 +620,7 @@ public class StartNewGameViewModelTests
     public async Task CanStartGame_ShouldBeTrue_WhenAllPlayersAreReady()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // two players
         // first player is already added
@@ -645,7 +646,7 @@ public class StartNewGameViewModelTests
     public async Task CanStartGame_ShouldBeFalse_WhenSomePlayersAreNotReady()
     {
         // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
         // Add two players
         // Add first player
@@ -797,7 +798,7 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService);
-        await sut.InitializeLobbyAndSubscribe();
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
         // Assert
@@ -832,7 +833,7 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService);
-        await sut.InitializeLobbyAndSubscribe();
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
         // Assert
@@ -971,5 +972,83 @@ public class StartNewGameViewModelTests
 
         // Assert
         finalUnitCount.ShouldBe(initialUnitCount);
+    }
+
+    [Fact]
+    public async Task DetachHandlers_CancelsInFlightInitialization()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initTcs = new TaskCompletionSource();
+        gameManager.InitializeLobby().Returns(initTcs.Task);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+
+        var sut = new StartNewGameViewModel(
+            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
+            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
+            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
+            _mapResourceProvider, _fileService, _hashService, _botManager,
+            _vmLogger, _localizationService);
+
+        sut.AttachHandlers();
+        sut.DetachHandlers();
+        initTcs.SetResult();
+
+        await Task.Delay(100);
+
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public async Task Dispose_CancelsInFlightInitialization()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initTcs = new TaskCompletionSource();
+        gameManager.InitializeLobby().Returns(initTcs.Task);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+
+        var sut = new StartNewGameViewModel(
+            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
+            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
+            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
+            _mapResourceProvider, _fileService, _hashService, _botManager,
+            _vmLogger, _localizationService);
+
+        sut.AttachHandlers();
+        sut.Dispose();
+        initTcs.SetResult();
+
+        await Task.Delay(100);
+
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public async Task MultipleAttachHandlers_OnlyOneActiveInitialization()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initTcs = new TaskCompletionSource();
+        gameManager.InitializeLobby().Returns(initTcs.Task);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+
+        var sut = new StartNewGameViewModel(
+            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
+            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
+            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
+            _mapResourceProvider, _fileService, _hashService, _botManager,
+            _vmLogger, _localizationService);
+
+        sut.AttachHandlers();
+        sut.AttachHandlers();
+        initTcs.SetResult();
+
+        await Task.Delay(100);
+
+        commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
     }
 }

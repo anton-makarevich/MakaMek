@@ -30,6 +30,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IGameManager _gameManager;
     private readonly IBattleMapFactory _mapFactory;
     private readonly ILogger<StartNewGameViewModel> _logger;
+    private CancellationTokenSource? _initCts;
+    private bool _isDisposed;
 
     public StartNewGameViewModel(
         IGameManager gameManager,
@@ -75,9 +77,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }
 
-    public async Task InitializeLobbyAndSubscribe()
+    public async Task InitializeLobbyAndSubscribe(CancellationToken cancellationToken)
     {
         await _gameManager.InitializeLobby();
+        if (cancellationToken.IsCancellationRequested || _isDisposed)
+            return;
         _commandPublisher.Subscribe(HandleServerCommand);
         // Use the factory to create the ClientGame
         _localGame = _gameFactory.CreateClientGame(
@@ -247,6 +251,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public void Dispose()
     {
+        _isDisposed = true;
+        _initCts?.Cancel();
+        _initCts?.Dispose();
         _commandPublisher.Unsubscribe(HandleServerCommand);
         MapConfig.Dispose();
         GC.SuppressFinalize(this);
@@ -254,6 +261,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public override void DetachHandlers()
     {
+        _initCts?.Cancel();
         base.DetachHandlers();
         _commandPublisher.Unsubscribe(HandleServerCommand);
     }
@@ -261,7 +269,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        InitializeLobbyAndSubscribe().SafeFireAndForget(
+        _initCts?.Cancel();
+        _initCts?.Dispose();
+        _initCts = new CancellationTokenSource();
+        InitializeLobbyAndSubscribe(_initCts.Token).SafeFireAndForget(
             ex => _logger.LogError(ex, "Error initializing lobby"));
     }
 }
