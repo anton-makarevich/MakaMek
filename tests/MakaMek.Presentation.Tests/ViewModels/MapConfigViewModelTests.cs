@@ -548,11 +548,13 @@ public class MapConfigViewModelTests
         await sut.LoadAvailableMaps();
 
         // Assert
-        sut.AvailableMaps.Count.ShouldBe(2);
-        sut.AvailableMaps[0].PreviewImage.ShouldBe(previewImage);
+        var maps = sut.AvailableMaps.OfType<MapPreviewItem>().ToList();
+        maps.Count.ShouldBe(2);
+        maps[0].PreviewImage.ShouldBe(previewImage);
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap.Name.ShouldBe("Map1");
         sut.SelectedMap.IsSelected.ShouldBeTrue();
+        sut.AvailableMaps.Last().ShouldBeOfType<LoadMapPlaceholder>();
     }
 
     [Fact]
@@ -577,13 +579,15 @@ public class MapConfigViewModelTests
             _logger, _dispatcherService, _localizationService);
         await sut.LoadAvailableMaps();
 
+        var maps = sut.AvailableMaps.OfType<MapPreviewItem>().ToList();
+
         // Act
-        sut.SelectMap(sut.AvailableMaps[1]);
+        sut.SelectMap(maps[1]);
 
         // Assert
-        sut.SelectedMap.ShouldBe(sut.AvailableMaps[1]);
-        sut.AvailableMaps[0].IsSelected.ShouldBeFalse();
-        sut.AvailableMaps[1].IsSelected.ShouldBeTrue();
+        sut.SelectedMap.ShouldBe(maps[1]);
+        maps[0].IsSelected.ShouldBeFalse();
+        maps[1].IsSelected.ShouldBeTrue();
     }
 
     [Fact]
@@ -634,7 +638,7 @@ public class MapConfigViewModelTests
     [Fact]
     public void AvailableMaps_InitiallyEmpty()
     {
-        _sut.AvailableMaps.ShouldBeEmpty();
+        _sut.AvailableMaps.OfType<MapPreviewItem>().ShouldBeEmpty();
     }
 
     [Fact]
@@ -742,7 +746,7 @@ public class MapConfigViewModelTests
         await sut.LoadMapCommand.ExecuteAsync();
         
         // Assert
-        sut.AvailableMaps.ShouldContain(m => m.Name == "TestMap"); // .json should be trimmed
+        sut.AvailableMaps.OfType<MapPreviewItem>().ShouldContain(m => m.Name == "TestMap"); // .json should be trimmed
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap!.Name.ShouldBe("TestMap");
         sut.SelectedMap.Map.ShouldBe(expectedMap);
@@ -763,7 +767,7 @@ public class MapConfigViewModelTests
         await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
-        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.AvailableMaps.OfType<MapPreviewItem>().ShouldBeEmpty();
         sut.SelectedMap.ShouldBeNull();
         _mapFactory.DidNotReceive().CreateFromData(Arg.Any<BattleMapData>());
     }
@@ -781,7 +785,7 @@ public class MapConfigViewModelTests
         await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
-        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.AvailableMaps.OfType<MapPreviewItem>().ShouldBeEmpty();
         sut.SelectedMap.ShouldBeNull();
         _mapFactory.DidNotReceive().CreateFromData(Arg.Any<BattleMapData>());
     }
@@ -800,7 +804,7 @@ public class MapConfigViewModelTests
         await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
-        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.AvailableMaps.OfType<MapPreviewItem>().ShouldBeEmpty();
         sut.SelectedMap.ShouldBeNull();
         _logger.Received(1).Log(
             LogLevel.Error,
@@ -826,7 +830,7 @@ public class MapConfigViewModelTests
         await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
-        sut.AvailableMaps.ShouldContain(m => m.Name == "Loaded Map");
+        sut.AvailableMaps.OfType<MapPreviewItem>().ShouldContain(m => m.Name == "Loaded Map");
     }
 
     [Fact]
@@ -863,8 +867,10 @@ public class MapConfigViewModelTests
             _dispatcherService, _localizationService);
 
         // Items should be populated immediately
-        sut.AvailableMaps.Count.ShouldBe(3); 
-        sut.AvailableMaps.All(m => !string.IsNullOrEmpty(m.Name)).ShouldBeTrue();
+        var mapItems = sut.AvailableMaps.OfType<MapPreviewItem>().ToList();
+        mapItems.Count.ShouldBe(3);
+        mapItems.All(m => !string.IsNullOrEmpty(m.Name)).ShouldBeTrue();
+        sut.AvailableMaps.Last().ShouldBeOfType<LoadMapPlaceholder>();
 
         // Preselection should happen immediately
         sut.SelectedMap.ShouldNotBeNull();
@@ -873,7 +879,7 @@ public class MapConfigViewModelTests
 
         // Assert - all previews should be generated
         previewGenerationTasks.Count.ShouldBe(4);// 3 loaded and 1 generated
-        sut.AvailableMaps.All(m => m.PreviewImage == previewImage).ShouldBeTrue();
+        mapItems.All(m => m.PreviewImage == previewImage).ShouldBeTrue();
 
         // Verify dispatcher was called for each preview
         _dispatcherService.Received(3).RunOnUIThread(Arg.Any<Func<Task>>());
@@ -940,14 +946,16 @@ public class MapConfigViewModelTests
         await sut.LoadAvailableMaps();
 
         // Assert
-        sut.AvailableMaps.Count.ShouldBe(2);
+        var mapItems = sut.AvailableMaps.OfType<MapPreviewItem>().ToList();
+        mapItems.Count.ShouldBe(2);
+        sut.AvailableMaps.Last().ShouldBeOfType<LoadMapPlaceholder>();
         
         // Map1 should have a null preview due to an error
-        var map1Item = sut.AvailableMaps.First(m => m.Name == "Map1");
+        var map1Item = mapItems.First(m => m.Name == "Map1");
         map1Item.PreviewImage.ShouldBeNull();
         
         // Map2 should have a preview
-        var map2Item = sut.AvailableMaps.First(m => m.Name == "Map2");
+        var map2Item = mapItems.First(m => m.Name == "Map2");
         map2Item.PreviewImage.ShouldNotBeNull();
         
         // Error should be logged for Map1
@@ -971,9 +979,74 @@ public class MapConfigViewModelTests
         // Act & Assert - Should not throw
         await sut.LoadAvailableMaps();
         
-        sut.AvailableMaps.ShouldBeEmpty();
+        sut.AvailableMaps.Count.ShouldBe(1);
+        sut.AvailableMaps[0].ShouldBeOfType<LoadMapPlaceholder>();
         sut.SelectedMap.ShouldBeNull();
         sut.IsLoadingMaps.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAvailableMaps_AppendsPlaceholderAtEnd()
+    {
+        var mapData = CreateSingleMapData();
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, BattleMapData MapData)>
+            {
+                ("Map1", mapData),
+                ("Map2", mapData)
+            });
+        var map = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
+        await sut.LoadAvailableMaps();
+
+        var lastItem = sut.AvailableMaps.Last();
+        lastItem.ShouldBeOfType<LoadMapPlaceholder>();
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_InsertsBeforePlaceholder()
+    {
+        const string mapJson = """
+                               {
+                                 "Biome": "makamek.biomes.grasslands",
+                                 "HexData": [
+                                 {
+                                   "Coordinates": { "Q": 1, "R": 1 },
+                                   "Terrains": [{"Type": 0 }],
+                                   "Level": 0
+                                 }
+                                 ]
+                               }
+                               """;
+        _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>(("NewMap.json", mapJson)));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
+
+        var mapData = CreateSingleMapData();
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, BattleMapData MapData)>
+            {
+                ("ExistingMap", mapData)
+            });
+        var existingMap = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Is<BattleMapData>(d => d == mapData)).Returns(existingMap);
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
+        await sut.LoadAvailableMaps();
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        sut.AvailableMaps.OfType<MapPreviewItem>().Count().ShouldBe(2);
+        sut.AvailableMaps.Last().ShouldBeOfType<LoadMapPlaceholder>();
+        sut.AvailableMaps.OfType<MapPreviewItem>().Last().Name.ShouldBe("NewMap");
     }
 
     [Fact]
