@@ -106,9 +106,10 @@ public class MapConfigViewModel : BindableBase, IDisposable
     }
 
     /// <summary>
-    /// Collection of pre-existing maps available for selection
+    /// Collection of pre-existing maps available for selection,
+    /// with a trailing <see cref="LoadMapPlaceholder"/> sentinel
     /// </summary>
-    public ObservableCollection<MapPreviewItem> AvailableMaps { get; } = [];
+    public ObservableCollection<object> AvailableMaps { get; } = [];
 
     /// <summary>
     /// Currently selected pre-existing map
@@ -278,7 +279,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     /// </summary>
     public void SelectMap(MapPreviewItem item)
     {
-        foreach (var map in AvailableMaps)
+        foreach (var map in AvailableMaps.OfType<MapPreviewItem>())
         {
             map.IsSelected = map == item;
         }
@@ -316,7 +317,16 @@ public class MapConfigViewModel : BindableBase, IDisposable
                 PreviewImage = await _previewRenderer.GeneratePreviewAsync(battleMap)
             };
 
-            AvailableMaps.Add(item);
+            var placeholder = AvailableMaps.OfType<LoadMapPlaceholder>().FirstOrDefault();
+            if (placeholder is not null)
+            {
+                var idx = AvailableMaps.IndexOf(placeholder);
+                AvailableMaps.Insert(idx, item);
+            }
+            else
+            {
+                AvailableMaps.Add(item);
+            }
             SelectedTabIndex = 0;
             SelectMap(item);
         }
@@ -354,14 +364,18 @@ public class MapConfigViewModel : BindableBase, IDisposable
                 tasks.Add(GeneratePreviewAsync(item, battleMap));
             }
 
-            // Preselect the first item to avoid NREs - UI appears instantly
-            if (AvailableMaps.Count > 0)
-            {
-                SelectMap(AvailableMaps[0]);
-            }
-
             // Execute all preview generation in parallel
             await Task.WhenAll(tasks);
+
+            // Append the "Load Map" placeholder card sentinel at the end
+            AvailableMaps.Add(new LoadMapPlaceholder());
+
+            // Preselect the first item to avoid NREs - UI appears instantly
+            var firstMap = AvailableMaps.OfType<MapPreviewItem>().FirstOrDefault();
+            if (firstMap is not null)
+            {
+                SelectMap(firstMap);
+            }
         }
         catch (Exception ex)
         {
@@ -472,7 +486,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     private void ClearAvailableMaps()
     {
-        foreach (var item in AvailableMaps)
+        foreach (var item in AvailableMaps.OfType<MapPreviewItem>())
         {
             (item.PreviewImage as IDisposable)?.Dispose();
         }
