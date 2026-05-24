@@ -986,6 +986,19 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
+    public async Task LoadAvailableMaps_AddsPlaceholder_WhenNoMapsAvailable()
+    {
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, BattleMapData MapData)>());
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
+        await sut.LoadAvailableMaps();
+
+        sut.AvailableMaps.ShouldHaveSingleItem();
+        sut.AvailableMaps[0].ShouldBeOfType<LoadMapPlaceholder>();
+    }
+
+    [Fact]
     public async Task LoadAvailableMaps_AppendsPlaceholderAtEnd()
     {
         var mapData = CreateSingleMapData();
