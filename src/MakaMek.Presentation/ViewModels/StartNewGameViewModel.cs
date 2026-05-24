@@ -253,6 +253,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         _isDisposed = true;
         _initCts?.Cancel();
+        _initCts?.Dispose();
         _commandPublisher.Unsubscribe(HandleServerCommand);
         MapConfig.Dispose();
         GC.SuppressFinalize(this);
