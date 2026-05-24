@@ -131,5 +131,20 @@
         <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
+    
+    <!-- Card Action Button (for use inside card borders) -->
+    <Style Selector="Button.cardAction">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    
+    <Style Selector="Button.cardAction:pointerover">
+        <Setter Property="Opacity" Value="0.7"/>
+    </Style>
 </Styles>
 
