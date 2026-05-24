@@ -16,45 +16,55 @@
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
         <!-- Tab 1: Select a Pre-existing Map -->
         <TabItem Header="{extensions:Localize 'MapConfig_SelectMap'}">
-            <Grid RowDefinitions="*,Auto">
-                <ItemsControl Grid.Row="0" ItemsSource="{Binding AvailableMaps}" Margin="8">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="viewModels1:MapPreviewItem">
-                            <Border Margin="8" Padding="8" CornerRadius="8"
-                                    BorderThickness="2"
-                                    Cursor="Hand"
-                                    BorderBrush="{Binding IsSelected, 
-                                        Converter={StaticResource SelectedItemToBrushConverter}}"
-                                    Background="#1A000000"
-                                    PointerPressed="OnMapItemPressed">
-                                <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                    <Image Source="{Binding PreviewImage}" 
-                                           MaxWidth="200" MaxHeight="200"
-                                           Stretch="Uniform"/>
-                                    <TextBlock Text="{Binding Name}" 
-                                               HorizontalAlignment="Center"
-                                               Classes="bodySmall"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <ProgressBar Grid.Row="0"
-                             IsVisible="{Binding IsLoadingMaps}"
+            <Grid>
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding AvailableMaps}" Margin="8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels1:MapPreviewItem">
+                                <Border Margin="8" Padding="8" CornerRadius="8"
+                                        BorderThickness="2"
+                                        Cursor="Hand"
+                                        BorderBrush="{Binding IsSelected, 
+                                            Converter={StaticResource SelectedItemToBrushConverter}}"
+                                        Background="#1A000000"
+                                        PointerPressed="OnMapItemPressed">
+                                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                        <Image Source="{Binding PreviewImage}" 
+                                               MaxWidth="200" MaxHeight="200"
+                                               Stretch="Uniform"/>
+                                        <TextBlock Text="{Binding Name}" 
+                                                   HorizontalAlignment="Center"
+                                                   Classes="bodySmall"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Margin="8" Width="100" Height="140" Classes="card">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                            <Button Classes="cardAction"
+                                    Width="84" Height="84"
+                                    Command="{Binding LoadMapCommand}">
+                                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" 
+                                           Text="&#xf07c;" FontSize="48"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <TextBlock Classes="bodySmall" 
+                                       Text="{extensions:Localize 'MapConfig_LoadMap'}"
+                                       TextAlignment="Center" TextWrapping="Wrap"
+                                       MaxLines="2"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <ProgressBar IsVisible="{Binding IsLoadingMaps}"
                              IsIndeterminate="True"
                              VerticalAlignment="Top"/>
-                <Button Grid.Row="1"
-                        Command="{Binding LoadMapCommand}"
-                        Content="{extensions:Localize 'MapConfig_LoadMap'}"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"
-                        Margin="8"
-                        Classes="primary"/>
             </Grid>
         </TabItem>
         
