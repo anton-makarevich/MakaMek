@@ -270,6 +270,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         base.AttachHandlers();
         _initCts?.Cancel();
+        _initCts?.Dispose();
         _initCts = new CancellationTokenSource();
         InitializeLobbyAndSubscribe(_initCts.Token).SafeFireAndForget(
             ex => _logger.LogError(ex, "Error initializing lobby"));
