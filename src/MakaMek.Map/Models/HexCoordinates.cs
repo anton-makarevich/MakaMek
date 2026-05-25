@@ -257,7 +257,7 @@ public record HexCoordinates
         var dir = (int)Math.Round(angle / (Math.PI / 3));
         
         // Normalize to 0-5 range
-        return ((dir % 6) + 6) % 6;
+        return (dir % 6 + 6) % 6;
     }
     
     public HexCoordinateData ToData() => new(Q, R);

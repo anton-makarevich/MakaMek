@@ -19,7 +19,7 @@ public class SegmentEventToTextConverter : IValueConverter
             _ => segmentEvent.Type.ToString()
         };
 
-        return $"{eventLabel} @ ({location.H},{location.V})";
+        return $"{eventLabel} @{location} ";
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
