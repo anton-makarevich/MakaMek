@@ -28,9 +28,9 @@ jobs:
         uses: anomalyco/opencode/github@v1.15.10
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/big-pickle
           share: true
           agent: build
           use_github_token: true
+          token: ${{ secrets.GITHUB_TOKEN }}
