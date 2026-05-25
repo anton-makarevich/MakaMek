@@ -596,7 +596,7 @@ public class Mech : Unit
         if (Position != null) Position = Position with { Facing = newFacing };
     }
 
-    public void AttemptStandup()
+    public void RegisterStandupAttempt()
     {
         StandupAttempts++;
         var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);

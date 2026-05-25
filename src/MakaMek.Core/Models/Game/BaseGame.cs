@@ -264,7 +264,7 @@ public abstract class BaseGame : IGame
 
         if (fallCommand.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.StandupAttempt)
         {
-            mech?.AttemptStandup();
+            mech?.RegisterStandupAttempt();
         }
 
         // Apply falling to the unit using the falling data from the command if present
@@ -285,7 +285,7 @@ public abstract class BaseGame : IGame
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
 
         mech?.StandUp(standUpCommand.NewFacing);
-        mech?.AttemptStandup();
+        mech?.RegisterStandupAttempt();
     }
 
     internal void OnUnitShutdown(UnitShutdownCommand shutdownCommand)

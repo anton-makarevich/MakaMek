@@ -1207,7 +1207,7 @@ public class MechTests
         leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.AttemptStandup(); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(); // This increments StandupAttempts
 
         // Act & Assert
         sut.CanJump.ShouldBeFalse("Mechs that stood up this phase should not be able to jump");
@@ -1269,7 +1269,7 @@ public class MechTests
         rightLeg.IsBlownOff.ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.AttemptStandup(); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(); // This increments StandupAttempts
         sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
 
         // Reset turn state (this should reset StandupAttempts to 0)
@@ -1926,8 +1926,8 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 25, CreateBasicPartsData());
 
         // Act
-        mech.AttemptStandup();
-        mech.AttemptStandup();
+        mech.RegisterStandupAttempt();
+        mech.RegisterStandupAttempt();
         // Assert
         mech.StandupAttempts.ShouldBe(2);
         mech.MovementPointsSpent.ShouldBe(4);
@@ -1944,7 +1944,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50*initialMovement));
 
         // Act
-        mech.AttemptStandup();
+        mech.RegisterStandupAttempt();
         // Assert
         mech.StandupAttempts.ShouldBe(1);
         mech.MovementPointsSpent.ShouldBe(expectedSpent);
