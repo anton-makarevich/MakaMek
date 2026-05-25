@@ -32,11 +32,11 @@ public class RiverPathGenerator
         {
             var river = GenerateSingleRiver(result);
             foreach (var hex in river)
-                result[hex] = -1;
+                result[hex] = 0;
         }
 
         return result;
-
+    }
 
     private List<HexCoordinates> GenerateSingleRiver(
         Dictionary<HexCoordinates, int> existingRivers)
