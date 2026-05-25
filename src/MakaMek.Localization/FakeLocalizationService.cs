@@ -368,6 +368,8 @@ public class FakeLocalizationService : ILocalizationService
         ["MapConfig_SelectMap"] = "Select Map",
         ["MapConfig_LoadMap"] = "Load Map from File",
         ["MapConfig_GenerateMap"] = "Generate Map",
+        ["MapConfig_MapSize"] = "Map Size",
+        ["MapConfig_TerrainGeneration"] = "Terrain Generation",
         ["MapConfig_Width"] = "Map Width",
         ["MapConfig_Height"] = "Map Height",
         ["MapConfig_ForestCoverage"] = "Forest Coverage",

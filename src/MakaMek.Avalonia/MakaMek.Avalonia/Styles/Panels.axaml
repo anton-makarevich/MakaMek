@@ -48,6 +48,12 @@
         <Setter Property="Margin" Value="0,0,0,16"/>
     </Style>
     
+    <!-- Compact Form Group -->
+    <Style Selector="StackPanel.formGroupCompact">
+        <Setter Property="Spacing" Value="5"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+    
     <!-- Horizontal Spacing -->
     <Style Selector="StackPanel.horizontalSpaced">
         <Setter Property="Orientation" Value="Horizontal"/>
