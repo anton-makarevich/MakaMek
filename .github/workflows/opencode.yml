@@ -32,5 +32,4 @@ jobs:
           model: opencode/big-pickle
           share: true
           agent: build
-          use_github_token: true
           token: ${{ secrets.GITHUB_TOKEN }}
