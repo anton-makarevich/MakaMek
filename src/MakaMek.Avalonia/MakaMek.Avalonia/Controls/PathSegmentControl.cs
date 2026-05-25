@@ -12,8 +12,10 @@ public class PathSegmentControl : Panel
 {
     private readonly PathSegmentViewModel _segment;
     private const double StrokeThickness = 2;
-    private const double ArrowSize = 15; // Size of arrow head
+    private const double ArrowSize = 15;
     private const double ArcSize = 20;
+    private const double EventMarkerRadius = 4;
+    private const double EventMarkerSpacing = 12;
 
     public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
@@ -31,10 +33,39 @@ public class PathSegmentControl : Panel
         };
         
         Children.Add(path);
+
+        AddEventMarkers(color);
         
-        // Position control so that From coordinates are at its center
         SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPixelExtensions.HexWidth*0.5);
         SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPixelExtensions.HexHeight*0.5);
+    }
+
+    private void AddEventMarkers(Color color)
+    {
+        var events = _segment.Events;
+        if (events.Length == 0) return;
+
+        var midX = (_segment.StartX + _segment.EndX) / 2;
+        var midY = (_segment.StartY + _segment.EndY) / 2;
+        const double offsetY = -EventMarkerSpacing;
+
+        for (var i = 0; i < events.Length; i++)
+        {
+            var ellipse = new Ellipse
+            {
+                Width = EventMarkerRadius * 2,
+                Height = EventMarkerRadius * 2,
+                Fill = new SolidColorBrush(color),
+                StrokeThickness = 1
+            };
+
+            var xOffset = midX + EventMarkerSpacing + i * EventMarkerSpacing;
+            var yOffset = midY + offsetY;
+
+            Canvas.SetLeft(ellipse, xOffset - EventMarkerRadius);
+            Canvas.SetTop(ellipse, yOffset - EventMarkerRadius);
+            Children.Add(ellipse);
+        }
     }
 
     private Geometry CreatePathGeometry()
@@ -43,7 +74,6 @@ public class PathSegmentControl : Panel
         
         if (_segment.IsTurn)
         {
-            // Arc from line end to final position
             var arcGeometry = new StreamGeometry();
             using (var context = arcGeometry.Open())
             {
@@ -77,7 +107,7 @@ public class PathSegmentControl : Panel
         var dirY = _segment.ArrowDirectionVector.Y;
         var endPoint = new Point(_segment.EndX, _segment.EndY);
         
-        for (int i = 0; i < _segment.Cost; i++)
+        for (var i = 0; i < _segment.Cost; i++)
         {
             var arrowOffset = i * (ArrowSize * 0.5); // Each subsequent arrow is moved back by half-arrow length
             var arrowEndPoint = new Point(
@@ -98,7 +128,7 @@ public class PathSegmentControl : Panel
                     arrowEndPoint.Y - ArrowSize * (dirY * 0.866 - dirX * 0.5)
                 );
 
-                context.BeginFigure(arrowEndPoint, true);
+                context.BeginFigure(arrowEndPoint);
                 context.LineTo(leftPoint);
                 context.LineTo(rightPoint);
                 context.LineTo(arrowEndPoint);

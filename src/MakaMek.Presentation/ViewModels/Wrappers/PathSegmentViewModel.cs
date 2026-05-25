@@ -1,5 +1,4 @@
 using System.Numerics;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -18,6 +17,7 @@ public class PathSegmentViewModel : BaseViewModel
     public HexPosition From => _segment.From;
     public HexPosition To => _segment.To;
     public int Cost => _segment.Cost;
+    public SegmentEvent[] Events => _segment.Events;
     
     public bool IsTurn => From.Coordinates == To.Coordinates && From.Facing != To.Facing;
 

@@ -44,7 +44,10 @@ public class MovementPath : IEquatable<MovementPath>
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
         MaxLevelChange = maxLevelChange;
-        TotalCost = Segments.Sum(s => s.Cost);
+        
+        var totalEventsCost = Segments.Sum(s => s.Events.Sum(e => e.Cost));
+        TotalCost = Segments.Sum(s => s.Cost) + totalEventsCost;
+        
         TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
         StraightLineDistance = Start.Coordinates.DistanceTo(Destination.Coordinates);
     }
@@ -92,8 +95,22 @@ public class MovementPath : IEquatable<MovementPath>
     public IReadOnlyList<HexCoordinates> Hexes { get; } 
     
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
-    
+
     public int TurnsTaken { get; }
+
+    public IEnumerable<(SegmentEvent Event, HexCoordinates Location)> EventsWithLocations =>
+        Segments
+            .Where(s => s.Events.Length > 0)
+            .SelectMany(s => s.Events.Select(e => (e, s.To.Coordinates)));
+
+    public MovementPath WithLastSegmentEvent(SegmentEvent segmentEvent)
+    {
+        var segments = Segments.ToList();
+        var lastSegment = segments[^1];
+        var newEvents = lastSegment.Events.Append(segmentEvent).ToArray();
+        segments[^1] = lastSegment with { Events = newEvents };
+        return new MovementPath(segments, MovementType, MaxLevelChange);
+    }
     
     /// <summary>
     /// Creates a new MovementPath with all facings reversed (for backward movement)
@@ -104,7 +121,8 @@ public class MovementPath : IEquatable<MovementPath>
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
             segment.Cost,
-            !segment.IsReversed
+            !segment.IsReversed,
+            segment.Events
         )).ToList();
         return new MovementPath(reversedSegments, MovementType, MaxLevelChange);
     }

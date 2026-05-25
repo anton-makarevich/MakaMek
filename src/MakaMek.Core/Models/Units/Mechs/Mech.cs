@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -599,8 +600,23 @@ public class Mech : Unit
     public void RegisterStandupAttempt()
     {
         StandupAttempts++;
+        if (Position == null) return; 
+        MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position);
         var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
-        SpendMovementPoints(pointsToSpend);
+        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, pointsToSpend));
+    }
+
+    public void ApplyFall(MechFallCommand fallCommand)
+    {
+        if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
+        ApplyDamage(hits, fallCommand.DamageData.FallDirection);
+        SetProne(fallCommand.DamageData.FacingAfterFall);
+        if (fallCommand.IsPilotTakingDamage)
+        {
+            Pilot?.Hit();
+        }
+
+        MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall, 0));
     }
     
     public override HexPosition? Position

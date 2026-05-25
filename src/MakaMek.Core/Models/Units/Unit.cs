@@ -396,8 +396,8 @@ public abstract class Unit : IUnit
     public int TotalCurrentStructure => _parts.Values.Sum(p => p.CurrentStructure);
 
     // Movement tracking
-    public int MovementPointsSpent { get; private set; }
-    public MovementPath? MovementTaken { get; private set; }
+    public int MovementPointsSpent => MovementTaken?.TotalCost ?? 0;
+    public MovementPath? MovementTaken { get; protected set; }
 
     public bool HasMoved { get; private set; }
 
@@ -426,7 +426,6 @@ public abstract class Unit : IUnit
 
     private void ResetMovement()
     {
-        MovementPointsSpent = 0;
         MovementTaken = null;
         HasMoved = false;
     }
@@ -752,7 +751,6 @@ public abstract class Unit : IUnit
             ? Position
             : movementPath.Destination;
         HasMoved = isCompleted;
-        SpendMovementPoints(movementPath.TotalCost);
         Position = position;
         Hex = destination;
     }
@@ -882,12 +880,4 @@ public abstract class Unit : IUnit
         _events.Clear();
     }
 
-    /// <summary>
-    /// Adds movement points to the unit's movement points spent
-    /// </summary>
-    /// <param name="points">The number of points to add</param>
-    protected void SpendMovementPoints(int points)
-    {
-        MovementPointsSpent += points;
-    }
 }

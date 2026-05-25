@@ -2,13 +2,12 @@ using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Map.Models;
 
-/// <summary>
-/// Represents a segment of a path with movement cost
-/// </summary>
-public record PathSegment(HexPosition From, HexPosition To, int Cost, bool IsReversed = false)
+public record PathSegment(HexPosition From, HexPosition To, int Cost, bool IsReversed = false, SegmentEvent[]? Events = null)
 {
+    public SegmentEvent[] Events { get; init; } = Events ?? [];
+
     public PathSegment(PathSegmentData data)
-        : this(new HexPosition(data.From), new HexPosition(data.To), data.Cost, data.IsReversed)
+        : this(new HexPosition(data.From), new HexPosition(data.To), data.Cost, data.IsReversed, data.Events)
     {
     }
 
@@ -17,6 +16,7 @@ public record PathSegment(HexPosition From, HexPosition To, int Cost, bool IsRev
         From = From.ToData(),
         To = To.ToData(),
         Cost = Cost,
-        IsReversed = IsReversed
+        IsReversed = IsReversed,
+        Events = Events
     };
 };
