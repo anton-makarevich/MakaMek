@@ -30,6 +30,7 @@ public class ServerGameTests
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
     private readonly MtfDataProvider _mtfDataProvider = new(new ClassicBattletechComponentProvider());
+    private readonly ILogger<ServerGame> _logger = Substitute.For<ILogger<ServerGame>>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     public ServerGameTests()
     {
@@ -62,7 +63,7 @@ public class ServerGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
-            Substitute.For<ILogger<ServerGame>>());
+            _logger);
         _sut.SetBattleMap(battleMap);
     }
 
@@ -489,6 +490,129 @@ public class ServerGameTests
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsDisposed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldAddCommandToLog_WhenCommandIsValid()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act
+        _sut.HandleCommand(joinCommand);
+
+        // Assert
+        _sut.CommandLog.Count.ShouldBe(1);
+        _sut.CommandLog[0].ShouldBeEquivalentTo(joinCommand);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotAddDuplicateCommandToLog()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid();
+
+        var command = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
+        };
+
+        // Act
+        _sut.HandleCommand(command);
+        _sut.HandleCommand(command); // Duplicate
+
+        // Assert - only the first command should be logged
+        _sut.CommandLog.Count.ShouldBe(1);
+        _sut.CommandLog[0].ShouldBeEquivalentTo(command);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotAddCommandToLog_WhenValidationFails()
+    {
+        // Arrange
+        var invalidCommand = new DeployUnitCommand
+        {
+            PlayerId = Guid.Empty,
+            UnitId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            Position = new HexCoordinateData(2, 3),
+            Direction = 0
+        };
+
+        // Act
+        _sut.HandleCommand(invalidCommand);
+
+        // Assert
+        _sut.CommandLog.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldLogWarning_WhenDuplicateCommandDetected()
+    {
+        // Arrange
+        var idempotencyKey = Guid.NewGuid();
+        var command = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
+        };
+
+        // Act
+        _sut.HandleCommand(command);
+        _sut.HandleCommand(command); // Duplicate
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("was rejected - duplicate command")),
+            Arg.Any<Exception?>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldLogWarning_WhenValidationFails()
+    {
+        // Arrange
+        var invalidCommand = new DeployUnitCommand
+        {
+            PlayerId = Guid.Empty,
+            UnitId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            Position = new HexCoordinateData(2, 3),
+            Direction = 0
+        };
+
+        // Act
+        _sut.HandleCommand(invalidCommand);
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("was rejected - validation failed")),
+            Arg.Any<Exception?>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
     }
 
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
