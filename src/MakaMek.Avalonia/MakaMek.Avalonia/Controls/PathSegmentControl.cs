@@ -45,27 +45,51 @@ public class PathSegmentControl : Panel
         var events = _segment.Events;
         if (events.Length == 0) return;
 
-        var midX = (_segment.StartX + _segment.EndX) / 2;
-        var midY = (_segment.StartY + _segment.EndY) / 2;
-        const double offsetY = -EventMarkerSpacing;
-
+        var geometries = new GeometryGroup();
         for (var i = 0; i < events.Length; i++)
         {
-            var ellipse = new Ellipse
-            {
-                Width = EventMarkerRadius * 2,
-                Height = EventMarkerRadius * 2,
-                Fill = new SolidColorBrush(color),
-                StrokeThickness = 1
-            };
-
-            var xOffset = midX + EventMarkerSpacing + i * EventMarkerSpacing;
-            var yOffset = midY + offsetY;
-
-            Canvas.SetLeft(ellipse, xOffset - EventMarkerRadius);
-            Canvas.SetTop(ellipse, yOffset - EventMarkerRadius);
-            Children.Add(ellipse);
+            var cx = _segment.EndX - EventMarkerSpacing + i * EventMarkerSpacing;
+            var cy = _segment.EndY + EventMarkerRadius + EventMarkerSpacing * 2;
+            geometries.Children.Add(GetEventGeometry(events[i].Type, cx, cy));
         }
+
+        Children.Add(new Path
+        {
+            Fill = new SolidColorBrush(color),
+            Stroke = new SolidColorBrush(color),
+            StrokeThickness = 2,
+            Data = geometries
+        });
+    }
+
+    private static Geometry GetEventGeometry(SegmentEventType eventType, double cx, double cy)
+    {
+        if (eventType == SegmentEventType.Fall)
+        {
+            return new GeometryGroup
+            {
+                Children =
+                {
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx - EventMarkerRadius, cy - EventMarkerRadius),
+                        EndPoint = new Point(cx + EventMarkerRadius, cy + EventMarkerRadius)
+                    },
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx + EventMarkerRadius, cy - EventMarkerRadius),
+                        EndPoint = new Point(cx - EventMarkerRadius, cy + EventMarkerRadius)
+                    }
+                }
+            };
+        }
+
+        return new EllipseGeometry
+        {
+            Center = new Point(cx, cy),
+            RadiusX = EventMarkerRadius,
+            RadiusY = EventMarkerRadius
+        };
     }
 
     private Geometry CreatePathGeometry()
