@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -22,11 +25,11 @@ jobs:
           persist-credentials: false
 
       - name: Run OpenCode
-      uses: anomalyco/opencode/github@latest
-      env:
-        
-      with:
-        model: opencode/big-pickle
-        share: true
-        agent: build
-        github_token: xxxx
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          share: true
+          agent: build
+          github_token: ${{ secrets.GITHUB_TOKEN }}
