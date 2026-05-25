@@ -9,7 +9,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
     <UserControl.Resources>
-        <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
         <converters:SelectedItemToBrushConverter x:Key="SelectedItemToBrushConverter"/>
     </UserControl.Resources>
     
@@ -71,97 +70,85 @@
         
         <!-- Tab 2: Generate Map -->
         <TabItem Header="{extensions:Localize 'MapConfig_GenerateMap'}">
-            <UniformGrid
-                VerticalAlignment="Stretch"
-                HorizontalAlignment="Stretch"
-                Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
-                                Path=Bounds.Size, 
-                                Converter={StaticResource AdaptiveGridConverter}, 
-                                ConverterParameter={x:Static converters:GridOrientation.Rows}}"
-                Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
-                                Path=Bounds.Size, 
-                                Converter={StaticResource AdaptiveGridConverter}, 
-                                ConverterParameter={x:Static converters:GridOrientation.Columns}}"
-            >
+            <Grid ColumnDefinitions="3*,2*" ColumnSpacing="0">
                 <!-- Configuration Sliders -->
-                <StackPanel Classes="verticalSpaced">
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_Width'}" Classes="label"/>
-                        <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding MapWidthFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_Height'}" Classes="label"/>
-                        <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding MapHeightFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_ForestCoverage'}" Classes="label"/>
-                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="{Binding MaxForestCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding ForestCoverageFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup" IsVisible="{Binding HasForest}">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_LightWoods'}" Classes="label"/>
-                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding LightWoodsFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_RoughTerrain'}" Classes="label"/>
-                        <Slider Value="{Binding RoughCoverage}" Minimum="0" Maximum="{Binding MaxRoughCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding RoughCoverageFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_HillCoverage'}" Classes="label"/>
-                        <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding HillCoverageFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup" IsVisible="{Binding HasHills}">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_MaxElevation'}" Classes="label"/>
-                        <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding MaxElevationFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_LakeCoverage'}" Classes="label"/>
-                        <Slider Value="{Binding LakeCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding LakeCoverageFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
-
-                    <StackPanel Classes="formGroup" IsVisible="{Binding HasLakes}">
-                        <TextBlock Text="{extensions:Localize 'MapConfig_LakeMaxDepth'}" Classes="label"/>
-                        <Slider Value="{Binding LakeMaxDepth}" Minimum="1" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                        <!-- Note: StringFormat localization should be handled via ViewModel binding -->
-                        <TextBlock Text="{Binding LakeMaxDepthFormatted}" Classes="bodySmall"/>
-                    </StackPanel>
+                <StackPanel Classes="verticalSpaced" Grid.Column="0">
+                    <!-- Terrain Generation Card -->
+                    <Border Classes="card">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="{extensions:Localize 'MapConfig_TerrainGeneration'}" Classes="h3"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_ForestCoverage'}" Classes="label"/>
+                                <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="{Binding MaxForestCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding ForestCoverageFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <StackPanel Classes="formGroupCompact" IsVisible="{Binding HasForest}" Margin="20,0,0,0">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_LightWoods'}" Classes="label"/>
+                                <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding LightWoodsFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="0,4,0,4"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_RoughTerrain'}" Classes="label"/>
+                                <Slider Value="{Binding RoughCoverage}" Minimum="0" Maximum="{Binding MaxRoughCoverage}" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding RoughCoverageFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="0,4,0,4"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_HillCoverage'}" Classes="label"/>
+                                <Slider Value="{Binding HillCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding HillCoverageFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <StackPanel Classes="formGroupCompact" IsVisible="{Binding HasHills}" Margin="20,0,0,0">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_MaxElevation'}" Classes="label"/>
+                                <Slider Value="{Binding MaxElevation}" Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding MaxElevationFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="0,4,0,4"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_LakeCoverage'}" Classes="label"/>
+                                <Slider Value="{Binding LakeCoverage}" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding LakeCoverageFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <StackPanel Classes="formGroupCompact" IsVisible="{Binding HasLakes}" Margin="20,0,0,0">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_LakeMaxDepth'}" Classes="label"/>
+                                <Slider Value="{Binding LakeMaxDepth}" Minimum="1" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding LakeMaxDepthFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- Map Preview -->
-                <Panel
-                    VerticalAlignment="Top"
-                    Margin="5"
-                        >
-                        <Image VerticalAlignment="Top" MaxWidth="300" Source="{Binding PreviewImage}"
+                <StackPanel
+                    Grid.Column="1"
+                    Classes="verticalSpaced">
+                    <!-- Map Size Card -->
+                    <Border Classes="card">
+                        <StackPanel Classes="verticalSpaced">
+                            <TextBlock Text="{extensions:Localize 'MapConfig_MapSize'}" Classes="h3"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_Width'}" Classes="label"/>
+                                <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding MapWidthFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_Height'}" Classes="label"/>
+                                <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding MapHeightFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Panel VerticalAlignment="Top">
+                        <Image VerticalAlignment="Top" MaxWidth="400" Source="{Binding PreviewImage}"
                                Stretch="Uniform"/>
                         <ProgressBar
                             IsVisible="{Binding IsGenerating}"
                             IsIndeterminate="True"/>
-                </Panel>
+                    </Panel>
+                </StackPanel>
                 
-            </UniformGrid>
+            </Grid>
         </TabItem>
     </TabControl>
 </UserControl>
