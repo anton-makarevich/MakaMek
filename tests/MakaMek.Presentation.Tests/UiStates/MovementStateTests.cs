@@ -2536,7 +2536,7 @@ public class MovementStateTests
         _sut.HandleUnitSelectionFromList(proneMech);
         _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
-        proneMech.RegisterStandupAttempt();
+        proneMech.RegisterStandupAttempt(MovementType.Walk);
         proneMech.StandUp(HexDirection.Bottom);
         _sut.ResumeMovementAfterStandup(proneMech.Id);
 

@@ -23,7 +23,7 @@ public class SegmentEventToTextConverter : IValueConverter
         var key = $"SegmentEvent_{segmentEvent.Type}";
         var eventLabel = _localizationService.GetString(key);
 
-        return $"{eventLabel} @{location} ";
+        return $"{eventLabel} @{location}";
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
