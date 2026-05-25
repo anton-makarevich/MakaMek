@@ -1939,7 +1939,7 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(1, 2)] // Less movement than standup cost, event always costs StandupCost
+    [InlineData(1, 1)] // Less movement than standup cost, Minimum movement case
     [InlineData(2, 2)] // Exactly standup cost  
     [InlineData(4, 2)] // More movement than standup cost
     public void AttemptStandup_ShouldSpendCorrectMovementPoints(int initialMovement, int expectedSpent)
