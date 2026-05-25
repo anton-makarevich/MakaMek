@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Reactive.Subjects;
-using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -21,8 +19,6 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 {
-    private readonly Subject<IGameCommand> _commandSubject = new();
-    private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
@@ -33,9 +29,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private readonly TimeSpan _ackTimeout;
     private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
 
-    public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
-    public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
-    
     public ClientGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
@@ -186,11 +179,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
         }
 
-        // Log the command
-        _commandLog.Add(command);
-
-        // Publish the command to subscribers
-        _commandSubject.OnNext(command);
+        RecordCommand(command);
     }
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
@@ -384,8 +373,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             kv.Value.Tcs.TrySetCanceled();
         _pendingCommands.Clear();
 
-        // Complete and dispose subjects
-        _commandSubject.OnCompleted();
-        _commandSubject.Dispose();
+        DisposeCommandResources();
     }
 }

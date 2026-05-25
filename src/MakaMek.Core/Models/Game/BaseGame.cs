@@ -31,12 +31,16 @@ public abstract class BaseGame : IGame
     private readonly Subject<int> _turnSubject = new();
     private readonly Subject<PhaseNames> _phaseSubject = new();
     private readonly Subject<PhaseStepState?> _phaseStepStateSubject = new();
+    private readonly List<IGameCommand> _commandLog = [];
+    private readonly Subject<IGameCommand> _commandSubject = new();
 
     public Guid Id { get; }
 
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
     public IObservable<PhaseNames> PhaseChanges => _phaseSubject.AsObservable();
     public IObservable<PhaseStepState?> PhaseStepChanges => _phaseStepStateSubject.AsObservable();
+    public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
+    public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IBattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
@@ -484,6 +488,18 @@ public abstract class BaseGame : IGame
         return command.TurnNumber == Turn + 1
             ? CommandValidationResult.Valid()
             : CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
+    }
+
+    protected void RecordCommand(IGameCommand command)
+    {
+        _commandLog.Add(command);
+        _commandSubject.OnNext(command);
+    }
+
+    protected void DisposeCommandResources()
+    {
+        _commandSubject.OnCompleted();
+        _commandSubject.Dispose();
     }
 
     public abstract void HandleCommand(IGameCommand command);

@@ -110,6 +110,8 @@ public class ServerGame : BaseGame, IDisposable
             if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value,0))
             {
                 // Duplicate command detected - send error response
+                Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected - duplicate command",
+                    command.GetType().Name, clientCommand.IdempotencyKey.Value);
                 var errorCommand = new ErrorCommand
                 {
                     GameOriginId = Id,
@@ -125,12 +127,17 @@ public class ServerGame : BaseGame, IDisposable
         var validationResult = ValidateCommand(command);
         if (!validationResult.IsValid)
         {
+            var failureIdempotencyKey = command is IClientCommand { IdempotencyKey: not null } failedClientCommand
+                ? failedClientCommand.IdempotencyKey.Value
+                : (Guid?)null;
+            Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected - validation failed: {ErrorCode}",
+                command.GetType().Name,
+                failureIdempotencyKey?.ToString() ?? "none",
+                validationResult.ErrorCode ?? ErrorCode.ValidationFailed);
             var errorCommand = new ErrorCommand
             {
                 GameOriginId = Id,
-                IdempotencyKey = command is IClientCommand { IdempotencyKey: not null } failedClientCommand
-                    ? failedClientCommand.IdempotencyKey.Value
-                    : null,
+                IdempotencyKey = failureIdempotencyKey,
                 ErrorCode = validationResult.ErrorCode ?? ErrorCode.ValidationFailed,
                 Timestamp = DateTime.UtcNow
             };
@@ -142,10 +149,12 @@ public class ServerGame : BaseGame, IDisposable
         if (command is PlayerLeftCommand playerLeftCommand)
         {
             OnPlayerLeft(playerLeftCommand);
+            RecordCommand(command);
             return;
         }
 
         _currentPhase.HandleCommand(command);
+        RecordCommand(command);
     }
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
@@ -242,7 +251,7 @@ public class ServerGame : BaseGame, IDisposable
         IsDisposed = true;
         IsGameOver = true; // Ensure the loop in Start() exits
         CommandPublisher.Unsubscribe(HandleCommand);
-        // Add any specific cleanup for ServerGame if needed (e.g., unsubscribe from events)
+        DisposeCommandResources();
         GC.SuppressFinalize(this);
     }
 }
