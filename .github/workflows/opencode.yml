@@ -11,6 +11,7 @@ jobs:
     if: |
       contains(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, '/opencode')
+      github.event.comment.user.type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -28,8 +29,9 @@ jobs:
         uses: anomalyco/opencode/github@v1.15.10
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/big-pickle
           share: true
           agent: build
-          token: ${{ secrets.GITHUB_TOKEN }}
+          use_github_token: true
