@@ -149,6 +149,7 @@ public class ServerGame : BaseGame, IDisposable
         if (command is PlayerLeftCommand playerLeftCommand)
         {
             OnPlayerLeft(playerLeftCommand);
+            RecordCommand(command);
             return;
         }
 
