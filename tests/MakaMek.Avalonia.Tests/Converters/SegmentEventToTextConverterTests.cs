@@ -35,7 +35,7 @@ public class SegmentEventToTextConverterTests
         var segmentEvent = new SegmentEvent(SegmentEventType.Fall, 1);
         var location = new HexCoordinates(1, 2);
         var value = (segmentEvent, location);
-        const string expectedText = "Fall @0102 ";
+        const string expectedText = "Fall @0102";
 
         var result = _sut.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 
@@ -49,7 +49,7 @@ public class SegmentEventToTextConverterTests
         var segmentEvent = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
         var location = new HexCoordinates(3, 4);
         var value = (segmentEvent, location);
-        const string expectedText = "Standup @0304 ";
+        const string expectedText = "Standup @0304";
 
         var result = _sut.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 

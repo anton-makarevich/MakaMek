@@ -607,4 +607,174 @@ public class MovementPathTests
         // Assert
         path.HexesTraveled.ShouldBe(2);
     }
+    
+    [Fact]
+    public void EventsWithLocations_ShouldReturnEmpty_WhenNoSegmentsHaveEvents()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1)
+        }, MovementType.Walk);
+
+        var result = sut.EventsWithLocations.ToList();
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void EventsWithLocations_ShouldReturnEvents_WithCorrectLocations()
+    {
+        var fallEvent = new SegmentEvent(SegmentEventType.Fall, 0);
+        var standupEvent = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1,
+                false, [fallEvent]),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
+                false, [standupEvent])
+        }, MovementType.Walk);
+
+        var result = sut.EventsWithLocations.ToList();
+
+        result.Count.ShouldBe(2);
+        result[0].Event.ShouldBe(fallEvent);
+        result[0].Location.ShouldBe(new HexCoordinates(1, 2));
+        result[1].Event.ShouldBe(standupEvent);
+        result[1].Location.ShouldBe(new HexCoordinates(1, 3));
+    }
+
+    [Fact]
+    public void EventsWithLocations_ShouldReturnMultipleEventsOnSameSegment_WithSameLocation()
+    {
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, 2);
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 2,
+                false, [fall, standup])
+        }, MovementType.Walk);
+
+        var result = sut.EventsWithLocations.ToList();
+
+        result.Count.ShouldBe(2);
+        result[0].Event.ShouldBe(fall);
+        result[0].Location.ShouldBe(new HexCoordinates(1, 2));
+        result[1].Event.ShouldBe(standup);
+        result[1].Location.ShouldBe(new HexCoordinates(1, 2));
+    }
+
+    [Fact]
+    public void EventsWithLocations_ShouldSkipSegments_WithoutEvents()
+    {
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
+                false, [fall]),
+            new(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 4), HexDirection.Top), 1)
+        }, MovementType.Walk);
+
+        var result = sut.EventsWithLocations.ToList();
+
+        result.Count.ShouldBe(1);
+        result[0].Event.ShouldBe(fall);
+        result[0].Location.ShouldBe(new HexCoordinates(1, 3));
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldAppendEvent_ToLastSegment()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1)
+        }, MovementType.Walk);
+
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var result = sut.WithLastSegmentEvent(fall);
+
+        result.Segments[^1].Events.ShouldContain(fall);
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldAppendMultipleEvents_ToLastSegment_Accumulatively()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1)
+        }, MovementType.Walk);
+
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
+        var withFall = sut.WithLastSegmentEvent(fall);
+        var withBoth = withFall.WithLastSegmentEvent(standup);
+
+        withBoth.Segments[^1].Events.Length.ShouldBe(2);
+        withBoth.Segments[^1].Events.ShouldContain(fall);
+        withBoth.Segments[^1].Events.ShouldContain(standup);
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldNotMutate_OriginalPath()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1)
+        }, MovementType.Walk);
+
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        sut.WithLastSegmentEvent(fall);
+
+        sut.Segments[^1].Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldPreservePathProperties()
+    {
+        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var original = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 2,
+                false, [new SegmentEvent(SegmentEventType.StandupAttempt, 1)])
+        }, MovementType.Walk);
+
+        var result = original.WithLastSegmentEvent(fall);
+
+        result.Start.ShouldBe(original.Start);
+        result.Destination.ShouldBe(original.Destination);
+        result.MovementType.ShouldBe(original.MovementType);
+        result.Segments.Count.ShouldBe(original.Segments.Count);
+        result.Hexes.ShouldBe(original.Hexes);
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldIncludeEventCost_InTotalCost()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 3)
+        }, MovementType.Walk);
+
+        var result = sut.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, 2));
+
+        result.TotalCost.ShouldBe(5);
+    }
 }
