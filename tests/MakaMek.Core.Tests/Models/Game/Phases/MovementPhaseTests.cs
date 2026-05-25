@@ -225,16 +225,22 @@ public class MovementPhaseTests : GamePhaseTestsBase
             GameOriginId = Game.Id,
             PlayerId = _player1Id,
             UnitId = _unit1Id,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Run
         });
         
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MechStandUpCommand>(cmd =>
             cmd.GameOriginId == Game.Id &&
             cmd.UnitId == _unit1Id &&
-            cmd.PilotingSkillRoll.IsSuccessful));
+            cmd.PilotingSkillRoll.IsSuccessful &&
+            cmd.NewFacing == HexDirection.Bottom &&
+            cmd.MovementTypeAfterStandup == MovementType.Run));
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
         unit.StandupAttempts.ShouldBe(1);
+        unit.MovementTaken.ShouldNotBeNull();
+        unit.MovementTaken.MovementType.ShouldBe(MovementType.Run);
     }
 
     [Fact]
@@ -283,7 +289,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             GameOriginId = Game.Id,
             PlayerId = _player1Id,
             UnitId = _unit1Id,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Run
         });
 
         // Assert
@@ -294,7 +302,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.FallPilotingSkillRoll == failedPsrData));
         unit.StandupAttempts.ShouldBe(1);
     }
-    
+
     [Fact]
     public void ProcessStandupCommand_ShouldPublishConsciousnessCommand_WhenFailedAndPilotTookDamage()
     {

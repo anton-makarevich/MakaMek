@@ -264,6 +264,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
             unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill);
         
+        var movementTypeAfterStandup = tryStandUpCommand.MovementTypeAfterStandup;
+        
         // Create and publish the appropriate command based on the result
         if (fallContextData.IsFalling)
         {
@@ -274,7 +276,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         else
         {
             // Standup succeeded - create and publish a standup command
-            var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing);
+            var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing, movementTypeAfterStandup);
             if (standUpCommand == null) return;
             Game.OnMechStandUp(standUpCommand.Value);
             Game.CommandPublisher.PublishCommand(standUpCommand);

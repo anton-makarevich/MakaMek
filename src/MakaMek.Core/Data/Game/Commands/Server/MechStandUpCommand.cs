@@ -28,6 +28,11 @@ public record struct MechStandUpCommand : IGameCommand
     /// The facing direction the mech chose when standing up
     /// </summary>
     public HexDirection NewFacing { get; init; }
+
+    /// <summary>
+    /// The movement type selected for movement after the standup
+    /// </summary>
+    public MovementType MovementTypeAfterStandup { get; init; }
     
     public string Render(ILocalizationService localizationService, IGame game)
     {

@@ -1207,7 +1207,7 @@ public class MechTests
         leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.RegisterStandupAttempt(); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(MovementType.Walk); // This increments StandupAttempts
 
         // Act & Assert
         sut.CanJump.ShouldBeFalse("Mechs that stood up this phase should not be able to jump");
@@ -1269,7 +1269,7 @@ public class MechTests
         rightLeg.IsBlownOff.ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.RegisterStandupAttempt(); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(MovementType.Walk); // This increments StandupAttempts
         sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
 
         // Reset turn state (this should reset StandupAttempts to 0)
@@ -1930,12 +1930,14 @@ public class MechTests
         mech.Move(path, null);
 
         // Act
-        mech.RegisterStandupAttempt();
-        mech.RegisterStandupAttempt();
+        mech.RegisterStandupAttempt(MovementType.Walk);
+        mech.RegisterStandupAttempt(MovementType.Walk);
         // Assert
         mech.StandupAttempts.ShouldBe(2);
         mech.MovementPointsSpent.ShouldBe(4); // 0 path cost + 2*2 event costs
         mech.GetMovementPoints(MovementType.Walk).ShouldBe(0); // 4 initial - 4 spent
+        mech.MovementTaken.ShouldNotBeNull();
+        mech.MovementTaken.MovementType.ShouldBe(MovementType.Walk);
     }
 
     [Theory]
@@ -1952,11 +1954,13 @@ public class MechTests
         mech.Move(path, null);
 
         // Act
-        mech.RegisterStandupAttempt();
+        mech.RegisterStandupAttempt(MovementType.Walk);
         // Assert
         mech.StandupAttempts.ShouldBe(1);
         mech.MovementPointsSpent.ShouldBe(expectedSpent);
         mech.GetMovementPoints(MovementType.Walk).ShouldBe(Math.Max(0, initialMovement - expectedSpent));
+        mech.MovementTaken.ShouldNotBeNull();
+        mech.MovementTaken.MovementType.ShouldBe(MovementType.Walk);
     }
 
     [Fact]

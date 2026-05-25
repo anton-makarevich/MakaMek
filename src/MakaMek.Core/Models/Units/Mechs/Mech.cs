@@ -597,11 +597,12 @@ public class Mech : Unit
         if (Position != null) Position = Position with { Facing = newFacing };
     }
 
-    public void RegisterStandupAttempt()
+    public void RegisterStandupAttempt(MovementType? movementType = null)
     {
         StandupAttempts++;
-        if (Position == null) return; 
-        MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position);
+        movementType ??= MovementTaken?.MovementType;
+        if (Position == null || movementType == null) return; 
+        MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
         var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
         MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, pointsToSpend));
     }

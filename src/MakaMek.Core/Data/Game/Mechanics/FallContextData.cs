@@ -64,7 +64,7 @@ public record FallContextData
         };
     }
 
-    public MechStandUpCommand? ToMechStandUpCommand(HexDirection newFacing)
+    public MechStandUpCommand? ToMechStandUpCommand(HexDirection newFacing, MovementType movementTypeAfterStandup)
     {
         if (IsFalling || PilotingSkillRoll is null)
             return null;
@@ -74,7 +74,8 @@ public record FallContextData
             UnitId = UnitId,
             GameOriginId = GameId,
             PilotingSkillRoll = PilotingSkillRoll,
-            NewFacing = newFacing
+            NewFacing = newFacing,
+            MovementTypeAfterStandup = movementTypeAfterStandup
         };
     }
 }
