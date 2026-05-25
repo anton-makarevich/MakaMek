@@ -15,6 +15,11 @@ public class RiverPathGenerator
         Random? random = null,
         HashSet<HexCoordinates>? existingWaterHexes = null)
     {
+        if (width < 1)
+            throw new ArgumentOutOfRangeException(nameof(width), "Width must be at least 1.");
+        if (height < 1)
+            throw new ArgumentOutOfRangeException(nameof(height), "Height must be at least 1.");
+
         _width = width;
         _height = height;
         _random = random ?? new Random();
