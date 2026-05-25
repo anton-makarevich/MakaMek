@@ -67,8 +67,7 @@ public class RiverPathGeneratorTests
             .Select(h => h.Coordinates)
             .ToHashSet();
 
-        if (riverHexes.Count == 0)
-            return;
+        riverHexes.ShouldNotBeEmpty();
 
         foreach (var hex in riverHexes)
         {
