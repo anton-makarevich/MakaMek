@@ -70,31 +70,12 @@
         
         <!-- Tab 2: Generate Map -->
         <TabItem Header="{extensions:Localize 'MapConfig_GenerateMap'}">
-            <Grid ColumnDefinitions="4*,2*" ColumnSpacing="5">
+            <Grid ColumnDefinitions="3*,2*" ColumnSpacing="0">
                 <!-- Configuration Sliders -->
                 <StackPanel Classes="verticalSpaced" Grid.Column="0">
-                    <!-- Map Size Card -->
-                    <Border Classes="card">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="{extensions:Localize 'MapConfig_MapSize'}" Classes="h3"/>
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                                <StackPanel Classes="formGroupCompact" Grid.Column="0">
-                                    <TextBlock Text="{extensions:Localize 'MapConfig_Width'}" Classes="label"/>
-                                    <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                                    <TextBlock Text="{Binding MapWidthFormatted}" Classes="bodySmall"/>
-                                </StackPanel>
-                                <StackPanel Classes="formGroupCompact" Grid.Column="1">
-                                    <TextBlock Text="{extensions:Localize 'MapConfig_Height'}" Classes="label"/>
-                                    <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                                    <TextBlock Text="{Binding MapHeightFormatted}" Classes="bodySmall"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
                     <!-- Terrain Generation Card -->
                     <Border Classes="card">
-                        <StackPanel Spacing="10">
+                        <StackPanel Spacing="5">
                             <TextBlock Text="{extensions:Localize 'MapConfig_TerrainGeneration'}" Classes="h3"/>
                             <StackPanel Classes="formGroupCompact">
                                 <TextBlock Text="{extensions:Localize 'MapConfig_ForestCoverage'}" Classes="label"/>
@@ -139,17 +120,33 @@
                 </StackPanel>
 
                 <!-- Map Preview -->
-                <Panel
+                <StackPanel
                     Grid.Column="1"
-                    VerticalAlignment="Top"
-                    Margin="5"
-                        >
+                    Classes="verticalSpaced">
+                    <!-- Map Size Card -->
+                    <Border Classes="card">
+                        <StackPanel Classes="verticalSpaced">
+                            <TextBlock Text="{extensions:Localize 'MapConfig_MapSize'}" Classes="h3"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_Width'}" Classes="label"/>
+                                <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding MapWidthFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_Height'}" Classes="label"/>
+                                <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding MapHeightFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Panel VerticalAlignment="Top">
                         <Image VerticalAlignment="Top" MaxWidth="400" Source="{Binding PreviewImage}"
                                Stretch="Uniform"/>
                         <ProgressBar
                             IsVisible="{Binding IsGenerating}"
                             IsIndeterminate="True"/>
-                </Panel>
+                    </Panel>
+                </StackPanel>
                 
             </Grid>
         </TabItem>
