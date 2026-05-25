@@ -121,7 +121,7 @@ public class MapGeneratorBuilder
                     _lakePatches?.Keys.ToHashSet());
                 return generator.GenerateRivers(riverCount);
             },
-            (_, _, _) => new WaterTerrain(1)
+            (_, _, _) => new WaterTerrain(-1)
         ));
         return this;
     }
