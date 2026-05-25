@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Map.Models;
+
 namespace Sanet.MakaMek.Map.Data;
 
 public record PathSegmentData
@@ -6,4 +8,5 @@ public record PathSegmentData
     public required HexPositionData To { get; init; }
     public required int Cost { get; init; }
     public bool IsReversed { get; init; }
+    public SegmentEvent[] Events { get; init; } = [];
 }

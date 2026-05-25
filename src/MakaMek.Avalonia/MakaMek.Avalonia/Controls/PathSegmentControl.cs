@@ -12,8 +12,10 @@ public class PathSegmentControl : Panel
 {
     private readonly PathSegmentViewModel _segment;
     private const double StrokeThickness = 2;
-    private const double ArrowSize = 15; // Size of arrow head
+    private const double ArrowSize = 15;
     private const double ArcSize = 20;
+    private const double EventMarkerRadius = 4;
+    private const double EventMarkerSpacing = 12;
 
     public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
@@ -31,10 +33,63 @@ public class PathSegmentControl : Panel
         };
         
         Children.Add(path);
+
+        AddEventMarkers(color);
         
-        // Position control so that From coordinates are at its center
         SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPixelExtensions.HexWidth*0.5);
         SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPixelExtensions.HexHeight*0.5);
+    }
+
+    private void AddEventMarkers(Color color)
+    {
+        var events = _segment.Events;
+        if (events.Length == 0) return;
+
+        var geometries = new GeometryGroup();
+        for (var i = 0; i < events.Length; i++)
+        {
+            var cx = _segment.EndX - EventMarkerSpacing + i * EventMarkerSpacing;
+            var cy = _segment.EndY + EventMarkerRadius + EventMarkerSpacing * 2;
+            geometries.Children.Add(GetEventGeometry(events[i].Type, cx, cy));
+        }
+
+        Children.Add(new Path
+        {
+            Fill = new SolidColorBrush(color),
+            Stroke = new SolidColorBrush(color),
+            StrokeThickness = 2,
+            Data = geometries
+        });
+    }
+
+    private static Geometry GetEventGeometry(SegmentEventType eventType, double cx, double cy)
+    {
+        if (eventType == SegmentEventType.Fall)
+        {
+            return new GeometryGroup
+            {
+                Children =
+                {
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx - EventMarkerRadius, cy - EventMarkerRadius),
+                        EndPoint = new Point(cx + EventMarkerRadius, cy + EventMarkerRadius)
+                    },
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx + EventMarkerRadius, cy - EventMarkerRadius),
+                        EndPoint = new Point(cx - EventMarkerRadius, cy + EventMarkerRadius)
+                    }
+                }
+            };
+        }
+
+        return new EllipseGeometry
+        {
+            Center = new Point(cx, cy),
+            RadiusX = EventMarkerRadius,
+            RadiusY = EventMarkerRadius
+        };
     }
 
     private Geometry CreatePathGeometry()
@@ -43,7 +98,6 @@ public class PathSegmentControl : Panel
         
         if (_segment.IsTurn)
         {
-            // Arc from line end to final position
             var arcGeometry = new StreamGeometry();
             using (var context = arcGeometry.Open())
             {
@@ -77,7 +131,7 @@ public class PathSegmentControl : Panel
         var dirY = _segment.ArrowDirectionVector.Y;
         var endPoint = new Point(_segment.EndX, _segment.EndY);
         
-        for (int i = 0; i < _segment.Cost; i++)
+        for (var i = 0; i < _segment.Cost; i++)
         {
             var arrowOffset = i * (ArrowSize * 0.5); // Each subsequent arrow is moved back by half-arrow length
             var arrowEndPoint = new Point(
@@ -98,7 +152,7 @@ public class PathSegmentControl : Panel
                     arrowEndPoint.Y - ArrowSize * (dirY * 0.866 - dirX * 0.5)
                 );
 
-                context.BeginFigure(arrowEndPoint, true);
+                context.BeginFigure(arrowEndPoint);
                 context.LineTo(leftPoint);
                 context.LineTo(rightPoint);
                 context.LineTo(arrowEndPoint);

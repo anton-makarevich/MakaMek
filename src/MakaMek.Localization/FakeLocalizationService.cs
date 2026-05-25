@@ -211,6 +211,8 @@ public class FakeLocalizationService : ILocalizationService
         ["MechPart_Head_Short"] = "H",
         ["MechPart_LeftLeg_Short"] = "LL",
         ["MechPart_RightLeg_Short"] = "RL",
+        ["SegmentEvent_Fall"] = "Fall",
+        ["SegmentEvent_StandupAttempt"] = "Standup",
         ["Events_Unit_ArmorDamage"] = "Damage at {0}|-{1}",
         ["Events_Unit_StructureDamage"] = "Damage at {0}|-{1}",
         ["Events_Unit_Explosion"] = "{0} exploded",

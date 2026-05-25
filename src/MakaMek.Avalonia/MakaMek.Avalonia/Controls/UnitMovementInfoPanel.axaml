@@ -12,6 +12,7 @@
     <UserControl.Resources>
         <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
         <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
+        <converters:SegmentEventToTextConverter x:Key="SegmentEventToTextConverter"/>
     </UserControl.Resources>
     <StackPanel  Spacing="5" Orientation="Vertical">
         <Border
@@ -51,34 +52,51 @@
             IsVisible="{Binding HasMoved}"
             Classes="card"
         >
-            <Grid
-                ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
-                <TextBlock Grid.Row="0" Grid.Column="0"
-                           Classes="labelLarge"
-                         Text="{extensions:Localize 'UnitMovement_Type'}"
-                         HorizontalAlignment="Center"/>
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                           Classes="labelLarge"
-                         Text="{extensions:Localize 'UnitMovement_Points'}"
-                         HorizontalAlignment="Center"/>
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                           Classes="labelLarge"
-                         Text="{extensions:Localize 'UnitMovement_Traversed'}"
-                         HorizontalAlignment="Center"/>
+            <StackPanel Spacing="5">
+                <Grid
+                    ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Classes="labelLarge"
+                             Text="{extensions:Localize 'UnitMovement_Type'}"
+                             HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1"
+                               Classes="labelLarge"
+                             Text="{extensions:Localize 'UnitMovement_Points'}"
+                             HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2"
+                               Classes="labelLarge"
+                             Text="{extensions:Localize 'UnitMovement_Traversed'}"
+                             HorizontalAlignment="Center"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0"
-                         Classes="label"
-                         Text="{Binding MovementTaken.MovementType}"
-                         HorizontalAlignment="Center"/>
-                <TextBlock Grid.Row="1" Grid.Column="1"
-                         Classes="label"
-                         Text="{Binding MovementPointsSpent}"
-                         HorizontalAlignment="Center"/>
-                <TextBlock Grid.Row="1" Grid.Column="2"
-                         Classes="label"
-                         Text="{Binding MovementTaken.HexesTraveled}"
-                         HorizontalAlignment="Center"/>
-            </Grid>
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                             Classes="label"
+                             Text="{Binding MovementTaken.MovementType}"
+                             HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1"
+                             Classes="label"
+                             Text="{Binding MovementPointsSpent}"
+                             HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2"
+                             Classes="label"
+                             Text="{Binding MovementTaken.HexesTraveled}"
+                             HorizontalAlignment="Center"/>
+                </Grid>
+                <ItemsControl ItemsSource="{Binding MovementTaken.EventsWithLocations}"
+                              IsVisible="{Binding MovementTaken.EventsWithLocations, Converter={StaticResource CollectionToVisibilityConverter}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Margin="0,5" ItemSpacing="2" LineSpacing="2" Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="statusTag">
+                                <TextBlock Text="{Binding ., Converter={StaticResource SegmentEventToTextConverter}}"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+             </StackPanel>
         </Border>
          <!-- Movement Penalties Section -->
         <ItemsControl ItemsSource="{Binding MovementModifiers}"
@@ -98,4 +116,3 @@
         </ItemsControl>
     </StackPanel>
 </UserControl>
-

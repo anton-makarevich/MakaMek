@@ -176,4 +176,22 @@ public class PathSegmentViewModelTests
         // Act & Assert
         sut.Cost.ShouldBe(2);
     }
+
+    [Fact]
+    public void Events_ReturnsSegmentEvents()
+    {
+        // Arrange
+        var events = new[]
+        {
+            new SegmentEvent(SegmentEventType.Fall, 1),
+            new SegmentEvent(SegmentEventType.StandupAttempt, 2)
+        };
+        var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
+        var segment = new PathSegment(from, to, 3, Events: events);
+        var sut = new PathSegmentViewModel(segment);
+
+        // Act & Assert
+        sut.Events.ShouldBe(events);
+    }
 }

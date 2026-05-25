@@ -258,23 +258,17 @@ public abstract class BaseGame : IGame
     internal void OnMechFalling(MechFallCommand fallCommand)
     {
         // Find the unit with the given ID across all players
-        var mech = _players
-            .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == fallCommand.UnitId) as Mech;
+
+        if (_players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == fallCommand.UnitId) is not Mech mech) return;
 
         if (fallCommand.FallPilotingSkillRoll?.RollContext.RollType == PilotingSkillRollType.StandupAttempt)
         {
-            mech?.AttemptStandup();
+            mech.RegisterStandupAttempt();
         }
 
-        // Apply falling to the unit using the falling data from the command if present
-        if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
-        mech?.ApplyDamage(hits, fallCommand.DamageData.FallDirection);
-        mech?.SetProne(fallCommand.DamageData.FacingAfterFall);
-        if (fallCommand.IsPilotTakingDamage)
-        {
-            mech?.Pilot?.Hit();
-        }
+        mech.ApplyFall(fallCommand);
     }
 
     internal void OnMechStandUp(MechStandUpCommand standUpCommand)
@@ -285,7 +279,7 @@ public abstract class BaseGame : IGame
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
 
         mech?.StandUp(standUpCommand.NewFacing);
-        mech?.AttemptStandup();
+        mech?.RegisterStandupAttempt(standUpCommand.MovementTypeAfterStandup);
     }
 
     internal void OnUnitShutdown(UnitShutdownCommand shutdownCommand)

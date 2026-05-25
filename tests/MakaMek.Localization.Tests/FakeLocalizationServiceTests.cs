@@ -297,6 +297,9 @@ public class FakeLocalizationServiceTests
     [InlineData("MechPart_Head_Short", "H")]
     [InlineData("MechPart_LeftLeg_Short", "LL")]    
     [InlineData("MechPart_RightLeg_Short", "RL")]
+    // SegmentEvent labels
+    [InlineData("SegmentEvent_Fall", "Fall")]
+    [InlineData("SegmentEvent_StandupAttempt", "Standup")]
     // UI Events
     [InlineData("Events_Unit_ArmorDamage", "Damage at {0}|-{1}")]
     [InlineData("Events_Unit_StructureDamage", "Damage at {0}|-{1}")]

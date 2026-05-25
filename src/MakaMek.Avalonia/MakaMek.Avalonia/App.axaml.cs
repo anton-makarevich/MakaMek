@@ -47,6 +47,7 @@ public partial class App : Application
         // Initialize converters that need DI
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
         Converters.ModifierToTextConverter.Initialize(localizationService);
+        Converters.SegmentEventToTextConverter.Initialize(localizationService);
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
         LocalizeExtension.Initialize(localizationService);
 
