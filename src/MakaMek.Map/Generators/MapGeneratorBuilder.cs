@@ -17,6 +17,7 @@ public class MapGeneratorBuilder
     private Terrain _baseTerrain = new ClearTerrain();
     private LevelConfiguration? _levelConfig;
     private int? _seed;
+    private Dictionary<HexCoordinates, int>? _lakePatches;
 
     // Each overlay entry: (patch-hex-set factory with distance map, terrain selector given (coords, distance, rng))
     private readonly List<(
@@ -87,13 +88,40 @@ public class MapGeneratorBuilder
             throw new ArgumentOutOfRangeException(nameof(maxDepth), "MaxDepth must be at least 1.");
 
         _overlays.Add((
-            rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
+            rng =>
+            {
+                var patches = new PatchGenerator(_width, _height, rng).GeneratePatches(coverage);
+                _lakePatches = patches;
+                return patches;
+            },
             (coords, distance, rng) =>
             {
                 // Depth tapers from maxDepth at center (dist=0) toward 1 at patch edges.
                 var depth = -Math.Max(1, maxDepth - distance);
                 return new WaterTerrain(depth);
             }
+        ));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds river generation. Rivers flow from the map edge inward with a
+    /// directional probability of 50% straight / 25% clockwise / 25% counter-clockwise.
+    /// Rivers terminate at the map edge, at a lake hex, or at another river.
+    /// Must be called after <see cref="WithLakes"/> if both are used.
+    /// </summary>
+    /// <param name="riverCount">Number of rivers to generate.</param>
+    public MapGeneratorBuilder WithRivers(int riverCount)
+    {
+        _overlays.Add((
+            rng =>
+            {
+                var generator = new RiverPathGenerator(
+                    _width, _height, rng,
+                    _lakePatches?.Keys.ToHashSet());
+                return generator.GenerateRivers(riverCount);
+            },
+            (_, _, _) => new WaterTerrain(1)
         ));
         return this;
     }
