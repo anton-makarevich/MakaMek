@@ -122,7 +122,8 @@ public class MovementPath : IEquatable<MovementPath>
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
             segment.Cost,
             !segment.IsReversed,
-            segment.Events
+            ElevationChange: segment.ElevationChange,
+            Events: segment.Events
         )).ToList();
         return new MovementPath(reversedSegments, MovementType, MaxLevelChange);
     }

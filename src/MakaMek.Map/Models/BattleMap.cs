@@ -87,14 +87,14 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (turningSteps.Count == 0)
         {
-            segments.Add(new PathSegment(start, target, 0));
+            segments.Add(new PathSegment(start, target, 0, ElevationChange: 0));
         }
         else
         {
             var currentPos = start;
             foreach (var step in turningSteps)
             {
-                segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
+                segments.Add(new PathSegment(currentPos, step, 1, ElevationChange: 0)); // Cost 1 for each turn
                 currentPos = step;
             }
         }
@@ -113,6 +113,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             var from = path[i];
             var to = path[i + 1];
             var segmentCost = 1; // Default cost for turning
+            var elevationChange = 0;
 
             // If coordinates changed, it's a movement
             if (from.Coordinates != to.Coordinates)
@@ -121,9 +122,13 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
                 var levelCost = Math.Abs(fromHex.GetLevelDifference(hex));
                 segmentCost = hex.MovementCost + levelCost;
+
+                var effectiveFromLevel = fromHex.Level - (fromHex.GetWaterDepth() ?? 0);
+                var effectiveToLevel = hex.Level - (hex.GetWaterDepth() ?? 0);
+                elevationChange = effectiveToLevel - effectiveFromLevel;
             }
 
-            segments.Add(new PathSegment(from, to, segmentCost));
+            segments.Add(new PathSegment(from, to, segmentCost, ElevationChange: elevationChange));
         }
         return segments;
     }
@@ -714,7 +719,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         
         if (from == to)
         {
-            path.Add(new PathSegment(from, to, 0));
+            path.Add(new PathSegment(from, to, 0, ElevationChange: 0));
         }
         else
         {
@@ -744,10 +749,17 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                         currentPosition.Coordinates.GetDirectionToNeighbour(nextCoords));
                 }
 
+                var fromHex = GetHex(currentPosition.Coordinates) ?? throw new WrongHexException(currentPosition.Coordinates, "Hex not found");
+                var toHex = GetHex(nextPosition.Coordinates) ?? throw new WrongHexException(nextPosition.Coordinates, "Hex not found");
+                var effectiveFromLevel = fromHex.Level - (fromHex.GetWaterDepth() ?? 0);
+                var effectiveToLevel = toHex.Level - (toHex.GetWaterDepth() ?? 0);
+                var elevationChange = effectiveToLevel - effectiveFromLevel;
+
                 path.Add(new PathSegment(
                     currentPosition,
                     nextPosition,
-                    1));
+                    1,
+                    ElevationChange: elevationChange));
 
                 currentPosition = nextPosition;
                 remainingDistance--;

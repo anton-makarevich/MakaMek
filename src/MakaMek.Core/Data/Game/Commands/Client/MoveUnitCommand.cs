@@ -36,6 +36,8 @@ public record struct MoveUnitCommand: IClientUnitCommand
             sb.Append(segment.Cost);
             sb.Append(':');
             sb.Append(segment.IsReversed ? '1' : '0');
+            sb.Append(':');
+            sb.Append(segment.ElevationChange);
         }
         return sb.ToString();
     }
