@@ -393,7 +393,7 @@ public class FakeLocalizationService : ILocalizationService
         ["MapConfig_RiverCount"] = "River Count",
         ["MapConfig_RiverCount_Formatted"] = "Rivers: {0}",
         ["MapConfig_ExportMap"] = "Export Map",
-        ["EditMap_ExportMapDialogTitle"] = "Export Map",
+        ["EditMap_ExportMapDialogTitle"] = "Export Map File",
         ["Network_NetworkSettings"] = "Network Settings",
         ["Network_Multiplayer"] = "Multiplayer",
         ["Network_ServerAddress"] = "Server Address",
