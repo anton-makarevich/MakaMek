@@ -1486,4 +1486,24 @@ public class HexCoordinatesTests
 
         direction.ShouldBe(expectedDirection);
     }
+
+    [Fact]
+    public void GetDirectionToward_UsesProvidedRandom_WhenSecondOptionExists()
+    {
+        var source = new HexCoordinates(2, 2);
+        var target = new HexCoordinates(6, 2);
+        const int seed = 42;
+
+        var lineSegments = source.LineTo(target);
+        lineSegments[1].SecondOption.ShouldNotBeNull();
+
+        var expectedHex = new Random(seed).Next(2) == 0
+            ? lineSegments[1].SecondOption!
+            : lineSegments[1].MainOption;
+        var expected = source.GetDirectionToNeighbour(expectedHex);
+
+        var result = source.GetDirectionToward(target, new Random(seed));
+
+        result.ShouldBe(expected);
+    }
 }
