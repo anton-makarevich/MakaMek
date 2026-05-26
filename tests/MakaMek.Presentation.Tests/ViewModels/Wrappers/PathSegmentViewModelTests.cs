@@ -178,6 +178,19 @@ public class PathSegmentViewModelTests
     }
 
     [Fact]
+    public void ElevationChange_ReturnsSegmentElevationChange()
+    {
+        // Arrange
+        var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
+        var segment = new PathSegment(from, to, 2, ElevationChange: 5);
+        var sut = new PathSegmentViewModel(segment);
+
+        // Act & Assert
+        sut.ElevationChange.ShouldBe(5);
+    }
+
+    [Fact]
     public void Events_ReturnsSegmentEvents()
     {
         // Arrange

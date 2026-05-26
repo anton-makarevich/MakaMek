@@ -633,10 +633,10 @@ public class MovementPathTests
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1,
-                false, [fallEvent]),
+                false, Events: [fallEvent]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
-                false, [standupEvent])
+                false, Events: [standupEvent])
         }, MovementType.Walk);
 
         var result = sut.EventsWithLocations.ToList();
@@ -657,7 +657,7 @@ public class MovementPathTests
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 2,
-                false, [fall, standup])
+                false, Events: [fall, standup])
         }, MovementType.Walk);
 
         var result = sut.EventsWithLocations.ToList();
@@ -679,7 +679,7 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
-                false, [fall]),
+                false, Events: [fall]),
             new(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 4), HexDirection.Top), 1)
         }, MovementType.Walk);
@@ -752,7 +752,7 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 2,
-                false, [new SegmentEvent(SegmentEventType.StandupAttempt, 1)])
+                false, Events: [new SegmentEvent(SegmentEventType.StandupAttempt, 1)])
         }, MovementType.Walk);
 
         var result = original.WithLastSegmentEvent(fall);

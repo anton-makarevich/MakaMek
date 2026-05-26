@@ -2118,4 +2118,165 @@ public class BattleMapTests
         // Assert
         result.HasLineOfSight.ShouldBeTrue();
     }
+
+    [Fact]
+    public void ConvertPathToSegments_AscendingPath_SetsPositiveElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 2);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        path.ShouldNotBeNull();
+        var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        movementSegments.ShouldNotBeEmpty();
+        movementSegments[0].ElevationChange.ShouldBe(2); // level 0 -> level 2
+    }
+
+    [Fact]
+    public void ConvertPathToSegments_DescendingPath_SetsNegativeElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 3);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        path.ShouldNotBeNull();
+        var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        movementSegments.ShouldNotBeEmpty();
+        movementSegments[0].ElevationChange.ShouldBe(-3); // level 3 -> level 0
+    }
+
+    [Fact]
+    public void ConvertPathToSegments_FlatPath_SetsZeroElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 1);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        path.ShouldNotBeNull();
+        var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        movementSegments.ShouldNotBeEmpty();
+        movementSegments[0].ElevationChange.ShouldBe(0); // level 1 -> level 1
+    }
+
+    [Fact]
+    public void ConvertPathToSegments_TurningPath_SetsZeroElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 1);
+        var hex = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 3);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments.All(s => s.ElevationChange == 0).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ConvertPathToSegments_WaterHex_AdjustsElevationForDepth()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 2);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        // Water depth 1 (WaterTerrain.Height = -1), effective level = 2 - 1 = 1
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 2);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act - Effective levels: from=2-0=2, to=2-1=1, change=1-2=-1
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        path.ShouldNotBeNull();
+        var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        movementSegments.ShouldNotBeEmpty();
+        movementSegments[0].ElevationChange.ShouldBe(-1); // effective level 2 -> effective level 1
+    }
+
+    [Fact]
+    public void FindJumpPath_SetsElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 3);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments[0].ElevationChange.ShouldBe(3); // level 0 -> level 3
+    }
+
+    [Fact]
+    public void FindJumpPath_SameHex_SetsZeroElevationChange()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 1);
+        var hex = new Hex(new HexCoordinates(1, 1), level: 5);
+        hex.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(position, position, MovementType.Jump, 3);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments[0].ElevationChange.ShouldBe(0);
+    }
 }

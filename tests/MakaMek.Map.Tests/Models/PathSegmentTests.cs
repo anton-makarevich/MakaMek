@@ -13,14 +13,16 @@ public class PathSegmentTests
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         const int cost = 3;
+        const int elevationChange = 2;
 
         // Act
-        var segment = new PathSegment(from, to, cost);
+        var segment = new PathSegment(from, to, cost, ElevationChange: elevationChange);
 
         // Assert
         segment.From.ShouldBe(from);
         segment.To.ShouldBe(to);
         segment.Cost.ShouldBe(cost);
+        segment.ElevationChange.ShouldBe(elevationChange);
     }
 
     [Fact]
@@ -30,11 +32,13 @@ public class PathSegmentTests
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         const int cost = 3;
+        const int elevationChange = -1;
         var data = new PathSegmentData
         {
             From = from.ToData(),
             To = to.ToData(),
-            Cost = cost
+            Cost = cost,
+            ElevationChange = elevationChange
         };
 
         // Act
@@ -44,6 +48,7 @@ public class PathSegmentTests
         segment.From.ShouldBe(from);
         segment.To.ShouldBe(to);
         segment.Cost.ShouldBe(cost);
+        segment.ElevationChange.ShouldBe(elevationChange);
     }
 
     [Fact]
@@ -53,7 +58,8 @@ public class PathSegmentTests
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         const int cost = 3;
-        var segment = new PathSegment(from, to, cost);
+        const int elevationChange = 5;
+        var segment = new PathSegment(from, to, cost, ElevationChange: elevationChange);
 
         // Act
         var data = segment.ToData();
@@ -62,6 +68,7 @@ public class PathSegmentTests
         data.From.ShouldBe(from.ToData());
         data.To.ShouldBe(to.ToData());
         data.Cost.ShouldBe(cost);
+        data.ElevationChange.ShouldBe(elevationChange);
     }
 
     [Fact]
@@ -78,5 +85,20 @@ public class PathSegmentTests
 
         // Assert
         segment1.ShouldBe(segment2);
+    }
+
+    [Fact]
+    public void ElevationChange_Default_IsZero()
+    {
+        // Arrange
+        var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        const int cost = 3;
+
+        // Act
+        var segment = new PathSegment(from, to, cost);
+
+        // Assert
+        segment.ElevationChange.ShouldBe(0);
     }
 }
