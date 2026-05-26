@@ -52,4 +52,72 @@ public class HexExtensionsTests
         // Assert
         depth.ShouldBe(2);
     }
+
+    [Fact]
+    public void GetElevationChangeTo_ReturnsZero_WhenToHexIsNull()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1)) { Level = 5 };
+
+        var result = hex.GetElevationChangeTo(null);
+
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetElevationChangeTo_ReturnsZero_WhenLevelsAreSame()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 3 };
+
+        var result = fromHex.GetElevationChangeTo(toHex);
+
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetElevationChangeTo_ReturnsPositive_WhenAscending()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 5 };
+
+        var result = fromHex.GetElevationChangeTo(toHex);
+
+        result.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetElevationChangeTo_ReturnsNegative_WhenDescending()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 5 };
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 2 };
+
+        var result = fromHex.GetElevationChangeTo(toHex);
+
+        result.ShouldBe(-3);
+    }
+
+    [Fact]
+    public void GetElevationChangeTo_AccountsForWaterDepth()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        fromHex.AddTerrain(new WaterTerrain(-1));
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 3 };
+
+        var result = fromHex.GetElevationChangeTo(toHex);
+
+        result.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetElevationChangeTo_AccountsForDifferentWaterDepths()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 5 };
+        fromHex.AddTerrain(new WaterTerrain(-2));
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 5 };
+        toHex.AddTerrain(new WaterTerrain(-1));
+
+        var result = fromHex.GetElevationChangeTo(toHex);
+
+        result.ShouldBe(1);
+    }
 }

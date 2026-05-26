@@ -28,5 +28,13 @@ public static class HexExtensions
             var waterTerrain = hex.GetTerrain(MakaMekTerrains.Water);
             return -waterTerrain?.Height;
         }
+
+        public int GetElevationChangeTo(Hex? toHex)
+        {
+            if (toHex == null) return 0;
+            var effectiveFromLevel = hex.Level - (hex.GetWaterDepth() ?? 0);
+            var effectiveToLevel = toHex.Level - (toHex.GetWaterDepth() ?? 0);
+            return effectiveToLevel - effectiveFromLevel;
+        }
     }
 }
