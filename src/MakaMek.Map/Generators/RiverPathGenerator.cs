@@ -43,7 +43,7 @@ public class RiverPathGenerator
         return result;
     }
 
-    private List<HexCoordinates> GenerateSingleRiver(
+    internal List<HexCoordinates> GenerateSingleRiver(
         Dictionary<HexCoordinates, int> existingRivers)
     {
         var river = new List<HexCoordinates>();

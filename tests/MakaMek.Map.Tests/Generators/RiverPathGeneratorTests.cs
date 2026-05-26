@@ -160,4 +160,14 @@ public class RiverPathGeneratorTests
         var ex = Should.Throw<ArgumentOutOfRangeException>(() => new RiverPathGenerator(Width, 0));
         ex.ParamName.ShouldBe("height");
     }
+
+    [Fact]
+    public void GenerateSingleRiver_NoDuplicateHexes()
+    {
+        const int seed = 43; // Produces looping river
+
+        var generator = new RiverPathGenerator(35, 35, new Random(seed));
+        var river = generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+        river.Count.ShouldBe(river.Distinct().Count());
+    }
 }
