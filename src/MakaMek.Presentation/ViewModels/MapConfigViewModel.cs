@@ -79,6 +79,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public string RoughCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_RoughCoverage_Formatted"), RoughCoverage);
     public string LakeCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_LakeCoverage_Formatted"), LakeCoverage);
     public string LakeMaxDepthFormatted => string.Format(_localizationService.GetString("MapConfig_LakeMaxDepth_Formatted"), LakeMaxDepth);
+    public string RiverCountFormatted => string.Format(_localizationService.GetString("MapConfig_RiverCount_Formatted"), RiverCount);
 
     /// <summary>
     /// Maximum allowed rough terrain coverage to ensure a hex cannot contain both woods and rough terrain.
@@ -243,6 +244,17 @@ public class MapConfigViewModel : BindableBase, IDisposable
             StartMapUpdate();
         }
     } = 2;
+
+    public int RiverCount
+    {
+        get;
+        set
+        {
+            SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(RiverCountFormatted));
+            StartMapUpdate();
+        }
+    }
 
     public bool HasForest => _forestCoverage > 0;
 
@@ -432,6 +444,9 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
             if (LakeCoverage > 0)
                 builder = builder.WithLakes(LakeCoverage / 100.0, LakeMaxDepth);
+
+            if (RiverCount > 0)
+                builder = builder.WithRivers(RiverCount);
 
             var generator = builder.Build();
 
