@@ -1438,4 +1438,52 @@ public class HexCoordinatesTests
         // Act & Assert
         Should.Throw<ArgumentException>(() => center.GetFiringArc(center, HexDirection.Top));
     }
+
+    [Fact]
+    public void GetDirectionToward_TargetDirectlyAbove_ReturnsTop()
+    {
+        var source = new HexCoordinates(5, 5);
+        var target = new HexCoordinates(5, 3);
+
+        var direction = source.GetDirectionToward(target);
+
+        direction.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
+    public void GetDirectionToward_TargetDiagonally_ReturnsCorrectDirection()
+    {
+        var source = new HexCoordinates(5, 5);
+        var target = new HexCoordinates(7, 3);
+
+        var direction = source.GetDirectionToward(target);
+
+        // Line from (5,5) to (7,3) should go through (6,4) first, which is TopRight from (5,5)
+        direction.ShouldBe(HexDirection.TopRight);
+    }
+
+    [Fact]
+    public void GetDirectionToward_SameHex_ReturnsDefaultTop()
+    {
+        var source = new HexCoordinates(5, 5);
+
+        var direction = source.GetDirectionToward(source);
+
+        direction.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
+    public void GetDirectionToward_MatchesManualLineToComposition_WhenNoTieBreak()
+    {
+        var source = new HexCoordinates(2, 8);
+        var target = new HexCoordinates(5, 3);
+
+        var direction = source.GetDirectionToward(target);
+
+        var lineSegments = source.LineTo(target);
+        var firstStep = lineSegments[1].MainOption;
+        var expectedDirection = source.GetDirectionToNeighbour(firstStep);
+
+        direction.ShouldBe(expectedDirection);
+    }
 }

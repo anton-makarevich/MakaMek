@@ -136,18 +136,7 @@ public class DeploymentEngine : IBotDecisionEngine
                 player.Id);
         }
 
-        // Get line of sight to target
-        var lineSegments = deployPosition.LineTo(target);
-
-        var firstSegment = lineSegments[1];
-        
-        // If segment has two options (equal-distance hexes), randomly select one
-        var adjacentHex = firstSegment.SecondOption != null && Random.Shared.Next(2) == 0
-            ? firstSegment.SecondOption
-            : firstSegment.MainOption;
-
-        // Get direction to the adjacent hex
-        return deployPosition.GetDirectionToNeighbour(adjacentHex);
+        return deployPosition.GetDirectionToward(target);
     }
 }
 

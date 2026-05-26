@@ -87,7 +87,22 @@ public record HexCoordinates
 
         throw new WrongHexException(neighbour, "Neighbour is not adjacent to center.");
     }
-    
+
+    public HexDirection GetDirectionToward(HexCoordinates target)
+    {
+        if (target.Equals(this))
+            return HexDirection.Top;
+
+        var lineSegments = LineTo(target);
+        var firstSegment = lineSegments[1];
+
+        var adjacentHex = firstSegment.SecondOption != null && Random.Shared.Next(2) == 0
+            ? firstSegment.SecondOption
+            : firstSegment.MainOption;
+
+        return GetDirectionToNeighbour(adjacentHex);
+    }
+
     /// <summary>
     /// Returns adjacent hex coordinates in all six directions
     /// </summary>

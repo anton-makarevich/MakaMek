@@ -48,11 +48,27 @@ public class RiverPathGenerator
     {
         var river = new List<HexCoordinates>();
 
-        var (startHex, initialDirection) = PickRandomEdgeStart();
+        var (startHex, _) = PickRandomEdgeStart();
         river.Add(startHex);
 
+        var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate());
         var currentPos = startHex;
-        var currentDir = initialDirection;
+        var currentDir = centerDirection;
+
+        // Take the first deterministic step toward the map center
+        var secondHex = currentPos.GetNeighbour(centerDirection);
+        if (secondHex.Q < 1 || secondHex.Q > _width ||
+            secondHex.R < 1 || secondHex.R > _height)
+            return river;
+
+        if (_existingWaterHexes?.Contains(secondHex) == true)
+            return river;
+
+        if (existingRivers.ContainsKey(secondHex))
+            return river;
+
+        river.Add(secondHex);
+        currentPos = secondHex;
 
         while (true)
         {
@@ -137,5 +153,10 @@ public class RiverPathGenerator
         var direction = validDirections[_random.Next(validDirections.Length)];
 
         return (startHex, direction);
+    }
+
+    private HexCoordinates GetCenterHexCoordinate()
+    {
+        return new HexCoordinates((_width + 1) / 2, (_height + 1) / 2);
     }
 }
