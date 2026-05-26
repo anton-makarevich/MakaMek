@@ -51,7 +51,7 @@ public class RiverPathGenerator
         var startHex = PickRandomEdgeStart();
         river.Add(startHex);
 
-        var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate());
+        var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate(), _random);
         var currentPos = startHex;
         HexDirection? currentDir = null;
 

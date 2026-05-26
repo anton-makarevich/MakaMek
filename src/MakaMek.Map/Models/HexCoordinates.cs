@@ -90,13 +90,18 @@ public record HexCoordinates
 
     public HexDirection GetDirectionToward(HexCoordinates target)
     {
+        return GetDirectionToward(target, Random.Shared);
+    }
+
+    public HexDirection GetDirectionToward(HexCoordinates target, Random random)
+    {
         if (target.Equals(this))
             return HexDirection.Top;
 
         var lineSegments = LineTo(target);
         var firstSegment = lineSegments[1];
 
-        var adjacentHex = firstSegment.SecondOption != null && Random.Shared.Next(2) == 0
+        var adjacentHex = firstSegment.SecondOption != null && random.Next(2) == 0
             ? firstSegment.SecondOption
             : firstSegment.MainOption;
 
