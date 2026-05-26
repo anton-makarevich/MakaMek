@@ -152,6 +152,8 @@
                             IsVisible="{Binding IsGenerating}"
                             IsIndeterminate="True"/>
                     </Panel>
+                    <Button Classes="primary" Command="{Binding ExportMapCommand}"
+                            Content="{extensions:Localize 'MapConfig_ExportMap'}"/>
                 </StackPanel>
                 
             </Grid>
