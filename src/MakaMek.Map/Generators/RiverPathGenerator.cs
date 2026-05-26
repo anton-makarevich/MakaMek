@@ -53,33 +53,11 @@ public class RiverPathGenerator
 
         var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate());
         var currentPos = startHex;
-        var currentDir = centerDirection;
-
-        // Take the first deterministic step toward the map center
-        var secondHex = currentPos.GetNeighbour(centerDirection);
-        if (secondHex.Q < 1 || secondHex.Q > _width ||
-            secondHex.R < 1 || secondHex.R > _height)
-            return river;
-
-        if (_existingWaterHexes?.Contains(secondHex) == true)
-            return river;
-
-        if (existingRivers.ContainsKey(secondHex))
-            return river;
-
-        river.Add(secondHex);
-        currentPos = secondHex;
+        HexDirection? currentDir = null;
 
         while (true)
         {
-            var roll = _random.NextDouble();
-            var nextDir = roll switch
-            {
-                < 0.5 => currentDir,
-                < 0.75 => currentDir.Rotate(1),
-                _ => currentDir.Rotate(-1)
-            };
-
+            var nextDir = GetCurrentDirection(currentDir);
             var nextHex = currentPos.GetNeighbour(nextDir);
 
             if (nextHex.Q < 1 || nextHex.Q > _width ||
@@ -101,6 +79,20 @@ public class RiverPathGenerator
         }
 
         return river;
+
+        HexDirection GetCurrentDirection(HexDirection? dir)
+        {
+            if (dir == null)
+                return centerDirection;
+
+            var roll = _random.NextDouble();
+            return roll switch
+            {
+                < 0.5 => dir.Value,
+                < 0.75 => dir.Value.Rotate(1),
+                _ => dir.Value.Rotate(-1)
+            };
+        }
     }
 
     private (HexCoordinates hex, HexDirection direction) PickRandomEdgeStart()
