@@ -36,7 +36,7 @@ public class MapConfigViewModelTests
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Configure localization service mock - return the key if not configured
-        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted" && k != "MapConfig_LakeCoverage_Formatted" && k != "MapConfig_LakeMaxDepth_Formatted")).Returns(callInfo => callInfo.Arg<string>());
+        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted" && k != "MapConfig_LakeCoverage_Formatted" && k != "MapConfig_LakeMaxDepth_Formatted" && k != "MapConfig_RiverCount_Formatted")).Returns(callInfo => callInfo.Arg<string>());
         _localizationService.GetString("MapConfig_Width_Formatted").Returns("Width: {0} hexes");
         _localizationService.GetString("MapConfig_Height_Formatted").Returns("Height: {0} hexes");
         _localizationService.GetString("MapConfig_ForestCoverage_Formatted").Returns("Forest Coverage: {0}%");
@@ -46,6 +46,7 @@ public class MapConfigViewModelTests
         _localizationService.GetString("MapConfig_RoughCoverage_Formatted").Returns("Rough Coverage: {0}%");
         _localizationService.GetString("MapConfig_LakeCoverage_Formatted").Returns("Lake Coverage: {0}%");
         _localizationService.GetString("MapConfig_LakeMaxDepth_Formatted").Returns("Lake Max Depth: {0}");
+        _localizationService.GetString("MapConfig_RiverCount_Formatted").Returns("Rivers: {0}");
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService, _localizationService);
     }
@@ -77,6 +78,7 @@ public class MapConfigViewModelTests
         _sut.LakeMaxDepth.ShouldBe(2);
         _sut.HasHills.ShouldBeFalse();
         _sut.HasLakes.ShouldBeFalse();
+        _sut.RiverCount.ShouldBe(0);
     }
 
     [Theory]
@@ -297,11 +299,29 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
+    public void RiverCountFormatted_UpdatesWhenRiverCountChanges()
+    {
+        _sut.RiverCount = 2;
+
+        _sut.RiverCountFormatted.ShouldBe("Rivers: 2");
+    }
+
+    [Fact]
     public void LakeMaxDepthFormatted_UpdatesWhenLakeMaxDepthChanges()
     {
         _sut.LakeMaxDepth = 3;
 
         _sut.LakeMaxDepthFormatted.ShouldBe("Lake Max Depth: 3");
+    }
+
+    [Fact]
+    public void RiverCount_SetAndGet_ShouldUpdateCorrectly()
+    {
+        const int newCount = 2;
+
+        _sut.RiverCount = newCount;
+
+        _sut.RiverCount.ShouldBe(newCount);
     }
 
     [Fact]
@@ -312,6 +332,12 @@ public class MapConfigViewModelTests
         _sut.RoughCoverage = newCoverage;
 
         _sut.RoughCoverage.ShouldBe(newCoverage);
+    }
+
+    [Fact]
+    public void RiverCountFormatted_ReturnsFormattedValue()
+    {
+        _sut.RiverCountFormatted.ShouldBe("Rivers: 0");
     }
 
     [Fact]

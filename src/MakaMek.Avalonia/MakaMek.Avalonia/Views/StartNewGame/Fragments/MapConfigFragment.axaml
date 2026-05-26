@@ -115,6 +115,12 @@
                                 <Slider Value="{Binding LakeMaxDepth}" Minimum="1" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
                                 <TextBlock Text="{Binding LakeMaxDepthFormatted}" Classes="bodySmall"/>
                             </StackPanel>
+                            <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="0,4,0,4"/>
+                            <StackPanel Classes="formGroupCompact">
+                                <TextBlock Text="{extensions:Localize 'MapConfig_RiverCount'}" Classes="label"/>
+                                <Slider Value="{Binding RiverCount}" Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                                <TextBlock Text="{Binding RiverCountFormatted}" Classes="bodySmall"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

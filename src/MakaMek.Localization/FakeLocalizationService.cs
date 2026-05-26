@@ -390,6 +390,8 @@ public class FakeLocalizationService : ILocalizationService
         ["MapConfig_LakeMaxDepth"] = "Max Lake Depth",
         ["MapConfig_LakeCoverage_Formatted"] = "Lake Coverage: {0}%",
         ["MapConfig_LakeMaxDepth_Formatted"] = "Max Lake Depth: {0}",
+        ["MapConfig_RiverCount"] = "River Count",
+        ["MapConfig_RiverCount_Formatted"] = "Rivers: {0}",
         ["Network_NetworkSettings"] = "Network Settings",
         ["Network_Multiplayer"] = "Multiplayer",
         ["Network_ServerAddress"] = "Server Address",
