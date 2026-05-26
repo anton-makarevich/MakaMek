@@ -48,22 +48,16 @@ public class RiverPathGenerator
     {
         var river = new List<HexCoordinates>();
 
-        var (startHex, initialDirection) = PickRandomEdgeStart();
+        var startHex = PickRandomEdgeStart();
         river.Add(startHex);
 
+        var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate(), _random);
         var currentPos = startHex;
-        var currentDir = initialDirection;
+        HexDirection? currentDir = null;
 
         while (true)
         {
-            var roll = _random.NextDouble();
-            var nextDir = roll switch
-            {
-                < 0.5 => currentDir,
-                < 0.75 => currentDir.Rotate(1),
-                _ => currentDir.Rotate(-1)
-            };
-
+            var nextDir = GetCurrentDirection(currentDir);
             var nextHex = currentPos.GetNeighbour(nextDir);
 
             if (nextHex.Q < 1 || nextHex.Q > _width ||
@@ -85,57 +79,57 @@ public class RiverPathGenerator
         }
 
         return river;
+
+        HexDirection GetCurrentDirection(HexDirection? dir)
+        {
+            if (dir == null)
+                return centerDirection;
+
+            var roll = _random.NextDouble();
+            return roll switch
+            {
+                < 0.5 => dir.Value,
+                < 0.75 => dir.Value.Rotate(1),
+                _ => dir.Value.Rotate(-1)
+            };
+        }
     }
 
-    private (HexCoordinates hex, HexDirection direction) PickRandomEdgeStart()
+    private HexCoordinates PickRandomEdgeStart()
     {
-        var edgeHexes = new List<(HexCoordinates hex, HexDirection[] directions)>();
+        var edgeHexes = new List<HexCoordinates>();
 
         for (var q = 1; q <= _width; q++)
         {
-            var hex = new HexCoordinates(q, 1);
-            edgeHexes.Add((hex,
-            [
-                HexDirection.BottomRight, HexDirection.Bottom, HexDirection.BottomLeft
-            ]));
+            edgeHexes.Add(new HexCoordinates(q, 1));
         }
 
         if (_height > 1)
         {
             for (var q = 1; q <= _width; q++)
             {
-                var hex = new HexCoordinates(q, _height);
-                edgeHexes.Add((hex,
-                [
-                    HexDirection.TopRight, HexDirection.Top, HexDirection.TopLeft
-                ]));
+                edgeHexes.Add(new HexCoordinates(q, _height));
             }
         }
 
         for (var r = 2; r < _height; r++)
         {
-            var hex = new HexCoordinates(1, r);
-            edgeHexes.Add((hex,
-            [
-                HexDirection.TopRight, HexDirection.BottomRight
-            ]));
+            edgeHexes.Add(new HexCoordinates(1, r));
         }
 
         if (_width > 1)
         {
             for (var r = 2; r < _height; r++)
             {
-                var hex = new HexCoordinates(_width, r);
-                edgeHexes.Add((hex,
-                [
-                    HexDirection.TopLeft, HexDirection.BottomLeft
-                ]));
+                edgeHexes.Add(new HexCoordinates(_width, r));
             }
         }
 
-        var (startHex, validDirections) = edgeHexes[_random.Next(edgeHexes.Count)];
-        var direction = validDirections[_random.Next(validDirections.Length)];
+        return edgeHexes[_random.Next(edgeHexes.Count)];
+    }
 
-        return (startHex, direction);
+    private HexCoordinates GetCenterHexCoordinate()
+    {
+        return new HexCoordinates((_width + 1) / 2, (_height + 1) / 2);
     }
 }

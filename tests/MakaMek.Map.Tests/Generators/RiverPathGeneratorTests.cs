@@ -162,6 +162,21 @@ public class RiverPathGeneratorTests
     }
 
     [Fact]
+    public void GenerateSingleRiver_SecondHexIsCloserToCenterThanFirst()
+    {
+        var generator = new RiverPathGenerator(Width, Height, new Random(42));
+        var river = generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+
+        river.Count.ShouldBeGreaterThanOrEqualTo(2);
+
+        var center = new HexCoordinates((Width + 1) / 2, (Height + 1) / 2);
+        var firstDist = river[0].DistanceTo(center);
+        var secondDist = river[1].DistanceTo(center);
+
+        secondDist.ShouldBeLessThanOrEqualTo(firstDist);
+    }
+
+    [Fact]
     public void GenerateSingleRiver_NoDuplicateHexes()
     {
         const int seed = 43; // Produces looping river
