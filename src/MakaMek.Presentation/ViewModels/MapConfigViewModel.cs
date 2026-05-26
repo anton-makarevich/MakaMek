@@ -300,6 +300,21 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public IAsyncCommand LoadMapCommand { get; }
 
+    public IAsyncCommand ExportMapCommand => field ??= new AsyncCommand(async () =>
+    {
+        if (Map == null) return;
+        try
+        {
+            var data = Map.ToData();
+            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            await _fileService.SaveFile(_localizationService.GetString("EditMap_ExportMapDialogTitle"), "map.json", json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export map");
+        }
+    });
+
     private async Task LoadMap()
     {
         try

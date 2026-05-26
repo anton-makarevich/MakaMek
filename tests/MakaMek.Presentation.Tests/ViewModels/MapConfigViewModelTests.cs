@@ -1238,4 +1238,54 @@ public class MapConfigViewModelTests
         sut.Map.ShouldNotBeNull();
         _mapFactory.Received().GenerateMap(sut.MapWidth, sut.MapHeight, Arg.Any<ITerrainGenerator>());
     }
+
+    [Fact]
+    public async Task ExportMapCommand_WhenMapIsAvailable_SavesFile()
+    {
+        // Arrange
+        _sut.SelectedTabIndex = 1;
+
+        // Act
+        await _sut.ExportMapCommand.ExecuteAsync();
+
+        // Assert
+        await _fileService.Received(1).SaveFile(
+            Arg.Any<string>(),
+            "map.json",
+            Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ExportMapCommand_WhenMapIsNull_DoesNothing()
+    {
+        // Act
+        await _sut.ExportMapCommand.ExecuteAsync();
+
+        // Assert
+        await _fileService.DidNotReceive().SaveFile(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ExportMapCommand_WhenSaveFileThrows_LogsError()
+    {
+        // Arrange
+        _sut.SelectedTabIndex = 1;
+        var exception = new InvalidOperationException("Save failed");
+        _fileService.SaveFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(Task.FromException(exception));
+
+        // Act
+        await _sut.ExportMapCommand.ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            exception,
+            Arg.Any<Func<object, Exception?, string>>());
+    }
 }
