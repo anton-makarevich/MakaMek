@@ -146,4 +146,18 @@ public class RiverPathGeneratorTests
         var ex = Should.Throw<ArgumentOutOfRangeException>(() => generator.GenerateRivers(-1));
         ex.ParamName.ShouldBe("riverCount");
     }
+
+    [Fact]
+    public void Constructor_WidthLessThan1_ThrowsArgumentOutOfRangeException()
+    {
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => new RiverPathGenerator(0, Height));
+        ex.ParamName.ShouldBe("width");
+    }
+
+    [Fact]
+    public void Constructor_HeightLessThan1_ThrowsArgumentOutOfRangeException()
+    {
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => new RiverPathGenerator(Width, 0));
+        ex.ParamName.ShouldBe("height");
+    }
 }

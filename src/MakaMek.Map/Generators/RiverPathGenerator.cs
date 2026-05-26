@@ -57,13 +57,12 @@ public class RiverPathGenerator
         while (true)
         {
             var roll = _random.NextDouble();
-            HexDirection nextDir;
-            if (roll < 0.5)
-                nextDir = currentDir;
-            else if (roll < 0.75)
-                nextDir = currentDir.Rotate(1);
-            else
-                nextDir = currentDir.Rotate(-1);
+            var nextDir = roll switch
+            {
+                < 0.5 => currentDir,
+                < 0.75 => currentDir.Rotate(1),
+                _ => currentDir.Rotate(-1)
+            };
 
             var nextHex = currentPos.GetNeighbour(nextDir);
 
@@ -75,6 +74,9 @@ public class RiverPathGenerator
                 break;
 
             if (existingRivers.ContainsKey(nextHex))
+                break;
+
+            if (river.Contains(nextHex))
                 break;
 
             river.Add(nextHex);
