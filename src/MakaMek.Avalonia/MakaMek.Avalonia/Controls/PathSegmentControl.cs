@@ -16,6 +16,10 @@ public class PathSegmentControl : Panel
     private const double ArcSize = 20;
     private const double EventMarkerRadius = 4;
     private const double EventMarkerSpacing = 12;
+    private const double ChevronWidth = 10;
+    private const double ChevronHeight = 6;
+    private const double ChevronSpacing = 8;
+    private const double ChevronBaseOffset = 24;
 
     public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
@@ -35,7 +39,8 @@ public class PathSegmentControl : Panel
         Children.Add(path);
 
         AddEventMarkers(color);
-        
+        AddElevationIndicators(color);
+
         SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPixelExtensions.HexWidth*0.5);
         SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPixelExtensions.HexHeight*0.5);
     }
@@ -60,6 +65,70 @@ public class PathSegmentControl : Panel
             StrokeThickness = 2,
             Data = geometries
         });
+    }
+
+    private void AddElevationIndicators(Color color)
+    {
+        if (_segment.ElevationChange == 0) return;
+
+        var isUp = _segment.ElevationChange > 0;
+        var count = Math.Abs(_segment.ElevationChange);
+        var geometries = new GeometryGroup();
+
+        for (var i = 0; i < count; i++)
+        {
+            var cy = _segment.EndY - ChevronBaseOffset - i * ChevronSpacing;
+            var cx = _segment.EndX + ChevronBaseOffset - ChevronSpacing;
+            geometries.Children.Add(GetElevationIndicatorGeometry(isUp, cx, cy));
+        }
+
+        Children.Add(new Path
+        {
+            Stroke = new SolidColorBrush(color),
+            StrokeThickness = 2,
+            Data = geometries
+        });
+    }
+
+    private static Geometry GetElevationIndicatorGeometry(bool isUp, double cx, double cy)
+    {
+        const double halfW = ChevronWidth / 2;
+        if (isUp)
+        {
+            return new GeometryGroup
+            {
+                Children =
+                {
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx, cy - ChevronHeight / 2),
+                        EndPoint = new Point(cx - halfW, cy + ChevronHeight / 2)
+                    },
+                    new LineGeometry
+                    {
+                        StartPoint = new Point(cx, cy - ChevronHeight / 2),
+                        EndPoint = new Point(cx + halfW, cy + ChevronHeight / 2)
+                    }
+                }
+            };
+        }
+
+        return new GeometryGroup
+        {
+            Children =
+            {
+                new LineGeometry
+                {
+                    StartPoint = new Point(cx - halfW, cy - ChevronHeight / 2),
+                    EndPoint = new Point(cx, cy + ChevronHeight / 2)
+                },
+                new LineGeometry
+                {
+                    StartPoint = new Point(cx + halfW, cy - ChevronHeight / 2),
+                    EndPoint = new Point(cx, cy + ChevronHeight / 2)
+                }
+            }
+        };
     }
 
     private static Geometry GetEventGeometry(SegmentEventType eventType, double cx, double cy)
