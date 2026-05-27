@@ -190,7 +190,7 @@ public class WeaponSelectionViewModel : BindableBase
     }
 
     // Additional properties for UI display
-    public string Name => Weapon.Name;
+    public string Name => $"{Weapon.Name} ({Location})";
     public string RangeInfo =>Weapon.Range!=null 
         ? $"{Weapon.Range.LongRange}"
         : "-";

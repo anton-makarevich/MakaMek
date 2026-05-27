@@ -99,10 +99,6 @@
                                         Orientation="Horizontal"
                                         Spacing="5">
                                     <StackPanel Orientation="Horizontal" Spacing="2">
-                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf124;"/>
-                                        <TextBlock Text="{Binding Location}"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="2">
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
                                         <TextBlock Text="{Binding Damage}"/>
                                     </StackPanel>
