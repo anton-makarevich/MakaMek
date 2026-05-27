@@ -190,9 +190,13 @@ public class WeaponSelectionViewModel : BindableBase
     }
 
     // Additional properties for UI display
-    public string Name => Weapon.Name;
+    public string Name => $"{Weapon.Name} ({Location})";
     public string RangeInfo =>Weapon.Range!=null 
         ? $"{Weapon.Range.LongRange}"
+        : "-";
+
+    public string Location => Weapon.FirstMountPartLocation != null
+        ? _localizationService.GetString($"MechPart_{Weapon.FirstMountPartLocation}_Short")
         : "-";
 
     public string Damage => $"{Weapon.Damage}";

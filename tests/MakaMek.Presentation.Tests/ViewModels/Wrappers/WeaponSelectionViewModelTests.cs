@@ -86,13 +86,13 @@ public class WeaponSelectionViewModelTests
     }
 
     [Fact]
-    public void Name_ReturnsWeaponName()
+    public void Name_ReturnsWeaponName_IncludingLocation()
     {
         // Arrange
         CreateSut();
 
         // Act & Assert
-        _sut.Name.ShouldBe("Medium Laser");
+        _sut.Name.ShouldBe("Medium Laser (LA)");
     }
 
     [Fact]
@@ -103,6 +103,16 @@ public class WeaponSelectionViewModelTests
 
         // Act & Assert
         _sut.RangeInfo.ShouldBe("9");
+    }
+
+    [Fact]
+    public void Location_ReturnsCorrectFormat()
+    {
+        // Arrange
+        CreateSut();
+        
+        // Act & Assert
+        _sut.Location.ShouldBe("LA");
     }
 
     [Fact]
