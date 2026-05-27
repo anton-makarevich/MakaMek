@@ -19,7 +19,7 @@ public class PathSegmentControl : Panel
     private const double ChevronWidth = 10;
     private const double ChevronHeight = 6;
     private const double ChevronSpacing = 8;
-    private const double ChevronBaseOffset = -24;
+    private const double ChevronBaseOffset = 24;
 
     public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
@@ -77,8 +77,9 @@ public class PathSegmentControl : Panel
 
         for (var i = 0; i < count; i++)
         {
-            var cy = _segment.EndY + ChevronBaseOffset - i * ChevronSpacing;
-            geometries.Children.Add(GetChevronGeometry(_segment.EndX, cy, isUp));
+            var cy = _segment.EndY - ChevronBaseOffset - i * ChevronSpacing;
+            var cx = _segment.EndX + ChevronBaseOffset - ChevronSpacing;
+            geometries.Children.Add(GetElevationIndicatorGeometry(isUp, cx, cy));
         }
 
         Children.Add(new Path
@@ -89,9 +90,9 @@ public class PathSegmentControl : Panel
         });
     }
 
-    private static Geometry GetChevronGeometry(double cx, double cy, bool isUp)
+    private static Geometry GetElevationIndicatorGeometry(bool isUp, double cx, double cy)
     {
-        var halfW = ChevronWidth / 2;
+        const double halfW = ChevronWidth / 2;
         if (isUp)
         {
             return new GeometryGroup
