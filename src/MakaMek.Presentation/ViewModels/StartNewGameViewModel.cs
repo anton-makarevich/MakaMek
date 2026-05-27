@@ -188,6 +188,17 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public bool CanStartLanServer => _gameManager.CanStartLanServer;
 
+    public bool IsNetworkSectionExpanded
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public void ToggleNetworkSection()
+    {
+        IsNetworkSectionExpanded = !IsNetworkSectionExpanded;
+    }
+
     public ICommand StartGameCommand => new AsyncCommand(async () =>
     {
         if (MapConfig.Map == null) return;
