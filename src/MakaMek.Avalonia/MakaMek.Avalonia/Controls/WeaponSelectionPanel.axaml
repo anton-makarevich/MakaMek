@@ -93,11 +93,15 @@
                                 
                                 <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Name}"
                                           FontWeight="Bold"/>
-                                <StackPanel
-                                    Grid.Column="2"
-                                    Grid.Row="1"
-                                    Orientation="Horizontal"
-                                    Spacing="5">
+                                    <StackPanel
+                                        Grid.Column="2"
+                                        Grid.Row="1"
+                                        Orientation="Horizontal"
+                                        Spacing="5">
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf124;"/>
+                                        <TextBlock Text="{Binding Location}"/>
+                                    </StackPanel>
                                     <StackPanel Orientation="Horizontal" Spacing="2">
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
                                         <TextBlock Text="{Binding Damage}"/>

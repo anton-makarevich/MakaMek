@@ -195,6 +195,10 @@ public class WeaponSelectionViewModel : BindableBase
         ? $"{Weapon.Range.LongRange}"
         : "-";
 
+    public string Location => Weapon.FirstMountPartLocation != null
+        ? _localizationService.GetString($"MechPart_{Weapon.FirstMountPartLocation}_Short")
+        : "-";
+
     public string Damage => $"{Weapon.Damage}";
     public string Heat => $"{Weapon.Heat}";
 
