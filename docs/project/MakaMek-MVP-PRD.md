@@ -1,4 +1,4 @@
-﻿# MakaMek MVP Product Requirements Document
+# MakaMek MVP Product Requirements Document
 
 ## Executive Summary
 
@@ -164,8 +164,8 @@ MakaMek is a cross-platform implementation of the classic BattleTech tabletop ga
 
 ### Heat System
 - [x] **Heat tracking:** Accurate accumulation from movement/weapons
-- [ ] **Performance effects:** Movement/accuracy penalties at thresholds
-- [ ] **Shutdown mechanics:** Automatic attempts at heat levels
+- [x] **Performance effects:** Movement/accuracy penalties at thresholds
+- [x] **Shutdown mechanics:** Automatic attempts at heat levels
 - [x] **Critical effects:** Ammunition/life support interactions
 
 ## Priority Matrix

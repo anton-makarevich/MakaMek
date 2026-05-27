@@ -1,4 +1,4 @@
-﻿# Bot TurnState Caching Architecture Analysis
+# Bot TurnState Caching Architecture Analysis
 
 ## 1. Executive Summary
 
@@ -194,11 +194,11 @@ public ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargets(
 
 ## 8. Implementation Plan Checklist
 
-1. [ ] Create `TurnState` class (+ `ITurnState` to simplify mocking in unit tests) and `TargetEvaluationKey` struct.
-2. [ ] Update [IBotDecisionEngine](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/IBotDecisionEngine.cs#8-17) signature.
-3. [ ] Update [Bot](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/Bot.cs#13-132) to manage `TurnState` lifecycle.
-4. [ ] Refactor `MakaMek.Bots` project to update all [MakeDecision](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/WeaponsEngine.cs#31-138) implementations.
-5. [ ] Update `ITacticalEvaluator` and [TacticalEvaluator](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/TacticalEvaluator.cs#20-24) to accept `TurnState`.
-6. [ ] Implement caching logic in [TacticalEvaluator](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/TacticalEvaluator.cs#20-24) (extracting single-target eval logic).
-7. [ ] Update tests to cover caching scenarios.
+1. [x] Create `TurnState` class (+ `ITurnState` to simplify mocking in unit tests) and `TargetEvaluationKey` struct.
+2. [x] Update [IBotDecisionEngine](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/IBotDecisionEngine.cs#8-17) signature.
+3. [x] Update [Bot](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/Bot.cs#13-132) to manage `TurnState` lifecycle.
+4. [x] Refactor `MakaMek.Bots` project to update all [MakeDecision](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/WeaponsEngine.cs#31-138) implementations.
+5. [x] Update `ITacticalEvaluator` and [TacticalEvaluator](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/TacticalEvaluator.cs#20-24) to accept `TurnState`.
+6. [x] Implement caching logic in [TacticalEvaluator](file:///c:/Users/anton/myrepos/MakaMek/src/MakaMek.Bots/Models/DecisionEngines/TacticalEvaluator.cs#20-24) (extracting single-target eval logic).
+7. [x] Update tests to cover caching scenarios.
 
