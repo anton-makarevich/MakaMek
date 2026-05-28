@@ -54,7 +54,7 @@
                 Classes="cornerBadge"
                 HorizontalAlignment="Left"
                 Margin="-2,-2,0,0">
-                <TextBlock Text="&#xf141;"/>
+                <PathIcon Data="{StaticResource RecordSheetIcon}"/>
             </Button>
 
             <!-- Remove Button in Top Right Corner -->
