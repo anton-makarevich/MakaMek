@@ -163,7 +163,7 @@ public class PlayerViewModel : BindableBase
         if (unitId == Guid.Empty) return;
 
         var unit = Units.FirstOrDefault(u => u.Id == unitId);
-        if (unit == null) return;
+        if (unit == default) return;
 
         var pilotData = GetPilotDataForUnit(unitId);
         if (_showUnitInfo != null)
