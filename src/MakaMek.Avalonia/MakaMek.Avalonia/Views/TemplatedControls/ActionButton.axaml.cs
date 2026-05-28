@@ -1,14 +1,15 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace Sanet.MakaMek.Avalonia.Views.TemplatedControls;
 
 public class ActionButton : Button
 {
-    public static readonly StyledProperty<string> IconDataProperty = AvaloniaProperty.Register<ActionButton, string>(
+    public static readonly StyledProperty<Geometry?> IconDataProperty = AvaloniaProperty.Register<ActionButton, Geometry?>(
         nameof(IconData));
 
-    public string IconData
+    public Geometry? IconData
     {
         get => GetValue(IconDataProperty);
         set => SetValue(IconDataProperty, value);

@@ -2,6 +2,7 @@
 using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.Media;
 
 namespace Sanet.MakaMek.Avalonia.Views.TemplatedControls;
 
@@ -10,7 +11,7 @@ public class ToolBar : TemplatedControl
     public static readonly StyledProperty<ICommand> LeftCommandProperty =
         AvaloniaProperty.Register<ToolBar, ICommand>(nameof(LeftCommand));
 
-    public static readonly StyledProperty<string> LeftIconProperty = AvaloniaProperty.Register<ToolBar, string>(
+    public static readonly StyledProperty<Geometry?> LeftIconProperty = AvaloniaProperty.Register<ToolBar, Geometry?>(
         nameof(LeftIcon));
 
     public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<ToolBar, string>(
@@ -19,7 +20,7 @@ public class ToolBar : TemplatedControl
     public static readonly StyledProperty<ICommand> RightCommandProperty = AvaloniaProperty.Register<ToolBar, ICommand>(
         nameof(RightCommand));
 
-    public static readonly StyledProperty<string> RightIconProperty = AvaloniaProperty.Register<ToolBar, string>(
+    public static readonly StyledProperty<Geometry?> RightIconProperty = AvaloniaProperty.Register<ToolBar, Geometry?>(
         nameof(RightIcon));
 
     public static readonly StyledProperty<HorizontalAlignment> TitleAlignmentProperty =
@@ -36,14 +37,14 @@ public class ToolBar : TemplatedControl
     {
         LeftIconProperty.Changed.AddClassHandler<ToolBar>((x, e) =>
         {
-            var oldVal = !string.IsNullOrEmpty((string?)e.OldValue);
-            var newVal = !string.IsNullOrEmpty((string?)e.NewValue);
+            var oldVal = e.OldValue is not null;
+            var newVal = e.NewValue is not null;
             x.RaisePropertyChanged(HasLeftButtonProperty, oldVal, newVal);
         });
         RightIconProperty.Changed.AddClassHandler<ToolBar>((x, e) =>
         {
-            var oldVal = !string.IsNullOrEmpty((string?)e.OldValue);
-            var newVal = !string.IsNullOrEmpty((string?)e.NewValue);
+            var oldVal = e.OldValue is not null;
+            var newVal = e.NewValue is not null;
             x.RaisePropertyChanged(HasRightButtonProperty, oldVal, newVal);
         });
     }
@@ -54,7 +55,7 @@ public class ToolBar : TemplatedControl
         set => SetValue(TitleAlignmentProperty, value);
     }
 
-    public string RightIcon
+    public Geometry? RightIcon
     {
         get => GetValue(RightIconProperty);
         set => SetValue(RightIconProperty, value);
@@ -72,7 +73,7 @@ public class ToolBar : TemplatedControl
         set => SetValue(TitleProperty, value);
     }
 
-    public string LeftIcon
+    public Geometry? LeftIcon
     {
         get => GetValue(LeftIconProperty);
         set => SetValue(LeftIconProperty, value);
@@ -84,6 +85,6 @@ public class ToolBar : TemplatedControl
         set => SetValue(LeftCommandProperty, value);
     }
 
-    public bool HasLeftButton => !string.IsNullOrEmpty(LeftIcon);
-    public bool HasRightButton => !string.IsNullOrEmpty(RightIcon);
+    public bool HasLeftButton => LeftIcon is not null;
+    public bool HasRightButton => RightIcon is not null;
 }

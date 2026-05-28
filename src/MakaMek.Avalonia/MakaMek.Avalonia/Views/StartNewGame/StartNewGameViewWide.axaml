@@ -39,7 +39,23 @@
                 <ScrollViewer Grid.Row="1" >
                     <fragments:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
-                <fragments:NetworkFragment Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
+                <StackPanel Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10">
+                    <Grid>
+                        <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Button Command="{Binding ToggleNetworkSection}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Cursor="Hand">
+                            <Grid>
+                                <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
+                                <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
+                            </Grid>
+                        </Button>
+                    </Grid>
+                    <fragments:NetworkFragment IsVisible="{Binding IsNetworkSectionExpanded}"/>
+                </StackPanel>
             </Grid>
         </UniformGrid>
         <Button Grid.Row="2"
