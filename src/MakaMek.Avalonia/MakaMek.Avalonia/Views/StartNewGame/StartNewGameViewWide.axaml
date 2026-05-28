@@ -49,8 +49,8 @@
                                 VerticalAlignment="Center"
                                 Cursor="Hand">
                             <Grid>
-                                <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
-                                <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
+                                <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
+                                <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
                             </Grid>
                         </Button>
                     </Grid>

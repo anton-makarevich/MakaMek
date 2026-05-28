@@ -9,8 +9,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.NetworkFragment">
     
     <StackPanel Classes="verticalSpaced">
-        <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center"/>
-
         <StackPanel Classes="formGroup">
             <TextBlock Text="{extensions:Localize 'Network_Multiplayer'}" Classes="label"/>
         </StackPanel>
