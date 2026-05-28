@@ -324,6 +324,7 @@ public abstract class NewGameViewModel : BaseViewModel
 
         // Create a new ViewModel instance for the dialog
         var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits, _mechFactory);
+        tableViewModel.SetNavigationService(NavigationService);
 
         // Show the dialog and wait for a result
         var result = await NavigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(tableViewModel);
