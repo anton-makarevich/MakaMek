@@ -146,5 +146,28 @@
     <Style Selector="Button.cardAction:pointerover">
         <Setter Property="Opacity" Value="0.7"/>
     </Style>
+
+    <!-- Corner Badge Button (24x24 icon badge for card corners) -->
+    <Style Selector="Button.cornerBadge">
+        <Setter Property="Width" Value="24"/>
+        <Setter Property="Height" Value="24"/>
+        <Setter Property="Padding" Value="2"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource AwesomeFontSolid}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="Button.cornerBadge:pointerover">
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
+    </Style>
+
+    <Style Selector="Button.cornerBadge:pressed">
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
+        <Setter Property="Opacity" Value="0.8"/>
+    </Style>
 </Styles>
 
