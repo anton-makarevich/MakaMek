@@ -156,7 +156,6 @@
         <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="FontFamily" Value="{StaticResource AwesomeFontSolid}"/>
-        <Setter Property="FontSize" Value="10"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
@@ -168,6 +167,14 @@
     <Style Selector="Button.cornerBadge:pressed">
         <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
+    </Style>
+
+    <!-- Inline Icon Button (small FontAwesome icon inline with text labels) -->
+    <Style Selector="Button.inlineIcon">
+        <Setter Property="Padding" Value="5,2"/>
+        <Setter Property="FontFamily" Value="{StaticResource AwesomeFontSolid}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 </Styles>
 
