@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+             x:Class="Sanet.MakaMek.Avalonia.Views.UnitInfoView"
+             x:DataType="viewModels:UnitInfoViewModel">
+    <templatedControls:GamePanel
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Title="{Binding Unit.Name}"
+        CloseCommand="{Binding CloseCommand}">
+        <TabControl>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+                </TabItem.Header>
+                <StackPanel Margin="10">
+                    <controls:UnitBasicInfoPanel DataContext="{Binding Unit}" />
+                    <controls:UnitMovementInfoPanel DataContext="{Binding Unit}" />
+                </StackPanel>
+            </TabItem>
+            <TabItem IsVisible="{Binding HasPilot}">
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+                </TabItem.Header>
+                <controls:UnitPilotInfoPanel DataContext="{Binding Unit.Pilot}" />
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+                </TabItem.Header>
+                <controls:UnitHealthIndicator Unit="{Binding Unit}"/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                </TabItem.Header>
+                <controls:UnitWeaponsPanel Unit="{Binding Unit}"/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+                </TabItem.Header>
+                <controls:UnitComponentsPanel Unit="{Binding Unit}" />
+            </TabItem>
+        </TabControl>
+    </templatedControls:GamePanel>
+</UserControl>

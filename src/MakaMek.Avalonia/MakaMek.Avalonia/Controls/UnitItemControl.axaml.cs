@@ -26,8 +26,26 @@ public partial class UnitItemControl : UserControl
     public static readonly StyledProperty<bool> IsRemoveButtonVisibleProperty =
         AvaloniaProperty.Register<UnitItemControl, bool>(nameof(IsRemoveButtonVisible), defaultValue: false);
 
+    public static readonly StyledProperty<ICommand?> InfoCommandProperty =
+        AvaloniaProperty.Register<UnitItemControl, ICommand?>(nameof(InfoCommand));
+
+    public static readonly StyledProperty<object?> InfoCommandParameterProperty =
+        AvaloniaProperty.Register<UnitItemControl, object?>(nameof(InfoCommandParameter));
+
     public static readonly StyledProperty<string?> PlayerTintProperty =
         AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
+
+    public ICommand? InfoCommand
+    {
+        get => GetValue(InfoCommandProperty);
+        set => SetValue(InfoCommandProperty, value);
+    }
+
+    public object? InfoCommandParameter
+    {
+        get => GetValue(InfoCommandParameterProperty);
+        set => SetValue(InfoCommandParameterProperty, value);
+    }
 
     public ICommand? RemoveCommand
     {

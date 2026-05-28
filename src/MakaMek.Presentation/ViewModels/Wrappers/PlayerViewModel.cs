@@ -14,6 +14,7 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Func<PlayerViewModel, Task>? _showAvailableUnits;
+    private readonly Func<UnitData, PilotData?, Task>? _showUnitInfo;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
@@ -74,6 +75,7 @@ public class PlayerViewModel : BindableBase
     }
 
     public ICommand ShowAvailableUnitsCommand { get; }
+    public ICommand ShowUnitInfoCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
     public ICommand RemoveUnitCommand { get; }
@@ -88,6 +90,7 @@ public class PlayerViewModel : BindableBase
         Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
         Func<PlayerViewModel, Task>? showAvailableUnits = null,
+        Func<UnitData, PilotData?, Task>? showUnitInfo = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null,
         bool isDefaultPlayer = false,
@@ -101,6 +104,7 @@ public class PlayerViewModel : BindableBase
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
         _showAvailableUnits = showAvailableUnits;
+        _showUnitInfo = showUnitInfo;
         _onUnitChanged = onUnitChanged;
         _onPlayerNameChanged = onPlayerNameChanged;
 
@@ -109,6 +113,7 @@ public class PlayerViewModel : BindableBase
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
         ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
+        ShowUnitInfoCommand = new AsyncCommand<Guid>(ExecuteShowUnitInfo);
         RemoveUnitCommand = new AsyncCommand<Guid>(ExecuteRemoveUnit);
     }
     
@@ -150,6 +155,20 @@ public class PlayerViewModel : BindableBase
         if (_showAvailableUnits != null)
         {
             await _showAvailableUnits.Invoke(this);
+        }
+    }
+
+    private async Task ExecuteShowUnitInfo(Guid unitId)
+    {
+        if (unitId == Guid.Empty) return;
+
+        var unit = Units.FirstOrDefault(u => u.Id == unitId);
+        if (unit == null) return;
+
+        var pilotData = GetPilotDataForUnit(unitId);
+        if (_showUnitInfo != null)
+        {
+            await _showUnitInfo.Invoke(unit, pilotData);
         }
     }
 

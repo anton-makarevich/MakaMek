@@ -332,6 +332,8 @@ public class FakeLocalizationService : ILocalizationService
         ["WeaponSelection_SetPrimary"] = "Set Primary",
         ["WeaponSelection_AimedShot"] = "Aimed Shot",
         ["UnitItem_RemoveUnit"] = "Remove unit",
+        ["UnitItem_Info"] = "Unit Info",
+        ["AvailableUnits_UnitInfo"] = "Unit Info",
         ["AboutView_Title"] = "About MakaMek",
         ["AboutView_AboutTheGame"] = "About the Game",
         ["AboutView_VisitGitHub"] = "Visit GitHub Repository",

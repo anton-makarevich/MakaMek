@@ -323,7 +323,7 @@ public abstract class NewGameViewModel : BaseViewModel
         if (!playerVm.CanAddUnit) return;
 
         // Create a new ViewModel instance for the dialog
-        var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits);
+        var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits, _mechFactory);
 
         // Show the dialog and wait for a result
         var result = await NavigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(tableViewModel);
@@ -333,5 +333,11 @@ public abstract class NewGameViewModel : BaseViewModel
         {
             await playerVm.AddUnit(result.SelectedUnit.Value);
         }
+    }
+
+    protected async Task ShowUnitInfo(UnitData unitData, PilotData? pilotData)
+    {
+        var infoViewModel = new UnitInfoViewModel(unitData, pilotData, _mechFactory);
+        await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, object?>(infoViewModel);
     }
 }

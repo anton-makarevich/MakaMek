@@ -46,6 +46,25 @@
                            HorizontalAlignment="Center"/>
             </StackPanel>
 
+            <!-- Info Button in Top Left Corner -->
+            <Button
+                Command="{Binding #UnitItemUserControl.InfoCommand}"
+                CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
+                ToolTip.Tip="{extensions:Localize 'UnitItem_Info'}"
+                Classes="icon"
+                Width="24"
+                Height="24"
+                Padding="2"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="-2,-2,0,0"
+                Background="{StaticResource SecondaryBrush}">
+                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}"
+                           Text="&#xf141;"
+                           FontSize="10"
+                           Foreground="{StaticResource HighlightLightBrush}"/>
+            </Button>
+
             <!-- Remove Button in Top Right Corner -->
             <Button
                 Command="{Binding #UnitItemUserControl.RemoveCommand}"
