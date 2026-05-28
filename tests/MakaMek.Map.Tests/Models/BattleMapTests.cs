@@ -2305,9 +2305,12 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
         var reachable = sut.GetReachableHexes(start, 3).ToList();
+        var reachableWithLessMp = sut.GetReachableHexes(start, 2).ToList();
 
         reachable.Count.ShouldBe(2);
         reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachableWithLessMp.ShouldNotContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachable.First(r => r.coordinates == new HexCoordinates(2, 1)).cost.ShouldBe(3);
     }
 
     [Fact]
