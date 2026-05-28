@@ -39,21 +39,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     }
 
     /// <summary>
-    /// Gets the level difference between two hexes by their coordinates
-    /// </summary>
-    /// <param name="firstHex">The first hex coordinates</param>
-    /// <param name="secondHex">The second hex coordinates</param>
-    /// <returns>The difference in levels (firstHex.Level - secondHex.Level)</returns>
-    /// <exception cref="ArgumentException">Thrown if either hex is not found on the map</exception>
-    public int GetLevelDifference(HexCoordinates firstHex, HexCoordinates secondHex)
-    {
-        var firstHexObj = GetHex(firstHex) ?? throw new ArgumentException($"Hex not found at coordinates {firstHex}", nameof(firstHex));
-        var secondHexObj = GetHex(secondHex) ?? throw new ArgumentException($"Hex not found at coordinates {secondHex}", nameof(secondHex));
-        
-        return firstHexObj.GetLevelDifference(secondHexObj);
-    }
-
-    /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
     public MovementPath? FindPath(HexPosition start,
@@ -120,10 +105,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                var levelCost = Math.Abs(fromHex.GetLevelDifference(hex));
-                segmentCost = hex.MovementCost + levelCost;
-
                 elevationChange = fromHex.GetElevationChangeTo(hex);
+                var levelCost = Math.Abs(elevationChange);
+                segmentCost = hex.MovementCost + levelCost;
             }
 
             segments.Add(new PathSegment(from, to, segmentCost, ElevationChange: elevationChange));
@@ -188,6 +172,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (hex == null || prohibitedHexes.Contains(nextCoord))
                     continue;
 
+                var currentHex = GetHex(current.Coordinates);
+                if (currentHex == null) continue;
+
                 // Get required facing for movement
                 var requiredFacing = current.Coordinates.GetDirectionToNeighbour(nextCoord);
 
@@ -202,7 +189,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 newPath.Add(nextPos);
 
                 // Calculate level change cost and validate max level change
-                var levelCost =  Math.Abs(GetLevelDifference(current.Coordinates, nextCoord));
+                var levelCost =  Math.Abs(currentHex.GetElevationChangeTo(hex));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -314,6 +301,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (hex == null || prohibitedHexes.Contains(nextCoord))
                     continue;
 
+                var currentHex = GetHex(current.Coordinates);
+                if (currentHex == null) continue;
+
                 // Get required facing for movement
                 var requiredFacing = current.Coordinates.GetDirectionToNeighbour(nextCoord);
 
@@ -328,7 +318,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 newPath.Add(nextPos);
 
                 // Calculate level change cost and validate max level change
-                var levelCost = Math.Abs(GetLevelDifference(current.Coordinates, nextCoord));
+                var levelCost = Math.Abs(currentHex.GetElevationChangeTo(hex));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -410,6 +400,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (neighborHex == null || prohibitedHexes.Contains(neighborCoord))
                     continue;
 
+                var currentHex = GetHex(current.Coordinates);
+                if (currentHex == null) continue;
+
                 // Get the required facing to move to this hex
                 var requiredFacing = current.Coordinates.GetDirectionToNeighbour(neighborCoord);
                 
@@ -417,7 +410,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var turningCost = current.GetTurningCost(requiredFacing);
                 
                 // Calculate level change cost and validate max level change
-                var levelCost = Math.Abs(GetLevelDifference(current.Coordinates, neighborCoord));
+                var levelCost = Math.Abs(currentHex.GetElevationChangeTo(neighborHex));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)

@@ -1690,120 +1690,6 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void GetLevelDifference_WithValidHexes_ReturnsCorrectDifference()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex1 = new Hex(new HexCoordinates(1, 1), 5);
-        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
-        sut.AddHex(hex1);
-        sut.AddHex(hex2);
-
-        // Act
-        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
-
-        // Assert
-        difference.ShouldBe(2); // 5 - 3 = 2
-    }
-
-    [Fact]
-    public void GetLevelDifference_WithNegativeDifference_ReturnsCorrectValue()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex1 = new Hex(new HexCoordinates(1, 1), 2);
-        var hex2 = new Hex(new HexCoordinates(2, 2), 6);
-        sut.AddHex(hex1);
-        sut.AddHex(hex2);
-
-        // Act
-        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
-
-        // Assert
-        difference.ShouldBe(-4); // 2 - 6 = -4
-    }
-
-    [Fact]
-    public void GetLevelDifference_WithSameHex_ReturnsZero()
-    {
-        // Arrange
-        var sut = new BattleMap(1, 1);
-        var hex = new Hex(new HexCoordinates(1, 1), 4);
-        sut.AddHex(hex);
-
-        // Act
-        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(1, 1));
-
-        // Assert
-        difference.ShouldBe(0); // 4 - 4 = 0
-    }
-
-    [Fact]
-    public void GetLevelDifference_WithNonExistentFirstHex_ThrowsArgumentException()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
-        sut.AddHex(hex2);
-
-        // Act & Assert
-        var exception = Should.Throw<ArgumentException>(() => 
-            sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2)));
-        exception.Message.ShouldContain("Hex not found at coordinates");
-        exception.ParamName.ShouldBe("firstHex");
-    }
-
-    [Fact]
-    public void GetLevelDifference_WithNonExistentSecondHex_ThrowsArgumentException()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex1 = new Hex(new HexCoordinates(1, 1), 5);
-        sut.AddHex(hex1);
-
-        // Act & Assert
-        var exception = Should.Throw<ArgumentException>(() => 
-            sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2)));
-        exception.Message.ShouldContain("Hex not found at coordinates");
-        exception.ParamName.ShouldBe("secondHex");
-    }
-
-    [Fact]
-    public void GetLevelDifference_IsConsistentWithDirectHexMethod()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex1 = new Hex(new HexCoordinates(1, 1), 7);
-        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
-        sut.AddHex(hex1);
-        sut.AddHex(hex2);
-
-        // Act
-        var battleMapDifference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
-        var directDifference = hex1.GetLevelDifference(hex2);
-
-        // Assert
-        battleMapDifference.ShouldBe(directDifference);
-    }
-
-    [Fact]
-    public void GetLevelDifference_WorksWithNegativeLevels()
-    {
-        // Arrange
-        var sut = new BattleMap(2, 2);
-        var hex1 = new Hex(new HexCoordinates(1, 1), -2);
-        var hex2 = new Hex(new HexCoordinates(2, 2), -5);
-        sut.AddHex(hex1);
-        sut.AddHex(hex2);
-
-        // Act
-        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
-
-        // Assert
-        difference.ShouldBe(3); // -2 - (-5) = 3
-    }
-    
-    [Fact]
     public void GetHexEdges_ReturnsSixEdges()
     {
         // Arrange
@@ -2278,5 +2164,227 @@ public class BattleMapTests
         // Assert
         path.ShouldNotBeNull();
         path.Segments[0].ElevationChange.ShouldBe(0);
+    }
+
+    [Fact]
+    public void FindPath_WaterDepth0ToDepth1_AddsLevelChangeCost()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(3);
+    }
+
+    [Fact]
+    public void FindPath_WaterDepth1ToDepth1_SameBedLevel_NoLevelChangeCost()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(2);
+    }
+
+    [Fact]
+    public void FindPath_LandToDepth2Water_AddsLevelChangeCost()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 1);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(7);
+    }
+
+    [Fact]
+    public void FindPath_ThroughMixedWaterDepth_AccumulatesCorrectCost()
+    {
+        var sut = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0);
+        hex3.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+
+        path.ShouldNotBeNull();
+        var movementSegments = path.Segments
+            .Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        movementSegments.Count.ShouldBe(2);
+        movementSegments[0].Cost.ShouldBe(3);
+        movementSegments[1].Cost.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetReachableHexes_WaterDepthChange_ExceedsMovementBudget()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 2).ToList();
+
+        reachable.Count.ShouldBe(1);
+        reachable[0].coordinates.ShouldBe(new HexCoordinates(1, 1));
+    }
+
+    [Fact]
+    public void GetReachableHexes_WaterDepthChange_WithSufficientMP_ReachesWaterHex()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 3).ToList();
+
+        reachable.Count.ShouldBe(2);
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+    }
+
+    [Fact]
+    public void GetReachableHexes_SameWaterDepth_DifferentSurfaceLevels_EvaluatesBedLevel()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 1);
+        hex1.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 3).ToList();
+
+        reachable.Count.ShouldBe(2);
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+    }
+
+    [Fact]
+    public void FindPath_MaxLevelChange2_BlocksDepth3WaterEntry()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-3));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_MaxLevelChange2_AllowsDepth2WaterEntry()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(6);
+    }
+
+    [Fact]
+    public void FindPath_MaxLevelChange0_BlocksWaterDepthChange()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 0);
+
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_DifferentSurfaceLevels_SameBedLevel_AllowsMove()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 2);
+        hex1.AddTerrain(new WaterTerrain(-1));
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new WaterTerrain(0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(1);
     }
 }
