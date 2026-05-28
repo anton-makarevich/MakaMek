@@ -59,42 +59,38 @@
                                             IsVisible="{Binding !IsEditingName}"
                                             IsEnabled="{Binding CanEditName}"
                                             ToolTip.Tip="{extensions:Localize 'Players_EditName'}"
-                                            Classes="secondary"
-                                            Padding="5,2">
-                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf304;"/>
+                                            Classes="secondary inlineIcon">
+                                        <TextBlock Text="&#xf304;"/>
                                     </Button>
                                     <Button Command="{Binding SaveName}"
                                             IsVisible="{Binding IsEditingName}"
                                             ToolTip.Tip="{extensions:Localize 'Players_SaveName'}"
-                                            Classes="primary"
-                                            Padding="5,2">
-                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00c;"/>
+                                            Classes="primary inlineIcon">
+                                        <TextBlock Text="&#xf00c;"/>
                                     </Button>
                                     <Button Command="{Binding CancelEditName}"
                                             IsVisible="{Binding IsEditingName}"
                                             ToolTip.Tip="{extensions:Localize 'Players_Cancel'}"
-                                            Classes="secondary"
-                                            Padding="5,2">
-                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00d;"/>
+                                            Classes="secondary inlineIcon">
+                                        <TextBlock Text="&#xf00d;"/>
                                     </Button>
                                 </StackPanel>
 
                                 <!-- Delete Player Button -->
-                                <Button Grid.Column="1"
+                                <Button Grid.Row="0" Grid.Column="1"
                                         Command="{Binding $parent[UserControl].((viewModels1:NewGameViewModel)DataContext).RemovePlayerCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsRemovable}"
                                         ToolTip.Tip="{extensions:Localize 'Players_RemovePlayer'}"
-                                        Classes="secondary"
-                                        Padding="5,2"
+                                        Classes="secondary inlineIcon"
                                         VerticalAlignment="Center">
-                                    <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf2ed;"/>
+                                    <TextBlock Text="&#xf2ed;"/>
                                 </Button>
                                 
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="5"
                                             Grid.Row="1"
-                                            Grid.ColumnSpan="2"
+                                            Grid.ColumnSpan="2" Grid.Column="0"
                                             IsVisible="{Binding IsBot}">
                                     <TextBlock Text="{extensions:Localize 'Players_Aggressiveness'}"
                                                VerticalAlignment="Center"
@@ -127,6 +123,8 @@
                                                     <controls:UnitItemControl
                                                         DataContext="{Binding}"
                                                         PlayerTint="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).Tint}"
+                                                        InfoCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).ShowUnitInfoCommand}"
+                                                        InfoCommandParameter="{Binding Id}"
                                                         RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
                                                         RemoveCommandParameter="{Binding Id}"
                                                         IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>

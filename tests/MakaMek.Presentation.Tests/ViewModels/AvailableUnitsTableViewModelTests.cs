@@ -1,13 +1,20 @@
 using AsyncAwaitBestPractices.MVVM;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
 public class AvailableUnitsTableViewModelTests
 {
+    private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     [Fact]
     public void Constructor_ShouldInitializeWithAllUnitsSortedByName_WhenShowAllClassesIsTrue()
     {
@@ -15,7 +22,7 @@ public class AvailableUnitsTableViewModelTests
         var units = CreateTestUnits();
 
         // Act
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Assert
         sut.WeightClassFilters.ShouldBe([
@@ -48,7 +55,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units)
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
         {
             // Act
             SelectedWeightClassFilterString = weightClass.ToString()
@@ -66,7 +73,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units)
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
         {
             SelectedWeightClassFilterString = nameof(WeightClass.Light)
         };
@@ -91,7 +98,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         var propertyChanged = false;
         var filteredUnitsChanged = false;
@@ -115,7 +122,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
         var unit = units.First();
         sut.CanAddUnit.ShouldBeFalse();
 
@@ -132,7 +139,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
         var unit = units.First();
         sut.SelectedUnit = unit; // First set to a unit
         sut.CanAddUnit.ShouldBeTrue();
@@ -150,7 +157,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
         var unit = units.First();
 
         var selectedUnitChanged = false;
@@ -175,7 +182,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act & Assert
         sut.CanAddUnit.ShouldBeFalse();
@@ -187,7 +194,7 @@ public class AvailableUnitsTableViewModelTests
         // Arrange
         var unit = MechFactoryTests.CreateDummyMechData() with { Mass = 20 }; // Light class unit
         var units = new List<UnitData> { unit };
-        var sut = new AvailableUnitsTableViewModel(units)
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
         {
             // Act - Set filter to Heavy class, but unit is Light class
             SelectedWeightClassFilterString = nameof(WeightClass.Heavy)
@@ -204,7 +211,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units)
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
         {
             // Act
             SelectedWeightClassFilterString = "InvalidClass"
@@ -219,7 +226,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - First click toggles to descending
         await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
@@ -244,7 +251,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - First click to descending, second click back to ascending
         await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
@@ -270,7 +277,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -295,7 +302,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - First click to ascending, second click to descending
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -321,7 +328,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - Sort by tonnage, then switch to name
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -347,7 +354,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - Sort by tonnage descending, then apply filter
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -390,7 +397,7 @@ public class AvailableUnitsTableViewModelTests
                 Mass = 100
             }
         };
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - Default is ascending by name
         var result = sut.FilteredAvailableUnits.ToList();
@@ -424,7 +431,7 @@ public class AvailableUnitsTableViewModelTests
                 Mass = 70
             }
         };
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act - Sort by tonnage
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -440,7 +447,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         var filteredUnitsChanged = false;
         var nameSortIndicatorChanged = false;
@@ -470,7 +477,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
         var unit = units.First();
         sut.SelectedUnit = unit;
 
@@ -488,7 +495,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var sut = new AvailableUnitsTableViewModel(units);
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         // Act
         var resultTask = sut.GetResultAsync();
@@ -499,6 +506,94 @@ public class AvailableUnitsTableViewModelTests
         result.SelectedUnit.ShouldBeNull();
     }
     
+    [Fact]
+    public void CanShowUnitInfo_ShouldBeFalse_WhenNoUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+
+        sut.CanShowUnitInfo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldBeTrue_WhenUnitIsSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+
+        sut.SelectedUnit = unit;
+
+        sut.CanShowUnitInfo.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldUpdateToFalse_WhenSelectionCleared()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        sut.SelectedUnit = units.First();
+        sut.CanShowUnitInfo.ShouldBeTrue();
+
+        sut.SelectedUnit = null;
+
+        sut.CanShowUnitInfo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldNotifyPropertyChanged_WhenUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+
+        var canShowUnitInfoChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(AvailableUnitsTableViewModel.CanShowUnitInfo))
+                canShowUnitInfoChanged = true;
+        };
+
+        sut.SelectedUnit = unit;
+
+        canShowUnitInfoChanged.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldNavigateToUnitInfoView_WhenUnitIsSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+        sut.SelectedUnit = unit;
+
+        var navigationService = Substitute.For<INavigationService>();
+        sut.SetNavigationService(navigationService);
+        var realMechFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var realUnit = realMechFactory.Create(unit);
+        _mechFactory.Create(Arg.Any<UnitData>()).Returns(realUnit);
+
+        await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
+
+        await navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldNotNavigate_WhenNoUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+
+        var navigationService = Substitute.For<INavigationService>();
+        sut.SetNavigationService(navigationService);
+
+        await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
+
+        await navigationService.DidNotReceive().ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+    }
+
     private static List<UnitData> CreateTestUnits()
     {
         return

@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
+             x:Name="UnitRecordSheetControl">
+    <TabControl>
+        <TabItem>
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+            </TabItem.Header>
+            <StackPanel Margin="10">
+                <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
+                <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
+                <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
+            </StackPanel>
+        </TabItem>
+        <TabItem IsVisible="{Binding #UnitRecordSheetControl.HasPilot}">
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+            </TabItem.Header>
+            <controls:UnitPilotInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit.Pilot}" />
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+            </TabItem.Header>
+            <controls:UnitHealthIndicator Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+            </TabItem.Header>
+            <controls:UnitWeaponsPanel Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+            </TabItem.Header>
+            <controls:UnitComponentsPanel Unit="{Binding #UnitRecordSheetControl.Unit}" />
+        </TabItem>
+        <TabItem IsVisible="{Binding #UnitRecordSheetControl.ShowEventsTab}">
+            <TabItem.Header>
+                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
+            </TabItem.Header>
+            <controls:UnitEventsPanel/>
+        </TabItem>
+    </TabControl>
+</UserControl>

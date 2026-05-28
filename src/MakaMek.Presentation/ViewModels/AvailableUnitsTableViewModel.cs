@@ -2,6 +2,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -14,6 +15,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
 {
     private readonly ObservableCollection<UnitData> _availableUnits;
     private readonly TaskCompletionSource<UnitSelectionResult> _resultTaskCompletionSource = new();
+    private readonly IMechFactory _mechFactory;
     private UnitData? _selectedUnit;
     private WeightClass? _selectedWeightClassFilter; // Default is `all` so no filtering
     private bool _showAllClasses;
@@ -27,9 +29,10 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         Tonnage
     }
 
-    public AvailableUnitsTableViewModel(IList<UnitData> availableUnits)
+    public AvailableUnitsTableViewModel(IList<UnitData> availableUnits, IMechFactory mechFactory)
     {
         _availableUnits = new ObservableCollection<UnitData>(availableUnits);
+        _mechFactory = mechFactory;
 
         // Initialize with "All" filter selected
         _showAllClasses = true;
@@ -39,6 +42,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         SortByTonnageCommand = new AsyncCommand(SortByTonnage);
         AddUnitCommand = new AsyncCommand(AddUnit, _ => CanAddUnit);
         CancelCommand = new AsyncCommand(Cancel);
+        ShowUnitInfoCommand = new AsyncCommand(ShowUnitInfo, _ => CanShowUnitInfo);
     }
 
     /// <summary>
@@ -104,7 +108,9 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         {
             SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
+            NotifyPropertyChanged(nameof(CanShowUnitInfo));
             (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            (ShowUnitInfoCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -114,9 +120,19 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     public bool CanAddUnit => _selectedUnit.HasValue;
 
     /// <summary>
+    /// Gets whether unit info can be shown (unit is selected)
+    /// </summary>
+    public bool CanShowUnitInfo => _selectedUnit.HasValue;
+
+    /// <summary>
     /// Command to add the selected unit
     /// </summary>
     public ICommand AddUnitCommand { get; }
+
+    /// <summary>
+    /// Command to show unit info for the selected unit
+    /// </summary>
+    public ICommand ShowUnitInfoCommand { get; }
 
     /// <summary>
     /// Command to cancel unit selection
@@ -222,6 +238,14 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         // Complete the task with cancelled result
         _resultTaskCompletionSource.TrySetResult(UnitSelectionResult.Cancelled());
         return Task.CompletedTask;
+    }
+
+    private async Task ShowUnitInfo()
+    {
+        if (!CanShowUnitInfo || _selectedUnit == null) return;
+
+        var infoViewModel = new UnitInfoViewModel(_selectedUnit.Value, null, _mechFactory);
+        await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, object?>(infoViewModel);
     }
 
     /// <summary>

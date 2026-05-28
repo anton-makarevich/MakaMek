@@ -147,7 +147,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                         _ => {}, // No join action needed for remote
                         _ => {}, // No set ready action needed for remote
                         _ => Task.CompletedTask, // No show units action needed for remote
-                        () => NotifyPropertyChanged(nameof(CanStartGame)));
+                        onUnitChanged: () => NotifyPropertyChanged(nameof(CanStartGame)));
                     
                     remotePlayerVm.AddUnits(joinCmd.Units, joinCmd.PilotAssignments); // Add units received from command
                     _players.Add(remotePlayerVm);
@@ -229,6 +229,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             PublishJoinCommand,
             PublishSetReadyCommand,
             ShowAvailableUnitsTable,
+            ShowUnitInfo,
             () => NotifyPropertyChanged(nameof(CanStartGame)),
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged

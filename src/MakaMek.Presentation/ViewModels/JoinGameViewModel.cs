@@ -243,6 +243,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             PublishJoinCommand,
             PublishSetReadyCommand,
             ShowAvailableUnitsTable,
+            ShowUnitInfo,
             null,
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged

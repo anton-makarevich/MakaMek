@@ -191,6 +191,7 @@ public class MyViewModel : BaseViewModel
 | Member | Purpose |
 |---|---|
 | `NavigationService` | Lazy `INavigationService`; throws if not injected |
+| `SetNavigationService(INavigationService)` | Injects the navigation service (required for VMs not navigated to through the framework, e.g. modal VMs created with `new`) |
 | `IsBusy` | Bindable busy flag |
 | `ExpectsResult` | Set by framework for modal VMs |
 | `BackCommand` | Calls `NavigateBackAsync` |
@@ -348,6 +349,19 @@ if (criteria != null)
 - Do **not** use `BackCommand` or `NavigateBackAsync` inside modal VMs; close via `CloseAsync()`.
 - The caller's `await` unblocks as soon as `GetResultAsync()` completes.
 
+### 7c — Sub-navigation from a modal VM
+
+`ShowViewModelForResultAsync` does **not** inject `NavigationService` into the target VM. If a modal VM needs to show its own sub-dialogs (e.g. an info popup triggered from within the modal), the parent must call `SetNavigationService` before showing the modal:
+
+```csharp
+// Parent VM (has NavigationService from navigation framework)
+var modalVm = new MyModalViewModel(data, service);
+modalVm.SetNavigationService(NavigationService);    // required for sub-navigation
+await NavigationService.ShowViewModelForResultAsync<MyModalViewModel, ResultType>(modalVm);
+```
+
+> ⚠️ **Missing `SetNavigationService`** → the modal VM's `NavigationService` property will throw `ArgumentNullException` on first access.
+
 ---
 
 ## §8 — Action Dialogs (Built-in)
@@ -449,3 +463,4 @@ When adding a screen, do **all** of these steps:
 | Forget to register view/VM pair | Always add to `RegisterViews` |
 | Use `NavigateToViewModelAsync` for modal/popup dialogs | Use `ShowViewModelForResultAsync` |
 | Resolve `NavigationService` in constructor | Access it lazily via the `NavigationService` property |
+| Use `NavigationService` in a modal VM without calling `SetNavigationService` first | Parent calls `modalVm.SetNavigationService(NavigationService)` before `ShowViewModelForResultAsync` |

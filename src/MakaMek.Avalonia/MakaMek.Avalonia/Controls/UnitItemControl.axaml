@@ -46,24 +46,27 @@
                            HorizontalAlignment="Center"/>
             </StackPanel>
 
+            <!-- Info Button in Top Left Corner -->
+            <Button
+                Command="{Binding #UnitItemUserControl.InfoCommand}"
+                CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
+                ToolTip.Tip="{extensions:Localize 'UnitItem_Info'}"
+                Classes="cornerBadge"
+                HorizontalAlignment="Left"
+                Margin="-2,-2,0,0">
+                <PathIcon Data="{StaticResource RecordSheetIcon}"/>
+            </Button>
+
             <!-- Remove Button in Top Right Corner -->
             <Button
                 Command="{Binding #UnitItemUserControl.RemoveCommand}"
                 CommandParameter="{Binding #UnitItemUserControl.RemoveCommandParameter}"
                 IsVisible="{Binding #UnitItemUserControl.IsRemoveButtonVisible}"
                 ToolTip.Tip="{extensions:Localize 'UnitItem_RemoveUnit'}"
-                Classes="icon"
-                Width="24"
-                Height="24"
-                Padding="2"
+                Classes="cornerBadge"
                 HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,-2,-2,0"
-                Background="{StaticResource SecondaryBrush}">
-                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}"
-                           Text="&#xf2ed;"
-                           FontSize="10"
-                           Foreground="{StaticResource HighlightLightBrush}"/>
+                Margin="0,-2,-2,0">
+                <TextBlock Text="&#xf2ed;"/>
             </Button>
         </Grid>
     </Border>
