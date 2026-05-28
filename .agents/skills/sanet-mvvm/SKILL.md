@@ -104,7 +104,7 @@ if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
 ## §2 — Dependency Injection
 
 **Rules:**
-- `INavigationService` → **singleton**, constructed with the lifetime object.
+- `INavigationService` → **singleton**, constructed with the lifetime object and the service provider.
 - ViewModels → **transient** (fresh state on every `GetNewViewModel<T>()` call).
 - Shared services (repositories, settings, etc.) → **singleton**.
 
@@ -113,18 +113,15 @@ if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
 services.AddSingleton<INavigationService>(sp =>
 {
     var lifetime = sp.GetRequiredService<IClassicDesktopStyleApplicationLifetime>();
-    var nav = new NavigationService(lifetime);
-    nav.SetServiceProvider(sp);   // required — allows the service to resolve VMs
-    return nav;
+    return new NavigationService(lifetime, sp);
 });
 
 // Single-view (mobile / browser)
 services.AddSingleton<INavigationService>(sp =>
 {
     var lifetime = sp.GetRequiredService<ISingleViewApplicationLifetime>();
-    var nav = new SingleViewNavigationService(lifetime, mainContentControl);
-    nav.SetServiceProvider(sp);
-    return nav;
+    var wrapper = new ContentControl();
+    return new SingleViewNavigationService(lifetime, wrapper, sp);
 });
 
 // ViewModels — always transient
