@@ -14,40 +14,8 @@
         VerticalAlignment="Center"
         Title="{Binding Unit.Name}"
         CloseCommand="{Binding CloseCommand}">
-        <TabControl>
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
-                </TabItem.Header>
-                <StackPanel Margin="10">
-                    <controls:UnitBasicInfoPanel DataContext="{Binding Unit}" />
-                    <controls:UnitMovementInfoPanel DataContext="{Binding Unit}" />
-                </StackPanel>
-            </TabItem>
-            <TabItem IsVisible="{Binding HasPilot}">
-                <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
-                </TabItem.Header>
-                <controls:UnitPilotInfoPanel DataContext="{Binding Unit.Pilot}" />
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
-                </TabItem.Header>
-                <controls:UnitHealthIndicator Unit="{Binding Unit}"/>
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
-                </TabItem.Header>
-                <controls:UnitWeaponsPanel Unit="{Binding Unit}"/>
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
-                </TabItem.Header>
-                <controls:UnitComponentsPanel Unit="{Binding Unit}" />
-            </TabItem>
-        </TabControl>
+        <controls:UnitRecordSheet
+            Unit="{Binding Unit}"
+            HasPilot="{Binding HasPilot}" />
     </templatedControls:GamePanel>
 </UserControl>

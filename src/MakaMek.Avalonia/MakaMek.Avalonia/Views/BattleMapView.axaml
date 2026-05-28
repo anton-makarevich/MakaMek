@@ -235,48 +235,11 @@
             IsVisible="{Binding IsRecordSheetPanelVisible}"
             Title="{Binding SelectedUnit.Name}"
             CloseCommand="{Binding ToggleRecordSheet}">
-            <TabControl>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
-                    </TabItem.Header>
-                    <StackPanel Margin="10">
-                        <controls:UnitBasicInfoPanel DataContext="{Binding SelectedUnit}" />
-                        <controls:UnitHeatLevelPanel DataContext="{Binding SelectedUnitHeatProjection}" />
-                        <controls:UnitMovementInfoPanel DataContext="{Binding SelectedUnit}" />
-                    </StackPanel>
-                </TabItem>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
-                    </TabItem.Header>
-                    <controls:UnitPilotInfoPanel DataContext="{Binding SelectedUnit.Pilot}" />
-                </TabItem>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
-                    </TabItem.Header>
-                    <controls:UnitHealthIndicator Unit="{Binding SelectedUnit}"/>
-                </TabItem>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
-                    </TabItem.Header>
-                    <controls:UnitWeaponsPanel Unit="{Binding SelectedUnit}"/>
-                </TabItem>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
-                    </TabItem.Header>
-                    <controls:UnitComponentsPanel Unit="{Binding SelectedUnit}" />
-                </TabItem>
-                <TabItem>
-                    <TabItem.Header>
-                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
-                    </TabItem.Header>
-                    <controls:UnitEventsPanel/>
-                </TabItem>
-            </TabControl>
+            <controls:UnitRecordSheet
+                Unit="{Binding SelectedUnit}"
+                HeatProjection="{Binding SelectedUnitHeatProjection}"
+                ShowHeatLevelPanel="True"
+                ShowEventsTab="True" />
         </templatedControls:GamePanel>
 
         <!-- Command Log Panel -->

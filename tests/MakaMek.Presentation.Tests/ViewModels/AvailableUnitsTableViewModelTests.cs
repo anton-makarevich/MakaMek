@@ -1,9 +1,13 @@
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -502,6 +506,94 @@ public class AvailableUnitsTableViewModelTests
         result.SelectedUnit.ShouldBeNull();
     }
     
+    [Fact]
+    public void CanShowUnitInfo_ShouldBeFalse_WhenNoUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+
+        sut.CanShowUnitInfo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldBeTrue_WhenUnitIsSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+
+        sut.SelectedUnit = unit;
+
+        sut.CanShowUnitInfo.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldUpdateToFalse_WhenSelectionCleared()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        sut.SelectedUnit = units.First();
+        sut.CanShowUnitInfo.ShouldBeTrue();
+
+        sut.SelectedUnit = null;
+
+        sut.CanShowUnitInfo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanShowUnitInfo_ShouldNotifyPropertyChanged_WhenUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+
+        var canShowUnitInfoChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(AvailableUnitsTableViewModel.CanShowUnitInfo))
+                canShowUnitInfoChanged = true;
+        };
+
+        sut.SelectedUnit = unit;
+
+        canShowUnitInfoChanged.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldNavigateToUnitInfoView_WhenUnitIsSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+        var unit = units.First();
+        sut.SelectedUnit = unit;
+
+        var navigationService = Substitute.For<INavigationService>();
+        sut.SetNavigationService(navigationService);
+        var realMechFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var realUnit = realMechFactory.Create(unit);
+        _mechFactory.Create(Arg.Any<UnitData>()).Returns(realUnit);
+
+        await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
+
+        await navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldNotNavigate_WhenNoUnitSelected()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
+
+        var navigationService = Substitute.For<INavigationService>();
+        sut.SetNavigationService(navigationService);
+
+        await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
+
+        await navigationService.DidNotReceive().ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+    }
+
     private static List<UnitData> CreateTestUnits()
     {
         return

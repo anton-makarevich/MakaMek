@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -1081,5 +1082,44 @@ public class StartNewGameViewModelTests
         await Task.Delay(100);
 
         commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public async Task ShowUnitInfo_ShouldNavigateToUnitInfoView_WhenCalled()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var realMechFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var realUnit = realMechFactory.Create(unitData);
+        _mechFactory.Create(Arg.Any<UnitData>()).Returns(realUnit);
+        var localPlayerVm = _sut.Players.First();
+        await localPlayerVm.AddUnit(unitData);
+        var unitId = localPlayerVm.Units.First().Id!.Value;
+
+        await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+    }
+
+    [Fact]
+    public async Task ShowUnitInfo_ShouldPassPilotData_WhenUnitHasPilot()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var realMechFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var realUnit = realMechFactory.Create(unitData);
+        _mechFactory.Create(Arg.Any<UnitData>()).Returns(realUnit);
+        var localPlayerVm = _sut.Players.First();
+        var pilotData = new PilotData();
+        await localPlayerVm.AddUnit(unitData, pilotData);
+        var unitId = localPlayerVm.Units.First().Id!.Value;
+
+        await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
     }
 }
