@@ -670,6 +670,37 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public void IsNetworkSectionExpanded_DefaultValue_ShouldBeFalse()
+    {
+        _sut.IsNetworkSectionExpanded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToggleNetworkSection_ShouldToggleIsNetworkSectionExpanded()
+    {
+        _sut.IsNetworkSectionExpanded.ShouldBeFalse();
+
+        _sut.ToggleNetworkSection();
+
+        _sut.IsNetworkSectionExpanded.ShouldBeTrue();
+
+        _sut.ToggleNetworkSection();
+
+        _sut.IsNetworkSectionExpanded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsNetworkSectionExpanded_ShouldNotifyPropertyChanged()
+    {
+        var changedProps = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        _sut.IsNetworkSectionExpanded = true;
+
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.IsNetworkSectionExpanded));
+    }
+
+    [Fact]
     public void AttachHandlers_ShouldAddDefaultPlayer()
     {
         // Act called in the constructor
