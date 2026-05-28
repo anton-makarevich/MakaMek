@@ -10,7 +10,12 @@ public partial class UnitRecordSheet : UserControl
         AvaloniaProperty.Register<UnitRecordSheet, Unit?>(nameof(Unit));
 
     public static readonly StyledProperty<bool> HasPilotProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(HasPilot), defaultValue: true);
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(HasPilot));
+
+    static UnitRecordSheet()
+    {
+        UnitProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.OnUnitChanged());
+    }
 
     public static readonly StyledProperty<bool> ShowHeatLevelPanelProperty =
         AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(ShowHeatLevelPanel));
@@ -54,5 +59,10 @@ public partial class UnitRecordSheet : UserControl
     public UnitRecordSheet()
     {
         InitializeComponent();
+    }
+
+    private void OnUnitChanged()
+    {
+        HasPilot = Unit?.Pilot is not null;
     }
 }
