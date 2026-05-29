@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
@@ -37,7 +38,7 @@
             <Grid RowDefinitions="Auto,*,Auto">
                 <TextBlock Text="{extensions:Localize 'StartNewGame_Map'}" Classes="h2" HorizontalAlignment="Center"/>
                 <ScrollViewer Grid.Row="1" >
-                    <fragments:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
+                    <controls:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
                 <StackPanel Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10">
                     <Grid>

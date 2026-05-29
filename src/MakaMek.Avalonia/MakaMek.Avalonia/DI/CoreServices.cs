@@ -21,6 +21,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
 using Sanet.Transport.Rx;
 
