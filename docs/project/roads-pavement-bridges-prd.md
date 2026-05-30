@@ -41,8 +41,8 @@ The rules below are the authoritative source for this feature. Implementation mu
 - **Definition** — a road is treated as a bridge when it passes over water or terrain at a lower elevation.
 - **On top of bridge** — a unit moving road-to-road is on the bridge surface. It ignores the underlying terrain and follows all road rules.
 - **Construction Factor (CF)** — each bridge hex has a CF representing the maximum tonnage it can support. When the total tonnage of units on a bridge hex exceeds its current CF, the bridge hex **collapses**; units fall to the underlying terrain and take standard falling damage.
-- **Below bridge** *(Out of Scope v1)* — a unit not traveling on the road is on the underlying terrain, positioned underneath the bridge. This requires a z-layer positioning system not yet available.
-- **Insufficient clearance** *(Out of Scope v1)* — if a unit cannot fit under a bridge and is not on top of it, the bridge acts as a building hex.
+- **Below bridge** — a unit not traveling on the road is on the underlying terrain, positioned underneath the bridge. The existing z-layer rendering system in `HexControl` supports this without new infrastructure.
+- **Clearance** — the usable vertical space below the bridge surface equals `BridgeTerrain.Height − lowestTerrainHeight`, where `lowestTerrainHeight` is the `Height` of the deepest terrain in the hex (e.g., water depth −1). If this clearance is less than the unit's height, the bridge acts as a building hex; the unit cannot pass underneath.
 
 ---
 
@@ -58,16 +58,16 @@ The rules below are the authoritative source for this feature. Implementation mu
 | 4 | Skid PSR trigger on Running + facing change on paved/road hex |
 | 5 | Skid outcome: fall + slide, damage per skid hex, attacker/target to-hit modifiers |
 | 6 | Bridge CF check on unit entry; collapse → units fall to underlying terrain |
-| 7 | Serialization via existing `TerrainData` record (no schema change) |
+| 7 | Serialization via `TerrainData` record (schema extended with `ConstructionFactor` field) |
 | 8 | Network propagation via existing `SegmentEvent` mechanism |
+| 9 | Under-bridge unit positioning using the existing z-layer rendering system |
+| 10 | Bridge clearance calculation and bridge-as-building-hex enforcement for insufficient clearance |
 
 ### Out of Scope (v1)
 
 - Ground vehicle +1 MP pavement bonus (no vehicle unit type yet)
 - VTOL/WiGE road-following through woods below treetop elevation
 - Aerospace unit landing modifier on paved hexes
-- Under-bridge unit positioning (requires z-layer system)
-- Bridge acting as building hex for units with insufficient clearance
 
 ---
 
@@ -80,7 +80,7 @@ The rules below are the authoritative source for this feature. Implementation mu
 ```csharp
 Road,       // Narrow paved strip through other terrain
 Pavement,   // Broad paved surface
-Bridge,     // Paved road over lower terrain or water; Height encodes CF
+Bridge,     // Paved road over lower terrain or water; Height = bridge height, ConstructionFactor = max tonnage
 ```
 
 ### New Terrain Classes
@@ -110,12 +110,25 @@ All three live alongside the existing terrain classes in `src/MakaMek.Map/Models
 | Property | Notes |
 |----------|-------|
 | `Id` | `MakaMekTerrains.Bridge` |
-| `Height` | Stores CF as a positive integer (e.g., `Height = 60` → CF 60 tons) |
+| `Height` | Physical height of the bridge surface above the base hex level (positive integer, e.g., `Height = 1` → bridge sits 1 level above the hex floor). Used to compute under-bridge clearance. |
 | `InterveningFactor` | `0` |
 | `MovementCost` | `1` |
-| `ConstructionFactor` | Derived from `Height`; represents maximum supported tonnage |
+| `ConstructionFactor` | Independent integer property representing maximum supported tonnage (e.g., `60` → CF 60 tons). Every structure terrain carries a CF. Stored in `TerrainData.ConstructionFactor`. |
 
-`BridgeTerrain` is serialized via `TerrainData` with `Type = Bridge` and `Height = CF`. No schema change is required.
+`BridgeTerrain` is serialized via `TerrainData` with `Type = Bridge`, `Height = bridge height`, and `ConstructionFactor = CF`. This requires adding a `ConstructionFactor` field to `TerrainData` (see Serialization section).
+
+#### Under-Bridge Clearance
+
+Clearance is the usable vertical space below the bridge surface within the hex:
+
+```
+clearance = BridgeTerrain.Height − min(terrain.Height for all non-bridge terrains in hex)
+```
+
+**Example:** hex level 0, water (`Height = −1`), bridge (`Height = 1`)
+→ clearance = 1 − (−1) = **2 levels**
+
+A unit can move underneath when its own height ≤ clearance. When clearance is insufficient, the bridge hex is treated as a building hex for the under-bridge movement attempt — the unit cannot enter from below.
 
 ### Factory Extension
 
@@ -258,25 +271,113 @@ When a unit steps onto a hex containing `BridgeTerrain`:
 
 ## Data & Serialization
 
-`TerrainData` is unchanged:
+`TerrainData` gains a new `ConstructionFactor` field to support structures (bridges and future building types):
 
 ```csharp
 public record TerrainData
 {
     public required MakaMekTerrains Type { get; init; }
     public int? Height { get; init; }
+    public int? ConstructionFactor { get; init; } // CF for structures; null for non-structural terrains
 }
 ```
 
 Mapping:
 
-| Terrain | `Type` | `Height` |
-|---------|--------|---------|
-| Road | `Road` | `null` |
-| Pavement | `Pavement` | `null` |
-| Bridge | `Bridge` | CF value (e.g., `60`) |
+| Terrain | `Type` | `Height` | `ConstructionFactor` |
+|---------|--------|---------|----------------------|
+| Road | `Road` | `null` | `null` |
+| Pavement | `Pavement` | `null` | `null` |
+| Bridge | `Bridge` | bridge height above hex base (e.g., `1`) | CF in tons (e.g., `60`) |
 
-The MMTX terrain format document (`docs/architecture/MMTX-Terrain-Format.md`) must be updated to list the three new terrain types and the CF encoding for Bridge.
+The MMTX terrain format document (`docs/architecture/MMTX-Terrain-Format.md`) must be updated to list the three new terrain types, the bridge `Height` / `ConstructionFactor` encoding, and the new `terrains/road/` bitmask directory.
+
+---
+
+## Rendering (Avalonia)
+
+### Layer Order
+
+Roads, pavement, and bridges are rendered as texture overlays **above** all other terrain overlays (woods, rough, etc.) but below the hex polygon outline. The full z-index stack for `HexControl` is:
+
+| Z-index | Layer |
+|---------|-------|
+| 0 | Base terrain |
+| 10–17 | Edge effects |
+| 18 | Water bitmask layer |
+| 20+ | Terrain overlays (woods, rough, …) |
+| **25** | **Road / pavement / bridge overlay** ← new |
+| 30 | Hex polygon outline |
+| 31 | Labels |
+
+This ensures that a hex containing woods **and** a road renders correctly: `base → woods → road`.
+
+### Bitmask-Based Road Textures
+
+Roads and bridges use the same 6-bit neighbor bitmask mechanism as water (`TerrainBitmaskService`). The canonical bitmask encodes which of the 6 neighboring hexes also contain a road or bridge terrain, enabling seamless road-network rendering (T-junctions, curves, straights, etc.).
+
+Roads and bridges share one texture set — they are visually the same surface.
+
+#### MMTX Package Extension
+
+A new bitmask directory is added to the MMTX structure:
+
+```text
+terrains/road/        # Road / bridge bitmask textures
+    000001.png        # Road connects to neighbor in direction 0 only
+    000011.png        # Road connects to neighbors in directions 0 and 1
+    …                 # All 13 canonical 6-bit patterns
+```
+
+Files are named using the 6-bit binary representation of `CanonicalBitmaskResult.CanonicalMask` (same convention as `terrains/water/`). Rotation is applied at render time using `CanonicalBitmaskResult.RotationSteps`.
+
+#### New Asset Type
+
+**File:** `src/MakaMek.Assets/Models/Terrains/TerrainAssetType.cs`
+
+```csharp
+/// <summary>
+/// Road/bridge bitmask texture (from terrains/road/ folder).
+/// Files are named using the 6-bit binary representation of the canonical bitmask, e.g. 000001.png.
+/// </summary>
+Road
+```
+
+#### New Service Method
+
+**File:** `src/MakaMek.Assets/Services/ITerrainAssetService.cs`
+
+```csharp
+/// <summary>
+/// Gets a road/bridge bitmask texture image for the specified canonical bitmask.
+/// Files are stored in the <c>terrains/road/</c> folder.
+/// </summary>
+Task<byte[]?> GetRoadTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask);
+```
+
+`TerrainCachingService` implements this by extracting images from `terrains/road/` (same logic as `GetWaterTextureImage` / `terrains/water/`).
+
+### HexControl Changes
+
+**File:** `src/MakaMek.Avalonia/MakaMek.Avalonia.Controls/HexControl.cs`
+
+1. Add z-index constant:
+   ```csharp
+   private const int ZIndexRoadLayer = 25;
+   ```
+
+2. On construction, compute a road/bridge bitmask (analogous to `_waterBitmask`) when the hex contains `Road`, `Pavement`, or `Bridge` terrain:
+   ```csharp
+   private readonly CanonicalBitmaskResult? _roadBitmask;
+   // Computed as: bitmaskService.ComputeCanonicalBitmask(map, hex.Coordinates, MakaMekTerrains.Road)
+   // (Road and Bridge neighbors both count toward road connectivity)
+   ```
+
+3. Add `UpdateRoadLayer()` that loads the bitmask texture and renders it at `ZIndexRoadLayer` with appropriate rotation — mirroring `UpdateWaterLayer()`.
+
+### Under-Bridge Rendering
+
+Units positioned under a bridge occupy the hex at the base terrain level. The existing z-index layer system in `HexControl` already renders multiple visual layers within a single hex; no additional rendering infrastructure is needed. Under-bridge units are drawn at the base terrain z-level, while the bridge overlay sits above them at `ZIndexRoadLayer`.
 
 ---
 
@@ -288,11 +389,16 @@ The MMTX terrain format document (`docs/architecture/MMTX-Terrain-Format.md`) mu
 |------|--------|
 | `src/MakaMek.Map/Models/Terrains/MakaMekTerrains.cs` | Add `Road`, `Pavement`, `Bridge` values |
 | `src/MakaMek.Map/Models/Terrains/Terrain.cs` | Add `case` entries in `FromData()` / `GetTerrainType()` |
+| `src/MakaMek.Map/Data/TerrainData.cs` | Add `ConstructionFactor` field |
 | `src/MakaMek.Core/Data/Game/Mechanics/PilotingSkillRollType.cs` | Add `SkidCheck` |
 | `src/MakaMek.Map/Models/SegmentEventType.cs` | Add `Skid`, `BridgeCollapse` |
-| `src/MakaMek.Map/Models/BattleMap.cs` | On-road cost substitution in segment cost calculation |
+| `src/MakaMek.Map/Models/BattleMap.cs` | On-road cost substitution; under-bridge clearance check |
 | `src/MakaMek.Core/Models/Game/Phases/MovementPhase.cs` | Skid trigger detection; bridge CF check |
-| `docs/architecture/MMTX-Terrain-Format.md` | Document new terrain types and CF encoding |
+| `src/MakaMek.Assets/Models/Terrains/TerrainAssetType.cs` | Add `Road` asset type |
+| `src/MakaMek.Assets/Services/ITerrainAssetService.cs` | Add `GetRoadTextureImage` method |
+| `src/MakaMek.Assets/Services/TerrainCachingService.cs` | Implement `GetRoadTextureImage`; extract `terrains/road/` |
+| `src/MakaMek.Avalonia/MakaMek.Avalonia.Controls/HexControl.cs` | Add `ZIndexRoadLayer`; compute road bitmask; add `UpdateRoadLayer()` |
+| `docs/architecture/MMTX-Terrain-Format.md` | Document new terrain types, CF encoding, and `terrains/road/` directory |
 
 ### Files to Create
 
@@ -300,7 +406,7 @@ The MMTX terrain format document (`docs/architecture/MMTX-Terrain-Format.md`) mu
 |------|---------|
 | `src/MakaMek.Map/Models/Terrains/RoadTerrain.cs` | Road terrain implementation |
 | `src/MakaMek.Map/Models/Terrains/PavementTerrain.cs` | Pavement terrain implementation |
-| `src/MakaMek.Map/Models/Terrains/BridgeTerrain.cs` | Bridge terrain with `ConstructionFactor` |
+| `src/MakaMek.Map/Models/Terrains/BridgeTerrain.cs` | Bridge terrain with `Height` and `ConstructionFactor` |
 | `src/MakaMek.Core/Data/Game/Mechanics/PilotingSkillRollContexts/SkidCheckRollContext.cs` | Skid PSR context record |
 | `src/MakaMek.Core/Models/Game/Mechanics/Modifiers/Attack/SkiddingTargetModifier.cs` | +2 to-hit against skidding unit |
 | `src/MakaMek.Core/Models/Game/Mechanics/Modifiers/Attack/SkiddingAttackerModifier.cs` | +1 to-hit penalty for skidding attacker |
@@ -333,12 +439,27 @@ The MMTX terrain format document (`docs/architecture/MMTX-Terrain-Format.md`) mu
 
 ### AC-4: Bridge Construction Factor
 
-- [ ] `BridgeTerrain` CF serializes to/from `TerrainData.Height`.
+- [ ] `BridgeTerrain.Height` stores the physical bridge height above the hex base (e.g., `1`); serializes to/from `TerrainData.Height`.
+- [ ] `BridgeTerrain.ConstructionFactor` stores CF in tons (e.g., `60`); serializes to/from `TerrainData.ConstructionFactor`.
 - [ ] When units on a bridge hex exceed its CF, the bridge collapses.
 - [ ] Collapsed bridge hex has `BridgeTerrain` removed.
 - [ ] Units on the collapsed hex fall to underlying terrain and take standard falling damage.
 
 ### AC-5: Serialization & Network
 
-- [ ] `TerrainData` roundtrip preserves `Road`, `Pavement`, and `Bridge` (including CF).
+- [ ] `TerrainData` roundtrip preserves `Road`, `Pavement`, and `Bridge` (including `Height` and `ConstructionFactor`).
 - [ ] `Skid` and `BridgeCollapse` segment events propagate correctly over the network.
+
+### AC-6: Under-Bridge Clearance
+
+- [ ] Given a hex at level 0 with water depth −1 and `BridgeTerrain.Height = 1`, clearance computes to **2**.
+- [ ] A unit whose height ≤ clearance may enter the hex from the underlying terrain (moving under the bridge).
+- [ ] A unit whose height > clearance cannot move through that hex at the lower level; the bridge hex is treated as a building hex for that movement attempt.
+
+### AC-7: Road Rendering
+
+- [ ] A hex containing `LightWoods` and `Road` renders in the order: base → light woods overlay → road overlay.
+- [ ] Road textures are selected via the same 6-bit canonical bitmask mechanism as water.
+- [ ] A road hex with no road neighbors uses the `000000` (isolated) bitmask texture.
+- [ ] A road hex connected to all 6 neighbors uses the fully-connected bitmask texture.
+- [ ] Bridge hexes participate in road connectivity (a bridge neighbor counts as a road neighbor for bitmask purposes).
