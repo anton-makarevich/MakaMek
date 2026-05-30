@@ -8,28 +8,17 @@ using System.Threading.Tasks;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
-namespace Sanet.MakaMek.Avalonia.Services;
+namespace Sanet.MakaMek.Avalonia.Controls.Services;
 
-/// <summary>
-/// Skia-based implementation of a map preview renderer
-/// </summary>
 public class SkiaMapPreviewRenderer : IMapPreviewRenderer
 {
-    // Colors from Colors.axaml
-    private static readonly SKColor ClearTerrainColor = new(0x8F, 0xA5, 0x57); // PrimaryLightColor - light green
-    private static readonly SKColor LightWoodsColor = new(0x6B, 0x8E, 0x23); // PrimaryColor - medium green
-    private static readonly SKColor HeavyWoodsColor = new(0x55, 0x6B, 0x2F); // PrimaryDarkColor - dark green
-    private static readonly SKColor RoughColor = new(0x70, 0x78, 0x72); // gray
-    private static readonly SKColor WaterColor = new(0x46, 0x82, 0xB4); // steel blue (#4682B4)
-    private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0); // BackgroundColor
+    private static readonly SKColor ClearTerrainColor = new(0x8F, 0xA5, 0x57);
+    private static readonly SKColor LightWoodsColor = new(0x6B, 0x8E, 0x23);
+    private static readonly SKColor HeavyWoodsColor = new(0x55, 0x6B, 0x2F);
+    private static readonly SKColor RoughColor = new(0x70, 0x78, 0x72);
+    private static readonly SKColor WaterColor = new(0x46, 0x82, 0xB4);
+    private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0);
 
-    /// <summary>
-    /// Generates a preview image for the provided battle map by drawing dots at hex centers.
-    /// </summary>
-    /// <param name="map">The battle map to generate a preview for</param>
-    /// <param name="previewWidth">Width of the preview in pixels</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns>A bitmap containing the rendered map preview</returns>
     public async Task<object?> GeneratePreviewAsync(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
     {
         if (previewWidth <= 0) throw new ArgumentOutOfRangeException(nameof(previewWidth));
@@ -43,15 +32,12 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             const double hexWidth = HexCoordinatesPixelExtensions.HexWidth;
             const double hexHeight = HexCoordinatesPixelExtensions.HexHeight;
 
-            // Map bounds in hex units
             var mapUnitWidth = width * 0.75f;
             var mapUnitHeight = height + 0.5f;
 
-            // Fit-to-width scale
             var scale = previewWidth / (mapUnitWidth * hexWidth);
             var previewHeight = Math.Max(1, (int)(mapUnitHeight * hexHeight * scale));
 
-            // Dot diameter
             var dotDiameter = (float)(HexCoordinatesPixelExtensions.HexWidth * scale * 0.95);
 
             var imageInfo = new SKImageInfo(previewWidth, previewHeight);
@@ -123,19 +109,14 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     {
         if (hex.Level > 0)
         {
-            // Darken from base dark toward near-black
-            // level 1 -> 0x55, level 2 -> 0x33, level 3+ -> 0x11
             var darkValue = 0x77L - hex.Level * 0x22L;
             var dark = (byte)Math.Clamp(darkValue, 0x10L, 0x77L);
             return new SKColor(dark, dark, dark);
         }
 
-        // Lighten from base light toward near-white
-        // level -1 -> 0xAA, level -2 -> 0xCC, level -3+ -> 0xEE
         var absLevel = Math.Abs((long)hex.Level);
         var lightValue = 0x88L + absLevel * 0x22L;
         var light = (byte)Math.Clamp(lightValue, 0x88L, 0xFFL);
-        return new SKColor(light, light, light, 0xDD); // Slightly transparent
+        return new SKColor(light, light, light, 0xDD);
     }
 }
-
