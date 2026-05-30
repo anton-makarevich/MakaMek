@@ -10,6 +10,8 @@ public static class ControlExtensions
     {
         public byte[] RenderToPngBytes(int width, int height)
         {
+            if (width <= 0 || height <= 0)
+                return [];
             var pixelSize = new PixelSize(width, height);
             using var bitmap = new RenderTargetBitmap(pixelSize);
             bitmap.Render(control);
