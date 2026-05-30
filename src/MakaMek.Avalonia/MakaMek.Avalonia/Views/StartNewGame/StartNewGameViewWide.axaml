@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
