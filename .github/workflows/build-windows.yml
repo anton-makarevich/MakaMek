@@ -24,7 +24,7 @@ jobs:
         id: extract_version
         shell: bash
         run: |
-          VERSION=$(grep -oP '(?<=<Version>).*(?=</Version>)' Directory.Build.props)
+          VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' Directory.Build.props)
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "Version extracted: $VERSION"
 
