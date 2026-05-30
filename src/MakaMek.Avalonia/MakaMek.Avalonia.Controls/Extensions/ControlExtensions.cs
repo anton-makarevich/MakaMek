@@ -6,13 +6,18 @@ namespace Sanet.MakaMek.Avalonia.Controls.Extensions;
 
 public static class ControlExtensions
 {
-    public static byte[] RenderToPngBytes(this Control control, int width, int height)
+    extension(Control control)
     {
-        var pixelSize = new PixelSize(width, height);
-        using var bitmap = new RenderTargetBitmap(pixelSize);
-        bitmap.Render(control);
-        using var ms = new MemoryStream();
-        bitmap.Save(ms);
-        return ms.ToArray();
+        public byte[] RenderToPngBytes(int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+                return [];
+            var pixelSize = new PixelSize(width, height);
+            using var bitmap = new RenderTargetBitmap(pixelSize);
+            bitmap.Render(control);
+            using var ms = new MemoryStream();
+            bitmap.Save(ms);
+            return ms.ToArray();
+        }
     }
 }

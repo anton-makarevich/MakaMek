@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Sanet.MakaMek.Avalonia.Controls.Extensions;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -217,5 +218,33 @@ public class HexMap : Canvas
     {
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
+    }
+
+    /// <summary>
+    /// Exports the base canvas (ignoring user pan/zoom) as a PNG byte array.
+    /// </summary>
+    public byte[] ToPng()
+    {
+        var savedX = _mapTranslateTransform.X;
+        var savedY = _mapTranslateTransform.Y;
+        var savedScaleX = _mapScaleTransform.ScaleX;
+        var savedScaleY = _mapScaleTransform.ScaleY;
+
+        _mapTranslateTransform.X = 0;
+        _mapTranslateTransform.Y = 0;
+        _mapScaleTransform.ScaleX = 1;
+        _mapScaleTransform.ScaleY = 1;
+
+        try
+        {
+            return this.RenderToPngBytes((int)Bounds.Width, (int)Bounds.Height);
+        }
+        finally
+        {
+            _mapTranslateTransform.X = savedX;
+            _mapTranslateTransform.Y = savedY;
+            _mapScaleTransform.ScaleX = savedScaleX;
+            _mapScaleTransform.ScaleY = savedScaleY;
+        }
     }
 }
