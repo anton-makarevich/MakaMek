@@ -17,10 +17,11 @@ public class PdfExportService : IPdfExportService
             page.Width = XUnit.FromPoint(widthPoints);
             page.Height = XUnit.FromPoint(heightPoints);
 
-            using var gfx = XGraphics.FromPdfPage(page);
-            var ms = new MemoryStream(pngBytes);
-            using var image = XImage.FromStream(() => ms);
-            gfx.DrawImage(image, 0, 0, page.Width, page.Height);
+            using (var image = XImage.FromStream(() => new MemoryStream(pngBytes)))
+            {
+                using var gfx = XGraphics.FromPdfPage(page);
+                gfx.DrawImage(image, 0, 0, page.Width, page.Height);
+            }
 
             using var pdfStream = new MemoryStream();
             document.Save(pdfStream);
