@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Sanet.MakaMek.Presentation.ViewModels;
 
-namespace Sanet.MakaMek.Avalonia.Controls;
+namespace Sanet.MakaMek.Avalonia.Controls.Fragments;
 
 public partial class MapConfigFragment : UserControl
 {
