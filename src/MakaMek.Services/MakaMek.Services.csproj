@@ -14,6 +14,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="PdfSharpCore" Version="1.3.63" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\MakaMek.Map\MakaMek.Map.csproj" />
     </ItemGroup>
 
