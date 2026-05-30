@@ -17,7 +17,7 @@ public class AvaloniaFileService : IFileService
         };
     }
 
-    public async Task SaveFile(string title, string defaultFileName, string content)
+    public async Task SaveTextFile(string title, string defaultFileName, string content)
     {
         var topLevel = GetTopLevel();
         if (topLevel == null) return;
@@ -38,6 +38,29 @@ public class AvaloniaFileService : IFileService
             await using var stream = await file.OpenWriteAsync();
             await using var writer = new StreamWriter(stream);
             await writer.WriteAsync(content);
+        }
+    }
+
+    public async Task SaveBinaryFile(string title, string defaultFileName, byte[] content, string defaultExtension, string filterName)
+    {
+        var topLevel = GetTopLevel();
+        if (topLevel == null) return;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = defaultFileName,
+            DefaultExtension = defaultExtension,
+            FileTypeChoices =
+            [
+                new FilePickerFileType(filterName) { Patterns = [$"*.{defaultExtension}"] }
+            ]
+        });
+
+        if (file != null)
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await stream.WriteAsync(content);
         }
     }
 
