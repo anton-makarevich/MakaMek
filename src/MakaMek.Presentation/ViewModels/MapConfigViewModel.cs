@@ -307,7 +307,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             var data = Map.ToData();
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            await _fileService.SaveTextFile(_localizationService.GetString("EditMap_ExportMapDialogTitle"), "map.json", json);
+            await _fileService.SaveJsonFile(_localizationService.GetString("EditMap_ExportMapDialogTitle"), "map.json", json);
         }
         catch (Exception ex)
         {

@@ -1249,7 +1249,7 @@ public class MapConfigViewModelTests
         await _sut.ExportMapCommand.ExecuteAsync();
 
         // Assert
-        await _fileService.Received(1).SaveFile(
+        await _fileService.Received(1).SaveJsonFile(
             Arg.Any<string>(),
             "map.json",
             Arg.Any<string>());
@@ -1262,7 +1262,7 @@ public class MapConfigViewModelTests
         await _sut.ExportMapCommand.ExecuteAsync();
 
         // Assert
-        await _fileService.DidNotReceive().SaveFile(
+        await _fileService.DidNotReceive().SaveJsonFile(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<string>());
@@ -1274,7 +1274,7 @@ public class MapConfigViewModelTests
         // Arrange
         _sut.SelectedTabIndex = 1;
         var exception = new InvalidOperationException("Save failed");
-        _fileService.SaveFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+        _fileService.SaveJsonFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns(Task.FromException(exception));
 
         // Act
