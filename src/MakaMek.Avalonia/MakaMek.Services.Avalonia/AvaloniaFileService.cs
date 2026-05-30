@@ -17,7 +17,7 @@ public class AvaloniaFileService : IFileService
         };
     }
 
-    public async Task SaveFile(string title, string defaultFileName, string content)
+    private async Task SaveFile(string title, string defaultFileName, string defaultExtension, string filterName, Func<Stream, Task> writeAsync)
     {
         var topLevel = GetTopLevel();
         if (topLevel == null) return;
@@ -26,19 +26,35 @@ public class AvaloniaFileService : IFileService
         {
             Title = title,
             SuggestedFileName = defaultFileName,
-            DefaultExtension = "json",
+            DefaultExtension = defaultExtension,
             FileTypeChoices =
             [
-                new FilePickerFileType("JSON Files") { Patterns = ["*.json"] }
+                new FilePickerFileType(filterName) { Patterns = [$"*.{defaultExtension}"] }
             ]
         });
 
         if (file != null)
         {
             await using var stream = await file.OpenWriteAsync();
+            await writeAsync(stream);
+        }
+    }
+
+    public async Task SaveJsonFile(string title, string defaultFileName, string content)
+    {
+        await SaveFile(title, defaultFileName, "json", "JSON Files", async stream =>
+        {
             await using var writer = new StreamWriter(stream);
             await writer.WriteAsync(content);
-        }
+        });
+    }
+
+    public async Task SaveBinaryFile(string title, string defaultFileName, byte[] content, string defaultExtension, string filterName)
+    {
+        await SaveFile(title, defaultFileName, defaultExtension, filterName, async stream =>
+        {
+            await stream.WriteAsync(content);
+        });
     }
 
     public async Task<(string? Name, string? Content)> OpenFile(string title)
