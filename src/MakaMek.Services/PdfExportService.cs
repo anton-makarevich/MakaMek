@@ -7,6 +7,9 @@ public class PdfExportService : IPdfExportService
 {
     public async Task<byte[]> GeneratePdfFromPngAsync(byte[] pngBytes, int widthPoints, int heightPoints)
     {
+        ArgumentNullException.ThrowIfNull(pngBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthPoints);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(heightPoints);
         return await Task.Run(() =>
         {
             using var document = new PdfDocument();

@@ -34,6 +34,38 @@ public class PdfExportServiceTests
         pdf.Pages[0].Height.Point.ShouldBe(792, 0.5);
     }
 
+    [Fact]
+    public async Task GeneratePdfFromPngAsync_NullPngBytes_ThrowsArgumentNullException()
+    {
+        Func<Task> act = () => _sut.GeneratePdfFromPngAsync(null!, 100, 100);
+
+        await act.ShouldThrowAsync<ArgumentNullException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task GeneratePdfFromPngAsync_NegativeOrZeroWidth_ThrowsArgumentOutOfRangeException(int widthPoints)
+    {
+        var pngBytes = Convert.FromBase64String(_1x1RedPngBase64);
+
+        Func<Task> act = () => _sut.GeneratePdfFromPngAsync(pngBytes, widthPoints, 100);
+
+        await act.ShouldThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task GeneratePdfFromPngAsync_NegativeOrZeroHeight_ThrowsArgumentOutOfRangeException(int heightPoints)
+    {
+        var pngBytes = Convert.FromBase64String(_1x1RedPngBase64);
+
+        Func<Task> act = () => _sut.GeneratePdfFromPngAsync(pngBytes, 100, heightPoints);
+
+        await act.ShouldThrowAsync<ArgumentOutOfRangeException>();
+    }
+
     private const string _1x1RedPngBase64 =
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 }
