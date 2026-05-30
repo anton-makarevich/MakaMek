@@ -8,6 +8,7 @@
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Fragments;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
@@ -38,7 +39,7 @@
             <Grid RowDefinitions="Auto,*,Auto">
                 <TextBlock Text="{extensions:Localize 'StartNewGame_Map'}" Classes="h2" HorizontalAlignment="Center"/>
                 <ScrollViewer Grid.Row="1" >
-                    <controls:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
+                    <fragments1:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
                 <StackPanel Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10">
                     <Grid>

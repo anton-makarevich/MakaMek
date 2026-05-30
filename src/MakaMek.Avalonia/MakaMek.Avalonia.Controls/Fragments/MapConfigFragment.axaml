@@ -6,7 +6,7 @@
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Converters"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Sanet.MakaMek.Avalonia.Controls.MapConfigFragment"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
     <UserControl.Resources>
         <converters:BoolToBrushConverter x:Key="SelectedItemToBrushConverter"/>
