@@ -18,7 +18,7 @@ public class PdfExportService : IPdfExportService
             page.Height = XUnit.FromPoint(heightPoints);
 
             using var gfx = XGraphics.FromPdfPage(page);
-            using var ms = new MemoryStream(pngBytes);
+            var ms = new MemoryStream(pngBytes);
             using var image = XImage.FromStream(() => ms);
             gfx.DrawImage(image, 0, 0, page.Width, page.Height);
 
