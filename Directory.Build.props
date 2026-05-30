@@ -2,6 +2,7 @@
 <Project>
     <PropertyGroup>
         <VersionPrefix>0.58.2</VersionPrefix>
+        <Version>$(VersionPrefix)</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
         <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
