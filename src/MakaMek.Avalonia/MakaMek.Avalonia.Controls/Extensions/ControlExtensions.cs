@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 
-namespace Sanet.MakaMek.Services.Avalonia;
+namespace Sanet.MakaMek.Avalonia.Controls.Extensions;
 
 public static class ControlExtensions
 {
