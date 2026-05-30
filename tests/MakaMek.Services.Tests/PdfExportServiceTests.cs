@@ -1,3 +1,4 @@
+using PdfSharpCore.Pdf.IO;
 using Shouldly;
 
 namespace Sanet.MakaMek.Services.Tests;
@@ -28,6 +29,9 @@ public class PdfExportServiceTests
         result.ShouldNotBeNull();
         result.ShouldNotBeEmpty();
         result.Take(5).ShouldBe("%PDF-"u8.ToArray()); // %PDF-
+        using var pdf = PdfReader.Open(new MemoryStream(result), PdfDocumentOpenMode.ReadOnly);
+        pdf.Pages[0].Width.Point.ShouldBe(612, 0.5);
+        pdf.Pages[0].Height.Point.ShouldBe(792, 0.5);
     }
 
     private const string _1x1RedPngBase64 =
