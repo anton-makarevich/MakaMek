@@ -12,12 +12,12 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
 {
     private readonly ILogger<EmbeddedMapResourceProvider> _logger;
     private const string MapsResourcePrefix = "Resources.Maps";
-    private readonly AssemblyResourceStreamProvider _streamProvider;
+    private readonly IResourceStreamProvider _streamProvider;
 
-    public EmbeddedMapResourceProvider(ILogger<EmbeddedMapResourceProvider> logger)
+    public EmbeddedMapResourceProvider(ILogger<EmbeddedMapResourceProvider> logger, IResourceStreamProvider streamProvider)
     {
         _logger = logger;
-        _streamProvider = new AssemblyResourceStreamProvider("json", typeof(EmbeddedMapResourceProvider).Assembly);
+        _streamProvider = streamProvider;
     }
 
     public async Task<IReadOnlyList<(string Name, BattleMapData MapData)>> GetAvailableMapsAsync()
