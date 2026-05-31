@@ -26,6 +26,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -315,7 +316,7 @@ public class MovementStateTests
         var newPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
         _unit1.Move(
             new MovementPath(
-            [new PathSegment(new HexPosition(1, 2, HexDirection.Bottom), newPosition, 1)],
+            [new PathSegment(new HexPosition(1, 2, HexDirection.Bottom), newPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
             MovementType.Walk), null);
 
         // Act
@@ -1972,7 +1973,7 @@ public class MovementStateTests
         // Simulate having taken a Jump movement before falling by setting MovementTaken directly
         var jumpPath = new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), [new JumpMovementCost { Value = 1 }])],
             MovementType.Jump);
         mech.Move(jumpPath, null);
 

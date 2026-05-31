@@ -6,39 +6,26 @@ namespace Sanet.MakaMek.Map.Tests.Models;
 public class SegmentEventTests
 {
     [Fact]
-    public void Constructor_SetsTypeAndCost()
+    public void Constructor_SetsType()
     {
-        var sut = new SegmentEvent(SegmentEventType.Fall, 5);
+        var sut = new SegmentEvent(SegmentEventType.Fall);
 
         sut.Type.ShouldBe(SegmentEventType.Fall);
-        sut.Cost.ShouldBe(5);
     }
 
     [Fact]
     public void Constructor_WithStandupAttempt_SetsCorrectType()
     {
-        var sut = new SegmentEvent(SegmentEventType.StandupAttempt, 3);
+        var sut = new SegmentEvent(SegmentEventType.StandupAttempt);
 
         sut.Type.ShouldBe(SegmentEventType.StandupAttempt);
-        sut.Cost.ShouldBe(3);
-    }
-
-    [Fact]
-    public void Deconstruct_ReturnsTypeAndCost()
-    {
-        var sut = new SegmentEvent(SegmentEventType.Fall, 7);
-
-        var (type, cost) = sut;
-
-        type.ShouldBe(SegmentEventType.Fall);
-        cost.ShouldBe(7);
     }
 
     [Fact]
     public void Equals_SameValues_ReturnsTrue()
     {
-        var a = new SegmentEvent(SegmentEventType.Fall, 5);
-        var b = new SegmentEvent(SegmentEventType.Fall, 5);
+        var a = new SegmentEvent(SegmentEventType.Fall);
+        var b = new SegmentEvent(SegmentEventType.Fall);
 
         a.Equals(b).ShouldBeTrue();
     }
@@ -46,17 +33,8 @@ public class SegmentEventTests
     [Fact]
     public void Equals_DifferentType_ReturnsFalse()
     {
-        var a = new SegmentEvent(SegmentEventType.Fall, 5);
-        var b = new SegmentEvent(SegmentEventType.StandupAttempt, 5);
-
-        a.Equals(b).ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Equals_DifferentCost_ReturnsFalse()
-    {
-        var a = new SegmentEvent(SegmentEventType.Fall, 5);
-        var b = new SegmentEvent(SegmentEventType.Fall, 10);
+        var a = new SegmentEvent(SegmentEventType.Fall);
+        var b = new SegmentEvent(SegmentEventType.StandupAttempt);
 
         a.Equals(b).ShouldBeFalse();
     }
@@ -64,8 +42,8 @@ public class SegmentEventTests
     [Fact]
     public void OperatorEquals_SameValues_ReturnsTrue()
     {
-        var a = new SegmentEvent(SegmentEventType.Fall, 5);
-        var b = new SegmentEvent(SegmentEventType.Fall, 5);
+        var a = new SegmentEvent(SegmentEventType.Fall);
+        var b = new SegmentEvent(SegmentEventType.Fall);
 
         (a == b).ShouldBeTrue();
     }
@@ -73,8 +51,8 @@ public class SegmentEventTests
     [Fact]
     public void OperatorNotEquals_DifferentValues_ReturnsTrue()
     {
-        var a = new SegmentEvent(SegmentEventType.Fall, 5);
-        var b = new SegmentEvent(SegmentEventType.StandupAttempt, 5);
+        var a = new SegmentEvent(SegmentEventType.Fall);
+        var b = new SegmentEvent(SegmentEventType.StandupAttempt);
 
         (a != b).ShouldBeTrue();
     }
@@ -82,11 +60,10 @@ public class SegmentEventTests
     [Fact]
     public void ToString_ReturnsFormattedString()
     {
-        var sut = new SegmentEvent(SegmentEventType.Fall, 5);
+        var sut = new SegmentEvent(SegmentEventType.Fall);
 
         var result = sut.ToString();
 
         result.ShouldContain("Fall");
-        result.ShouldContain("5");
     }
 }

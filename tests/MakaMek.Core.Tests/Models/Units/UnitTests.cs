@@ -18,6 +18,8 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units;
@@ -1402,7 +1404,7 @@ public class UnitTests
         
         // Move the unit with the Run movement type
         unit.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run), null);
+            new PathSegment(deployPosition, deployPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 5 }])], MovementType.Run), null);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -1484,7 +1486,7 @@ public class UnitTests
 
         // Move the unit with the Jump movement type
         unit.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 3)], MovementType.Jump), null);
+            new PathSegment(deployPosition, deployPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }])], MovementType.Jump), null);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -2681,7 +2683,7 @@ public class UnitTests
         
         // Add movement heat
         sut.Move(new MovementPath([
-            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run), null);
+            new PathSegment(deployPosition, deployPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 5 }])], MovementType.Run), null);
         
         // Add external heat (10 Flamers × 2 = 20, capped at 15)
         for (var i = 0; i < 10; i++)
@@ -2921,13 +2923,13 @@ public class UnitTests
 
         // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
-            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
         ], MovementType.Run);
         sut.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 2)
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
         ], MovementType.Run);
 
         // Act
@@ -2951,13 +2953,13 @@ public class UnitTests
 
         // First leg (before fall) - not yet completed movement
         var firstLeg = new MovementPath([
-            new PathSegment(targetDeploy, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+            new PathSegment(targetDeploy, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         target.Move(firstLeg, null, false);
 
         // Second leg (after standup continuation)
         var secondLeg = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         target.Move(secondLeg, null);
 
@@ -2986,7 +2988,7 @@ public class UnitTests
 
         // First move completes movement
         sut.Move(new MovementPath([
-            new PathSegment(deployPosition, finalPosition, 2)
+            new PathSegment(deployPosition, finalPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
         ], MovementType.Walk), null);
         sut.HasMoved.ShouldBeTrue();
         sut.MovementPointsSpent.ShouldBe(2);
@@ -2994,7 +2996,7 @@ public class UnitTests
         // Act - second move should be no-op
         var newPosition = new HexPosition(new HexCoordinates(5, 1), HexDirection.Bottom);
         sut.Move(new MovementPath([
-            new PathSegment(finalPosition, newPosition, 2)
+            new PathSegment(finalPosition, newPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
         ], MovementType.Walk), null);
 
         // Assert - state should remain unchanged from the first move
@@ -3011,12 +3013,12 @@ public class UnitTests
         sut.Deploy(deployPosition, null);
 
         var firstLeg = new MovementPath([
-            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 2)
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
         ], MovementType.Run);
         sut.Move(firstLeg, null, false);
 
         var secondLeg = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
 
         sut.Move(secondLeg, null);

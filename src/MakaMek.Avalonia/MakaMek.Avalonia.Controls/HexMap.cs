@@ -16,7 +16,7 @@ public class HexMap : Canvas
     private readonly TranslateTransform _mapTranslateTransform = new();
     private readonly ScaleTransform _mapScaleTransform = new() { ScaleX = 1, ScaleY = 1 };
     private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs. pan
-    private const double DragThresholdPixels = 3.0; 
+    private const double DragThresholdPixels = 3.0;
     private bool _isManipulating;
     private bool _isZooming;
     private bool _isPressed;
@@ -179,6 +179,7 @@ public class HexMap : Canvas
             _isZooming = false;
             _isPressed = false;
         }
+
         _isManipulating = false;
     }
 
@@ -237,7 +238,9 @@ public class HexMap : Canvas
 
         try
         {
-            return this.RenderToPngBytes((int)Bounds.Width, (int)Bounds.Height);
+            var w = double.IsNaN(Width) ? (int)Bounds.Width : (int)Width;
+            var h = double.IsNaN(Height) ? (int)Bounds.Height : (int)Height;
+            return this.RenderToPngBytes(w, h);
         }
         finally
         {

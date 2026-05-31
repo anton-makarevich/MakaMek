@@ -1,5 +1,7 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Exceptions;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -72,14 +74,14 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (turningSteps.Count == 0)
         {
-            segments.Add(new PathSegment(start, target, 0, ElevationChange: 0));
+            segments.Add(new PathSegment(start, target, [], ElevationChange: 0));
         }
         else
         {
             var currentPos = start;
             foreach (var step in turningSteps)
             {
-                segments.Add(new PathSegment(currentPos, step, 1, ElevationChange: 0)); // Cost 1 for each turn
+                segments.Add(new PathSegment(currentPos, step, [new RotationMovementCost { FromFacing = currentPos.Facing, ToFacing = step.Facing, Value = 1 }], ElevationChange: 0));
                 currentPos = step;
             }
         }
@@ -97,7 +99,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         {
             var from = path[i];
             var to = path[i + 1];
-            var segmentCost = 1; // Default cost for turning
+            IReadOnlyList<MovementCost> costs;
             var elevationChange = 0;
 
             // If coordinates changed, it's a movement
@@ -107,10 +109,28 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
                 elevationChange = fromHex.GetElevationChangeTo(hex);
                 var levelCost = Math.Abs(elevationChange);
-                segmentCost = hex.MovementCost + levelCost;
+
+                var terrainId = hex.GetTerrains()
+                    .OrderByDescending(t => t.MovementCost)
+                    .FirstOrDefault()?.Id ?? MakaMekTerrains.Clear;
+
+                var costList = new List<MovementCost>
+                {
+                    new TerrainMovementCost { TerrainId = terrainId, Value = hex.MovementCost }
+                };
+                if (levelCost > 0)
+                {
+                    costList.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
+                }
+                costs = costList;
+            }
+            else
+            {
+                // Turn segment (same coordinates, different facing)
+                costs = [new RotationMovementCost { FromFacing = from.Facing, ToFacing = to.Facing, Value = 1 }];
             }
 
-            segments.Add(new PathSegment(from, to, segmentCost, ElevationChange: elevationChange));
+            segments.Add(new PathSegment(from, to, costs, ElevationChange: elevationChange));
         }
         return segments;
     }
@@ -710,7 +730,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         
         if (from == to)
         {
-            path.Add(new PathSegment(from, to, 0, ElevationChange: 0));
+            path.Add(new PathSegment(from, to, [], ElevationChange: 0));
         }
         else
         {
@@ -747,7 +767,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 path.Add(new PathSegment(
                     currentPosition,
                     nextPosition,
-                    1,
+                    [new JumpMovementCost { Value = 1 }],
                     ElevationChange: elevationChange));
 
                 currentPosition = nextPosition;

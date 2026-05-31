@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -45,8 +46,7 @@ public class MovementPath : IEquatable<MovementPath>
         IsJump = movementType == MovementType.Jump;
         MaxLevelChange = maxLevelChange;
         
-        var totalEventsCost = Segments.Sum(s => s.Events.Sum(e => e.Cost));
-        TotalCost = Segments.Sum(s => s.Cost) + totalEventsCost;
+        TotalCost = Segments.Sum(s => s.Cost);
         
         TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
         StraightLineDistance = Start.Coordinates.DistanceTo(Destination.Coordinates);
@@ -88,7 +88,7 @@ public class MovementPath : IEquatable<MovementPath>
     
     /// <summary>
     /// Maximum level change constraint used when finding this path.
-    /// Used as part of cache key to ensure paths with different level constraints are cached separately.
+    /// Used as part of a cache key to ensure paths with different level constraints are cached separately.
     /// </summary>
     private int? MaxLevelChange { get; }
     
@@ -103,15 +103,23 @@ public class MovementPath : IEquatable<MovementPath>
             .Where(s => s.Events.Length > 0)
             .SelectMany(s => s.Events.Select(e => (e, s.To.Coordinates)));
 
-    public MovementPath WithLastSegmentEvent(SegmentEvent segmentEvent)
+    public MovementPath WithLastSegmentEvent(SegmentEvent segmentEvent, MovementCost? eventCost = null)
     {
         var segments = Segments.ToList();
         var lastSegment = segments[^1];
         var newEvents = lastSegment.Events.Append(segmentEvent).ToArray();
-        segments[^1] = lastSegment with { Events = newEvents };
+        if (eventCost != null)
+        {
+            var newCosts = lastSegment.Costs.Append(eventCost).ToList();
+            segments[^1] = lastSegment with { Events = newEvents, Costs = newCosts };
+        }
+        else
+        {
+            segments[^1] = lastSegment with { Events = newEvents };
+        }
         return new MovementPath(segments, MovementType, MaxLevelChange);
     }
-    
+
     /// <summary>
     /// Creates a new MovementPath with all facings reversed (for backward movement)
     /// </summary>
@@ -120,7 +128,15 @@ public class MovementPath : IEquatable<MovementPath>
         var reversedSegments = Segments.Select(segment => new PathSegment(
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-            segment.Cost,
+            segment.Costs.Select(cost => cost switch
+            {
+                RotationMovementCost rotation => rotation with
+                {
+                    FromFacing = rotation.FromFacing.GetOppositeDirection(),
+                    ToFacing = rotation.ToFacing.GetOppositeDirection()
+                },
+                _ => cost
+            }).ToArray(),
             !segment.IsReversed,
             ElevationChange: segment.ElevationChange,
             Events: segment.Events
@@ -185,7 +201,7 @@ public class MovementPath : IEquatable<MovementPath>
     {
         return new MovementPath(new List<PathSegment>
         {
-            new(position, position, 0)
+            new(position, position, [])
         }, movementType);
     }
 }

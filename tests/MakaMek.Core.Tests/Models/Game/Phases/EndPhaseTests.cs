@@ -13,6 +13,8 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -175,7 +177,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1,2), HexDirection.Bottom);
         unit.Deploy(deployPosition, null);
-        var movementPath = new MovementPath([new PathSegment(deployPosition, targetPosition, 1).ToData()], MovementType.Walk);
+        var movementPath = new MovementPath([new PathSegment(deployPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()], MovementType.Walk);
         unit.Move(movementPath, null, true);
         
         unit.MovementTaken.ShouldBe(movementPath);

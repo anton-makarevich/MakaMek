@@ -1,5 +1,7 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Map.Tests.Models;
@@ -16,7 +18,7 @@ public class PathSegmentTests
         const int elevationChange = 2;
 
         // Act
-        var segment = new PathSegment(from, to, cost, ElevationChange: elevationChange);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }], ElevationChange: elevationChange);
 
         // Assert
         segment.From.ShouldBe(from);
@@ -37,7 +39,7 @@ public class PathSegmentTests
         {
             From = from.ToData(),
             To = to.ToData(),
-            Cost = cost,
+            Costs = [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }],
             ElevationChange = elevationChange
         };
 
@@ -59,7 +61,9 @@ public class PathSegmentTests
         var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         const int cost = 3;
         const int elevationChange = 5;
-        var segment = new PathSegment(from, to, cost, ElevationChange: elevationChange);
+        var segment = new PathSegment(from, to,
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }],
+            ElevationChange: elevationChange);
 
         // Act
         var data = segment.ToData();
@@ -67,7 +71,11 @@ public class PathSegmentTests
         // Assert
         data.From.ShouldBe(from.ToData());
         data.To.ShouldBe(to.ToData());
-        data.Cost.ShouldBe(cost);
+        data.Costs.Count.ShouldBe(1);
+        data.Costs[0].ShouldBeOfType<TerrainMovementCost>();
+        var terrainCost = (TerrainMovementCost)data.Costs[0];
+        terrainCost.TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        terrainCost.Value.ShouldBe(cost);
         data.ElevationChange.ShouldBe(elevationChange);
     }
 
@@ -80,11 +88,19 @@ public class PathSegmentTests
         const int cost = 3;
 
         // Act
-        var segment1 = new PathSegment(from, to, cost);
-        var segment2 = new PathSegment(from, to, cost);
+        IReadOnlyList<MovementCost> costs1 =
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }];
+        IReadOnlyList<MovementCost> costs2 =
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }];
+        var segment1 = new PathSegment(from, to, costs1);
+        var segment2 = new PathSegment(from, to, costs2);
 
         // Assert
-        segment1.ShouldBe(segment2);
+        segment1.From.ShouldBe(segment2.From);
+        segment1.To.ShouldBe(segment2.To);
+        segment1.Cost.ShouldBe(segment2.Cost);
+        segment1.IsReversed.ShouldBe(segment2.IsReversed);
+        segment1.ElevationChange.ShouldBe(segment2.ElevationChange);
     }
 
     [Fact]
@@ -96,7 +112,7 @@ public class PathSegmentTests
         const int cost = 3;
 
         // Act
-        var segment = new PathSegment(from, to, cost);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }]);
 
         // Assert
         segment.ElevationChange.ShouldBe(0);

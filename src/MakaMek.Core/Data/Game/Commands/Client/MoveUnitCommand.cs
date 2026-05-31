@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -33,7 +34,19 @@ public record struct MoveUnitCommand: IClientUnitCommand
             sb.Append(',');
             sb.Append(segment.To.Facing);
             sb.Append(':');
-            sb.Append(segment.Cost);
+            foreach (var cost in segment.Costs)
+            {
+                sb.Append('[');
+                sb.Append(cost.GetType().Name);
+                sb.Append(':');
+                sb.Append(cost.Value);
+                if (cost is TerrainMovementCost terrainCost)
+                {
+                    sb.Append(':');
+                    sb.Append((int)terrainCost.TerrainId);
+                }
+                sb.Append(']');
+            }
             sb.Append(':');
             sb.Append(segment.IsReversed ? '1' : '0');
             sb.Append(':');

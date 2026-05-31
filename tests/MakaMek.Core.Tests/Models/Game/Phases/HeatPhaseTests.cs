@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -633,7 +634,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition, null);
-        unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, 1)]
+        unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])]
             , movementType), null, true);
     }
 

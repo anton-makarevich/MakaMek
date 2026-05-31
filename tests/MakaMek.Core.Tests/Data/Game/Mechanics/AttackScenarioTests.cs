@@ -5,6 +5,8 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Mechanics;
@@ -24,15 +26,15 @@ public class AttackScenarioTests
                 new PathSegment(
                     new HexPosition(1, 1, HexDirection.Top),
                     new HexPosition(1, 2, HexDirection.Top),
-                    1),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
                 new PathSegment(
                     new HexPosition(1, 2, HexDirection.Top),
                     new HexPosition(1, 3, HexDirection.Top),
-                    1),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
                 new PathSegment(
                     new HexPosition(1, 3, HexDirection.Top),
                     new HexPosition(1, 4, HexDirection.Top),
-                    1)
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
             ], MovementType.Walk);
         
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
@@ -112,7 +114,7 @@ public class AttackScenarioTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk));
         target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
         target.MovementTaken.Returns((MovementPath?)null);

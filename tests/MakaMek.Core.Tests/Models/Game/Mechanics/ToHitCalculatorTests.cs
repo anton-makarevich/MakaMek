@@ -17,6 +17,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -83,7 +84,7 @@ public class ToHitCalculatorTests
         var targetStartPosition = new HexPosition(new HexCoordinates(targetEndPosition.Coordinates.Q-1, targetEndPosition.Coordinates.R), HexDirection.Bottom);
         _target.Deploy(targetStartPosition, null);
         _target.Move(new MovementPath([
-            new PathSegment(targetStartPosition, targetEndPosition, 1)],
+            new PathSegment(targetStartPosition, targetEndPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
             MovementType.Walk), null);
     }
 
@@ -115,7 +116,7 @@ public class ToHitCalculatorTests
         targetHex.AddTerrain(terrain);
         _target.Deploy(targetStartPosition, targetHex);
         _target.Move(new MovementPath([
-            new PathSegment(targetStartPosition, targetEndPosition, 1)],
+            new PathSegment(targetStartPosition, targetEndPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
             MovementType.Walk), targetHex);
 
         if (map != null)

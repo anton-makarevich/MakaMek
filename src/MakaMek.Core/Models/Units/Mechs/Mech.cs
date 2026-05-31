@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -604,7 +605,7 @@ public class Mech : Unit
         if (Position == null || movementType == null) return; 
         MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
         var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
-        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, pointsToSpend));
+        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = pointsToSpend });
     }
 
     public void ApplyFall(MechFallCommand fallCommand)
@@ -617,7 +618,7 @@ public class Mech : Unit
             Pilot?.Hit();
         }
 
-        MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall, 0));
+        MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
     }
     
     public override HexPosition? Position

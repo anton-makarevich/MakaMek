@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Client.Builders;
@@ -51,7 +53,7 @@ public class MoveUnitCommandBuilderTests
         _builder.SetMovementPath(new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(1,1,HexDirection.Bottom),
-                new HexPosition(1,2,HexDirection.Bottom), 1)
+                new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk));
         
         // Act & Assert
@@ -63,28 +65,29 @@ public class MoveUnitCommandBuilderTests
     {
         // Arrange
         _builder.SetUnit(_unit);
-        _builder.SetMovementPath(new MovementPath([new PathSegment(
-            new HexPosition(1,1,HexDirection.Bottom),
-            new HexPosition(1,2,HexDirection.Bottom), 
-            1)], MovementType.Walk));
+            _builder.SetMovementPath(new MovementPath([new PathSegment(
+                new HexPosition(1,1,HexDirection.Bottom),
+                new HexPosition(1,2,HexDirection.Bottom), 
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk));
         
         // Act & Assert
         _builder.CanBuild.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void Build_ReturnsCommand()
     {
         // Arrange
         var startPos = new HexPosition(1, 1, HexDirection.Bottom);
         var endPos = new HexPosition(1, 2, HexDirection.Bottom);
-        var pathSegment = new PathSegment(startPos, endPos, 1);
+        var pathSegment = new PathSegment(startPos, endPos,
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         _builder.SetUnit(_unit);
         _builder.SetMovementPath(new MovementPath([pathSegment], MovementType.Walk));
-        
+
         // Act 
         var command = _builder.Build();
-        
+
         // Assert
         command.ShouldNotBeNull();
         command.Value.GameOriginId.ShouldBe(_gameId);
@@ -92,11 +95,14 @@ public class MoveUnitCommandBuilderTests
         command.Value.PlayerId.ShouldBe(_playerId);
         command.Value.UnitId.ShouldBe(_unit.Id);
         command.Value.MovementPath.Count.ShouldBe(1);
-        command.Value.MovementPath[0].Cost.ShouldBe(1);
+        var cost = command.Value.MovementPath[0].Costs.ShouldHaveSingleItem();
+        cost.ShouldBeOfType<TerrainMovementCost>();
+        ((TerrainMovementCost)cost).TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        cost.Value.ShouldBe(1);
         command.Value.MovementPath[0].From.Coordinates.ShouldBeEquivalentTo(startPos.Coordinates.ToData());
         command.Value.MovementPath[0].To.Coordinates.ShouldBeEquivalentTo(endPos.Coordinates.ToData());
     }
-    
+
     [Fact]
     public void Build_ReturnsNull_WhenNoDataSet()
     {
@@ -125,7 +131,7 @@ public class MoveUnitCommandBuilderTests
     {
         // Arrange
         _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-        new HexPosition(1,2,HexDirection.Bottom), 2)], MovementType.Walk));
+        new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])], MovementType.Walk));
         
         // Act
         var result = _builder.Build();
@@ -141,8 +147,8 @@ public class MoveUnitCommandBuilderTests
         var startPos = new HexPosition(1, 1, HexDirection.Top);
         var midPos = new HexPosition(1, 1, HexDirection.TopRight);
         var endPos = new HexPosition(1, 2, HexDirection.TopRight);
-        var turnSegment = new PathSegment(startPos, midPos, 1);
-        var moveSegment = new PathSegment(midPos, endPos, 1);
+        var turnSegment = new PathSegment(startPos, midPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var moveSegment = new PathSegment(midPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         
         _builder.SetUnit(_unit);
         _builder.SetMovementPath(new MovementPath([turnSegment, moveSegment], MovementType.Walk));
@@ -157,8 +163,8 @@ public class MoveUnitCommandBuilderTests
         result.Value.UnitId.ShouldBe(_unit.Id);
         result.Value.MovementType.ShouldBe(MovementType.Walk);
         result.Value.MovementPath.Count.ShouldBe(2);
-        result.Value.MovementPath[0].Cost.ShouldBe(1);
-        result.Value.MovementPath[1].Cost.ShouldBe(1);
+        result.Value.MovementPath[0].Costs.Sum(c => c.Value).ShouldBe(1);
+        result.Value.MovementPath[1].Costs.Sum(c => c.Value).ShouldBe(1);
     }
     
     [Fact]
@@ -167,7 +173,7 @@ public class MoveUnitCommandBuilderTests
         // Arrange
         _builder.SetUnit(_unit);
         _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-        new HexPosition(1,2,HexDirection.Bottom),2)], MovementType.Walk));
+        new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])], MovementType.Walk));
         
         // Act
         _builder.Reset();
