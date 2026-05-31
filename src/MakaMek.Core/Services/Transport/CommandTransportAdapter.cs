@@ -26,6 +26,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         TypeInfoResolver = new CompositeJsonTypeInfoResolver(
             new RollModifierTypeResolver(),
             new PilotingSkillRollContextTypeResolver(),
+            new MovementCostTypeResolver(),
             new DefaultJsonTypeInfoResolver()
         ),
         WriteIndented = true,

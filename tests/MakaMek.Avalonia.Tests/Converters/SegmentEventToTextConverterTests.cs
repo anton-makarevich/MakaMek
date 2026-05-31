@@ -4,6 +4,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 using System.Globalization;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
@@ -32,7 +33,7 @@ public class SegmentEventToTextConverterTests
     [Fact]
     public void Convert_WithFallEvent_ReturnsLocalizedText()
     {
-        var segmentEvent = new SegmentEvent(SegmentEventType.Fall, 1);
+        var segmentEvent = new SegmentEvent(SegmentEventType.Fall, []);
         var location = new HexCoordinates(1, 2);
         var value = (segmentEvent, location);
         const string expectedText = "Fall @0102";
@@ -46,7 +47,7 @@ public class SegmentEventToTextConverterTests
     [Fact]
     public void Convert_WithStandupAttemptEvent_ReturnsLocalizedText()
     {
-        var segmentEvent = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
+        var segmentEvent = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }]);
         var location = new HexCoordinates(3, 4);
         var value = (segmentEvent, location);
         const string expectedText = "Standup @0304";

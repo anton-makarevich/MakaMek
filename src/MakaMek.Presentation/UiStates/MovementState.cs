@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 
@@ -486,7 +487,7 @@ public class MovementState : IUiState
 
             // Set the selected movement type for later use
             _selectedPath = new MovementPath([
-                new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
+                new PathSegment(_selectedUnit.Position, _selectedUnit.Position, [])],
                 movementType);
             // Ensure the builder has the unit and movement type set
             _builder.SetUnit(_selectedUnit);
@@ -558,7 +559,7 @@ public class MovementState : IUiState
             
             _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
             _selectedPath = new MovementPath([
-                new PathSegment(mech.Position, mech.Position, 0)],
+                new PathSegment(mech.Position, mech.Position, [])],
                 _selectedPath.MovementType);
             _builder.SetMovementPath(_selectedPath);
             HighlightReachableHexes();
@@ -634,14 +635,14 @@ public class MovementState : IUiState
         if (currentFacing == null) return;
         
         _selectedPath = new MovementPath([
-            new PathSegment(mech.Position, mech.Position, 0)],
+            new PathSegment(mech.Position, mech.Position, [])],
             MovementType.Walk);
         _builder.SetMovementPath(_selectedPath);
 
         void AddToPossibleDirections(HexDirection direction, int cost)
         {
             var pathSegments = new MovementPath([
-                new PathSegment(mech.Position, mech.Position with { Facing = direction }, cost)
+                new PathSegment(mech.Position, mech.Position with { Facing = direction }, [new RotationMovementCost { FromFacing = mech.Position.Facing, ToFacing = direction, Value = cost }])
             ], MovementType.Walk);
             _possibleDirections[direction] = pathSegments;
         }
@@ -717,7 +718,7 @@ public class MovementState : IUiState
             }
 
             State._selectedPath = new MovementPath([
-                    new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position, 0)],
+                    new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position, [])],
                 movementType);
             State.HighlightReachableHexes();
             State.TransitionTo(new SelectingTargetHexStep(State));

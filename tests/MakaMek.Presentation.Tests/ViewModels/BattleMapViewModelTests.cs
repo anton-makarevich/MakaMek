@@ -32,6 +32,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.UiStates;
@@ -743,7 +744,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
 
         // Act
@@ -764,7 +765,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         _sut.ShowMovementPath(new MovementPath(path, MovementType.Walk));
 
@@ -784,7 +785,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         _sut.ShowMovementPath(new MovementPath(path, MovementType.Walk));
 
@@ -794,7 +795,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                0)
+                [])
         }, MovementType.Walk));
 
         // Assert
@@ -810,7 +811,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         var propertyChanged = false;
         _sut.PropertyChanged += (_, e) =>
@@ -835,7 +836,7 @@ public class BattleMapViewModelTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         _sut.ShowMovementPath(new MovementPath(path, MovementType.Jump));
         var propertyChanged = false;

@@ -120,7 +120,7 @@ public class MovementPath : IEquatable<MovementPath>
         var reversedSegments = Segments.Select(segment => new PathSegment(
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-            segment.Cost,
+            segment.Costs,
             !segment.IsReversed,
             ElevationChange: segment.ElevationChange,
             Events: segment.Events
@@ -185,7 +185,7 @@ public class MovementPath : IEquatable<MovementPath>
     {
         return new MovementPath(new List<PathSegment>
         {
-            new(position, position, 0)
+            new(position, position, [])
         }, movementType);
     }
 }

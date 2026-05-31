@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -12,7 +14,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -25,7 +27,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -38,7 +40,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -54,7 +56,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -70,7 +72,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
         const double turnLength = 40;
 
@@ -89,7 +91,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Expected values for NorthRight direction (60 degrees)
@@ -110,7 +112,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Expected values for North direction (0 degrees)
@@ -131,7 +133,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -144,7 +146,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         var to = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -157,7 +159,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 1);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -170,7 +172,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 2);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -183,7 +185,7 @@ public class PathSegmentViewModelTests
         // Arrange
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 2, ElevationChange: 5);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }], ElevationChange: 5);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert
@@ -196,12 +198,12 @@ public class PathSegmentViewModelTests
         // Arrange
         var events = new[]
         {
-            new SegmentEvent(SegmentEventType.Fall, 1),
-            new SegmentEvent(SegmentEventType.StandupAttempt, 2)
+            new SegmentEvent(SegmentEventType.Fall, []),
+            new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }])
         };
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, 3, Events: events);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }], Events: events);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert

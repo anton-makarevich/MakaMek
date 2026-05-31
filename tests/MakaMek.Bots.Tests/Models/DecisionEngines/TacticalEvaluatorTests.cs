@@ -12,6 +12,8 @@ using Shouldly;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
@@ -61,7 +63,7 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPos, enemyPos, 0)
+            new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk),null);
         
         // Set up enemy weapon
@@ -104,7 +106,7 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPos, enemyPos, 0)
+            new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
         // Set up enemy weapon
@@ -138,7 +140,7 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(1, 12), HexDirection.Top);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPos, enemyPos, 0)
+            new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
@@ -173,7 +175,7 @@ public class TacticalEvaluatorTests
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var path = new MovementPath(new List<PathSegment>
         {
-            new(unitPos, unitPos, 0)
+            new(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk);
         unit.Move(path, null);
         
@@ -181,7 +183,7 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPos, enemyPos, 0)
+            new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
@@ -230,7 +232,7 @@ public class TacticalEvaluatorTests
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var path = new MovementPath(new List<PathSegment>
         {
-            new(unitPos, unitPos, 0)
+            new(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk);
         unit.Move(path, null);
         
@@ -238,7 +240,7 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Bottom);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPos, enemyPos, 0)
+            new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
@@ -275,18 +277,18 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         unit.Move(path, null);
 
         // Enemy 1: In Range, hit prob > 0
         var enemy1 = MovementEngineTests.CreateTestMech();
         var enemy1Pos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
-        enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, 0)], MovementType.Walk), null);
+        enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
         
         // Enemy 2: In Range but hit prob 0 (e.g., obscured but technically LoS exists)
         var enemy2 = MovementEngineTests.CreateTestMech();
         var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
-        enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk), null);
+        enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
@@ -341,7 +343,7 @@ public class TacticalEvaluatorTests
         var enemyPosition = new HexPosition(new HexCoordinates(1, 12), HexDirection.BottomRight);
         enemy.Move(new MovementPath(new List<PathSegment>
         {
-            new(enemyPosition, enemyPosition, 0)
+            new(enemyPosition, enemyPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
         var enemies = new List<IUnit> { enemy };
@@ -375,13 +377,13 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         unit.Move(path, null);
 
         // Enemy at 10 hexes away - beyond long range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(1, 11), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         // Weapon with long range of 9 (enemy is at range 10)
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
@@ -415,13 +417,13 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         unit.Move(path, null);
 
         // Enemy at range
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         // Mount on a leg part - legs don't support torso rotation
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
@@ -454,13 +456,13 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         unit.Move(path, null);
 
         // Enemy at rangeBracket
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);
@@ -495,13 +497,13 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom 
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         unit.Move(path, null);
 
         // Enemy at rangeBracket
         var enemy = MovementEngineTests.CreateTestMech();
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
-        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk), null);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
         var weapon = new TestWeapon(weaponDef);

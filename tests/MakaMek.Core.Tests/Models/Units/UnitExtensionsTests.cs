@@ -13,6 +13,8 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units;
@@ -456,7 +458,7 @@ public class UnitExtensionsTests
         // Move the mech
         var startPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var endPos = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(startPos, endPos, 1)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         mech.Deploy(startPos, null);
         mech.Move(path, null);
 

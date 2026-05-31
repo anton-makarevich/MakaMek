@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
 
@@ -175,7 +176,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
-        var path = new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(deployPosition, newCoordinates, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         mech.Deploy(deployPosition, null);
 
         // Act
@@ -197,7 +198,7 @@ public class MechTests
     
         // Act
         var act = () => mech.Move(new MovementPath([
-            new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1)],
+            new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
             MovementType.Walk), null);
     
         // Assert
@@ -214,10 +215,10 @@ public class MechTests
         mech.Deploy(deployPosition, null);
 
         var firstPath = new MovementPath([
-            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         var secondPath = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
 
         // Act
@@ -239,10 +240,10 @@ public class MechTests
         mech.Deploy(deployPosition, null);
 
         var firstPath = new MovementPath([
-            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         var secondPath = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), 1)
+            new PathSegment(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
 
         // Act
@@ -262,10 +263,10 @@ public class MechTests
         mech.Deploy(deployPosition, null);
 
         var firstPath = new MovementPath([
-            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), 1)
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         var secondPath = new MovementPath([
-            new PathSegment(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), new HexPosition(new HexCoordinates(6, 5), HexDirection.Top), 1)
+            new PathSegment(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), new HexPosition(new HexCoordinates(6, 5), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
 
         // Act
@@ -286,7 +287,7 @@ public class MechTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         mech.Deploy(deployPosition, null);
-        mech.Move(new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk), null);
+        mech.Move(new MovementPath([new PathSegment(deployPosition, newCoordinates, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk), null);
 
         // Act
         mech.ResetTurnState();
@@ -813,7 +814,7 @@ public class MechTests
         if (spentMp > 0)
         {
             mech.Move(new MovementPath([
-                new PathSegment(start, new HexPosition(new HexCoordinates(spentMp, 0), HexDirection.Top), spentMp)
+                new PathSegment(start, new HexPosition(new HexCoordinates(spentMp, 0), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = spentMp }])
             ], MovementType.Walk), null);
         }
 
@@ -835,7 +836,7 @@ public class MechTests
 
         // Act - spend 6 MPs running (each hex costs 1)
         mech.Move(new MovementPath([
-            new PathSegment(start, new HexPosition(new HexCoordinates(6, 0), HexDirection.Top), 6)
+            new PathSegment(start, new HexPosition(new HexCoordinates(6, 0), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 6 }])
         ], MovementType.Run), null);
 
         // Assert - remaining should be total run MP minus spent
@@ -1926,7 +1927,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 25, CreateBasicPartsData());
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         mech.Deploy(position, null);
-        var path = new MovementPath([new PathSegment(position, position, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(position, position, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         mech.Move(path, null);
 
         // Act
@@ -1950,7 +1951,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50*initialMovement));
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         mech.Deploy(position, null);
-        var path = new MovementPath([new PathSegment(position, position, 0)], MovementType.Walk);
+        var path = new MovementPath([new PathSegment(position, position, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
         mech.Move(path, null);
 
         // Act
@@ -2078,7 +2079,7 @@ public class MechTests
         sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         sut.Move(new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), 0)],
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])],
             MovementType.Jump), null);
         sut.SetProne();
 

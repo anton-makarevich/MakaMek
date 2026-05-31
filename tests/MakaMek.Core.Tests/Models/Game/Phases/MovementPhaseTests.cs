@@ -14,6 +14,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -77,7 +79,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         });
@@ -103,7 +105,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         });
@@ -136,7 +138,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 MovementPath =
                 [
                     new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 1, HexDirection.Bottom),
-                        1).ToData()
+                        [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
                 ]
             });
         }
@@ -168,7 +170,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                     MovementPath =
                     [
                         new PathSegment(new HexPosition(1, 2, HexDirection.Top),
-                            new HexPosition(1, 1, HexDirection.Bottom), 1).ToData()
+                            new HexPosition(1, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
                     ]
                 });
             }
@@ -467,7 +469,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         };
@@ -523,7 +525,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         };
@@ -579,7 +581,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         };
@@ -791,8 +793,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         };
 
@@ -872,8 +874,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 
@@ -946,8 +948,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 
@@ -1001,7 +1003,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         });
 
@@ -1015,7 +1017,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = unit2.Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(5, 2, HexDirection.Top), new HexPosition(5, 1, HexDirection.Bottom), 1).ToData()
+                new PathSegment(new HexPosition(5, 2, HexDirection.Top), new HexPosition(5, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 
@@ -1093,7 +1095,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         });
 
@@ -1117,7 +1119,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 
@@ -1198,7 +1200,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         });
         unit.Position!.Coordinates.ShouldBe(new HexCoordinates(2, 2));
@@ -1224,7 +1226,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 1).ToData()
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 
@@ -1257,7 +1259,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         };
 
@@ -1311,7 +1313,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         };
 
@@ -1361,7 +1363,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         };
 
@@ -1410,7 +1412,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsCompleted = true,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         });
@@ -1428,7 +1430,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsCompleted = true,
             MovementPath =
             [
-                new PathSegment(new HexPosition(3, 1, HexDirection.Bottom), new HexPosition(4, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(3, 1, HexDirection.Bottom), new HexPosition(4, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         });
@@ -1459,7 +1461,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsCompleted = true,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
                     .ToData()
             ]
         });
@@ -1529,7 +1531,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 2).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
             ]
         });
 
@@ -1546,7 +1548,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = unit2.Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(5, 2, HexDirection.Top), newPosition, 1).ToData()
+                new PathSegment(new HexPosition(5, 2, HexDirection.Top), newPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         });
 

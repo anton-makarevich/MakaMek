@@ -17,6 +17,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
@@ -197,7 +199,7 @@ public class MovementEngineTests
         
         // Mock path finding
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
-        var pathSegment = new PathSegment(unit.Position!, targetPosition, 1);
+        var pathSegment = new PathSegment(unit.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
             Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
@@ -406,7 +408,7 @@ public class MovementEngineTests
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
-        var pathSegment = new PathSegment(mech.Position!, targetPosition, 1);
+        var pathSegment = new PathSegment(mech.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
             Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
@@ -458,7 +460,7 @@ public class MovementEngineTests
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
-        var pathSegment = new PathSegment(mech.Position!, targetPosition, 1);
+        var pathSegment = new PathSegment(mech.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
             Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
@@ -518,8 +520,8 @@ public class MovementEngineTests
         
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
-        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 2);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
         _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk,
                 Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment1], callInfo.ArgAt<MovementType>(2)));
@@ -580,13 +582,13 @@ public class MovementEngineTests
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
 
         // Path 1: shorter
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path1 = new MovementPath([pathSegment1], MovementType.Walk);
 
         // Path 2: longer (two segments, different hexes)
         var intermediate = new HexPosition(new HexCoordinates(2, 3), HexDirection.Top);
-        var pathSegment2A = new PathSegment(mech.Position!, intermediate, 1);
-        var pathSegment2B = new PathSegment(intermediate, targetPosition2, 1);
+        var pathSegment2A = new PathSegment(mech.Position!, intermediate, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2B = new PathSegment(intermediate, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path2 = new MovementPath([pathSegment2A, pathSegment2B], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
@@ -644,8 +646,8 @@ public class MovementEngineTests
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
-        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path1 = new MovementPath([pathSegment1], MovementType.Walk);
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
@@ -750,7 +752,7 @@ public class MovementEngineTests
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var pathSegment = new PathSegment(startPosition, targetPosition, 1);
+        var pathSegment = new PathSegment(startPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
@@ -783,7 +785,7 @@ public class MovementEngineTests
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var pathSegment = new PathSegment(startPosition, targetPosition, 1);
+        var pathSegment = new PathSegment(startPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
@@ -968,8 +970,8 @@ public class MovementEngineTests
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
-        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path1 = new MovementPath([pathSegment1], MovementType.Walk);
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
@@ -1032,8 +1034,8 @@ public class MovementEngineTests
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
-        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path1 = new MovementPath([pathSegment1], MovementType.Walk);
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
@@ -1097,8 +1099,8 @@ public class MovementEngineTests
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
-        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
-        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var path1 = new MovementPath([pathSegment1], MovementType.Walk);
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 

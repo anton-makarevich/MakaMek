@@ -1,6 +1,8 @@
 ﻿using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Tests.Models;
 
@@ -24,7 +26,7 @@ public class MovementPathTests
                     Coordinates = new HexCoordinateData(1, 2),
                     Facing = 0
                 },
-                Cost = 1
+                Costs = [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]
             },
             new()
             {
@@ -38,7 +40,7 @@ public class MovementPathTests
                     Coordinates = new HexCoordinateData(1, 2),
                     Facing = 1
                 },
-                Cost = 1
+                Costs = [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]
             }
         ];
 
@@ -73,17 +75,17 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
-                1 // Turn cost
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }] // Turn cost
             ),
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
-                1 // Movement cost
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }] // Movement cost
             ),
             new(
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
                 new HexPosition(new HexCoordinates(2, 2), HexDirection.TopRight),
-                2 // Movement cost 
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }] // Movement cost 
             )
         ];
         
@@ -139,15 +141,15 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
                 new HexPosition(new HexCoordinates(2, 2), HexDirection.TopRight),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var sut = new MovementPath(segments, MovementType.Walk);
@@ -166,7 +168,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                0)
+                [])
         }, MovementType.StandingStill);
         
         // Assert
@@ -191,7 +193,7 @@ public class MovementPathTests
                     Coordinates = new HexCoordinateData(1, 2),
                     Facing = 0
                 },
-                Cost = 1
+                Costs = [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]
             },
             new()
             {
@@ -205,7 +207,7 @@ public class MovementPathTests
                     Coordinates = new HexCoordinateData(1, 2),
                     Facing = 1
                 },
-                Cost = 1
+                Costs = [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]
             }
         ];
         
@@ -227,7 +229,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path1 = new MovementPath(segments, MovementType.Walk);
@@ -246,7 +248,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var segments2 = new List<PathSegment>
@@ -254,7 +256,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path1 = new MovementPath(segments1, MovementType.Walk);
@@ -273,7 +275,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         
@@ -293,7 +295,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path = new MovementPath(segments, MovementType.Walk);
@@ -311,7 +313,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path = new MovementPath(segments, MovementType.Walk);
@@ -360,8 +362,8 @@ public class MovementPathTests
     public void Append_ShouldCombineTwoPaths()
     {
         // Arrange
-        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
-        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), 1)], MovementType.Walk);
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         
         // Act
         var combined = path1.Append(path2);
@@ -376,8 +378,8 @@ public class MovementPathTests
     public void Append_ShouldThrow_WhenMovementTypesDiffer()
     {
         // Arrange
-        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
-        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), 1)], MovementType.Jump);
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Jump);
         
         // Act & Assert
         Should.Throw<ArgumentException>(() => path1.Append(path2));
@@ -387,8 +389,8 @@ public class MovementPathTests
     public void Append_ShouldThrow_WhenPathsAreNotContinuous()
     {
         // Arrange
-        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
-        var path2 = new MovementPath([new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), 1)], MovementType.Walk);
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         
         // Act & Assert
         Should.Throw<ArgumentException>(() => path1.Append(path2));
@@ -399,8 +401,8 @@ public class MovementPathTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var zeroCostPath = new MovementPath([new PathSegment(position, position, 0)], MovementType.Walk);
-        var newPath = new MovementPath([new PathSegment(position, new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), 1)], MovementType.Walk);
+        var zeroCostPath = new MovementPath([new PathSegment(position, position, [])], MovementType.Walk);
+        var newPath = new MovementPath([new PathSegment(position, new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         
         // Act
         var result = zeroCostPath.Append(newPath);
@@ -419,12 +421,12 @@ public class MovementPathTests
             new PathSegment(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(2, 2), HexDirection.Top),
-                1)], MovementType.Walk);
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         var path2 = new MovementPath([
             new PathSegment(
                 new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(3, 2), HexDirection.Bottom),
-                1)], MovementType.Walk);
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         
         // Act
         var combined = path1.Append(path2);
@@ -447,13 +449,13 @@ public class MovementPathTests
             new PathSegment(
                 deployPosition,
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
-                1)], MovementType.Walk);
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         // After fall+standup, mech faces a different direction but stays on same hex
         var path2 = new MovementPath([
             new PathSegment(
                 new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(3, 1), HexDirection.Bottom),
-                1)], MovementType.Walk);
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         
         // Act
         var combined = path1.Append(path2);
@@ -472,11 +474,11 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path = new MovementPath(segments, MovementType.Walk);
@@ -499,15 +501,15 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.BottomLeft),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         
         var path = new MovementPath(segments, MovementType.Walk);
@@ -528,7 +530,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                1) // Initially forward
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]) // Initially forward
         };
         
         var originalPath = new MovementPath(segments, MovementType.Walk);
@@ -556,12 +558,12 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                1,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 true),
             new(
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
-                1,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 true)
         };
         var backwardPath = new MovementPath(backwardSegments, MovementType.Walk);
@@ -573,7 +575,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), // Note: Facing doesn't matter for this test logic, but keeping it consistent
                 new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         var forwardPath = new MovementPath(forwardSegments, MovementType.Walk);
 
@@ -596,11 +598,11 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                1),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
-                1)
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         };
         var path = new MovementPath(segments, MovementType.Walk);
 
@@ -614,9 +616,9 @@ public class MovementPathTests
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1)
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
         var result = sut.EventsWithLocations.ToList();
@@ -627,15 +629,15 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldReturnEvents_WithCorrectLocations()
     {
-        var fallEvent = new SegmentEvent(SegmentEventType.Fall, 0);
-        var standupEvent = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
+        var fallEvent = new SegmentEvent(SegmentEventType.Fall, []);
+        var standupEvent = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }]);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1,
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 false, Events: [fallEvent]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 false, Events: [standupEvent])
         }, MovementType.Walk);
 
@@ -651,12 +653,12 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldReturnMultipleEventsOnSameSegment_WithSameLocation()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
-        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, 2);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }]);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 2,
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }],
                 false, Events: [fall, standup])
         }, MovementType.Walk);
 
@@ -672,16 +674,16 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldSkipSegments_WithoutEvents()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1,
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 false, Events: [fall]),
             new(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 4), HexDirection.Top), 1)
+                new HexPosition(new HexCoordinates(1, 4), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
         var result = sut.EventsWithLocations.ToList();
@@ -697,12 +699,12 @@ public class MovementPathTests
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 1)
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
         var result = sut.WithLastSegmentEvent(fall);
 
         result.Segments[^1].Events.ShouldContain(fall);
@@ -714,11 +716,11 @@ public class MovementPathTests
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1)
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
-        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, 1);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }]);
         var withFall = sut.WithLastSegmentEvent(fall);
         var withBoth = withFall.WithLastSegmentEvent(standup);
 
@@ -733,10 +735,10 @@ public class MovementPathTests
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1)
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
         sut.WithLastSegmentEvent(fall);
 
         sut.Segments[^1].Events.ShouldBeEmpty();
@@ -745,14 +747,14 @@ public class MovementPathTests
     [Fact]
     public void WithLastSegmentEvent_ShouldPreservePathProperties()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, 0);
+        var fall = new SegmentEvent(SegmentEventType.Fall, []);
         var original = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 1),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), 2,
-                false, Events: [new SegmentEvent(SegmentEventType.StandupAttempt, 1)])
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }],
+                false, Events: [new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }])])
         }, MovementType.Walk);
 
         var result = original.WithLastSegmentEvent(fall);
@@ -770,10 +772,10 @@ public class MovementPathTests
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), 3)
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }])
         }, MovementType.Walk);
 
-        var result = sut.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, 2));
+        var result = sut.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }]));
 
         result.TotalCost.ShouldBe(5);
     }

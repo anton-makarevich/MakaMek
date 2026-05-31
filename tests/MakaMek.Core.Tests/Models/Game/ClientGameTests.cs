@@ -31,6 +31,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
 
@@ -547,7 +548,7 @@ public class ClientGameTests
             PlayerId = player.Id,
             MovementType = MovementType.Walk,
             UnitId = unitData.Id.Value,
-            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1).ToData()]
+            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()]
         };
     
         // Act
@@ -577,7 +578,7 @@ public class ClientGameTests
             PlayerId = Guid.NewGuid(),
             MovementType = MovementType.Walk,
             UnitId = Guid.NewGuid(),
-            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1).ToData()]
+            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()]
         };
     
         // Act
@@ -704,7 +705,7 @@ public class ClientGameTests
             PlayerId = player.Id,
             MovementType = MovementType.Walk,
             UnitId = unitData.Id.Value,
-            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1).ToData()]
+            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()]
         };
 
         // Act
@@ -738,7 +739,7 @@ public class ClientGameTests
             PlayerId = player.Id,
             MovementType = MovementType.Walk,
             UnitId = Guid.NewGuid(),
-            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1).ToData()]
+            MovementPath = [new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()]
         };
 
         // Act & Assert
@@ -3111,7 +3112,7 @@ public class ClientGameTests
         var startPos = new HexPosition(1, 1, HexDirection.Top);
         var endPos = new HexPosition(2, 2, HexDirection.Top);
         var movementPath = new MovementPath([
-            new PathSegment(startPos, endPos, 1)
+            new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         ], MovementType.Walk);
         
         var moveCommand = new MoveUnitCommand

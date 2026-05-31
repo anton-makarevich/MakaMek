@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Client;
@@ -35,7 +37,7 @@ public class MoveUnitCommandTests
     {
         var startPos = new HexPosition(3, 5, HexDirection.Top);
         var endPos = new HexPosition(4, 5, HexDirection.Bottom);
-        var pathSegment = new PathSegment(startPos, endPos, 1);
+        var pathSegment = new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
 
         return new MoveUnitCommand
         {
