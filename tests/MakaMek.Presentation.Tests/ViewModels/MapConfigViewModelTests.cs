@@ -9,6 +9,7 @@ using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services;
 using Shouldly;
 

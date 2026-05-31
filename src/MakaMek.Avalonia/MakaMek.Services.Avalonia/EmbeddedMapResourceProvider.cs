@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services.ResourceProviders;
 
 namespace Sanet.MakaMek.Services.Avalonia;

@@ -21,6 +21,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
