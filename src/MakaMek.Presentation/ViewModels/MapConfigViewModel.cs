@@ -475,7 +475,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             {
                 var newPreview = await _previewRenderer.GeneratePreviewAsync(GeneratedMap, cancellationToken: token);
 
-                // Only update if not cancelled and preview was generated
+                // Only update if not canceled and preview was generated
                 if (!token.IsCancellationRequested && newPreview != null)
                 {
                     PreviewImage = newPreview;
@@ -494,7 +494,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
         finally
         {
-            // Only clear the flag if this operation wasn't cancelled
+            // Only clear the flag if this operation wasn't canceled
             if (!token.IsCancellationRequested)
             {
                 IsGenerating = false;
