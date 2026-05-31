@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
@@ -80,6 +79,8 @@ public static class CoreServices
         // Register map preview renderer
         services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
 
+        services.AddSingleton<IResourceStreamProvider>(_ =>
+            new AssemblyResourceStreamProvider("json", typeof(App).Assembly));
         services.AddSingleton<IMapResourceProvider, EmbeddedMapResourceProvider>();
         services.AddSingleton<IFileService, AvaloniaFileService>();
 
