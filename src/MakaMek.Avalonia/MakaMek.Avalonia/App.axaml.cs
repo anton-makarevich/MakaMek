@@ -49,6 +49,7 @@ public partial class App : Application
         Converters.ModifierToTextConverter.Initialize(localizationService);
         Converters.SegmentEventToTextConverter.Initialize(localizationService);
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
+        Converters.MovementBreakdownConverter.Initialize(localizationService);
         LocalizeExtension.Initialize(localizationService);
 
         var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();

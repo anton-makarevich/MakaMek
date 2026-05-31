@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Map.Data;
+﻿using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace Sanet.MakaMek.Map.Models;
@@ -203,5 +204,21 @@ public class MovementPath : IEquatable<MovementPath>
         {
             new(position, position, [])
         }, movementType);
+    }
+
+    public string Render(ILocalizationService localizationService)
+    {
+        var sb = new System.Text.StringBuilder();
+        var segmentNumber = 1;
+        foreach (var segment in Segments)
+        {
+            if (segment.Costs.Count == 0) continue;
+            var from = $"{segment.From.Coordinates}:{(int)segment.From.Facing}";
+            var to = $"{segment.To.Coordinates}:{(int)segment.To.Facing}";
+            sb.AppendLine($"{segmentNumber++}. {from}->{to}");
+            foreach (var cost in segment.Costs)
+                sb.AppendLine(cost.Render(localizationService));
+        }
+        return sb.ToString().TrimEnd();
     }
 }

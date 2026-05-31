@@ -13,6 +13,7 @@
         <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
         <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
         <converters:SegmentEventToTextConverter x:Key="SegmentEventToTextConverter"/>
+        <converters:MovementBreakdownConverter x:Key="MovementBreakdownConverter"/>
     </UserControl.Resources>
     <StackPanel  Spacing="5" Orientation="Vertical">
         <Border
@@ -96,6 +97,21 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button HorizontalAlignment="Right"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Button.Content>
+                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05A;"/>
+                    </Button.Content>
+                    <Button.Flyout>
+                        <Flyout Placement="TopEdgeAlignedRight">
+                            <TextBlock Text="{Binding MovementTaken, Converter={StaticResource MovementBreakdownConverter}}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas, Courier New, monospace"
+                                       MaxWidth="300"/>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
              </StackPanel>
         </Border>
          <!-- Movement Penalties Section -->
