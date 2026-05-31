@@ -73,20 +73,21 @@ public class MoveUnitCommandBuilderTests
         // Act & Assert
         _builder.CanBuild.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void Build_ReturnsCommand()
     {
         // Arrange
         var startPos = new HexPosition(1, 1, HexDirection.Bottom);
         var endPos = new HexPosition(1, 2, HexDirection.Bottom);
-        var pathSegment = new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment = new PathSegment(startPos, endPos,
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         _builder.SetUnit(_unit);
         _builder.SetMovementPath(new MovementPath([pathSegment], MovementType.Walk));
-        
+
         // Act 
         var command = _builder.Build();
-        
+
         // Assert
         command.ShouldNotBeNull();
         command.Value.GameOriginId.ShouldBe(_gameId);
@@ -94,11 +95,14 @@ public class MoveUnitCommandBuilderTests
         command.Value.PlayerId.ShouldBe(_playerId);
         command.Value.UnitId.ShouldBe(_unit.Id);
         command.Value.MovementPath.Count.ShouldBe(1);
-        command.Value.MovementPath[0].Costs.Sum(c => c.Value).ShouldBe(1);
+        var cost = command.Value.MovementPath[0].Costs.ShouldHaveSingleItem();
+        cost.ShouldBeOfType<TerrainMovementCost>();
+        ((TerrainMovementCost)cost).TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        cost.Value.ShouldBe(1);
         command.Value.MovementPath[0].From.Coordinates.ShouldBeEquivalentTo(startPos.Coordinates.ToData());
         command.Value.MovementPath[0].To.Coordinates.ShouldBeEquivalentTo(endPos.Coordinates.ToData());
     }
-    
+
     [Fact]
     public void Build_ReturnsNull_WhenNoDataSet()
     {

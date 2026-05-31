@@ -1973,7 +1973,7 @@ public class MovementStateTests
         // Simulate having taken a Jump movement before falling by setting MovementTaken directly
         var jumpPath = new MovementPath([
             new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), [])],
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), [new JumpMovementCost { Value = 1 }])],
             MovementType.Jump);
         mech.Move(jumpPath, null);
 
