@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Services;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Services.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Tests.Services;
 

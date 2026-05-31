@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Sanet.MakaMek.Map.Data;
-using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Services.ResourceProviders;
 
-namespace Sanet.MakaMek.Avalonia.Services;
+namespace Sanet.MakaMek.Services.Avalonia;
 
 /// <summary>
 /// Provides pre-existing maps from embedded assembly resources

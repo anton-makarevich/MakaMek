@@ -140,7 +140,7 @@ public class WeaponSelectionViewModel : BindableBase
 
     /// <summary>
     /// Gets a formatted string describing why an attack is possible or not possible,
-    /// including modifiers breakdown, range issues, or targeting issues
+    /// including modifiers' breakdown, range issues, or targeting issues
     /// </summary>
     public string AttackPossibilityDescription
     {
@@ -166,7 +166,7 @@ public class WeaponSelectionViewModel : BindableBase
             // Unavailable for some other reason
             if (!_isEnabled)
                 return Weapon.GetWeaponRestrictionReason(_localizationService);
-            // Check if we have modifiers breakdown
+            // Check if we have modifiers' breakdown
             if (ModifiersBreakdown == null)
                 return _localizationService.GetString("Attack_NoModifiersCalculated");
             // Check line of sight
@@ -178,7 +178,7 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if the target number is impossible
             if (ModifiersBreakdown.Total > 12)
                 return _localizationService.GetString("Attack_ImpossibleToHit");
-            // If we get here, show the modifiers breakdown
+            // If we get here, show the modifiers' breakdown
             var lines = new List<string>
             {
                 $"{_localizationService.GetString("Attack_TargetNumber")}: {ModifiersBreakdown.Total}"

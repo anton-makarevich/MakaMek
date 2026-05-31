@@ -1,11 +1,8 @@
-using System;
 using System.Reactive.Concurrency;
-using System.Threading.Tasks;
-using Avalonia.ReactiveUI;
 using Avalonia.Threading;
-using Sanet.MakaMek.Core.Services;
+using ReactiveUI.Avalonia;
 
-namespace Sanet.MakaMek.Avalonia.Services;
+namespace Sanet.MakaMek.Services.Avalonia;
 
 /// <summary>
 /// Avalonia implementation of IDispatcherService using Dispatcher.UIThread.

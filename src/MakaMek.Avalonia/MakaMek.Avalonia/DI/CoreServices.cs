@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
-using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -23,6 +22,7 @@ using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
+using Sanet.MakaMek.Services.ResourceProviders;
 using Sanet.Transport.Rx;
 
 namespace Sanet.MakaMek.Avalonia.DI;

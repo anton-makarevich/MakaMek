@@ -1,5 +1,5 @@
 using System.Reflection;
-using Sanet.MakaMek.Core.Services.ResourceProviders;
+using Sanet.MakaMek.Services.ResourceProviders;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;

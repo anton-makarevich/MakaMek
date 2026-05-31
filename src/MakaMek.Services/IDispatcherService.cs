@@ -1,6 +1,6 @@
 using System.Reactive.Concurrency;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Services;
 
 /// <summary>
 /// Provides a way to execute actions on the main UI thread.
