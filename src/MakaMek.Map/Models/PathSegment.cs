@@ -18,7 +18,7 @@ public record PathSegment(HexPosition From, HexPosition To, IReadOnlyList<Moveme
     {
         From = From.ToData(),
         To = To.ToData(),
-        Costs = Costs,
+        Costs = [.. Costs],
         IsReversed = IsReversed,
         ElevationChange = ElevationChange,
         Events = [.. Events]
