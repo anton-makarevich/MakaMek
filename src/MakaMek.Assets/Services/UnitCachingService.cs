@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Services.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
 

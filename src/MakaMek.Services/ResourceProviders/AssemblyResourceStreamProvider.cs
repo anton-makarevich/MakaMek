@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Sanet.MakaMek.Core.Services.ResourceProviders;
+namespace Sanet.MakaMek.Services.ResourceProviders;
 
 /// <summary>
 /// Unit stream provider that loads unit packages from embedded assembly resources

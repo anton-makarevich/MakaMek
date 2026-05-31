@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Services.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
 
