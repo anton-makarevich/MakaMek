@@ -82,9 +82,12 @@ public class PathSegmentTests
         const int cost = 3;
 
         // Act
-        var costs = new List<MovementCost> { new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost } } as IReadOnlyList<MovementCost>;
-        var segment1 = new PathSegment(from, to, costs);
-        var segment2 = new PathSegment(from, to, costs);
+        IReadOnlyList<MovementCost> costs1 =
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }];
+        IReadOnlyList<MovementCost> costs2 =
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }];
+        var segment1 = new PathSegment(from, to, costs1);
+        var segment2 = new PathSegment(from, to, costs2);
 
         // Assert
         segment1.ShouldBe(segment2);

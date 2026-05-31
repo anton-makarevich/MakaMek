@@ -34,7 +34,19 @@ public record struct MoveUnitCommand: IClientUnitCommand
             sb.Append(',');
             sb.Append(segment.To.Facing);
             sb.Append(':');
-            sb.Append(segment.Costs.Sum(c => c.Value));
+            foreach (var cost in segment.Costs)
+            {
+                sb.Append('[');
+                sb.Append(cost.GetType().Name);
+                sb.Append(':');
+                sb.Append(cost.Value);
+                if (cost is TerrainMovementCost terrainCost)
+                {
+                    sb.Append(':');
+                    sb.Append((int)terrainCost.TerrainId);
+                }
+                sb.Append(']');
+            }
             sb.Append(':');
             sb.Append(segment.IsReversed ? '1' : '0');
             sb.Append(':');
