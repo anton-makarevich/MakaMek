@@ -79,9 +79,10 @@ public static class CoreServices
         // Register map preview renderer
         services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
 
-        services.AddSingleton<IResourceStreamProvider>(_ =>
-            new AssemblyResourceStreamProvider("json", typeof(App).Assembly));
-        services.AddSingleton<IMapResourceProvider, EmbeddedMapResourceProvider>();
+        services.AddSingleton<IMapResourceProvider>(sp =>
+            new EmbeddedMapResourceProvider(
+                sp.GetRequiredService<ILogger<EmbeddedMapResourceProvider>>(),
+                new AssemblyResourceStreamProvider("json", typeof(App).Assembly)));
         services.AddSingleton<IFileService, AvaloniaFileService>();
 
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
