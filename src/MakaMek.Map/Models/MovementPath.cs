@@ -88,7 +88,7 @@ public class MovementPath : IEquatable<MovementPath>
     
     /// <summary>
     /// Maximum level change constraint used when finding this path.
-    /// Used as part of cache key to ensure paths with different level constraints are cached separately.
+    /// Used as part of a cache key to ensure paths with different level constraints are cached separately.
     /// </summary>
     private int? MaxLevelChange { get; }
     
@@ -119,7 +119,7 @@ public class MovementPath : IEquatable<MovementPath>
         }
         return new MovementPath(segments, MovementType, MaxLevelChange);
     }
-    
+
     /// <summary>
     /// Creates a new MovementPath with all facings reversed (for backward movement)
     /// </summary>
@@ -128,7 +128,15 @@ public class MovementPath : IEquatable<MovementPath>
         var reversedSegments = Segments.Select(segment => new PathSegment(
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-            segment.Costs,
+            segment.Costs.Select(cost => cost switch
+            {
+                RotationMovementCost rotation => rotation with
+                {
+                    FromFacing = rotation.FromFacing.GetOppositeDirection(),
+                    ToFacing = rotation.ToFacing.GetOppositeDirection()
+                },
+                _ => cost
+            }).ToArray(),
             !segment.IsReversed,
             ElevationChange: segment.ElevationChange,
             Events: segment.Events

@@ -557,6 +557,41 @@ public class MovementPathTests
     }
 
     [Fact]
+    public void ReverseFacing_ShouldReverseRotationCostFacings()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [
+                    new RotationMovementCost
+                    {
+                        FromFacing = HexDirection.TopRight,
+                        ToFacing = HexDirection.Bottom,
+                        Value = 1
+                    },
+                    new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }
+                ])
+        };
+
+        var path = new MovementPath(segments, MovementType.Walk);
+
+        // Act
+        var reversed = path.ReverseFacing();
+
+        // Assert
+        var rotationCost = reversed.Segments[0].Costs.OfType<RotationMovementCost>().Single();
+        rotationCost.FromFacing.ShouldBe(HexDirection.BottomLeft); // Opposite of TopRight
+        rotationCost.ToFacing.ShouldBe(HexDirection.Top); // Opposite of Bottom
+
+        // Non-rotation costs should be preserved as-is
+        var terrainCost = reversed.Segments[0].Costs.OfType<TerrainMovementCost>().Single();
+        terrainCost.Value.ShouldBe(1);
+    }
+
+    [Fact]
     public void HexesTraveled_ShouldCountOnlyLastLeg_WhenDirectionChanges()
     {
         // Arrange

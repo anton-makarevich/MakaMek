@@ -448,17 +448,21 @@ public class UnitExtensionsTests
         // Assert
         serializedData.State?.MovementPathSegments.ShouldBeNull();
     }
-    
+
     [Fact]
     public void ToData_WithMovementPath_ShouldSerializeMovementPath()
     {
         // Arrange
         var mech = _mechFactory.Create(_originalUnitData);
-        
+
         // Move the mech
         var startPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var endPos = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        var path = new MovementPath([new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+        var path = new MovementPath(
+        [
+            new PathSegment(startPos, endPos,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk);
         mech.Deploy(startPos, null);
         mech.Move(path, null);
 
@@ -468,8 +472,13 @@ public class UnitExtensionsTests
         // Assert
         serializedData.State?.MovementPathSegments.ShouldNotBeNull();
         serializedData.State?.MovementPathSegments?.Count.ShouldBe(1);
+        var cost = serializedData.State!.Value.MovementPathSegments![0].Costs
+            .ShouldHaveSingleItem()
+            .ShouldBeOfType<TerrainMovementCost>();
+        cost.Value.ShouldBe(1);
+        cost.TerrainId.ShouldBe(MakaMekTerrains.Clear);
     }
-    
+
     [Fact]
     public void ToData_WithWeaponTargets_ShouldSerializeWeaponTargets()
     {
