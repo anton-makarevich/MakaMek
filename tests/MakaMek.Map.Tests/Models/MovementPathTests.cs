@@ -217,7 +217,15 @@ public class MovementPathTests
         var data = sut.ToData();
         
         // Assert
-        data.ShouldBe(segments);
+        data.Count.ShouldBe(segments.Count);
+        for (var i = 0; i < data.Count; i++)
+        {
+            data[i].From.ShouldBe(segments[i].From);
+            data[i].To.ShouldBe(segments[i].To);
+            data[i].Costs.Sum(c => c.Value).ShouldBe(segments[i].Costs.Sum(c => c.Value));
+            data[i].IsReversed.ShouldBe(segments[i].IsReversed);
+            data[i].ElevationChange.ShouldBe(segments[i].ElevationChange);
+        }
     }
     
     [Fact]
@@ -629,8 +637,8 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldReturnEvents_WithCorrectLocations()
     {
-        var fallEvent = new SegmentEvent(SegmentEventType.Fall, []);
-        var standupEvent = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }]);
+        var fallEvent = new SegmentEvent(SegmentEventType.Fall);
+        var standupEvent = new SegmentEvent(SegmentEventType.StandupAttempt);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
@@ -653,8 +661,8 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldReturnMultipleEventsOnSameSegment_WithSameLocation()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
-        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }]);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
@@ -674,7 +682,7 @@ public class MovementPathTests
     [Fact]
     public void EventsWithLocations_ShouldSkipSegments_WithoutEvents()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
         var sut = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
@@ -704,7 +712,7 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
         var result = sut.WithLastSegmentEvent(fall);
 
         result.Segments[^1].Events.ShouldContain(fall);
@@ -719,10 +727,10 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
-        var standup = new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }]);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt);
         var withFall = sut.WithLastSegmentEvent(fall);
-        var withBoth = withFall.WithLastSegmentEvent(standup);
+        var withBoth = withFall.WithLastSegmentEvent(standup, new StandUpAttemptMovementCost { Value = 1 });
 
         withBoth.Segments[^1].Events.Length.ShouldBe(2);
         withBoth.Segments[^1].Events.ShouldContain(fall);
@@ -738,7 +746,7 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
         }, MovementType.Walk);
 
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
         sut.WithLastSegmentEvent(fall);
 
         sut.Segments[^1].Events.ShouldBeEmpty();
@@ -747,14 +755,14 @@ public class MovementPathTests
     [Fact]
     public void WithLastSegmentEvent_ShouldPreservePathProperties()
     {
-        var fall = new SegmentEvent(SegmentEventType.Fall, []);
+        var fall = new SegmentEvent(SegmentEventType.Fall);
         var original = new MovementPath(new List<PathSegment>
         {
             new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
             new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }],
-                false, Events: [new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 1 }])])
+                false, Events: [new SegmentEvent(SegmentEventType.StandupAttempt)])
         }, MovementType.Walk);
 
         var result = original.WithLastSegmentEvent(fall);
@@ -775,7 +783,7 @@ public class MovementPathTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }])
         }, MovementType.Walk);
 
-        var result = sut.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }]));
+        var result = sut.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = 2 });
 
         result.TotalCost.ShouldBe(5);
     }

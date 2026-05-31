@@ -198,12 +198,12 @@ public class PathSegmentViewModelTests
         // Arrange
         var events = new[]
         {
-            new SegmentEvent(SegmentEventType.Fall, []),
-            new SegmentEvent(SegmentEventType.StandupAttempt, [new StandUpAttemptMovementCost { Value = 2 }])
+            new SegmentEvent(SegmentEventType.Fall),
+            new SegmentEvent(SegmentEventType.StandupAttempt)
         };
         var from = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
-        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }], Events: events);
+        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }, new StandUpAttemptMovementCost { Value = 2 }], Events: events);
         var sut = new PathSegmentViewModel(segment);
 
         // Act & Assert

@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -45,8 +46,7 @@ public class MovementPath : IEquatable<MovementPath>
         IsJump = movementType == MovementType.Jump;
         MaxLevelChange = maxLevelChange;
         
-        var totalEventsCost = Segments.Sum(s => s.Events.Sum(e => e.Cost));
-        TotalCost = Segments.Sum(s => s.Cost) + totalEventsCost;
+        TotalCost = Segments.Sum(s => s.Cost);
         
         TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
         StraightLineDistance = Start.Coordinates.DistanceTo(Destination.Coordinates);
@@ -103,12 +103,20 @@ public class MovementPath : IEquatable<MovementPath>
             .Where(s => s.Events.Length > 0)
             .SelectMany(s => s.Events.Select(e => (e, s.To.Coordinates)));
 
-    public MovementPath WithLastSegmentEvent(SegmentEvent segmentEvent)
+    public MovementPath WithLastSegmentEvent(SegmentEvent segmentEvent, MovementCost? eventCost = null)
     {
         var segments = Segments.ToList();
         var lastSegment = segments[^1];
         var newEvents = lastSegment.Events.Append(segmentEvent).ToArray();
-        segments[^1] = lastSegment with { Events = newEvents };
+        if (eventCost != null)
+        {
+            var newCosts = lastSegment.Costs.Append(eventCost).ToList();
+            segments[^1] = lastSegment with { Events = newEvents, Costs = newCosts };
+        }
+        else
+        {
+            segments[^1] = lastSegment with { Events = newEvents };
+        }
         return new MovementPath(segments, MovementType, MaxLevelChange);
     }
     
