@@ -1,6 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Text;
@@ -10,79 +8,77 @@ namespace Sanet.MakaMek.SourceGenerators;
 [Generator]
 public class MovementCostTypeResolverGenerator : IIncrementalGenerator
 {
+    private const string BaseTypeFullName = "Sanet.MakaMek.Map.Models.MovementCosts.MovementCost";
+    private const string BaseTypeNamespace = "Sanet.MakaMek.Map.Models.MovementCosts";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var typeDeclarations = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: static (s, _) => IsCandidateType(s),
-                transform: static (ctx, _) => GetTypeInfo(ctx))
-            .Where(static m => m is not null)
-            .Select(static (m, _) => m!);
-
-        var compilationAndTypes = context.CompilationProvider.Combine(typeDeclarations.Collect());
-
-        context.RegisterSourceOutput(compilationAndTypes,
-            static (spc, source) => Execute(source.Left, source.Right, spc));
-    }
-
-    private static bool IsCandidateType(SyntaxNode node)
-    {
-        return node is RecordDeclarationSyntax { BaseList: not null };
-    }
-
-    private static TypeInfo? GetTypeInfo(GeneratorSyntaxContext context)
-    {
-        var recordDeclaration = (RecordDeclarationSyntax)context.Node;
-
-        var semanticModel = context.SemanticModel;
-        var typeSymbol = semanticModel.GetDeclaredSymbol(recordDeclaration);
-
-        if (typeSymbol is null || typeSymbol.IsAbstract)
-            return null;
-
-        return new TypeInfo(
-            typeSymbol.Name,
-            typeSymbol.ContainingNamespace.ToDisplayString(),
-            typeSymbol.ToDisplayString());
-    }
-
-    private static void Execute(Compilation compilation, ImmutableArray<TypeInfo> types, SourceProductionContext context)
-    {
-        try
+        var derivedTypes = context.CompilationProvider.Select(static (compilation, _) =>
         {
-            var movementCostSymbol = compilation.GetTypeByMetadataName("Sanet.MakaMek.Map.Models.MovementCosts.MovementCost");
-
-            if (movementCostSymbol is null)
+            try
             {
-                return;
+                var movementCostSymbol = compilation.GetTypeByMetadataName(BaseTypeFullName);
+                if (movementCostSymbol is null)
+                    return ImmutableArray<TypeInfo>.Empty;
+
+                var result = new List<TypeInfo>();
+                var visited = new HashSet<IAssemblySymbol>(SymbolEqualityComparer.Default);
+
+                var currentAssembly = compilation.Assembly;
+                if (visited.Add(currentAssembly))
+                    CollectDerivedTypes(currentAssembly.GlobalNamespace, movementCostSymbol, result);
+
+                var baseAssembly = movementCostSymbol.ContainingAssembly;
+                if (baseAssembly is not null && visited.Add(baseAssembly))
+                    CollectDerivedTypes(baseAssembly.GlobalNamespace, movementCostSymbol, result);
+
+                return result.ToImmutableArray();
             }
-
-            var derivedTypes = new List<TypeInfo>();
-
-            foreach (var typeInfo in types)
+            catch
             {
-                var typeSymbol = compilation.GetTypeByMetadataName(typeInfo.FullName);
-                if (typeSymbol is not null && InheritsFrom(typeSymbol, movementCostSymbol))
+                return ImmutableArray<TypeInfo>.Empty;
+            }
+        });
+
+        context.RegisterSourceOutput(derivedTypes, static (spc, types) =>
+        {
+            try
+            {
+                var source = types.Length > 0
+                    ? GenerateTypeResolverExtension(BaseTypeNamespace, [.. types])
+                    : GenerateEmptyTypeResolverExtension(BaseTypeNamespace);
+                spc.AddSource("MovementCostTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
+            }
+            catch (Exception ex)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor("MCTRG001", "Source generator error",
+                        $"Error in MovementCostTypeResolverGenerator: {ex.Message}\nStack trace: {ex.StackTrace}",
+                        "SourceGenerator",
+                        DiagnosticSeverity.Error, true),
+                    Location.None));
+            }
+        });
+    }
+
+    private static void CollectDerivedTypes(INamespaceOrTypeSymbol parent, INamedTypeSymbol baseType,
+        List<TypeInfo> result)
+    {
+        foreach (var member in parent.GetMembers())
+        {
+            if (member is INamespaceOrTypeSymbol child)
+            {
+                if (child is INamedTypeSymbol { IsAbstract: false } namedType
+                    && InheritsFrom(namedType, baseType))
                 {
-                    derivedTypes.Add(typeInfo);
+                    result.Add(new TypeInfo(
+                        namedType.Name,
+                        namedType.ContainingNamespace.ToDisplayString(),
+                        namedType.ToDisplayString()));
                 }
-            }
 
-            if (derivedTypes.Count == 0)
-            {
-                return;
+                CollectDerivedTypes(child, baseType, result);
             }
-
-            var source = GenerateTypeResolverExtension(movementCostSymbol.ContainingNamespace.ToDisplayString(), derivedTypes);
-            context.AddSource("MovementCostTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor("MCTRG001", "Source generator error",
-                    $"Error in MovementCostTypeResolverGenerator: {ex.Message}\nStack trace: {ex.StackTrace}", "SourceGenerator",
-                    DiagnosticSeverity.Error, true),
-                Location.None));
         }
     }
 
