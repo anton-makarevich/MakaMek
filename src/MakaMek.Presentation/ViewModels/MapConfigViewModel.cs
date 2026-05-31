@@ -12,6 +12,7 @@ using Sanet.MakaMek.Map.Models;
 using System.Text.Json;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 

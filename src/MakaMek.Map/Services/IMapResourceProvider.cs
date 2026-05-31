@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Map.Data;
 
-namespace Sanet.MakaMek.Services;
+namespace Sanet.MakaMek.Map.Services;
 
 /// <summary>
 /// Interface for providing pre-existing map data from various sources
