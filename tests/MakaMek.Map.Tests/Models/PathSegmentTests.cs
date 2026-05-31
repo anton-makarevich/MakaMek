@@ -90,7 +90,11 @@ public class PathSegmentTests
         var segment2 = new PathSegment(from, to, costs2);
 
         // Assert
-        segment1.ShouldBe(segment2);
+        segment1.From.ShouldBe(segment2.From);
+        segment1.To.ShouldBe(segment2.To);
+        segment1.Cost.ShouldBe(segment2.Cost);
+        segment1.IsReversed.ShouldBe(segment2.IsReversed);
+        segment1.ElevationChange.ShouldBe(segment2.ElevationChange);
     }
 
     [Fact]
