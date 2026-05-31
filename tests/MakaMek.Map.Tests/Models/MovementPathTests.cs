@@ -1,4 +1,6 @@
-﻿using Sanet.MakaMek.Map.Data;
+﻿using NSubstitute;
+using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 using Sanet.MakaMek.Map.Models.MovementCosts;
@@ -857,5 +859,88 @@ public class MovementPathTests
         result.Segments[^1].Costs.Count.ShouldBe(2);
         result.Segments[^1].Costs.ShouldContain(c => c.Value == 2);
         result.Segments[^1].Costs.Sum(c => c.Value).ShouldBe(5);
+    }
+
+    [Fact]
+    public void Render_WithNoCostSegments_ReturnsEmptyString()
+    {
+        var segments = new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                []),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                [])
+        };
+        var sut = new MovementPath(segments, MovementType.Walk);
+        var localization = Substitute.For<ILocalizationService>();
+
+        var result = sut.Render(localization);
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_WithSingleSegment_ReturnsFormattedOutput()
+    {
+        var segments = new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
+        };
+        var sut = new MovementPath(segments, MovementType.Walk);
+        var localization = Substitute.For<ILocalizationService>();
+        localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+
+        var result = sut.Render(localization);
+
+        result.ShouldBe("1. 0101:0->0102:0\nentered Clear, 2 MP");
+    }
+
+    [Fact]
+    public void Render_WithMultipleSegments_ReturnsIncrementedNumbers()
+    {
+        var segments = new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.LightWoods, Value = 2 }])
+        };
+        var sut = new MovementPath(segments, MovementType.Walk);
+        var localization = Substitute.For<ILocalizationService>();
+        localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+
+        var result = sut.Render(localization);
+
+        result.ShouldBe(
+            "1. 0101:0->0102:0\nentered Clear, 1 MP\n2. 0102:0->0103:0\nentered LightWoods, 2 MP");
+    }
+
+    [Fact]
+    public void Render_WithMultipleCostsOnSegment_IncludesAllCostLines()
+    {
+        var segments = new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [
+                    new RotationMovementCost { FromFacing = HexDirection.Top, ToFacing = HexDirection.TopRight, Value = 1 },
+                    new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }
+                ])
+        };
+        var sut = new MovementPath(segments, MovementType.Walk);
+        var localization = Substitute.For<ILocalizationService>();
+        localization.GetString("MovementCost_Rotation").Returns("rotated {0} side(s), {1} MP");
+        localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+
+        var result = sut.Render(localization);
+
+        result.ShouldBe(
+            "1. 0101:0->0102:0\nrotated 1 side(s), 1 MP\nentered Clear, 2 MP");
     }
 }
