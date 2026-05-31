@@ -61,7 +61,9 @@ public class PathSegmentTests
         var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         const int cost = 3;
         const int elevationChange = 5;
-        var segment = new PathSegment(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }], ElevationChange: elevationChange);
+        var segment = new PathSegment(from, to,
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }],
+            ElevationChange: elevationChange);
 
         // Act
         var data = segment.ToData();
@@ -69,7 +71,11 @@ public class PathSegmentTests
         // Assert
         data.From.ShouldBe(from.ToData());
         data.To.ShouldBe(to.ToData());
-        data.Costs.Sum(c => c.Value).ShouldBe(cost);
+        data.Costs.Count.ShouldBe(1);
+        data.Costs[0].ShouldBeOfType<TerrainMovementCost>();
+        var terrainCost = (TerrainMovementCost)data.Costs[0];
+        terrainCost.TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        terrainCost.Value.ShouldBe(cost);
         data.ElevationChange.ShouldBe(elevationChange);
     }
 

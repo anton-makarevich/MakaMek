@@ -37,7 +37,12 @@ public class MoveUnitCommandTests
     {
         var startPos = new HexPosition(3, 5, HexDirection.Top);
         var endPos = new HexPosition(4, 5, HexDirection.Bottom);
-        var pathSegment = new PathSegment(startPos, endPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var pathSegment = new PathSegment(startPos, endPos,
+        [
+            new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 },
+            new TerrainMovementCost { TerrainId = MakaMekTerrains.LightWoods, Value = 2 },
+            new RotationMovementCost { Value = 1, FromFacing = HexDirection.Top, ToFacing = HexDirection.TopRight }
+        ]);
 
         return new MoveUnitCommand
         {
@@ -48,6 +53,29 @@ public class MoveUnitCommandTests
             MovementPath = [pathSegment.ToData()],
             IsCompleted = true
         };
+    }
+
+    [Fact]
+    public void MovementPath_RetainsFullCostBreakdown()
+    {
+        var command = CreateCommand();
+
+        var costs = command.MovementPath[0].Costs;
+
+        costs.Count.ShouldBe(3);
+
+        var terrainCost0 = costs[0].ShouldBeOfType<TerrainMovementCost>();
+        terrainCost0.TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        terrainCost0.Value.ShouldBe(1);
+
+        var terrainCost1 = costs[1].ShouldBeOfType<TerrainMovementCost>();
+        terrainCost1.TerrainId.ShouldBe(MakaMekTerrains.LightWoods);
+        terrainCost1.Value.ShouldBe(2);
+
+        var rotationCost = costs[2].ShouldBeOfType<RotationMovementCost>();
+        rotationCost.FromFacing.ShouldBe(HexDirection.Top);
+        rotationCost.ToFacing.ShouldBe(HexDirection.TopRight);
+        rotationCost.Value.ShouldBe(1);
     }
 
     [Fact]

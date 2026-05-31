@@ -75,7 +75,13 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
-                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }] // Turn cost
+                [new RotationMovementCost
+                    {
+                        Value = 1,
+                        FromFacing = HexDirection.Top,
+                        ToFacing = HexDirection.TopLeft
+                    }
+                ] // Turn cost
             ),
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
