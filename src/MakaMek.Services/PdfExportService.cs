@@ -1,5 +1,5 @@
-using PdfSharpCore.Drawing;
-using PdfSharpCore.Pdf;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
 
 namespace Sanet.MakaMek.Services;
 
@@ -17,10 +17,11 @@ public class PdfExportService : IPdfExportService
             page.Width = XUnit.FromPoint(widthPoints);
             page.Height = XUnit.FromPoint(heightPoints);
 
-            using (var image = XImage.FromStream(() => new MemoryStream(pngBytes)))
+            using var ms = new MemoryStream(pngBytes);
+            using (var image = XImage.FromStream(ms))
             {
                 using var gfx = XGraphics.FromPdfPage(page);
-                gfx.DrawImage(image, 0, 0, page.Width, page.Height);
+                gfx.DrawImage(image, 0, 0, page.Width.Point, page.Height.Point);
             }
 
             using var pdfStream = new MemoryStream();
