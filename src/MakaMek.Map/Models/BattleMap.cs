@@ -116,7 +116,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 var costList = new List<MovementCost>
                 {
-                    new TerrainMovementCost { TerrainId = terrainId, Value = hex.MovementCost }
+                    new TerrainMovementCost { TerrainId = terrainId, Value = hex.MovementCost, Depth = hex.GetWaterDepth() }
                 };
                 if (levelCost > 0)
                 {

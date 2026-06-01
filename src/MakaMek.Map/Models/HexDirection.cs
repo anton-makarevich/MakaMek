@@ -38,5 +38,16 @@ public static class HexDirectionExtensions
         /// <returns>The new direction after rotation</returns>
         public HexDirection Rotate(int hexsides) =>
             (HexDirection)(((int)direction + hexsides + 6) % 6);
+
+        /// <summary>
+        /// Calculates the minimum number of hexsides between two directions
+        /// </summary>
+        /// <param name="target">The target direction</param>
+        /// <returns>The minimum number of hexsides to rotate (0-3)</returns>
+        public int ShortestRotationTo(HexDirection target)
+        {
+            var diff = Math.Abs((int)target - (int)direction);
+            return Math.Min(diff, 6 - diff);
+        }
     }
 }
