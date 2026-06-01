@@ -67,9 +67,9 @@ public class TerrainDataTests
     [Fact]
     public void ToData_RoadTerrain_ReturnsCorrectTypeAndNullHeight()
     {
-        var terrain = new RoadTerrain();
+        var sut = new RoadTerrain();
 
-        var data = terrain.ToData();
+        var data = sut.ToData();
 
         data.Type.ShouldBe(MakaMekTerrains.Road);
         data.Height.ShouldBeNull();
@@ -78,9 +78,9 @@ public class TerrainDataTests
     [Fact]
     public void ToData_PavementTerrain_ReturnsCorrectTypeAndNullHeight()
     {
-        var terrain = new PavementTerrain();
+        var sut = new PavementTerrain();
 
-        var data = terrain.ToData();
+        var data = sut.ToData();
 
         data.Type.ShouldBe(MakaMekTerrains.Pavement);
         data.Height.ShouldBeNull();
@@ -173,11 +173,11 @@ public class TerrainDataTests
     {
         var data = new TerrainData { Type = MakaMekTerrains.Road };
 
-        var terrain = Terrain.FromData(data);
+        var sut = Terrain.FromData(data);
 
-        terrain.ShouldBeOfType<RoadTerrain>();
-        terrain.Id.ShouldBe(MakaMekTerrains.Road);
-        terrain.Height.ShouldBe(0);
+        sut.ShouldBeOfType<RoadTerrain>();
+        sut.Id.ShouldBe(MakaMekTerrains.Road);
+        sut.Height.ShouldBe(0);
     }
 
     [Fact]
@@ -185,11 +185,11 @@ public class TerrainDataTests
     {
         var data = new TerrainData { Type = MakaMekTerrains.Pavement };
 
-        var terrain = Terrain.FromData(data);
+        var sut = Terrain.FromData(data);
 
-        terrain.ShouldBeOfType<PavementTerrain>();
-        terrain.Id.ShouldBe(MakaMekTerrains.Pavement);
-        terrain.Height.ShouldBe(0);
+        sut.ShouldBeOfType<PavementTerrain>();
+        sut.Id.ShouldBe(MakaMekTerrains.Pavement);
+        sut.Height.ShouldBe(0);
     }
 
     [Theory]
@@ -272,17 +272,17 @@ public class TerrainDataTests
     [InlineData(5, 200)]
     public void Roundtrip_BridgeTerrain_PreservesAllProperties(int height, int constructionFactor)
     {
-        var original = new BridgeTerrain(height, constructionFactor);
+        var sut = new BridgeTerrain(height, constructionFactor);
 
-        var data = original.ToData();
+        var data = sut.ToData();
         var restored = Terrain.FromData(data);
 
         restored.ShouldBeOfType<BridgeTerrain>();
-        restored.Id.ShouldBe(original.Id);
-        restored.Height.ShouldBe(original.Height);
+        restored.Id.ShouldBe(sut.Id);
+        restored.Height.ShouldBe(sut.Height);
         restored.Height.ShouldBe(height);
-        restored.MovementCost.ShouldBe(original.MovementCost);
-        restored.InterveningFactor.ShouldBe(original.InterveningFactor);
+        restored.MovementCost.ShouldBe(sut.MovementCost);
+        restored.InterveningFactor.ShouldBe(sut.InterveningFactor);
     }
 
     [Theory]

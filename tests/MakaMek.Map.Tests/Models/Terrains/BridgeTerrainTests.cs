@@ -9,8 +9,8 @@ public class BridgeTerrainTests
     [Fact]
     public void Id_ReturnsBridge()
     {
-        var terrain = new BridgeTerrain();
-        terrain.Id.ShouldBe(MakaMekTerrains.Bridge);
+        var sut = new BridgeTerrain();
+        sut.Id.ShouldBe(MakaMekTerrains.Bridge);
     }
 
     [Theory]
@@ -20,8 +20,8 @@ public class BridgeTerrainTests
     [InlineData(5)]
     public void Height_ReturnsConstructorValue(int height)
     {
-        var terrain = new BridgeTerrain(height, 0);
-        terrain.Height.ShouldBe(height);
+        var sut = new BridgeTerrain(height, 0);
+        sut.Height.ShouldBe(height);
     }
 
     [Theory]
@@ -31,22 +31,22 @@ public class BridgeTerrainTests
     [InlineData(200)]
     public void ConstructionFactor_ReturnsConstructorValue(int constructionFactor)
     {
-        var terrain = new BridgeTerrain(0, constructionFactor);
-        terrain.ConstructionFactor.ShouldBe(constructionFactor);
+        var sut = new BridgeTerrain(0, constructionFactor);
+        sut.ConstructionFactor.ShouldBe(constructionFactor);
     }
 
     [Fact]
     public void InterveningFactor_IsZero()
     {
-        var terrain = new BridgeTerrain();
-        terrain.InterveningFactor.ShouldBe(0);
+        var sut = new BridgeTerrain();
+        sut.InterveningFactor.ShouldBe(0);
     }
 
     [Fact]
     public void MovementCost_Returns1()
     {
-        var terrain = new BridgeTerrain();
-        terrain.MovementCost.ShouldBe(1);
+        var sut = new BridgeTerrain();
+        sut.MovementCost.ShouldBe(1);
     }
 
     #region Serialization Tests
@@ -58,9 +58,9 @@ public class BridgeTerrainTests
     [InlineData(5, 200)]
     public void ToData_ReturnsCorrectTypeHeightAndConstructionFactor(int height, int constructionFactor)
     {
-        var terrain = new BridgeTerrain(height, constructionFactor);
+        var sut = new BridgeTerrain(height, constructionFactor);
 
-        var data = terrain.ToData();
+        var data = sut.ToData();
 
         data.Type.ShouldBe(MakaMekTerrains.Bridge);
         data.Height.ShouldBe(height);
@@ -81,13 +81,13 @@ public class BridgeTerrainTests
             ConstructionFactor = constructionFactor
         };
 
-        var terrain = Terrain.FromData(data);
+        var sut = Terrain.FromData(data);
 
-        terrain.ShouldBeOfType<BridgeTerrain>();
-        terrain.Id.ShouldBe(MakaMekTerrains.Bridge);
-        terrain.Height.ShouldBe(height);
-        terrain.MovementCost.ShouldBe(1);
-        terrain.InterveningFactor.ShouldBe(0);
+        sut.ShouldBeOfType<BridgeTerrain>();
+        sut.Id.ShouldBe(MakaMekTerrains.Bridge);
+        sut.Height.ShouldBe(height);
+        sut.MovementCost.ShouldBe(1);
+        sut.InterveningFactor.ShouldBe(0);
     }
 
     [Theory]
@@ -97,17 +97,17 @@ public class BridgeTerrainTests
     [InlineData(5, 200)]
     public void Roundtrip_PreservesAllProperties(int height, int constructionFactor)
     {
-        var original = new BridgeTerrain(height, constructionFactor);
+        var sut = new BridgeTerrain(height, constructionFactor);
 
-        var data = original.ToData();
+        var data = sut.ToData();
         var restored = Terrain.FromData(data);
 
         restored.ShouldBeOfType<BridgeTerrain>();
-        restored.Id.ShouldBe(original.Id);
-        restored.Height.ShouldBe(original.Height);
+        restored.Id.ShouldBe(sut.Id);
+        restored.Height.ShouldBe(sut.Height);
         restored.Height.ShouldBe(height);
-        restored.MovementCost.ShouldBe(original.MovementCost);
-        restored.InterveningFactor.ShouldBe(original.InterveningFactor);
+        restored.MovementCost.ShouldBe(sut.MovementCost);
+        restored.InterveningFactor.ShouldBe(sut.InterveningFactor);
     }
 
     #endregion
