@@ -171,6 +171,8 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_StandupAttempt", "Standup Attempt")]
     [InlineData("PilotingSkillRollType_JumpWithDamage", "Jump with damage")]
     [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
+    [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
+    [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
     [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall_WithLevels", "{0} ({1} levels)")]
     // Attack modifiers
