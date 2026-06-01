@@ -110,6 +110,8 @@ public class FakeLocalizationService : ILocalizationService
         ["PilotingSkillRollType_StandupAttempt"] = "Standup Attempt",
         ["PilotingSkillRollType_JumpWithDamage"] = "Jump with damage",
         ["PilotingSkillRollType_WaterEntry"] = "Water Entry",
+        ["PilotingSkillRollType_SkidCheck"] = "Skid Check",
+        ["PilotingSkillRollType_SkidCheck_WithHexes"] = "{0} ({1} hexes)",
         ["PilotingSkillRollType_WaterEntry_WithDepth"] = "{0} (Depth {1})",
         ["PilotingSkillRollType_PilotDamageFromFall_WithLevels"] = "{0} ({1} levels)",
         ["AttackDirection_Left"] = "Left",

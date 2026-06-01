@@ -48,6 +48,7 @@ public class PilotingSkillRollContextTests
     [InlineData(PilotingSkillRollType.LegDestroyed, "Leg Destroyed")]
     [InlineData(PilotingSkillRollType.StandupAttempt, "Standup Attempt")]
     [InlineData(PilotingSkillRollType.JumpWithDamage, "Jump with damage")]
+    [InlineData(PilotingSkillRollType.SkidCheck, "Skid Check")]
     public void Render_WithDifferentRollTypes_ReturnsCorrectLocalizedString(PilotingSkillRollType rollType, string expected)
     {
         // Arrange
