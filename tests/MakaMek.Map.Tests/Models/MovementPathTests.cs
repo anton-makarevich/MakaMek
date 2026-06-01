@@ -893,6 +893,7 @@ public class MovementPathTests
         var sut = new MovementPath(segments, MovementType.Walk);
         var localization = Substitute.For<ILocalizationService>();
         localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+        localization.GetString("Terrain_Clear").Returns("Clear");
 
         var result = sut.Render(localization);
 
@@ -914,11 +915,13 @@ public class MovementPathTests
         var sut = new MovementPath(segments, MovementType.Walk);
         var localization = Substitute.For<ILocalizationService>();
         localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+        localization.GetString("Terrain_Clear").Returns("Clear");
+        localization.GetString("Terrain_LightWoods").Returns("Light Woods");
 
         var result = sut.Render(localization);
 
         result.ShouldBe(
-            $"1. 0101:0->0102:0{Environment.NewLine}- entered Clear, 1 MP{Environment.NewLine}2. 0102:0->0103:0{Environment.NewLine}- entered LightWoods, 2 MP");
+            $"1. 0101:0->0102:0{Environment.NewLine}- entered Clear, 1 MP{Environment.NewLine}2. 0102:0->0103:0{Environment.NewLine}- entered Light Woods, 2 MP");
     }
 
     [Fact]
@@ -937,6 +940,7 @@ public class MovementPathTests
         var localization = Substitute.For<ILocalizationService>();
         localization.GetString("MovementCost_Rotation").Returns("rotated {0} side(s), {1} MP");
         localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+        localization.GetString("Terrain_Clear").Returns("Clear");
 
         var result = sut.Render(localization);
 

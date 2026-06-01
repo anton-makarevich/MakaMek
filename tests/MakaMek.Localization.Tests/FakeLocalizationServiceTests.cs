@@ -138,6 +138,12 @@ public class FakeLocalizationServiceTests
     [Theory]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
+    // Terrain names
+    [InlineData("Terrain_Clear", "Clear")]
+    [InlineData("Terrain_LightWoods", "Light Woods")]
+    [InlineData("Terrain_HeavyWoods", "Heavy Woods")]
+    [InlineData("Terrain_Rough", "Rough")]
+    [InlineData("Terrain_Water", "Water")]
     // MechFallingCommand strings
     [InlineData("Command_MechFalling_PsrIntro", "{0} may fall")]
     [InlineData("Command_MechFalling_Base", "{0} fell")]
@@ -253,6 +259,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Action_ChangeFacing", "Change Facing | MP: {0}")]
     // Movement cost rendering
     [InlineData("MovementCost_Terrain", "entered {0}, {1} MP")]
+    [InlineData("MovementCost_Terrain_Water", "entered {0} (depth {1}), {2} MP")]
     [InlineData("MovementCost_Rotation", "rotated {0} side(s), {1} MP")]
     [InlineData("MovementCost_ElevationChange", "elevation change ({0:+#;-#;0}), {1} MP")]
     [InlineData("MovementCost_Jump", "jump, {0} MP")]
