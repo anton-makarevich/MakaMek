@@ -116,7 +116,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 var costList = new List<MovementCost>
                 {
-                    new TerrainMovementCost { TerrainId = terrainId, Value = hex.MovementCost, Depth = hex.GetWaterDepth() }
+                    new TerrainMovementCost { TerrainId = terrainId, Value = hex.GetEnterCost(fromHex), Depth = hex.GetWaterDepth() }
                 };
                 if (levelCost > 0)
                 {
@@ -216,7 +216,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     continue;
 
                 // Calculate total cost including terrain and level change
-                var totalCost = currentCost + hex.MovementCost + turningCost + levelCost;
+                var totalCost = currentCost + hex.GetEnterCost(currentHex) + turningCost + levelCost;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -345,7 +345,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     continue;
 
                 // Calculate total cost including terrain and level change
-                var totalCost = currentCost + hex.MovementCost + turningCost + levelCost;
+                var totalCost = currentCost + hex.GetEnterCost(currentHex) + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
 
                 if (totalCost > maxMovementPoints)
@@ -437,7 +437,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     continue;
                 
                 // Calculate total cost including turning, movement, and level change
-                var totalCost = currentCost + neighborHex.MovementCost + turningCost + levelCost;
+                var totalCost = currentCost + neighborHex.GetEnterCost(currentHex) + turningCost + levelCost;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;

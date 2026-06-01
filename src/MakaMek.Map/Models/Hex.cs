@@ -66,11 +66,18 @@ public class Hex : IDisposable
     }
 
     /// <summary>
-    /// Gets the movement cost for entering this hex (highest terrain factor)
+    /// Gets the movement cost for entering this hex from another hex,
+    /// considering road/paved connections
     /// </summary>
-    public int MovementCost => _terrains.Count != 0 
-        ? _terrains.Values.Max(t => t.MovementCost)
-        : 1; // Default cost for empty hex
+    public int GetEnterCost(Hex fromHex)
+    {
+        if (fromHex.IsRoadOrPaved() && this.IsRoadOrPaved())
+            return 1;
+
+        return _terrains.Count != 0
+            ? _terrains.Values.Max(t => t.MovementCost)
+            : 1;
+    }
 
     /// <summary>
     /// Observable that emits when the highlight collection changes
