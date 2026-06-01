@@ -120,4 +120,59 @@ public class HexExtensionsTests
 
         result.ShouldBe(1);
     }
+
+    [Fact]
+    public void IsRoadOrPaved_ReturnsTrue_ForRoadTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new RoadTerrain());
+
+        var result = hex.IsRoadOrPaved();
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsRoadOrPaved_ReturnsTrue_ForPavementTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new PavementTerrain());
+
+        var result = hex.IsRoadOrPaved();
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsRoadOrPaved_ReturnsTrue_ForBridgeTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new BridgeTerrain());
+
+        var result = hex.IsRoadOrPaved();
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsRoadOrPaved_ReturnsFalse_ForClearTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new ClearTerrain());
+
+        var result = hex.IsRoadOrPaved();
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsRoadOrPaved_ReturnsFalse_ForLightWoodsTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new LightWoodsTerrain());
+
+        var result = hex.IsRoadOrPaved();
+
+        result.ShouldBeFalse();
+    }
 }
