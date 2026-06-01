@@ -3,5 +3,7 @@
 public enum SegmentEventType
 {
     Fall,
-    StandupAttempt
+    StandupAttempt,
+    Skid,
+    BridgeCollapse
 }
