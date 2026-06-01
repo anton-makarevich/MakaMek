@@ -28,17 +28,4 @@ public class MakaMekTerrainsTests
 
         value.ShouldBe(7);
     }
-
-    [Fact]
-    public void AllNewValues_AreDistinct()
-    {
-        var values = new[]
-        {
-            (int)MakaMekTerrains.Road,
-            (int)MakaMekTerrains.Pavement,
-            (int)MakaMekTerrains.Bridge
-        };
-
-        values.ShouldBe(new[] { 5, 6, 7 });
-    }
 }
