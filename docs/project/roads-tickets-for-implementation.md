@@ -6,26 +6,26 @@
 ## Ticket Dependency Graph
 
 ```
-T01   T02   T03   T04   T05   T06   T07   T08   T09   T10   T11
+#1035   #1036   #1037   #1038   #1039   #1040   #1041   #1042   #1043   #1044   #1045
  │     │     │     │     │     │     │     │     │     │     │
  └──┬──┘     │     │     └──┬──┘     │     │     │     │     │
     │        │     │        │        │     │     │     │     │
     ▼        ▼     ▼        ▼        │     │     │     │     │
-   T12 ──► T13 ──► T14 ◄─── T15      │     │     │     │     │
+   #1046 ──► #1047 ──► #1048 ◄─── #1049      │     │     │     │     │
     │                                │     │     │     │     │
     ▼                                ▼     │     │     │     │
-   T16                               T17   │     │     │     │
+   #1050                               #1051   │     │     │     │
     │                                │     │     │     │     │
     ▼                                ▼     ▼     ▼     ▼     ▼
-                                 T18 ◄── T19 ── T20 ── T21 ── T22
+                                 #1052 ◄── #1053 ── #1054 ── #1055 ── #1056
                                                       │
                                                       ▼
-                                                     T23
+                                                     #1057
 ```
 
 ---
 
-## [T01] Add `Road`, `Pavement`, `Bridge` to `MakaMekTerrains` enum
+## [#1035] Add `Road`, `Pavement`, `Bridge` to `MakaMekTerrains` enum
 
 **File:** `src/MakaMek.Map/Models/Terrains/MakaMekTerrains.cs`
 
@@ -42,7 +42,7 @@ T01   T02   T03   T04   T05   T06   T07   T08   T09   T10   T11
 
 ---
 
-## [T02] Create `RoadTerrain`, `PavementTerrain`, `BridgeTerrain` classes
+## [#1036] Create `RoadTerrain`, `PavementTerrain`, `BridgeTerrain` classes
 
 **Files:** 
 - `src/MakaMek.Map/Models/Terrains/RoadTerrain.cs` (new)
@@ -60,11 +60,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit tests for each class verifying all property values. `BridgeTerrain.ToData()` roundtrip test.
 
-**Dependencies:** T01.
+**Dependencies:** #1035.
 
 ---
 
-## [T03] Update `MakaMekTerrains` source generator references (if any)
+## [#1037] Update `MakaMekTerrains` source generator references (if any)
 
 **Note:** No explicit source generator tracks MakaMekTerrains enum. The `MovementCostTypeResolverGenerator` handles MovementCost subtypes, not terrain. Check if any partial method on Terrain needs update. No changes expected.
 
@@ -74,7 +74,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T04] Add `ConstructionFactor` field to `TerrainData` record
+## [#1038] Add `ConstructionFactor` field to `TerrainData` record
 
 **File:** `src/MakaMek.Map/Data/TerrainData.cs`
 
@@ -92,7 +92,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T05] Extend `Terrain.GetTerrainType()` and `FromData()` for new terrain types
+## [#1039] Extend `Terrain.GetTerrainType()` and `FromData()` for new terrain types
 
 **File:** `src/MakaMek.Map/Models/Terrains/Terrain.cs`
 
@@ -111,14 +111,14 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit tests: create `TerrainData` for each new type, call `FromData()`, verify type and properties. Bridge roundtrip with Height and CF.
 
-**Dependencies:** T01, T02, T04.
+**Dependencies:** #1035, #1036, #1038.
 
 **Open Questions:**
 - Q2 (blocking): `GetTerrainType()` currently has signature `(MakaMekTerrains, int? height = null)`. Adding CF parameter is a breaking change to the public API. Option: Add optional param `int? constructionFactor = null`. This is the simplest approach but slightly ugly for non-Bridge terrains. Alternative: refactor to accept `TerrainData` directly.
 
 ---
 
-## [T06] Add `SkidCheck` to `PilotingSkillRollType` enum
+## [#1040] Add `SkidCheck` to `PilotingSkillRollType` enum
 
 **File:** `src/MakaMek.Core/Data/Game/Mechanics/PilotingSkillRollType.cs`
 
@@ -133,7 +133,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T07] Add `Skid` and `BridgeCollapse` to `SegmentEventType` enum
+## [#1041] Add `Skid` and `BridgeCollapse` to `SegmentEventType` enum
 
 **File:** `src/MakaMek.Map/Models/SegmentEventType.cs`
 
@@ -148,7 +148,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T08] Create `SkidCheckRollContext` record
+## [#1042] Create `SkidCheckRollContext` record
 
 **File:** `src/MakaMek.Core/Data/Game/Mechanics/PilotingSkillRollContexts/SkidCheckRollContext.cs` (new)
 
@@ -165,11 +165,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit tests verifying record creation, RollType, HexesMoved, and Render() output.
 
-**Dependencies:** T06.
+**Dependencies:** #1040.
 
 ---
 
-## [T09] Add `IsRoadOrPaved()` extension method to `HexExtensions`
+## [#1043] Add `IsRoadOrPaved()` extension method to `HexExtensions`
 
 **File:** `src/MakaMek.Map/Models/HexExtensions.cs`
 
@@ -186,11 +186,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit tests: hex with Road → true, hex with Pavement → true, hex with Bridge → true, hex with Clear → false, hex with LightWoods → false.
 
-**Dependencies:** T01, T02.
+**Dependencies:** #1035, #1036.
 
 ---
 
-## [T10] Add `Road` value to `TerrainAssetType` enum
+## [#1044] Add `Road` value to `TerrainAssetType` enum
 
 **File:** `src/MakaMek.Assets/Models/Terrains/TerrainAssetType.cs`
 
@@ -205,7 +205,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T11] Add `GetRoadTextureImage` to `ITerrainAssetService` and implement in `TerrainCachingService`
+## [#1045] Add `GetRoadTextureImage` to `ITerrainAssetService` and implement in `TerrainCachingService`
 
 **Files:**
 - `src/MakaMek.Assets/Services/ITerrainAssetService.cs`
@@ -219,14 +219,14 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit tests with mock MMTX stream containing `terrains/road/000001.png`. Verify texture returned for known bitmask. Verify null for missing bitmask.
 
-**Dependencies:** T10.
+**Dependencies:** #1044.
 
 **Open Questions:**
 - Q3: Should Pavement hexes participate in road bitmask connectivity? The PRD says "Road and Bridge neighbors both count toward road connectivity" but doesn't mention Pavement. If Pavement is a broad area (not a strip), it likely should NOT create road connections. If the intent is otherwise, `ComputeCanonicalBitmask` would need to check multiple terrain types. **Recommendation:** For v1, only Road and Bridge count for bitmask connectivity. Pavement hexes use the isolated texture.
 
 ---
 
-## [T12] Implement on-road cost substitution in `BattleMap.ConvertPathToSegments()`
+## [#1046] Implement on-road cost substitution in `BattleMap.ConvertPathToSegments()`
 
 **File:** `src/MakaMek.Map/Models/BattleMap.cs`
 
@@ -245,7 +245,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 - Unit test: fromHex is Clear, toHex is Road → cost = underlying terrain cost (not road bonus).
 - Unit test: road+woods hex with elevation change → cost = 1 + |elevationChange|.
 
-**Dependencies:** T02 (terrain classes), T09 (IsRoadOrPaved).
+**Dependencies:** #1036 (terrain classes), #1043 (IsRoadOrPaved).
 
 **Open Questions:**
 - Q4: When on-road with HeavyWoods underlying, the `TerrainMovementCost.TerrainId` is HeavyWoods but value is 1. Is this semantically OK? The PRD says yes: "Hex.MovementCost property itself is not changed." If the downstream consumers need to display the correct terrain name, this could be confusing. Consider whether `TerrainId` should be `Road` when on-road.
@@ -253,7 +253,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T13] Add road/bridge bitmask rendering to `HexControl`
+## [#1047] Add road/bridge bitmask rendering to `HexControl`
 
 **Files:**
 - `src/MakaMek.Avalonia/MakaMek.Avalonia.Controls/HexControl.cs`
@@ -286,11 +286,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Visual/automated test: hex with Road and LightWoods renders in order: base → light woods → road. Hex with no road neighbors uses isolated texture. Hex connected to 6 road neighbors uses fully-connected texture.
 
-**Dependencies:** T07 (SegmentEventType — not really needed here, but for understanding event flow), T09 (IsRoadOrPaved), T11 (GetRoadTextureImage), T12 (ConvertPathToSegments — not really needed, but movement cost integration).
+**Dependencies:** #1041 (SegmentEventType — not really needed here, but for understanding event flow), #1043 (IsRoadOrPaved), #1045 (GetRoadTextureImage), #1046 (ConvertPathToSegments — not really needed, but movement cost integration).
 
 ---
 
-## [T14] Create skid to-hit modifier records
+## [#1048] Create skid to-hit modifier records
 
 **Files:**
 - `src/MakaMek.Core/Models/Game/Mechanics/Modifiers/Attack/SkiddingTargetModifier.cs` (new)
@@ -310,7 +310,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T15] Add skidding transient state to `Unit` / `Mech`
+## [#1049] Add skidding transient state to `Unit` / `Mech`
 
 **File:** `src/MakaMek.Core/Models/Units/Unit.cs` (or `Mech.cs`)
 
@@ -330,7 +330,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T16] Implement skid trigger detection in `MovementPhase`
+## [#1050] Implement skid trigger detection in `MovementPhase`
 
 **File:** `src/MakaMek.Core/Models/Game/Phases/MovementPhase.cs`
 
@@ -348,7 +348,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
   - Call `FallProcessor.ProcessMovementAttempt()` with the context.
   - On PSR failure: emit `SegmentEvent(SegmentEventType.Skid, skidDistance)` where `skidDistance = ⌈hexesMoved ÷ 2⌉`.
   - Set `unit.IsSkidding = true`.
-  - The fall processor handles the fall and applies half damage per skid hex (see T17).
+  - The fall processor handles the fall and applies half damage per skid hex (see #1051).
 
 **Pattern:** Mirrors existing `FindWaterEntrySegments()` → PSR fallback flow.
 
@@ -358,11 +358,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 - Unit: Run movement + no facing change on road → no PSR.
 - Unit: Run + facing change on Clear hex → no PSR.
 
-**Dependencies:** T06 (SkidCheck PSR type), T07 (Skid SegmentEvent), T08 (SkidCheckRollContext), T09 (IsRoadOrPaved).
+**Dependencies:** #1040 (SkidCheck PSR type), #1041 (Skid SegmentEvent), #1042 (SkidCheckRollContext), #1043 (IsRoadOrPaved).
 
 ---
 
-## [T17] Implement skid damage (half falling damage per skid hex)
+## [#1051] Implement skid damage (half falling damage per skid hex)
 
 **File:** `src/MakaMek.Core/Models/Game/Mechanics/Mechs/Falling/FallingDamageCalculator.cs` (and possibly `FallProcessor`)
 
@@ -379,11 +379,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Unit test: 20-ton Mech skids 4 hexes → standard falling damage per hex = 2, half = 1, total = 4 damage vs normal fall of 1 level = 2 damage.
 
-**Dependencies:** T16 (skid detection calls this).
+**Dependencies:** #1050 (skid detection calls this).
 
 ---
 
-## [T18] Implement bridge CF check and collapse in `MovementPhase`
+## [#1052] Implement bridge CF check and collapse in `MovementPhase`
 
 **File:** `src/MakaMek.Core/Models/Game/Phases/MovementPhase.cs`
 
@@ -408,7 +408,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 - Unit: Collapsed hex has BridgeTerrain removed.
 - Unit: Units on collapsed hex receive falling damage.
 
-**Dependencies:** T02 (BridgeTerrain), T07 (BridgeCollapse SegmentEvent), T09 (IsRoadOrPaved).
+**Dependencies:** #1036 (BridgeTerrain), #1041 (BridgeCollapse SegmentEvent), #1043 (IsRoadOrPaved).
 
 **Open Questions:**
 - Q8: How to query units on a hex? The current `IBattleMap` / `IGame` doesn't have a `GetUnitsOnHex()` method. Need to add one or iterate all units.
@@ -417,7 +417,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T19] Implement under-bridge clearance calculation and enforcement
+## [#1053] Implement under-bridge clearance calculation and enforcement
 
 **File:** `src/MakaMek.Map/Models/BattleMap.cs` (and/or movement validation)
 
@@ -439,7 +439,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 - Same hex, but a hypothetical unit with height 3 → cannot pass under.
 - Unit moving road-to-road on bridge → clearance check does NOT apply (unit is on top, not underneath).
 
-**Dependencies:** T02 (BridgeTerrain), T09 (IsRoadOrPaved).
+**Dependencies:** #1036 (BridgeTerrain), #1043 (IsRoadOrPaved).
 
 **Open Questions:**
 - Q11: Where exactly does the clearance check go? Options: (a) in pathfinding's level-change validation, (b) in `ConvertPathToSegments`, (c) in `MovementPhase.ProcessMoveCommand()`. Best fit is probably in `MovementPhase` — when processing each non-road segment into a bridge hex, validate clearance before allowing the move.
@@ -447,7 +447,7 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 ---
 
-## [T20] Add localization strings for new types and modifiers
+## [#1054] Add localization strings for new types and modifiers
 
 **File:** `tests/MakaMek.Localization.Tests/FakeLocalizationServiceTests.cs` (and corresponding resource files)
 
@@ -465,11 +465,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Existing FakeLocalizationServiceTests pattern.
 
-**Dependencies:** T06, T08, T14.
+**Dependencies:** #1040, #1042, #1048.
 
 ---
 
-## [T21] Update `MMTX-Terrain-Format.md` documentation
+## [#1055] Update `MMTX-Terrain-Format.md` documentation
 
 **File:** `docs/architecture/MMTX-Terrain-Format.md`
 
@@ -483,11 +483,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Manual review.
 
-**Dependencies:** T01, T02, T04, T10, T11.
+**Dependencies:** #1035, #1036, #1038, #1044, #1045.
 
 ---
 
-## [T22] Wire skidding modifiers into the to-hit calculation system
+## [#1056] Wire skidding modifiers into the to-hit calculation system
 
 **File:** `src/MakaMek.Core/Models/Game/Mechanics/ToHitCalculator.cs` (and/or `Mech.GetAttackModifiers()`)
 
@@ -503,11 +503,11 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 **Testable by:** Integration test: attacker skidding → to-hit number includes +1 penalty. Target skidding → to-hit number includes +2 bonus for attacker.
 
-**Dependencies:** T14 (modifier records), T15 (IsSkidding state).
+**Dependencies:** #1048 (modifier records), #1049 (IsSkidding state).
 
 ---
 
-## [T23] End-to-end integration tests
+## [#1057] End-to-end integration tests
 
 **Value:** Validates the complete feature set works together.
 
@@ -526,18 +526,18 @@ All follow the same pattern as `WaterTerrain`, `ClearTerrain`, etc.
 
 | # | Question | Affected Tickets |
 |---|----------|-----------------|
-| Q1 | Default for ConstructionFactor? PRD says null for non-structural. OK. | T04 |
-| Q2 | **Blocking:** `GetTerrainType()` only takes `int? height`. Bridge also needs `ConstructionFactor`. Solution: add optional param `int? constructionFactor = null` or refactor to accept `TerrainData`. | T05 |
-| Q3 | Should Pavement count for road bitmask connectivity? | T11, T13 |
-| Q4 | On-road, `TerrainMovementCost.TerrainId` is HeavyWoods but value is 1. Is this confusing for UI? | T12 |
-| Q5 | Pathfinding doesn't use road cost reduction. Documented limitation. | T12 |
-| Q6 | How should skidding modifiers integrate with to-hit calculation — via `Mech.GetAttackModifiers()` or `ToHitCalculator.GetDetailedOtherModifiers()`? | T15, T22 |
-| Q7 | When is `IsSkidding` cleared? After movement? After attacks? | T15 |
-| Q8 | No `GetUnitsOnHex()` method exists. Need to add or iterate all units. | T18 |
-| Q9 | Bridge collapse is per-hex or entire bridge? PRD: per hex. | T18 |
-| Q10 | `SegmentEvent` has no data payload beyond Type. Is this sufficient for BridgeCollapse? | T07, T18 |
-| Q11 | Where does under-bridge clearance check live? | T19 |
-| Q12 | Should clearance be validated client-side (path UI) or only server-side? | T19 |
+| Q1 | Default for ConstructionFactor? PRD says null for non-structural. OK. | #1038 |
+| Q2 | **Blocking:** `GetTerrainType()` only takes `int? height`. Bridge also needs `ConstructionFactor`. Solution: add optional param `int? constructionFactor = null` or refactor to accept `TerrainData`. | #1039 |
+| Q3 | Should Pavement count for road bitmask connectivity? | #1045, #1047 |
+| Q4 | On-road, `TerrainMovementCost.TerrainId` is HeavyWoods but value is 1. Is this confusing for UI? | #1046 |
+| Q5 | Pathfinding doesn't use road cost reduction. Documented limitation. | #1046 |
+| Q6 | How should skidding modifiers integrate with to-hit calculation — via `Mech.GetAttackModifiers()` or `ToHitCalculator.GetDetailedOtherModifiers()`? | #1049, #1056 |
+| Q7 | When is `IsSkidding` cleared? After movement? After attacks? | #1049 |
+| Q8 | No `GetUnitsOnHex()` method exists. Need to add or iterate all units. | #1052 |
+| Q9 | Bridge collapse is per-hex or entire bridge? PRD: per hex. | #1052 |
+| Q10 | `SegmentEvent` has no data payload beyond Type. Is this sufficient for BridgeCollapse? | #1041, #1052 |
+| Q11 | Where does under-bridge clearance check live? | #1053 |
+| Q12 | Should clearance be validated client-side (path UI) or only server-side? | #1053 |
 
 ---
 
