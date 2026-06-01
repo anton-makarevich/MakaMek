@@ -43,7 +43,7 @@ public class MovementBreakdownConverterTests
         var result = _sut.Convert(path, typeof(string), null, CultureInfo.InvariantCulture);
 
         result.ShouldBeOfType<string>();
-        result.ShouldBe("1. 0101:0->0102:0\nentered Clear, 2 MP");
+        result.ShouldBe($"1. 0101:0->0102:0{Environment.NewLine}- entered Clear, 2 MP");
     }
 
     [Fact]

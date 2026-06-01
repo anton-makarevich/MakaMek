@@ -896,7 +896,7 @@ public class MovementPathTests
 
         var result = sut.Render(localization);
 
-        result.ShouldBe("1. 0101:0->0102:0\nentered Clear, 2 MP");
+        result.ShouldBe($"1. 0101:0->0102:0{Environment.NewLine}- entered Clear, 2 MP");
     }
 
     [Fact]
@@ -918,7 +918,7 @@ public class MovementPathTests
         var result = sut.Render(localization);
 
         result.ShouldBe(
-            "1. 0101:0->0102:0\nentered Clear, 1 MP\n2. 0102:0->0103:0\nentered LightWoods, 2 MP");
+            $"1. 0101:0->0102:0{Environment.NewLine}- entered Clear, 1 MP{Environment.NewLine}2. 0102:0->0103:0{Environment.NewLine}- entered LightWoods, 2 MP");
     }
 
     [Fact]
@@ -941,6 +941,6 @@ public class MovementPathTests
         var result = sut.Render(localization);
 
         result.ShouldBe(
-            "1. 0101:0->0102:0\nrotated 1 side(s), 1 MP\nentered Clear, 2 MP");
+            $"1. 0101:0->0102:0{Environment.NewLine}- rotated 1 side(s), 1 MP{Environment.NewLine}- entered Clear, 2 MP");
     }
 }

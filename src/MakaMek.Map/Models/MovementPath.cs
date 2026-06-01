@@ -217,7 +217,7 @@ public class MovementPath : IEquatable<MovementPath>
             var to = $"{segment.To.Coordinates}:{(int)segment.To.Facing}";
             sb.AppendLine($"{segmentNumber++}. {from}->{to}");
             foreach (var cost in segment.Costs)
-                sb.AppendLine(cost.Render(localizationService));
+                sb.AppendLine($"- {cost.Render(localizationService)}");
         }
         return sb.ToString().TrimEnd();
     }
