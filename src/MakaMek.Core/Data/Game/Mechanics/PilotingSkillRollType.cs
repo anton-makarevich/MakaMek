@@ -48,7 +48,7 @@ public enum PilotingSkillRollType
 
     // Add other PSR types here in the future, e.g.:
     // Shutdown,
-    // Skid
+    SkidCheck,
     StandupAttempt,
     JumpWithDamage,
 
