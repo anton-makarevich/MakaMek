@@ -29,5 +29,20 @@ public enum MakaMekTerrains
     /// Water terrain - lakes, rivers, or other bodies of water.
     /// Depth is stored as a non-positive Height value: 0 = shallow/fordable, -1 = standard, -2+ = deep.
     /// </summary>
-    Water
+    Water,
+
+    /// <summary>
+    /// Road terrain - improved surface for faster travel
+    /// </summary>
+    Road,
+
+    /// <summary>
+    /// Pavement terrain - hardened artificial surface
+    /// </summary>
+    Pavement,
+
+    /// <summary>
+    /// Bridge terrain - elevated crossing over water or other obstacles
+    /// </summary>
+    Bridge
 }
