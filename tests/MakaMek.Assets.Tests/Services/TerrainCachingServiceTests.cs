@@ -503,6 +503,72 @@ public class TerrainCachingServiceTests
         imageForMask3.Length.ShouldBeGreaterThan(0);
     }
 
+    [Fact]
+    public async Task GetRoadTextureImage_ShouldReturnImage_WhenExists()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRoadTexture("000001", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetRoadTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldNotBeNull();
+        image.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetRoadTextureImage_ShouldReturnNull_WhenBiomeNotLoaded()
+    {
+        // Arrange
+        var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
+
+        // Act
+        var image = await _sut.GetRoadTextureImage("nonexistent-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetRoadTextureImage_ShouldReturnNull_WhenNoRoadTextureForBitmask()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRoadTexture("000001", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var canonicalBitmask = new CanonicalBitmaskResult(0b111111, 0);
+
+        // Act
+        var image = await _sut.GetRoadTextureImage("test-biome", canonicalBitmask);
+
+        // Assert
+        image.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetRoadTextureImage_ShouldLoadMultipleBitmasks()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRoadTexture("000001", 1)
+            .WithRoadTexture("000011", 1));
+        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+
+        // Act
+        var imageForMask1 = await _sut.GetRoadTextureImage("test-biome", new CanonicalBitmaskResult(0b000001, 0));
+        var imageForMask3 = await _sut.GetRoadTextureImage("test-biome", new CanonicalBitmaskResult(0b000011, 0));
+
+        // Assert
+        imageForMask1.ShouldNotBeNull();
+        imageForMask3.ShouldNotBeNull();
+        imageForMask1.Length.ShouldBeGreaterThan(0);
+        imageForMask3.Length.ShouldBeGreaterThan(0);
+    }
+
     private static MemoryStream CreateMmtxPackage(
         string biomeId = "test-biome",
         string name = "Test Biome",
@@ -567,6 +633,9 @@ public class TerrainCachingServiceTests
 
         public MmtxPackageBuilder WithWaterTexture(string bitmask, params int[] variants) =>
             AddVariantEntries(variants, v => v == 0 ? $"terrains/water/{bitmask}.png" : $"terrains/water/{bitmask}-{v}.png");
+
+        public MmtxPackageBuilder WithRoadTexture(string bitmask, params int[] variants) =>
+            AddVariantEntries(variants, v => v == 0 ? $"terrains/road/{bitmask}.png" : $"terrains/road/{bitmask}-{v}.png");
 
         private MmtxPackageBuilder AddVariantEntries(
             int[] variants,
