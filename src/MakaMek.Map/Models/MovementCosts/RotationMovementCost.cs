@@ -9,8 +9,7 @@ public record RotationMovementCost : MovementCost
 
     public override string Render(ILocalizationService localizationService)
     {
-        var diff = Math.Abs((int)ToFacing - (int)FromFacing);
-        var sides = Math.Min(diff, 6 - diff);
+        var sides = FromFacing.ShortestRotationTo(ToFacing);
         return string.Format(localizationService.GetString("MovementCost_Rotation"), sides, Value);
     }
 }

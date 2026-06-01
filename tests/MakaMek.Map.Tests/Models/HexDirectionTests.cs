@@ -44,6 +44,28 @@ public class HexDirectionTests
         result.ShouldBe(expectedDirection);
     }
     
+    [Theory]
+    [InlineData(HexDirection.Top, HexDirection.Top, 0)]
+    [InlineData(HexDirection.Top, HexDirection.TopRight, 1)]
+    [InlineData(HexDirection.Top, HexDirection.BottomRight, 2)]
+    [InlineData(HexDirection.Top, HexDirection.Bottom, 3)]
+    [InlineData(HexDirection.Top, HexDirection.BottomLeft, 2)]
+    [InlineData(HexDirection.Top, HexDirection.TopLeft, 1)]
+    [InlineData(HexDirection.TopRight, HexDirection.Top, 1)]
+    [InlineData(HexDirection.TopRight, HexDirection.Bottom, 2)]
+    [InlineData(HexDirection.TopRight, HexDirection.BottomLeft, 3)]
+    [InlineData(HexDirection.BottomRight, HexDirection.TopLeft, 3)]
+    [InlineData(HexDirection.Bottom, HexDirection.Top, 3)]
+    [InlineData(HexDirection.BottomLeft, HexDirection.Top, 2)]
+    [InlineData(HexDirection.TopLeft, HexDirection.Top, 1)]
+    public void ShortestRotationTo_ReturnsMinimumSidesBetweenDirections(
+        HexDirection from, HexDirection to, int expected)
+    {
+        var result = from.ShortestRotationTo(to);
+
+        result.ShouldBe(expected);
+    }
+
     [Fact]
     public void AllDirections_ContainsAllEnumValues()
     {
