@@ -64,6 +64,28 @@ public class TerrainDataTests
         data.Height.ShouldBeNull();
     }
 
+    [Fact]
+    public void ToData_RoadTerrain_ReturnsCorrectTypeAndNullHeight()
+    {
+        var terrain = new RoadTerrain();
+
+        var data = terrain.ToData();
+
+        data.Type.ShouldBe(MakaMekTerrains.Road);
+        data.Height.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ToData_PavementTerrain_ReturnsCorrectTypeAndNullHeight()
+    {
+        var terrain = new PavementTerrain();
+
+        var data = terrain.ToData();
+
+        data.Type.ShouldBe(MakaMekTerrains.Pavement);
+        data.Height.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -146,6 +168,30 @@ public class TerrainDataTests
         terrain.Height.ShouldBe(0);
     }
 
+    [Fact]
+    public void FromData_RoadTerrain_ReturnsRoadTerrainInstance()
+    {
+        var data = new TerrainData { Type = MakaMekTerrains.Road };
+
+        var terrain = Terrain.FromData(data);
+
+        terrain.ShouldBeOfType<RoadTerrain>();
+        terrain.Id.ShouldBe(MakaMekTerrains.Road);
+        terrain.Height.ShouldBe(0);
+    }
+
+    [Fact]
+    public void FromData_PavementTerrain_ReturnsPavementTerrainInstance()
+    {
+        var data = new TerrainData { Type = MakaMekTerrains.Pavement };
+
+        var terrain = Terrain.FromData(data);
+
+        terrain.ShouldBeOfType<PavementTerrain>();
+        terrain.Id.ShouldBe(MakaMekTerrains.Pavement);
+        terrain.Height.ShouldBe(0);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -201,6 +247,8 @@ public class TerrainDataTests
     [InlineData(MakaMekTerrains.LightWoods)]
     [InlineData(MakaMekTerrains.HeavyWoods)]
     [InlineData(MakaMekTerrains.Rough)]
+    [InlineData(MakaMekTerrains.Road)]
+    [InlineData(MakaMekTerrains.Pavement)]
     public void Roundtrip_NonWaterTerrains_PreservesAllProperties(MakaMekTerrains terrainType)
     {
         // Arrange
@@ -213,6 +261,26 @@ public class TerrainDataTests
         // Assert
         restored.Id.ShouldBe(original.Id);
         restored.Height.ShouldBe(original.Height);
+        restored.MovementCost.ShouldBe(original.MovementCost);
+        restored.InterveningFactor.ShouldBe(original.InterveningFactor);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 50)]
+    [InlineData(3, 100)]
+    [InlineData(5, 200)]
+    public void Roundtrip_BridgeTerrain_PreservesAllProperties(int height, int constructionFactor)
+    {
+        var original = new BridgeTerrain(height, constructionFactor);
+
+        var data = original.ToData();
+        var restored = Terrain.FromData(data);
+
+        restored.ShouldBeOfType<BridgeTerrain>();
+        restored.Id.ShouldBe(original.Id);
+        restored.Height.ShouldBe(original.Height);
+        restored.Height.ShouldBe(height);
         restored.MovementCost.ShouldBe(original.MovementCost);
         restored.InterveningFactor.ShouldBe(original.InterveningFactor);
     }

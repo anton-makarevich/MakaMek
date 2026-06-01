@@ -45,19 +45,20 @@ public abstract class Terrain
 
     /// <summary>
     /// Creates a terrain instance from serialized data.
-    /// Delegates to GetTerrainType with the height value from the data.
+    /// Delegates to GetTerrainType with the height and constructionFactor values from the data.
     /// </summary>
     public static Terrain FromData(TerrainData data)
     {
-        return GetTerrainType(data.Type, data.Height);
+        return GetTerrainType(data.Type, data.Height, data.ConstructionFactor);
     }
 
     /// <summary>
     /// Creates a terrain instance by type.
-    /// For terrains with variable properties (like water depth), the height parameter is used.
-    /// For all other terrains, height is ignored.
+    /// For terrains with variable properties (like water depth or bridge height), the height parameter is used.
+    /// For structural terrains (like bridges), the constructionFactor parameter is used.
+    /// For all other terrains, these parameters are ignored.
     /// </summary>
-    public static Terrain GetTerrainType(MakaMekTerrains terrainType, int? height = null)
+    public static Terrain GetTerrainType(MakaMekTerrains terrainType, int? height = null, int? constructionFactor = null)
     {
         return terrainType switch
         {
@@ -66,6 +67,9 @@ public abstract class Terrain
             MakaMekTerrains.HeavyWoods => new HeavyWoodsTerrain(),
             MakaMekTerrains.Rough => new RoughTerrain(),
             MakaMekTerrains.Water => new WaterTerrain(height ?? 0),
+            MakaMekTerrains.Road => new RoadTerrain(),
+            MakaMekTerrains.Pavement => new PavementTerrain(),
+            MakaMekTerrains.Bridge => new BridgeTerrain(height ?? 0, constructionFactor ?? 0),
             _ => throw new ArgumentException($"Unknown terrain type: {terrainType}")
         };
     }
