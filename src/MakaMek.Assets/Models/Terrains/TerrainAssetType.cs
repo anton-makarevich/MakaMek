@@ -29,5 +29,10 @@ public enum TerrainAssetType
     /// Water terrain bitmask texture (from terrains/water/ folder).
     /// Files are named using the 6-bit binary representation of the canonical bitmask, e.g. 000001.png.
     /// </summary>
-    Water
+    Water,
+
+    /// <summary>
+    /// Road/bridge terrain bitmask texture (from terrains/road/ folder).
+    /// </summary>
+    Road
 }
