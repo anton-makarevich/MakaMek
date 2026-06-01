@@ -17,6 +17,11 @@ public class MovementBreakdownConverterTests
     public MovementBreakdownConverterTests()
     {
         _localizationService.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
+        _localizationService.GetString("Terrain_Clear").Returns("Clear");
+        _localizationService.GetString("Terrain_LightWoods").Returns("Light Woods");
+        _localizationService.GetString("Terrain_HeavyWoods").Returns("Heavy Woods");
+        _localizationService.GetString("Terrain_Rough").Returns("Rough");
+        _localizationService.GetString("Terrain_Water").Returns("Water");
         MovementBreakdownConverter.Initialize(_localizationService);
     }
 
