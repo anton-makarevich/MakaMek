@@ -69,14 +69,33 @@ public class Hex : IDisposable
     /// Gets the movement cost for entering this hex from another hex,
     /// considering road/paved connections
     /// </summary>
-    public int GetEnterCost(Hex fromHex)
+    public int GetEnterCost(Hex fromHex) => GetEnterCostInfo(fromHex).cost;
+
+    /// <summary>
+    /// Gets the terrain id responsible for the enter cost when entering this hex from another hex,
+    /// considering road/paved connections
+    /// </summary>
+    public MakaMekTerrains GetEnterTerrainId(Hex fromHex) => GetEnterCostInfo(fromHex).terrainId;
+
+    private (int cost, MakaMekTerrains terrainId) GetEnterCostInfo(Hex fromHex)
     {
         if (fromHex.IsRoadOrPaved() && this.IsRoadOrPaved())
-            return 1;
+            return (1, GetRoadOrPavedTerrainId());
 
-        return _terrains.Count != 0
-            ? _terrains.Values.Max(t => t.MovementCost)
-            : 1;
+        if (_terrains.Count != 0)
+        {
+            var maxTerrain = _terrains.Values.MaxBy(t => t.MovementCost)!;
+            return (maxTerrain.MovementCost, maxTerrain.Id);
+        }
+        return (1, MakaMekTerrains.Clear);
+    }
+
+    private MakaMekTerrains GetRoadOrPavedTerrainId()
+    {
+        if (HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
+        if (HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
+        if (HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
+        return MakaMekTerrains.Clear;
     }
 
     /// <summary>

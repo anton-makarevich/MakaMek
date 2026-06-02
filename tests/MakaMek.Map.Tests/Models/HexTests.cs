@@ -155,6 +155,24 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsUnderlyingTerrainCost()
+    {
+        // Arrange
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
+
+        // Act
+        var cost = toHex.GetEnterCost(fromHex);
+
+        // Assert
+        cost.ShouldBe(3);
+    }
+
+    [Fact]
     public void GetEnterCost_OnlySourceHasRoad_ReturnsUnderlyingTerrainCost()
     {
         // Arrange

@@ -110,9 +110,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 elevationChange = fromHex.GetElevationChangeTo(hex);
                 var levelCost = Math.Abs(elevationChange);
 
-                var terrainId = hex.GetTerrains()
-                    .OrderByDescending(t => t.MovementCost)
-                    .FirstOrDefault()?.Id ?? MakaMekTerrains.Clear;
+                var terrainId = hex.GetEnterTerrainId(fromHex);
 
                 var costList = new List<MovementCost>
                 {
