@@ -75,10 +75,10 @@ public class Hex : IDisposable
         int cost;
         MakaMekTerrains terrainId;
 
-        if (HasRoadOrPaved(fromHex) && HasRoadOrPaved(this))
+        if (GetRoadOrPavedTerrainId(fromHex) is { } fromRoad && GetRoadOrPavedTerrainId(this) is { } toRoad)
         {
             cost = 1;
-            terrainId = GetRoadOrPavedTerrainId();
+            terrainId = toRoad;
         }
         else if (_terrains.Count != 0)
         {
@@ -95,17 +95,12 @@ public class Hex : IDisposable
         return new TerrainMovementCost { TerrainId = terrainId, Value = cost, Depth = this.GetWaterDepth() };
     }
 
-    private static bool HasRoadOrPaved(Hex hex)
-        => hex.HasTerrain(MakaMekTerrains.Road)
-        || hex.HasTerrain(MakaMekTerrains.Pavement)
-        || hex.HasTerrain(MakaMekTerrains.Bridge);
-
-    private MakaMekTerrains GetRoadOrPavedTerrainId()
+    private static MakaMekTerrains? GetRoadOrPavedTerrainId(Hex hex)
     {
-        if (HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
-        if (HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
-        if (HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
-        return MakaMekTerrains.Clear;
+        if (hex.HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
+        if (hex.HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
+        if (hex.HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
+        return null;
     }
 
     /// <summary>
