@@ -397,6 +397,7 @@ public abstract class Unit : IUnit
 
     // Movement tracking
     public int MovementPointsSpent => MovementTaken?.TotalCost ?? 0;
+    public bool IsSkidding => MovementTaken?.Segments.Any(s => s.Events?.Any(e => e.Type == SegmentEventType.Skid) ?? false) ?? false;
     public MovementPath? MovementTaken { get; protected set; }
 
     public bool HasMoved { get; private set; }
