@@ -338,7 +338,7 @@ public class UnitTests
         };
         
         // Act
-        var  in fiact = () => unit.DeclareWeaponAttack(weaponTargets);
+        var  act = () => unit.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);

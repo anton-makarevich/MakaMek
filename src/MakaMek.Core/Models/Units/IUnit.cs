@@ -102,6 +102,9 @@ public interface IUnit
     int MovementPointsSpent { get; }
     MovementPath? MovementTaken { get; }
     bool HasMoved { get; }
+    /// <summary>
+    /// Gets whether the unit is currently skidding. Returns true if any movement segment contains a skid event.
+    /// </summary>
     bool IsSkidding { get; }
     int TotalPhaseDamage { get; }
 
