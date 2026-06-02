@@ -194,6 +194,19 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterMovementCost_HexWithoutTerrains_ReturnsClearWithCost1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0)); // no terrains at all
+
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        result.Value.ShouldBe(1);
+    }
+
+    [Fact]
     public void GetEnterMovementCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_ReturnsRoadWithCost1()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));
