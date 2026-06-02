@@ -122,68 +122,104 @@ public class HexTests
     }
 
     [Fact]
-    public void MovementCost_WithNoTerrain_Returns1()
+    public void GetEnterMovementCost_BothHexesRoadPavedWithHeavyWoodsUnderlying_ReturnsRoadWithCost1()
     {
-        // Arrange
-        var sut = new Hex(new HexCoordinates(0, 0));
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new RoadTerrain());
+        fromHex.AddTerrain(new HeavyWoodsTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act & Assert
-        sut.MovementCost.ShouldBe(1);
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]
-    public void MovementCost_WithSingleTerrain_ReturnsTerrainFactor()
+    public void GetEnterMovementCost_OnlyDestinationHasRoad_ReturnsRoadWithCost1()
     {
-        // Arrange
-        var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
 
-        // Act & Assert
-        sut.MovementCost.ShouldBe(2);
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]
-    public void MovementCost_WithMultipleTerrains_ReturnsHighestFactor()
+    public void GetEnterMovementCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
-        var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddTerrain(new ClearTerrain());      // TerrainFactor = 1
-        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
-        sut.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act & Assert
-        sut.MovementCost.ShouldBe(3);
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
     }
 
     [Fact]
-    public void MovementCost_AfterRemovingHighestTerrain_ReturnsNextHighestFactor()
+    public void GetEnterMovementCost_OnlySourceHasRoad_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
-        var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
-        sut.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new RoadTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        sut.MovementCost.ShouldBe(2);
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
     }
 
     [Fact]
-    public void MovementCost_AfterRemovingAllTerrain_Returns1()
+    public void GetEnterMovementCost_NeitherHexHasRoad_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
-        var sut = new Hex(new HexCoordinates(0, 0));
-        sut.AddTerrain(new LightWoodsTerrain());
-        sut.AddTerrain(new HeavyWoodsTerrain());
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new HeavyWoodsTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        sut.RemoveTerrain((MakaMekTerrains.LightWoods));
-        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        sut.MovementCost.ShouldBe(1);
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_HexWithoutTerrains_ReturnsClearWithCost1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0)); // no terrains at all
+
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.Clear);
+        result.Value.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_ReturnsRoadWithCost1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new RoadTerrain());
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
+        toHex.AddTerrain(new RoughTerrain());
+
+        var result = toHex.GetEnterMovementCost(fromHex);
+
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]

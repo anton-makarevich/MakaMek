@@ -29,11 +29,6 @@ public static class HexExtensions
             return -waterTerrain?.Height;
         }
 
-        public bool IsRoadOrPaved()
-            => hex.HasTerrain(MakaMekTerrains.Road)
-            || hex.HasTerrain(MakaMekTerrains.Pavement)
-            || hex.HasTerrain(MakaMekTerrains.Bridge);
-
         public int GetElevationChangeTo(Hex? toHex)
         {
             if (toHex == null) return 0;

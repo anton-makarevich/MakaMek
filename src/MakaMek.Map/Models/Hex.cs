@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Highlights;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
@@ -66,11 +67,41 @@ public class Hex : IDisposable
     }
 
     /// <summary>
-    /// Gets the movement cost for entering this hex (highest terrain factor)
+    /// Gets the movement cost for entering this hex from another hex,
+    /// considering road/paved connections
     /// </summary>
-    public int MovementCost => _terrains.Count != 0 
-        ? _terrains.Values.Max(t => t.MovementCost)
-        : 1; // Default cost for empty hex
+    public TerrainMovementCost GetEnterMovementCost(Hex fromHex)
+    {
+        int cost;
+        MakaMekTerrains terrainId;
+
+        if (GetRoadOrPavedTerrainId(fromHex) is { } fromRoad && GetRoadOrPavedTerrainId(this) is { } toRoad)
+        {
+            cost = 1;
+            terrainId = toRoad;
+        }
+        else if (_terrains.Count != 0)
+        {
+            var maxTerrain = _terrains.Values.MaxBy(t => t.MovementCost)!;
+            cost = maxTerrain.MovementCost;
+            terrainId = maxTerrain.Id;
+        }
+        else
+        {
+            cost = 1;
+            terrainId = MakaMekTerrains.Clear;
+        }
+
+        return new TerrainMovementCost { TerrainId = terrainId, Value = cost, Depth = this.GetWaterDepth() };
+    }
+
+    private static MakaMekTerrains? GetRoadOrPavedTerrainId(Hex hex)
+    {
+        if (hex.HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
+        if (hex.HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
+        if (hex.HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
+        return null;
+    }
 
     /// <summary>
     /// Observable that emits when the highlight collection changes
