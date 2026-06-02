@@ -317,30 +317,29 @@ public class HexControl : Panel
         }
     }
 
-    private async Task UpdateWaterLayer()
+    private async Task UpdateBitmaskLayer(CanonicalBitmaskResult? bitmask,
+        Func<string, CanonicalBitmaskResult, Task<byte[]?>> fetch, int zIndex)
     {
-        if (_waterBitmask == null) return;
+        if (bitmask == null) return;
 
         var biomeId = _hex.Biome;
-        var imageBytes = await _terrainAssetService.GetWaterTextureImage(biomeId, _waterBitmask);
+        var imageBytes = await fetch(biomeId, bitmask);
         var bitmap = BytesToBitmap(imageBytes);
         if (bitmap == null) return;
 
-        var rotationAngle = -_waterBitmask.RotationSteps * 60.0;
-        AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
+        AddImageLayer(bitmap, zIndex, -bitmask.RotationSteps * 60.0);
     }
 
-    private async Task UpdateRoadLayer()
+    private Task UpdateWaterLayer()
     {
-        if (_roadBitmask == null) return;
+        return UpdateBitmaskLayer(_waterBitmask,
+            _terrainAssetService.GetWaterTextureImage, ZIndexWaterLayer);
+    }
 
-        var biomeId = _hex.Biome;
-        var imageBytes = await _terrainAssetService.GetRoadTextureImage(biomeId, _roadBitmask);
-        var bitmap = BytesToBitmap(imageBytes);
-        if (bitmap == null) return;
-
-        var rotationAngle = -_roadBitmask.RotationSteps * 60.0;
-        AddImageLayer(bitmap, ZIndexRoadLayer, rotationAngle);
+    private Task UpdateRoadLayer()
+    {
+        return UpdateBitmaskLayer(_roadBitmask,
+            _terrainAssetService.GetRoadTextureImage, ZIndexRoadLayer);
     }
 
     private async Task UpdateOverlayLayers()
