@@ -3059,4 +3059,47 @@ public class UnitTests
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
+    
+    [Fact]
+    public void IsSkidding_ReturnsFalse_WhenMovementTakenIsNull()
+    {
+        var sut = CreateTestUnit();
+
+        sut.IsSkidding.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSkidding_ReturnsFalse_WhenMovementPathHasNoSkidEvents()
+    {
+        var sut = CreateTestUnit();
+        var position = new HexPosition(1, 1, HexDirection.Top);
+        sut.Deploy(position, null);
+
+        var path = new MovementPath(
+        [
+            new PathSegment(position, new HexPosition(2, 1, HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk);
+        sut.Move(path, null);
+
+        sut.IsSkidding.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSkidding_ReturnsTrue_WhenMovementPathContainsSkidEvent()
+    {
+        var sut = CreateTestUnit();
+        var position = new HexPosition(1, 1, HexDirection.Top);
+        sut.Deploy(position, null);
+
+        var path = new MovementPath(
+        [
+            new PathSegment(position, new HexPosition(2, 1, HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Walk);
+        sut.Move(path, null);
+
+        sut.IsSkidding.ShouldBeTrue();
+    }
 }
