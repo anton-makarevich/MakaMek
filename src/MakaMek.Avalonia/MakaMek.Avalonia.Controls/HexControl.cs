@@ -41,10 +41,12 @@ public class HexControl : Panel
     private const int ZIndexEdgeEffects = 10;
     private const int ZIndexWaterLayer = 18;
     private const int ZIndexOverlays = 20;
+    private const int ZIndexRoadLayer = 25;
     private const int ZIndexPolygon = 30;
     private const int ZIndexLabel = 31;
 
     private readonly CanonicalBitmaskResult? _waterBitmask;
+    private readonly CanonicalBitmaskResult? _roadBitmask;
     private readonly IDisposable? _hexSubscription;
 
     private static Points GetHexPoints()
@@ -66,12 +68,14 @@ public class HexControl : Panel
         ILocalizationService? localizationService = null,
         IReadOnlyList<HexEdge>? edges = null, HexRenderConfiguration? configuration = null,
         CanonicalBitmaskResult? waterBitmask = null,
+        CanonicalBitmaskResult? roadBitmask = null,
         IScheduler? scheduler = null)
     {
         _hex = hex;
         _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _waterBitmask = waterBitmask;
+        _roadBitmask = roadBitmask;
         var localScheduler = scheduler ?? new SynchronizationContextScheduler(SynchronizationContext.Current!);
 
         _logger = logger;
@@ -313,17 +317,29 @@ public class HexControl : Panel
         }
     }
 
-    private async Task UpdateWaterLayer()
+    private async Task UpdateBitmaskLayer(CanonicalBitmaskResult? bitmask,
+        Func<string, CanonicalBitmaskResult, Task<byte[]?>> fetch, int zIndex)
     {
-        if (_waterBitmask == null) return;
+        if (bitmask == null) return;
 
         var biomeId = _hex.Biome;
-        var imageBytes = await _terrainAssetService.GetWaterTextureImage(biomeId, _waterBitmask);
+        var imageBytes = await fetch(biomeId, bitmask);
         var bitmap = BytesToBitmap(imageBytes);
         if (bitmap == null) return;
 
-        var rotationAngle = -_waterBitmask.RotationSteps * 60.0;
-        AddImageLayer(bitmap, ZIndexWaterLayer, rotationAngle);
+        AddImageLayer(bitmap, zIndex, -bitmask.RotationSteps * 60.0);
+    }
+
+    private Task UpdateWaterLayer()
+    {
+        return UpdateBitmaskLayer(_waterBitmask,
+            _terrainAssetService.GetWaterTextureImage, ZIndexWaterLayer);
+    }
+
+    private Task UpdateRoadLayer()
+    {
+        return UpdateBitmaskLayer(_roadBitmask,
+            _terrainAssetService.GetRoadTextureImage, ZIndexRoadLayer);
     }
 
     private async Task UpdateOverlayLayers()
@@ -382,6 +398,7 @@ public class HexControl : Panel
         await UpdateBaseTerrainImage();
         await UpdateEdgeLayers();
         await UpdateWaterLayer();
+        await UpdateRoadLayer();
         await UpdateOverlayLayers();
     }
 
