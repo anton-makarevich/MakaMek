@@ -138,6 +138,8 @@ public class FakeLocalizationService : ILocalizationService
         ["Modifier_ShoulderActuatorHit"] = "{0} Shoulder Destroyed: +{1}",
         ["Modifier_UpperArmActuatorHit"] = "{0} Upper Arm Actuator Destroyed: +{1}",
         ["Modifier_LowerArmActuatorHit"] = "{0} Lower Arm Actuator Destroyed: +{1}",
+        ["Modifier_SkiddingTarget"] = "Skidding Target: +{0}",
+        ["Modifier_SkiddingAttacker"] = "Skidding Attacker: +{0}",
         ["Modifier_ProneFiring"] = "Prone Firing: +{0}",
         ["Modifier_PartialCover"] = "Partial Cover: +{0}",
         ["Modifier_WaterDepth"] = "Water Depth ({0}): {1}",
