@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Highlights;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
@@ -69,26 +70,35 @@ public class Hex : IDisposable
     /// Gets the movement cost for entering this hex from another hex,
     /// considering road/paved connections
     /// </summary>
-    public int GetEnterCost(Hex fromHex) => GetEnterCostInfo(fromHex).cost;
-
-    /// <summary>
-    /// Gets the terrain id responsible for the enter cost when entering this hex from another hex,
-    /// considering road/paved connections
-    /// </summary>
-    public MakaMekTerrains GetEnterTerrainId(Hex fromHex) => GetEnterCostInfo(fromHex).terrainId;
-
-    private (int cost, MakaMekTerrains terrainId) GetEnterCostInfo(Hex fromHex)
+    public TerrainMovementCost GetEnterMovementCost(Hex fromHex)
     {
-        if (fromHex.IsRoadOrPaved() && this.IsRoadOrPaved())
-            return (1, GetRoadOrPavedTerrainId());
+        int cost;
+        MakaMekTerrains terrainId;
 
-        if (_terrains.Count != 0)
+        if (HasRoadOrPaved(fromHex) && HasRoadOrPaved(this))
+        {
+            cost = 1;
+            terrainId = GetRoadOrPavedTerrainId();
+        }
+        else if (_terrains.Count != 0)
         {
             var maxTerrain = _terrains.Values.MaxBy(t => t.MovementCost)!;
-            return (maxTerrain.MovementCost, maxTerrain.Id);
+            cost = maxTerrain.MovementCost;
+            terrainId = maxTerrain.Id;
         }
-        return (1, MakaMekTerrains.Clear);
+        else
+        {
+            cost = 1;
+            terrainId = MakaMekTerrains.Clear;
+        }
+
+        return new TerrainMovementCost { TerrainId = terrainId, Value = cost, Depth = this.GetWaterDepth() };
     }
+
+    private static bool HasRoadOrPaved(Hex hex)
+        => hex.HasTerrain(MakaMekTerrains.Road)
+        || hex.HasTerrain(MakaMekTerrains.Pavement)
+        || hex.HasTerrain(MakaMekTerrains.Bridge);
 
     private MakaMekTerrains GetRoadOrPavedTerrainId()
     {

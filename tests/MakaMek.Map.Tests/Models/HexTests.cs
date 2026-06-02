@@ -122,9 +122,8 @@ public class HexTests
     }
 
     [Fact]
-    public void GetEnterCost_BothHexesRoadPavedWithHeavyWoodsUnderlying_Returns1()
+    public void GetEnterMovementCost_BothHexesRoadPavedWithHeavyWoodsUnderlying_ReturnsRoadWithCost1()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new RoadTerrain());
         fromHex.AddTerrain(new HeavyWoodsTerrain());
@@ -132,82 +131,71 @@ public class HexTests
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(1);
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]
-    public void GetEnterCost_OnlyDestinationHasRoad_ReturnsUnderlyingTerrainCost()
+    public void GetEnterMovementCost_OnlyDestinationHasRoad_ReturnsRoadWithCost1()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new RoadTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(1);
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]
-    public void GetEnterCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsUnderlyingTerrainCost()
+    public void GetEnterMovementCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new ClearTerrain());
-
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(3);
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
     }
 
     [Fact]
-    public void GetEnterCost_OnlySourceHasRoad_ReturnsUnderlyingTerrainCost()
+    public void GetEnterMovementCost_OnlySourceHasRoad_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new RoadTerrain());
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(3);
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
     }
 
     [Fact]
-    public void GetEnterCost_NeitherHexHasRoad_ReturnsUnderlyingTerrainCost()
+    public void GetEnterMovementCost_NeitherHexHasRoad_ReturnsHeavyWoodsWithCost3()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new HeavyWoodsTerrain());
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(3);
+        result.TerrainId.ShouldBe(MakaMekTerrains.HeavyWoods);
+        result.Value.ShouldBe(3);
     }
 
     [Fact]
-    public void GetEnterCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_Returns1()
+    public void GetEnterMovementCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_ReturnsRoadWithCost1()
     {
-        // Arrange
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new RoadTerrain());
         fromHex.AddTerrain(new ClearTerrain());
@@ -215,11 +203,10 @@ public class HexTests
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new RoughTerrain());
 
-        // Act
-        var cost = toHex.GetEnterCost(fromHex);
+        var result = toHex.GetEnterMovementCost(fromHex);
 
-        // Assert
-        cost.ShouldBe(1);
+        result.TerrainId.ShouldBe(MakaMekTerrains.Road);
+        result.Value.ShouldBe(1);
     }
 
     [Fact]
