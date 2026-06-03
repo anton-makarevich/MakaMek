@@ -16,7 +16,14 @@ theme.mmtx
 │   ├── lightwoods-{variant}.png
 │   ├── heavywoods-{variant}.png
 │   ├── rough-{variant}.png
-│   ├── water-{variant}.png
+│   ├── water/               # Optional: Water bitmask textures
+│   │   ├── 000001.png       # Bitmask texture (6-bit binary)
+│   │   ├── 000011.png
+│   │   └── ...
+│   ├── road/                # Optional: Road/bridge bitmask textures
+│   │   ├── 000001.png       # Bitmask texture (6-bit binary)
+│   │   ├── 000011.png
+│   │   └── ...
 │   └── ...
 └── edges/                  # Optional: Edge effect images
     ├── top-{direction}-{variant}.png
@@ -77,13 +84,33 @@ Terrain overlays are placed in the `terrains/` directory:
 terrains/{terrainType}-{variant}.png
 ```
 
-- **terrainType**: Lowercase terrain identifier (lightwoods, heavywoods, rough etc.)
+- **terrainType**: Lowercase terrain identifier (lightwoods, heavywoods, rough, road, pavement, bridge etc.)
 - **variant**: Optional numeric suffix (1-indexed)
 
 Examples:
 - `terrains/lightwoods-1.png` - Light woods overlay, variant 1
 - `terrains/heavywoods-2.png` - Heavy woods overlay, variant 2
 - `terrains/rough.png` - Rough terrain overlay, variant 0
+
+### Bitmask Road Textures
+
+Water and road (also represents bridges) terrain types use a 6-bit neighbor bitmask system (same mechanism as water) for seamless road-network rendering. Bitmask textures are placed in the `terrains/road/` subdirectory:
+
+```
+terrains/road/{bitmask}.png
+```
+
+- **bitmask**: 6-character binary string representing which neighboring hexes contain road or bridge terrain
+  - Each character position corresponds to a hex direction (0–5)
+  - `1` = connected, `0` = not connected
+  - Canonical bitmask after rotation normalization (13 canonical patterns)
+
+Examples:
+- `terrains/road/000001.png` - Road connects to neighbor in direction 0 only
+- `terrains/road/000011.png` - Road connects to neighbors in directions 0 and 1
+- `terrains/road/111111.png` - Road connects to all 6 neighbors
+
+Rotation is applied at render time based on the canonical bitmask's rotation steps (same as water bitmask textures).
 
 ### Edge Effects
 
@@ -178,7 +205,8 @@ classic.mmtx
 ├── base.png
 ├── terrains/
 │   ├── lightwoods.png
-│   └── heavywoods.png
+│   ├── heavywoods.png
+│   └── rough.png
 └── edges/
     ├── top-0.png
     ├── top-1.png
