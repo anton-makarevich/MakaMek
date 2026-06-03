@@ -52,16 +52,6 @@ theme.mmtx
 - **description**: Theme description
 - **author**: Creator attribution
 
-## Terrain Data Encoding
-
-Terrain properties beyond type are serialized via `TerrainData`. The following terrain-specific properties use the `Height` and `ConstructionFactor` fields:
-
-| Terrain Type | Height | ConstructionFactor |
-|---|---|---|
-| **Bridge** | Bridge surface elevation above hex base (e.g., `1` for one level above ground). Positive integer. | Maximum tonnage the bridge can support (e.g., `60` for 60 tons). Used for bridge collapse mechanics. |
-| **Water** | Water depth as non-positive value: `0` = shallow/fordable, `-1` = standard, `-2+` = deep. | `null` (not used) |
-| **Road**, **Pavement**, **Clear**, **Woods**, **Rough** | `null` (not used) | `null` (not used) |
-
 ## Asset Naming Conventions
 
 ### Base Terrain
