@@ -16,7 +16,10 @@ theme.mmtx
 │   ├── lightwoods-{variant}.png
 │   ├── heavywoods-{variant}.png
 │   ├── rough-{variant}.png
-│   ├── water-{variant}.png
+│   ├── water/               # Optional: Water bitmask textures
+│   │   ├── 000001.png       # Bitmask texture (6-bit binary)
+│   │   ├── 000011.png
+│   │   └── ...
 │   ├── road/                # Optional: Road/bridge bitmask textures
 │   │   ├── 000001.png       # Bitmask texture (6-bit binary)
 │   │   ├── 000011.png
@@ -91,7 +94,7 @@ Examples:
 
 ### Bitmask Road Textures
 
-Road and bridge terrain types use a 6-bit neighbor bitmask system (same mechanism as water) for seamless road-network rendering. Bitmask textures are placed in the `terrains/road/` subdirectory:
+Water and road (also represents bridges) terrain types use a 6-bit neighbor bitmask system (same mechanism as water) for seamless road-network rendering. Bitmask textures are placed in the `terrains/road/` subdirectory:
 
 ```
 terrains/road/{bitmask}.png
@@ -203,21 +206,7 @@ classic.mmtx
 ├── terrains/
 │   ├── lightwoods.png
 │   ├── heavywoods.png
-│   ├── rough.png
-│   └── road/
-│       ├── 000001.png
-│       ├── 000010.png
-│       ├── 000011.png
-│       ├── 000100.png
-│       ├── 000101.png
-│       ├── 000110.png
-│       ├── 000111.png
-│       ├── 001001.png
-│       ├── 001010.png
-│       ├── 001011.png
-│       ├── 010010.png
-│       ├── 010101.png
-│       └── 111111.png
+│   └── rough.png
 └── edges/
     ├── top-0.png
     ├── top-1.png
