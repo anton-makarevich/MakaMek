@@ -133,6 +133,46 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         return entries;
     }
 
+    private List<(int SegmentIndex, int HexesMoved)> FindSkidTriggerSegments(
+        IReadOnlyList<PathSegmentData> movementPath,
+        MovementType movementType)
+    {
+        var triggers = new List<(int SegmentIndex, int HexesMoved)>();
+
+        if (movementType != MovementType.Run)
+            return triggers;
+
+        for (var i = 0; i < movementPath.Count; i++)
+        {
+            var segment = movementPath[i];
+
+            if (segment.From.Coordinates != segment.To.Coordinates)
+                continue;
+
+            var turnHex = Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
+            if (turnHex == null) continue;
+            if (!turnHex.HasTerrain(MakaMekTerrains.Road) &&
+                !turnHex.HasTerrain(MakaMekTerrains.Pavement) &&
+                !turnHex.HasTerrain(MakaMekTerrains.Bridge))
+                continue;
+
+            if (segment.To.Coordinates == movementPath.Last().To.Coordinates)
+                continue;
+
+            var hexesMoved = 0;
+            for (var j = 0; j < i; j++)
+            {
+                var prevSegment = movementPath[j];
+                if (prevSegment.From.Coordinates != prevSegment.To.Coordinates)
+                    hexesMoved++;
+            }
+
+            triggers.Add((i, hexesMoved));
+        }
+
+        return triggers;
+    }
+
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
@@ -188,6 +228,66 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 
                 var psrCommand = fallContextData.ToMechFallCommand();
                 Game.CommandPublisher.PublishCommand(psrCommand);
+            }
+
+            var skidTriggers = FindSkidTriggerSegments(moveCommand.MovementPath, moveCommand.MovementType);
+            foreach (var (triggerSegmentIndex, hexesMoved) in skidTriggers)
+            {
+                var triggerSegment = moveCommand.MovementPath[triggerSegmentIndex];
+                var skidContext = new SkidCheckRollContext(hexesMoved);
+                var skidFallContext = Game.FallProcessor.ProcessMovementAttempt(
+                    unit, skidContext, Game, moveCommand.MovementType);
+
+                if (skidFallContext.IsFalling)
+                {
+                    var truncatedSegments = moveCommand.MovementPath.Take(triggerSegmentIndex + 1).ToList();
+                    var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
+                    truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid));
+
+                    var skidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
+                    var turnHexCoords = new HexCoordinates(triggerSegment.From.Coordinates);
+                    var skidFacing = (HexDirection)triggerSegment.From.Facing;
+
+                    var skidPathSegments = new List<PathSegment>();
+                    var currentCoords = turnHexCoords;
+                    for (var i = 0; i < skidDistance; i++)
+                    {
+                        var nextCoords = currentCoords.GetNeighbour(skidFacing);
+                        var fromPos = new HexPosition(currentCoords, skidFacing);
+                        var toPos = new HexPosition(nextCoords, skidFacing);
+                        var skidSegment = new PathSegment(fromPos, toPos, [])
+                        {
+                            Events = [new SegmentEvent(SegmentEventType.Skid)]
+                        };
+                        skidPathSegments.Add(skidSegment);
+                        currentCoords = nextCoords;
+                    }
+
+                    var allSegments = truncatedPath.Segments
+                        .Select(s => s.ToData())
+                        .Concat(skidPathSegments.Select(s => s.ToData()))
+                        .ToList();
+
+                    var modifiedPath = new MovementPath(allSegments, moveCommand.MovementType);
+                    var modifiedCommand = moveCommand with
+                    {
+                        MovementPath = modifiedPath.ToData(),
+                        IsCompleted = true
+                    };
+
+                    Game.OnMoveUnit(modifiedCommand);
+
+                    var fallCommand = skidFallContext.ToMechFallCommand();
+                    ProcessFallCommand(fallCommand, unit);
+
+                    Game.CommandPublisher.PublishCommand(modifiedCommand with { GameOriginId = Game.Id });
+                    Game.CommandPublisher.PublishCommand(fallCommand);
+
+                    return;
+                }
+
+                var skidPsrCommand = skidFallContext.ToMechFallCommand();
+                Game.CommandPublisher.PublishCommand(skidPsrCommand);
             }
         }
 
