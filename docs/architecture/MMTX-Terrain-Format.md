@@ -98,9 +98,6 @@ Examples:
 - `terrains/lightwoods-1.png` - Light woods overlay, variant 1
 - `terrains/heavywoods-2.png` - Heavy woods overlay, variant 2
 - `terrains/rough.png` - Rough terrain overlay, variant 0
-- `terrains/road.png` - Road overlay, variant 0
-- `terrains/pavement.png` - Pavement overlay, variant 0
-- `terrains/bridge.png` - Bridge overlay, variant 0
 
 ### Bitmask Road Textures
 
