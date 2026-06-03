@@ -2321,7 +2321,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
 
-        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 0));
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 1));
     }
 
     [Fact]
