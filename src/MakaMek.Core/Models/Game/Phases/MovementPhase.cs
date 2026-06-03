@@ -219,7 +219,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                             IsCompleted = true,
                             MovementPath = MovementPath.CreateSingleSegmentPath(unit.Position, truncatedCommand.MovementType).ToData()
                         };
-                        // this is only to complete movement on the server, on client it already handled by the prev command
+                        // this is only to complete movement on the server; on client it already handled by the prev command
                         Game.OnMoveUnit(completionCommand);
                     }
                     _requestDeferStepConsumption = canStandup;
@@ -250,9 +250,17 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
                     var skidPathSegments = new List<PathSegment>();
                     var currentCoords = turnHexCoords;
-                    for (var i = 0; i < skidDistance; i++)
+                    var currentHex = Game.BattleMap!.GetHex(currentCoords)!;
+                    var remainingSkidDistance = skidDistance;
+
+                    while (remainingSkidDistance > 0)
                     {
                         var nextCoords = currentCoords.GetNeighbour(skidFacing);
+                        var nextHex = Game.BattleMap?.GetHex(nextCoords);
+                        if (nextHex == null)
+                            break;
+
+                        var movementCost = nextHex.GetEnterMovementCost(currentHex);
                         var fromPos = new HexPosition(currentCoords, skidFacing);
                         var toPos = new HexPosition(nextCoords, skidFacing);
                         var skidSegment = new PathSegment(fromPos, toPos, [])
@@ -260,7 +268,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                             Events = [new SegmentEvent(SegmentEventType.Skid)]
                         };
                         skidPathSegments.Add(skidSegment);
+
+                        remainingSkidDistance -= movementCost.Value;
                         currentCoords = nextCoords;
+                        currentHex = nextHex;
                     }
 
                     var allSegments = truncatedPath.Segments

@@ -2005,4 +2005,441 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.IsCompleted));
     }
+
+    [Fact]
+    public void WhenSkidEntersLightWoods_ShouldConsumeExtraSkidDistance()
+    {
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 5, HexDirection.Top), null);
+
+        var turnHex = Game.BattleMap!.GetHex(new HexCoordinates(8, 5));
+        turnHex!.AddTerrain(new PavementTerrain());
+
+        var lightWoodsHex = Game.BattleMap!.GetHex(new HexCoordinates(8, 3));
+        lightWoodsHex!.AddTerrain(new LightWoodsTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 5, HexDirection.Top), new HexPosition(2, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 5, HexDirection.Top), new HexPosition(3, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 5, HexDirection.Top), new HexPosition(4, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 5, HexDirection.Top), new HexPosition(5, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Top), new HexPosition(7, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(7, 5, HexDirection.Top), new HexPosition(8, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(8, 5, HexDirection.Top), new HexPosition(8, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(8, 5, HexDirection.Bottom), new HexPosition(9, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(7),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 7), Game, MovementType.Run)
+            .Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(8, 2));
+    }
+
+    [Fact]
+    public void WhenSkidEntersHeavyWoods_ShouldStopEarly()
+    {
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 5, HexDirection.Top), null);
+
+        var turnHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 5));
+        turnHex!.AddTerrain(new PavementTerrain());
+
+        var heavyWoodsHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 4));
+        heavyWoodsHex!.AddTerrain(new HeavyWoodsTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 5, HexDirection.Top), new HexPosition(2, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 5, HexDirection.Top), new HexPosition(3, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 5, HexDirection.Top), new HexPosition(4, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 5, HexDirection.Top), new HexPosition(5, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Bottom), new HexPosition(7, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(5),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 5), Game, MovementType.Run)
+            .Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 4));
+    }
+
+    [Fact]
+    public void WhenSkidEntersRoughTerrain_ShouldReduceSkidDistance()
+    {
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 5, HexDirection.Top), null);
+
+        var turnHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 5));
+        turnHex!.AddTerrain(new PavementTerrain());
+
+        var roughHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 4));
+        roughHex!.AddTerrain(new RoughTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 5, HexDirection.Top), new HexPosition(2, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 5, HexDirection.Top), new HexPosition(3, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 5, HexDirection.Top), new HexPosition(4, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 5, HexDirection.Top), new HexPosition(5, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Bottom), new HexPosition(7, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(5),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 5), Game, MovementType.Run)
+            .Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 3));
+    }
+
+    [Fact]
+    public void WhenSkidContinuesOnPavement_ShouldNotReduceExtraDistance()
+    {
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 5, HexDirection.Top), null);
+
+        var turnHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 5));
+        turnHex!.AddTerrain(new PavementTerrain());
+
+        var pavementHex1 = Game.BattleMap!.GetHex(new HexCoordinates(6, 4));
+        pavementHex1!.AddTerrain(new PavementTerrain());
+        var pavementHex2 = Game.BattleMap!.GetHex(new HexCoordinates(6, 3));
+        pavementHex2!.AddTerrain(new PavementTerrain());
+        var pavementHex3 = Game.BattleMap!.GetHex(new HexCoordinates(6, 2));
+        pavementHex3!.AddTerrain(new PavementTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 5, HexDirection.Top), new HexPosition(2, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 5, HexDirection.Top), new HexPosition(3, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 5, HexDirection.Top), new HexPosition(4, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 5, HexDirection.Top), new HexPosition(5, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Bottom), new HexPosition(7, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(5),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 5), Game, MovementType.Run)
+            .Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 2));
+    }
+
+    [Fact]
+    public void WhenSkidWouldExitMap_ShouldStopAtBoundary()
+    {
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+
+        var turnHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 1));
+        turnHex!.AddTerrain(new PavementTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 1, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 1, HexDirection.Top), new HexPosition(3, 1, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 1, HexDirection.Top), new HexPosition(4, 1, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 1, HexDirection.Top), new HexPosition(5, 1, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 1, HexDirection.Top), new HexPosition(6, 1, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 1, HexDirection.Top), new HexPosition(6, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(6, 1, HexDirection.Bottom), new HexPosition(7, 1, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(5),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 5), Game, MovementType.Run)
+            .Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 0));
+    }
+
+    [Fact]
+    public void WhenSkidEntersWater_ShouldConsumeBasedOnDepth()
+    {
+        SetMap();
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit1 = activePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit2 = activePlayer.Units.First(u => u.Id != _unit1Id) as Mech;
+        unit1!.Deploy(new HexPosition(1, 5, HexDirection.Top), null);
+        unit2!.Deploy(new HexPosition(1, 3, HexDirection.Top), null);
+
+        var turnHex1 = Game.BattleMap!.GetHex(new HexCoordinates(8, 5))!;
+        turnHex1.AddTerrain(new PavementTerrain());
+        var turnHex2 = Game.BattleMap!.GetHex(new HexCoordinates(6, 3))!;
+        turnHex2.AddTerrain(new PavementTerrain());
+
+        var standardWaterHex = Game.BattleMap!.GetHex(new HexCoordinates(8, 4))!;
+        standardWaterHex.AddTerrain(new WaterTerrain(-1));
+        var deepWaterHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 2))!;
+        deepWaterHex.AddTerrain(new WaterTerrain(-2));
+
+        var unit1Command = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 5, HexDirection.Top), new HexPosition(2, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 5, HexDirection.Top), new HexPosition(3, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 5, HexDirection.Top), new HexPosition(4, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 5, HexDirection.Top), new HexPosition(5, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 5, HexDirection.Top), new HexPosition(6, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 5, HexDirection.Top), new HexPosition(7, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(7, 5, HexDirection.Top), new HexPosition(8, 5, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(8, 5, HexDirection.Top), new HexPosition(8, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(8, 5, HexDirection.Bottom), new HexPosition(9, 5, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var unit2Command = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit2.Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 3, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 3, HexDirection.Top), new HexPosition(3, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(4, 3, HexDirection.Top), new HexPosition(5, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(5, 3, HexDirection.Top), new HexPosition(6, 3, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(6, 3, HexDirection.Top), new HexPosition(6, 3, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(6, 3, HexDirection.Bottom), new HexPosition(7, 3, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var waterFallContextData = new FallContextData
+        {
+            UnitId = unit1.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(7),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        var deepWaterFallContextData = new FallContextData
+        {
+            UnitId = unit2.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(5),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top, new HitLocationsData([], 5), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit1,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 7), Game, MovementType.Run)
+            .Returns(waterFallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit2,
+            Arg.Is<SkidCheckRollContext>(c => c.HexesMoved == 5), Game, MovementType.Run)
+            .Returns(deepWaterFallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(unit1Command);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+        unit1.Position!.Coordinates.ShouldBe(new HexCoordinates(8, 2));
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(unit2Command);
+
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == unit2.Id && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => cmd.UnitId == unit2.Id));
+        unit2.Position!.Coordinates.ShouldBe(new HexCoordinates(6, 2));
+    }
 }
