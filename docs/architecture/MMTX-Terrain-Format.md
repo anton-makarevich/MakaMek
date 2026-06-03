@@ -17,6 +17,10 @@ theme.mmtx
 │   ├── heavywoods-{variant}.png
 │   ├── rough-{variant}.png
 │   ├── water-{variant}.png
+│   ├── road/                # Optional: Road/bridge bitmask textures
+│   │   ├── 000001.png       # Bitmask texture (6-bit binary)
+│   │   ├── 000011.png
+│   │   └── ...
 │   └── ...
 └── edges/                  # Optional: Edge effect images
     ├── top-{direction}-{variant}.png
@@ -48,6 +52,16 @@ theme.mmtx
 - **description**: Theme description
 - **author**: Creator attribution
 
+## Terrain Data Encoding
+
+Terrain properties beyond type are serialized via `TerrainData`. The following terrain-specific properties use the `Height` and `ConstructionFactor` fields:
+
+| Terrain Type | Height | ConstructionFactor |
+|---|---|---|
+| **Bridge** | Bridge surface elevation above hex base (e.g., `1` for one level above ground). Positive integer. | Maximum tonnage the bridge can support (e.g., `60` for 60 tons). Used for bridge collapse mechanics. |
+| **Water** | Water depth as non-positive value: `0` = shallow/fordable, `-1` = standard, `-2+` = deep. | `null` (not used) |
+| **Road**, **Pavement**, **Clear**, **Woods**, **Rough** | `null` (not used) | `null` (not used) |
+
 ## Asset Naming Conventions
 
 ### Base Terrain
@@ -77,13 +91,36 @@ Terrain overlays are placed in the `terrains/` directory:
 terrains/{terrainType}-{variant}.png
 ```
 
-- **terrainType**: Lowercase terrain identifier (lightwoods, heavywoods, rough etc.)
+- **terrainType**: Lowercase terrain identifier (lightwoods, heavywoods, rough, road, pavement, bridge etc.)
 - **variant**: Optional numeric suffix (1-indexed)
 
 Examples:
 - `terrains/lightwoods-1.png` - Light woods overlay, variant 1
 - `terrains/heavywoods-2.png` - Heavy woods overlay, variant 2
 - `terrains/rough.png` - Rough terrain overlay, variant 0
+- `terrains/road.png` - Road overlay, variant 0
+- `terrains/pavement.png` - Pavement overlay, variant 0
+- `terrains/bridge.png` - Bridge overlay, variant 0
+
+### Bitmask Road Textures
+
+Road and bridge terrain types use a 6-bit neighbor bitmask system (same mechanism as water) for seamless road-network rendering. Bitmask textures are placed in the `terrains/road/` subdirectory:
+
+```
+terrains/road/{bitmask}.png
+```
+
+- **bitmask**: 6-character binary string representing which neighboring hexes contain road or bridge terrain
+  - Each character position corresponds to a hex direction (0–5)
+  - `1` = connected, `0` = not connected
+  - Canonical bitmask after rotation normalization (13 canonical patterns)
+
+Examples:
+- `terrains/road/000001.png` - Road connects to neighbor in direction 0 only
+- `terrains/road/000011.png` - Road connects to neighbors in directions 0 and 1
+- `terrains/road/111111.png` - Road connects to all 6 neighbors
+
+Rotation is applied at render time based on the canonical bitmask's rotation steps (same as water bitmask textures).
 
 ### Edge Effects
 
@@ -178,7 +215,26 @@ classic.mmtx
 ├── base.png
 ├── terrains/
 │   ├── lightwoods.png
-│   └── heavywoods.png
+│   ├── heavywoods.png
+│   ├── rough.png
+│   ├── road.png
+│   ├── pavement.png
+│   ├── bridge.png
+│   ├── water.png
+│   └── road/
+│       ├── 000001.png
+│       ├── 000010.png
+│       ├── 000011.png
+│       ├── 000100.png
+│       ├── 000101.png
+│       ├── 000110.png
+│       ├── 000111.png
+│       ├── 001001.png
+│       ├── 001010.png
+│       ├── 001011.png
+│       ├── 010010.png
+│       ├── 010101.png
+│       └── 111111.png
 └── edges/
     ├── top-0.png
     ├── top-1.png
