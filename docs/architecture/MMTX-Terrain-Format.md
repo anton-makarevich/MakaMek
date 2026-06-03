@@ -214,10 +214,6 @@ classic.mmtx
 │   ├── lightwoods.png
 │   ├── heavywoods.png
 │   ├── rough.png
-│   ├── road.png
-│   ├── pavement.png
-│   ├── bridge.png
-│   ├── water.png
 │   └── road/
 │       ├── 000001.png
 │       ├── 000010.png
