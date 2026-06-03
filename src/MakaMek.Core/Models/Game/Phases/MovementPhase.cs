@@ -151,9 +151,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
             var turnHex = Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
             if (turnHex == null) continue;
-            if (!turnHex.HasTerrain(MakaMekTerrains.Road) &&
-                !turnHex.HasTerrain(MakaMekTerrains.Pavement) &&
-                !turnHex.HasTerrain(MakaMekTerrains.Bridge))
+            if (!turnHex.HasHardPavement())
                 continue;
 
             if (segment.To.Coordinates == movementPath.Last().To.Coordinates)
