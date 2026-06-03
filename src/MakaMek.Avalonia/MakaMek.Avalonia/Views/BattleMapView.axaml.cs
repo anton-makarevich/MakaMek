@@ -66,7 +66,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             CanonicalBitmaskResult? roadBitmask = null;
             if (bitmaskService != null && game.BattleMap != null && (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge)))
             {
-                roadBitmask = bitmaskService.ComputeCanonicalBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road);
+                var rawRoad = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road);
+                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Bridge);
+                roadBitmask = bitmaskService.CanonicalizeRawMask((byte)(rawRoad | rawBridge));
             }
 
             var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges, hexConfiguration, waterBitmask, roadBitmask, ViewModel?.Scheduler);

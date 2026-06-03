@@ -34,6 +34,12 @@ public class TerrainBitmaskService : ITerrainBitmaskService
         return Canonicalize(raw);
     }
 
+    /// <inheritdoc />
+    public CanonicalBitmaskResult CanonicalizeRawMask(byte rawMask)
+    {
+        return Canonicalize(rawMask);
+    }
+
     /// <summary>
     /// Rotates a 6-bit bitmask by <paramref name="steps"/> positions clockwise.
     /// Each step shifts each bit from direction N to direction (N+1) mod 6.
