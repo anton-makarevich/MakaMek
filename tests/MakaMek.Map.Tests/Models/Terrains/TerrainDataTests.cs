@@ -252,7 +252,7 @@ public class TerrainDataTests
     public void Roundtrip_NonWaterTerrains_PreservesAllProperties(MakaMekTerrains terrainType)
     {
         // Arrange
-        var original = Terrain.GetTerrainType(terrainType);
+        var original = Terrain.CreateTerrainOfType(terrainType);
 
         // Act
         var data = original.ToData();

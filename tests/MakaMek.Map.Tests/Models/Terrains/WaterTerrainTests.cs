@@ -76,7 +76,7 @@ public class WaterTerrainTests
     public void GetTerrainType_WithWater_ReturnsWaterTerrain()
     {
         // Act
-        var terrain = Terrain.GetTerrainType(MakaMekTerrains.Water);
+        var terrain = Terrain.CreateTerrainOfType(MakaMekTerrains.Water);
 
         // Assert
         terrain.ShouldBeOfType<WaterTerrain>();

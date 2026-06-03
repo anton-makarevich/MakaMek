@@ -50,7 +50,7 @@ public class RoughTerrainTests
     public void GetTerrainType_WithRough_ReturnsRoughTerrain()
     {
         // Act
-        var terrain = Terrain.GetTerrainType(MakaMekTerrains.Rough);
+        var terrain = Terrain.CreateTerrainOfType(MakaMekTerrains.Rough);
 
         // Assert
         terrain.ShouldBeOfType<RoughTerrain>();

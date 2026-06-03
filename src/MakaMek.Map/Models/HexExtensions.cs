@@ -36,5 +36,12 @@ public static class HexExtensions
             var effectiveToLevel = toHex.Level - (toHex.GetWaterDepth() ?? 0);
             return effectiveToLevel - effectiveFromLevel;
         }
+
+        public bool HasHardPavement()
+        {
+            return hex.HasTerrain(MakaMekTerrains.Road) 
+                   || hex.HasTerrain(MakaMekTerrains.Pavement) 
+                   || hex.HasTerrain(MakaMekTerrains.Bridge);
+        }
     }
 }

@@ -121,4 +121,23 @@ public class HexExtensionsTests
         result.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData(MakaMekTerrains.Road, true)]
+    [InlineData(MakaMekTerrains.Bridge, true)]
+    [InlineData(MakaMekTerrains.Pavement, true)]
+    [InlineData(MakaMekTerrains.Water, false)]
+    [InlineData(MakaMekTerrains.LightWoods, false)]
+    [InlineData(MakaMekTerrains.Clear, false)]
+    public void HasHardPavement_ReturnsRightValue(MakaMekTerrains terrainType, bool expectedResult)
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(Terrain.CreateTerrainOfType(terrainType));
+        
+        // Act
+        var result = sut.HasHardPavement();
+        
+        // Assert
+        result.ShouldBe(expectedResult);
+    }
 }

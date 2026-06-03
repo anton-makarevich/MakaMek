@@ -45,11 +45,11 @@ public abstract class Terrain
 
     /// <summary>
     /// Creates a terrain instance from serialized data.
-    /// Delegates to GetTerrainType with the height and constructionFactor values from the data.
+    /// Delegates to CreateTerrainOfType with the height and constructionFactor values from the data.
     /// </summary>
     public static Terrain FromData(TerrainData data)
     {
-        return GetTerrainType(data.Type, data.Height, data.ConstructionFactor);
+        return CreateTerrainOfType(data.Type, data.Height, data.ConstructionFactor);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public abstract class Terrain
     /// For structural terrains (like bridges), the constructionFactor parameter is used.
     /// For all other terrains, these parameters are ignored.
     /// </summary>
-    public static Terrain GetTerrainType(MakaMekTerrains terrainType, int? height = null, int? constructionFactor = null)
+    public static Terrain CreateTerrainOfType(MakaMekTerrains terrainType, int? height = null, int? constructionFactor = null)
     {
         return terrainType switch
         {
