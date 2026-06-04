@@ -438,6 +438,7 @@ public abstract class BaseGame : IGame
             CriticalHitsResolutionCommand => CommandValidationResult.Valid(),
             PlayerLeftCommand => CommandValidationResult.Valid(),
             GameEndedCommand => CommandValidationResult.Valid(),
+            BridgeCollapsedCommand => CommandValidationResult.Valid(),
             _ => CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
         };
     }

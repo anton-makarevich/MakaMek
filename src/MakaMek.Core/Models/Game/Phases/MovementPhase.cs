@@ -134,6 +134,24 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         return entries;
     }
 
+    private List<(int SegmentIndex, int BridgeHeight, int ConstructionFactor)> FindBridgeSegments(
+        IReadOnlyList<PathSegmentData> movementPath)
+    {
+        var entries = new List<(int SegmentIndex, int BridgeHeight, int ConstructionFactor)>();
+        for (var i = 0; i < movementPath.Count; i++)
+        {
+            var segment = movementPath[i];
+            if (segment.From.Coordinates == segment.To.Coordinates) continue;
+
+            var destinationHex = Game.BattleMap?.GetHex(new HexCoordinates(segment.To.Coordinates));
+            if (destinationHex?.GetTerrain(MakaMekTerrains.Bridge) is BridgeTerrain bridge)
+            {
+                entries.Add((i, bridge.Height, bridge.ConstructionFactor));
+            }
+        }
+        return entries;
+    }
+
     private List<(int SegmentIndex, int HexesMoved)> FindSkidTriggerSegments(
         IReadOnlyList<PathSegmentData> movementPath,
         MovementType movementType)
@@ -304,6 +322,81 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
                 var skidPsrCommand = skidFallContext.ToMechFallCommand();
                 Game.CommandPublisher.PublishCommand(skidPsrCommand);
+            }
+
+            var bridgeSegments = FindBridgeSegments(moveCommand.MovementPath);
+            foreach (var (segmentIndex, bridgeHeight, constructionFactor) in bridgeSegments)
+            {
+                var bridgeCoords = new HexCoordinates(moveCommand.MovementPath[segmentIndex].To.Coordinates);
+                var hex = Game.BattleMap?.GetHex(bridgeCoords);
+                if (hex == null) continue;
+
+                var existingTonnage = Game.Players
+                    .SelectMany(p => p.Units)
+                    .Where(u => u.IsDeployed && u.Position!.Coordinates == bridgeCoords)
+                    .Sum(u => u.Tonnage);
+
+                var totalTonnage = existingTonnage + unit.Tonnage;
+                if (totalTonnage <= constructionFactor) continue;
+
+                // Bridge collapses — truncate path at bridge segment
+                var truncatedSegments = moveCommand.MovementPath.Take(segmentIndex + 1).ToList();
+                var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType)
+                    .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.BridgeCollapse));
+                var truncatedCommand = moveCommand with
+                {
+                    MovementPath = truncatedPath.ToData(),
+                    IsCompleted = false
+                };
+
+                // Place entering unit on the collapsed hex
+                Game.OnMoveUnit(truncatedCommand);
+
+                // Destroy bridge terrain
+                hex.RemoveTerrain(MakaMekTerrains.Bridge);
+
+                // Broadcast bridge collapse to all clients
+                Game.CommandPublisher.PublishCommand(new BridgeCollapsedCommand
+                {
+                    GameOriginId = Game.Id,
+                    Coordinates = bridgeCoords,
+                    ConstructionFactor = constructionFactor,
+                    TriggeringUnitId = unit.Id,
+                    Timestamp = DateTime.UtcNow
+                });
+
+                // All units on the hex fall
+                var unitsOnHex = Game.Players
+                    .SelectMany(p => p.Units)
+                    .Where(u => u.IsDeployed && u.Position!.Coordinates == bridgeCoords)
+                    .ToList();
+
+                foreach (var hexUnit in unitsOnHex)
+                {
+                    if (hexUnit is not Mech hexMech) continue;
+                    var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
+                        hexMech, new BridgeCollapseRollContext(bridgeHeight), Game, moveCommand.MovementType);
+
+                    if (fallContextData.IsFalling)
+                    {
+                        var fallCommand = fallContextData.ToMechFallCommand();
+                        ProcessFallCommand(fallCommand, hexMech);
+                    }
+                    else
+                    {
+                        var psrCommand = fallContextData.ToMechFallCommand();
+                        Game.CommandPublisher.PublishCommand(psrCommand);
+                    }
+                }
+
+                // Publish the truncated movement command
+                var broadcastCommand = truncatedCommand with
+                {
+                    GameOriginId = Game.Id,
+                    IsCompleted = true
+                };
+                Game.CommandPublisher.PublishCommand(broadcastCommand);
+                return;
             }
         }
 

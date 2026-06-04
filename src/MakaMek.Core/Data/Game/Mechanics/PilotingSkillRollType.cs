@@ -46,8 +46,11 @@ public enum PilotingSkillRollType
     /// </summary>
     LegDestroyed,
 
-    // Add other PSR types here in the future, e.g.:
-    // Shutdown,
+    /// <summary>
+    /// Automatic fall when a bridge collapses under a unit's weight.
+    /// </summary>
+    BridgeCollapse,
+
     SkidCheck,
     StandupAttempt,
     JumpWithDamage,
