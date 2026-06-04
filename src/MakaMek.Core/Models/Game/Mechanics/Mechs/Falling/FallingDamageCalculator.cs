@@ -65,34 +65,29 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     /// <returns>The result of the skid damage calculation</returns>
     public FallingDamageData CalculateSkidDamage(Unit unit, int skidHexes)
     {
-        if (unit is not Mech mech)
+        if (unit.Position == null)
         {
-            throw new ArgumentException("Only mechs can take falling damage", nameof(unit));
-        }
-
-        if (mech.Position == null)
-        {
-            throw new ArgumentException("Mech must be deployed", nameof(unit)); 
+            throw new ArgumentException("Unit must be deployed", nameof(unit)); 
         }
 
         // Skid damage: half the per-level falling damage per hex skidded
-        var damagePerHex = Math.Ceiling(mech.Tonnage / 10.0) * 0.5;
+        var damagePerHex = Math.Ceiling(unit.Tonnage / 10.0) * 0.5;
         var totalDamage = (int)Math.Ceiling(damagePerHex * skidHexes);
         
-        return DistributeDamage(mech, totalDamage);
+        return DistributeDamage(unit, totalDamage);
     }
 
     /// <summary>
     /// Shared damage distribution logic: rolls facing, determines hit locations,
     /// and distributes damage into 5-point groups
     /// </summary>
-    private FallingDamageData DistributeDamage(Mech mech, int totalDamage)
+    private FallingDamageData DistributeDamage(Unit unit, int totalDamage)
     {
         // Roll for facing after fall (1d6)
         var facingRoll = _diceRoller.RollD6();
         
         // Determine new facing based on current facing and roll
-        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position!.Facing);
+        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, unit.Position!.Facing);
         
         // Determine attack direction for hit location purposes
         var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
@@ -114,7 +109,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
             
             var locationDamage = _damageTransferCalculator.CalculateStructureDamage(
-                mech,
+                unit,
                 hitLocation,
                 damageAmount,
                 attackDirection);

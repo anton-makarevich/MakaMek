@@ -318,23 +318,13 @@ public class FallingDamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateSkidDamage_WhenUnitIsNotMech_ThrowsArgumentException()
+    public void CalculateSkidDamage_WhenUnitNotDeployed_ThrowsArgumentException()
     {
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         Should.Throw<ArgumentException>(() =>
             _sut.CalculateSkidDamage(unit, 1))
-            .Message.ShouldContain("Only mechs can take falling damage");
-    }
-
-    [Fact]
-    public void CalculateSkidDamage_WhenMechNotDeployed_ThrowsArgumentException()
-    {
-        var mech = CreateTestMech(20);
-
-        Should.Throw<ArgumentException>(() =>
-            _sut.CalculateSkidDamage(mech, 1))
-            .Message.ShouldContain("Mech must be deployed");
+            .Message.ShouldContain("must be deployed");
     }
 
     [Fact]
