@@ -11,12 +11,12 @@ public class SkidCheckRollContextTests
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
 
     [Fact]
-    public void Constructor_WhenCalled_SetsHexesMoved()
+    public void Constructor_WhenCalled_SetsSkidDistance()
     {
-        var hexesMoved = 5;
-        var sut = new SkidCheckRollContext(hexesMoved);
+        const int skidDistance = 5;
+        var sut = new SkidCheckRollContext(skidDistance);
 
-        sut.HexesMoved.ShouldBe(hexesMoved);
+        sut.SkidDistance.ShouldBe(skidDistance);
     }
 
     [Fact]
@@ -42,9 +42,9 @@ public class SkidCheckRollContextTests
     [InlineData(2, "Skid Check (2 hexes)")]
     [InlineData(5, "Skid Check (5 hexes)")]
     [InlineData(10, "Skid Check (10 hexes)")]
-    public void Render_WithDifferentHexesMoved_ReturnsCorrectLocalizedString(int hexesMoved, string expected)
+    public void Render_WithDifferentSkidDistances_ReturnsCorrectLocalizedString(int skidDistance, string expected)
     {
-        var sut = new SkidCheckRollContext(hexesMoved);
+        var sut = new SkidCheckRollContext(skidDistance);
 
         var result = sut.Render(_localizationService);
 

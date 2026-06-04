@@ -234,7 +234,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             foreach (var (triggerSegmentIndex, hexesMoved) in skidTriggers)
             {
                 var triggerSegment = moveCommand.MovementPath[triggerSegmentIndex];
-                var skidContext = new SkidCheckRollContext(hexesMoved);
+                var skidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
+                var skidContext = new SkidCheckRollContext(skidDistance);
                 var skidFallContext = Game.FallProcessor.ProcessMovementAttempt(
                     unit, skidContext, Game, moveCommand.MovementType);
 
@@ -243,8 +244,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var truncatedSegments = moveCommand.MovementPath.Take(triggerSegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
                     truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid));
-
-                    var skidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
                     var turnHexCoords = new HexCoordinates(triggerSegment.From.Coordinates);
                     var skidFacing = (HexDirection)triggerSegment.From.Facing;
 

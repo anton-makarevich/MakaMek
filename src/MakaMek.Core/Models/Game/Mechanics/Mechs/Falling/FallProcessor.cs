@@ -152,7 +152,7 @@ public class FallProcessor : IFallProcessor
 
             var fallingDamageData = isFallingNow
                 ? context is SkidCheckRollContext skidCtx
-                    ? _fallingDamageCalculator.CalculateSkidDamage(mech, (int)Math.Ceiling(skidCtx.HexesMoved / 2.0))
+                    ? _fallingDamageCalculator.CalculateSkidDamage(mech, skidCtx.SkidDistance)
                     : _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping)
                 : null;
 

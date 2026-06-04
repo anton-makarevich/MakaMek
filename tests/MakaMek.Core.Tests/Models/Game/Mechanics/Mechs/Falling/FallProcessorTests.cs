@@ -1471,7 +1471,7 @@ public class FallProcessorTests
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(6), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();
@@ -1492,7 +1492,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.SkidCheck);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(6), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeFalse();
@@ -1503,9 +1503,9 @@ public class FallProcessorTests
     }
 
     [Fact]
-    public void ProcessMovementAttempt_ShouldUseCeilHexesMovedDiv2_WhenHexesMovedIsOdd()
+    public void ProcessMovementAttempt_ShouldUseProvidedSkidDistance_WhenSkidCheckPsrFails()
     {
-        // Arrange - HexesMoved = 5 -> ceil(5/2) = 3 skid hexes
+        // Arrange - SkidDistance = 3 (already calculated by caller)
         SetupPsrFor(PilotingSkillRollType.SkidCheck, 2, "Skid Check");
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
@@ -1517,7 +1517,7 @@ public class FallProcessorTests
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(5), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();
