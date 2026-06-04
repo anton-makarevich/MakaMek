@@ -330,7 +330,7 @@ public class FallingDamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateSkidDamage_NegativeDistance_LogsWarning()
+    public void CalculateSkidDamage_NegativeDistance_LogsError()
     {
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
@@ -338,7 +338,7 @@ public class FallingDamageCalculatorTests
             _sut.CalculateSkidDamage(unit, -1));
 
         _mockLogger.Received(1).Log(
-            LogLevel.Warning,
+            LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("-1")),
             Arg.Any<Exception?>(),
