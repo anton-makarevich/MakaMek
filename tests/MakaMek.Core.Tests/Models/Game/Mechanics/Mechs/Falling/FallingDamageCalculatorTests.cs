@@ -17,9 +17,9 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallingDamageCalculatorTests
 {
-    private readonly ILogger<FallingDamageCalculator> _mockLogger = Substitute.For<ILogger<FallingDamageCalculator>>();
     private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
     private readonly IDamageTransferCalculator _mockDamageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
+    private readonly ILogger<FallingDamageCalculator> _mockLogger = Substitute.For<ILogger<FallingDamageCalculator>>();
     private readonly FallingDamageCalculator _sut;
 
     public FallingDamageCalculatorTests()
@@ -27,8 +27,8 @@ public class FallingDamageCalculatorTests
         // Set up a mock rules provider
         IRulesProvider rules = new TotalWarfareRulesProvider();
 
-        // Set up a calculator with mock dependencies
-        _sut = new FallingDamageCalculator(_mockLogger, _mockDiceRoller, rules, _mockDamageTransferCalculator);
+        // Set up a calculator with mock dice roller and rule provider
+        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator, _mockLogger);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
@@ -320,32 +320,6 @@ public class FallingDamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateSkidDamage_NegativeDistance_ThrowsArgumentOutOfRangeException()
-    {
-        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
-
-        Should.Throw<ArgumentOutOfRangeException>(() =>
-            _sut.CalculateSkidDamage(unit, -1))
-            .ParamName.ShouldBe("skidDistance");
-    }
-
-    [Fact]
-    public void CalculateSkidDamage_NegativeDistance_LogsWarning()
-    {
-        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
-
-        Should.Throw<ArgumentOutOfRangeException>(() =>
-            _sut.CalculateSkidDamage(unit, -1));
-
-        _mockLogger.Received(1).Log(
-            LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("-1")),
-            Arg.Any<Exception?>(),
-            Arg.Any<Func<object, Exception?, string>>());
-    }
-
-    [Fact]
     public void CalculateSkidDamage_WhenUnitNotDeployed_ThrowsArgumentException()
     {
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
@@ -356,9 +330,27 @@ public class FallingDamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateSkidDamage_20Tons4Hexes_CalculatesCorrectTotalDamage()
+    public void CalculateSkidDamage_WhenSkidDistanceIsNegative_ThrowsArgumentException()
     {
         var mech = CreateTestMech(20);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        Should.Throw<ArgumentException>(() =>
+            _sut.CalculateSkidDamage(mech, -1))
+            .Message.ShouldContain("cannot be negative");
+
+        _mockLogger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("-1")),
+            null,
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_20Tons4Hexes_CalculatesCorrectTotalDamage()
+    {
+
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
 
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
