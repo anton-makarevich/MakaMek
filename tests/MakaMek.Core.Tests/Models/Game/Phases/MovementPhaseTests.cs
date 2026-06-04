@@ -2695,7 +2695,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         unit.MovementTaken.ShouldNotBeNull();
         unit.MovementTaken.Segments[^1].Events.ShouldContain(e => e.Type == SegmentEventType.StandupAttempt);
-        unit.MovementTaken.Segments[^1].Costs.ShouldContain(c => c is StandUpAttemptMovementCost { Value: 2 });
+        unit.MovementTaken.Segments[^1].Costs.OfType<StandUpAttemptMovementCost>().Any(c => c.Value == 2).ShouldBeTrue();
     }
 
     [Fact]
