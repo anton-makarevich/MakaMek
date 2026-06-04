@@ -862,6 +862,61 @@ public class MovementPathTests
     }
 
     [Fact]
+    public void WithLastSegmentEvent_ShouldReturnSameInstance_WhenDuplicateEventTypeAdded()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        }, MovementType.Walk);
+
+        var fall = new SegmentEvent(SegmentEventType.Fall);
+        var withFall = sut.WithLastSegmentEvent(fall);
+        var withDuplicate = withFall.WithLastSegmentEvent(fall);
+
+        withDuplicate.ShouldBeSameAs(withFall);
+        withDuplicate.Segments[^1].Events.Length.ShouldBe(1);
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldAddDifferentEventTypes_OnSameSegment()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        }, MovementType.Walk);
+
+        var fall = new SegmentEvent(SegmentEventType.Fall);
+        var standup = new SegmentEvent(SegmentEventType.StandupAttempt);
+        var withFall = sut.WithLastSegmentEvent(fall);
+        var withBoth = withFall.WithLastSegmentEvent(standup);
+
+        withBoth.Segments[^1].Events.Length.ShouldBe(2);
+        withBoth.Segments[^1].Events.ShouldContain(fall);
+        withBoth.Segments[^1].Events.ShouldContain(standup);
+    }
+
+    [Fact]
+    public void WithLastSegmentEvent_ShouldReturnThis_WhenDuplicateDetected()
+    {
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        }, MovementType.Walk);
+
+        var skid = new SegmentEvent(SegmentEventType.Skid);
+        var withSkid = sut.WithLastSegmentEvent(skid);
+        var result = withSkid.WithLastSegmentEvent(skid);
+
+        result.ShouldBeSameAs(withSkid);
+    }
+
+    [Fact]
     public void Render_WithNoCostSegments_ReturnsEmptyString()
     {
         var segments = new List<PathSegment>

@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -189,6 +190,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 {
                     var truncatedSegments = moveCommand.MovementPath.Take(entry.SegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
+                    truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
                     var truncatedCommand = moveCommand with
                     {
                         MovementPath = truncatedPath.ToData(),
@@ -378,13 +380,21 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Create and publish the appropriate command based on the result
         if (fallContextData.IsFalling)
         {
-            // Standup failed - create and publish a fall command
+            // Standup failed - add StandupAttempt event, then fall
+            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position!, MovementType.StandingStill);
+            unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
+                new SegmentEvent(SegmentEventType.StandupAttempt),
+                new StandUpAttemptMovementCost { Value = 2 });
             var fallCommand = fallContextData.ToMechFallCommand();
             ProcessFallCommand(fallCommand, unit);
         }
         else
         {
-            // Standup succeeded - create and publish a standup command
+            // Standup succeeded - add StandupAttempt event, then stand up
+            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position!, movementTypeAfterStandup);
+            unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
+                new SegmentEvent(SegmentEventType.StandupAttempt),
+                new StandUpAttemptMovementCost { Value = 2 });
             var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing, movementTypeAfterStandup);
             if (standUpCommand == null) return;
             Game.OnMechStandUp(standUpCommand.Value);
@@ -413,6 +423,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     
     private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech, bool publishCommand = true)
     {
+        mech.MovementTaken = mech.MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
         Game.OnMechFalling(fallCommand);
         if (publishCommand)
             Game.CommandPublisher.PublishCommand(fallCommand);
