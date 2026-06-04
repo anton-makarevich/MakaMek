@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -16,6 +17,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallingDamageCalculatorTests
 {
+    private readonly ILogger<FallingDamageCalculator> _mockLogger = Substitute.For<ILogger<FallingDamageCalculator>>();
     private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
     private readonly IDamageTransferCalculator _mockDamageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly FallingDamageCalculator _sut;
@@ -25,8 +27,8 @@ public class FallingDamageCalculatorTests
         // Set up a mock rules provider
         IRulesProvider rules = new TotalWarfareRulesProvider();
 
-        // Set up a calculator with mock dice roller and rule provider
-        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);
+        // Set up a calculator with mock dependencies
+        _sut = new FallingDamageCalculator(_mockLogger, _mockDiceRoller, rules, _mockDamageTransferCalculator);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
@@ -315,6 +317,32 @@ public class FallingDamageCalculatorTests
         // Assert
         result.FacingAfterFall.ShouldBe(HexDirection.BottomRight);
         result.FacingDiceRoll.Result.ShouldBe(3);
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_NegativeDistance_ThrowsArgumentOutOfRangeException()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.CalculateSkidDamage(unit, -1))
+            .ParamName.ShouldBe("skidDistance");
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_NegativeDistance_LogsWarning()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.CalculateSkidDamage(unit, -1));
+
+        _mockLogger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("-1")),
+            Arg.Any<Exception?>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]

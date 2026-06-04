@@ -21,7 +21,7 @@ public interface IFallingDamageCalculator
     /// Calculates the damage a unit takes when skidding
     /// </summary>
     /// <param name="unit">The unit that skidded</param>
-    /// <param name="skidHexes">The number of hexes the unit skidded</param>
+    /// <param name="skidDistance">The distance in hexes the unit skidded</param>
     /// <returns>The result of the skid damage calculation</returns>
-    FallingDamageData CalculateSkidDamage(Unit unit, int skidHexes);
+    FallingDamageData CalculateSkidDamage(Unit unit, int skidDistance);
 }

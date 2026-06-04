@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -12,14 +13,17 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 /// </summary>
 public class FallingDamageCalculator : IFallingDamageCalculator
 {
+    private readonly ILogger<FallingDamageCalculator> _logger;
     private readonly IDiceRoller _diceRoller;
     private readonly IRulesProvider _rulesProvider;
     private readonly IDamageTransferCalculator _damageTransferCalculator;
 
-    public FallingDamageCalculator(IDiceRoller diceRoller,
+    public FallingDamageCalculator(ILogger<FallingDamageCalculator> logger,
+        IDiceRoller diceRoller,
         IRulesProvider rulesProvider,
         IDamageTransferCalculator damageTransferCalculator)
     {
+        _logger = logger;
         _diceRoller = diceRoller;
         _rulesProvider = rulesProvider;
         _damageTransferCalculator = damageTransferCalculator;
@@ -61,10 +65,16 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     /// Calculates the damage a unit takes when skidding
     /// </summary>
     /// <param name="unit">The unit that skidded</param>
-    /// <param name="skidHexes">The number of hexes the unit skidded</param>
+    /// <param name="skidDistance">The distance in hexes the unit skidded</param>
     /// <returns>The result of the skid damage calculation</returns>
-    public FallingDamageData CalculateSkidDamage(Unit unit, int skidHexes)
+    public FallingDamageData CalculateSkidDamage(Unit unit, int skidDistance)
     {
+        if (skidDistance < 0)
+        {
+            _logger.LogWarning("Skid distance is negative: {SkidDistance}", skidDistance);
+            throw new ArgumentOutOfRangeException(nameof(skidDistance), "Skid distance must be non-negative");
+        }
+
         if (unit.Position == null)
         {
             throw new ArgumentException("Unit must be deployed", nameof(unit)); 
@@ -72,7 +82,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
 
         // Skid damage: half the per-level falling damage per hex skidded
         var damagePerHex = Math.Ceiling(unit.Tonnage / 10.0) * 0.5;
-        var totalDamage = (int)Math.Ceiling(damagePerHex * skidHexes);
+        var totalDamage = (int)Math.Ceiling(damagePerHex * skidDistance);
         
         return DistributeDamage(unit, totalDamage);
     }
