@@ -1935,8 +1935,8 @@ public class MechTests
         mech.RegisterStandupAttempt(MovementType.Walk);
         // Assert
         mech.StandupAttempts.ShouldBe(2);
-        mech.MovementPointsSpent.ShouldBe(4); // 0 path cost + 2*2 event costs
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(0); // 4 initial - 4 spent
+        mech.MovementPointsSpent.ShouldBe(2); // 0 path cost + 2 event cost (duplicate events prevented)
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2); // 4 initial - 2 spent
         mech.MovementTaken.ShouldNotBeNull();
         mech.MovementTaken.MovementType.ShouldBe(MovementType.Walk);
     }

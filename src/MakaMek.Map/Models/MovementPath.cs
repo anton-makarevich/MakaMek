@@ -108,6 +108,8 @@ public class MovementPath : IEquatable<MovementPath>
     {
         var segments = Segments.ToList();
         var lastSegment = segments[^1];
+        if (lastSegment.Events.Any(e => e.Type == segmentEvent.Type))
+            return this;
         var newEvents = lastSegment.Events.Append(segmentEvent).ToArray();
         if (eventCost != null)
         {

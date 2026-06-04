@@ -400,7 +400,7 @@ public abstract class Unit : IUnit
     public bool IsSkidding => MovementTaken?
         .Segments.Any(s => s.Events.Any(e => e.Type == SegmentEventType.Skid))
                               ?? false;
-    public MovementPath? MovementTaken { get; protected set; }
+    public MovementPath? MovementTaken { get; protected internal set; }
 
     public bool HasMoved { get; private set; }
 
