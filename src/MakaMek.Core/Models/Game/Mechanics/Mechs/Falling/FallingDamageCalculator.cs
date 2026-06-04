@@ -71,7 +71,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     {
         if (skidDistance < 0)
         {
-            _logger.LogWarning("Skid distance is negative: {SkidDistance}", skidDistance);
+            _logger.LogError("Skid distance is negative: {SkidDistance}", skidDistance);
             throw new ArgumentOutOfRangeException(nameof(skidDistance), "Skid distance must be non-negative");
         }
 
