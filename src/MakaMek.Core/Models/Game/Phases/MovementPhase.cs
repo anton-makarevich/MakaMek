@@ -269,7 +269,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 var turnHexCoords = new HexCoordinates(triggerSegment.From.Coordinates);
                 var skidFacing = (HexDirection)triggerSegment.From.Facing;
                 var skidPathSegments = GenerateSkidPathSegments(turnHexCoords, skidFacing, maxSkidDistance);
-                var skidContext = new SkidCheckRollContext(skidPathSegments.Count);
+                var skidContext = new SkidCheckRollContext(hexesMoved);
                 var skidFallContext = Game.FallProcessor.ProcessMovementAttempt(
                     unit, skidContext, Game, moveCommand.MovementType);
 

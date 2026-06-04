@@ -1467,11 +1467,11 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var skidDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 4))
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(7), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();
@@ -1479,7 +1479,7 @@ public class FallProcessorTests
         result.WasJumping.ShouldBeFalse();
         result.FallingDamageData.ShouldBe(skidDamageData);
 
-        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 4));
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
@@ -1492,7 +1492,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.SkidCheck);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(7), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeFalse();
@@ -1505,7 +1505,7 @@ public class FallProcessorTests
     [Fact]
     public void ProcessMovementAttempt_ShouldUseProvidedSkidDistance_WhenSkidCheckPsrFails()
     {
-        // Arrange - SkidDistance = 3 (already calculated by caller)
+        // Arrange
         SetupPsrFor(PilotingSkillRollType.SkidCheck, 2, "Skid Check");
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
@@ -1513,14 +1513,14 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var skidDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 4))
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(7), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();
-        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 4));
     }
 }
