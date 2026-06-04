@@ -138,6 +138,11 @@ public class FallProcessor : IFallProcessor
                 {
                     levelsFallen = waterCtx.WaterDepth;
                 }
+                else if (context is SkidCheckRollContext)
+                {
+                    levelsFallen = 0;
+                    wasJumping = false;
+                }
 
                 var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
@@ -146,7 +151,9 @@ public class FallProcessor : IFallProcessor
             }
 
             var fallingDamageData = isFallingNow
-                ? _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping)
+                ? context is SkidCheckRollContext skidCtx
+                    ? _fallingDamageCalculator.CalculateSkidDamage(mech, skidCtx.SkidDistance)
+                    : _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping)
                 : null;
 
             var fallContextData = new FallContextData

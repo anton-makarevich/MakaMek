@@ -16,4 +16,12 @@ public interface IFallingDamageCalculator
     /// <param name="wasJumping">Whether the unit was jumping when it fell</param>
     /// <returns>The result of the falling damage calculation</returns>
     FallingDamageData CalculateFallingDamage(Unit unit, int levelsFallen, bool wasJumping);
+
+    /// <summary>
+    /// Calculates the damage a unit takes when skidding
+    /// </summary>
+    /// <param name="unit">The unit that skidded</param>
+    /// <param name="skidDistance">The distance in hexes the unit skidded</param>
+    /// <returns>The result of the skid damage calculation</returns>
+    FallingDamageData CalculateSkidDamage(Unit unit, int skidDistance);
 }

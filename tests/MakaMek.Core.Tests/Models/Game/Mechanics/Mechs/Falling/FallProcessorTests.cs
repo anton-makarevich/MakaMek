@@ -1455,4 +1455,72 @@ public class FallProcessorTests
         firstResult.DamageData.ShouldNotBeNull("Fall should occur due to leg destroyed");
         firstResult.IsPilotingSkillRollRequired.ShouldBe(false, "Leg destroyed is automatic fall");
     }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldCallCalculateSkidDamage_WhenSkidCheckPsrFails()
+    {
+        // Arrange
+        SetupPsrFor(PilotingSkillRollType.SkidCheck, 2, "Skid Check");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.SkidCheck);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var skidDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+            .Returns(skidDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0);
+        result.WasJumping.ShouldBeFalse();
+        result.FallingDamageData.ShouldBe(skidDamageData);
+
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldNotCallDamageMethods_WhenSkidCheckPsrSucceeds()
+    {
+        // Arrange
+        SetupPsrFor(PilotingSkillRollType.SkidCheck, 2, "Skid Check");
+
+        SetupRollResult(true, PilotingSkillRollType.SkidCheck);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeFalse();
+        result.FallingDamageData.ShouldBeNull();
+
+        _mockFallingDamageCalculator.DidNotReceive().CalculateSkidDamage(Arg.Any<Unit>(), Arg.Any<int>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldUseProvidedSkidDistance_WhenSkidCheckPsrFails()
+    {
+        // Arrange - SkidDistance = 3 (already calculated by caller)
+        SetupPsrFor(PilotingSkillRollType.SkidCheck, 2, "Skid Check");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.SkidCheck);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var skidDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+            .Returns(skidDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
+    }
 }

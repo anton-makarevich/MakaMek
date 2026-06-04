@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -16,6 +17,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallingDamageCalculatorTests
 {
+    private readonly ILogger<FallingDamageCalculator> _mockLogger = Substitute.For<ILogger<FallingDamageCalculator>>();
     private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
     private readonly IDamageTransferCalculator _mockDamageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly FallingDamageCalculator _sut;
@@ -25,8 +27,8 @@ public class FallingDamageCalculatorTests
         // Set up a mock rules provider
         IRulesProvider rules = new TotalWarfareRulesProvider();
 
-        // Set up a calculator with mock dice roller and rule provider
-        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);
+        // Set up a calculator with mock dependencies
+        _sut = new FallingDamageCalculator(_mockLogger, _mockDiceRoller, rules, _mockDamageTransferCalculator);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
@@ -315,5 +317,139 @@ public class FallingDamageCalculatorTests
         // Assert
         result.FacingAfterFall.ShouldBe(HexDirection.BottomRight);
         result.FacingDiceRoll.Result.ShouldBe(3);
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_NegativeDistance_ThrowsArgumentOutOfRangeException()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.CalculateSkidDamage(unit, -1))
+            .ParamName.ShouldBe("skidDistance");
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_NegativeDistance_LogsError()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.CalculateSkidDamage(unit, -1));
+
+        _mockLogger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("-1")),
+            Arg.Any<Exception?>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_WhenUnitNotDeployed_ThrowsArgumentException()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentException>(() =>
+            _sut.CalculateSkidDamage(unit, 1))
+            .Message.ShouldContain("must be deployed");
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_20Tons4Hexes_CalculatesCorrectTotalDamage()
+    {
+        var mech = CreateTestMech(20);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
+
+        var result = _sut.CalculateSkidDamage(mech, 4);
+
+        result.HitLocations.TotalDamage.ShouldBe(4);
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_50Tons3Hexes_CalculatesCorrectTotalDamage()
+    {
+        var mech = CreateTestMech(50);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
+
+        var result = _sut.CalculateSkidDamage(mech, 3);
+
+        result.HitLocations.TotalDamage.ShouldBe(8);
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_DistributesDamageIntoCorrectGroups()
+    {
+        var mech = CreateTestMech(50);
+        mech.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+        _mockDiceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(4)],
+            [new DiceResult(4), new DiceResult(4)]
+        );
+
+        _mockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)]);
+        _mockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 3),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)]);
+
+        var result = _sut.CalculateSkidDamage(mech, 3);
+
+        result.HitLocations.TotalDamage.ShouldBe(8);
+        result.HitLocations.HitLocations.Count.ShouldBe(2);
+
+        result.HitLocations.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[0].Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
+
+        result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(3);
+        result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
+
+        _mockDamageTransferCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(), Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso), 5, Arg.Any<HitDirection>());
+        _mockDamageTransferCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(), Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso), 3, Arg.Any<HitDirection>());
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_OddTonnageRounding_35Tons()
+    {
+        var mech = CreateTestMech(35);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
+
+        var result = _sut.CalculateSkidDamage(mech, 1);
+
+        result.HitLocations.TotalDamage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void CalculateSkidDamage_MinimumDamage_20Tons1Hex()
+    {
+        var mech = CreateTestMech(20);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
+
+        var result = _sut.CalculateSkidDamage(mech, 1);
+
+        result.HitLocations.TotalDamage.ShouldBe(1);
     }
 }
