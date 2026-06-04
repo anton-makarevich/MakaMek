@@ -23,4 +23,10 @@ public interface ITerrainBitmaskService
     /// 6 possible 60° orientations, selecting the lowest numeric value.
     /// </summary>
     CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType);
+
+    /// <summary>
+    /// Canonicalizes a precomputed 6-bit raw bitmask by rotating across all 6 possible 60° orientations,
+    /// selecting the lowest numeric value.
+    /// </summary>
+    CanonicalBitmaskResult CanonicalizeRawMask(byte rawMask);
 }

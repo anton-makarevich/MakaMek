@@ -1,10 +1,7 @@
-using System;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Map.Services;
 using SkiaSharp;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -18,6 +15,24 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     private static readonly SKColor RoughColor = new(0x70, 0x78, 0x72);
     private static readonly SKColor WaterColor = new(0x46, 0x82, 0xB4);
     private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0);
+    private static readonly SKColor RoadColor = new(0x33, 0x33, 0x33);
+
+    private static readonly (float Dx, float Dy)[] DirectionOffsets =
+    [
+        (0, -43.3f),
+        (37.5f, -21.65f),
+        (37.5f, 21.65f),
+        (0, 43.3f),
+        (-37.5f, 21.65f),
+        (-37.5f, -21.65f)
+    ];
+
+    private readonly ITerrainBitmaskService _bitmaskService;
+
+    public SkiaMapPreviewRenderer(ITerrainBitmaskService bitmaskService)
+    {
+        _bitmaskService = bitmaskService;
+    }
 
     public async Task<object?> GeneratePreviewAsync(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
     {
@@ -55,6 +70,12 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             strokePaint.Style = SKPaintStyle.Stroke;
             strokePaint.StrokeWidth = dotDiameter * 0.15f;
 
+            using var roadPaint = new SKPaint();
+            roadPaint.IsAntialias = true;
+            roadPaint.Style = SKPaintStyle.Stroke;
+            roadPaint.StrokeWidth = dotDiameter * 0.2f;
+            roadPaint.Color = RoadColor;
+
             for (var q = 1; q <= width; q++)
             {
                 for (var r = 1; r <= height; r++)
@@ -71,6 +92,21 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
                     var x = (float)((coordinates.H - hexWidth * 0.35) * scale);
                     var y = (float)(coordinates.V * scale);
                     canvas.DrawCircle(x, y, dotDiameter / 2, paint);
+
+                    if (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge))
+                    {
+                        var mask = (byte)(_bitmaskService.ComputeRawBitmask(map, coordinates, MakaMekTerrains.Road) 
+                                          | _bitmaskService.ComputeRawBitmask(map, coordinates, MakaMekTerrains.Bridge));
+                        for (var i = 0; i < 6; i++)
+                        {
+                            if ((mask & (1 << i)) == 0) continue;
+                            var offset = DirectionOffsets[i];
+                            canvas.DrawLine(x, y,
+                                x + offset.Dx * (float)scale,
+                                y + offset.Dy * (float)scale,
+                                roadPaint);
+                        }
+                    }
 
                     if (hex.Level==0) continue;
                     

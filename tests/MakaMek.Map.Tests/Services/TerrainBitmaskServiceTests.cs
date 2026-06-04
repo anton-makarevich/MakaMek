@@ -541,6 +541,120 @@ public class TerrainBitmaskServiceTests
     }
 
     [Fact]
+    public void CanonicalizeRawMask_ZeroMask_ReturnsZeroWithNoRotation()
+    {
+        var result = _sut.CanonicalizeRawMask(0);
+
+        result.CanonicalMask.ShouldBe((byte)0);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_AllBitsSet_ReturnsAllBitsWithNoRotation()
+    {
+        var result = _sut.CanonicalizeRawMask(0b111111);
+
+        result.CanonicalMask.ShouldBe((byte)0b111111);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_SingleBitAtPosition0_ReturnsSameNoRotation()
+    {
+        var result = _sut.CanonicalizeRawMask(0b000001);
+
+        result.CanonicalMask.ShouldBe((byte)0b000001);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_SingleBitAtPosition2_RotatesToPosition0()
+    {
+        var result = _sut.CanonicalizeRawMask(0b000100);
+
+        result.CanonicalMask.ShouldBe((byte)0b000001);
+        result.RotationSteps.ShouldBe(4);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_SingleBitAtPosition5_RotatesToPosition0()
+    {
+        var result = _sut.CanonicalizeRawMask(0b100000);
+
+        result.CanonicalMask.ShouldBe((byte)0b000001);
+        result.RotationSteps.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_AdjacentPairAlreadyCanonical_ReturnsSameNoRotation()
+    {
+        var result = _sut.CanonicalizeRawMask(0b000011);
+
+        result.CanonicalMask.ShouldBe((byte)0b000011);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_AdjacentPairNotCanonical_RotatesToLowest()
+    {
+        var result = _sut.CanonicalizeRawMask(0b001100);
+
+        result.CanonicalMask.ShouldBe((byte)0b000011);
+        result.RotationSteps.ShouldBe(4);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_AlternatingPattern_ReturnsSame()
+    {
+        var result = _sut.CanonicalizeRawMask(0b010101);
+
+        result.CanonicalMask.ShouldBe((byte)0b010101);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_AlternatingPatternOffset_RotatesToCanonical()
+    {
+        var result = _sut.CanonicalizeRawMask(0b101010);
+
+        result.CanonicalMask.ShouldBe((byte)0b010101);
+        result.RotationSteps.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_TwoOppositeBits_ReturnsLowestRotation()
+    {
+        var result = _sut.CanonicalizeRawMask(0b001001);
+
+        result.CanonicalMask.ShouldBe((byte)0b001001);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanonicalizeRawMask_ThreeConsecutiveBits_RotatesToLowest()
+    {
+        var result = _sut.CanonicalizeRawMask(0b111000);
+
+        result.CanonicalMask.ShouldBe((byte)0b000111);
+        result.RotationSteps.ShouldBe(3);
+    }
+
+    [Theory]
+    [InlineData(0b000001, 0)]
+    [InlineData(0b000010, 5)]
+    [InlineData(0b000100, 4)]
+    [InlineData(0b001000, 3)]
+    [InlineData(0b010000, 2)]
+    [InlineData(0b100000, 1)]
+    public void CanonicalizeRawMask_SingleBitAtAnyPosition_CanonicalizesToPosition0(byte mask, int expectedRotation)
+    {
+        var result = _sut.CanonicalizeRawMask(mask);
+
+        result.CanonicalMask.ShouldBe((byte)0b000001);
+        result.RotationSteps.ShouldBe(expectedRotation);
+    }
+
+    [Fact]
     public void CanonicalBitmaskResult_InvalidMask_Throws()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => _ = new CanonicalBitmaskResult(0b0100_0000, 0));
