@@ -54,11 +54,45 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         // Calculate damage based on tonnage (rounded up to nearest 10)
         var totalDamage = (int)Math.Ceiling(mech.Tonnage / 10.0)*(effectiveLevels + 1);
         
+        return DistributeDamage(mech, totalDamage);
+    }
+
+    /// <summary>
+    /// Calculates the damage a unit takes when skidding
+    /// </summary>
+    /// <param name="unit">The unit that skidded</param>
+    /// <param name="skidHexes">The number of hexes the unit skidded</param>
+    /// <returns>The result of the skid damage calculation</returns>
+    public FallingDamageData CalculateSkidDamage(Unit unit, int skidHexes)
+    {
+        if (unit is not Mech mech)
+        {
+            throw new ArgumentException("Only mechs can take falling damage", nameof(unit));
+        }
+
+        if (mech.Position == null)
+        {
+            throw new ArgumentException("Mech must be deployed", nameof(unit)); 
+        }
+
+        // Skid damage: half the per-level falling damage per hex skidded
+        var damagePerHex = Math.Ceiling(mech.Tonnage / 10.0) * 0.5;
+        var totalDamage = (int)Math.Ceiling(damagePerHex * skidHexes);
+        
+        return DistributeDamage(mech, totalDamage);
+    }
+
+    /// <summary>
+    /// Shared damage distribution logic: rolls facing, determines hit locations,
+    /// and distributes damage into 5-point groups
+    /// </summary>
+    private FallingDamageData DistributeDamage(Mech mech, int totalDamage)
+    {
         // Roll for facing after fall (1d6)
         var facingRoll = _diceRoller.RollD6();
         
         // Determine new facing based on current facing and roll
-        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
+        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position!.Facing);
         
         // Determine attack direction for hit location purposes
         var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
