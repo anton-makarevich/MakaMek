@@ -2057,7 +2057,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 4), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2120,7 +2120,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2183,7 +2183,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 2), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2310,7 +2310,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 0), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2416,10 +2416,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit1,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 4), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
             .Returns(waterFallContextData);
         MockFallProcessor.ProcessMovementAttempt(unit2,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run)
             .Returns(deepWaterFallContextData);
 
         CommandPublisher.ClearReceivedCalls();

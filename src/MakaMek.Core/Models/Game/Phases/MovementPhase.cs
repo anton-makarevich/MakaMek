@@ -172,6 +172,37 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         return triggers;
     }
 
+    private List<PathSegment> GenerateSkidPathSegments(HexCoordinates startCoords, HexDirection skidFacing, int maxDistance)
+    {
+        var skidPathSegments = new List<PathSegment>();
+        var currentCoords = startCoords;
+        var currentHex = Game.BattleMap!.GetHex(currentCoords)!;
+        var remainingSkidDistance = maxDistance;
+
+        while (remainingSkidDistance > 0)
+        {
+            var nextCoords = currentCoords.GetNeighbour(skidFacing);
+            var nextHex = Game.BattleMap?.GetHex(nextCoords);
+            if (nextHex == null)
+                break;
+
+            var movementCost = nextHex.GetEnterMovementCost(currentHex);
+            var fromPos = new HexPosition(currentCoords, skidFacing);
+            var toPos = new HexPosition(nextCoords, skidFacing);
+            var skidSegment = new PathSegment(fromPos, toPos, [])
+            {
+                Events = [new SegmentEvent(SegmentEventType.Skid)]
+            };
+            skidPathSegments.Add(skidSegment);
+
+            remainingSkidDistance -= movementCost.Value;
+            currentCoords = nextCoords;
+            currentHex = nextHex;
+        }
+
+        return skidPathSegments;
+    }
+
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
@@ -234,8 +265,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             foreach (var (triggerSegmentIndex, hexesMoved) in skidTriggers)
             {
                 var triggerSegment = moveCommand.MovementPath[triggerSegmentIndex];
-                var skidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
-                var skidContext = new SkidCheckRollContext(skidDistance);
+                var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
+                var turnHexCoords = new HexCoordinates(triggerSegment.From.Coordinates);
+                var skidFacing = (HexDirection)triggerSegment.From.Facing;
+                var skidPathSegments = GenerateSkidPathSegments(turnHexCoords, skidFacing, maxSkidDistance);
+                var skidContext = new SkidCheckRollContext(skidPathSegments.Count);
                 var skidFallContext = Game.FallProcessor.ProcessMovementAttempt(
                     unit, skidContext, Game, moveCommand.MovementType);
 
@@ -244,34 +278,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     var truncatedSegments = moveCommand.MovementPath.Take(triggerSegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
                     truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid));
-                    var turnHexCoords = new HexCoordinates(triggerSegment.From.Coordinates);
-                    var skidFacing = (HexDirection)triggerSegment.From.Facing;
-
-                    var skidPathSegments = new List<PathSegment>();
-                    var currentCoords = turnHexCoords;
-                    var currentHex = Game.BattleMap!.GetHex(currentCoords)!;
-                    var remainingSkidDistance = skidDistance;
-
-                    while (remainingSkidDistance > 0)
-                    {
-                        var nextCoords = currentCoords.GetNeighbour(skidFacing);
-                        var nextHex = Game.BattleMap?.GetHex(nextCoords);
-                        if (nextHex == null)
-                            break;
-
-                        var movementCost = nextHex.GetEnterMovementCost(currentHex);
-                        var fromPos = new HexPosition(currentCoords, skidFacing);
-                        var toPos = new HexPosition(nextCoords, skidFacing);
-                        var skidSegment = new PathSegment(fromPos, toPos, [])
-                        {
-                            Events = [new SegmentEvent(SegmentEventType.Skid)]
-                        };
-                        skidPathSegments.Add(skidSegment);
-
-                        remainingSkidDistance -= movementCost.Value;
-                        currentCoords = nextCoords;
-                        currentHex = nextHex;
-                    }
 
                     var allSegments = truncatedPath.Segments
                         .Select(s => s.ToData())
