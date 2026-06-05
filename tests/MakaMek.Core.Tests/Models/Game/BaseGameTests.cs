@@ -25,6 +25,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
@@ -1162,6 +1163,24 @@ public sealed class BaseGameTests : BaseGame
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateBridgeCollapsedCommand()
+    {
+        // Arrange
+        var command = new BridgeCollapsedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Coordinates = new HexCoordinateData(1, 2),
+            TriggeringUnitId = Guid.NewGuid()
         };
 
         // Act
