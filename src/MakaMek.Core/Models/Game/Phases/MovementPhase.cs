@@ -376,6 +376,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 Game.CommandPublisher.PublishCommand(bridgeCommand);
 
                 // All units on the hex fall
+                var fallCommands = new List<MechFallCommand>();
                 foreach (var hexUnit in unitsOnHex)
                 {
                     if (hexUnit is not Mech hexMech) continue;
@@ -385,7 +386,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     if (fallContextData.IsFalling)
                     {
                         var fallCommand = fallContextData.ToMechFallCommand();
-                        ProcessFallCommand(fallCommand, hexMech);
+                        ProcessFallCommand(fallCommand, hexMech, false);
+                        fallCommands.Add(fallCommand);
                     }
                     else
                     {
@@ -396,13 +398,19 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     }
                 }
 
-                // Publish the truncated movement command
+                // Publish the truncated movement command so movement is observed first
                 var broadcastCommand = truncatedCommand with
                 {
                     GameOriginId = Game.Id,
                     IsCompleted = true
                 };
                 Game.CommandPublisher.PublishCommand(broadcastCommand);
+
+                // Then publish all fall commands
+                foreach (var fallCommand in fallCommands)
+                {
+                    Game.CommandPublisher.PublishCommand(fallCommand);
+                }
                 return;
             }
         }
