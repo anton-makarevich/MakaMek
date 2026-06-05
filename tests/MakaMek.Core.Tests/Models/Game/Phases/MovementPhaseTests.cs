@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -2901,7 +2902,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(moveCommand);
 
         CommandPublisher.Received().PublishCommand(Arg.Is<BridgeCollapsedCommand>(cmd =>
-            cmd.Coordinates == new HexCoordinates(2, 2) &&
+            cmd.Coordinates == new HexCoordinateData(2, 2) &&
             cmd.ConstructionFactor == 30 &&
             cmd.TotalTonnage == 40 &&
             cmd.TriggeringUnitId == unit2.Id));
