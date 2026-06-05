@@ -10,11 +10,12 @@ public record struct BridgeCollapsedCommand : IGameCommand
     public DateTime Timestamp { get; set; }
     public required HexCoordinates Coordinates { get; init; }
     public int ConstructionFactor { get; init; }
+    public int TotalTonnage { get; init; }
     public required Guid TriggeringUnitId { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
         return string.Format(localizationService.GetString("Command_BridgeCollapsed"),
-            Coordinates.Q, Coordinates.R, ConstructionFactor);
+            Coordinates.Q, Coordinates.R, ConstructionFactor, TotalTonnage);
     }
 }

@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -384,6 +385,12 @@ public abstract class BaseGame : IGame
         {
             unit.ApplyCriticalHits(criticalHitsCommand.CriticalHits);
         }
+    }
+
+    internal void OnBridgeCollapsed(BridgeCollapsedCommand command)
+    {
+        var hex = BattleMap?.GetHex(command.Coordinates);
+        hex?.RemoveTerrain(MakaMekTerrains.Bridge);
     }
 
     /// <summary>

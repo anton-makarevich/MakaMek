@@ -14,7 +14,6 @@ using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Factories;
-using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -139,8 +138,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 OnMechFalling(mechFallingCommand);
                 break;
             case BridgeCollapsedCommand bridgeCollapsedCommand:
-                var collapsedHex = BattleMap?.GetHex(bridgeCollapsedCommand.Coordinates);
-                collapsedHex?.RemoveTerrain(MakaMekTerrains.Bridge);
+                OnBridgeCollapsed(bridgeCollapsedCommand);
                 break;
             case MechStandUpCommand mechStandedUpCommand:
                 OnMechStandUp(mechStandedUpCommand);

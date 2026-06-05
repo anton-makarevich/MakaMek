@@ -2903,6 +2903,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(Arg.Is<BridgeCollapsedCommand>(cmd =>
             cmd.Coordinates == new HexCoordinates(2, 2) &&
             cmd.ConstructionFactor == 30 &&
+            cmd.TotalTonnage == 40 &&
             cmd.TriggeringUnitId == unit2.Id));
     }
 
