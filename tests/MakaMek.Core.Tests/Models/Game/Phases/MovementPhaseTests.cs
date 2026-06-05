@@ -3018,4 +3018,216 @@ public class MovementPhaseTests : GamePhaseTestsBase
         unit2.MovementTaken.ShouldNotBeNull();
         unit2.MovementTaken.Segments[^1].Events.ShouldContain(e => e.Type == SegmentEventType.BridgeCollapse);
     }
+
+    [Fact]
+    public void ProcessMoveCommand_WhenJumpToBridgeHex_ShouldCollapseBridge_WhenTonnageExceedsCF()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var activePlayer = Game.Players.First(p => p.Id == _player1Id);
+        var unit1 = activePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit2 = activePlayer.Units.First(u => u.Id != _unit1Id) as Mech;
+
+        unit1!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+        unit2!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new BridgeTerrain(2, 30));
+
+        var fallContextForUnit1 = new FallContextData
+        {
+            UnitId = unit1.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            LevelsFallen = 2,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new BridgeCollapseRollContext(2),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
+
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump)
+            .Returns(fallContextForUnit1);
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump)
+            .Returns(fallContextForUnit2);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit2.Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == unit1.Id));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == unit2.Id));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_WhenJumpToBridgeHex_ShouldPublishBridgeCollapsedCommand()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var activePlayer = Game.Players.First(p => p.Id == _player1Id);
+        var unit1 = activePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit2 = activePlayer.Units.First(u => u.Id != _unit1Id) as Mech;
+
+        unit1!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+        unit2!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new BridgeTerrain(2, 30));
+
+        var fallContextForUnit1 = new FallContextData
+        {
+            UnitId = unit1.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            LevelsFallen = 2,
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
+
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+            .Returns(fallContextForUnit1);
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+            .Returns(fallContextForUnit2);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit2.Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.Received().PublishCommand(Arg.Is<BridgeCollapsedCommand>(cmd =>
+            cmd.Coordinates == new HexCoordinateData(2, 2) &&
+            cmd.ConstructionFactor == 30 &&
+            cmd.TotalTonnage == 40 &&
+            cmd.TriggeringUnitId == unit2.Id));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_WhenJumpToBridgeHex_ShouldRemoveBridgeTerrain_WhenBridgeCollapses()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var activePlayer = Game.Players.First(p => p.Id == _player1Id);
+        var unit1 = activePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit2 = activePlayer.Units.First(u => u.Id != _unit1Id) as Mech;
+
+        unit1!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+        unit2!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new BridgeTerrain(2, 30));
+
+        var fallContextForUnit1 = new FallContextData
+        {
+            UnitId = unit1.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            LevelsFallen = 2,
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
+
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+            .Returns(fallContextForUnit1);
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+            .Returns(fallContextForUnit2);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit2.Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(moveCommand);
+
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_WhenJumpToBridgeHex_ShouldNotCollapse_WhenTonnageWithinCF()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new BridgeTerrain(1, 60));
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(moveCommand);
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<BridgeCollapsedCommand>());
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeTrue();
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.IsCompleted && cmd.MovementPath.Count == 1));
+    }
 }

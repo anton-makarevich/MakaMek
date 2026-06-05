@@ -434,8 +434,61 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             if (!fell && moveCommand.MovementPath.Count > 0)
             {
                 var lastSegment = moveCommand.MovementPath.Last();
-                var destHex = Game.BattleMap?.GetHex(new HexCoordinates(lastSegment.To.Coordinates));
-                if (destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
+                var landingCoords = new HexCoordinates(lastSegment.To.Coordinates);
+                var destHex = Game.BattleMap?.GetHex(landingCoords);
+
+                var bridgeCollapsed = false;
+
+                if (destHex?.GetTerrain(MakaMekTerrains.Bridge) is BridgeTerrain bridgeTerrain)
+                {
+                    var bridgeHeight = bridgeTerrain.Height;
+                    var constructionFactor = bridgeTerrain.ConstructionFactor;
+
+                    var unitsOnHex = Game.Players
+                        .SelectMany(p => p.Units)
+                        .Where(u => u.IsDeployed && u.Position!.Coordinates == landingCoords)
+                        .ToList();
+                    var totalTonnage = unitsOnHex.Sum(u => u.Tonnage);
+                    if (totalTonnage > constructionFactor)
+                    {
+                        bridgeCollapsed = true;
+
+                        var bridgeCommand = new BridgeCollapsedCommand
+                        {
+                            GameOriginId = Game.Id,
+                            Coordinates = landingCoords.ToData(),
+                            ConstructionFactor = constructionFactor,
+                            TotalTonnage = totalTonnage,
+                            TriggeringUnitId = unit.Id,
+                            Timestamp = DateTime.UtcNow
+                        };
+                        Game.OnBridgeCollapsed(bridgeCommand);
+                        Game.CommandPublisher.PublishCommand(bridgeCommand);
+
+                        foreach (var hexUnit in unitsOnHex)
+                        {
+                            if (hexUnit is not Mech hexMech) continue;
+                            var fcData = Game.FallProcessor.ProcessMovementAttempt(
+                                hexMech, new BridgeCollapseRollContext(bridgeHeight), Game, moveCommand.MovementType);
+
+                            if (fcData.IsFalling)
+                            {
+                                var fallCmd = fcData.ToMechFallCommand();
+                                ProcessFallCommand(fallCmd, hexMech, false);
+                                Game.CommandPublisher.PublishCommand(fallCmd);
+                            }
+                            else
+                            {
+                                Game.Logger.LogError(
+                                    "Bridge collapse should always result in a fall for unit {UnitId}", hexMech.Id);
+                                throw new InvalidOperationException(
+                                    $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
+                            }
+                        }
+                    }
+                }
+
+                if (!bridgeCollapsed && destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
                 {
                     var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
                         unit, new EnteringDeepWaterRollContext(-1*water.Height), Game, MovementType.Jump);
