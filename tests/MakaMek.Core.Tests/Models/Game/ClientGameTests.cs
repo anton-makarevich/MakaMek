@@ -3144,4 +3144,66 @@ public class ClientGameTests
         unit.MovementTaken.ShouldBeNull();
         _sut.Turn.ShouldBe(turnIncrementedCommand.TurnNumber);
     }
+
+    [Fact]
+    public void HandleCommand_ShouldRemoveBridgeTerrain_WhenBridgeCollapsedCommandIsReceived()
+    {
+        // Arrange
+        var unitId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = unitId;
+        var playerId = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+
+        // Create a battle map with bridge terrain on hex (1,1)
+        var mapData = new BattleMapData
+        {
+            HexData =
+            [
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Bridge }]
+                },
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(2, 2),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                }
+            ]
+        };
+        var battleMap = BattleMapFactory.CreateFromData(mapData);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+
+        _sut.HandleCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = mapData
+        });
+
+        var hex = battleMap.GetHex(new HexCoordinates(1, 1));
+        hex.ShouldNotBeNull();
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeTrue();
+
+        var bridgeCollapsedCommand = new BridgeCollapsedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Coordinates = new HexCoordinateData(1, 1),
+            TriggeringUnitId = unitId
+        };
+
+        // Act
+        _sut.HandleCommand(bridgeCollapsedCommand);
+
+        // Assert
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeFalse();
+    }
 }
