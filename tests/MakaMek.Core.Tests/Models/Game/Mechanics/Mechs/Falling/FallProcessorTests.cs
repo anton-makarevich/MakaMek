@@ -1523,4 +1523,115 @@ public class FallProcessorTests
         result.IsFalling.ShouldBeTrue();
         _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToBridgeHeight_WhenBridgeCollapsesAndWalking(int bridgeHeight)
+    {
+        // Arrange
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new BridgeCollapseRollContext(bridgeHeight), _game, MovementType.Walk);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(bridgeHeight);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Bridge collapse is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(bridgeHeight);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight, false);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToBridgeHeight_WhenBridgeCollapsesAndJumping(int bridgeHeight)
+    {
+        // Arrange
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight, true)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new BridgeCollapseRollContext(bridgeHeight), _game, MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(bridgeHeight);
+        result.WasJumping.ShouldBeTrue();
+        result.PilotingSkillRoll.ShouldBeNull("Bridge collapse is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(bridgeHeight);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight, true);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldHandleBridgeCollapseWithFailedPilotDamagePsr()
+    {
+        // Arrange - Bridge height 2, walking
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage from fall");
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new BridgeCollapseRollContext(2), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(2);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Bridge collapse is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(2);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldHandleBridgeCollapseWithSuccessfulPilotDamagePsr()
+    {
+        // Arrange - Bridge height 2, walking
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new BridgeCollapseRollContext(2), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(2);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Bridge collapse is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+    }
 }

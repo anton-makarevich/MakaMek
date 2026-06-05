@@ -137,6 +137,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case MechFallCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
                 break;
+            case BridgeCollapsedCommand bridgeCollapsedCommand:
+                OnBridgeCollapsed(bridgeCollapsedCommand);
+                break;
             case MechStandUpCommand mechStandedUpCommand:
                 OnMechStandUp(mechStandedUpCommand);
                 break;

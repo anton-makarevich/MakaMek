@@ -138,6 +138,10 @@ public class FallProcessor : IFallProcessor
                 {
                     levelsFallen = waterCtx.WaterDepth;
                 }
+                else if (context is BridgeCollapseRollContext bridgeCtx)
+                {
+                    levelsFallen = bridgeCtx.BridgeHeight;
+                }
                 else if (context is SkidCheckRollContext)
                 {
                     levelsFallen = 0;
