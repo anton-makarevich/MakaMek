@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -8,7 +8,7 @@ public record struct BridgeCollapsedCommand : IGameCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    public required HexCoordinates Coordinates { get; init; }
+    public required HexCoordinateData Coordinates { get; init; }
     public int ConstructionFactor { get; init; }
     public int TotalTonnage { get; init; }
     public required Guid TriggeringUnitId { get; init; }
@@ -22,6 +22,6 @@ public record struct BridgeCollapsedCommand : IGameCommand
         var unitName = unit?.Model ?? triggeringUnitId.ToString();
 
         return string.Format(localizationService.GetString("Command_BridgeCollapsed"),
-            unitName, Coordinates.ToString(), ConstructionFactor, TotalTonnage);
+            unitName, Coordinates, ConstructionFactor, TotalTonnage);
     }
 }

@@ -327,9 +327,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             {
                 var bridgeCoords = new HexCoordinates(segmentData.To.Coordinates);
                 var hex = Game.BattleMap?.GetHex(bridgeCoords);
-                if (hex == null) continue;
 
-                var bridgeTerrain = hex.GetTerrain(MakaMekTerrains.Bridge) as BridgeTerrain;
+                var bridgeTerrain = hex?.GetTerrain(MakaMekTerrains.Bridge) as BridgeTerrain;
                 if (bridgeTerrain == null) continue;
                 var bridgeHeight = bridgeTerrain.Height;
                 var constructionFactor = bridgeTerrain.ConstructionFactor;
@@ -367,7 +366,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 var bridgeCommand = new BridgeCollapsedCommand
                 {
                     GameOriginId = Game.Id,
-                    Coordinates = bridgeCoords,
+                    Coordinates = bridgeCoords.ToData(),
                     ConstructionFactor = constructionFactor,
                     TotalTonnage = totalTonnage,
                     TriggeringUnitId = unit.Id,
@@ -487,7 +486,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         if (fallContextData.IsFalling)
         {
             // Standup failed - add StandupAttempt event, then fall
-            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position!, MovementType.StandingStill);
+            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position);
             unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
                 new SegmentEvent(SegmentEventType.StandupAttempt),
                 new StandUpAttemptMovementCost { Value = 2 });
@@ -497,7 +496,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         else
         {
             // Standup succeeded - add StandupAttempt event, then stand up
-            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position!, movementTypeAfterStandup);
+            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position, movementTypeAfterStandup);
             unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
                 new SegmentEvent(SegmentEventType.StandupAttempt),
                 new StandUpAttemptMovementCost { Value = 2 });

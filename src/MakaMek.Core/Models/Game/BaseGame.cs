@@ -337,7 +337,7 @@ public abstract class BaseGame : IGame
     /// <summary>
     /// Handles a turn ended command by resetting the turn state for all units of the player
     /// </summary>
-    /// <param name="playerId">The id of a player who sent a turn ended command</param>
+    /// <param name="playerId">The id of a player who sent a turn has ended command</param>
     internal void OnTurnEnded(Guid playerId)
     {
         var player = _players.FirstOrDefault(p => p.Id == playerId);
@@ -389,7 +389,7 @@ public abstract class BaseGame : IGame
 
     internal void OnBridgeCollapsed(BridgeCollapsedCommand command)
     {
-        var hex = BattleMap?.GetHex(command.Coordinates);
+        var hex = BattleMap?.GetHex(new HexCoordinates(command.Coordinates));
         hex?.RemoveTerrain(MakaMekTerrains.Bridge);
     }
 
