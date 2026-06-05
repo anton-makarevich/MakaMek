@@ -3057,7 +3057,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.StandingStill)
             .Returns(fallContextForUnit1);
         MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump)
             .Returns(fallContextForUnit2);
@@ -3113,7 +3113,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
             .Returns(fallContextForUnit1);
         MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
             .Returns(fallContextForUnit2);
@@ -3172,7 +3172,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
             .Returns(fallContextForUnit1);
         MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
             .Returns(fallContextForUnit2);

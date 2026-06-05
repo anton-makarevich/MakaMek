@@ -470,8 +470,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                             if (hexUnit is not Mech hexMech) continue;
                             if (fell && hexUnit.Id == moveCommand.UnitId) continue;
 
+                            var movementType = hexUnit.Id == moveCommand.UnitId
+                                ? moveCommand.MovementType
+                                : MovementType.StandingStill;
                             var fcData = Game.FallProcessor.ProcessMovementAttempt(
-                                hexMech, new BridgeCollapseRollContext(bridgeHeight), Game, moveCommand.MovementType);
+                                hexMech, new BridgeCollapseRollContext(bridgeHeight), Game, movementType);
 
                             if (fcData.IsFalling)
                             {
