@@ -325,10 +325,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             var bridgeSegments = FindBridgeSegments(moveCommand.MovementPath);
             foreach (var segmentData in bridgeSegments)
             {
-                var segmentIndex = moveCommand.MovementPath
-                    .Select((s, i) => (s, i))
-                    .First(pair => pair.s == segmentData)
-                    .i;
                 var bridgeCoords = new HexCoordinates(segmentData.To.Coordinates);
                 var hex = Game.BattleMap?.GetHex(bridgeCoords);
                 if (hex == null) continue;
@@ -351,6 +347,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 unitsOnHex.Add(unit);
 
                 // Bridge collapses — truncate path at bridge segment
+                var segmentIndex = moveCommand.MovementPath
+                    .Select((s, i) => (s, i))
+                    .First(pair => pair.s == segmentData)
+                    .i;
                 var truncatedSegments = moveCommand.MovementPath.Take(segmentIndex + 1).ToList();
                 var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType)
                     .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.BridgeCollapse));

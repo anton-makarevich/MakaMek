@@ -27,7 +27,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_TurnIncremented", "Turn {0} has started")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game")]
     [InlineData("Command_SetBattleMap", "Battle map has been set")]
-    [InlineData("Command_BridgeCollapsed", "{0} collapsed bridge at ({1}, {2}) (CF: {3}, Tonnage: {4})")]
+    [InlineData("Command_BridgeCollapsed", "{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
