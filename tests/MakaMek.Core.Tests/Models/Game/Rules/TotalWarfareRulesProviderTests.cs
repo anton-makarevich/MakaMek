@@ -483,6 +483,7 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.FootActuatorHit, 1)]
     [InlineData(PilotingSkillRollType.UpperLegActuatorHit, 1)]
     [InlineData(PilotingSkillRollType.LegDestroyed, 5)]
+    [InlineData(PilotingSkillRollType.BridgeCollapse, 0)]
     public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
         int expectedModifier)
     {
@@ -500,6 +501,7 @@ public class TotalWarfareRulesProviderTests
     [Theory]
     [InlineData(PilotingSkillRollType.GyroDestroyed, false)]
     [InlineData(PilotingSkillRollType.LegDestroyed, false)]
+    [InlineData(PilotingSkillRollType.BridgeCollapse, false)]
     public void RequiresPilotingSkillRoll_AutoFallTypes_ShouldReturnFalse(PilotingSkillRollType rollType, bool expected)
     {
         // Act
