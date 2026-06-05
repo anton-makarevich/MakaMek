@@ -134,18 +134,17 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         return entries;
     }
 
-    private List<int> FindBridgeSegments(IReadOnlyList<PathSegmentData> movementPath)
+    private List<PathSegmentData> FindBridgeSegments(IReadOnlyList<PathSegmentData> movementPath)
     {
-        var entries = new List<int>();
-        for (var i = 0; i < movementPath.Count; i++)
+        var entries = new List<PathSegmentData>();
+        foreach (var segment in movementPath)
         {
-            var segment = movementPath[i];
             if (segment.From.Coordinates == segment.To.Coordinates) continue;
 
             var destinationHex = Game.BattleMap?.GetHex(new HexCoordinates(segment.To.Coordinates));
             if (destinationHex?.HasTerrain(MakaMekTerrains.Bridge) == true)
             {
-                entries.Add(i);
+                entries.Add(segment);
             }
         }
         return entries;
@@ -323,10 +322,13 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 Game.CommandPublisher.PublishCommand(skidPsrCommand);
             }
 
-            var bridgeSegmentIndices = FindBridgeSegments(moveCommand.MovementPath);
-            foreach (var segmentIndex in bridgeSegmentIndices)
+            var bridgeSegments = FindBridgeSegments(moveCommand.MovementPath);
+            foreach (var segmentData in bridgeSegments)
             {
-                var segmentData = moveCommand.MovementPath[segmentIndex];
+                var segmentIndex = moveCommand.MovementPath
+                    .Select((s, i) => (s, i))
+                    .First(pair => pair.s == segmentData)
+                    .i;
                 var bridgeCoords = new HexCoordinates(segmentData.To.Coordinates);
                 var hex = Game.BattleMap?.GetHex(bridgeCoords);
                 if (hex == null) continue;
@@ -388,6 +390,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     }
                     else
                     {
+                        Game.Logger.LogError(
+                            "Bridge collapse should always result in a fall for unit {UnitId}", hexMech.Id);
                         throw new InvalidOperationException(
                             $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
                     }

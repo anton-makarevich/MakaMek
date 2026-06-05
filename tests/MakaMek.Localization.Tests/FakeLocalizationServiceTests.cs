@@ -27,6 +27,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_TurnIncremented", "Turn {0} has started")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game")]
     [InlineData("Command_SetBattleMap", "Battle map has been set")]
+    [InlineData("Command_BridgeCollapsed", "{0} collapsed bridge at ({1}, {2}) (CF: {3}, Tonnage: {4})")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -173,6 +174,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
+    [InlineData("PilotingSkillRollType_BridgeCollapse", "Bridge Collapse")]
     [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall_WithLevels", "{0} ({1} levels)")]
     // Attack modifiers
@@ -317,6 +319,7 @@ public class FakeLocalizationServiceTests
     // SegmentEvent labels
     [InlineData("SegmentEvent_Fall", "Fall")]
     [InlineData("SegmentEvent_StandupAttempt", "Standup")]
+    [InlineData("SegmentEvent_BridgeCollapse", "Bridge Collapse")]
     // UI Events
     [InlineData("Events_Unit_ArmorDamage", "Damage at {0}|-{1}")]
     [InlineData("Events_Unit_StructureDamage", "Damage at {0}|-{1}")]

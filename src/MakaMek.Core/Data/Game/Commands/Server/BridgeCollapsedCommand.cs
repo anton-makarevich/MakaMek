@@ -15,7 +15,13 @@ public record struct BridgeCollapsedCommand : IGameCommand
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
+        var triggeringUnitId = TriggeringUnitId;
+        var unit = game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == triggeringUnitId);
+        var unitName = unit?.Model ?? triggeringUnitId.ToString();
+
         return string.Format(localizationService.GetString("Command_BridgeCollapsed"),
-            Coordinates.Q, Coordinates.R, ConstructionFactor, TotalTonnage);
+            unitName, Coordinates.Q, Coordinates.R, ConstructionFactor, TotalTonnage);
     }
 }
