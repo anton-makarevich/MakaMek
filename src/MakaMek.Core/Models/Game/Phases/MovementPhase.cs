@@ -431,7 +431,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 fell = ProcessJumpWithDamage(unit);
             }
             
-            if (!fell && moveCommand.MovementPath.Count > 0)
+            if (moveCommand.MovementPath.Count > 0)
             {
                 var lastSegment = moveCommand.MovementPath.Last();
                 var landingCoords = new HexCoordinates(lastSegment.To.Coordinates);
@@ -468,6 +468,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                         foreach (var hexUnit in unitsOnHex)
                         {
                             if (hexUnit is not Mech hexMech) continue;
+                            if (fell && hexUnit.Id == moveCommand.UnitId) continue;
+
                             var fcData = Game.FallProcessor.ProcessMovementAttempt(
                                 hexMech, new BridgeCollapseRollContext(bridgeHeight), Game, moveCommand.MovementType);
 
@@ -488,7 +490,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     }
                 }
 
-                if (!bridgeCollapsed && destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
+                if (!fell && !bridgeCollapsed && destHex?.GetTerrain(MakaMekTerrains.Water) is WaterTerrain { Height: <= -1 } water)
                 {
                     var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
                         unit, new EnteringDeepWaterRollContext(-1*water.Height), Game, MovementType.Jump);
