@@ -175,6 +175,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
     [InlineData("PilotingSkillRollType_BridgeCollapse", "Bridge Collapse")]
+    [InlineData("PilotingSkillRollType_BridgeCollapse_WithHeight", "{0} (Height: {1})")]
     [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall_WithLevels", "{0} ({1} levels)")]
     // Attack modifiers
