@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;

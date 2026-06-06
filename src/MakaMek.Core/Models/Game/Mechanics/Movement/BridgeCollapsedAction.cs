@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 

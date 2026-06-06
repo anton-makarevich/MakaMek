@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 
 public class MovementInterruptResult
