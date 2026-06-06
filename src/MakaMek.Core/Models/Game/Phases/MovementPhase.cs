@@ -232,7 +232,12 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                             if (fcData.IsFalling)
                             {
                                 var fallCmd = fcData.ToMechFallCommand();
-                                ProcessFallCommand(fallCmd, hexMech, false);
+                                var action = new ApplyFallAction(hexMech, fallCmd);
+                                foreach (var cmd in action.Process(Game))
+                                {
+                                    if (!cmd.Equals(fallCmd))
+                                        Game.CommandPublisher.PublishCommand(cmd);
+                                }
                                 Game.CommandPublisher.PublishCommand(fallCmd);
                             }
                             else
@@ -253,7 +258,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     if (fallContextData.IsFalling)
                     {
                         var fallCommand = fallContextData.ToMechFallCommand();
-                        ProcessFallCommand(fallCommand, mech);
+                        var action = new ApplyFallAction(mech, fallCommand);
+                        foreach (var cmd in action.Process(Game))
+                            Game.CommandPublisher.PublishCommand(cmd);
                     }
                     else
                     {
@@ -306,7 +313,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             // Standup failed - fall
             var fallCommand = fallContextData.ToMechFallCommand();
-            ProcessFallCommand(fallCommand, unit);
+            var action = new ApplyFallAction(unit, fallCommand);
+            foreach (var cmd in action.Process(Game))
+                Game.CommandPublisher.PublishCommand(cmd);
         }
         else
         {
@@ -333,28 +342,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
         // Jump failed - create and publish a fall command
         var fallCommand = fallContextData.ToMechFallCommand();
-        ProcessFallCommand(fallCommand, mech);
-        return true;
-    }
-    
-    private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech, bool publishCommand = true)
-    {
         var action = new ApplyFallAction(mech, fallCommand);
-        var commands = action.Process(Game);
-        if (publishCommand)
-        {
-            foreach (var cmd in commands)
-                Game.CommandPublisher.PublishCommand(cmd);
-        }
-        else
-        {
-            // Publish everything EXCEPT the fallCommand itself
-            foreach (var cmd in commands)
-            {
-                if (!cmd.Equals(fallCommand))
-                    Game.CommandPublisher.PublishCommand(cmd);
-            }
-        }
+        foreach (var cmd in action.Process(Game))
+            Game.CommandPublisher.PublishCommand(cmd);
+        return true;
     }
 
     public override PhaseNames Name => PhaseNames.Movement;
