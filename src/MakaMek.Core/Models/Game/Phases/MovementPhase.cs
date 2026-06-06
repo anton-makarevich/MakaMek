@@ -293,7 +293,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 {
                     var truncatedSegments = moveCommand.MovementPath.Take(triggerSegmentIndex + 1).ToList();
                     var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
-                    truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid));
+                    truncatedPath = truncatedPath
+                        .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
+                        .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
 
                     var allSegments = truncatedPath.Segments
                         .Select(s => s.ToData())
@@ -352,7 +354,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     .i;
                 var truncatedSegments = moveCommand.MovementPath.Take(segmentIndex + 1).ToList();
                 var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType)
-                    .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.BridgeCollapse));
+                    .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.BridgeCollapse))
+                    .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
                 var truncatedCommand = moveCommand with
                 {
                     MovementPath = truncatedPath.ToData(),
