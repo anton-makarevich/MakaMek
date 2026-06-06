@@ -235,8 +235,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 if (fallContextData.IsFalling)
                 {
                     var truncatedSegments = moveCommand.MovementPath.Take(entry.SegmentIndex + 1).ToList();
-                    var truncatedPath = new MovementPath(truncatedSegments, moveCommand.MovementType);
-                    truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+                    var truncatedPath =
+                        new MovementPath(truncatedSegments, moveCommand.MovementType).WithLastSegmentEvent(
+                            new SegmentEvent(SegmentEventType.Fall));
                     var truncatedCommand = moveCommand with
                     {
                         MovementPath = truncatedPath.ToData(),
