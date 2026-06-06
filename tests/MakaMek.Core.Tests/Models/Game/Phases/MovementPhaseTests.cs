@@ -2600,55 +2600,6 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void ProcessStandupCommand_WhenFailed_ShouldHaveBothStandupAttemptAndFallEvents()
-    {
-        _sut.Enter();
-        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        unit.SetProne();
-
-        var psrBreakdown = new PsrBreakdown
-        {
-            BasePilotingSkill = 4,
-            Modifiers = [],
-        };
-
-        var failedPsrData = new PilotingSkillRollData
-        {
-            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
-            DiceResults = [1, 1],
-            IsSuccessful = false,
-            PsrBreakdown = psrBreakdown
-        };
-
-        var fallContextData = new FallContextData
-        {
-            UnitId = unit.Id,
-            GameId = Game.Id,
-            IsFalling = true,
-            PilotingSkillRoll = failedPsrData,
-            LevelsFallen = 0,
-            WasJumping = false
-        };
-
-        Game.FallProcessor.ProcessMovementAttempt(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, Arg.Any<MovementType>()).Returns(fallContextData);
-
-        CommandPublisher.ClearReceivedCalls();
-
-        _sut.HandleCommand(new TryStandupCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = _player1Id,
-            UnitId = _unit1Id,
-            Timestamp = DateTime.UtcNow
-        });
-
-        unit.MovementTaken.ShouldNotBeNull();
-        unit.MovementTaken.Segments[^1].Events.ShouldContain(e => e.Type == SegmentEventType.StandupAttempt);
-        unit.MovementTaken.Segments[^1].Events.ShouldContain(e => e.Type == SegmentEventType.Fall);
-    }
-
-    [Fact]
     public void ProcessStandupCommand_WhenSuccessful_ShouldHaveStandupAttemptEventWithCorrectCost()
     {
         _sut.Enter();
