@@ -1559,7 +1559,13 @@ public class MovementStateTests
         walkStandupAction.OnExecute();
         proneMech.StandUp(HexDirection.Bottom);
         leg.ApplyDamage(100, HitDirection.Front); // Destroy the leg
-        proneMech.RegisterStandupAttempt(MovementType.Walk);
+        proneMech.RegisterStandupAttempt();
+        // Simulate server's OnMoveUnit response to deduct standup cost
+        var standupPath = MovementPath.CreateSingleSegmentPath(proneMech.Position!, MovementType.Walk)
+            .WithLastSegmentEvent(
+                new SegmentEvent(SegmentEventType.StandupAttempt),
+                new StandUpAttemptMovementCost { Value = 2 });
+        proneMech.Move(standupPath, null, false);
 
         // Act
         _sut.ResumeMovementAfterStandup(proneMech.Id);
@@ -2444,8 +2450,14 @@ public class MovementStateTests
         _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
 
-        mech.RegisterStandupAttempt(MovementType.Walk);
+        mech.RegisterStandupAttempt();
         mech.StandUp(HexDirection.Bottom);
+        // Simulate server's OnMoveUnit response to deduct standup cost
+        var standupPath = MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk)
+            .WithLastSegmentEvent(
+                new SegmentEvent(SegmentEventType.StandupAttempt),
+                new StandUpAttemptMovementCost { Value = 2 });
+        mech.Move(standupPath, null, false);
 
         _sut.ResumeMovementAfterStandup(mech.Id);
 
@@ -2537,7 +2549,7 @@ public class MovementStateTests
         _sut.HandleUnitSelectionFromList(proneMech);
         _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
         _sut.HandleFacingSelection(HexDirection.Bottom);
-        proneMech.RegisterStandupAttempt(MovementType.Walk);
+        proneMech.RegisterStandupAttempt();
         proneMech.StandUp(HexDirection.Bottom);
         _sut.ResumeMovementAfterStandup(proneMech.Id);
 

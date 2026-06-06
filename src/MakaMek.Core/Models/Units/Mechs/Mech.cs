@@ -598,14 +598,9 @@ public class Mech : Unit
         if (Position != null) Position = Position with { Facing = newFacing };
     }
 
-    public void RegisterStandupAttempt(MovementType? movementType = null)
+    public void RegisterStandupAttempt()
     {
         StandupAttempts++;
-        movementType ??= MovementTaken?.MovementType;
-        if (Position == null || movementType == null) return; 
-        MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
-        var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
-        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = pointsToSpend });
     }
 
     public void ApplyFall(MechFallCommand fallCommand)
@@ -617,8 +612,6 @@ public class Mech : Unit
         {
             Pilot?.Hit();
         }
-
-        MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
     }
     
     public override HexPosition? Position

@@ -300,7 +300,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                         .Concat(skidPathSegments.Select(s => s.ToData()))
                         .ToList();
 
-                    var modifiedPath = new MovementPath(allSegments, moveCommand.MovementType);
+                    var modifiedPath = new MovementPath(allSegments, moveCommand.MovementType)
+                        .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
                     var modifiedCommand = moveCommand with
                     {
                         MovementPath = modifiedPath.ToData(),
@@ -551,21 +552,45 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Create and publish the appropriate command based on the result
         if (fallContextData.IsFalling)
         {
-            // Standup failed - add StandupAttempt event, then fall
-            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position);
-            unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
-                new SegmentEvent(SegmentEventType.StandupAttempt),
-                new StandUpAttemptMovementCost { Value = 2 });
+            // Standup failed - add StandupAttempt and Fall events to existing path, route through OnMoveUnit
+            var basePath = unit.MovementTaken ?? MovementPath.CreateSingleSegmentPath(unit.Position);
+            var standupPath = basePath
+                .WithLastSegmentEvent(
+                    new SegmentEvent(SegmentEventType.StandupAttempt),
+                    new StandUpAttemptMovementCost { Value = 2 })
+                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+            var moveCommand = new MoveUnitCommand
+            {
+                GameOriginId = Game.Id,
+                UnitId = unit.Id,
+                PlayerId = tryStandUpCommand.PlayerId,
+                MovementType = MovementType.StandingStill,
+                MovementPath = standupPath.ToData(),
+                IsCompleted = true,
+                Timestamp = DateTime.UtcNow
+            };
+            Game.OnMoveUnit(moveCommand);
             var fallCommand = fallContextData.ToMechFallCommand();
             ProcessFallCommand(fallCommand, unit);
         }
         else
         {
-            // Standup succeeded - add StandupAttempt event, then stand up
-            unit.MovementTaken ??= MovementPath.CreateSingleSegmentPath(unit.Position, movementTypeAfterStandup);
-            unit.MovementTaken = unit.MovementTaken.WithLastSegmentEvent(
+            // Standup succeeded - add StandupAttempt event to existing path, route through OnMoveUnit
+            var basePath = unit.MovementTaken ?? MovementPath.CreateSingleSegmentPath(unit.Position, movementTypeAfterStandup);
+            var standupPath = basePath.WithLastSegmentEvent(
                 new SegmentEvent(SegmentEventType.StandupAttempt),
                 new StandUpAttemptMovementCost { Value = 2 });
+            var moveCommand = new MoveUnitCommand
+            {
+                GameOriginId = Game.Id,
+                UnitId = unit.Id,
+                PlayerId = tryStandUpCommand.PlayerId,
+                MovementType = movementTypeAfterStandup,
+                MovementPath = standupPath.ToData(),
+                IsCompleted = false,
+                Timestamp = DateTime.UtcNow
+            };
+            Game.OnMoveUnit(moveCommand);
             var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing, movementTypeAfterStandup);
             if (standUpCommand == null) return;
             Game.OnMechStandUp(standUpCommand.Value);
@@ -594,7 +619,28 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     
     private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech, bool publishCommand = true)
     {
-        mech.MovementTaken = mech.MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+        if (mech.MovementTaken != null)
+        {
+            var pathWithFall = mech.MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+            if (!ReferenceEquals(pathWithFall, mech.MovementTaken))
+            {
+                var player = Game.Players.FirstOrDefault(p => p.Units.Any(u => u.Id == mech.Id));
+                if (player != null)
+                {
+                    var fallMoveCommand = new MoveUnitCommand
+                    {
+                        GameOriginId = Game.Id,
+                        UnitId = mech.Id,
+                        PlayerId = player.Id,
+                        MovementType = mech.MovementTaken.MovementType,
+                        MovementPath = pathWithFall.ToData(),
+                        IsCompleted = true,
+                        Timestamp = DateTime.UtcNow
+                    };
+                    Game.OnMoveUnit(fallMoveCommand);
+                }
+            }
+        }
         Game.OnMechFalling(fallCommand);
         if (publishCommand)
             Game.CommandPublisher.PublishCommand(fallCommand);

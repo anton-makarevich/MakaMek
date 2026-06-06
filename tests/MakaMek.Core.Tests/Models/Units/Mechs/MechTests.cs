@@ -1208,7 +1208,7 @@ public class MechTests
         leftLeg.TryAddComponent(new JumpJets()).ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.RegisterStandupAttempt(MovementType.Walk); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(); // This increments StandupAttempts
 
         // Act & Assert
         sut.CanJump.ShouldBeFalse("Mechs that stood up this phase should not be able to jump");
@@ -1270,7 +1270,7 @@ public class MechTests
         rightLeg.IsBlownOff.ShouldBeTrue();
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
-        sut.RegisterStandupAttempt(MovementType.Walk); // This increments StandupAttempts
+        sut.RegisterStandupAttempt(); // This increments StandupAttempts
         sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
 
         // Reset turn state (this should reset StandupAttempts to 0)
@@ -1931,37 +1931,30 @@ public class MechTests
         mech.Move(path, null);
 
         // Act
-        mech.RegisterStandupAttempt(MovementType.Walk);
-        mech.RegisterStandupAttempt(MovementType.Walk);
+        mech.RegisterStandupAttempt();
+        mech.RegisterStandupAttempt();
         // Assert
         mech.StandupAttempts.ShouldBe(2);
-        mech.MovementPointsSpent.ShouldBe(2); // 0 path cost + 2 event cost (duplicate events prevented)
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2); // 4 initial - 2 spent
+        mech.MovementPointsSpent.ShouldBe(0); // RegisterStandupAttempt no longer adds events
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(4); // 4 initial - 0 spent
         mech.MovementTaken.ShouldNotBeNull();
         mech.MovementTaken.MovementType.ShouldBe(MovementType.Walk);
     }
 
-    [Theory]
-    [InlineData(1, 1)] // Less movement than standup cost, Minimum movement case
-    [InlineData(2, 2)] // Exactly standup cost  
-    [InlineData(4, 2)] // More movement than standup cost
-    public void AttemptStandup_ShouldSpendCorrectMovementPoints(int initialMovement, int expectedSpent)
+    [Fact]
+    public void RegisterStandupAttempt_ShouldIncrementCounter()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50*initialMovement));
+        var mech = new Mech("Test", "TST-1A", 25, CreateBasicPartsData());
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         mech.Deploy(position, null);
-        var path = new MovementPath([new PathSegment(position, position, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk);
-        mech.Move(path, null);
 
         // Act
-        mech.RegisterStandupAttempt(MovementType.Walk);
+        mech.RegisterStandupAttempt();
+        mech.RegisterStandupAttempt();
+
         // Assert
-        mech.StandupAttempts.ShouldBe(1);
-        mech.MovementPointsSpent.ShouldBe(expectedSpent);
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(Math.Max(0, initialMovement - expectedSpent));
-        mech.MovementTaken.ShouldNotBeNull();
-        mech.MovementTaken.MovementType.ShouldBe(MovementType.Walk);
+        mech.StandupAttempts.ShouldBe(2);
     }
 
     [Fact]

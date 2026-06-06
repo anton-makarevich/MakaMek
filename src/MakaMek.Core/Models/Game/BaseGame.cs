@@ -280,7 +280,7 @@ public abstract class BaseGame : IGame
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
 
         mech?.StandUp(standUpCommand.NewFacing);
-        mech?.RegisterStandupAttempt(standUpCommand.MovementTypeAfterStandup);
+        mech?.RegisterStandupAttempt();
     }
 
     internal void OnUnitShutdown(UnitShutdownCommand shutdownCommand)
