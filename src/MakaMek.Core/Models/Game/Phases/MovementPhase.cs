@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -148,8 +147,13 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
                     // Apply state mutations and collect commands
                     var commands = new List<IGameCommand>();
+                    bool? deferAfterFall = null;
                     foreach (var action in result.GameActions)
+                    {
                         action.Execute(Game, commands);
+                        if (unit is Mech fallingMech && action is ApplyFallAction)
+                            deferAfterFall = fallingMech.CanStandup();
+                    }
 
                     // Phase publishes all commands
                     foreach (var cmd in commands)
@@ -157,7 +161,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
                     if (result.ShouldStop)
                     {
-                        _requestDeferStepConsumption = result.DeferStepConsumption;
+                        _requestDeferStepConsumption = deferAfterFall ?? result.DeferStepConsumption;
                         return;
                     }
                 }
@@ -173,7 +177,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         };
         Game.CommandPublisher.PublishCommand(fullBroadcastCommand);
 
-        // Jump landing logic (unchanged, but adapted for IUnit unit)
+        // Jump landing logic
         if (unit is Mech mech && moveCommand.MovementType == MovementType.Jump)
         {
             var fell = false;

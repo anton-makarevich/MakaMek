@@ -39,38 +39,17 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
                 IsCompleted = false
             };
 
-            var canStandup = mech.CanStandup();
-
-            var broadcastCommand = truncatedCommand with
-            {
-                GameOriginId = context.Game.Id,
-                IsCompleted = !canStandup
-            };
-
             var fallCommand = fallContextData.ToMechFallCommand();
-
-            var actions = new List<IGameAction>
-            {
-                new MoveUnitAction(truncatedCommand, publish: false),
-                new PublishCommandAction(broadcastCommand),
-                new ApplyFallAction(mech, fallCommand)
-            };
-
-            if (!canStandup && mech.Position != null)
-            {
-                var completionCommand = truncatedCommand with
-                {
-                    IsCompleted = true,
-                    MovementPath = MovementPath.CreateSingleSegmentPath(mech.Position, truncatedCommand.MovementType).ToData()
-                };
-                actions.Add(new MoveUnitAction(completionCommand, publish: false));
-            }
 
             return new MovementInterruptResult
             {
                 ShouldStop = true,
-                DeferStepConsumption = canStandup,
-                GameActions = actions
+                GameActions =
+                [
+                    new MoveUnitAction(truncatedCommand, publish: false),
+                    new ApplyFallAction(mech, fallCommand),
+                    new WaterFallBroadcastAction(mech, truncatedCommand)
+                ]
             };
         }
 
