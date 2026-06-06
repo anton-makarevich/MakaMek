@@ -5,12 +5,9 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 
 public class BridgeCollapsedAction(BridgeCollapsedCommand command, bool publish = true) : IGameAction
 {
-    public void Execute(ServerGame game, IList<IGameCommand> commands)
+    public IReadOnlyList<IGameCommand> Process(ServerGame game)
     {
         game.OnBridgeCollapsed(command);
-        if (publish)
-        {
-            commands.Add(command);
-        }
+        return publish ? new IGameCommand[] { command } : [];
     }
 }

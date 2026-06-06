@@ -6,13 +6,14 @@ using Sanet.MakaMek.Map.Models;
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 
 /// <summary>
-/// Publishes the truncated water-fall move after fall effects are applied,
+/// Prepares the truncated water-fall move after fall effects are applied,
 /// when <see cref="Mech.CanStandup"/> reflects post-fall state.
 /// </summary>
 public class WaterFallBroadcastAction(Mech mech, MoveUnitCommand truncatedCommand) : IGameAction
 {
-    public void Execute(ServerGame game, IList<IGameCommand> commands)
+    public IReadOnlyList<IGameCommand> Process(ServerGame game)
     {
+        var commands = new List<IGameCommand>();
         var canStandup = mech.CanStandup();
         var broadcastCommand = truncatedCommand with
         {
@@ -21,12 +22,13 @@ public class WaterFallBroadcastAction(Mech mech, MoveUnitCommand truncatedComman
         };
         commands.Add(broadcastCommand);
 
-        if (canStandup || mech.Position == null) return;
+        if (canStandup || mech.Position == null) return commands;
         var completionCommand = truncatedCommand with
         {
             IsCompleted = true,
             MovementPath = MovementPath.CreateSingleSegmentPath(mech.Position, truncatedCommand.MovementType).ToData()
         };
         game.OnMoveUnit(completionCommand);
+        return commands;
     }
 }

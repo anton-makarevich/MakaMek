@@ -6,8 +6,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 
 public class ApplyFallAction(Mech mech, MechFallCommand command) : IGameAction
 {
-    public void Execute(ServerGame game, IList<IGameCommand> commands)
+    public IReadOnlyList<IGameCommand> Process(ServerGame game)
     {
+        var commands = new List<IGameCommand>();
+
         // game.OnMechFalling calls mech.ApplyFall which internally appends the Fall event to MovementTaken
         game.OnMechFalling(command);
         commands.Add(command);
@@ -27,17 +29,17 @@ public class ApplyFallAction(Mech mech, MechFallCommand command) : IGameAction
             }
         }
 
-        if (mech.Pilot != null)
+        if (mech.Pilot == null) return commands;
+        var consciousnessCommands = game.ConsciousnessCalculator
+            .MakeConsciousnessRolls(mech.Pilot);
+        foreach (var cmd in consciousnessCommands)
         {
-            var consciousnessCommands = game.ConsciousnessCalculator
-                .MakeConsciousnessRolls(mech.Pilot);
-            foreach (var cmd in consciousnessCommands)
-            {
-                var broadcastCommand = cmd;
-                broadcastCommand.GameOriginId = game.Id;
-                game.OnPilotConsciousnessRoll(broadcastCommand);
-                commands.Add(broadcastCommand);
-            }
+            var broadcastCommand = cmd;
+            broadcastCommand.GameOriginId = game.Id;
+            game.OnPilotConsciousnessRoll(broadcastCommand);
+            commands.Add(broadcastCommand);
         }
+
+        return commands;
     }
 }

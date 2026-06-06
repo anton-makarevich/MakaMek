@@ -150,7 +150,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     bool? deferAfterFall = null;
                     foreach (var action in result.GameActions)
                     {
-                        action.Execute(Game, commands);
+                        commands.AddRange(action.Process(Game));
                         if (unit is Mech fallingMech && action is ApplyFallAction)
                             deferAfterFall = fallingMech.CanStandup();
                     }
@@ -159,11 +159,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     foreach (var cmd in commands)
                         Game.CommandPublisher.PublishCommand(cmd);
 
-                    if (result.ShouldStop)
-                    {
-                        _requestDeferStepConsumption = deferAfterFall ?? result.DeferStepConsumption;
-                        return;
-                    }
+                    if (!result.ShouldStop) continue;
+                    _requestDeferStepConsumption = deferAfterFall ?? result.DeferStepConsumption;
+                    return;
                 }
             }
         }
@@ -342,8 +340,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech, bool publishCommand = true)
     {
         var action = new ApplyFallAction(mech, fallCommand);
-        var commands = new List<IGameCommand>();
-        action.Execute(Game, commands);
+        var commands = action.Process(Game);
         if (publishCommand)
         {
             foreach (var cmd in commands)
