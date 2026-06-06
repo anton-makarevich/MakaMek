@@ -16,4 +16,10 @@ public class MovementInterruptContext
 
     /// <summary>The game instance (for map lookups, FallProcessor, etc.)</summary>
     public required ServerGame Game { get; init; }
+
+    /// <summary>
+    /// If true, the handler is evaluating a post-movement landing (jump) rather than
+    /// a per-segment interrupt during walk/run movement.
+    /// </summary>
+    public bool IsLandingCheck { get; init; }
 }

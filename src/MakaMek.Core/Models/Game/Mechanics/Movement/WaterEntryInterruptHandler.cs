@@ -23,6 +23,21 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
 
         if (fallContextData.IsFalling)
         {
+            var fallCommand = fallContextData.ToMechFallCommand();
+
+            if (context.IsLandingCheck)
+            {
+                // Jump landing: movement already complete, no path truncation or broadcast needed
+                return new MovementInterruptResult
+                {
+                    ShouldStop = true,
+                    GameActions = new List<IGameAction>
+                    {
+                        new ApplyFallAction(mech, fallCommand)
+                    }
+                };
+            }
+
             var truncatedSegments = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
             var truncatedPath = new MovementPath(truncatedSegments, context.MoveCommand.MovementType)
                 .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
@@ -31,8 +46,6 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
                 MovementPath = truncatedPath.ToData(),
                 IsCompleted = false
             };
-
-            var fallCommand = fallContextData.ToMechFallCommand();
 
             return new MovementInterruptResult
             {

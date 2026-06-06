@@ -27,9 +27,65 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             .SelectMany(p => p.Units)
             .Where(u => u.IsDeployed && u.Position!.Coordinates == bridgeCoords)
             .ToList();
+
+        if (context.IsLandingCheck)
+        {
+            // Landing (jump): unit is already on the hex after OnMoveUnit
+            var totalTonnage = unitsOnHex.Sum(u => u.Tonnage);
+            if (totalTonnage <= constructionFactor) return null;
+
+            var bridgeCommand = new BridgeCollapsedCommand
+            {
+                GameOriginId = context.Game.Id,
+                Coordinates = bridgeCoords.ToData(),
+                ConstructionFactor = constructionFactor,
+                TotalTonnage = totalTonnage,
+                TriggeringUnitId = context.Unit.Id,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var actions = new List<IGameAction>
+            {
+                new BridgeCollapsedAction(bridgeCommand, publish: true)
+            };
+
+            foreach (var hexUnit in unitsOnHex)
+            {
+                if (hexUnit is not Mech hexMech) continue;
+
+                var movementType = hexUnit.Id == context.Unit.Id
+                    ? context.MoveCommand.MovementType
+                    : MovementType.StandingStill;
+
+                var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
+                    hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game, movementType);
+
+                if (fallContextData.IsFalling)
+                {
+                    var fallCommand = fallContextData.ToMechFallCommand();
+                    actions.Add(new ApplyFallAction(hexMech, fallCommand));
+                }
+                else
+                {
+                    context.Game.Logger.LogError(
+                        "Bridge collapse should always result in a fall for unit {UnitId}", hexMech.Id);
+                    throw new InvalidOperationException(
+                        $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
+                }
+            }
+
+            return new MovementInterruptResult
+            {
+                ShouldStop = true,
+                DeferStepConsumption = false,
+                GameActions = actions
+            };
+        }
+
+        // Walk/run: entering unit is not yet on the hex
         var existingTonnage = unitsOnHex.Sum(u => u.Tonnage);
-        var totalTonnage = existingTonnage + context.Unit.Tonnage;
-        if (totalTonnage <= constructionFactor) return null;
+        var totalTonnageWithMover = existingTonnage + context.Unit.Tonnage;
+        if (totalTonnageWithMover <= constructionFactor) return null;
 
         // Include the entering unit in the fall processing list
         unitsOnHex.Add(context.Unit);
@@ -45,20 +101,20 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             IsCompleted = false
         };
 
-        var bridgeCommand = new BridgeCollapsedCommand
+        var bridgeCmd = new BridgeCollapsedCommand
         {
             GameOriginId = context.Game.Id,
             Coordinates = bridgeCoords.ToData(),
             ConstructionFactor = constructionFactor,
-            TotalTonnage = totalTonnage,
+            TotalTonnage = totalTonnageWithMover,
             TriggeringUnitId = context.Unit.Id,
             Timestamp = DateTime.UtcNow
         };
 
-        var actions = new List<IGameAction>
+        var walkActions = new List<IGameAction>
         {
             new MoveUnitAction(truncatedCommand, publish: false),
-            new BridgeCollapsedAction(bridgeCommand, publish: true),
+            new BridgeCollapsedAction(bridgeCmd, publish: true),
             new MoveUnitAction(truncatedCommand with { IsCompleted = true }, publish: true)
         };
 
@@ -71,7 +127,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             if (fallContextData.IsFalling)
             {
                 var fallCommand = fallContextData.ToMechFallCommand();
-                actions.Add(new ApplyFallAction(hexMech, fallCommand));
+                walkActions.Add(new ApplyFallAction(hexMech, fallCommand));
             }
             else
             {
@@ -86,7 +142,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         {
             ShouldStop = true,
             DeferStepConsumption = false,
-            GameActions = actions
+            GameActions = walkActions
         };
     }
 }
