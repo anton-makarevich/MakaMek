@@ -1795,7 +1795,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var bridgeHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
-        bridgeHex!.AddTerrain(new BridgeTerrain());
+        bridgeHex!.AddTerrain(new BridgeTerrain(0, 100));
 
         var moveCommand = new MoveUnitCommand
         {
