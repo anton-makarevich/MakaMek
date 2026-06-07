@@ -1,8 +1,9 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 public class SkidInterruptHandler : IMovementInterruptHandler
 {

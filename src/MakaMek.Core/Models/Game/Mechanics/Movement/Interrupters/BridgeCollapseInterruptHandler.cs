@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
 {

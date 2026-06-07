@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 /// <summary>
 /// Evaluates a single movement segment for a specific hazard type.

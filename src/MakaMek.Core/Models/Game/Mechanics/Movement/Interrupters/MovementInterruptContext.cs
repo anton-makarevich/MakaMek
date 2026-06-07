@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 public class MovementInterruptContext
 {

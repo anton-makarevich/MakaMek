@@ -4,7 +4,8 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -12,7 +13,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement.Interrupters;
 
 public class MovementInterruptHandlerTests : GamePhaseTestsBase
 {

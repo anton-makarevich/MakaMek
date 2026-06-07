@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 
 public class ApplyFallAction(Mech mech, MechFallCommand command) : IGameAction
 {

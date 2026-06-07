@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 
 public class BridgeCollapsedAction(BridgeCollapsedCommand command, bool publish = true) : IGameAction
 {
