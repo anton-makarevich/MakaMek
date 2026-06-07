@@ -111,6 +111,30 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void BridgeCollapseInterruptHandler_Check_WhenOverWeightAndFallReturnsFalse_ThrowsInvalidOperationException()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        Should.Throw<InvalidOperationException>(() =>
+            _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)));
+    }
+
+    [Fact]
     public void BridgeCollapseInterruptHandler_Check_WhenLandingUnderWeight_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
@@ -174,5 +198,37 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeTrue();
         result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
+    }
+
+    [Fact]
+    public void BridgeCollapseInterruptHandler_Check_WhenLandingOverWeightAndFallReturnsFalse_ThrowsInvalidOperationException()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var context = new MovementInterruptContext
+        {
+            MoveCommand = moveCommand with { PlayerId = Game.Players[0].Id },
+            SegmentIndex = 0,
+            Unit = Game.Players[0].Units.Single(u => u.Id == moveCommand.UnitId),
+            Game = Game,
+            IsLandingCheck = true
+        };
+
+        Should.Throw<InvalidOperationException>(() => _sut.Check(context));
     }
 }

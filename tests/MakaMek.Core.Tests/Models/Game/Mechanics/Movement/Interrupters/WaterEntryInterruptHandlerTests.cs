@@ -193,7 +193,6 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
         var context = new MovementInterruptContext
         {
