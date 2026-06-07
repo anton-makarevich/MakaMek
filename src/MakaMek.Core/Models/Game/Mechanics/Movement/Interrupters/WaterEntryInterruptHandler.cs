@@ -16,6 +16,9 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
         var destinationHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.To.Coordinates));
         if (destinationHex?.GetTerrain(MakaMekTerrains.Water) is not WaterTerrain { Height: <= -1 } water) return null;
 
+        var sourceHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
+        if (sourceHex is not null && destinationHex!.IsOnRoadOrBridge(sourceHex)) return null;
+
         if (context.Unit is not Mech mech) return null;
 
         var waterDepth = -1 * water.Height;
