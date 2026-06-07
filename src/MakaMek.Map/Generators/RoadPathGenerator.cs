@@ -18,8 +18,13 @@ public class RoadPathGenerator
     private readonly int _height;
     private readonly Random _random;
     private readonly HashSet<HexCoordinates> _existingRoadHexes = [];
+    private readonly HashSet<HexCoordinates>? _existingWaterHexes;
 
-    public RoadPathGenerator(int width, int height, Random? random = null)
+    public RoadPathGenerator(
+        int width,
+        int height,
+        Random? random = null,
+        HashSet<HexCoordinates>? existingWaterHexes = null)
     {
         if (width < 1)
             throw new ArgumentOutOfRangeException(nameof(width), "Width must be at least 1.");
@@ -29,6 +34,7 @@ public class RoadPathGenerator
         _width = width;
         _height = height;
         _random = random ?? new Random();
+        _existingWaterHexes = existingWaterHexes;
     }
 
     public Dictionary<HexCoordinates, int> GenerateRoads(int roadCount)
@@ -127,6 +133,9 @@ public class RoadPathGenerator
                 edgeHexes.Add(new HexCoordinates(_width, r));
             }
         }
+
+        if (_existingWaterHexes is { Count: > 0 })
+            edgeHexes.RemoveAll(h => _existingWaterHexes.Contains(h));
 
         return edgeHexes[_random.Next(edgeHexes.Count)];
     }

@@ -159,7 +159,7 @@ public class MapGeneratorBuilder
                 waterHexes = (_lakePatches?.Keys ?? Enumerable.Empty<HexCoordinates>())
                     .Concat(_riverPatches?.Keys ?? Enumerable.Empty<HexCoordinates>())
                     .ToHashSet();
-                var generator = new RoadPathGenerator(_width, _height, rng);
+                var generator = new RoadPathGenerator(_width, _height, rng, waterHexes);
                 var roads = generator.GenerateRoads(roadCount);
                 _roadPatches = roads;
                 return roads;
