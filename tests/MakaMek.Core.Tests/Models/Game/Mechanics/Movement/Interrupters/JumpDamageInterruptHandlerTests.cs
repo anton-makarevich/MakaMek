@@ -28,7 +28,7 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
         SetMap();
     }
 
-    private MovementInterruptContext CreateContext(MoveUnitCommand moveCommand, int segmentIndex)
+    private MovementInterruptContext CreateContext(MoveUnitCommand moveCommand, int segmentIndex, bool isLandingCheck = false)
     {
         var unit = Game.Players[0].Units.Single(u => u.Id == moveCommand.UnitId);
         return new MovementInterruptContext
@@ -36,7 +36,8 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
             MoveCommand = moveCommand,
             SegmentIndex = segmentIndex,
             Unit = unit,
-            Game = Game
+            Game = Game,
+            IsLandingCheck = isLandingCheck
         };
     }
 
@@ -63,7 +64,7 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void JumpDamageInterruptHandler_Check_WhenJumpWithoutDamage_ReturnsNull()
+    public void JumpDamageInterruptHandler_Check_WhenJumpNotLanding_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
@@ -72,6 +73,18 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void JumpDamageInterruptHandler_Check_WhenJumpWithoutDamage_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0, isLandingCheck: true)).ShouldBeNull();
     }
 
     [Fact]
@@ -102,7 +115,7 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
-        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0, isLandingCheck: true));
 
         result.ShouldNotBeNull();
         result.ShouldStop.ShouldBeFalse();
@@ -143,7 +156,7 @@ public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
-        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0, isLandingCheck: true));
 
         result.ShouldNotBeNull();
         result.ShouldStop.ShouldBeTrue();

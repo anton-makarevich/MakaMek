@@ -11,6 +11,7 @@ public class JumpDamageInterruptHandler : IMovementInterruptHandler
     public MovementInterruptResult? Check(MovementInterruptContext context)
     {
         if (context.MoveCommand.MovementType != MovementType.Jump) return null;
+        if (!context.IsLandingCheck) return null;
         if (context.Unit is not Mech mech || !mech.IsPsrForJumpRequired()) return null;
 
         var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
