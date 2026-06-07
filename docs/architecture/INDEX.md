@@ -11,6 +11,7 @@ Architectural designs for core game modules, network protocol, AI bot subsystems
 | [Units.md](Units.md) | Unit model, component structure, equipment, and damage tracking |
 | [Components.md](Components.md) | Unit part/component system, slot management, and critical hit allocation |
 | [UiStates.md](UiStates.md) | UI state machine, phase-driven screen transitions, and input handling |
+| [Movement-Phase-Interrupt-Pattern.md](Movement-Phase-Interrupt-Pattern.md) | Chain-of-handlers + game-action pattern for movement hazards (bridge collapse, skid, water, jump landing) |
 
 ## Systems
 
