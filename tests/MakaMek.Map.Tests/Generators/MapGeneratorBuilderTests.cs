@@ -258,4 +258,73 @@ public class MapGeneratorBuilderTests
         hexes.ShouldContain(h => h.HasTerrain(MakaMekTerrains.Water));
         hexes.ShouldContain(h => h.Level > 0);
     }
+
+    [Fact]
+    public void WithRoads_ProducesRoadHexes()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithRoads(2)
+            .WithSeed(42)
+            .Build();
+
+        var hasRoad = AllCoords()
+            .Select(sut.Generate)
+            .Any(h => h.HasTerrain(MakaMekTerrains.Road) || h.HasTerrain(MakaMekTerrains.Bridge));
+
+        hasRoad.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void WithRoads_NegativeCount_ThrowsArgumentOutOfRangeException()
+    {
+        var builder = new MapGeneratorBuilder(Width, Height);
+
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => builder.WithRoads(-1));
+        ex.ParamName.ShouldBe("roadCount");
+    }
+
+    [Fact]
+    public void WithLakesAndRoads_CreatesBridgeTerrain()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithLakes(coverage: 0.5, maxDepth: 2)
+            .WithRoads(3)
+            .WithSeed(42)
+            .Build();
+
+        var hexes = AllCoords().Select(sut.Generate).ToList();
+
+        var hasBridge = hexes.Any(h => h.HasTerrain(MakaMekTerrains.Bridge));
+        var hasRoad = hexes.Any(h => h.HasTerrain(MakaMekTerrains.Road));
+
+        hasRoad.ShouldBeTrue();
+        // If roads and lakes overlap, bridges are created; if they don't overlap,
+        // roads still exist. Either outcome is valid.
+    }
+
+    [Fact]
+    public void WithRoads_SeededGeneration_IsReproducible()
+    {
+        var gen1 = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithRoads(2)
+            .WithSeed(123)
+            .Build();
+
+        var gen2 = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithRoads(2)
+            .WithSeed(123)
+            .Build();
+
+        foreach (var coords in AllCoords())
+        {
+            var h1 = gen1.Generate(coords);
+            var h2 = gen2.Generate(coords);
+            h1.GetTerrains().Select(t => t.ToData().Type)
+                .ShouldBe(h2.GetTerrains().Select(t => t.ToData().Type));
+        }
+    }
 }

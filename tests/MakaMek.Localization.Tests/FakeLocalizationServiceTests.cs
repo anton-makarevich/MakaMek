@@ -829,6 +829,8 @@ public class FakeLocalizationServiceTests
     [InlineData("MapConfig_LakeMaxDepth_Formatted", "Max Lake Depth: {0}")]
     [InlineData("MapConfig_RiverCount", "River Count")]
     [InlineData("MapConfig_RiverCount_Formatted", "Rivers: {0}")]
+    [InlineData("MapConfig_RoadCount", "Road Count")]
+    [InlineData("MapConfig_RoadCount_Formatted", "Roads: {0}")]
     [InlineData("MapConfig_ExportMap", "Export Map")]
     [InlineData("EditMap_ExportMapDialogTitle", "Export Map File")]
     public void GetString_MapConfig_ReturnsExpectedString(string key, string expected)
