@@ -6,12 +6,12 @@ namespace Sanet.MakaMek.Map.Generators;
 /// Generates branching road networks that grow inward from a random map edge.
 /// Unlike rivers (which follow a single meandering path), roads branch: at every
 /// hex each of the six directions is rolled independently against a probability
-/// that favours continuing straight, producing organic forks and junctions.
+/// that favors continuing straight, producing organic forks and junctions.
 /// </summary>
 public class RoadPathGenerator
 {
-    private const int StraightProbability = 70;
-    private const int AdjacentProbability = 15;
+    private const int StraightProbability = 85;
+    private const int AdjacentProbability = 10;
     private const int OtherProbability = 5;
 
     private readonly int _width;
@@ -48,7 +48,7 @@ public class RoadPathGenerator
         return result;
     }
 
-    internal HashSet<HexCoordinates> GenerateSingleRoad()
+    private HashSet<HexCoordinates> GenerateSingleRoad()
     {
         var road = new HashSet<HexCoordinates>();
 
