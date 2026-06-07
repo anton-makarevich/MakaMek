@@ -137,6 +137,9 @@ public class RoadPathGenerator
         if (_existingWaterHexes is { Count: > 0 })
             edgeHexes.RemoveAll(h => _existingWaterHexes.Contains(h));
 
+        if (edgeHexes.Count == 0)
+            throw new InvalidOperationException(
+                "No valid edge hexes available for road generation (all edges are water).");
         return edgeHexes[_random.Next(edgeHexes.Count)];
     }
 

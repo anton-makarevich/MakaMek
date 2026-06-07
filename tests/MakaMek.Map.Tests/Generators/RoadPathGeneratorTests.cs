@@ -140,6 +140,25 @@ public class RoadPathGeneratorTests
     }
 
     [Fact]
+    public void PickRandomEdgeStart_WhenAllEdgeHexesAreWater_ThrowsException()
+    {
+        const int width = 3;
+        const int height = 3;
+
+        var waterHexes = new HashSet<HexCoordinates>
+        {
+            new(1, 1), new(1, 2), new(1, 3),
+            new(2, 1), new(2, 3),
+            new(3, 1), new(3, 2), new(3, 3)
+        };
+
+        var generator = new RoadPathGenerator(width, height, new Random(42), waterHexes);
+        
+        var ex = Should.Throw<InvalidOperationException>(() => generator.GenerateRoads(1));
+        ex.Message.ShouldBe("No valid edge hexes available for road generation (all edges are water).");
+    }
+
+    [Fact]
     public void PickRandomEdgeStart_DoesNotReturnWaterHex_WhenOnlyOneEdgeHexIsLand()
     {
         const int width = 3;
