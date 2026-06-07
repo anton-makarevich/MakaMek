@@ -413,6 +413,8 @@ public class FakeLocalizationService : ILocalizationService
         ["MapConfig_LakeMaxDepth_Formatted"] = "Max Lake Depth: {0}",
         ["MapConfig_RiverCount"] = "River Count",
         ["MapConfig_RiverCount_Formatted"] = "Rivers: {0}",
+        ["MapConfig_RoadCount"] = "Road Count",
+        ["MapConfig_RoadCount_Formatted"] = "Roads: {0}",
         ["MapConfig_ExportMap"] = "Export Map",
         ["EditMap_ExportMapDialogTitle"] = "Export Map File",
         ["Network_NetworkSettings"] = "Network Settings",
