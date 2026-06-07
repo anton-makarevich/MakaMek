@@ -54,10 +54,10 @@ public static class HexExtensions
 
         public bool IsOnRoadOrBridge(Hex fromHex)
         {
-            return (hex.GetRoadOrPavedTerrainId() == MakaMekTerrains.Bridge
-                || hex.GetRoadOrPavedTerrainId() == MakaMekTerrains.Road)
-                && (fromHex.GetRoadOrPavedTerrainId() == MakaMekTerrains.Bridge 
-                    || fromHex.GetRoadOrPavedTerrainId() == MakaMekTerrains.Road);
+            var toTerrain = hex.GetRoadOrPavedTerrainId();
+            var fromTerrain = fromHex.GetRoadOrPavedTerrainId();
+            return (toTerrain == MakaMekTerrains.Bridge || toTerrain == MakaMekTerrains.Road)
+                && (fromTerrain == MakaMekTerrains.Bridge || fromTerrain == MakaMekTerrains.Road);
         }
     }
 }
