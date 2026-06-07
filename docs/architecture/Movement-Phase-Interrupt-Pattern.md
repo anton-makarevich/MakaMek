@@ -187,4 +187,4 @@ Because handlers are pure (`Check(context) → result?`) they are unit-tested in
 3. Return a `MovementInterruptResult`: `ShouldStop = false` for a passed roll that only needs a PSR broadcast, `true` to interrupt the move.
 4. Build the consequence from existing `IGameAction`s; add a new action only if no current one fits, keeping mutation + publish-list together in the action.
 5. Register the handler in `_segmentInterruptHandlers` and/or `_landingInterruptHandlers` at the correct position in the chain.
-```
+5. Register the handler in `_segmentInterruptHandlers` and/or `_landingInterruptHandlers` at the correct position in the chain.
