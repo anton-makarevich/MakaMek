@@ -37,7 +37,21 @@ public class MapConfigViewModelTests
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Configure localization service mock - return the key if not configured
-        _localizationService.GetString(Arg.Is<string>(k => k != "MapConfig_Width_Formatted" && k != "MapConfig_Height_Formatted" && k != "MapConfig_ForestCoverage_Formatted" && k != "MapConfig_LightWoods_Formatted" && k != "MapConfig_HillCoverage_Formatted" && k != "MapConfig_MaxElevation_Formatted" && k != "MapConfig_RoughCoverage_Formatted" && k != "MapConfig_LakeCoverage_Formatted" && k != "MapConfig_LakeMaxDepth_Formatted" && k != "MapConfig_RiverCount_Formatted" && k != "MapConfig_RoadCount_Formatted")).Returns(callInfo => callInfo.Arg<string>());
+        var formattedKeys = new HashSet<string>
+        {
+            "MapConfig_Width_Formatted",
+            "MapConfig_Height_Formatted",
+            "MapConfig_ForestCoverage_Formatted",
+            "MapConfig_LightWoods_Formatted",
+            "MapConfig_HillCoverage_Formatted",
+            "MapConfig_MaxElevation_Formatted",
+            "MapConfig_RoughCoverage_Formatted",
+            "MapConfig_LakeCoverage_Formatted",
+            "MapConfig_LakeMaxDepth_Formatted",
+            "MapConfig_RiverCount_Formatted",
+            "MapConfig_RoadCount_Formatted"
+        };
+        _localizationService.GetString(Arg.Is<string>(k => !formattedKeys.Contains(k))).Returns(callInfo => callInfo.Arg<string>());
         _localizationService.GetString("MapConfig_Width_Formatted").Returns("Width: {0} hexes");
         _localizationService.GetString("MapConfig_Height_Formatted").Returns("Height: {0} hexes");
         _localizationService.GetString("MapConfig_ForestCoverage_Formatted").Returns("Forest Coverage: {0}%");
