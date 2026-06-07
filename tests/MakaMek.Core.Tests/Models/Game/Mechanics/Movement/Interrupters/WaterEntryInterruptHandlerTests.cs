@@ -188,10 +188,11 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Jump)
             .Returns(fallContext);
 
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
         var context = new MovementInterruptContext
