@@ -125,11 +125,16 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
 
     private static SKColor GetTerrainColor(Hex hex)
     {
-        var terrains = hex.GetTerrains().ToList();
-        if (terrains.Count == 0)
+        var terrain = hex.GetTerrains().FirstOrDefault(t => t.Id
+            is MakaMekTerrains.Clear
+            or MakaMekTerrains.LightWoods
+            or MakaMekTerrains.HeavyWoods
+            or MakaMekTerrains.Rough
+            or MakaMekTerrains.Water);
+
+        if (terrain == null)
             return ClearTerrainColor;
 
-        var terrain = terrains.First();
         return terrain.Id switch
         {
             MakaMekTerrains.Clear => ClearTerrainColor,
