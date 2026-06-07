@@ -143,4 +143,32 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         result.GameActions.ShouldContain(a => a is MoveUnitAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
     }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenRunTurnOnNonRoad_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        // No road terrain added - hex (2,2) is clear by default
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 1)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenRunTurnOnRoadLastHex_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new RoadTerrain());
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 1)).ShouldBeNull();
+    }
 }

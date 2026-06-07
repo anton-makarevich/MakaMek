@@ -7,17 +7,17 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement.Interrupters;
 
-public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
+public class JumpDamageInterruptHandlerTests : GamePhaseTestsBase
 {
-    private readonly BridgeCollapseInterruptHandler _sut = new();
+    private readonly JumpDamageInterruptHandler _sut = new();
     private Guid _unitId;
 
     protected override void SetupSut()
@@ -51,7 +51,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         };
 
     [Fact]
-    public void BridgeCollapseInterruptHandler_Check_WhenNoBridge_ReturnsNull()
+    public void JumpDamageInterruptHandler_Check_WhenWalk_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
@@ -63,116 +63,91 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void BridgeCollapseInterruptHandler_Check_WhenUnderWeight_ReturnsNull()
+    public void JumpDamageInterruptHandler_Check_WhenJumpWithoutDamage_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(0, 100));
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
     }
 
     [Fact]
-    public void BridgeCollapseInterruptHandler_Check_WhenOverWeight_ReturnsStopWithActions()
+    public void JumpDamageInterruptHandler_Check_WhenJumpPsrPasses_ReturnsPsrOnly()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+        var gyro = mech.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+
+        var successContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+            .Returns(successContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeFalse();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
+    }
+
+    [Fact]
+    public void JumpDamageInterruptHandler_Check_WhenJumpPsrFails_ReturnsStopWithFall()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var gyro = mech.GetAllComponents<Gyro>().First();
+        gyro.Hit();
 
         var fallContext = new FallContextData
         {
             UnitId = mech.Id,
             GameId = Game.Id,
             IsFalling = true,
-            LevelsFallen = 2,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
             FallingDamageData = new FallingDamageData(
                 HexDirection.Top,
                 new HitLocationsData([], 5),
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
             .Returns(fallContext);
 
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
 
         result.ShouldNotBeNull();
         result.ShouldStop.ShouldBeTrue();
-        result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
-        result.GameActions.ShouldContain(a => a is ApplyFallAction);
-    }
-
-    [Fact]
-    public void BridgeCollapseInterruptHandler_Check_WhenLandingUnderWeight_ReturnsNull()
-    {
-        var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
-
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 100));
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
-
-        var context = new MovementInterruptContext
-        {
-            MoveCommand = moveCommand with { PlayerId = Game.Players[0].Id },
-            SegmentIndex = 0,
-            Unit = Game.Players[0].Units.Single(u => u.Id == moveCommand.UnitId),
-            Game = Game,
-            IsLandingCheck = true
-        };
-
-        _sut.Check(context).ShouldBeNull();
-    }
-
-    [Fact]
-    public void BridgeCollapseInterruptHandler_Check_WhenLandingOverWeight_ReturnsStopWithActions()
-    {
-        var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
-
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
-
-        var fallContext = new FallContextData
-        {
-            UnitId = mech.Id,
-            GameId = Game.Id,
-            IsFalling = true,
-            LevelsFallen = 2,
-            FallingDamageData = new FallingDamageData(
-                HexDirection.Top,
-                new HitLocationsData([], 5),
-                new DiceResult(3),
-                HitDirection.Front)
-        };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
-            .Returns(fallContext);
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
-
-        var context = new MovementInterruptContext
-        {
-            MoveCommand = moveCommand with { PlayerId = Game.Players[0].Id },
-            SegmentIndex = 0,
-            Unit = Game.Players[0].Units.Single(u => u.Id == moveCommand.UnitId),
-            Game = Game,
-            IsLandingCheck = true
-        };
-
-        var result = _sut.Check(context);
-
-        result.ShouldNotBeNull();
-        result.ShouldStop.ShouldBeTrue();
-        result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
-        result.GameActions.ShouldContain(a => a is ApplyFallAction);
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<ApplyFallAction>();
     }
 }

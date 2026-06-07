@@ -137,4 +137,77 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         result.GameActions[1].ShouldBeOfType<ApplyFallAction>();
         result.GameActions[2].ShouldBeOfType<WaterFallBroadcastAction>();
     }
+
+    [Fact]
+    public void WaterEntryInterruptHandler_Check_WhenSameCoordinates_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 2, HexDirection.Bottom), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void WaterEntryInterruptHandler_Check_WhenNoWaterTerrain_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        // No water terrain added - hex (2,2) is clear by default
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void WaterEntryInterruptHandler_Check_WhenLandingDeepWaterFall_ReturnsStopWithFallOnly()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var context = new MovementInterruptContext
+        {
+            MoveCommand = moveCommand with { PlayerId = Game.Players[0].Id },
+            SegmentIndex = 0,
+            Unit = Game.Players[0].Units.Single(u => u.Id == moveCommand.UnitId),
+            Game = Game,
+            IsLandingCheck = true
+        };
+
+        var result = _sut.Check(context);
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeTrue();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<ApplyFallAction>();
+    }
 }
