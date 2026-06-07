@@ -16,7 +16,7 @@ public class ApplyFallAction(Mech mech, MechFallCommand command) : IGameAction
 
         var locationsWithDamagedStructure = command.DamageData?.HitLocations.HitLocations
             .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
-            .SelectMany(h => h.Damage)
+            .SelectMany(h => h.Damage.Where(d => d.StructureDamage > 0))
             .ToList() ?? [];
         if (locationsWithDamagedStructure.Count != 0)
         {
