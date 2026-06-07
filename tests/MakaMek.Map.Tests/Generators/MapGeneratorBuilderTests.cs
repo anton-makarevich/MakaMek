@@ -296,12 +296,33 @@ public class MapGeneratorBuilderTests
 
         var hexes = AllCoords().Select(sut.Generate).ToList();
 
-        var hasBridge = hexes.Any(h => h.HasTerrain(MakaMekTerrains.Bridge));
+        _ = hexes.Any(h => h.HasTerrain(MakaMekTerrains.Bridge));
         var hasRoad = hexes.Any(h => h.HasTerrain(MakaMekTerrains.Road));
 
         hasRoad.ShouldBeTrue();
         // If roads and lakes overlap, bridges are created; if they don't overlap,
         // roads still exist. Either outcome is valid.
+    }
+
+    [Fact]
+    public void RoadOverWater_HasBothRoadAndWaterTerrain()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithLakes(coverage: 0.5, maxDepth: 2)
+            .WithRoads(3)
+            .WithSeed(42)
+            .Build();
+
+        var hexes = AllCoords().Select(sut.Generate).ToList();
+
+        var bridgeHexes = hexes.Where(h => h.HasTerrain(MakaMekTerrains.Bridge)).ToList();
+
+        if (bridgeHexes.Count > 0)
+        {
+            bridgeHexes.ShouldAllBe(h => h.HasTerrain(MakaMekTerrains.Water),
+                "bridge hexes should retain water terrain underneath");
+        }
     }
 
     [Fact]
