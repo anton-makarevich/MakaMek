@@ -43,5 +43,13 @@ public static class HexExtensions
                    || hex.HasTerrain(MakaMekTerrains.Pavement) 
                    || hex.HasTerrain(MakaMekTerrains.Bridge);
         }
+        
+        public MakaMekTerrains? GetRoadOrPavedTerrainId()
+        {
+            if (hex.HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
+            if (hex.HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
+            if (hex.HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
+            return null;
+        }
     }
 }
