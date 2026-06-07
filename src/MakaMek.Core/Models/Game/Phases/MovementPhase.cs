@@ -184,13 +184,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 var result = handler.Check(context);
                 if (result == null) continue;
 
-                var commands = new List<IGameCommand>();
-                foreach (var action in result.GameActions)
-                    commands.AddRange(action.Process(Game));
-                foreach (var cmd in commands)
-                    Game.CommandPublisher.PublishCommand(cmd);
-
-                if (result.ShouldStop) break;
+                if (ProcessInterruptResult(result, unit!)) break;
             }
         }
     }
