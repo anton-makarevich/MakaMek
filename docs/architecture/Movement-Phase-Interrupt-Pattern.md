@@ -16,7 +16,7 @@ This is a Chain-of-Responsibility (handlers) feeding a Command pattern (actions)
 
 ## Components
 
-```
+```text
 MovementPhase  ──walks path / landing──►  IMovementInterruptHandler.Check(context)
                                                        │
                                                        ▼
