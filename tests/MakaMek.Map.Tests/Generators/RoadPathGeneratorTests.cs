@@ -140,6 +140,27 @@ public class RoadPathGeneratorTests
     }
 
     [Fact]
+    public void PickRandomEdgeStart_DoesNotReturnWaterHex_WhenOnlyOneEdgeHexIsLand()
+    {
+        const int width = 3;
+        const int height = 3;
+
+        // All edge hexes are water except (1,1)
+        var waterHexes = new HashSet<HexCoordinates>
+        {
+            new(1, 2), new(1, 3),
+            new(2, 1), new(2, 3),
+            new(3, 1), new(3, 2), new(3, 3)
+        };
+
+        var generator = new RoadPathGenerator(width, height, new Random(42), waterHexes);
+        var roads = generator.GenerateRoads(1);
+
+        // (1,1) is the only eligible edge start
+        roads.Keys.First().ShouldBe(new HexCoordinates(1,1));
+    }
+
+    [Fact]
     public void RoadNetworkBranches()
     {
         var generator = new RoadPathGenerator(35, 35, new Random(42));
