@@ -54,12 +54,11 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             {
                 if (hexUnit is not Mech hexMech) continue;
 
-                var movementType = hexUnit.Id == context.Unit.Id
-                    ? context.MoveCommand.MovementType
-                    : MovementType.StandingStill;
-
                 var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
-                    hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game, movementType);
+                    hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game,
+                    hexUnit.Id == context.Unit.Id
+                        ? context.MoveCommand.MovementType
+                        : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill);
 
                 if (fallContextData.IsFalling)
                 {
@@ -123,7 +122,10 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         {
             if (hexUnit is not Mech hexMech) continue;
             var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
-                hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game, context.MoveCommand.MovementType);
+                hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game,
+                hexUnit.Id == context.Unit.Id
+                    ? context.MoveCommand.MovementType
+                    : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill);
 
             if (fallContextData.IsFalling)
             {
