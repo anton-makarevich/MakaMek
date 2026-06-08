@@ -140,4 +140,47 @@ public class HexExtensionsTests
         // Assert
         result.ShouldBe(expectedResult);
     }
+
+    [Theory]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Bridge)]
+    [InlineData(MakaMekTerrains.Pavement, MakaMekTerrains.Pavement)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road)]
+    [InlineData(MakaMekTerrains.HeavyWoods, null)]
+    public void GetRoadOrPavedTerrainId_Returns_PavedTerrain_OrNull(MakaMekTerrains terrainToAdd,
+        MakaMekTerrains? expectedTerrain)
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(Terrain.CreateTerrainOfType(terrainToAdd));
+
+        // Act
+        var terrain = sut.GetRoadOrPavedTerrainId();
+            
+        // Assert
+        terrain.ShouldBe(expectedTerrain);
+    }
+
+    [Theory]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road, true)]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Road, true)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Bridge, true)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Pavement, false)]
+    [InlineData(MakaMekTerrains.Pavement, MakaMekTerrains.Road, false)]
+    [InlineData(MakaMekTerrains.Water, MakaMekTerrains.Bridge, false)]
+    [InlineData(MakaMekTerrains.LightWoods, MakaMekTerrains.Road, false)]
+    public void IsOnRoadOrBridge_Should_ReturnCorrectValue(MakaMekTerrains fromHexTerrain, MakaMekTerrains toHexTerrain,
+        bool isOnRoad)
+    {
+        // Arrange
+        var fromHex = new Hex(new HexCoordinates(1, 1));
+        fromHex.AddTerrain(Terrain.CreateTerrainOfType(fromHexTerrain));
+        var toHex = new Hex(new HexCoordinates(2, 1));
+        toHex.AddTerrain(Terrain.CreateTerrainOfType(toHexTerrain));
+        
+        // Act
+        var result = fromHex.IsOnRoadOrBridge(toHex);
+        
+        // Assert
+        result.ShouldBe(isOnRoad);
+    }
 }
