@@ -18,11 +18,14 @@ public class MapGeneratorBuilder
     private LevelConfiguration? _levelConfig;
     private int? _seed;
     private Dictionary<HexCoordinates, int>? _lakePatches;
+    private Dictionary<HexCoordinates, int>? _riverPatches;
+    private Dictionary<HexCoordinates, int>? _roadPatches;
 
-    // Each overlay entry: (patch-hex-set factory with distance map, terrain selector given (coords, distance, rng))
+    // Each overlay entry: (patch-hex-set factory with distance map, terrain selector given (coords, distance, rng), additive)
     private readonly List<(
         Func<Random, Dictionary<HexCoordinates, int>> PatchFactory,
-        Func<HexCoordinates, int, Random, Terrain> TerrainSelector)> _overlays = [];
+        Func<HexCoordinates, int, Random, Terrain> TerrainSelector,
+        bool Additive)> _overlays = [];
 
     public MapGeneratorBuilder(int width, int height)
     {
@@ -49,7 +52,8 @@ public class MapGeneratorBuilder
 
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
-            (_, _, _) => new TTerrain()
+            (_, _, _) => new TTerrain(),
+            false
         ));
         return this;
     }
@@ -69,7 +73,8 @@ public class MapGeneratorBuilder
         var lp = lightWoodsProbability;
         _overlays.Add((
             rng => new PatchGenerator(_width, _height, rng).GeneratePatches(coverage),
-            (_, _, rng) => rng.NextDouble() < lp ? new LightWoodsTerrain() : new HeavyWoodsTerrain()
+            (_, _, rng) => rng.NextDouble() < lp ? new LightWoodsTerrain() : new HeavyWoodsTerrain(),
+            false
         ));
         return this;
     }
@@ -99,7 +104,8 @@ public class MapGeneratorBuilder
                 // Depth tapers from maxDepth at center (dist=0) toward 1 at patch edges.
                 var depth = -Math.Max(1, maxDepth - distance);
                 return new WaterTerrain(depth);
-            }
+            },
+            false
         ));
         return this;
     }
@@ -119,9 +125,49 @@ public class MapGeneratorBuilder
                 var generator = new RiverPathGenerator(
                     _width, _height, rng,
                     _lakePatches?.Keys.ToHashSet());
-                return generator.GenerateRivers(riverCount);
+                var rivers = generator.GenerateRivers(riverCount);
+                _riverPatches = rivers;
+                return rivers;
             },
-            (_, _, _) => new WaterTerrain(-1)
+            (_, _, _) => new WaterTerrain(-1),
+            false
+        ));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds road generation. Roads grow as branching networks inward from a random
+    /// map edge. Where a road hex coincides with water (a lake or river hex produced
+    /// by an earlier overlay) a <see cref="BridgeTerrain"/> is placed instead of a
+    /// plain <see cref="RoadTerrain"/>, modelling a bridge spanning the water.
+    /// Must be called after <see cref="WithLakes"/> and <see cref="WithRivers"/> if
+    /// bridges over those water bodies are desired, so the last-overlay-wins pattern
+    /// lets roads/bridges override the underlying water.
+    /// </summary>
+    /// <param name="roadCount">Number of roads to generate.</param>
+    public MapGeneratorBuilder WithRoads(int roadCount)
+    {
+        if (roadCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(roadCount), "Road count must be non-negative.");
+
+        // Combined water set is captured when the patch factory runs during Build().
+        // By then any earlier lake/river factories have already populated their patches.
+        HashSet<HexCoordinates> waterHexes = [];
+        _overlays.Add((
+            rng =>
+            {
+                waterHexes = (_lakePatches?.Keys ?? Enumerable.Empty<HexCoordinates>())
+                    .Concat(_riverPatches?.Keys ?? Enumerable.Empty<HexCoordinates>())
+                    .ToHashSet();
+                var generator = new RoadPathGenerator(_width, _height, rng, waterHexes);
+                var roads = generator.GenerateRoads(roadCount);
+                _roadPatches = roads;
+                return roads;
+            },
+            (coords, _, _) => waterHexes.Contains(coords)
+                ? new BridgeTerrain(1, 40)
+                : new RoadTerrain(),
+            true
         ));
         return this;
     }
@@ -148,7 +194,7 @@ public class MapGeneratorBuilder
 
         // Materialize overlays: each gets its own Random so they don't interfere
         var builtOverlays = _overlays
-            .Select(o => (new Dictionary<HexCoordinates, int>(o.PatchFactory(CreateRng())), o.TerrainSelector))
+            .Select(o => (new Dictionary<HexCoordinates, int>(o.PatchFactory(CreateRng())), o.TerrainSelector, o.Additive))
             .ToList();
 
         ILevelProvider levelProvider = _levelConfig is not null
