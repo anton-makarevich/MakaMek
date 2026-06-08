@@ -434,7 +434,7 @@ public class HexExtensionsTests
     }
 
     [Fact]
-    public void GetStandingLevel_ReturnsBridgeSurface_WhenFromBridgeToRoad()
+    public void GetStandingLevel_ReturnsHexLevel_WhenFromBridgeToRoad()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
         fromHex.AddTerrain(new BridgeTerrain(2, 0));

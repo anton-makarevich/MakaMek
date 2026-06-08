@@ -147,7 +147,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (useCache)
         {
-            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange);
+            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -177,7 +177,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 // Convert path to segments
                 var segments = ConvertPathToSegments(path, unitHeight);
-                var result = new MovementPath(segments, movementType, maxLevelChange);
+                var result = new MovementPath(segments, movementType, maxLevelChange, unitHeight);
                 if (useCache) _movementPathCache.Add(result);
                 return result;
             }
@@ -264,7 +264,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (useCache)
         {
-            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange);
+            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -299,7 +299,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 // Convert path to segments
                 var segments = ConvertPathToSegments(path, unitHeight);
-                var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
+                var candidatePath = new MovementPath(segments, movementType, maxLevelChange, unitHeight);
 
                 // Update the best path if this one has more hexes traveled
                 if (candidatePath.HexesTraveled > bestHexesTraveled)
@@ -713,7 +713,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
 
-        var cachedPath = _movementPathCache.Get(from, to, true);
+        var cachedPath = _movementPathCache.Get(from, to, true, unitHeight: 0);
         if (cachedPath != null)
         {
             return cachedPath.TotalCost <= movementPoints ? cachedPath : null;

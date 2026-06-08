@@ -191,4 +191,41 @@ public class MovementPathCacheTests
         pathNoConstraint.GetHashCode().ShouldNotBe(pathLevel1.GetHashCode());
         pathLevel1.GetHashCode().ShouldNotBe(pathLevel2.GetHashCode());
     }
+
+    [Fact]
+    public void Cache_ShouldDifferentiateByUnitHeight()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+
+        var segments1 = new List<PathSegment> { new(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]) };
+        var pathUnit0 = new MovementPath(segments1, MovementType.Walk, null, 0);
+
+        var segments2 = new List<PathSegment> { new(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]) };
+        var pathUnit2 = new MovementPath(segments2, MovementType.Walk, null, 2);
+
+        _sut.Add(pathUnit0);
+        _sut.Add(pathUnit2);
+
+        _sut.Get(start, dest, false, null, 0).ShouldBe(pathUnit0);
+        _sut.Get(start, dest, false, null, 2).ShouldBe(pathUnit2);
+        _sut.Get(start, dest, false, null, 1).ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetHashCode_And_Equals_ShouldDifferentiateByUnitHeight()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+
+        var pathUnit0 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, null, 0);
+        var pathUnit1 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, null, 1);
+        var pathUnit2 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, null, 2);
+
+        pathUnit0.Equals(pathUnit1).ShouldBeFalse("Paths with different unitHeight should not be equal");
+        pathUnit1.Equals(pathUnit2).ShouldBeFalse("Paths with different unitHeight should not be equal");
+
+        pathUnit0.GetHashCode().ShouldNotBe(pathUnit1.GetHashCode());
+        pathUnit1.GetHashCode().ShouldNotBe(pathUnit2.GetHashCode());
+    }
 }

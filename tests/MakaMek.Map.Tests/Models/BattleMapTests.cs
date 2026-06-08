@@ -2449,4 +2449,22 @@ public class BattleMapTests
         reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.cost == 2,
             "Road-to-bridge movement should bypass clearance check; cost should be 1 (terrain) + 1 (bridge climb)");
     }
+
+    [Theory]
+    [InlineData(PathFindingMode.Shortest)]
+    [InlineData(PathFindingMode.Longest)]
+    public void FindPath_DifferentUnitHeights_ShouldNotShareCache(PathFindingMode mode)
+    {
+        var sut = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        var path1 = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, mode);
+        path1.ShouldNotBeNull();
+
+        var path2 = sut.FindPath(start, target, MovementType.Walk, 10, 2, null, mode);
+        path2.ShouldNotBeNull();
+
+        path2.ShouldNotBeSameAs(path1);
+    }
 }
