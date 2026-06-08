@@ -92,7 +92,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Converts a list of hex positions to path segments
     /// </summary>
-    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
+    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path, int unitHeight)
     {
         var segments = new List<PathSegment>();
         for (var i = 0; i < path.Count - 1; i++)
@@ -107,7 +107,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                elevationChange = fromHex.GetElevationChangeTo(hex);
+                elevationChange = hex.GetBridgeElevationChange(fromHex, unitHeight);
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>
@@ -147,7 +147,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (useCache)
         {
-            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange);
+            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -158,7 +158,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (start.Coordinates == target.Coordinates)
         {
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) _movementPathCache.Add(path);
+            if (path != null && useCache) _movementPathCache.Add(path, unitHeight);
             return path;
         }
 
@@ -176,9 +176,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
             {
                 // Convert path to segments
-                var segments = ConvertPathToSegments(path);
+                var segments = ConvertPathToSegments(path, unitHeight);
                 var result = new MovementPath(segments, movementType, maxLevelChange);
-                if (useCache) _movementPathCache.Add(result);
+                if (useCache) _movementPathCache.Add(result, unitHeight);
                 return result;
             }
 
@@ -205,8 +205,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var nextPos = new HexPosition(nextCoord, requiredFacing);
                 newPath.Add(nextPos);
 
-                // Calculate level change cost and validate max level change
-                var levelCost =  Math.Abs(currentHex.GetElevationChangeTo(hex));
+                // Calculate level change cost considering bridge clearance
+                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -214,9 +214,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 // Calculate total cost including terrain and level change
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
-
-                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
-                    continue;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -267,7 +264,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (useCache)
         {
-            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange);
+            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -278,7 +275,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (start.Coordinates == target.Coordinates)
         {
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) _movementLongPathCache.Add(path);
+            if (path != null && useCache) _movementLongPathCache.Add(path, unitHeight);
             return path;
         }
 
@@ -301,7 +298,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
             {
                 // Convert path to segments
-                var segments = ConvertPathToSegments(path);
+                var segments = ConvertPathToSegments(path, unitHeight);
                 var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
 
                 // Update the best path if this one has more hexes traveled
@@ -338,8 +335,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var nextPos = new HexPosition(nextCoord, requiredFacing);
                 newPath.Add(nextPos);
 
-                // Calculate level change cost and validate max level change
-                var levelCost = Math.Abs(currentHex.GetElevationChangeTo(hex));
+                // Calculate level change cost considering bridge clearance
+                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -348,9 +345,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate total cost including terrain and level change
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
-
-                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
-                    continue;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -387,7 +381,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         if (bestPath != null && useCache)
         {
-            _movementLongPathCache.Add(bestPath);
+            _movementLongPathCache.Add(bestPath, unitHeight);
         }
 
         return bestPath;
@@ -434,8 +428,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate turning cost from current facing
                 var turningCost = current.GetTurningCost(requiredFacing);
                 
-                // Calculate level change cost and validate max level change
-                var levelCost = Math.Abs(currentHex.GetElevationChangeTo(neighborHex));
+                // Calculate level change cost considering bridge clearance
+                var levelCost = Math.Abs(neighborHex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -443,9 +437,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 
                 // Calculate total cost including turning, movement, and level change
                 var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
-
-                if (IsBlockedByBridgeClearance(neighborHex, currentHex, unitHeight))
-                    continue;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;
@@ -704,14 +695,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         return _hexes.Values;
     }
 
-    private static bool IsBlockedByBridgeClearance(Hex hex, Hex fromHex, int unitHeight)
-    {
-        if (unitHeight <= 0) return false;
-        if (hex.IsOnRoadOrBridge(fromHex)) return false;
-        var clearance = hex.GetBridgeClearance();
-        return unitHeight > clearance;
-    }
-
     /// <summary>
     /// Converts the battle map to a data object including biome and hex data
     /// </summary>
@@ -730,7 +713,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
 
-        var cachedPath = _movementPathCache.Get(from, to, true);
+        var cachedPath = _movementPathCache.Get(from, to, true, unitHeight: 0);
         if (cachedPath != null)
         {
             return cachedPath.TotalCost <= movementPoints ? cachedPath : null;
@@ -777,7 +760,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 var fromHex = GetHex(currentPosition.Coordinates) ?? throw new WrongHexException(currentPosition.Coordinates, "Hex not found");
                 var toHex = GetHex(nextPosition.Coordinates) ?? throw new WrongHexException(nextPosition.Coordinates, "Hex not found");
-                var elevationChange = fromHex.GetElevationChangeTo(toHex);
+                var elevationChange = toHex.GetElevationChange(fromHex);
 
                 path.Add(new PathSegment(
                     currentPosition,
@@ -791,7 +774,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         var result = new MovementPath(path, MovementType.Jump);
-        _movementPathCache.Add(result);
+        _movementPathCache.Add(result, 0);
         return result;
     }
 
