@@ -136,7 +136,7 @@ public class MovementPathCacheTests
         
         // Path with no level constraint
         var noConstraintSegments = new List<PathSegment> { new(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]) };
-        var noConstraintPath = new MovementPath(noConstraintSegments, MovementType.Walk, null);
+        var noConstraintPath = new MovementPath(noConstraintSegments, MovementType.Walk);
         
         // Path with maxLevelChange = 1
         var level1Segments = new List<PathSegment> { new(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]) };
@@ -150,7 +150,7 @@ public class MovementPathCacheTests
         _sut.Add(level1Path, 0);
         _sut.Add(level2Path, 0);
         
-        _sut.Get(start, dest, false, null).ShouldBe(noConstraintPath);
+        _sut.Get(start, dest, false).ShouldBe(noConstraintPath);
         _sut.Get(start, dest, false, 1).ShouldBe(level1Path);
         _sut.Get(start, dest, false, 2).ShouldBe(level2Path);
     }
@@ -168,7 +168,7 @@ public class MovementPathCacheTests
         _sut.Add(path, 0);
         
         // Should not find path with different maxLevelChange
-        _sut.Get(start, dest, false, null).ShouldBeNull();
+        _sut.Get(start, dest, false).ShouldBeNull();
         _sut.Get(start, dest, false, 2).ShouldBeNull();
         
         // Should find path with matching maxLevelChange
@@ -181,7 +181,7 @@ public class MovementPathCacheTests
         var start = new HexPosition(1, 1, HexDirection.Top);
         var dest = new HexPosition(2, 2, HexDirection.Bottom);
         
-        var pathNoConstraint = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, null);
+        var pathNoConstraint = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
         var pathLevel1 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, 1);
         var pathLevel2 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk, 2);
         
@@ -207,7 +207,7 @@ public class MovementPathCacheTests
         _sut.Add(pathUnit0, 0);
         _sut.Add(pathUnit2, 2);
 
-        _sut.Get(start, dest, false, null, 0).ShouldBe(pathUnit0);
+        _sut.Get(start, dest, false).ShouldBe(pathUnit0);
         _sut.Get(start, dest, false, null, 2).ShouldBe(pathUnit2);
         _sut.Get(start, dest, false, null, 1).ShouldBeNull();
     }
@@ -223,8 +223,54 @@ public class MovementPathCacheTests
         _sut.Add(path, 0);
         _sut.Add(path, 1);
 
-        _sut.Get(start, dest, false, 1, 0).ShouldBe(path);
+        _sut.Get(start, dest, false, 1).ShouldBe(path);
         _sut.Get(start, dest, false, 1, 1).ShouldBe(path);
-        _sut.Get(start, dest, false, 0, 0).ShouldBeNull();
+        _sut.Get(start, dest, false, 0).ShouldBeNull();
+    }
+
+    [Fact]
+    public void CacheKey_ShouldDifferentiateMaxLevelChangeNullFromZero()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+
+        var pathNull = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+
+        _sut.Add(pathNull, 0);
+
+        _sut.Get(start, dest, false).ShouldBe(pathNull);
+        _sut.Get(start, dest, false, 0).ShouldBeNull("null and 0 should be different cache keys");
+    }
+
+    [Fact]
+    public void CacheKey_ShouldBeValueEqual_WhenAllFieldsMatch()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+
+        var segments = new List<PathSegment> { new(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]) };
+        var path = new MovementPath(segments, MovementType.Walk);
+
+        _sut.Add(path, 0);
+
+        // Same logical key via Get should return the same path
+        _sut.Get(start, dest, false).ShouldBe(path);
+        _sut.Get(start, dest, false).ShouldBe(path);
+    }
+
+    [Fact]
+    public void CacheKey_ShouldDifferentiateByUnitHeight_WhenMaxLevelChangeIsNull()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+
+        var path0 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk);
+        var path1 = new MovementPath([new PathSegment(start, dest, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])], MovementType.Walk);
+
+        _sut.Add(path0, 0);
+        _sut.Add(path1, 1);
+
+        _sut.Get(start, dest, false).ShouldBe(path0);
+        _sut.Get(start, dest, false, null, 1).ShouldBe(path1);
     }
 }
