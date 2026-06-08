@@ -22,6 +22,7 @@ public interface IBattleMap
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
+        int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         PathFindingMode pathFindingMode = PathFindingMode.Shortest,
         int? maxLevelChange = null);
@@ -32,6 +33,7 @@ public interface IBattleMap
     IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
+        int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         int? maxLevelChange = null);
 

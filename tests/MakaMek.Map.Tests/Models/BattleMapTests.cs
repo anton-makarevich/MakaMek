@@ -2390,4 +2390,61 @@ public class BattleMapTests
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(1);
     }
+
+    [Fact]
+    public void GetReachableHexes_InsufficientBridgeClearance_ExcludesHex()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 2).ToList();
+
+        reachable.ShouldNotContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should not be reachable by unit height 2");
+    }
+
+    [Fact]
+    public void GetReachableHexes_SufficientBridgeClearance_IncludesHex()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 1).ToList();
+
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should be reachable by unit height 1");
+    }
+
+    [Fact]
+    public void GetReachableHexes_RoadToBridgeMovement_BypassesClearanceCheck()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new RoadTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 3).ToList();
+
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Road-to-bridge movement should bypass clearance check regardless of unit height");
+    }
 }

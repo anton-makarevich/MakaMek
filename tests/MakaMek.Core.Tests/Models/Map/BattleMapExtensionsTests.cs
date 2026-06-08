@@ -700,4 +700,86 @@ public class BattleMapExtensionsTests
     }
 
     #endregion
+
+    #region Bridge Clearance Tests
+
+    [Fact]
+    public void GetReachableHexesForUnit_ForwardMovement_ExcludesHexWithInsufficientBridgeClearance()
+    {
+        var map = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        map.AddHex(hex2);
+
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
+        unit.GetMovementPoints(MovementType.Walk).Returns(5);
+        unit.CanMoveBackward(MovementType.Walk).Returns(false);
+        unit.Height.Returns(2);
+
+        var reachabilityData = map.GetReachableHexesForUnit(
+            unit, MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should not be reachable by unit height 2");
+    }
+
+    [Fact]
+    public void GetReachableHexesForUnit_ForwardMovement_IncludesHexWithSufficientBridgeClearance()
+    {
+        var map = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        map.AddHex(hex2);
+
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
+        unit.GetMovementPoints(MovementType.Walk).Returns(5);
+        unit.CanMoveBackward(MovementType.Walk).Returns(false);
+        unit.Height.Returns(1);
+
+        var reachabilityData = map.GetReachableHexesForUnit(
+            unit, MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should be reachable by unit height 1");
+    }
+
+    [Fact]
+    public void GetReachableHexesForUnit_RoadToBridgeMovement_BypassesClearanceCheck()
+    {
+        var map = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new RoadTerrain());
+        map.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        map.AddHex(hex2);
+
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
+        unit.GetMovementPoints(MovementType.Walk).Returns(5);
+        unit.CanMoveBackward(MovementType.Walk).Returns(false);
+        unit.Height.Returns(3);
+
+        var reachabilityData = map.GetReachableHexesForUnit(
+            unit, MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+            "Road-to-bridge movement should bypass clearance check regardless of unit height");
+    }
+
+    #endregion
 }
