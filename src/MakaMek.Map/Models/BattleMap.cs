@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Models.MovementCosts;
-using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -47,6 +46,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
+        int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         PathFindingMode pathFindingMode = PathFindingMode.Shortest,
         int? maxLevelChange = null)
@@ -57,8 +57,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         return pathFindingMode == PathFindingMode.Shortest
-            ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, maxLevelChange)
-            : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, maxLevelChange);
+            ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange)
+            : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange);
     }
 
     /// <summary>
@@ -139,6 +139,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes,
+        int unitHeight,
         int? maxLevelChange = null)
     {
         prohibitedHexes??= new HashSet<HexCoordinates>();
@@ -214,6 +215,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate total cost including terrain and level change
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
 
+                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
+                    continue;
+
                 if (totalCost > maxMovementPoints)
                     continue;
 
@@ -247,14 +251,15 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     }
 
     /// <summary>
-    /// Finds the longest path that maximizes hexes traversed within the movement budget
-    /// The method does not guarantee to find the actually longest path, but it's good enough for the purpose.
+    /// Finds the longest path that maximizes hexes traversed within the movement budget.
+    /// The method does not guarantee to find the longest actual path, but it's good enough for the purpose.
     /// </summary>
     private MovementPath? FindLongestPath(HexPosition start,
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes,
+        int unitHeight,
         int? maxLevelChange = null)
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
@@ -344,6 +349,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
 
+                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
+                    continue;
+
                 if (totalCost > maxMovementPoints)
                     continue;
 
@@ -391,6 +399,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     public IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
+        int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         int? maxLevelChange = null)
     {
@@ -434,6 +443,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 
                 // Calculate total cost including turning, movement, and level change
                 var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
+
+                if (IsBlockedByBridgeClearance(neighborHex, currentHex, unitHeight))
+                    continue;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;
@@ -581,8 +593,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             });
 
             // Elevation check: hex base level blocks the LOS line entirely
-            var waterDepth = hex.GetWaterDepth()??0;
-            if (hex.Level-waterDepth >= interpolatedLosHeight)
+            if (hex.GetBottomLevel() >= interpolatedLosHeight)
                 return new LineOfSightResult
                 {
                     From = from, To = to,
@@ -691,6 +702,14 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     public IEnumerable<Hex> GetHexes()
     {
         return _hexes.Values;
+    }
+
+    private static bool IsBlockedByBridgeClearance(Hex hex, Hex fromHex, int unitHeight)
+    {
+        if (unitHeight <= 0) return false;
+        if (hex.IsOnRoadOrBridge(fromHex)) return false;
+        var clearance = hex.GetBridgeClearance();
+        return unitHeight > clearance;
     }
 
     /// <summary>

@@ -10,11 +10,11 @@ public class HexExtensionsTests
     public void GetWaterDepth_ReturnsNull_WhenNoWaterTerrain()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(1, 1));
-        hex.AddTerrain(new ClearTerrain());
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
 
         // Act
-        var depth = hex.GetWaterDepth();
+        var depth = sut.GetWaterDepth();
 
         // Assert
         depth.ShouldBeNull();
@@ -28,11 +28,11 @@ public class HexExtensionsTests
     public void GetWaterDepth_ReturnsCorrectDepth(int terrainHeight, int expectedDepth)
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(1, 1));
-        hex.AddTerrain(new WaterTerrain(terrainHeight));
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new WaterTerrain(terrainHeight));
 
         // Act
-        var depth = hex.GetWaterDepth();
+        var depth = sut.GetWaterDepth();
 
         // Assert
         depth.ShouldBe(expectedDepth);
@@ -42,12 +42,12 @@ public class HexExtensionsTests
     public void GetWaterDepth_ReturnsCorrectDepth_WhenHexHasMultipleTerrains()
     {
         // Arrange - hex with both clear and water terrain
-        var hex = new Hex(new HexCoordinates(1, 1));
-        hex.AddTerrain(new ClearTerrain());
-        hex.AddTerrain(new WaterTerrain(-2));
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+        sut.AddTerrain(new WaterTerrain(-2));
 
         // Act
-        var depth = hex.GetWaterDepth();
+        var depth = sut.GetWaterDepth();
 
         // Assert
         depth.ShouldBe(2);
@@ -56,9 +56,9 @@ public class HexExtensionsTests
     [Fact]
     public void GetElevationChangeTo_ReturnsZero_WhenToHexIsNull()
     {
-        var hex = new Hex(new HexCoordinates(1, 1)) { Level = 5 };
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 5 };
 
-        var result = hex.GetElevationChangeTo(null);
+        var result = sut.GetElevationChangeTo(null);
 
         result.ShouldBe(0);
     }
@@ -182,5 +182,100 @@ public class HexExtensionsTests
         
         // Assert
         result.ShouldBe(isOnRoad);
+    }
+
+    [Fact]
+    public void GetBridgeHeight_ReturnsNull_WhenNoBridgeTerrain()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+
+        var height = sut.GetBridgeHeight();
+
+        height.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetBridgeHeight_ReturnsHeight_WhenBridgeExists()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new BridgeTerrain(3, 0));
+
+        var height = sut.GetBridgeHeight();
+
+        height.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsNull_WhenNoBridgeTerrain()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+
+        var clearance = sut.GetBridgeClearance();
+
+        clearance.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsBridgeHeight_WhenOverClearTerrain()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(2, 0));
+
+        var clearance = sut.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsCorrectClearance_WhenOverWater()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddTerrain(new WaterTerrain(-1));
+
+        var clearance = sut.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsCorrectClearance_WhenHexLevelIsAboveZero()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        sut.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddTerrain(new WaterTerrain(-1));
+
+        var clearance = sut.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetBottomLevel_ReturnsWaterDepth_IfPresent()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new WaterTerrain(-1));
+        
+        // Act
+        var bottomLevel = sut.GetBottomLevel();
+        
+        // Assert
+        bottomLevel.ShouldBe(-1);
+    }
+
+    [Fact]
+    public void GetBottomLevel_ReturnsHexLevel_WhenNoWater()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        
+        // Act
+        var bottomLevel = sut.GetBottomLevel();
+        
+        // Assert
+        bottomLevel.ShouldBe(3);   
     }
 }

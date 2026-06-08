@@ -207,6 +207,7 @@ public class MovementEngine : IBotDecisionEngine
                     movementType,
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
+                    unit.Height,
                     occupiedHexes,
                     PathFindingMode.Longest);
 

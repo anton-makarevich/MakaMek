@@ -79,6 +79,7 @@ public class MovementTools
                     moveType,
                     unit.GetMovementPoints(moveType),
                     reachabilityData,
+                    unit.Height,
                     occupiedHexes);
 
                 // Evaluate each valid path (each facing)
@@ -177,6 +178,7 @@ public class MovementTools
                     movementType,
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
+                    unit.Height,
                     occupiedHexes);
 
         // Find the path that ends with the requested facing

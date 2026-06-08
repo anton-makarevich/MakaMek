@@ -73,7 +73,7 @@ public class BattleMapTests
         }
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -98,7 +98,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
 
         // Act
-        var reachable = sut.GetReachableHexes(start, 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 2, 1).ToList();
 
         // Assert
         reachable.Count.ShouldBe(5); // 
@@ -124,7 +124,7 @@ public class BattleMapTests
         sut.AddHex(woodsHex);
 
         // Act
-        var reachable = sut.GetReachableHexes(start, 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 2, 1).ToList();
 
         // Assert
         reachable.Count.ShouldBe(2); // Only the clear hex should be reachable
@@ -275,7 +275,7 @@ public class BattleMapTests
         const int maxMp = 5;
 
         // Act
-        var reachableHexes = sut.GetReachableHexes(start, maxMp).ToList();
+        var reachableHexes = sut.GetReachableHexes(start, maxMp, 1).ToList();
 
         // Assert
         var targetHex = new HexCoordinates(7, 8);
@@ -287,7 +287,8 @@ public class BattleMapTests
             start,
             new HexPosition(targetHex, HexDirection.Bottom),
             MovementType.Walk,
-            maxMp);
+            maxMp,
+            1);
 
         path.ShouldNotBeNull("A valid path should exist to reach (7,8)");
 
@@ -317,7 +318,7 @@ public class BattleMapTests
         };
 
         // Act
-        var reachable = sut.GetReachableHexes(start, 2, prohibitedHexes).ToList();
+        var reachable = sut.GetReachableHexes(start, 2, 1, prohibitedHexes).ToList();
 
         // Assert
         reachable.ShouldNotBeEmpty("Some hexes should be reachable");
@@ -342,7 +343,7 @@ public class BattleMapTests
         };
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, prohibitedHexes);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, prohibitedHexes);
 
         // Assert
         path.ShouldNotBeNull();
@@ -386,7 +387,7 @@ public class BattleMapTests
         }
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 9);
+        var path = sut.FindPath(start, target, MovementType.Walk, 9, 1);
 
         // Assert
         path.ShouldNotBeNull("A path should exist within 9 movement points");
@@ -505,7 +506,7 @@ public class BattleMapTests
         var to = new HexPosition(new HexCoordinates(toQ, toR), HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(from, to, MovementType.Jump, mp);
+        var path = sut.FindPath(from, to, MovementType.Jump, mp, 1);
 
         // Assert
         if (shouldFindPath)
@@ -540,7 +541,7 @@ public class BattleMapTests
         var to = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(from, to, MovementType.Jump, 1);
+        var path = sut.FindPath(from, to, MovementType.Jump, 1, 1);
 
         // Assert
         path.ShouldNotBeNull("Path should be found regardless of terrain");
@@ -557,7 +558,7 @@ public class BattleMapTests
         var invalidTo = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(from, invalidTo, MovementType.Jump, 5);
+        var path = sut.FindPath(from, invalidTo, MovementType.Jump, 5, 1);
 
         // Assert
         path.ShouldBeNull("Path should be null for invalid target position");
@@ -602,7 +603,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 3);
+        var path = sut.FindPath(start, target, MovementType.Walk, 3, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -624,7 +625,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 2); // Only 2 movement points for 3 turns
+        var path = sut.FindPath(start, target, MovementType.Walk, 2, 1); // Only 2 movement points for 3 turns
 
         // Assert
         path.ShouldBeNull();
@@ -640,7 +641,7 @@ public class BattleMapTests
         var position = new HexPosition(hex.Coordinates, HexDirection.Top);
 
         // Act
-        var path = sut.FindPath(position, position, MovementType.Jump, 3);
+        var path = sut.FindPath(position, position, MovementType.Jump, 3, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1060,11 +1061,11 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act 1
-        var path1 = sut.FindPath(start, target, MovementType.Walk, 10, null, pathFindingMode);
+        var path1 = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, pathFindingMode);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = sut.FindPath(start, target, MovementType.Walk, 10, null, pathFindingMode);
+        var path2 = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, pathFindingMode);
         
         // Assert
         path2.ShouldBeSameAs(path1);
@@ -1079,8 +1080,8 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act
-        var shortestPath = sut.FindPath(start, target, MovementType.Walk, 10);
-        var longestPath = sut.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        var shortestPath = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+        var longestPath = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, PathFindingMode.Longest);
         
         // Assert
         shortestPath.ShouldNotBeNull();
@@ -1103,11 +1104,11 @@ public class BattleMapTests
         var prohibited = new HashSet<HexCoordinates> { new(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
         
         // Act 1
-        var path1 = sut.FindPath(start, target, MovementType.Walk, 10, prohibited);
+        var path1 = sut.FindPath(start, target, MovementType.Walk, 10, 1, prohibited);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = sut.FindPath(start, target, MovementType.Walk, 10, prohibited);
+        var path2 = sut.FindPath(start, target, MovementType.Walk, 10, 1, prohibited);
         
         // Assert
         path2.ShouldNotBeSameAs(path1);
@@ -1122,11 +1123,11 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
 
         // Act 1
-        var path1 = sut.FindPath(start, target, MovementType.Jump, 5);
+        var path1 = sut.FindPath(start, target, MovementType.Jump, 5, 1);
         path1.ShouldNotBeNull();
 
         // Act 2
-        var path2 = sut.FindPath(start, target, MovementType.Jump, 5);
+        var path2 = sut.FindPath(start, target, MovementType.Jump, 5, 1);
 
         // Assert
         path2.ShouldBeSameAs(path1);
@@ -1141,8 +1142,8 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
 
         // Act - Find paths with both modes
-        var shortestPath = sut.FindPath(start, target, MovementType.Walk, 10);
-        var longestPath = sut.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        var shortestPath = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+        var longestPath = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, PathFindingMode.Longest);
 
         // Assert
         shortestPath.ShouldNotBeNull();
@@ -1161,7 +1162,7 @@ public class BattleMapTests
         const int maxMovementPoints = 5;
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, maxMovementPoints, null, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, maxMovementPoints, 1, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1179,7 +1180,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 3, null, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, 3, 1, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1198,7 +1199,7 @@ public class BattleMapTests
         var prohibited = new HashSet<HexCoordinates> { new(2, 1) };
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, prohibited, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, prohibited, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1220,7 +1221,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1237,7 +1238,7 @@ public class BattleMapTests
         const int insufficientMovementPoints = 2;
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, insufficientMovementPoints, null, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, insufficientMovementPoints, 1, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldBeNull();
@@ -1253,7 +1254,7 @@ public class BattleMapTests
         const int tightBudget = 3;
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, tightBudget, null, PathFindingMode.Longest);
+        var path = sut.FindPath(start, target, MovementType.Walk, tightBudget, 1, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1331,7 +1332,7 @@ public class BattleMapTests
         // Turn at (2,1): from BottomRight to TopRight = 2 turns = 2 MP
         // Move 2: 1 terrain + 1 level (1->2) = 2 MP
         // Total: 6 MP
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 2);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1362,7 +1363,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
 
         // Act - Find a path descending (level 2 -> 1 -> 0)
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 2);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1390,7 +1391,7 @@ public class BattleMapTests
 
         // Act - Move from level 0 to level 2 (2 level change)
         // Cost: 1 (terrain) + 2 (level change) = 3 MP
-        var path = sut.FindPath(start, target, MovementType.Walk, 5, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 5, 1, maxLevelChange: 2);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1426,6 +1427,7 @@ public class BattleMapTests
             target,
             MovementType.Walk,
             10,
+            1,
             maxLevelChange: 2,
             pathFindingMode: pathFindingMode);
 
@@ -1457,7 +1459,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 2), HexDirection.BottomRight);
 
         // Act - Path should go around the steep hex
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 2);
 
         // Assert
         path.ShouldNotBeNull("Path should exist going around steep hex");
@@ -1488,7 +1490,7 @@ public class BattleMapTests
         // Act - With limited MP, elevated hexes may be unreachable
         // Hex 2: 1 terrain + 1 level = 2 MP
         // Hex 3: 1+1 + 1+1 = 4 MP (through hex 2)
-        var reachable = sut.GetReachableHexes(start, 3, maxLevelChange: 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 3, 1, maxLevelChange: 2).ToList();
 
         // Assert - Start hex is included with cost 0, plus hex 2 (2 MP)
         // Hex 3 requires 4 MP which exceeds 3
@@ -1519,7 +1521,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
         // Act - With sufficient MP, all hexes reachable
-        var reachable = sut.GetReachableHexes(start, 5, maxLevelChange: 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 5, 1, maxLevelChange: 2).ToList();
 
         // Assert - Start hex is included (cost 0), plus hex 2 (2 MP) and hex 3 (4 MP)
         reachable.Count.ShouldBe(3);
@@ -1546,7 +1548,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
         // Act - Max level change of 2 should exclude the 3-level hex
-        var reachable = sut.GetReachableHexes(start, 10, maxLevelChange: 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 10, 1, maxLevelChange: 2).ToList();
 
         // Assert - Only start hex reachable (cost 0), steep hex excluded
         reachable.Count.ShouldBe(1, "Only start hex should be reachable");
@@ -1576,7 +1578,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
 
         // Act - With maxLevelChange 0, only same-level hexes reachable
-        var reachable = sut.GetReachableHexes(start, 10, maxLevelChange: 0).ToList();
+        var reachable = sut.GetReachableHexes(start, 10, 1, maxLevelChange: 0).ToList();
 
         // Assert - Start hex + same-level neighbor
         reachable.Count.ShouldBe(2);
@@ -1604,7 +1606,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         // Act - No maxLevelChange specified (null default)
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull("Path should exist when no max level change restriction");
@@ -1658,7 +1660,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act - Jump should cost 1 MP regardless of level
-        var path = sut.FindPath(start, target, MovementType.Jump, 1);
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1683,7 +1685,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act - Jump can traverse any level change
-        var path = sut.FindPath(start, target, MovementType.Jump, 1);
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
 
         // Assert
         path.ShouldNotBeNull("Jump should be able to traverse any level change");
@@ -2021,7 +2023,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2046,7 +2048,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2071,7 +2073,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2092,7 +2094,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Walk, 3);
+        var path = sut.FindPath(start, target, MovementType.Walk, 3, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2116,7 +2118,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         // Act - Effective levels: from=2-0=2, to=2-1=1, change=1-2=-1
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2141,7 +2143,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Jump, 1);
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2159,7 +2161,7 @@ public class BattleMapTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
 
         // Act
-        var path = sut.FindPath(position, position, MovementType.Jump, 3);
+        var path = sut.FindPath(position, position, MovementType.Jump, 3, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2180,7 +2182,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+        var path = sut.FindPath(start, target, MovementType.Walk, 5, 1);
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(3);
@@ -2200,7 +2202,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+        var path = sut.FindPath(start, target, MovementType.Walk, 5, 1);
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(2);
@@ -2220,7 +2222,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(7);
@@ -2243,7 +2245,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 10);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
 
         path.ShouldNotBeNull();
         var movementSegments = path.Segments
@@ -2266,7 +2268,7 @@ public class BattleMapTests
 
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
-        var reachable = sut.GetReachableHexes(start, 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 2, 1).ToList();
 
         reachable.Count.ShouldBe(1);
         reachable[0].coordinates.ShouldBe(new HexCoordinates(1, 1));
@@ -2285,7 +2287,7 @@ public class BattleMapTests
 
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
-        var reachable = sut.GetReachableHexes(start, 3).ToList();
+        var reachable = sut.GetReachableHexes(start, 3, 1).ToList();
 
         reachable.Count.ShouldBe(2);
         reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
@@ -2304,8 +2306,8 @@ public class BattleMapTests
 
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
-        var reachable = sut.GetReachableHexes(start, 3).ToList();
-        var reachableWithLessMp = sut.GetReachableHexes(start, 2).ToList();
+        var reachable = sut.GetReachableHexes(start, 3, 1).ToList();
+        var reachableWithLessMp = sut.GetReachableHexes(start, 2, 1).ToList();
 
         reachable.Count.ShouldBe(2);
         reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
@@ -2327,7 +2329,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 2);
 
         path.ShouldBeNull();
     }
@@ -2346,7 +2348,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 2);
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(6);
@@ -2366,7 +2368,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 0);
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, maxLevelChange: 0);
 
         path.ShouldBeNull();
     }
@@ -2385,9 +2387,66 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 5);
+        var path = sut.FindPath(start, target, MovementType.Walk, 5, 1);
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetReachableHexes_InsufficientBridgeClearance_ExcludesHex()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 2).ToList();
+
+        reachable.ShouldNotContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should not be reachable by unit height 2");
+    }
+
+    [Fact]
+    public void GetReachableHexes_SufficientBridgeClearance_IncludesHex()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 1).ToList();
+
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should be reachable by unit height 1");
+    }
+
+    [Fact]
+    public void GetReachableHexes_RoadToBridgeMovement_BypassesClearanceCheck()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new RoadTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        var reachable = sut.GetReachableHexes(start, 1, unitHeight: 3).ToList();
+
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1),
+            "Road-to-bridge movement should bypass clearance check regardless of unit height");
     }
 }
