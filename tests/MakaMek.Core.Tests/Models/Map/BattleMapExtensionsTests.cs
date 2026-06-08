@@ -707,7 +707,7 @@ public class BattleMapExtensionsTests
     }
     
     [Fact]
-    public void GetReachableHexesForUnit_ForwardMovement_ExcludesHexWithInsufficientBridgeClearance()
+    public void GetReachableHexesForUnit_ForwardMovement_IncludesHexWithInsufficientBridgeClearanceByClimbing()
     {
         var map = new BattleMap(2, 1);
         var hex1 = new Hex(new HexCoordinates(1, 1));
@@ -728,8 +728,8 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
 
-        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 1),
-            "Hex with bridge clearance 1 should not be reachable by unit height 2");
+        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+            "Hex with bridge clearance 1 should be reachable by unit height 2 via climbing onto the bridge");
     }
 
     [Fact]

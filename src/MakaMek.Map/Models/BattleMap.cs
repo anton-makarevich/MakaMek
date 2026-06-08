@@ -107,7 +107,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                elevationChange = hex.GetBridgeLevelDifference(fromHex, unitHeight);
+                elevationChange = hex.GetBridgeElevationChange(fromHex, unitHeight);
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>
@@ -206,7 +206,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 newPath.Add(nextPos);
 
                 // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(hex.GetBridgeLevelDifference(currentHex, unitHeight));
+                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -336,7 +336,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 newPath.Add(nextPos);
 
                 // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(hex.GetBridgeLevelDifference(currentHex, unitHeight));
+                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -429,7 +429,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var turningCost = current.GetTurningCost(requiredFacing);
                 
                 // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(neighborHex.GetBridgeLevelDifference(currentHex, unitHeight));
+                var levelCost = Math.Abs(neighborHex.GetBridgeElevationChange(currentHex, unitHeight));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -760,7 +760,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 var fromHex = GetHex(currentPosition.Coordinates) ?? throw new WrongHexException(currentPosition.Coordinates, "Hex not found");
                 var toHex = GetHex(nextPosition.Coordinates) ?? throw new WrongHexException(nextPosition.Coordinates, "Hex not found");
-                var elevationChange = fromHex.GetElevationChangeTo(toHex);
+                var elevationChange = toHex.GetElevationChange(fromHex);
 
                 path.Add(new PathSegment(
                     currentPosition,

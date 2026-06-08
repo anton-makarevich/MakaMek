@@ -34,12 +34,16 @@ public static class HexExtensions
             return hex.Level - (hex.GetWaterDepth() ?? 0);
         }
 
-        public int GetElevationChangeTo(Hex? toHex)
+        public int GetStandingLevel(Hex fromHex)
         {
-            if (toHex == null) return 0;
-            var effectiveFromLevel = hex.GetBottomLevel();
-            var effectiveToLevel = toHex.GetBottomLevel();
-            return effectiveToLevel - effectiveFromLevel;
+            if (hex.IsOnRoadOrBridge(fromHex))
+                return hex.Level + (hex.GetBridgeHeight() ?? 0);
+            return hex.GetBottomLevel();
+        }
+
+        public int GetElevationChange(Hex fromHex)
+        {
+            return hex.GetBottomLevel() - fromHex.GetBottomLevel();
         }
 
         public int? GetBridgeHeight()
@@ -53,27 +57,23 @@ public static class HexExtensions
             return (hex.Level + bridgeHeight) - hex.GetBottomLevel();
         }
 
-        public int GetBridgeLevelDifference(Hex fromHex, int unitHeight)
+        public int GetBridgeElevationChange(Hex fromHex, int unitHeight)
         {
             var bridgeHeight = hex.GetBridgeHeight();
             if (bridgeHeight == null)
-                return fromHex.GetElevationChangeTo(hex);
+                return hex.GetElevationChange(fromHex);
 
             if (hex.IsOnRoadOrBridge(fromHex))
-            {
-                var fromEffectiveLevel = fromHex.GetBridgeHeight() ?? fromHex.Level;
-                var toEffectiveLevel = hex.Level + bridgeHeight.Value;
-                return toEffectiveLevel - fromEffectiveLevel;
-            }
+                return hex.GetStandingLevel(fromHex) - fromHex.GetStandingLevel(hex);
 
             if (unitHeight > 0)
             {
                 var clearance = hex.GetBridgeClearance();
                 if (unitHeight > clearance)
-                    return (hex.Level + bridgeHeight.Value) - fromHex.GetBottomLevel();
+                    return (hex.Level + bridgeHeight.Value) - fromHex.GetStandingLevel(hex);
             }
 
-            return fromHex.GetElevationChangeTo(hex);
+            return hex.GetElevationChange(fromHex);
         }
 
         public bool HasHardPavement()
