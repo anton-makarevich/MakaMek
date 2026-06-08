@@ -215,17 +215,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate total cost including terrain and level change
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
 
-                // Skip if bridge clearance is not enough for unit height
-                if (unitHeight > 0)
-                {
-                    var isOnRoad = hex.IsOnRoadOrBridge(currentHex);
-                    if (!isOnRoad)
-                    {
-                        var clearance = hex.GetBridgeClearance();
-                        if (unitHeight > clearance)
-                            continue;
-                    }
-                }
+                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
+                    continue;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -358,17 +349,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
 
-                // Skip if bridge clearance is not enough for unit height
-                if (unitHeight > 0)
-                {
-                    var isOnRoad = hex.IsOnRoadOrBridge(currentHex);
-                    if (!isOnRoad)
-                    {
-                        var clearance = hex.GetBridgeClearance();
-                        if (unitHeight > clearance)
-                            continue;
-                    }
-                }
+                if (IsBlockedByBridgeClearance(hex, currentHex, unitHeight))
+                    continue;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -462,17 +444,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate total cost including turning, movement, and level change
                 var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
 
-                // Skip if bridge clearance is not enough for unit height
-                if (unitHeight > 0)
-                {
-                    var isOnRoad = neighborHex.IsOnRoadOrBridge(currentHex);
-                    if (!isOnRoad)
-                    {
-                        var clearance = neighborHex.GetBridgeClearance();
-                        if (unitHeight > clearance)
-                            continue;
-                    }
-                }
+                if (IsBlockedByBridgeClearance(neighborHex, currentHex, unitHeight))
+                    continue;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;
@@ -729,6 +702,14 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     public IEnumerable<Hex> GetHexes()
     {
         return _hexes.Values;
+    }
+
+    private static bool IsBlockedByBridgeClearance(Hex hex, Hex fromHex, int unitHeight)
+    {
+        if (unitHeight <= 0) return false;
+        if (hex.IsOnRoadOrBridge(fromHex)) return false;
+        var clearance = hex.GetBridgeClearance();
+        return unitHeight > clearance;
     }
 
     /// <summary>
