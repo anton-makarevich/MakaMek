@@ -183,4 +183,60 @@ public class HexExtensionsTests
         // Assert
         result.ShouldBe(isOnRoad);
     }
+
+    [Fact]
+    public void GetBridgeHeight_ReturnsNull_WhenNoBridgeTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new ClearTerrain());
+
+        var height = hex.GetBridgeHeight();
+
+        height.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetBridgeHeight_ReturnsHeight_WhenBridgeExists()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new BridgeTerrain(3, 0));
+
+        var height = hex.GetBridgeHeight();
+
+        height.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsNull_WhenNoBridgeTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new ClearTerrain());
+
+        var clearance = hex.GetBridgeClearance();
+
+        clearance.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsBridgeHeight_WhenOverClearTerrain()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        hex.AddTerrain(new BridgeTerrain(2, 0));
+
+        var clearance = hex.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsCorrectClearance_WhenOverWater()
+    {
+        var hex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        hex.AddTerrain(new BridgeTerrain(1, 0));
+        hex.AddTerrain(new WaterTerrain(-1));
+
+        var clearance = hex.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
 }

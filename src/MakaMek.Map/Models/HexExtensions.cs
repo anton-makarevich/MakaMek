@@ -29,12 +29,29 @@ public static class HexExtensions
             return -waterTerrain?.Height;
         }
 
+        public int GetBottomLevel()
+        {
+            return hex.Level - (hex.GetWaterDepth() ?? 0);
+        }
+
         public int GetElevationChangeTo(Hex? toHex)
         {
             if (toHex == null) return 0;
-            var effectiveFromLevel = hex.Level - (hex.GetWaterDepth() ?? 0);
-            var effectiveToLevel = toHex.Level - (toHex.GetWaterDepth() ?? 0);
+            var effectiveFromLevel = hex.GetBottomLevel();
+            var effectiveToLevel = toHex.GetBottomLevel();
             return effectiveToLevel - effectiveFromLevel;
+        }
+
+        public int? GetBridgeHeight()
+        {
+            return hex.GetTerrain(MakaMekTerrains.Bridge)?.Height;
+        }
+
+        public int? GetBridgeClearance()
+        {
+            var bridgeHeight = hex.GetBridgeHeight();
+            if (bridgeHeight == null) return null;
+            return bridgeHeight - hex.GetBottomLevel();
         }
 
         public bool HasHardPavement()

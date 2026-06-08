@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Models.MovementCosts;
-using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -247,8 +246,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     }
 
     /// <summary>
-    /// Finds the longest path that maximizes hexes traversed within the movement budget
-    /// The method does not guarantee to find the actually longest path, but it's good enough for the purpose.
+    /// Finds the longest path that maximizes hexes traversed within the movement budget.
+    /// The method does not guarantee to find the longest actual path, but it's good enough for the purpose.
     /// </summary>
     private MovementPath? FindLongestPath(HexPosition start,
         HexPosition target,
@@ -581,8 +580,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             });
 
             // Elevation check: hex base level blocks the LOS line entirely
-            var waterDepth = hex.GetWaterDepth()??0;
-            if (hex.Level-waterDepth >= interpolatedLosHeight)
+            if (hex.GetBottomLevel() >= interpolatedLosHeight)
                 return new LineOfSightResult
                 {
                     From = from, To = to,
