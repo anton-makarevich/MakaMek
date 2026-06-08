@@ -85,14 +85,14 @@ public class MovementPath : IEquatable<MovementPath>
     
     public MovementType MovementType { get; }
 
-    private bool IsJump { get; }
+    internal bool IsJump { get; }
     
     /// <summary>
     /// Maximum level change constraint used when finding this path.
     /// Used as part of a cache key to ensure paths with different level constraints are cached separately.
     /// </summary>
-    private int? MaxLevelChange { get; }
-    
+    internal int? MaxLevelChange { get; }
+
     public IReadOnlyList<HexCoordinates> Hexes { get; } 
     
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
