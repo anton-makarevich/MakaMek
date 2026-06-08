@@ -145,6 +145,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Terrain_HeavyWoods", "Heavy Woods")]
     [InlineData("Terrain_Rough", "Rough")]
     [InlineData("Terrain_Water", "Water")]
+    [InlineData("Terrain_Road", "Road")]
+    [InlineData("Terrain_Pavement", "Pavement")]
+    [InlineData("Terrain_Bridge", "Bridge")]
     // MechFallingCommand strings
     [InlineData("Command_MechFalling_PsrIntro", "{0} may fall")]
     [InlineData("Command_MechFalling_Base", "{0} fell")]
