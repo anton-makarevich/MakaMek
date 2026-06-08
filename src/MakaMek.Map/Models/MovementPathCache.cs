@@ -5,28 +5,43 @@ namespace Sanet.MakaMek.Map.Models;
 /// </summary>
 public class MovementPathCache
 {
-    private readonly HashSet<MovementPath> _cache = [];
+    private readonly Dictionary<CacheKey, MovementPath> _cache = [];
 
-    public void Add(MovementPath path)
+    public void Add(MovementPath path, int unitHeight)
     {
-        _cache.Add(path);
+        var key = new CacheKey(path.Start, path.Destination, path.IsJump, path.MaxLevelChange, unitHeight);
+        _cache[key] = path;
     }
 
     public MovementPath? Get(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null, int unitHeight = 0)
     {
-        var probe = new MovementPath(start, destination, isJump, maxLevelChange, unitHeight);
-        return _cache.TryGetValue(probe, out var cachedPath) 
+        var key = new CacheKey(start, destination, isJump, maxLevelChange, unitHeight);
+        return _cache.TryGetValue(key, out var cachedPath) 
             ? cachedPath 
             : null;
     }
 
     public void Invalidate(HexCoordinates coordinate)
     {
-        _cache.RemoveWhere(p => p.Hexes.Contains(coordinate));
+        var toRemove = _cache
+            .Where(kvp => kvp.Value.Hexes.Contains(coordinate))
+            .Select(kvp => kvp.Key)
+            .ToList();
+        foreach (var key in toRemove)
+        {
+            _cache.Remove(key);
+        }
     }
 
     public void Clear()
     {
         _cache.Clear();
     }
+
+    private readonly record struct CacheKey(
+        HexPosition? Start,
+        HexPosition? Destination,
+        bool IsJump,
+        int? MaxLevelChange,
+        int UnitHeight);
 }

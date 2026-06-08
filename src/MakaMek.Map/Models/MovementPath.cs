@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Map.Models;
 
 public class MovementPath : IEquatable<MovementPath>
 {
-    public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType, int? maxLevelChange = null, int unitHeight = 0)
+    public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType, int? maxLevelChange = null)
     {
         Segments = segments.ToList();
         if (Segments.Count == 0)
@@ -46,7 +46,6 @@ public class MovementPath : IEquatable<MovementPath>
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
         MaxLevelChange = maxLevelChange;
-        UnitHeight = unitHeight;
         
         TotalCost = Segments.Sum(s => s.Cost);
         
@@ -62,13 +61,12 @@ public class MovementPath : IEquatable<MovementPath>
     /// <summary>
     /// Constructor for cache lookups
     /// </summary>
-    internal MovementPath(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null, int unitHeight = 0)
+    internal MovementPath(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null)
     {
         Start = start;
         Destination = destination;
         IsJump = isJump;
         MaxLevelChange = maxLevelChange;
-        UnitHeight = unitHeight;
         Segments = [];
         Hexes = [];
     }
@@ -87,20 +85,14 @@ public class MovementPath : IEquatable<MovementPath>
     
     public MovementType MovementType { get; }
 
-    private bool IsJump { get; }
+    internal bool IsJump { get; }
     
     /// <summary>
     /// Maximum level change constraint used when finding this path.
     /// Used as part of a cache key to ensure paths with different level constraints are cached separately.
     /// </summary>
-    private int? MaxLevelChange { get; }
+    internal int? MaxLevelChange { get; }
 
-    /// <summary>
-    /// Unit height used when finding this path.
-    /// Used as part of a cache key to ensure paths for different unit heights are cached separately.
-    /// </summary>
-    private int UnitHeight { get; }
-    
     public IReadOnlyList<HexCoordinates> Hexes { get; } 
     
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
@@ -193,8 +185,7 @@ public class MovementPath : IEquatable<MovementPath>
         return EqualityComparer<HexPosition?>.Default.Equals(Start, other.Start) 
                && EqualityComparer<HexPosition?>.Default.Equals(Destination, other.Destination) 
                && IsJump == other.IsJump
-               && MaxLevelChange == other.MaxLevelChange
-               && UnitHeight == other.UnitHeight;
+               && MaxLevelChange == other.MaxLevelChange;
     }
 
     public override bool Equals(object? obj)
@@ -206,7 +197,7 @@ public class MovementPath : IEquatable<MovementPath>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Start, Destination, IsJump, MaxLevelChange, UnitHeight);
+        return HashCode.Combine(Start, Destination, IsJump, MaxLevelChange);
     }
     
     public static MovementPath CreateSingleSegmentPath(HexPosition position, MovementType movementType = MovementType.StandingStill)
