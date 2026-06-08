@@ -159,7 +159,7 @@ public class MovementEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Mock empty reachable hexes for all movement types
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(new List<(HexCoordinates coordinates, int cost)>());
         _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(new List<HexCoordinates>());
@@ -194,15 +194,14 @@ public class MovementEngineTests
         {
             (targetHex, 1)
         };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         
         // Mock path finding
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var pathSegment = new PathSegment(unit.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(movementPath);
         
         // Mock position evaluator
@@ -402,15 +401,14 @@ public class MovementEngineTests
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
         var jumpReachableHexes = new List<HexCoordinates> { targetHex };
         
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var pathSegment = new PathSegment(mech.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Track which movement types were evaluated
@@ -454,15 +452,14 @@ public class MovementEngineTests
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
         var jumpReachableHexes = new List<HexCoordinates> { targetHex };
         
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var pathSegment = new PathSegment(mech.Position!, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score Jump highest
@@ -515,18 +512,16 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 2) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
         var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment1], callInfo.ArgAt<MovementType>(2)));
-        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition2, Arg.Any<MovementType>(),
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition2, Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score options according to test data
@@ -575,7 +570,7 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
@@ -592,7 +587,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2A, pathSegment2B], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -641,7 +636,7 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
@@ -652,7 +647,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -698,7 +693,7 @@ public class MovementEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Mock empty reachable hexes (no candidates)
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(new List<(HexCoordinates coordinates, int cost)>());
         
         MoveUnitCommand capturedCommand = default;
@@ -747,7 +742,7 @@ public class MovementEngineTests
         var targetHex = new HexCoordinates(2, 2);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
         
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
@@ -755,8 +750,7 @@ public class MovementEngineTests
         var pathSegment = new PathSegment(startPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(movementPath);
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
@@ -780,7 +774,7 @@ public class MovementEngineTests
         var targetHex = new HexCoordinates(2, 2);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
         
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
@@ -788,8 +782,7 @@ public class MovementEngineTests
         var pathSegment = new PathSegment(startPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(movementPath);
         
         var positionScore = new PositionScore
@@ -965,7 +958,7 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
@@ -976,7 +969,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -1029,7 +1022,7 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
@@ -1040,7 +1033,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -1094,7 +1087,7 @@ public class MovementEngineTests
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>(), Arg.Any<int>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
         var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
@@ -1105,7 +1098,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>(), Arg.Any<int>())
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest, Arg.Any<int?>())
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
