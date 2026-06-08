@@ -53,6 +53,29 @@ public static class HexExtensions
             return (hex.Level + bridgeHeight) - hex.GetBottomLevel();
         }
 
+        public int GetBridgeLevelDifference(Hex fromHex, int unitHeight)
+        {
+            var bridgeHeight = hex.GetBridgeHeight();
+            if (bridgeHeight == null)
+                return fromHex.GetElevationChangeTo(hex);
+
+            if (hex.IsOnRoadOrBridge(fromHex))
+            {
+                var fromEffectiveLevel = fromHex.GetBridgeHeight() ?? fromHex.Level;
+                var toEffectiveLevel = hex.Level + bridgeHeight.Value;
+                return toEffectiveLevel - fromEffectiveLevel;
+            }
+
+            if (unitHeight > 0)
+            {
+                var clearance = hex.GetBridgeClearance();
+                if (unitHeight > clearance)
+                    return (hex.Level + bridgeHeight.Value) - fromHex.GetBottomLevel();
+            }
+
+            return fromHex.GetElevationChangeTo(hex);
+        }
+
         public bool HasHardPavement()
         {
             return hex.HasTerrain(MakaMekTerrains.Road) 
