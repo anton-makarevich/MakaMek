@@ -73,8 +73,8 @@ public static class HexExtensions
         {
             var toTerrain = hex.GetRoadOrPavedTerrainId();
             var fromTerrain = fromHex.GetRoadOrPavedTerrainId();
-            return (toTerrain == MakaMekTerrains.Bridge || toTerrain == MakaMekTerrains.Road)
-                && (fromTerrain == MakaMekTerrains.Bridge || fromTerrain == MakaMekTerrains.Road);
+            return toTerrain is MakaMekTerrains.Bridge or MakaMekTerrains.Road
+                && fromTerrain is MakaMekTerrains.Bridge or MakaMekTerrains.Road;
         }
     }
 }
