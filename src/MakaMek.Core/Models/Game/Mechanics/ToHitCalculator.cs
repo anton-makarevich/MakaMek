@@ -175,6 +175,15 @@ public class ToHitCalculator : IToHitCalculator
         // Add unit-specific modifiers from the scenario (heat, prone, sensors, arm actuators, etc.)
         modifiers.AddRange(scenario.AttackerModifiers);
 
+        // Add target skidding modifier (bonus for attacker when target is skidding)
+        if (scenario.TargetUnit?.IsSkidding == true)
+        {
+            modifiers.Add(new SkiddingTargetModifier
+            {
+                Value = SkiddingTargetModifier.DefaultValue // -2 modifier for attacking a skidding target
+            });
+        }
+
         // Add an aimed shot modifier if applicable
         if (scenario.AimedShotTarget.HasValue)
         {
