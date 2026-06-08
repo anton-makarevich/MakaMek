@@ -5,17 +5,17 @@ namespace Sanet.MakaMek.Map.Models;
 /// </summary>
 public class MovementPathCache
 {
-    private readonly Dictionary<CacheKey, MovementPath> _cache = [];
+    private readonly Dictionary<MovementPathCacheKey, MovementPath> _cache = [];
 
     public void Add(MovementPath path, int unitHeight)
     {
-        var key = new CacheKey(path.Start, path.Destination, path.IsJump, path.MaxLevelChange, unitHeight);
+        var key = new MovementPathCacheKey(path.Start, path.Destination, path.IsJump, path.MaxLevelChange, unitHeight);
         _cache[key] = path;
     }
 
     public MovementPath? Get(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null, int unitHeight = 0)
     {
-        var key = new CacheKey(start, destination, isJump, maxLevelChange, unitHeight);
+        var key = new MovementPathCacheKey(start, destination, isJump, maxLevelChange, unitHeight);
         return _cache.TryGetValue(key, out var cachedPath) 
             ? cachedPath 
             : null;
@@ -37,11 +37,4 @@ public class MovementPathCache
     {
         _cache.Clear();
     }
-
-    private readonly record struct CacheKey(
-        HexPosition? Start,
-        HexPosition? Destination,
-        bool IsJump,
-        int? MaxLevelChange,
-        int UnitHeight);
 }
