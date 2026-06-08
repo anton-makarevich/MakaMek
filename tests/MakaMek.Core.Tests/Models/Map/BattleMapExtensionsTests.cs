@@ -327,7 +327,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Jump,
             movementPoints: 3,
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.Count.ShouldBe(6); // Should have paths for all 6 directions
@@ -355,7 +356,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Jump,
             movementPoints: 3, // Not enough to reach
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.ShouldBeEmpty();
@@ -377,7 +379,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -403,7 +406,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -429,7 +433,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.ShouldBeEmpty();
@@ -451,7 +456,8 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            reachabilityData);
+            reachabilityData,
+            2);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -482,6 +488,7 @@ public class BattleMapExtensionsTests
             MovementType.Walk,
             movementPoints: 5,
             reachabilityData,
+            2,
             prohibitedHexes);
 
         // Assert - Should either find alternate paths or return empty if no path exists
@@ -513,7 +520,8 @@ public class BattleMapExtensionsTests
             canMoveBackward: false,
             movementType: MovementType.Walk,
             new HashSet<HexCoordinates>(),
-            friendlyUnitsCoordinates);
+            friendlyUnitsCoordinates,
+            2);
         
         // Assert
         reachabilityData.ForwardReachableHexes.ShouldContain(startPosition.Coordinates);
@@ -537,15 +545,14 @@ public class BattleMapExtensionsTests
             canMoveBackward: false,
             movementType: MovementType.Run,
             new HashSet<HexCoordinates>(),
-            friendlyUnitsCoordinates);
+            friendlyUnitsCoordinates,
+            2);
         
         // Assert
         reachabilityData.ForwardReachableHexes.ShouldNotContain(startPosition.Coordinates);
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
-
-    #region Level Change Tests
-
+    
     [Fact]
     public void GetReachableHexesForPosition_ForwardMovement_RespectsMaxLevelChange()
     {
@@ -566,7 +573,7 @@ public class BattleMapExtensionsTests
             canMoveBackward: false,
             movementType: MovementType.Walk,
             new HashSet<HexCoordinates>(),
-            new HashSet<HexCoordinates>());
+            new HashSet<HexCoordinates>(), 2);
 
         // Assert
         reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2), 
@@ -594,7 +601,7 @@ public class BattleMapExtensionsTests
             canMoveBackward: true,
             movementType: MovementType.Walk,
             new HashSet<HexCoordinates>(),
-            new HashSet<HexCoordinates>());
+            new HashSet<HexCoordinates>(), 2);
 
         // Assert
         // Backward: (2,2) is not reachable
@@ -626,7 +633,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 10,
-            reachabilityData);
+            reachabilityData, 2);
 
         // Assert
         paths.ShouldBeEmpty("No paths should exist when hex is not reachable due to level change");
@@ -658,7 +665,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 10,
-            reachabilityData);
+            reachabilityData, 2);
 
         // Assert - No paths because backward movement can't change levels
         paths.ShouldBeEmpty("No backward paths should exist when target has different level");
@@ -691,18 +698,14 @@ public class BattleMapExtensionsTests
             canMoveBackward: false,
             movementType: MovementType.Jump,
             new HashSet<HexCoordinates>(),
-            new HashSet<HexCoordinates>());
+            new HashSet<HexCoordinates>(), 2);
 
         // Assert - Jump can reach all hexes within rangeBracket regardless of level
         reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(2, 1));
         reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(3, 1));
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
-
-    #endregion
-
-    #region Bridge Clearance Tests
-
+    
     [Fact]
     public void GetReachableHexesForUnit_ForwardMovement_ExcludesHexWithInsufficientBridgeClearance()
     {
@@ -780,6 +783,4 @@ public class BattleMapExtensionsTests
         reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
             "Road-to-bridge movement should bypass clearance check regardless of unit height");
     }
-
-    #endregion
 }
