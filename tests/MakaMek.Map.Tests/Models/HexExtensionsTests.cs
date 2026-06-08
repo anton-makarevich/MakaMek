@@ -239,7 +239,19 @@ public class HexExtensionsTests
 
         clearance.ShouldBe(2);
     }
-    
+
+    [Fact]
+    public void GetBridgeClearance_ReturnsCorrectClearance_WhenHexLevelIsAboveZero()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        sut.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddTerrain(new WaterTerrain(-1));
+
+        var clearance = sut.GetBridgeClearance();
+
+        clearance.ShouldBe(2);
+    }
+
     [Fact]
     public void GetBottomLevel_ReturnsWaterDepth_IfPresent()
     {

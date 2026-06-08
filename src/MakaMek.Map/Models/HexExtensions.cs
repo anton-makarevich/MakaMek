@@ -49,9 +49,8 @@ public static class HexExtensions
 
         public int? GetBridgeClearance()
         {
-            var bridgeHeight = hex.GetBridgeHeight();
-            if (bridgeHeight == null) return null;
-            return bridgeHeight - hex.GetBottomLevel();
+            if (hex.GetBridgeHeight() is not { } bridgeHeight) return null;
+            return (hex.Level + bridgeHeight) - hex.GetBottomLevel();
         }
 
         public bool HasHardPavement()
