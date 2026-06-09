@@ -404,6 +404,15 @@ public class Mech : Unit
             });
         }
 
+        // Skidding penalty
+        if (IsSkidding)
+        {
+            penalties.Add(new SkiddingAttackerModifier
+            {
+                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
+            });
+        }
+
         // Add sensor hit modifier for Mechs
         var sensors = GetAllComponents<Sensors>().FirstOrDefault(s=>s.Hits>0);
         if (sensors!=null)

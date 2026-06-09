@@ -311,6 +311,82 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_SkiddingAttacker_IncludesSkiddingAttackerModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+
+        // Setup attacker with skidding movement
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        _attacker.Deploy(attackerPosition, null);
+        _attacker.Move(new MovementPath([
+            new PathSegment(attackerPosition, attackerPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Walk), null);
+        _attacker.Parts.Values.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
+
+        // Setup target
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(targetPosition.Coordinates.Q-1, targetPosition.Coordinates.R), HexDirection.Bottom);
+        _target.Deploy(targetStartPosition, null);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+            MovementType.Walk), null);
+
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        var skiddingModifier = result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
+        skiddingModifier.Value.ShouldBe(SkiddingAttackerModifier.DefaultValue);
+        result.Total.ShouldBe(5); // Base (4) + skidding attacker (1)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_SkiddingTarget_IncludesSkiddingTargetModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+
+        // Setup attacker
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        _attacker.Deploy(attackerPosition, null);
+        _attacker.Move(MovementPath.CreateSingleSegmentPath(attackerPosition), null);
+        _attacker.Parts.Values.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
+
+        // Setup target with skidding movement
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(targetPosition.Coordinates.Q-1, targetPosition.Coordinates.R), HexDirection.Bottom);
+        _target.Deploy(targetStartPosition, null);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Walk), null);
+
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        var skiddingModifier = result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldHaveSingleItem();
+        skiddingModifier.Value.ShouldBe(SkiddingTargetModifier.DefaultValue);
+        result.Total.ShouldBe(6); // Base (4) + skidding target (2)
+    }
+
+    [Fact]
     public void GetToHitModifier_UndefinedMovementType_ThrowsException()
     {
         // Arrange
