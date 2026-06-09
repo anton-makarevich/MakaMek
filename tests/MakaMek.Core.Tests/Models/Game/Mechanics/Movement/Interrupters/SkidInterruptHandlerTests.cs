@@ -85,7 +85,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<SkidCheckRollContext>(), Game, MovementType.Run)
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
+            Game,
+            MovementType.Run)
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -127,7 +131,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<SkidCheckRollContext>(), Game, MovementType.Run)
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
+            Game,
+            MovementType.Run)
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
