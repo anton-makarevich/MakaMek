@@ -99,7 +99,7 @@ public class MapGeneratorBuilder
                 _lakePatches = patches;
                 return patches;
             },
-            (coords, distance, rng) =>
+            (_, distance, _) =>
             {
                 // Depth tapers from maxDepth at center (dist=0) toward 1 at patch edges.
                 var depth = -Math.Max(1, maxDepth - distance);
@@ -165,7 +165,7 @@ public class MapGeneratorBuilder
                 return roads;
             },
             (coords, _, _) => waterHexes.Contains(coords)
-                ? new BridgeTerrain(1, 40)
+                ? new BridgeTerrain(0, 40)
                 : new RoadTerrain(),
             true
         ));

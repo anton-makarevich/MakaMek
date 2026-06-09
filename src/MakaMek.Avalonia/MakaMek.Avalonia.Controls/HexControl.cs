@@ -29,7 +29,7 @@ public class HexControl : Panel
     private readonly List<Image> _terrainImageLayers = [];
     private HexRenderConfiguration _renderConfiguration;
     private TextBlock? _highlightTextLabel;
-    private readonly StackPanel? _levelDepthStackPanel;
+    private readonly Label? _terrainInfoLabel;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
     private static readonly IBrush TransparentFill = Brushes.Transparent;
@@ -110,48 +110,21 @@ public class HexControl : Panel
         Children.Add(coordinateLabel);
         coordinateLabel.ZIndex = ZIndexLabel;
 
-        var levelDepthStackPanel = new StackPanel
+        var labelContent = GenerateLabelContent(hex);
+        if (labelContent != null)
         {
-            Orientation = Orientation.Vertical,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        if (hex.Level != 0)
-        {
-            var levelLabel = new Label
+            var terrainInfoLabel = new Label
             {
-                Content = $"LEVEL {hex.Level}",
+                Content = labelContent,
+                VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = Brushes.White,
                 FontSize = 11,
-                Padding = new Thickness(0),
-                IsVisible = true
+                IsVisible = _renderConfiguration.ShowLabels
             };
-            levelDepthStackPanel.Children.Add(levelLabel);
-        }
-
-        // Add water depth label if hex has water terrain
-        if (hex.GetTerrain(MakaMekTerrains.Water) is WaterTerrain waterTerrain)
-        {
-            var waterLabel = new Label
-            {
-                Content = $"DEPTH {Math.Abs(waterTerrain.Height)}",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = Brushes.White,
-                FontSize = 11,
-                Padding = new Thickness(0),
-                IsVisible = true
-            };
-            levelDepthStackPanel.Children.Add(waterLabel);
-        }
-
-        if (levelDepthStackPanel.Children.Count>0)
-        {
-            levelDepthStackPanel.IsVisible = _renderConfiguration.ShowLabels;
-            Children.Add(levelDepthStackPanel);
-            levelDepthStackPanel.ZIndex = ZIndexLabel;
-            _levelDepthStackPanel = levelDepthStackPanel;
+            Children.Add(terrainInfoLabel);
+            terrainInfoLabel.ZIndex = ZIndexLabel;
+            _terrainInfoLabel = terrainInfoLabel;
         }
 
         // Set the initial highlight state
@@ -172,6 +145,26 @@ public class HexControl : Panel
 
     public Hex Hex => _hex;
     public CanonicalBitmaskResult? WaterBitmask => _waterBitmask;
+
+    private static string? GenerateLabelContent(Hex hex)
+    {
+        var waterDepth = hex.GetWaterDepth();
+        var bridgeHeight = hex.GetBridgeHeight();
+
+        var abbreviated = new List<string>(3);
+        if (hex.Level != 0)        abbreviated.Add($"L{hex.Level}");
+        if (waterDepth.HasValue)   abbreviated.Add($"D{waterDepth.Value}");
+        if (bridgeHeight.HasValue) abbreviated.Add($"B{bridgeHeight.Value}");
+
+        return abbreviated.Count switch
+        {
+            0 => null,
+            1 when hex.Level != 0        => $"LEVEL {hex.Level}",
+            1 when waterDepth.HasValue   => $"DEPTH {waterDepth.Value}",
+            1 when bridgeHeight.HasValue => $"BRIDGE {bridgeHeight.Value}",
+            _ => string.Join(" ", abbreviated)
+        };
+    }
 
     private void Highlight(IReadOnlyCollection<IHexHighlightType> highlights)
     {
@@ -419,8 +412,8 @@ public class HexControl : Panel
             label.IsVisible = configuration.ShowLabels;
         }
 
-        // Update level/depth stack panel visibility
-        _levelDepthStackPanel?.IsVisible = configuration.ShowLabels;
+        // Update terrain info label visibility
+        _terrainInfoLabel?.IsVisible = configuration.ShowLabels;
 
         // Re-apply highlight to refresh outline and highlight-label visibility
         Highlight(_hex.Highlights);

@@ -216,7 +216,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     }
 
     /// <summary>
-    /// Gets special modifiers derived from the roll context (e.g. water depth, levels fallen).
+    /// Gets special modifiers derived from the roll context (e.g., water depth, levels fallen).
     /// </summary>
     /// <param name="context">The piloting skill roll context</param>
     /// <returns>A collection of special roll modifiers for the given context</returns>
@@ -232,7 +232,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 LevelsFallen = levelsFallen
             }); 
         }
-        else if (context is EnteringDeepWaterRollContext waterCtx && waterCtx.WaterDepth > 0)
+        else if (context is EnteringDeepWaterRollContext { WaterDepth: > 0 } waterCtx)
         {
             // Water depth modifier: depth 1 = -1, depth 2 = 0, depth 3+ = +1
             modifiers.Add(new WaterDepthModifier
