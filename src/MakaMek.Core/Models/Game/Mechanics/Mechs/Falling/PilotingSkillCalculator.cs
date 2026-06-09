@@ -241,6 +241,14 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 WaterDepth = waterCtx.WaterDepth
             });
         }
+        else if (context is SkidCheckRollContext skidCtx)
+        {
+            modifiers.Add(new SkiddingModifier
+            {
+                Value = _rules.GetSkidModifier(skidCtx.HexesMoved),
+                HexesMoved = skidCtx.HexesMoved
+            });
+        }
         return modifiers;
     }
 

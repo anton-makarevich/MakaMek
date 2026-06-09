@@ -560,4 +560,18 @@ public class TotalWarfareRulesProvider : IRulesProvider
             _ => 1    // Depth 3+: +1 modifier
         };
     }
+
+    public int GetSkidModifier(int hexesMoved)
+    {
+        return hexesMoved switch
+        {
+            <= 2 => -1,   // 0-2 hexes
+            <= 4 => 0,    // 3-4 hexes
+            <= 7 => 1,    // 5-7 hexes
+            <= 10 => 2,   // 8-10 hexes
+            <= 17 => 4,   // 11-17 hexes
+            <= 24 => 5,   // 18-24 hexes
+            _ => 6        // 25+ hexes
+        };
+    }
 }

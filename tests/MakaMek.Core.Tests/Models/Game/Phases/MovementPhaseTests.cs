@@ -1590,7 +1590,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1647,7 +1647,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = false,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [6, 6],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1763,7 +1763,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1818,7 +1818,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1983,7 +1983,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(2),
+                RollContext = new SkidCheckRollContext(2, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2048,7 +2048,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(7),
+                RollContext = new SkidCheckRollContext(7, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2111,7 +2111,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2174,7 +2174,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2241,7 +2241,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2301,7 +2301,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2391,7 +2391,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(7),
+                RollContext = new SkidCheckRollContext(7, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2407,7 +2407,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2527,7 +2527,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }

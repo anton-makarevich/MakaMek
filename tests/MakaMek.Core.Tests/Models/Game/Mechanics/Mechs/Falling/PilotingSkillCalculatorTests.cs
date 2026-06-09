@@ -853,5 +853,51 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var enterWaterModifier = result.Modifiers[0] as WaterDepthModifier;
             enterWaterModifier!.Value.ShouldBe(0);
         }
+
+        [Theory]
+        [InlineData(2, -1)]
+        [InlineData(5, 1)]
+        [InlineData(10, 2)]
+        [InlineData(18, 5)]
+        public void GetPsrBreakdown_SkidCheck_AddsSkidDistanceModifier(int hexesMoved, int expectedModifierValue)
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetSkidModifier(hexesMoved).Returns(expectedModifierValue);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new SkidCheckRollContext(3, hexesMoved));
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
+            result.Modifiers.ShouldContain(m => m is SkiddingModifier);
+            var skidModifier = result.Modifiers.OfType<SkiddingModifier>().Single();
+            skidModifier.Value.ShouldBe(expectedModifierValue);
+            skidModifier.HexesMoved.ShouldBe(hexesMoved);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + expectedModifierValue);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_SkidCheck_WithDamagedGyro_IncludesBothModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit();
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+            _mockRulesProvider.GetSkidModifier(5).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new SkidCheckRollContext(3, 5));
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is DamagedGyroModifier);
+            result.Modifiers.ShouldContain(m => m is SkiddingModifier);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 3 + 1);
+        }
     }
 }

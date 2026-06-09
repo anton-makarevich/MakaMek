@@ -181,4 +181,11 @@ public interface IRulesProvider
     /// - Depth 3+: +1
     /// </returns>
     int GetWaterDepthModifier(int waterDepth);
+
+    /// <summary>
+    /// Gets the piloting skill roll modifier based on the number of hexes moved before skidding.
+    /// </summary>
+    /// <param name="hexesMoved">The number of hexes moved before the skid turn</param>
+    /// <returns>The modifier value for the skid PSR based on hexes moved</returns>
+    int GetSkidModifier(int hexesMoved);
 }

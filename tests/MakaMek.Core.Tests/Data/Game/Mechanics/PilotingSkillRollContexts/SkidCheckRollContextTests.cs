@@ -14,15 +14,24 @@ public class SkidCheckRollContextTests
     public void Constructor_WhenCalled_SetsSkidDistance()
     {
         const int skidDistance = 5;
-        var sut = new SkidCheckRollContext(skidDistance);
+        var sut = new SkidCheckRollContext(skidDistance, 3);
 
         sut.SkidDistance.ShouldBe(skidDistance);
     }
 
     [Fact]
+    public void Constructor_WhenCalled_SetsHexesMoved()
+    {
+        const int hexesMoved = 7;
+        var sut = new SkidCheckRollContext(5, hexesMoved);
+
+        sut.HexesMoved.ShouldBe(hexesMoved);
+    }
+
+    [Fact]
     public void Constructor_WhenCalled_SetsRollTypeToSkidCheck()
     {
-        var sut = new SkidCheckRollContext(3);
+        var sut = new SkidCheckRollContext(3, 5);
 
         sut.RollType.ShouldBe(PilotingSkillRollType.SkidCheck);
     }
@@ -30,7 +39,7 @@ public class SkidCheckRollContextTests
     [Fact]
     public void Render_WhenCalled_ReturnsLocalizedStringWithHexes()
     {
-        var sut = new SkidCheckRollContext(5);
+        var sut = new SkidCheckRollContext(5, 3);
 
         var result = sut.Render(_localizationService);
 
@@ -44,7 +53,7 @@ public class SkidCheckRollContextTests
     [InlineData(10, "Skid Check (10 hexes)")]
     public void Render_WithDifferentSkidDistances_ReturnsCorrectLocalizedString(int skidDistance, string expected)
     {
-        var sut = new SkidCheckRollContext(skidDistance);
+        var sut = new SkidCheckRollContext(skidDistance, 3);
 
         var result = sut.Render(_localizationService);
 

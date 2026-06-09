@@ -35,7 +35,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         var skidFacing = (HexDirection)segment.From.Facing;
 
         var skidPathSegments = GenerateSkidPathSegments(context.Game, turnHexCoords, skidFacing, maxSkidDistance);
-        var skidContext = new SkidCheckRollContext(skidPathSegments.Count);
+        var skidContext = new SkidCheckRollContext(skidPathSegments.Count, hexesMoved);
         var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
             mech, skidContext, context.Game, context.MoveCommand.MovementType);
 

@@ -1471,7 +1471,7 @@ public class FallProcessorTests
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3, 3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();
@@ -1492,7 +1492,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.SkidCheck);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3, 3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeFalse();
@@ -1517,7 +1517,7 @@ public class FallProcessorTests
             .Returns(skidDamageData);
 
         // Act
-        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3), _game, MovementType.Run);
+        var result = _sut.ProcessMovementAttempt(_testMech, new SkidCheckRollContext(3, 3), _game, MovementType.Run);
 
         // Assert
         result.IsFalling.ShouldBeTrue();

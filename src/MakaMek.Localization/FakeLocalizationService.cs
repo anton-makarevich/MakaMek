@@ -149,6 +149,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Modifier_ProneFiring"] = "Prone Firing: +{0}",
         ["Modifier_PartialCover"] = "Partial Cover: +{0}",
         ["Modifier_WaterDepth"] = "Water Depth ({0}): {1}",
+        ["Modifier_SkidDistance"] = "Skid ({0} hexes moved): {1}",
         ["WeaponRestriction_NotAvailable"] = "Weapon not available",
         ["WeaponRestriction_PartialCoverLegs"] = "Cannot fire leg weapons while in partial cover",
         ["WeaponRestriction_ProneLegs"] = "Cannot fire leg weapons while prone",
