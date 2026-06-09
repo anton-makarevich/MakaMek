@@ -159,9 +159,9 @@ public class HexControl : Panel
         return abbreviated.Count switch
         {
             0 => null,
-            1 when hex.Level != 0     => $"LEVEL {hex.Level}",
-            1 when waterDepth.HasValue => $"DEPTH {waterDepth.Value}",
-            1                          => $"BRIDGE {bridgeHeight!.Value}",
+            1 when hex.Level != 0        => $"LEVEL {hex.Level}",
+            1 when waterDepth.HasValue   => $"DEPTH {waterDepth.Value}",
+            1 when bridgeHeight.HasValue => $"BRIDGE {bridgeHeight.Value}",
             _ => string.Join(" ", abbreviated)
         };
     }
