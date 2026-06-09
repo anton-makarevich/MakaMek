@@ -148,31 +148,22 @@ public class HexControl : Panel
 
     private static string? GenerateLabelContent(Hex hex)
     {
-        var labels = new List<string>();
-
-        if (hex.Level != 0)
-            labels.Add($"LEVEL {hex.Level}");
-
         var waterDepth = hex.GetWaterDepth();
-        if (waterDepth.HasValue)
-            labels.Add($"DEPTH {waterDepth.Value}");
-
         var bridgeHeight = hex.GetBridgeHeight();
-        if (bridgeHeight.HasValue)
-            labels.Add($"BRIDGE {bridgeHeight.Value}");
 
-        if (labels.Count == 0) return null;
-        if (labels.Count == 1) return labels[0];
+        var abbreviated = new List<string>(3);
+        if (hex.Level != 0)        abbreviated.Add($"L{hex.Level}");
+        if (waterDepth.HasValue)   abbreviated.Add($"D{waterDepth.Value}");
+        if (bridgeHeight.HasValue) abbreviated.Add($"B{bridgeHeight.Value}");
 
-        var abbreviated = new List<string>();
-        if (hex.Level != 0)
-            abbreviated.Add($"L{hex.Level}");
-        if (waterDepth.HasValue)
-            abbreviated.Add($"D{waterDepth.Value}");
-        if (bridgeHeight.HasValue)
-            abbreviated.Add($"B{bridgeHeight.Value}");
-
-        return string.Join(" ", abbreviated);
+        return abbreviated.Count switch
+        {
+            0 => null,
+            1 when hex.Level != 0     => $"LEVEL {hex.Level}",
+            1 when waterDepth.HasValue => $"DEPTH {waterDepth.Value}",
+            1                          => $"BRIDGE {bridgeHeight!.Value}",
+            _ => string.Join(" ", abbreviated)
+        };
     }
 
     private void Highlight(IReadOnlyCollection<IHexHighlightType> highlights)
