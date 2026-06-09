@@ -69,7 +69,7 @@ public abstract class Terrain
             MakaMekTerrains.Water => new WaterTerrain(height ?? 0),
             MakaMekTerrains.Road => new RoadTerrain(),
             MakaMekTerrains.Pavement => new PavementTerrain(),
-            MakaMekTerrains.Bridge => new BridgeTerrain(height ?? 0, constructionFactor ?? 0),
+            MakaMekTerrains.Bridge => new BridgeTerrain(height ?? 0, constructionFactor ?? 40),
             _ => throw new ArgumentException($"Unknown terrain type: {terrainType}")
         };
     }
