@@ -383,7 +383,7 @@ public class ToHitCalculatorTests
         // Assert
         var skiddingModifier = result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldHaveSingleItem();
         skiddingModifier.Value.ShouldBe(SkiddingTargetModifier.DefaultValue);
-        result.Total.ShouldBe(2); // Base (4) + skidding target (-2)
+        result.Total.ShouldBe(6); // Base (4) + skidding target (2)
     }
 
     [Fact]
