@@ -1590,7 +1590,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1602,7 +1602,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1647,14 +1647,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = false,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [6, 6],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(successContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(successContext);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1763,7 +1763,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1775,7 +1775,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1818,7 +1818,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1830,7 +1830,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1983,7 +1983,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(2),
+                RollContext = new SkidCheckRollContext(2, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -1996,7 +1996,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Run).Returns(waterSuccessData);
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(skidFallData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 2), Game, MovementType.Run).Returns(skidFallData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2048,7 +2048,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(7),
+                RollContext = new SkidCheckRollContext(7, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2058,7 +2058,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2111,7 +2111,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2121,7 +2121,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2174,7 +2174,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2184,7 +2184,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 2), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 2 && c.HexesMoved == 5), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2241,7 +2241,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2251,7 +2251,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 5), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2301,7 +2301,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2311,7 +2311,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 0), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 0 && c.HexesMoved == 5), Game, MovementType.Run)
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2391,7 +2391,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(7),
+                RollContext = new SkidCheckRollContext(7, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2407,7 +2407,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(5),
+                RollContext = new SkidCheckRollContext(5, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2417,10 +2417,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit1,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run)
             .Returns(waterFallContextData);
         MockFallProcessor.ProcessMovementAttempt(unit2,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run)
             .Returns(deepWaterFallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2527,7 +2527,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new SkidCheckRollContext(1),
+                RollContext = new SkidCheckRollContext(1, 3),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -2538,7 +2538,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 

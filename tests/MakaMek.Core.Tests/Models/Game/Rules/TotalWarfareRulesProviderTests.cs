@@ -1099,4 +1099,32 @@ public class TotalWarfareRulesProviderTests
         Should.Throw<ArgumentOutOfRangeException>(() => 
             _sut.GetWaterDepthModifier(waterDepth));
     }
+
+    [Theory]
+    [InlineData(0, -1)]   // 0-2 hexes: -1
+    [InlineData(1, -1)]
+    [InlineData(2, -1)]
+    [InlineData(3, 0)]    // 3-4 hexes: 0
+    [InlineData(4, 0)]
+    [InlineData(5, 1)]    // 5-7 hexes: +1
+    [InlineData(6, 1)]
+    [InlineData(7, 1)]
+    [InlineData(8, 2)]    // 8-10 hexes: +2
+    [InlineData(9, 2)]
+    [InlineData(10, 2)]
+    [InlineData(11, 4)]   // 11-17 hexes: +4
+    [InlineData(14, 4)]
+    [InlineData(17, 4)]
+    [InlineData(18, 5)]   // 18-24 hexes: +5
+    [InlineData(20, 5)]
+    [InlineData(24, 5)]
+    [InlineData(25, 6)]   // 25+ hexes: +6
+    [InlineData(30, 6)]
+    [InlineData(50, 6)]
+    public void GetSkidModifier_ShouldReturnExpectedValues(int hexesMoved, int expectedModifier)
+    {
+        var result = _sut.GetSkidModifier(hexesMoved);
+
+        result.ShouldBe(expectedModifier);
+    }
 }
