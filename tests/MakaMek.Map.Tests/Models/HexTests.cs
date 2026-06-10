@@ -206,7 +206,7 @@ public class HexTests
     }
 
     [Fact]
-    public void GetEnterMovementCost_HexWithoutTerrains_ReturnsClearTotal1()
+    public void GetEnterMovementCost_HexWithoutTerrains_ReturnsOnlyHexEntry()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new ClearTerrain());
@@ -214,9 +214,8 @@ public class HexTests
 
         var costs = toHex.GetEnterMovementCost(fromHex).ToList();
 
-        costs.Count.ShouldBe(2);
+        costs.Count.ShouldBe(1);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
-        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Clear && t.Value == 0).ShouldBeTrue();
         costs.Sum(c => c.Value).ShouldBe(1);
     }
 

@@ -85,14 +85,12 @@ public class Hex : IDisposable
             return [hexEntry, terrainCost];
         }
 
-        var terrainCosts = _terrains.Count != 0
-            ? _terrains.Values.Select(t => new TerrainMovementCost
-            {
-                TerrainId = t.Id,
-                Value = t.MovementCost,
-                Depth = this.GetWaterDepth()
-            }).ToList()
-            : [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0, Depth = this.GetWaterDepth() }];
+        var terrainCosts = _terrains.Values.Select(t => new TerrainMovementCost
+        {
+            TerrainId = t.Id,
+            Value = t.MovementCost,
+            Depth = this.GetWaterDepth()
+        }).ToList();
 
         return [hexEntry, ..terrainCosts];
     }
