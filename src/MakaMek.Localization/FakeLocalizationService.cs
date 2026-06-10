@@ -291,6 +291,7 @@ public class FakeLocalizationService : ILocalizationService
         ["HeatProjection_ProjectionText"] = "Heat: {0} → {1}",
         ["HeatProjection_CurrentHeatText"] = "Heat: {0}",
         ["HeatProjection_DissipationText"] = "Dissipation: {0}",
+        ["HeatProjection_DissipationWithWaterText"] = "Dissipation: {0} (+{1} water)",
         ["EndGame_Victory_Title"] = "Victory!",
         ["EndGame_Title"] = "Game Over",
         ["EndGame_Victory_Subtitle"] = "{0} is victorious!",

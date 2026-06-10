@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -184,7 +185,7 @@ public class HeatProjectionViewModelTests
         _sut.Unit = _attacker;
 
         // Assert
-        notificationCount.ShouldBe(4, "Notifications should be raised even when setting to the same value");
+        notificationCount.ShouldBe(6, "Notifications should be raised even when setting to the same value");
     }
 
     [Fact]
@@ -336,6 +337,131 @@ public class HeatProjectionViewModelTests
         // CurrentHeat (5) only
         _sut.ProjectedHeat.ShouldBe(5);
         _sut.HeatProjectionText.ShouldBe($"Heat: 5");
+    }
+
+    [Fact]
+    public void WaterDissipationBonus_ReturnsZero_WhenNoUnit()
+    {
+        // Act & Assert
+        _sut.WaterDissipationBonus.ShouldBe(0);
+    }
+
+    [Fact]
+    public void TotalDissipation_ReturnsZero_WhenNoUnit()
+    {
+        // Act & Assert
+        _sut.TotalDissipation.ShouldBe(0);
+    }
+
+    [Fact]
+    public void WaterDissipationBonus_ReturnsZero_WhenUnitNotInWater()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Act & Assert
+        _sut.WaterDissipationBonus.ShouldBe(0);
+    }
+
+    [Fact]
+    public void TotalDissipation_EqualsHeatDissipation_WhenNoWaterBonus()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Act & Assert
+        _sut.TotalDissipation.ShouldBe(_sut.HeatDissipation);
+    }
+
+    [Fact]
+    public void WaterDissipationBonus_ReturnsPositive_WhenUnitInDeepWater()
+    {
+        // Arrange - create a fresh mech deployed in depth 2 water
+        var mech = CreateWaterDeployedMech();
+        _sut.Unit = mech;
+
+        // Act & Assert
+        _sut.WaterDissipationBonus.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void TotalDissipation_IncludesWaterBonus_WhenUnitInDeepWater()
+    {
+        // Arrange - create a fresh mech deployed in depth 2 water
+        var mech = CreateWaterDeployedMech();
+        _sut.Unit = mech;
+
+        // Act & Assert
+        _sut.TotalDissipation.ShouldBe(_sut.HeatDissipation + _sut.WaterDissipationBonus);
+    }
+
+    [Fact]
+    public void HeatDissipationText_ShowsWaterBonus_WhenWaterDissipationBonusIsPositive()
+    {
+        // Arrange - create a fresh mech deployed in depth 2 water
+        var mech = CreateWaterDeployedMech();
+        _sut.Unit = mech;
+
+        // Act
+        var text = _sut.HeatDissipationText;
+
+        // Assert
+        text.ShouldContain("water");
+        text.ShouldContain(_sut.HeatDissipation.ToString());
+        text.ShouldContain(_sut.WaterDissipationBonus.ToString());
+    }
+
+    private static Mech CreateWaterDeployedMech()
+    {
+        var rulesProvider = new TotalWarfareRulesProvider();
+        var localizationService = new FakeLocalizationService();
+        var mechFactory = new MechFactory(
+            rulesProvider,
+            new ClassicBattletechComponentProvider(),
+            localizationService);
+        var data = MechFactoryTests.CreateDummyMechData();
+        var mech = mechFactory.Create(data);
+        var waterHex = new Hex(new HexCoordinates(10, 10));
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        mech.Deploy(new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom), waterHex);
+        return mech;
+    }
+
+    [Fact]
+    public void HeatDissipationText_DoesNotShowWaterBonus_WhenWaterDissipationBonusIsZero()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Act
+        var text = _sut.HeatDissipationText;
+
+        // Assert
+        text.ShouldNotContain("water");
+        text.ShouldBe($"Dissipation: {_sut.HeatDissipation}");
+    }
+
+    [Fact]
+    public void WaterDissipationAndTotalDissipation_NotifyPropertyChanged_WhenUnitSet()
+    {
+        // Arrange
+        var waterBonusChangedCount = 0;
+        var totalDissipationChangedCount = 0;
+
+        _sut.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(HeatProjectionViewModel.WaterDissipationBonus))
+                waterBonusChangedCount++;
+            if (args.PropertyName == nameof(HeatProjectionViewModel.TotalDissipation))
+                totalDissipationChangedCount++;
+        };
+
+        // Act
+        _sut.Unit = _attacker;
+
+        // Assert
+        waterBonusChangedCount.ShouldBe(1);
+        totalDissipationChangedCount.ShouldBe(1);
     }
 }
 
