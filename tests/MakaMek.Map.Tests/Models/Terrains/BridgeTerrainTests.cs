@@ -43,10 +43,10 @@ public class BridgeTerrainTests
     }
 
     [Fact]
-    public void MovementCost_Returns1()
+    public void MovementCost_Returns0()
     {
         var sut = new BridgeTerrain();
-        sut.MovementCost.ShouldBe(1);
+        sut.MovementCost.ShouldBe(0);
     }
 
     #region Serialization Tests
@@ -86,7 +86,7 @@ public class BridgeTerrainTests
         sut.ShouldBeOfType<BridgeTerrain>();
         sut.Id.ShouldBe(MakaMekTerrains.Bridge);
         sut.Height.ShouldBe(height);
-        sut.MovementCost.ShouldBe(1);
+        sut.MovementCost.ShouldBe(0);
         sut.InterveningFactor.ShouldBe(0);
     }
 

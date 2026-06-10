@@ -13,10 +13,10 @@ public class PavementTerrainTests
     }
 
     [Fact]
-    public void MovementCost_Returns1()
+    public void MovementCost_Returns0()
     {
         var sut = new PavementTerrain();
-        sut.MovementCost.ShouldBe(1);
+        sut.MovementCost.ShouldBe(0);
     }
 
     [Fact]

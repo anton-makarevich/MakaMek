@@ -37,16 +37,16 @@ public class WaterTerrain : Terrain
     public override int InterveningFactor => 0;
 
     /// <summary>
-    /// Movement cost based on water depth:
-    ///   Depth 0  → 1 MP (shallow / fordable)
-    ///   Depth -1 → 2 MP (standard depth)
-    ///   Depth -2 or deeper → 4 MP (deep)
+    /// Additional movement cost for entering water, beyond the base 1 MP hex entry cost:
+    ///   Depth 0  → 0 MP (shallow / fordable, no additional cost)
+    ///   Depth -1 → 1 MP (standard depth)
+    ///   Depth -2 or deeper → 3 MP (deep)
     /// </summary>
     public override int MovementCost => _depth switch
     {
-        0 => 1,
-        -1 => 2,
-        _ => 4
+        0 => 0,
+        -1 => 1,
+        _ => 3
     };
 
     /// <summary>

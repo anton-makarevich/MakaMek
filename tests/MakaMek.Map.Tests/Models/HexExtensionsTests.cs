@@ -136,7 +136,7 @@ public class HexExtensionsTests
     [InlineData(MakaMekTerrains.Pavement, MakaMekTerrains.Pavement)]
     [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road)]
     [InlineData(MakaMekTerrains.HeavyWoods, null)]
-    public void GetRoadOrPavedTerrainId_Returns_PavedTerrain_OrNull(MakaMekTerrains terrainToAdd,
+    public void GetRoadOrPavedTerrain_Returns_PavedTerrain_OrNull(MakaMekTerrains terrainToAdd,
         MakaMekTerrains? expectedTerrain)
     {
         // Arrange
@@ -144,10 +144,10 @@ public class HexExtensionsTests
         sut.AddTerrain(Terrain.CreateTerrainOfType(terrainToAdd));
 
         // Act
-        var terrain = sut.GetRoadOrPavedTerrainId();
+        var terrainId = sut.GetRoadOrPavedTerrain()?.Id;
             
         // Assert
-        terrain.ShouldBe(expectedTerrain);
+        terrainId.ShouldBe(expectedTerrain);
     }
 
     [Theory]

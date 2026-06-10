@@ -269,12 +269,13 @@ public class FakeLocalizationServiceTests
     [InlineData("Action_AttemptStandup", "Attempt Standup")]
     [InlineData("Action_ChangeFacing", "Change Facing | MP: {0}")]
     // Movement cost rendering
-    [InlineData("MovementCost_Terrain", "entered {0}, {1} MP")]
-    [InlineData("MovementCost_Terrain_Water", "entered {0} (depth {1}), {2} MP")]
+    [InlineData("MovementCost_Terrain", "{0}, {1} MP")]
+    [InlineData("MovementCost_Terrain_Water", "{0} (depth {1}), {2} MP")]
     [InlineData("MovementCost_Rotation", "rotated {0} side(s), {1} MP")]
     [InlineData("MovementCost_ElevationChange", "elevation change ({0:+#;-#;0}), {1} MP")]
     [InlineData("MovementCost_Jump", "jump, {0} MP")]
     [InlineData("MovementCost_StandUpAttempt", "stand up attempt, {0} MP")]
+    [InlineData("MovementCost_HexEnter", "entered hex, {0} MP")]
     // Movement types
     [InlineData("MovementType_Walk", "Walk")]
     [InlineData("MovementType_Run", "Run")]

@@ -36,14 +36,13 @@ public class RoughTerrainTests
     }
 
     [Fact]
-    public void MovementCost_Returns2()
+    public void MovementCost_Returns1()
     {
         // Arrange
         var terrain = new RoughTerrain();
 
         // Act & Assert
-        // Rough terrain costs 1 base MP + 1 additional MP = 2 MP total
-        terrain.MovementCost.ShouldBe(2);
+        terrain.MovementCost.ShouldBe(1);
     }
 
     [Fact]

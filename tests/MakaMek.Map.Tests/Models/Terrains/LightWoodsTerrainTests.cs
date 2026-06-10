@@ -16,13 +16,13 @@ public class LightWoodsTerrainTests
     }
 
     [Fact]
-    public void TerrainFactor_Returns2()
+    public void TerrainFactor_Returns1()
     {
         // Arrange
         var terrain = new LightWoodsTerrain();
 
         // Act & Assert
-        terrain.MovementCost.ShouldBe(2);
+        terrain.MovementCost.ShouldBe(1);
     }
 
     [Fact]

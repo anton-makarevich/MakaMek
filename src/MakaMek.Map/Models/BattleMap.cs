@@ -110,10 +110,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 elevationChange = hex.GetBridgeElevationChange(fromHex, unitHeight);
                 var levelCost = Math.Abs(elevationChange);
 
-                var costList = new List<MovementCost>
-                {
-                    hex.GetEnterMovementCost(fromHex)
-                };
+                var costList = new List<MovementCost>();
+                costList.AddRange(hex.GetEnterMovementCost(fromHex));
                 if (levelCost > 0)
                 {
                     costList.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
@@ -212,8 +210,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (levelCost > maxLevelChange)
                     continue;
 
-                // Calculate total cost including terrain and level change
-                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
+                // Calculate total cost including terrain, hex entry, and level change
+                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -342,8 +340,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (levelCost > maxLevelChange)
                     continue;
 
-                // Calculate total cost including terrain and level change
-                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
+                // Calculate total cost including terrain, hex entry, and level change
+                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
 
                 if (totalCost > maxMovementPoints)
@@ -435,8 +433,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 if (levelCost > maxLevelChange)
                     continue;
                 
-                // Calculate total cost including turning, movement, and level change
-                var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Value + turningCost + levelCost;
+                // Calculate total cost including turning, hex entry, terrain, and level change
+                var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;

@@ -25,7 +25,8 @@ public abstract class Terrain
     public abstract int InterveningFactor { get; }
 
     /// <summary>
-    /// Movement cost modifier for this terrain
+    /// Additional movement cost for entering a hex with this terrain, beyond the base 1 MP hex entry cost.
+    /// This represents the terrain-specific penalty applied on top of the standard entry cost.
     /// </summary>
     public abstract int MovementCost { get; }
 

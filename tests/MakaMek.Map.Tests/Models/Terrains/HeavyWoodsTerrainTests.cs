@@ -16,13 +16,13 @@ public class HeavyWoodsTerrainTests
     }
 
     [Fact]
-    public void TerrainFactor_Returns3()
+    public void TerrainFactor_Returns2()
     {
         // Arrange
         var terrain = new HeavyWoodsTerrain();
 
         // Act & Assert
-        terrain.MovementCost.ShouldBe(3);
+        terrain.MovementCost.ShouldBe(2);
     }
 
     [Fact]
