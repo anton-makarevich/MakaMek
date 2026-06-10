@@ -1191,6 +1191,27 @@ public sealed class BaseGameTests : BaseGame
     }
     
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateDisplaceUnitCommand()
+    {
+        // Arrange
+        var command = new DisplaceUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            FromCoordinates = new HexCoordinateData(1, 1),
+            ToCoordinates = new HexCoordinateData(1, 2),
+            NewFacing = (int)HexDirection.Bottom,
+            DisplacementReason = DisplacementReason.DominoEffect
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+    
+    [Fact]
     public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
