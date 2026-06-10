@@ -182,6 +182,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         var actions = new List<DisplaceUnitAction>();
         var queue = new Queue<(IUnit Unit, HexCoordinates SourceCoords)>();
         var processed = new HashSet<Guid>();
+        var reservedTargets = new HashSet<HexCoordinates>();
         var iterations = 0;
 
         foreach (var candidate in candidates)
@@ -203,6 +204,9 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
                 // Off-map: unit remains in place per rules
                 continue;
             }
+
+            // Reserve target hex - skip if another unit is already being displaced here
+            if (!reservedTargets.Add(targetCoords)) continue;
 
             // Check if target hex is occupied by another deployed unit
             var occupant = game.Players

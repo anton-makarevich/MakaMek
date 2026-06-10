@@ -20,14 +20,16 @@ public class BridgeCollapseDominoTests : GamePhaseTestsBase
     private readonly BridgeCollapseInterruptHandler _sut = new();
     private Mech _enteringMech = null!;
     private Mech _occupantMech = null!;
+    private Mech _occupantMech2 = null!;
 
     protected override void SetupSut()
     {
         var playerId = Guid.NewGuid();
-        // Join with 2 units for multi-unit tests
-        Game.HandleCommand(CreateJoinCommand(playerId, "Player 1", unitsCount: 2));
+        // Join with 3 units for multi-unit tests
+        Game.HandleCommand(CreateJoinCommand(playerId, "Player 1", unitsCount: 3));
         _enteringMech = (Mech)Game.Players[0].Units[0];
         _occupantMech = (Mech)Game.Players[0].Units[1];
+        _occupantMech2 = (Mech)Game.Players[0].Units[2];
         SetMap();
     }
 
@@ -241,5 +243,35 @@ public class BridgeCollapseDominoTests : GamePhaseTestsBase
 
         result.ShouldNotBeNull();
         result.GameActions.ShouldNotContain(a => a is DisplaceUnitAction);
+    }
+
+    [Fact]
+    public void Check_WithMultipleBridgeOccupants_ShouldDisplaceToDistinctTargets()
+    {
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+
+        // Both occupants on the bridge hex
+        _occupantMech.Deploy(new HexPosition(2, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(2, 2)));
+        _occupantMech2.Deploy(new HexPosition(2, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(2, 2)));
+        _enteringMech.Deploy(new HexPosition(1, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(1, 2)));
+
+        SetupFallContext(_enteringMech, MovementType.Walk);
+        SetupFallContext(_occupantMech, MovementType.StandingStill);
+        SetupFallContext(_occupantMech2, MovementType.StandingStill);
+
+        var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
+        var displaceActions = result.GameActions.OfType<DisplaceUnitAction>().ToList();
+        displaceActions.ShouldNotBeEmpty();
+        // With multiple occupants sharing the bridge hex, only one should be displaced
+        // since both would target the same hex; reservedTargets prevents duplicates
+        displaceActions.Count.ShouldBe(1);
     }
 }
