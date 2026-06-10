@@ -28,6 +28,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game")]
     [InlineData("Command_SetBattleMap", "Battle map has been set")]
     [InlineData("Command_BridgeCollapsed", "{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})")]
+    [InlineData("Command_DisplaceUnit", "{0} displaced from {1} to {2}")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

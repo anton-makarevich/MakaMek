@@ -67,6 +67,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Command_RequestGameLobbyStatus"] = "Client {0} requested game lobby status for game",
         ["Command_SetBattleMap"] = "Battle map has been set",
         ["Command_BridgeCollapsed"] = "{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})",
+        ["Command_DisplaceUnit"] = "{0} displaced from {1} to {2}",
         ["Terrain_Clear"] = "Clear",
         ["Terrain_LightWoods"] = "Light Woods",
         ["Terrain_HeavyWoods"] = "Heavy Woods",

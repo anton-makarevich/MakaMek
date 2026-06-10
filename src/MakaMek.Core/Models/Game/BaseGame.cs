@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -393,6 +394,16 @@ public abstract class BaseGame : IGame
         hex?.RemoveTerrain(MakaMekTerrains.Bridge);
     }
 
+    internal void OnUnitDisplaced(DisplaceUnitCommand command)
+    {
+        if (_players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == command.UnitId) is not Unit unit) return;
+        var position = new HexPosition(new HexCoordinates(command.ToCoordinates), (HexDirection)command.NewFacing);
+        var hex = BattleMap?.GetHex(position.Coordinates);
+        unit.Displace(position, hex);
+    }
+
     /// <summary>
     /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
     /// </summary>
@@ -446,6 +457,7 @@ public abstract class BaseGame : IGame
             PlayerLeftCommand => CommandValidationResult.Valid(),
             GameEndedCommand => CommandValidationResult.Valid(),
             BridgeCollapsedCommand => CommandValidationResult.Valid(),
+            DisplaceUnitCommand => CommandValidationResult.Valid(),
             _ => CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
         };
     }
