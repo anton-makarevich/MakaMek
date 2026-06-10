@@ -237,6 +237,12 @@ public abstract class Unit : IUnit
         Hex = null;
     }
 
+    internal void Displace(HexPosition newPosition, Hex? newHex)
+    {
+        Position = newPosition;
+        Hex = newHex;
+    }
+
     // Heat management
     public int CurrentHeat { get; private set; }
     public int HeatDissipation => GetAvailableComponents<HeatSink>().Sum(hs => hs.HeatDissipation)
