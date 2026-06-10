@@ -275,6 +275,7 @@ public class FakeLocalizationServiceTests
     [InlineData("MovementCost_ElevationChange", "elevation change ({0:+#;-#;0}), {1} MP")]
     [InlineData("MovementCost_Jump", "jump, {0} MP")]
     [InlineData("MovementCost_StandUpAttempt", "stand up attempt, {0} MP")]
+    [InlineData("MovementCost_HexEnter", "entered hex, {0} MP")]
     // Movement types
     [InlineData("MovementType_Walk", "Walk")]
     [InlineData("MovementType_Run", "Run")]

@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Map.Tests.Models.MovementCosts;
 public class HexEnterMovementCostTests
 {
     [Fact]
-    public void Value_IsAlways1()
+    public void Value_Returns_SetValue()
     {
         var sut = new HexEnterMovementCost { Value = 1 };
 
