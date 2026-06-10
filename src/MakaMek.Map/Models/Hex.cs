@@ -73,7 +73,6 @@ public class Hex : IDisposable
     /// </summary>
     public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex)
     {
-        MakaMekTerrains terrainId;
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
         if (fromHex.GetRoadOrPavedTerrain() is not null && this.GetRoadOrPavedTerrain() is { } toRoad)
@@ -86,21 +85,16 @@ public class Hex : IDisposable
             return [hexEntry, terrainCost];
         }
 
-        int additionalCost;
-        if (_terrains.Count != 0)
-        {
-            var maxTerrain = _terrains.Values.MaxBy(t => t.MovementCost)!;
-            terrainId = maxTerrain.Id;
-            additionalCost = maxTerrain.MovementCost;
-        }
-        else
-        {
-            terrainId = MakaMekTerrains.Clear;
-            additionalCost = 0;
-        }
+        var terrainCosts = _terrains.Count != 0
+            ? _terrains.Values.Select(t => new TerrainMovementCost
+            {
+                TerrainId = t.Id,
+                Value = t.MovementCost,
+                Depth = this.GetWaterDepth()
+            }).ToList()
+            : [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0, Depth = this.GetWaterDepth() }];
 
-        var terrainCostResult = new TerrainMovementCost { TerrainId = terrainId, Value = additionalCost, Depth = this.GetWaterDepth() };
-        return [hexEntry, terrainCostResult];
+        return [hexEntry, ..terrainCosts];
     }
 
     /// <summary>

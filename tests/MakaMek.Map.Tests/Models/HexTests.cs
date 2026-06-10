@@ -156,7 +156,7 @@ public class HexTests
     }
 
     [Fact]
-    public void GetEnterMovementCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsHeavyWoodsTotal3()
+    public void GetEnterMovementCost_OnlyDestinationHasRoadWithHeavyWoodsUnderlying_ReturnsAllTerrainCosts()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));
         fromHex.AddTerrain(new ClearTerrain());
@@ -166,8 +166,9 @@ public class HexTests
 
         var costs = toHex.GetEnterMovementCost(fromHex).ToList();
 
-        costs.Count.ShouldBe(2);
+        costs.Count.ShouldBe(3);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Road && t.Value == 0).ShouldBeTrue();
         costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.HeavyWoods && t.Value == 2).ShouldBeTrue();
         costs.Sum(c => c.Value).ShouldBe(3);
     }
