@@ -182,6 +182,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         var actions = new List<DisplaceUnitAction>();
         var queue = new Queue<(IUnit Unit, HexCoordinates SourceCoords)>();
         var processed = new HashSet<Guid>();
+        var reservedTargets = new HashSet<HexCoordinates>();
         var iterations = 0;
 
         foreach (var candidate in candidates)
@@ -204,6 +205,12 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
                 continue;
             }
 
+            if (reservedTargets.Contains(targetCoords))
+            {
+                // Another unit is already being displaced to this hex
+                continue;
+            }
+
             // Check if target hex is occupied by another deployed unit
             var occupant = game.Players
                 .SelectMany(p => p.Units)
@@ -214,10 +221,12 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
                 queue.Enqueue((occupant, targetCoords));
             }
 
+            reservedTargets.Add(targetCoords);
+
             var command = new DisplaceUnitCommand
             {
                 UnitId = unit.Id,
-                FromCoordinates = sourceCoords.ToData(),
+
                 ToCoordinates = targetCoords.ToData(),
                 NewFacing = (int)(unit.Facing ?? HexDirection.Top),
                 DisplacementReason = DisplacementReason.DominoEffect,
