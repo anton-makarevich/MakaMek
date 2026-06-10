@@ -52,6 +52,16 @@ public class HeatProjectionViewModel : BindableBase
     public int HeatDissipation => Unit?.HeatDissipation ?? 0;
 
     /// <summary>
+    /// Gets the water dissipation bonus from submerged heatsinks
+    /// </summary>
+    public int WaterDissipationBonus { get; private set; }
+
+    /// <summary>
+    /// Gets the total dissipation including water bonus
+    /// </summary>
+    public int TotalDissipation => HeatDissipation + WaterDissipationBonus;
+
+    /// <summary>
     /// Updates the projected heat based on currently selected weapons or declared attacks
     /// </summary>
     public void UpdateProjectedHeat()
@@ -59,16 +69,21 @@ public class HeatProjectionViewModel : BindableBase
         if (Unit == null)
         {
             ProjectedHeat = 0;
+            WaterDissipationBonus = 0;
             return;
         }
 
         ProjectedHeat = Unit.GetProjectedHeatValue(_rulesProvider);
+        var heatData = Unit.GetHeatData(_rulesProvider);
+        WaterDissipationBonus = heatData.DissipationData.WaterDissipationBonus;
 
         // Also notify CurrentHeat in case the unit's heat changed
         NotifyPropertyChanged(nameof(CurrentHeat));
         NotifyPropertyChanged(nameof(HeatDissipation));
         NotifyPropertyChanged(nameof(HeatProjectionText));
         NotifyPropertyChanged(nameof(HeatDissipationText));
+        NotifyPropertyChanged(nameof(WaterDissipationBonus));
+        NotifyPropertyChanged(nameof(TotalDissipation));
     }
     
     public string HeatProjectionText =>
@@ -77,7 +92,9 @@ public class HeatProjectionViewModel : BindableBase
             : string.Format(_localizationService.GetString("HeatProjection_ProjectionText"), CurrentHeat,
                 ProjectedHeat);
 
-    public string HeatDissipationText 
-        => string.Format(_localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
+    public string HeatDissipationText
+        => WaterDissipationBonus > 0
+            ? string.Format(_localizationService.GetString("HeatProjection_DissipationWithWaterText"), HeatDissipation, WaterDissipationBonus)
+            : string.Format(_localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
 }
 

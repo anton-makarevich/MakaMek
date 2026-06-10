@@ -21,11 +21,18 @@
                    Foreground="{StaticResource HeatBrush}"
                    Background="Transparent"/>
         
-        <!-- Heat dissipation progress bar in light blue -->
+        <!-- Base dissipation progress bar showing total dissipation (including water bonus) in darker blue -->
+        <ProgressBar Grid.Row="1" Value="{Binding TotalDissipation}"
+                     Maximum="30"
+                     Classes="infoPanel"
+                     Foreground="{StaticResource WaterDissipationBrush}"/>
+        
+        <!-- Overlay dissipation progress bar showing base dissipation in light blue -->
         <ProgressBar Grid.Row="1" Value="{Binding HeatDissipation}"
                      Maximum="30"
                      Classes="infoPanel"
-                     Foreground="{StaticResource InfoBrush}"/>
+                     Foreground="{StaticResource InfoBrush}"
+                     Background="Transparent"/>
         
         <!-- Text overlay showing heat values and dissipation -->
         <TextBlock Grid.Row="0" Classes="progressBarLabel" Text="{Binding HeatProjectionText}"/>
