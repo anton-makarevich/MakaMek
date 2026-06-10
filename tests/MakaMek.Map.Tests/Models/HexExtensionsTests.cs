@@ -143,7 +143,7 @@ public class HexExtensionsTests
         var sut = new Hex(new HexCoordinates(1, 1));
         sut.AddTerrain(Terrain.CreateTerrainOfType(terrainToAdd));
 
-        // Act?
+        // Act
         var terrainId = sut.GetRoadOrPavedTerrain()?.Id;
             
         // Assert
