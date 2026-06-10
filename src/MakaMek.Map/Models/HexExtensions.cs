@@ -82,21 +82,22 @@ public static class HexExtensions
                    || hex.HasTerrain(MakaMekTerrains.Pavement) 
                    || hex.HasTerrain(MakaMekTerrains.Bridge);
         }
-        
-        public MakaMekTerrains? GetRoadOrPavedTerrainId()
+
+        public Terrain? GetRoadOrPavedTerrain()
         {
-            if (hex.HasTerrain(MakaMekTerrains.Road)) return MakaMekTerrains.Road;
-            if (hex.HasTerrain(MakaMekTerrains.Pavement)) return MakaMekTerrains.Pavement;
-            if (hex.HasTerrain(MakaMekTerrains.Bridge)) return MakaMekTerrains.Bridge;
-            return null;
+            var roadTerrain = hex.GetTerrain(MakaMekTerrains.Road);
+            if (roadTerrain != null) return roadTerrain;
+            var pavedTerrain = hex.GetTerrain(MakaMekTerrains.Pavement);
+            if (pavedTerrain != null) return pavedTerrain;
+            return hex.GetTerrain(MakaMekTerrains.Bridge);
         }
 
         public bool IsOnRoadOrBridge(Hex fromHex)
         {
-            var toTerrain = hex.GetRoadOrPavedTerrainId();
-            var fromTerrain = fromHex.GetRoadOrPavedTerrainId();
-            return toTerrain is MakaMekTerrains.Bridge or MakaMekTerrains.Road
-                && fromTerrain is MakaMekTerrains.Bridge or MakaMekTerrains.Road;
+            var toTerrain = hex.GetRoadOrPavedTerrain();
+            var fromTerrain = fromHex.GetRoadOrPavedTerrain();
+            return toTerrain?.Id is MakaMekTerrains.Bridge or MakaMekTerrains.Road
+                && fromTerrain?.Id is MakaMekTerrains.Bridge or MakaMekTerrains.Road;
         }
     }
 }

@@ -76,11 +76,13 @@ public class Hex : IDisposable
         MakaMekTerrains terrainId;
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
-        if (fromHex.GetRoadOrPavedTerrainId() is not null && this.GetRoadOrPavedTerrainId() is { } toRoad)
+        if (fromHex.GetRoadOrPavedTerrain() is not null && this.GetRoadOrPavedTerrain() is { } toRoad)
         {
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
-            terrainId = toRoad;
-            var terrainCost = new TerrainMovementCost { TerrainId = terrainId, Value = 0, Depth = this.GetWaterDepth() };
+            var terrainCost = new TerrainMovementCost
+            {
+                TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
+            };
             return [hexEntry, terrainCost];
         }
 
