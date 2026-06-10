@@ -18,7 +18,7 @@ public class BridgeTerrain : Terrain
     public override MakaMekTerrains Id => MakaMekTerrains.Bridge;
     public override int Height => _height;
     public override int InterveningFactor => 0;
-    public override int MovementCost => 1;
+    public override int MovementCost => 0;
 
     public int ConstructionFactor => _constructionFactor;
 

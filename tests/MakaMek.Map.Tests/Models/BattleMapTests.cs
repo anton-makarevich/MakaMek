@@ -3,6 +3,7 @@ using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -367,9 +368,9 @@ public class BattleMapTests
 
         // Add two possible paths:
         // Path 1 (direct but costly): Through heavy woods (1,1)->(1,2)->(1,3)->(1,4)->(1,5)
-        //   Cost: 3+3+3+1 = 10 MP (each heavy woods hex costs 3)
+        //   Total cost: 3+3+3+1 = 10 MP (each heavy woods hex costs 1 entry + 2 terrain = 3)
         // Path 2 (longer but cheaper): Around through clear terrain (1,1)->(2,1)->(2,2)->(2,3)->(2,4)->(1,5)
-        //   Cost: 1+1+1+1+1 = 5 MP (clear terrain) + 4 MP (direction changes) = 9 MP total
+        //   Total cost: 1+1+1+1+1 = 5 MP (each clear hex costs 1 entry + 0 terrain) + 4 MP (turns) = 9 MP
 
         // Add heavy woods on the direct path
         var woodsHexes = new[]
@@ -409,11 +410,52 @@ public class BattleMapTests
         var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
         movementSegments.ShouldAllBe(s => s.Cost == 1, "All movement segments should cost 1 MP as they go through clear terrain");
         
+        // Verify each movement segment contains both HexEnterMovementCost and TerrainMovementCost
+        foreach (var segment in movementSegments)
+        {
+            segment.Costs.Any(c => c is HexEnterMovementCost).ShouldBeTrue("Each movement segment should have a hex entry cost");
+            segment.Costs.Any(c => c is TerrainMovementCost).ShouldBeTrue("Each movement segment should have a terrain cost");
+            segment.Costs.Sum(c => c.Value).ShouldBe(1);
+        }
+        
         // Verify turning costs
         var turnSegments = path.Segments.Where(s => s.From.Coordinates == s.To.Coordinates).ToList();
         turnSegments.Count.ShouldBe(4, "Should have 4 turns");
         turnSegments.ShouldAllBe(s => s.Cost==1, 
             "All turn segments should cost 1 MP");
+    }
+
+    [Fact]
+    public void FindPath_WithCostBreakdown_ShowsEntryAndTerrainCostSeparately()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(2, 3,
+            new SingleTerrainGenerator(2, 3, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var target = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
+
+        // Set light woods on the middle hex to get non-zero terrain cost
+        var middleHex = sut.GetHex(new HexCoordinates(1, 2))!;
+        middleHex.RemoveTerrain(MakaMekTerrains.Clear);
+        middleHex.AddTerrain(new LightWoodsTerrain());
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+
+        // Get the movement segments (not turning in place)
+        var movementSegments = path.Segments
+            .Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+
+        // The segment entering (1,2) with light woods should have both cost types
+        var lightWoodsSegment = movementSegments
+            .FirstOrDefault(s => s.To.Coordinates == new HexCoordinates(1, 2));
+        lightWoodsSegment.ShouldNotBeNull();
+        lightWoodsSegment.Costs.Any(c => c is HexEnterMovementCost h && h.Value == 1).ShouldBeTrue();
+        lightWoodsSegment.Costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.LightWoods && t.Value == 1).ShouldBeTrue();
+        lightWoodsSegment.Cost.ShouldBe(2); // 1 entry + 1 terrain
     }
 
     [Theory]

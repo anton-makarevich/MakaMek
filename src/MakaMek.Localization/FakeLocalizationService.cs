@@ -83,6 +83,7 @@ public class FakeLocalizationService : ILocalizationService
         ["MovementCost_ElevationChange"] = "elevation change ({0:+#;-#;0}), {1} MP",
         ["MovementCost_Jump"] = "jump, {0} MP",
         ["MovementCost_StandUpAttempt"] = "stand up attempt, {0} MP",
+        ["MovementCost_HexEnter"] = "entered hex, {0} MP",
         ["Command_MechFalling_PsrIntro"] = "{0} may fall",
         ["Command_MechFalling_Base"] = "{0} fell",
         ["Command_MechFalling_Levels"] = " {0} level(s)",

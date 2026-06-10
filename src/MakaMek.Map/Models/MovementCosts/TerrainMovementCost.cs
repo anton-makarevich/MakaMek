@@ -3,6 +3,10 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Models.MovementCosts;
 
+/// <summary>
+/// Represents only the additional terrain-specific movement cost beyond the base hex entry cost.
+/// For example, light woods adds 1 MP on top of the standard 1 MP entry cost.
+/// </summary>
 public record TerrainMovementCost : MovementCost
 {
     public required MakaMekTerrains TerrainId { get; init; }

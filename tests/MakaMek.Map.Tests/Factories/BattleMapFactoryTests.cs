@@ -148,7 +148,7 @@ public class BattleMapFactoryTests
         var shallowWater = clonedShallow.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
         shallowWater.ShouldNotBeNull();
         shallowWater.Height.ShouldBe(0);
-        shallowWater.MovementCost.ShouldBe(1); // Shallow water = 1 MP
+        shallowWater.MovementCost.ShouldBe(0); // Shallow water = 0 additional MP
 
         // Standard water (depth -1)
         var clonedStandard = clonedMap.GetHex(new HexCoordinates(2, 2));
@@ -156,7 +156,7 @@ public class BattleMapFactoryTests
         var standardWater = clonedStandard.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
         standardWater.ShouldNotBeNull();
         standardWater.Height.ShouldBe(-1);
-        standardWater.MovementCost.ShouldBe(2); // Standard depth = 2 MP
+        standardWater.MovementCost.ShouldBe(1); // Standard depth = 1 additional MP
 
         // Deep water (depth -2)
         var clonedDeep = clonedMap.GetHex(new HexCoordinates(3, 3));
@@ -164,7 +164,7 @@ public class BattleMapFactoryTests
         var deepWater = clonedDeep.GetTerrain(MakaMekTerrains.Water) as WaterTerrain;
         deepWater.ShouldNotBeNull();
         deepWater.Height.ShouldBe(-2);
-        deepWater.MovementCost.ShouldBe(4); // Deep water = 4 MP
+        deepWater.MovementCost.ShouldBe(3); // Deep water = 3 additional MP
     }
 
     [Fact]

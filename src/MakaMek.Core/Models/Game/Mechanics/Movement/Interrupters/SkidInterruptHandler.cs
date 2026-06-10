@@ -106,7 +106,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             };
             skidPathSegments.Add(skidSegment);
 
-            remainingSkidDistance -= movementCost.Value;
+            remainingSkidDistance -= movementCost.Sum(c => c.Value);
             currentCoords = nextCoords;
             currentHex = nextHex;
         }

@@ -6,9 +6,5 @@ public class RoughTerrain : Terrain
     public override int Height => 0;
     public override int InterveningFactor => 0;
 
-    /// <summary>
-    /// Entering a rough terrain hex costs 1 additional MP over the base cost of 1 MP,
-    /// for a total of 2 MP.
-    /// </summary>
-    public override int MovementCost => 2;
+    public override int MovementCost => 1;
 }

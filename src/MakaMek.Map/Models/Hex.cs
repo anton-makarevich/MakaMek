@@ -67,32 +67,38 @@ public class Hex : IDisposable
     }
 
     /// <summary>
-    /// Gets the movement cost for entering this hex from another hex,
-    /// considering road/paved connections
+    /// Gets the movement costs for entering this hex from another hex,
+    /// considering road/paved connections. Returns both the hex entry cost
+    /// and the additional terrain-specific cost.
     /// </summary>
-    public TerrainMovementCost GetEnterMovementCost(Hex fromHex)
+    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex)
     {
-        int cost;
         MakaMekTerrains terrainId;
+        var hexEntry = new HexEnterMovementCost { Value = 1 };
 
         if (fromHex.GetRoadOrPavedTerrainId() is not null && this.GetRoadOrPavedTerrainId() is { } toRoad)
         {
-            cost = 1;
+            // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
             terrainId = toRoad;
+            var terrainCost = new TerrainMovementCost { TerrainId = terrainId, Value = 0, Depth = this.GetWaterDepth() };
+            return [hexEntry, terrainCost];
         }
-        else if (_terrains.Count != 0)
+
+        int additionalCost;
+        if (_terrains.Count != 0)
         {
             var maxTerrain = _terrains.Values.MaxBy(t => t.MovementCost)!;
-            cost = maxTerrain.MovementCost;
             terrainId = maxTerrain.Id;
+            additionalCost = maxTerrain.MovementCost;
         }
         else
         {
-            cost = 1;
             terrainId = MakaMekTerrains.Clear;
+            additionalCost = 0;
         }
 
-        return new TerrainMovementCost { TerrainId = terrainId, Value = cost, Depth = this.GetWaterDepth() };
+        var terrainCostResult = new TerrainMovementCost { TerrainId = terrainId, Value = additionalCost, Depth = this.GetWaterDepth() };
+        return [hexEntry, terrainCostResult];
     }
 
     /// <summary>

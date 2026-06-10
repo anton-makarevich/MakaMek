@@ -14,11 +14,11 @@ public class TerrainMovementCostTests
         var localization = Substitute.For<ILocalizationService>();
         localization.GetString("MovementCost_Terrain").Returns("entered {0}, {1} MP");
         localization.GetString("Terrain_LightWoods").Returns("Light Woods");
-        var sut = new TerrainMovementCost { TerrainId = MakaMekTerrains.LightWoods, Value = 2 };
+        var sut = new TerrainMovementCost { TerrainId = MakaMekTerrains.LightWoods, Value = 1 };
 
         var result = sut.Render(localization);
 
-        result.ShouldBe("entered Light Woods, 2 MP");
+        result.ShouldBe("entered Light Woods, 1 MP");
     }
 
     [Fact]
