@@ -1,5 +1,4 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -82,6 +81,7 @@ public class DisplaceUnitCommandTests
     [Fact]
     public void Record_ShouldSupportEquality()
     {
+        var timestamp = DateTime.UtcNow;
         var cmd1 = new DisplaceUnitCommand
         {
             GameOriginId = _gameId,
@@ -90,19 +90,10 @@ public class DisplaceUnitCommandTests
             ToCoordinates = new HexCoordinateData(2, 2),
             NewFacing = (int)HexDirection.Top,
             DisplacementReason = DisplacementReason.DominoEffect,
-            Timestamp = DateTime.UtcNow
+            Timestamp = timestamp
         };
 
-        var cmd2 = new DisplaceUnitCommand
-        {
-            GameOriginId = _gameId,
-            UnitId = _unit.Id,
-            FromCoordinates = new HexCoordinateData(1, 2),
-            ToCoordinates = new HexCoordinateData(2, 2),
-            NewFacing = (int)HexDirection.Top,
-            DisplacementReason = DisplacementReason.DominoEffect,
-            Timestamp = DateTime.UtcNow
-        };
+        var cmd2 = cmd1;
 
         (cmd1 == cmd2).ShouldBeTrue();
         cmd1.GetHashCode().ShouldBe(cmd2.GetHashCode());

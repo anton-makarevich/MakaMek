@@ -119,19 +119,19 @@ public class BridgeCollapseDominoTests : GamePhaseTestsBase
     [Fact]
     public void Check_WhenDisplacementOffMap_ShouldNotCreateDisplacementAction()
     {
-        // Bridge at edge hex (9, 9) so displacement target goes off-map
-        var bridgeHex = Game.BattleMap!.GetHex(new HexCoordinates(9, 9))!;
+        // Bridge at edge hex (1, 1) so displacement target goes off-map (to Q=1, R=0)
+        var bridgeHex = Game.BattleMap!.GetHex(new HexCoordinates(1, 1))!;
         bridgeHex.AddTerrain(new BridgeTerrain(2, 10));
 
-        _occupantMech.Deploy(new HexPosition(9, 9, HexDirection.Top), bridgeHex);
-        _enteringMech.Deploy(new HexPosition(8, 9, HexDirection.Top),
-            Game.BattleMap.GetHex(new HexCoordinates(8, 9)));
+        _occupantMech.Deploy(new HexPosition(1, 1, HexDirection.Top), bridgeHex);
+        _enteringMech.Deploy(new HexPosition(1, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(1, 2)));
 
         SetupFallContext(_enteringMech, MovementType.Walk);
         SetupFallContext(_occupantMech, MovementType.StandingStill);
 
         var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
-            new PathSegment(new HexPosition(8, 9, HexDirection.Top), new HexPosition(9, 9, HexDirection.Top), []));
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 1, HexDirection.Top), []));
 
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
 
