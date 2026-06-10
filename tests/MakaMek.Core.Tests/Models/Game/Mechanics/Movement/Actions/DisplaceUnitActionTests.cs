@@ -1,7 +1,5 @@
-using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 using Sanet.MakaMek.Map.Data;
@@ -53,6 +51,14 @@ public class DisplaceUnitActionTests : GamePhaseTestsBase
         var result = sut.Process(Game);
 
         result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Constructor_ShouldSetCommand()
+    {
+        var sut = new DisplaceUnitAction(_command);
+
+        sut.Command.ShouldBe(_command);
     }
 
     [Fact]
