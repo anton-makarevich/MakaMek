@@ -198,9 +198,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var turningCost = turningSteps.Count;
 
                 // Branch on destination surface — physical possibility filter only.
-                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
+                foreach (var toSurface in hex.GetHexSurfaces())
                 {
-                    if (toSurface == HexSurface.Bridge && hex.GetBridgeHeight() == null) continue;
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
                         && !hex.CanFitUnderBridge(unitHeight)) continue;
 
@@ -333,9 +332,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var turningCost = turningSteps.Count;
 
                 // Branch on destination surface — physical possibility filter only.
-                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
+                foreach (var toSurface in hex.GetHexSurfaces())
                 {
-                    if (toSurface == HexSurface.Bridge && hex.GetBridgeHeight() == null) continue;
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
                         && !hex.CanFitUnderBridge(unitHeight)) continue;
 
@@ -437,9 +435,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var turningCost = current.GetTurningCost(requiredFacing);
 
                 // Branch on destination surface — physical possibility filter only.
-                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
+                foreach (var toSurface in neighborHex.GetHexSurfaces())
                 {
-                    if (toSurface == HexSurface.Bridge && neighborHex.GetBridgeHeight() == null) continue;
                     if (toSurface == HexSurface.Ground && neighborHex.GetBridgeHeight() != null
                         && !neighborHex.CanFitUnderBridge(unitHeight)) continue;
 

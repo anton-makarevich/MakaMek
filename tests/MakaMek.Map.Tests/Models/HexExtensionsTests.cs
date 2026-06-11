@@ -453,4 +453,37 @@ public class HexExtensionsTests
 
         result.ShouldBe(0);
     }
+
+    [Fact]
+    public void GetHexSurfaces_ReturnsOnlyGround_WhenNoBridge()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+
+        var surfaces = sut.GetHexSurfaces();
+
+        surfaces.ShouldBe([HexSurface.Ground]);
+    }
+
+    [Fact]
+    public void GetHexSurfaces_ReturnsGroundAndBridge_WhenBridgeExists()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new BridgeTerrain(2, 0));
+
+        var surfaces = sut.GetHexSurfaces();
+
+        surfaces.ShouldBe([HexSurface.Ground, HexSurface.Bridge]);
+    }
+
+    [Fact]
+    public void GetHexSurfaces_ReturnsGroundAndBridge_WhenBridgeHeightIsZero()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new BridgeTerrain(0, 0));
+
+        var surfaces = sut.GetHexSurfaces();
+
+        surfaces.ShouldBe([HexSurface.Ground, HexSurface.Bridge]);
+    }
 }

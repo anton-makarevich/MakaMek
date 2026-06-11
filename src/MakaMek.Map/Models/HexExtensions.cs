@@ -62,6 +62,13 @@ public static class HexExtensions
             return hex.GetStandingLevel(toSurface) - fromHex.GetStandingLevel(fromSurface);
         }
 
+        public IReadOnlyList<HexSurface> GetHexSurfaces()
+        {
+            return hex.GetBridgeHeight() != null
+                ? [HexSurface.Ground, HexSurface.Bridge]
+                : [HexSurface.Ground];
+        }
+
         public bool CanFitUnderBridge(int unitHeight)
         {
             return unitHeight <= (hex.GetBridgeClearance() ?? int.MaxValue);
