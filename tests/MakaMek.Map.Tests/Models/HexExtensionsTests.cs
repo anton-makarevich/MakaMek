@@ -250,7 +250,7 @@ public class HexExtensionsTests
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 5 };
         toHex.AddTerrain(new ClearTerrain());
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Ground);
 
         result.ShouldBe(3);
     }
@@ -263,65 +263,39 @@ public class HexExtensionsTests
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 1 };
         toHex.AddTerrain(new BridgeTerrain(3, 0));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 5);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Bridge, HexSurface.Bridge);
 
         result.ShouldBe(2); // (1 + 3) - (0 + 2) = 2
     }
 
     [Fact]
-    public void GetBridgeElevationChange_RoadToBridge_UsesBridgeSurfaceLevel()
+    public void GetBridgeElevationChange_GroundToBridge_UsesBridgeSurfaceLevel()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
         fromHex.AddTerrain(new RoadTerrain());
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
         toHex.AddTerrain(new BridgeTerrain(1, 0));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 3);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Bridge);
 
         result.ShouldBe(1); // (0 + 1) - 0 = 1
     }
 
     [Fact]
-    public void GetBridgeElevationChange_SufficientClearance_ReturnsBottomLevelDifference()
+    public void GetBridgeElevationChange_GroundToGroundUnderBridge_ReturnsBottomLevelDifference()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
         fromHex.AddTerrain(new ClearTerrain());
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
         toHex.AddTerrain(new BridgeTerrain(2, 0));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Ground);
 
-        result.ShouldBe(0); // clearance is 2, unit height is 2, can pass under → bottom level diff
+        result.ShouldBe(0);
     }
 
     [Fact]
-    public void GetBridgeElevationChange_InsufficientClearance_ReturnsBridgeSurfaceLevelDifference()
-    {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new ClearTerrain());
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
-        toHex.AddTerrain(new BridgeTerrain(1, 0));
-
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
-
-        result.ShouldBe(1); // clearance is 1, unit height is 2 → climb to (0 + 1) - 0 = 1
-    }
-
-    [Fact]
-    public void GetBridgeElevationChange_UnitHeightZero_ReturnsNormalElevationChange()
-    {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new ClearTerrain());
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
-        toHex.AddTerrain(new BridgeTerrain(1, 0));
-
-        var result = toHex.GetBridgeElevationChange(fromHex, 0);
-
-        result.ShouldBe(0); // no height → can pass under, normal elevation
-    }
-
-    [Fact]
-    public void GetBridgeElevationChange_OverWaterWithInsufficientClearance_CalculatesFromBottom()
+    public void GetBridgeElevationChange_OverWaterGroundToBridge_UsesBridgeSurface()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
         fromHex.AddTerrain(new ClearTerrain());
@@ -329,15 +303,14 @@ public class HexExtensionsTests
         toHex.AddTerrain(new BridgeTerrain(1, 0));
         toHex.AddTerrain(new WaterTerrain(-1));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 3);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Bridge);
 
-        // clearance = (0 + 1) - (-1) = 2, unit height 3 > 2 → climb
         // bridge surface (0 + 1) - from bottom 0 = 1
         result.ShouldBe(1);
     }
 
     [Fact]
-    public void GetBridgeElevationChange_OverWaterWithSufficientClearance_UsesBottomLevel()
+    public void GetBridgeElevationChange_OverWaterGroundToGround_UsesBottomLevel()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
         fromHex.AddTerrain(new ClearTerrain());
@@ -345,9 +318,8 @@ public class HexExtensionsTests
         toHex.AddTerrain(new BridgeTerrain(1, 0));
         toHex.AddTerrain(new WaterTerrain(-1));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Ground);
 
-        // clearance = (0 + 1) - (-1) = 2, unit height 2 <= 2 → pass under
         // bottom level diff = -1 - 0 = -1 (descend into water)
         result.ShouldBe(-1);
     }
@@ -361,10 +333,9 @@ public class HexExtensionsTests
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
         toHex.AddTerrain(new ClearTerrain());
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Bridge, HexSurface.Ground);
 
         // unit is on bridge surface = 0 + 0 = 0, target bottom = 0
-        // elevation change = 0 - 0 = 0
         result.ShouldBe(0);
     }
 
@@ -377,10 +348,9 @@ public class HexExtensionsTests
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
         toHex.AddTerrain(new RoadTerrain());
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Bridge, HexSurface.Ground);
 
         // unit is on bridge surface = 0 + 0 = 0, target bottom = 0
-        // elevation change = 0 - 0 = 0
         result.ShouldBe(0);
     }
 
@@ -393,25 +363,23 @@ public class HexExtensionsTests
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 2 };
         toHex.AddTerrain(new ClearTerrain());
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Bridge, HexSurface.Ground);
 
         // unit is on bridge surface = 0 + 2 = 2, target bottom = 2
-        // elevation change = 2 - 2 = 0
         result.ShouldBe(0);
     }
 
     [Fact]
-    public void GetBridgeElevationChange_ElevatedFromHexWithBridgeClimb_CalculatesCorrectly()
+    public void GetBridgeElevationChange_ElevatedFromHexClimbToBridge_CalculatesCorrectly()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
         fromHex.AddTerrain(new ClearTerrain());
         var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 1 };
         toHex.AddTerrain(new BridgeTerrain(2, 0));
 
-        var result = toHex.GetBridgeElevationChange(fromHex, 5);
+        var result = toHex.GetBridgeElevationChange(fromHex, HexSurface.Ground, HexSurface.Bridge);
 
         // bridge surface = 1 + 2 = 3, from bottom = 3
-        // elevation change = 3 - 3 = 0
         result.ShouldBe(0);
     }
 
@@ -443,54 +411,46 @@ public class HexExtensionsTests
     }
 
     [Fact]
-    public void GetStandingLevel_ReturnsBottomLevel_WhenNotOnRoadOrBridge()
+    public void GetStandingLevel_Ground_ReturnsBottomLevel_WhenNoBridge()
     {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new ClearTerrain());
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
-        toHex.AddTerrain(new ClearTerrain());
+        var sut = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        sut.AddTerrain(new ClearTerrain());
 
-        var result = toHex.GetStandingLevel(fromHex);
+        var result = sut.GetStandingLevel(HexSurface.Ground);
 
         result.ShouldBe(0);
     }
 
     [Fact]
-    public void GetStandingLevel_ReturnsBridgeSurface_WhenOnBridge()
+    public void GetStandingLevel_Ground_ReturnsBottomLevel_WhenWaterPresent()
     {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new BridgeTerrain(2, 0));
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 1 };
-        toHex.AddTerrain(new BridgeTerrain(3, 0));
+        var sut = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        sut.AddTerrain(new WaterTerrain(-1));
 
-        var result = toHex.GetStandingLevel(fromHex);
+        var result = sut.GetStandingLevel(HexSurface.Ground);
 
-        result.ShouldBe(4); // 1 + 3
+        result.ShouldBe(-1);
     }
 
     [Fact]
-    public void GetStandingLevel_ReturnsHexLevel_WhenOnRoadOnly()
+    public void GetStandingLevel_Bridge_ReturnsHexLevelPlusBridgeHeight()
     {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new RoadTerrain());
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
-        toHex.AddTerrain(new RoadTerrain());
+        var sut = new Hex(new HexCoordinates(2, 1)) { Level = 1 };
+        sut.AddTerrain(new BridgeTerrain(3, 0));
 
-        var result = toHex.GetStandingLevel(fromHex);
+        var result = sut.GetStandingLevel(HexSurface.Bridge);
 
-        result.ShouldBe(0); // road has no bridge height, falls back to hex.Level
+        result.ShouldBe(4);
     }
 
     [Fact]
-    public void GetStandingLevel_ReturnsHexLevel_WhenFromBridgeToRoad()
+    public void GetStandingLevel_Bridge_ReturnsHexLevel_WhenNoBridge()
     {
-        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
-        fromHex.AddTerrain(new BridgeTerrain(2, 0));
-        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
-        toHex.AddTerrain(new RoadTerrain());
+        var sut = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        sut.AddTerrain(new RoadTerrain());
 
-        var result = toHex.GetStandingLevel(fromHex);
+        var result = sut.GetStandingLevel(HexSurface.Bridge);
 
-        result.ShouldBe(0); // road has no bridge, returns hex level
+        result.ShouldBe(0);
     }
 }

@@ -5,15 +5,15 @@ namespace Sanet.MakaMek.Map.Models;
 /// <summary>
 /// Represents a position on the hex map, combining coordinates and facing direction
 /// </summary>
-public record HexPosition(HexCoordinates Coordinates, HexDirection Facing)
+public record HexPosition(HexCoordinates Coordinates, HexDirection Facing, HexSurface Surface = HexSurface.Ground)
 {
-    public HexPosition(int q, int r, HexDirection facing)
-        : this(new HexCoordinates(q, r), facing)
+    public HexPosition(int q, int r, HexDirection facing, HexSurface surface = HexSurface.Ground)
+        : this(new HexCoordinates(q, r), facing, surface)
     {
     }
 
     public HexPosition(HexPositionData data)
-        : this(new HexCoordinates(data.Coordinates), (HexDirection)data.Facing)
+        : this(new HexCoordinates(data.Coordinates), (HexDirection)data.Facing, (HexSurface)data.Surface)
     {
     }
 
@@ -47,7 +47,7 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing)
             for (var step = 1; step <= clockwiseSteps; step++)
             {
                 var intermediateFacing = (HexDirection)((currentFacingInt + step) % 6);
-                yield return new HexPosition(Coordinates, intermediateFacing);
+                yield return new HexPosition(Coordinates, intermediateFacing, Surface);
             }
         }
         else
@@ -56,7 +56,7 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing)
             for (var step = 1; step <= counterClockwiseSteps; step++)
             {
                 var intermediateFacing = (HexDirection)((currentFacingInt - step + 6) % 6);
-                yield return new HexPosition(Coordinates, intermediateFacing);
+                yield return this with { Facing = intermediateFacing };
             }
         }
     }
@@ -64,12 +64,13 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing)
     public HexPositionData ToData() => new()
     {
         Coordinates = Coordinates.ToData(),
-        Facing = (int)Facing
+        Facing = (int)Facing,
+        Surface = (int)Surface
     };
 
     /// <summary>
     /// Returns a new position with the same coordinates but facing the opposite direction
     /// </summary>
-    public HexPosition GetOppositeDirectionPosition() => 
-        new(Coordinates, (HexDirection)((int)(Facing + 3) % 6));
+    public HexPosition GetOppositeDirectionPosition() =>
+        new(Coordinates, (HexDirection)((int)(Facing + 3) % 6), Surface);
 }

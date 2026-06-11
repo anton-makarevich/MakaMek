@@ -92,7 +92,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <summary>
     /// Converts a list of hex positions to path segments
     /// </summary>
-    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path, int unitHeight)
+    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
     {
         var segments = new List<PathSegment>();
         for (var i = 0; i < path.Count - 1; i++)
@@ -107,7 +107,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                elevationChange = hex.GetBridgeElevationChange(fromHex, unitHeight);
+                elevationChange = hex.GetBridgeElevationChange(fromHex, from.Surface, to.Surface);
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>();
@@ -161,20 +161,20 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost), int>();
-        var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
+        var visited = new Dictionary<HexPosition, int>();
 
         frontier.Enqueue((start, [start], 0), 0);
-        visited[(start.Coordinates, start.Facing)] = 0;
+        visited[start] = 0;
 
         while (frontier.Count > 0)
         {
             var (current, path, currentCost) = frontier.Dequeue();
 
             // Check if we've reached the target
-            if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
+            if (current == target)
             {
                 // Convert path to segments
-                var segments = ConvertPathToSegments(path, unitHeight);
+                var segments = ConvertPathToSegments(path);
                 var result = new MovementPath(segments, movementType, maxLevelChange);
                 if (useCache) _movementPathCache.Add(result, unitHeight);
                 return result;
@@ -196,48 +196,53 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate turning steps and cost if needed
                 var turningSteps = current.GetTurningSteps(requiredFacing).ToList();
                 var turningCost = turningSteps.Count;
-                var newPath = new List<HexPosition>(path);
-                newPath.AddRange(turningSteps);
 
-                // Add the movement step
-                var nextPos = new HexPosition(nextCoord, requiredFacing);
-                newPath.Add(nextPos);
-
-                // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
-                
-                // Skip if level change exceeds the maximum allowed
-                if (levelCost > maxLevelChange)
-                    continue;
-
-                // Calculate total cost including terrain, hex entry, and level change
-                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-
-                if (totalCost > maxMovementPoints)
-                    continue;
-
-                // Skip if we've visited this state with a lower or equal cost
-                var nextKey = (nextCoord, requiredFacing);
-                if (visited.TryGetValue(nextKey, out var visitedCost) && totalCost >= visitedCost)
-                    continue;
-
-                visited[nextKey] = totalCost;
-
-                // Calculate priority based on remaining distance plus current cost
-                var priority = totalCost + nextCoord.DistanceTo(target.Coordinates);
-
-                // If we're at target coordinates but wrong facing, add turning steps to target facing
-                if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
+                // Branch on destination surface — physical possibility filter only.
+                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
                 {
-                    var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
-                    var finalCost = totalCost + finalTurningSteps.Count;
-                    if (finalCost > maxMovementPoints) continue;
-                    newPath.AddRange(finalTurningSteps);
-                    frontier.Enqueue((new HexPosition(nextCoord, target.Facing), newPath, finalCost), priority);
-                }
-                else
-                {
-                    frontier.Enqueue((nextPos, newPath, totalCost), priority);
+                    if (toSurface == HexSurface.Bridge && hex.GetBridgeHeight() == null) continue;
+                    if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
+                        && !hex.CanFitUnderBridge(unitHeight)) continue;
+
+                    var elevationChange = hex.GetBridgeElevationChange(currentHex, current.Surface, toSurface);
+                    var levelCost = Math.Abs(elevationChange);
+
+                    if (levelCost > maxLevelChange)
+                        continue;
+
+                    var nextPos = new HexPosition(nextCoord, requiredFacing, toSurface);
+                    var newPath = new List<HexPosition>(path);
+                    newPath.AddRange(turningSteps);
+                    newPath.Add(nextPos);
+
+                    // Calculate total cost including terrain, hex entry, and level change
+                    var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+
+                    if (totalCost > maxMovementPoints)
+                        continue;
+
+                    // Skip if we've visited this state with a lower or equal cost
+                    if (visited.TryGetValue(nextPos, out var visitedCost) && totalCost >= visitedCost)
+                        continue;
+
+                    visited[nextPos] = totalCost;
+
+                    // Calculate priority based on remaining distance plus current cost
+                    var priority = totalCost + nextCoord.DistanceTo(target.Coordinates);
+
+                    // If we're at target coordinates but wrong facing, add turning steps to target facing
+                    if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
+                    {
+                        var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
+                        var finalCost = totalCost + finalTurningSteps.Count;
+                        if (finalCost > maxMovementPoints) continue;
+                        newPath.AddRange(finalTurningSteps);
+                        frontier.Enqueue((new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost), priority);
+                    }
+                    else
+                    {
+                        frontier.Enqueue((nextPos, newPath, totalCost), priority);
+                    }
                 }
             }
         }
@@ -283,20 +288,20 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         // Use a priority queue that prioritizes higher hex counts
         var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost, int hexesTraveled), (int, int)>();
-        var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), (int cost, int hexesTraveled)>();
+        var visited = new Dictionary<HexPosition, (int cost, int hexesTraveled)>();
 
         frontier.Enqueue((start, [start], 0, 0), (0, 0));
-        visited[(start.Coordinates, start.Facing)] = (0, 0);
+        visited[start] = (0, 0);
 
         while (frontier.Count > 0)
         {
             var (current, path, currentCost, hexesTraveled) = frontier.Dequeue();
 
             // Check if we've reached the target
-            if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
+            if (current == target)
             {
                 // Convert path to segments
-                var segments = ConvertPathToSegments(path, unitHeight);
+                var segments = ConvertPathToSegments(path);
                 var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
 
                 // Update the best path if this one has more hexes traveled
@@ -326,53 +331,58 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Calculate turning steps and cost if needed
                 var turningSteps = current.GetTurningSteps(requiredFacing).ToList();
                 var turningCost = turningSteps.Count;
-                var newPath = new List<HexPosition>(path);
-                newPath.AddRange(turningSteps);
 
-                // Add the movement step
-                var nextPos = new HexPosition(nextCoord, requiredFacing);
-                newPath.Add(nextPos);
-
-                // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(hex.GetBridgeElevationChange(currentHex, unitHeight));
-                
-                // Skip if level change exceeds the maximum allowed
-                if (levelCost > maxLevelChange)
-                    continue;
-
-                // Calculate total cost including terrain, hex entry, and level change
-                var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-                var newHexesTraveled = hexesTraveled + 1;
-
-                if (totalCost > maxMovementPoints)
-                    continue;
-
-                // For the longest path, allow revisiting if we have the same cost but more hexes traveled
-                var nextKey = (nextCoord, requiredFacing);
-                if (visited.TryGetValue(nextKey, out var visitedState))
+                // Branch on destination surface — physical possibility filter only.
+                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
                 {
-                    // Skip only if we've visited with both lower-or-equal cost AND more-or-equal hexes
-                    if (visitedState.cost <= totalCost && visitedState.hexesTraveled >= newHexesTraveled)
+                    if (toSurface == HexSurface.Bridge && hex.GetBridgeHeight() == null) continue;
+                    if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
+                        && !hex.CanFitUnderBridge(unitHeight)) continue;
+
+                    var elevationChange = hex.GetBridgeElevationChange(currentHex, current.Surface, toSurface);
+                    var levelCost = Math.Abs(elevationChange);
+
+                    if (levelCost > maxLevelChange)
                         continue;
-                }
 
-                visited[nextKey] = (totalCost, newHexesTraveled);
+                    var nextPos = new HexPosition(nextCoord, requiredFacing, toSurface);
+                    var newPath = new List<HexPosition>(path);
+                    newPath.AddRange(turningSteps);
+                    newPath.Add(nextPos);
 
-                // Priority: negative hexes traveled (to maximize), then distance (to reach target)
-                var priority = (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
+                    // Calculate total cost including terrain, hex entry, and level change
+                    var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+                    var newHexesTraveled = hexesTraveled + 1;
 
-                // If we're at target coordinates but wrong facing, add turning steps to target facing
-                if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
-                {
-                    var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
-                    var finalCost = totalCost + finalTurningSteps.Count;
-                    if (finalCost > maxMovementPoints) continue;
-                    newPath.AddRange(finalTurningSteps);
-                    frontier.Enqueue((new HexPosition(nextCoord, target.Facing), newPath, finalCost, newHexesTraveled), priority);
-                }
-                else
-                {
-                    frontier.Enqueue((nextPos, newPath, totalCost, newHexesTraveled), priority);
+                    if (totalCost > maxMovementPoints)
+                        continue;
+
+                    // For the longest path, allow revisiting if we have the same cost but more hexes traveled
+                    if (visited.TryGetValue(nextPos, out var visitedState))
+                    {
+                        // Skip only if we've visited with both lower-or-equal cost AND more-or-equal hexes
+                        if (visitedState.cost <= totalCost && visitedState.hexesTraveled >= newHexesTraveled)
+                            continue;
+                    }
+
+                    visited[nextPos] = (totalCost, newHexesTraveled);
+
+                    // Priority: negative hexes traveled (to maximize), then distance (to reach target)
+                    var priority = (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
+
+                    // If we're at target coordinates but wrong facing, add turning steps to target facing
+                    if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
+                    {
+                        var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
+                        var finalCost = totalCost + finalTurningSteps.Count;
+                        if (finalCost > maxMovementPoints) continue;
+                        newPath.AddRange(finalTurningSteps);
+                        frontier.Enqueue((new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), priority);
+                    }
+                    else
+                    {
+                        frontier.Enqueue((nextPos, newPath, totalCost, newHexesTraveled), priority);
+                    }
                 }
             }
         }
@@ -395,19 +405,19 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         int? maxLevelChange = null)
     {
-        var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
+        var visited = new Dictionary<HexPosition, int>();
         var bestCosts = new Dictionary<HexCoordinates, int>();
         var toVisit = new Queue<HexPosition>();
         prohibitedHexes ??= new HashSet<HexCoordinates>();
-        
-        visited[(start.Coordinates, start.Facing)] = 0;
+
+        visited[start] = 0;
         bestCosts[start.Coordinates] = 0;
         toVisit.Enqueue(start);
 
         while (toVisit.Count > 0)
         {
             var current = toVisit.Dequeue();
-            var currentCost = visited[(current.Coordinates, current.Facing)];
+            var currentCost = visited[current];
 
             // For each adjacent hex
             foreach (var neighborCoord in current.Coordinates.GetAllNeighbours())
@@ -422,37 +432,40 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 // Get the required facing to move to this hex
                 var requiredFacing = current.Coordinates.GetDirectionToNeighbour(neighborCoord);
-                
+
                 // Calculate turning cost from current facing
                 var turningCost = current.GetTurningCost(requiredFacing);
-                
-                // Calculate level change cost considering bridge clearance
-                var levelCost = Math.Abs(neighborHex.GetBridgeElevationChange(currentHex, unitHeight));
-                
-                // Skip if level change exceeds the maximum allowed
-                if (levelCost > maxLevelChange)
-                    continue;
-                
-                // Calculate total cost including turning, hex entry, terrain, and level change
-                var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-                
-                if (totalCost > maxMovementPoints) // Exceeds movement points
-                    continue;
 
-                var neighborKey = (neighborCoord, requiredFacing);
-                
-                // Skip if we've visited this hex+facing combination with a lower cost
-                if (visited.TryGetValue(neighborKey, out var visitedCost) && totalCost >= visitedCost)
-                    continue;
-                
-                // Update both visited and best costs
-                visited[neighborKey] = totalCost;
-                if (!bestCosts.TryGetValue(neighborCoord, out var bestCost) || totalCost < bestCost)
+                // Branch on destination surface — physical possibility filter only.
+                foreach (var toSurface in new[] { HexSurface.Ground, HexSurface.Bridge })
                 {
-                    bestCosts[neighborCoord] = totalCost;
+                    if (toSurface == HexSurface.Bridge && neighborHex.GetBridgeHeight() == null) continue;
+                    if (toSurface == HexSurface.Ground && neighborHex.GetBridgeHeight() != null
+                        && !neighborHex.CanFitUnderBridge(unitHeight)) continue;
+
+                    var levelCost = Math.Abs(neighborHex.GetBridgeElevationChange(currentHex, current.Surface, toSurface));
+
+                    if (levelCost > maxLevelChange)
+                        continue;
+
+                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+
+                    if (totalCost > maxMovementPoints)
+                        continue;
+
+                    var neighborPos = new HexPosition(neighborCoord, requiredFacing, toSurface);
+
+                    if (visited.TryGetValue(neighborPos, out var visitedCost) && totalCost >= visitedCost)
+                        continue;
+
+                    visited[neighborPos] = totalCost;
+                    if (!bestCosts.TryGetValue(neighborCoord, out var bestCost) || totalCost < bestCost)
+                    {
+                        bestCosts[neighborCoord] = totalCost;
+                    }
+
+                    toVisit.Enqueue(neighborPos);
                 }
-                
-                toVisit.Enqueue(new HexPosition(neighborCoord, requiredFacing));
             }
         }
 
@@ -743,21 +756,26 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
 
                 // Add a path segment with cost 1 (each hex costs 1 MP for jumping)
-                HexPosition nextPosition;
+                HexCoordinates nextCoords;
+                HexDirection nextFacing;
                 if (remainingDistance == 1)
-                    nextPosition = to;
+                {
+                    nextCoords = to.Coordinates;
+                    nextFacing = to.Facing;
+                }
                 else
                 {
                     // Get the neighbor that's closest to the target
-                    var nextCoords = neighbors
+                    nextCoords = neighbors
                         .OrderBy(n => n.DistanceTo(to.Coordinates))
                         .First();
-                    nextPosition = new HexPosition(nextCoords,
-                        currentPosition.Coordinates.GetDirectionToNeighbour(nextCoords));
+                    nextFacing = currentPosition.Coordinates.GetDirectionToNeighbour(nextCoords);
                 }
 
                 var fromHex = GetHex(currentPosition.Coordinates) ?? throw new WrongHexException(currentPosition.Coordinates, "Hex not found");
-                var toHex = GetHex(nextPosition.Coordinates) ?? throw new WrongHexException(nextPosition.Coordinates, "Hex not found");
+                var toHex = GetHex(nextCoords) ?? throw new WrongHexException(nextCoords, "Hex not found");
+                var landingSurface = toHex.GetBridgeHeight() != null ? HexSurface.Bridge : HexSurface.Ground;
+                var nextPosition = new HexPosition(nextCoords, nextFacing, landingSurface);
                 var elevationChange = toHex.GetElevationChange(fromHex);
 
                 path.Add(new PathSegment(
