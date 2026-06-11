@@ -34,7 +34,7 @@ public static class HexExtensions
             return hex.Level - (hex.GetWaterDepth() ?? 0);
         }
 
-        public int GetElevationChange(Hex fromHex)
+        public int GetGroundElevationChange(Hex fromHex)
         {
             return hex.GetBottomLevel() - fromHex.GetBottomLevel();
         }
@@ -57,7 +57,7 @@ public static class HexExtensions
                 : hex.GetBottomLevel();
         }
 
-        public int GetBridgeElevationChange(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+        public int GetElevationChange(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
         {
             return hex.GetStandingLevel(toSurface) - fromHex.GetStandingLevel(fromSurface);
         }
@@ -69,7 +69,7 @@ public static class HexExtensions
                 : [HexSurface.Ground];
         }
 
-        public bool CanFitUnderBridge(int unitHeight)
+        public bool CanStandOnGround(int unitHeight)
         {
             return unitHeight <= (hex.GetBridgeClearance() ?? int.MaxValue);
         }

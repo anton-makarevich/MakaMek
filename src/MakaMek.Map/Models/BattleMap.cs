@@ -107,7 +107,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                elevationChange = hex.GetBridgeElevationChange(fromHex, from.Surface, to.Surface);
+                elevationChange = hex.GetElevationChange(fromHex, from.Surface, to.Surface);
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>();
@@ -201,9 +201,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 foreach (var toSurface in hex.GetHexSurfaces())
                 {
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
-                        && !hex.CanFitUnderBridge(unitHeight)) continue;
+                        && !hex.CanStandOnGround(unitHeight)) continue;
 
-                    var elevationChange = hex.GetBridgeElevationChange(currentHex, current.Surface, toSurface);
+                    var elevationChange = hex.GetElevationChange(currentHex, current.Surface, toSurface);
                     var levelCost = Math.Abs(elevationChange);
 
                     if (levelCost > maxLevelChange)
@@ -335,9 +335,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 foreach (var toSurface in hex.GetHexSurfaces())
                 {
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
-                        && !hex.CanFitUnderBridge(unitHeight)) continue;
+                        && !hex.CanStandOnGround(unitHeight)) continue;
 
-                    var elevationChange = hex.GetBridgeElevationChange(currentHex, current.Surface, toSurface);
+                    var elevationChange = hex.GetElevationChange(currentHex, current.Surface, toSurface);
                     var levelCost = Math.Abs(elevationChange);
 
                     if (levelCost > maxLevelChange)
@@ -438,9 +438,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 foreach (var toSurface in neighborHex.GetHexSurfaces())
                 {
                     if (toSurface == HexSurface.Ground && neighborHex.GetBridgeHeight() != null
-                        && !neighborHex.CanFitUnderBridge(unitHeight)) continue;
+                        && !neighborHex.CanStandOnGround(unitHeight)) continue;
 
-                    var levelCost = Math.Abs(neighborHex.GetBridgeElevationChange(currentHex, current.Surface, toSurface));
+                    var levelCost = Math.Abs(neighborHex.GetElevationChange(currentHex, current.Surface, toSurface));
 
                     if (levelCost > maxLevelChange)
                         continue;
@@ -772,7 +772,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 // Land on the highest surface
                 var landingSurface = toHex.GetBridgeHeight() != null ? HexSurface.Bridge : HexSurface.Ground;
                 var nextPosition = new HexPosition(nextCoords, nextFacing, landingSurface);
-                var elevationChange = toHex.GetElevationChange(fromHex);
+                var elevationChange = toHex.GetGroundElevationChange(fromHex);
 
                 path.Add(new PathSegment(
                     currentPosition,
