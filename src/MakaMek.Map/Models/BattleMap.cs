@@ -752,9 +752,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var neighbors = currentPosition.Coordinates.GetAllNeighbours()
                     .Where(IsOnMap)
                     .ToList();
-
-
-
+                
                 // Add a path segment with cost 1 (each hex costs 1 MP for jumping)
                 HexCoordinates nextCoords;
                 HexDirection nextFacing;
@@ -774,6 +772,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                 var fromHex = GetHex(currentPosition.Coordinates) ?? throw new WrongHexException(currentPosition.Coordinates, "Hex not found");
                 var toHex = GetHex(nextCoords) ?? throw new WrongHexException(nextCoords, "Hex not found");
+                // Land on the highest surface
                 var landingSurface = toHex.GetBridgeHeight() != null ? HexSurface.Bridge : HexSurface.Ground;
                 var nextPosition = new HexPosition(nextCoords, nextFacing, landingSurface);
                 var elevationChange = toHex.GetElevationChange(fromHex);
