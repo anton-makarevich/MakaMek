@@ -60,8 +60,13 @@ public static class HexExtensions
         public int GetBridgeElevationChange(Hex fromHex, int unitHeight)
         {
             var bridgeHeight = hex.GetBridgeHeight();
+            var fromBridgeHeight = fromHex.GetBridgeHeight();
             if (bridgeHeight == null)
+            {
+                if (fromBridgeHeight != null)
+                    return hex.GetBottomLevel() - (fromHex.Level + fromBridgeHeight.Value);
                 return hex.GetElevationChange(fromHex);
+            }
 
             if (hex.IsOnRoadOrBridge(fromHex))
                 return hex.GetStandingLevel(fromHex) - fromHex.GetStandingLevel(hex);

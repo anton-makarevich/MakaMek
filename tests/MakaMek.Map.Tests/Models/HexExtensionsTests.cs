@@ -353,6 +353,54 @@ public class HexExtensionsTests
     }
 
     [Fact]
+    public void GetBridgeElevationChange_BridgeOverWaterToClear_UsesBridgeSurface()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        fromHex.AddTerrain(new WaterTerrain(-1));
+        fromHex.AddTerrain(new BridgeTerrain(0, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        toHex.AddTerrain(new ClearTerrain());
+
+        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+
+        // unit is on bridge surface = 0 + 0 = 0, target bottom = 0
+        // elevation change = 0 - 0 = 0
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetBridgeElevationChange_BridgeOverWaterToRoad_UsesBridgeSurface()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        fromHex.AddTerrain(new WaterTerrain(-1));
+        fromHex.AddTerrain(new BridgeTerrain(0, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        toHex.AddTerrain(new RoadTerrain());
+
+        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+
+        // unit is on bridge surface = 0 + 0 = 0, target bottom = 0
+        // elevation change = 0 - 0 = 0
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetBridgeElevationChange_ElevatedBridgeOverWaterToClear_UsesBridgeSurface()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        fromHex.AddTerrain(new WaterTerrain(-1));
+        fromHex.AddTerrain(new BridgeTerrain(2, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1)) { Level = 2 };
+        toHex.AddTerrain(new ClearTerrain());
+
+        var result = toHex.GetBridgeElevationChange(fromHex, 2);
+
+        // unit is on bridge surface = 0 + 2 = 2, target bottom = 2
+        // elevation change = 2 - 2 = 0
+        result.ShouldBe(0);
+    }
+
+    [Fact]
     public void GetBridgeElevationChange_ElevatedFromHexWithBridgeClimb_CalculatesCorrectly()
     {
         var fromHex = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
