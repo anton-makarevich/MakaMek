@@ -155,6 +155,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
+            if (start.Surface != target.Surface)
+                return null;
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
             if (path != null && useCache) _movementPathCache.Add(path, unitHeight);
             return path;
@@ -276,6 +278,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
+            if (start.Surface != target.Surface)
+                return null;
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
             if (path != null && useCache) _movementLongPathCache.Add(path, unitHeight);
             return path;
