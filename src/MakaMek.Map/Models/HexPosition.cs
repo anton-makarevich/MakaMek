@@ -47,7 +47,7 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing, HexSu
             for (var step = 1; step <= clockwiseSteps; step++)
             {
                 var intermediateFacing = (HexDirection)((currentFacingInt + step) % 6);
-                yield return new HexPosition(Coordinates, intermediateFacing, Surface);
+                yield return this with { Facing = intermediateFacing };
             }
         }
         else
