@@ -674,6 +674,40 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindPath_SameHex_DifferentSurfaces_ReturnsNull()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.AddHex(hex);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+
+        // Assert
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_SameHex_DifferentSurfaces_ReturnsNull()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.AddHex(hex);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, PathFindingMode.Longest);
+
+        // Assert
+        path.ShouldBeNull();
+    }
+
+    [Fact]
     public void FindPath_SameHex_NoTurningNeeded_ReturnsOneSegment_WithNoHexes_AndNoTurns()
     {
         // Arrange
