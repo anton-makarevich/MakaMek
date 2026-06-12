@@ -2484,8 +2484,8 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 1, unitHeight: 2).ToList();
 
-        reachable.ShouldNotContain(h => h.coordinates == new HexCoordinates(2, 1),
-            "Hex with bridge clearance 1 should not be reachable by unit height 2");
+        reachable.ShouldNotContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground,
+            "Hex with bridge clearance 1 should not be reachable on Ground surface by unit height 2");
     }
 
     [Fact]
@@ -2503,8 +2503,8 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 1, unitHeight: 1).ToList();
 
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1),
-            "Hex with bridge clearance 1 should be reachable by unit height 1");
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground,
+            "Hex with bridge clearance 1 should be reachable on Ground surface by unit height 1");
     }
 
     [Fact]
@@ -2522,7 +2522,7 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 3, unitHeight: 3).ToList();
 
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.cost == 2,
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Bridge && h.cost == 2,
             "Road-to-bridge movement should bypass clearance check; cost should be 1 (terrain) + 1 (bridge climb)");
     }
 
@@ -2655,5 +2655,39 @@ public class BattleMapTests
 
         path.ShouldNotBeNull();
         path.Segments.ShouldAllBe(s => s.ElevationChange == 0);
+    }
+
+    [Fact]
+    public void GetReachableHexes_MultiSurfaceBridge_ReportsBothSurfaces()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(2, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        const int mpBudget = 4;
+
+        var reachable = sut.GetReachableHexes(start, mpBudget, unitHeight: 1).ToList();
+
+        // Both surfaces should be reported with their respective costs
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground && h.cost == 1,
+            "Ground surface under bridge should be reachable at cost 1");
+        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Bridge && h.cost == 3,
+            "Bridge surface should be reachable at cost 3 (1 terrain + 2 climb)");
+
+        // Verify costs match FindPath results for each surface
+        var groundTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight, HexSurface.Ground);
+        var groundPath = sut.FindPath(start, groundTarget, MovementType.Walk, mpBudget, unitHeight: 1);
+        groundPath.ShouldNotBeNull();
+        groundPath.TotalCost.ShouldBe(1);
+
+        var bridgeTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight, HexSurface.Bridge);
+        var bridgePath = sut.FindPath(start, bridgeTarget, MovementType.Walk, mpBudget, unitHeight: 1);
+        bridgePath.ShouldNotBeNull();
+        bridgePath.TotalCost.ShouldBe(3);
     }
 }
