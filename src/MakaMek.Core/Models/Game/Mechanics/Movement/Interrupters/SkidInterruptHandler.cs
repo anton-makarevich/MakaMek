@@ -56,7 +56,8 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             var modifiedCommand = context.MoveCommand with
             {
                 MovementPath = modifiedPath.ToData(),
-                IsCompleted = true
+                IsCompleted = true,
+                GameOriginId = context.Game.Id
             };
 
             var fallCommand = skidFallContext.ToMechFallCommand();
