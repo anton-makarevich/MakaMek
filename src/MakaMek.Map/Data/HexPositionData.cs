@@ -4,5 +4,6 @@ namespace Sanet.MakaMek.Map.Data
     {
         public required HexCoordinateData Coordinates { get; init; }
         public required int Facing { get; init; }
+        public int Surface { get; init; } // HexSurface.Ground
     }
 }

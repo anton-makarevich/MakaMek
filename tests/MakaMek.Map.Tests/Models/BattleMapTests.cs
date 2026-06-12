@@ -674,6 +674,40 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindPath_SameHex_DifferentSurfaces_ReturnsNull()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.AddHex(hex);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+
+        // Assert
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_SameHex_DifferentSurfaces_ReturnsNull()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.AddHex(hex);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1, null, PathFindingMode.Longest);
+
+        // Assert
+        path.ShouldBeNull();
+    }
+
+    [Fact]
     public void FindPath_SameHex_NoTurningNeeded_ReturnsOneSegment_WithNoHexes_AndNoTurns()
     {
         // Arrange
@@ -1334,7 +1368,7 @@ public class BattleMapTests
             // Use reflection to call the private ConvertPathToSegments method
             var method = typeof(BattleMap).GetMethod("ConvertPathToSegments", 
                 BindingFlags.NonPublic | BindingFlags.Instance);
-            method!.Invoke(sut, [pathWithInvalidHex, 0]);
+            method!.Invoke(sut, [pathWithInvalidHex]);
         });
 
         // The inner exception should be WrongHexException
@@ -2508,5 +2542,118 @@ public class BattleMapTests
         path2.ShouldNotBeNull();
 
         path2.ShouldNotBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_TallUnitThroughBridgeHex_PathUsesBridgeSurface()
+    {
+        var sut = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1));
+        hex3.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, unitHeight: 2);
+
+        path.ShouldNotBeNull();
+        var bridgeSegment = path.Segments.FirstOrDefault(s => s.To.Coordinates == new HexCoordinates(2, 1));
+        bridgeSegment.ShouldNotBeNull();
+        bridgeSegment.To.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void FindPath_ShortUnitUnderBridge_PathUsesGroundSurface()
+    {
+        var sut = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(2, 0));
+        sut.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1));
+        hex3.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, unitHeight: 1);
+
+        path.ShouldNotBeNull();
+        var bridgeSegment = path.Segments.FirstOrDefault(s => s.To.Coordinates == new HexCoordinates(2, 1));
+        bridgeSegment.ShouldNotBeNull();
+        bridgeSegment.To.Surface.ShouldBe(HexSurface.Ground);
+    }
+
+    [Fact]
+    public void FindPath_TargetOnBridgeSurface_PathEndsOnBridge()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight, HexSurface.Bridge);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, unitHeight: 1);
+
+        path.ShouldNotBeNull();
+        path.Segments[^1].To.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void FindJumpPath_TargetHexHasBridge_LandsOnBridgeSurface()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(2, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.FindPath(start, target, MovementType.Jump, 5, unitHeight: 2);
+
+        path.ShouldNotBeNull();
+        path.Segments[^1].To.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void FindPath_AlongBridge_NoElevationCost()
+    {
+        var sut = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1));
+        hex3.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight, HexSurface.Bridge);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.BottomRight, HexSurface.Bridge);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, unitHeight: 2);
+
+        path.ShouldNotBeNull();
+        path.Segments.ShouldAllBe(s => s.ElevationChange == 0);
     }
 }

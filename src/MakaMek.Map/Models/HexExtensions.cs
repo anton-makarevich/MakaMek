@@ -34,14 +34,7 @@ public static class HexExtensions
             return hex.Level - (hex.GetWaterDepth() ?? 0);
         }
 
-        public int GetStandingLevel(Hex fromHex)
-        {
-            if (hex.IsOnRoadOrBridge(fromHex))
-                return hex.Level + (hex.GetBridgeHeight() ?? 0);
-            return hex.GetBottomLevel();
-        }
-
-        public int GetElevationChange(Hex fromHex)
+        public int GetGroundElevationChange(Hex fromHex)
         {
             return hex.GetBottomLevel() - fromHex.GetBottomLevel();
         }
@@ -57,28 +50,28 @@ public static class HexExtensions
             return (hex.Level + bridgeHeight) - hex.GetBottomLevel();
         }
 
-        public int GetBridgeElevationChange(Hex fromHex, int unitHeight)
+        public int GetStandingLevel(HexSurface surface)
         {
-            var bridgeHeight = hex.GetBridgeHeight();
-            var fromBridgeHeight = fromHex.GetBridgeHeight();
-            if (bridgeHeight == null)
-            {
-                if (fromBridgeHeight != null)
-                    return hex.GetBottomLevel() - (fromHex.Level + fromBridgeHeight.Value);
-                return hex.GetElevationChange(fromHex);
-            }
+            return surface == HexSurface.Bridge
+                ? hex.Level + (hex.GetBridgeHeight() ?? 0)
+                : hex.GetBottomLevel();
+        }
 
-            if (hex.IsOnRoadOrBridge(fromHex))
-                return hex.GetStandingLevel(fromHex) - fromHex.GetStandingLevel(hex);
+        public int GetElevationChange(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+        {
+            return hex.GetStandingLevel(toSurface) - fromHex.GetStandingLevel(fromSurface);
+        }
 
-            if (unitHeight > 0)
-            {
-                var clearance = hex.GetBridgeClearance();
-                if (unitHeight > clearance)
-                    return (hex.Level + bridgeHeight.Value) - fromHex.GetStandingLevel(hex);
-            }
+        public IReadOnlyList<HexSurface> GetHexSurfaces()
+        {
+            return hex.GetBridgeHeight() != null
+                ? [HexSurface.Ground, HexSurface.Bridge]
+                : [HexSurface.Ground];
+        }
 
-            return hex.GetElevationChange(fromHex);
+        public bool CanStandOnGround(int unitHeight)
+        {
+            return unitHeight <= (hex.GetBridgeClearance() ?? int.MaxValue);
         }
 
         public bool HasHardPavement()
