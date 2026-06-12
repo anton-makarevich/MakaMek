@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
     <PropertyGroup>
-        <VersionPrefix>0.59.31</VersionPrefix>
+        <VersionPrefix>0.59.32</VersionPrefix>
         <Version Condition="'$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
