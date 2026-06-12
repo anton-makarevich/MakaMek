@@ -133,10 +133,9 @@ public static class BattleMapExtensions
             var forwardReachableHexes = map
                 .GetReachableHexes(position, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 2)
                 .Select(x => x.coordinates)
-                .Distinct()
                 .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
                 .ToList();
-            
+
             if (movementType == MovementType.Walk && !forwardReachableHexes.Contains(position.Coordinates))
                 forwardReachableHexes.Add(position.Coordinates);
 
@@ -148,7 +147,6 @@ public static class BattleMapExtensions
             var backwardReachableHexes = map
                 .GetReachableHexes(oppositePosition, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 0)
                 .Select(x => x.coordinates)
-                .Distinct()
                 .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
                 .ToList();
 
