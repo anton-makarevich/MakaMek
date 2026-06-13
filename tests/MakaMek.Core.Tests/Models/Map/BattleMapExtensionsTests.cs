@@ -707,11 +707,20 @@ public class BattleMapExtensionsTests
     }
 
     [Fact]
-    public void GetReachableHexesForPosition_JumpMovement_PreservesPositionSurface()
+    public void GetReachableHexesForPosition_JumpMovement_UsesHexHighestSurface()
     {
-        var map = new BattleMapFactory()
-            .GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
-        var startPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top, HexSurface.Bridge);
+        var map = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        map.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
 
         var reachabilityData = map.GetReachableHexesForPosition(
             startPosition,
@@ -722,8 +731,11 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             2);
 
-        reachabilityData.ForwardReachableHexes.ShouldNotBeEmpty();
-        reachabilityData.ForwardReachableHexes.ShouldAllBe(t => t.surface == HexSurface.Bridge);
+        reachabilityData.ForwardReachableHexes.Count.ShouldBeGreaterThan(0);
+        var bridgeHexEntry = reachabilityData.ForwardReachableHexes.Single(t => t.coordinates == new HexCoordinates(2, 1));
+        bridgeHexEntry.surface.ShouldBe(HexSurface.Bridge, "Bridge hex should use Bridge as highest surface");
+        var groundHexEntry = reachabilityData.ForwardReachableHexes.Single(t => t.coordinates == new HexCoordinates(3, 1));
+        groundHexEntry.surface.ShouldBe(HexSurface.Ground, "Clear hex should use Ground as highest surface");
     }
 
     [Fact]

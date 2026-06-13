@@ -122,7 +122,7 @@ public static class BattleMapExtensions
                         movementPoints,
                         prohibitedHexes)
                     .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
-                    .Select(hex => (hex, position.Surface))
+                    .Select(hex => (hex, map.GetHex(hex)?.GetHighestSurface() ?? HexSurface.Ground))
                     .ToList();
 
                 // For jumping, there's no forward/backward distinction
