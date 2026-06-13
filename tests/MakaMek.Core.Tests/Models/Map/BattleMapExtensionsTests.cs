@@ -705,6 +705,45 @@ public class BattleMapExtensionsTests
         reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(3, 1));
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
+
+    [Fact]
+    public void GetReachableHexesForPosition_JumpMovement_PreservesPositionSurface()
+    {
+        var map = new BattleMapFactory()
+            .GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top, HexSurface.Bridge);
+
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 2,
+            canMoveBackward: false,
+            movementType: MovementType.Jump,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>(),
+            2);
+
+        reachabilityData.ForwardReachableHexes.ShouldNotBeEmpty();
+        reachabilityData.ForwardReachableHexes.ShouldAllBe(t => t.surface == HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void GetReachableHexesForPosition_WalkMovement_PreservesStartHexSurface()
+    {
+        var map = new BattleMapFactory()
+            .GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top, HexSurface.Bridge);
+
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 5,
+            canMoveBackward: false,
+            movementType: MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates> { startPosition.Coordinates },
+            2);
+
+        reachabilityData.ForwardReachableHexes.ShouldContain(t => t.coordinates == startPosition.Coordinates && t.surface == HexSurface.Bridge);
+    }
     
     [Fact]
     public void GetReachableHexesForUnit_ForwardMovement_IncludesHexWithInsufficientBridgeClearanceByClimbing()
