@@ -122,7 +122,7 @@ public static class BattleMapExtensions
                         movementPoints,
                         prohibitedHexes)
                     .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
-                    .Select(hex => (hex, HexSurface.Ground))
+                    .Select(hex => (hex, position.Surface))
                     .ToList();
 
                 // For jumping, there's no forward/backward distinction
@@ -138,7 +138,7 @@ public static class BattleMapExtensions
                 .ToList();
 
             if (movementType == MovementType.Walk && forwardReachableHexes.All(t => t.coordinates != position.Coordinates))
-                forwardReachableHexes.Add((position.Coordinates, HexSurface.Ground));
+                forwardReachableHexes.Add((position.Coordinates, position.Surface));
 
             // Get backward reachable hexes if the unit can move backward
             if (!canMoveBackward)
