@@ -70,7 +70,7 @@ public class MovementTools
                 occupiedHexes,
                 friendlyPositions);
 
-            foreach (var (coordinates, _) in reachabilityData.AllReachableHexes)
+            foreach (var coordinates in reachabilityData.AllReachableCoordinates)
             {
                 // Let's get the path to this hex
                 var paths = map.GetPathsToHexWithAllFacings(
