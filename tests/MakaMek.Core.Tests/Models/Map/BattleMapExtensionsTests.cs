@@ -189,7 +189,7 @@ public class BattleMapExtensionsTests
         // Assert
         foreach (var hex in friendlyUnitsCoordinates)
         {
-            reachabilityData.AllReachableHexes.ShouldNotContain(hex);
+            reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldNotContain(hex);
         }
     }
     
@@ -211,7 +211,7 @@ public class BattleMapExtensionsTests
         // Assert
         foreach (var hex in prohibitedHexes)
         {
-            reachabilityData.AllReachableHexes.ShouldNotContain(hex);
+            reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldNotContain(hex);
         }
     }
     
@@ -231,7 +231,7 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>());
         
         // Assert
-        reachabilityData.AllReachableHexes.ShouldNotContain(new HexCoordinates(5, 5));
+        reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldNotContain(new HexCoordinates(5, 5));
     }
     
     [Fact]
@@ -319,7 +319,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away
-        var reachabilityData = new ReachabilityData([targetHex], []);
+        var reachabilityData = new ReachabilityData([(targetHex, HexSurface.Ground)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -348,7 +348,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 9); // 4 hexes away
-        var reachabilityData = new ReachabilityData([targetHex], []);
+        var reachabilityData = new ReachabilityData([(targetHex, HexSurface.Ground)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -371,7 +371,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away in the forward direction
-        var reachabilityData = new ReachabilityData([targetHex], []);
+        var reachabilityData = new ReachabilityData([(targetHex, HexSurface.Ground)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -398,7 +398,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 3); // 2 hexes away in the backward direction
-        var reachabilityData = new ReachabilityData([], [targetHex]);
+        var reachabilityData = new ReachabilityData([], [(targetHex, HexSurface.Ground)]);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -448,7 +448,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 5); // Same hex
-        var reachabilityData = new ReachabilityData([targetHex], []);
+        var reachabilityData = new ReachabilityData([(targetHex, HexSurface.Ground)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -478,8 +478,8 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
+        var reachabilityData = new ReachabilityData([(targetHex, HexSurface.Ground)], []);
         var prohibitedHexes = new HashSet<HexCoordinates> { new(5, 6) }; // Block the direct path
-        var reachabilityData = new ReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -524,7 +524,7 @@ public class BattleMapExtensionsTests
             2);
         
         // Assert
-        reachabilityData.ForwardReachableHexes.ShouldContain(startPosition.Coordinates);
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldContain(startPosition.Coordinates);
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
     
@@ -549,7 +549,7 @@ public class BattleMapExtensionsTests
             2);
         
         // Assert
-        reachabilityData.ForwardReachableHexes.ShouldNotContain(startPosition.Coordinates);
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldNotContain(startPosition.Coordinates);
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
     
@@ -576,11 +576,11 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(), 2);
 
         // Assert
-        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2), 
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldNotContain(new HexCoordinates(2, 2), 
             "Hex with 3-level change should not be reachable for forward movement");
         reachabilityData.ForwardReachableHexes.Count.ShouldBe(8);
     }
-
+    
     [Fact]
     public void GetReachableHexesForPosition_BackwardMovement_OnlySameLevelHexes()
     {
@@ -605,7 +605,7 @@ public class BattleMapExtensionsTests
 
         // Assert
         // Backward: (2,2) is not reachable
-        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2));
+        reachabilityData.BackwardReachableHexes.Select(x => x.coordinates).ShouldNotContain(new HexCoordinates(2, 2));
         reachabilityData.BackwardReachableHexes.Count.ShouldBe(8);
     }
 
@@ -657,7 +657,7 @@ public class BattleMapExtensionsTests
         var targetHex = new HexCoordinates(1, 1);
         
         // Target is backward and has level change
-        var reachabilityData = new ReachabilityData([], [targetHex]);
+        var reachabilityData = new ReachabilityData([], [(targetHex, HexSurface.Ground)]);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -701,8 +701,8 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(), 2);
 
         // Assert - Jump can reach all hexes within rangeBracket regardless of level
-        reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(2, 1));
-        reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(3, 1));
+        reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(2, 1));
+        reachabilityData.AllReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(3, 1));
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
     
@@ -728,7 +728,7 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
 
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(2, 1),
             "Hex with bridge clearance 1 should be reachable by unit height 2 via climbing onto the bridge");
     }
 
@@ -754,7 +754,7 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
 
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(2, 1),
             "Hex with bridge clearance 1 should be reachable by unit height 1");
     }
 
@@ -780,7 +780,7 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
 
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(2, 1),
+        reachabilityData.ForwardReachableHexes.Select(x => x.coordinates).ShouldContain(new HexCoordinates(2, 1),
             "Road-to-bridge movement should bypass clearance check regardless of unit height");
     }
 }

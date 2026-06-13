@@ -78,7 +78,7 @@ public class MovementState : IUiState
     private void ClearHighlighting()
     {
         if (_reachabilityData != null)
-            _viewModel.RemoveHighlight<MovementReachableHighlight>(_reachabilityData.Value.AllReachableHexes.ToHashSet());
+            _viewModel.RemoveHighlight<MovementReachableHighlight>(_reachabilityData.Value.AllReachableCoordinates);
         _reachabilityData = null;
     }
 
@@ -105,7 +105,7 @@ public class MovementState : IUiState
                 _friendlyUnitsCoordinates,
                 _selectedUnit.Height);
 
-            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableHexes.ToHashSet(), new MovementReachableHighlight(movementType));
+            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableCoordinates, new MovementReachableHighlight(movementType));
         }
 
         _viewModel.NotifyStateChanged();

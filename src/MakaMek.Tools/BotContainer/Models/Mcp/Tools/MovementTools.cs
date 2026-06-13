@@ -70,12 +70,12 @@ public class MovementTools
                 occupiedHexes,
                 friendlyPositions);
 
-            foreach (var hex in reachabilityData.AllReachableHexes)
+            foreach (var (coordinates, _) in reachabilityData.AllReachableHexes)
             {
                 // Let's get the path to this hex
                 var paths = map.GetPathsToHexWithAllFacings(
                     unit.Position,
-                    hex,
+                    coordinates,
                     moveType,
                     unit.GetMovementPoints(moveType),
                     reachabilityData,
@@ -96,7 +96,7 @@ public class MovementTools
                             (int)path.Destination.Facing
                         );
 
-                        var coordData = hex.ToData();
+                        var coordData = coordinates.ToData();
                         if (!hexOptions.TryGetValue(coordData, out var value))
                         {
                             value = new List<MovementOption>();
@@ -108,7 +108,7 @@ public class MovementTools
                     }
                     catch (Exception ex)
                     {
-                        _gameStateProvider.ClientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", hex, ex.Message);
+                        _gameStateProvider.ClientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", coordinates, ex.Message);
                          // Ignore invalid paths
                     }
                 }

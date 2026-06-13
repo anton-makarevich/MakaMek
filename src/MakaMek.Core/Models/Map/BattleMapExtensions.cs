@@ -122,6 +122,7 @@ public static class BattleMapExtensions
                         movementPoints,
                         prohibitedHexes)
                     .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                    .Select(hex => (hex, HexSurface.Ground))
                     .ToList();
 
                 // For jumping, there's no forward/backward distinction
@@ -132,12 +133,12 @@ public static class BattleMapExtensions
             // BattleMech-specific rule: max 2-level change for forward movement
             var forwardReachableHexes = map
                 .GetReachableHexes(position, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 2)
-                .Select(x => x.coordinates)
-                .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                .Select(x => (x.coordinates, x.surface))
+                .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
 
-            if (movementType == MovementType.Walk && !forwardReachableHexes.Contains(position.Coordinates))
-                forwardReachableHexes.Add(position.Coordinates);
+            if (movementType == MovementType.Walk && forwardReachableHexes.All(t => t.coordinates != position.Coordinates))
+                forwardReachableHexes.Add((position.Coordinates, HexSurface.Ground));
 
             // Get backward reachable hexes if the unit can move backward
             if (!canMoveBackward)
@@ -146,8 +147,8 @@ public static class BattleMapExtensions
             // BattleMech-specific rule: no level changes allowed for backward movement
             var backwardReachableHexes = map
                 .GetReachableHexes(oppositePosition, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 0)
-                .Select(x => x.coordinates)
-                .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                .Select(x => (x.coordinates, x.surface))
+                .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
 
             return new ReachabilityData(forwardReachableHexes, backwardReachableHexes);

@@ -199,11 +199,11 @@ public class MovementEngine : IBotDecisionEngine
             var reachablePaths = new List<MovementPath>();
 
             // Process all reachable hexes (both forward and backward)
-            foreach (var hex in reachabilityData.AllReachableHexes)
+            foreach (var (coordinates, _) in reachabilityData.AllReachableHexes)
             {
                 var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
                     unit.Position,
-                    hex,
+                    coordinates,
                     movementType,
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
