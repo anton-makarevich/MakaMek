@@ -73,8 +73,10 @@ public static class HexExtensions
         {
             var surfaces = hex.GetHexSurfaces();
             return surfaces.Count == 1
-                ? surfaces[0] 
-                : surfaces.MaxBy(hex.GetStandingLevel);
+                ? surfaces[0]
+                : surfaces.OrderByDescending(hex.GetStandingLevel)
+                    .ThenByDescending(s => s)
+                    .First();
         }
 
         public bool CanStandOnGround(int unitHeight)
