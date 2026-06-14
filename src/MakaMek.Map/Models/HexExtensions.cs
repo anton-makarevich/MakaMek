@@ -69,6 +69,16 @@ public static class HexExtensions
                 : [HexSurface.Ground];
         }
 
+        public HexSurface GetHighestSurface()
+        {
+            var surfaces = hex.GetHexSurfaces();
+            return surfaces.Count == 1
+                ? surfaces[0]
+                : surfaces.OrderByDescending(hex.GetStandingLevel)
+                    .ThenByDescending(s => s)
+                    .First();
+        }
+
         public bool CanStandOnGround(int unitHeight)
         {
             return unitHeight <= (hex.GetBridgeClearance() ?? int.MaxValue);

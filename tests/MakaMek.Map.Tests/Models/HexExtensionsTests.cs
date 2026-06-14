@@ -486,4 +486,48 @@ public class HexExtensionsTests
 
         surfaces.ShouldBe([HexSurface.Ground, HexSurface.Bridge]);
     }
+
+    [Fact]
+    public void GetHighestSurface_ReturnsGround_WhenNoBridge()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+
+        var result = sut.GetHighestSurface();
+
+        result.ShouldBe(HexSurface.Ground);
+    }
+
+    [Fact]
+    public void GetHighestSurface_ReturnsBridge_WhenBridgeIsHigher()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(2, 0));
+
+        var result = sut.GetHighestSurface();
+
+        result.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void GetHighestSurface_ReturnsBridge_WhenLevelsAreEqual()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(0, 0));
+
+        var result = sut.GetHighestSurface();
+
+        result.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void GetHighestSurface_ReturnsGround_WhenBridgeHasNegativeHeight()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(-1, 0));
+
+        var result = sut.GetHighestSurface();
+
+        result.ShouldBe(HexSurface.Ground);
+    }
 }
