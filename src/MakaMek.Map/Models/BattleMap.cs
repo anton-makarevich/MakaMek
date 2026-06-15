@@ -402,7 +402,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// Multiple entries may be returned for the same coordinate when both surfaces are
     /// independently reachable (e.g., both Ground and Bridge surfaces of a bridge hex).
     /// </summary>
-    public IEnumerable<(HexCoordinates coordinates, HexSurface surface, int cost)> GetReachableHexes(
+    public IEnumerable<ReachableHexData> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
         int unitHeight,
@@ -473,14 +473,14 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         return bestCosts
-            .Select(v => (v.Key.Item1, v.Key.Item2, v.Value));
+            .Select(v => new ReachableHexData(v.Key.Item1, v.Key.Item2, v.Value));
     }
 
     /// <summary>
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
     /// regardless of terrain or facing direction
     /// </summary>
-    public IEnumerable<HexCoordinates> GetJumpReachableHexes(
+    public IEnumerable<ReachableHexData> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
@@ -496,6 +496,13 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 return hex != null && 
                        !prohibitedHexes.Contains(coordinates) &&
                        coordinates != start;
+            })
+            .Select(coordinates =>
+            {
+                var hex = GetHex(coordinates)!;
+                var surface = hex.GetHighestSurface();
+                var cost = start.DistanceTo(coordinates);
+                return new ReachableHexData(coordinates, surface, cost);
             });
     }
 

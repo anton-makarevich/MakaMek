@@ -103,9 +103,9 @@ public class BattleMapTests
 
         // Assert
         reachable.Count.ShouldBe(5); // 
-        reachable.All(h => h.cost <= 2).ShouldBeTrue();
-        reachable.Count(h => h.cost == 1).ShouldBe(1); // 6 adjacent hexes
-        reachable.Count(h => h.cost == 2).ShouldBe(3); // 12 hexes at distance 2
+        reachable.All(h => h.Cost <= 2).ShouldBeTrue();
+        reachable.Count(h => h.Cost == 1).ShouldBe(1); // 6 adjacent hexes
+        reachable.Count(h => h.Cost == 2).ShouldBe(3); // 12 hexes at distance 2
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class BattleMapTests
 
         // Assert
         reachable.Count.ShouldBe(2); // Only the clear hex should be reachable
-        reachable.Last().coordinates.ShouldBe(clearHex.Coordinates);
+        reachable.Last().Coordinates.ShouldBe(clearHex.Coordinates);
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class BattleMapTests
 
         // Assert
         var targetHex = new HexCoordinates(7, 8);
-        reachableHexes.ShouldContain(x => x.coordinates == targetHex,
+        reachableHexes.ShouldContain(x => x.Coordinates == targetHex,
             "Hex (7,8) should be reachable through path: (9,5)->(8,5)->(7,6)->[turn]->(7,7)->(7,8)");
 
         // Verify the path exists and respects movement points
@@ -323,7 +323,7 @@ public class BattleMapTests
 
         // Assert
         reachable.ShouldNotBeEmpty("Some hexes should be reachable");
-        reachable.ShouldNotContain(h => prohibitedHexes.Contains(h.coordinates), 
+        reachable.ShouldNotContain(h => prohibitedHexes.Contains(h.Coordinates), 
             "Prohibited hexes should not be included in reachable hexes");
     }
 
@@ -477,15 +477,15 @@ public class BattleMapTests
         // Assert
         reachableHexes.Count.ShouldBe(18, 
             $"Should have 18 total reachable hexes with {terrainType.Name}");
-        reachableHexes.ShouldNotContain(start, 
+        reachableHexes.Select(h => h.Coordinates).ShouldNotContain(start, 
             "Should not include start hex");
-        reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue(
+        reachableHexes.All(h => h.Coordinates.DistanceTo(start) <= movementPoints).ShouldBeTrue(
             "All hexes should be within movement range");
         
         // Verify we have the correct number of hexes at each distance
-        reachableHexes.Count(h => h.DistanceTo(start) == 1).ShouldBe(6, 
+        reachableHexes.Count(h => h.Coordinates.DistanceTo(start) == 1).ShouldBe(6, 
             "Should have 6 hexes at distance 1");
-        reachableHexes.Count(h => h.DistanceTo(start) == 2).ShouldBe(12, 
+        reachableHexes.Count(h => h.Coordinates.DistanceTo(start) == 2).ShouldBe(12, 
             "Should have 12 hexes at distance 2");
     }
 
@@ -507,10 +507,10 @@ public class BattleMapTests
         // Assert
         foreach (var coordinates in prohibitedHexes)
         {
-            reachableHexes.ShouldNotContain(coordinates);
+            reachableHexes.Select(h => h.Coordinates).ShouldNotContain(coordinates);
         }
 
-        reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue();
+        reachableHexes.All(h => h.Coordinates.DistanceTo(start) <= movementPoints).ShouldBeTrue();
     }
 
     [Fact]
@@ -526,13 +526,13 @@ public class BattleMapTests
         var reachableHexes = sut.GetJumpReachableHexes(start, movementPoints).ToList();
 
         // Assert
-        reachableHexes.ShouldAllBe(h => 
+        reachableHexes.Select(h => h.Coordinates).ShouldAllBe(h => 
                 h.Q >= 1 && h.Q <= 3 && 
                 h.R >= 1 && h.R <= 3, 
             "All hexes should be within sut boundaries (Q: 1-3, R: 1-3)");
 
         reachableHexes.ShouldAllBe(h => 
-                h.DistanceTo(start) <= movementPoints,
+                h.Coordinates.DistanceTo(start) <= movementPoints,
             $"All hexes should be within {movementPoints} movement points from start");
     }
 
@@ -1571,8 +1571,8 @@ public class BattleMapTests
         // Assert - Start hex is included with cost 0, plus hex 2 (2 MP)
         // Hex 3 requires 4 MP which exceeds 3
         reachable.Count.ShouldBe(2, "Should reach start hex (0 MP) and hex 2 (2 MP)");
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
-        reachable.ShouldNotContain(r => r.coordinates == new HexCoordinates(3, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldNotContain(r => r.Coordinates == new HexCoordinates(3, 1));
     }
 
     [Fact]
@@ -1601,9 +1601,9 @@ public class BattleMapTests
 
         // Assert - Start hex is included (cost 0), plus hex 2 (2 MP) and hex 3 (4 MP)
         reachable.Count.ShouldBe(3);
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(1, 1));
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(3, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(1, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(3, 1));
     }
 
     [Fact]
@@ -1628,8 +1628,8 @@ public class BattleMapTests
 
         // Assert - Only start hex reachable (cost 0), steep hex excluded
         reachable.Count.ShouldBe(1, "Only start hex should be reachable");
-        reachable[0].coordinates.ShouldBe(new HexCoordinates(1, 1));
-        reachable[0].cost.ShouldBe(0);
+        reachable[0].Coordinates.ShouldBe(new HexCoordinates(1, 1));
+        reachable[0].Cost.ShouldBe(0);
     }
 
     [Fact]
@@ -1658,9 +1658,9 @@ public class BattleMapTests
 
         // Assert - Start hex + same-level neighbor
         reachable.Count.ShouldBe(2);
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(1, 1));
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(1, 2));
-        reachable.ShouldNotContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(1, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(1, 2));
+        reachable.ShouldNotContain(r => r.Coordinates == new HexCoordinates(2, 1));
     }
 
     [Fact]
@@ -1714,8 +1714,8 @@ public class BattleMapTests
 
         // Assert
         reachable.Count.ShouldBe(2, "Both hexes should be reachable by jump regardless of level");
-        reachable.ShouldContain(new HexCoordinates(2, 1));
-        reachable.ShouldContain(new HexCoordinates(3, 1));
+        reachable.Select(h => h.Coordinates).ShouldContain(new HexCoordinates(2, 1));
+        reachable.Select(h => h.Coordinates).ShouldContain(new HexCoordinates(3, 1));
     }
 
     [Fact]
@@ -2347,7 +2347,7 @@ public class BattleMapTests
         var reachable = sut.GetReachableHexes(start, 2, 1).ToList();
 
         reachable.Count.ShouldBe(1);
-        reachable[0].coordinates.ShouldBe(new HexCoordinates(1, 1));
+        reachable[0].Coordinates.ShouldBe(new HexCoordinates(1, 1));
     }
 
     [Fact]
@@ -2366,7 +2366,7 @@ public class BattleMapTests
         var reachable = sut.GetReachableHexes(start, 3, 1).ToList();
 
         reachable.Count.ShouldBe(2);
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(2, 1));
     }
 
     [Fact]
@@ -2386,9 +2386,9 @@ public class BattleMapTests
         var reachableWithLessMp = sut.GetReachableHexes(start, 2, 1).ToList();
 
         reachable.Count.ShouldBe(2);
-        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
-        reachableWithLessMp.ShouldNotContain(r => r.coordinates == new HexCoordinates(2, 1));
-        reachable.First(r => r.coordinates == new HexCoordinates(2, 1)).cost.ShouldBe(3);
+        reachable.ShouldContain(r => r.Coordinates == new HexCoordinates(2, 1));
+        reachableWithLessMp.ShouldNotContain(r => r.Coordinates == new HexCoordinates(2, 1));
+        reachable.First(r => r.Coordinates == new HexCoordinates(2, 1)).Cost.ShouldBe(3);
     }
 
     [Fact]
@@ -2484,7 +2484,7 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 1, unitHeight: 2).ToList();
 
-        reachable.ShouldNotContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground,
+        reachable.ShouldNotContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground,
             "Hex with bridge clearance 1 should not be reachable on Ground surface by unit height 2");
     }
 
@@ -2503,7 +2503,7 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 1, unitHeight: 1).ToList();
 
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground,
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground,
             "Hex with bridge clearance 1 should be reachable on Ground surface by unit height 1");
     }
 
@@ -2522,7 +2522,7 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, 3, unitHeight: 3).ToList();
 
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Bridge && h.cost == 2,
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge && h.Cost == 2,
             "Road-to-bridge movement should bypass clearance check; cost should be 1 (terrain) + 1 (bridge climb)");
     }
 
@@ -2674,9 +2674,9 @@ public class BattleMapTests
         var reachable = sut.GetReachableHexes(start, mpBudget, unitHeight: 1).ToList();
 
         // Both surfaces should be reported with their respective costs
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Ground && h.cost == 1,
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground && h.Cost == 1,
             "Ground surface under bridge should be reachable at cost 1");
-        reachable.ShouldContain(h => h.coordinates == new HexCoordinates(2, 1) && h.surface == HexSurface.Bridge && h.cost == 3,
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge && h.Cost == 3,
             "Bridge surface should be reachable at cost 3 (1 terrain + 2 climb)");
 
         // Verify costs match FindPath results for each surface
