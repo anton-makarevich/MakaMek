@@ -19,7 +19,7 @@ public class MovementTools
     }
 
     [McpServerTool, Description("Get all reachable hexes for a unit, grouped by coordinates with tactical evaluation")]
-    public List<ReachableHexData> GetReachableHexes(Guid unitId)
+    public List<Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp.ReachableHexData> GetReachableHexes(Guid unitId)
     {
         if (_gameStateProvider.ClientGame == null)
             throw new InvalidOperationException("Game is not initialized.");
@@ -115,7 +115,7 @@ public class MovementTools
             }
         }
 
-        return hexOptions.Select(kv => new ReachableHexData(kv.Key.Q, kv.Key.R, kv.Value)).ToList();
+        return hexOptions.Select(kv => new Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp.ReachableHexData(kv.Key.Q, kv.Key.R, kv.Value)).ToList();
     }
 
     [McpServerTool, Description("Get path segments for a specific move command")]
