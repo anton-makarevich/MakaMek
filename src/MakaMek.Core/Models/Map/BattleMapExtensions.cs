@@ -121,8 +121,8 @@ public static class BattleMapExtensions
                         position.Coordinates,
                         movementPoints,
                         prohibitedHexes)
-                    .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
-                    .Select(hex => (hex, map.GetHex(hex)?.GetHighestSurface() ?? HexSurface.Ground))
+                    .Where(x => !friendlyUnitsCoordinates.Contains(x.Coordinates))
+                    .Select(x => (coordinates: x.Coordinates, surface: x.Surface))
                     .ToList();
 
                 // For jumping, there's no forward/backward distinction
@@ -133,7 +133,7 @@ public static class BattleMapExtensions
             // BattleMech-specific rule: max 2-level change for forward movement
             var forwardReachableHexes = map
                 .GetReachableHexes(position, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 2)
-                .Select(x => (x.coordinates, x.surface))
+                .Select(x => (coordinates: x.Coordinates, surface: x.Surface))
                 .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
 
@@ -147,7 +147,7 @@ public static class BattleMapExtensions
             // BattleMech-specific rule: no level changes allowed for backward movement
             var backwardReachableHexes = map
                 .GetReachableHexes(oppositePosition, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 0)
-                .Select(x => (x.coordinates, x.surface))
+                .Select(x => (coordinates: x.Coordinates, surface: x.Surface))
                 .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
 
