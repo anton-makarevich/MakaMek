@@ -398,9 +398,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     }
 
     /// <summary>
-    /// Gets all valid hexes that can be reached with given movement points, considering facing
+    /// Gets all valid hexes that can be reached with given movement points, considering facing.
+    /// Multiple entries may be returned for the same coordinate when both surfaces are
+    /// independently reachable (e.g., both Ground and Bridge surfaces of a bridge hex).
     /// </summary>
-    public IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
+    public IEnumerable<(HexCoordinates coordinates, HexSurface surface, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
         int unitHeight,
@@ -408,12 +410,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         int? maxLevelChange = null)
     {
         var visited = new Dictionary<HexPosition, int>();
-        var bestCosts = new Dictionary<HexCoordinates, int>();
+        var bestCosts = new Dictionary<(HexCoordinates, HexSurface), int>();
         var toVisit = new Queue<HexPosition>();
         prohibitedHexes ??= new HashSet<HexCoordinates>();
 
         visited[start] = 0;
-        bestCosts[start.Coordinates] = 0;
+        bestCosts[(start.Coordinates, start.Surface)] = 0;
         toVisit.Enqueue(start);
 
         while (toVisit.Count > 0)
@@ -460,9 +462,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                         continue;
 
                     visited[neighborPos] = totalCost;
-                    if (!bestCosts.TryGetValue(neighborCoord, out var bestCost) || totalCost < bestCost)
+                    if (!bestCosts.TryGetValue((neighborCoord, toSurface), out var bestCost) || totalCost < bestCost)
                     {
-                        bestCosts[neighborCoord] = totalCost;
+                        bestCosts[(neighborCoord, toSurface)] = totalCost;
                     }
 
                     toVisit.Enqueue(neighborPos);
@@ -471,7 +473,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         return bestCosts
-            .Select(v => (v.Key, v.Value));
+            .Select(v => (v.Key.Item1, v.Key.Item2, v.Value));
     }
 
     /// <summary>

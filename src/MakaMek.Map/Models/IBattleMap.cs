@@ -28,9 +28,11 @@ public interface IBattleMap
         int? maxLevelChange = null);
 
     /// <summary>
-    /// Gets all valid hexes that can be reached with given movement points, considering facing
+    /// Gets all valid hexes that can be reached with given movement points, considering facing.
+    /// Multiple entries may be returned for the same coordinate when both surfaces are
+    /// independently reachable (e.g., both Ground and Bridge surfaces of a bridge hex).
     /// </summary>
-    IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
+    IEnumerable<(HexCoordinates coordinates, HexSurface surface, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
         int unitHeight,
