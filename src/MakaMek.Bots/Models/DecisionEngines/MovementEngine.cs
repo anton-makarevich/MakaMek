@@ -208,10 +208,10 @@ public class MovementEngine : IBotDecisionEngine
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
                     unit.Height,
-                    occupiedHexes,
-                    PathFindingMode.Longest,
                     unit.MaxLevelChangeForward,
-                    unit.MaxLevelChangeBackward);
+                    unit.MaxLevelChangeBackward,
+                    occupiedHexes,
+                    PathFindingMode.Longest);
 
                 reachablePaths.AddRange(paths.Values);
             }

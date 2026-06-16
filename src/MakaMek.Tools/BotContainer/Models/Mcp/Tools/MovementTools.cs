@@ -80,9 +80,9 @@ public class MovementTools
                     unit.GetMovementPoints(moveType),
                     reachabilityData,
                     unit.Height,
-                    occupiedHexes,
-                    maxLevelChangeForward: unit.MaxLevelChangeForward,
-                    maxLevelChangeBackward: unit.MaxLevelChangeBackward);
+                    unit.MaxLevelChangeForward,
+                    unit.MaxLevelChangeBackward,
+                    occupiedHexes);
 
                 // Evaluate each valid path (each facing)
                 foreach (var path in paths.Values)
@@ -181,9 +181,9 @@ public class MovementTools
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
                     unit.Height,
-                    occupiedHexes,
-                    maxLevelChangeForward: unit.MaxLevelChangeForward,
-                    maxLevelChangeBackward: unit.MaxLevelChangeBackward);
+                    unit.MaxLevelChangeForward,
+                    unit.MaxLevelChangeBackward,
+                    occupiedHexes);
 
         // Find the path that ends with the requested facing
         var matchingPath = paths.Values.FirstOrDefault(p => p.Destination.Facing == targetFacing);
