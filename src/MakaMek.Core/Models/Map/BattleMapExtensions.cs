@@ -87,7 +87,69 @@ public static class BattleMapExtensions
                 movementType,
                 prohibitedHexes,
                 friendlyUnitsCoordinates,
-                unit.Height);
+                unit.Height,
+                unit.MaxLevelChangeForward,
+                unit.MaxLevelChangeBackward);
+        }
+
+        /// <summary>
+        /// Finds all possible paths from a start position to a target hex, considering all possible facing directions.
+        /// </summary>
+        /// <param name="startPosition">The starting position with facing</param>
+        /// <param name="targetHex">The target hex coordinates</param>
+        /// <param name="movementType">The type of movement (Jump, Walk, Run)</param>
+        /// <param name="movementPoints">Available movement points</param>
+        /// <param name="reachabilityData">Reachability data containing forward and backward reachable hexes</param>
+        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
+        /// <param name="pathFindingMode">The pathfinding strategy to use (the shortest or longest path)</param>
+        /// <param name="unitHeight">Unit height</param>
+        /// <param name="maxLevelChangeForward">Number of levels a unit can pass when moving forward</param>
+        /// <param name="maxLevelChangeBackward">Number of levels a unit can pass when moving backward</param>
+        /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
+        public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
+            HexPosition startPosition,
+            HexCoordinates targetHex,
+            MovementType movementType,
+            int movementPoints,
+            ReachabilityData reachabilityData,
+            int unitHeight,
+            int maxLevelChangeForward,
+            int maxLevelChangeBackward,
+            IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+            PathFindingMode pathFindingMode = PathFindingMode.Shortest)
+        {
+            var possibleDirections = new Dictionary<HexDirection, MovementPath>();
+            var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
+            var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
+
+            foreach (var direction in HexDirectionExtensions.AllDirections)
+            {
+                var targetPos = new HexPosition(targetHex, direction);
+                MovementPath? path = null;
+
+                // Try forward movement (or Jump, which ignores reachability)
+                if (movementType == MovementType.Jump || isForwardReachable)
+                {
+                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeForward);
+                }
+
+                // Try backward movement for Walk only
+                if (path == null && movementType == MovementType.Walk && isBackwardReachable)
+                {
+                    var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
+                    var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
+
+                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeBackward)
+                        ?.ReverseFacing();
+                }
+
+                if (path != null)
+                {
+                    possibleDirections[direction] = path;
+                }
+            }
+
+            return possibleDirections;
         }
 
         /// <summary>
@@ -99,7 +161,9 @@ public static class BattleMapExtensions
         /// <param name="movementType">The movement type to use</param>
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through (e.g., occupied by enemy units)</param>
         /// <param name="friendlyUnitsCoordinates">Hexes occupied by friendly units (unit can pass but not stop there)</param>
-        /// <param name="unitHeight">Unit height</param>
+        /// <param name="unitHeight">Unit height in levels</param>
+        /// <param name="maxLevelChangeForward">Number of levels a unit can pass when moving forward</param>
+        /// <param name="maxLevelChangeBackward">Number of levels a unit can pass when moving backward</param>
         /// <returns>List of coordinates that could be reached by a unit using a specified movement type</returns>
         public ReachabilityData GetReachableHexesForPosition(
             HexPosition position,
@@ -108,7 +172,9 @@ public static class BattleMapExtensions
             MovementType movementType,
             IReadOnlySet<HexCoordinates> prohibitedHexes,
             IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates,
-            int unitHeight)
+            int unitHeight,
+            int maxLevelChangeForward,
+            int maxLevelChangeBackward)
         {
             if (movementPoints <= 0)
                 return new ReachabilityData([], []);
@@ -130,9 +196,8 @@ public static class BattleMapExtensions
             }
 
             // Get forward reachable hexes
-            // BattleMech-specific rule: max 2-level change for forward movement
             var forwardReachableHexes = map
-                .GetReachableHexes(position, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 2)
+                .GetReachableHexes(position, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: maxLevelChangeForward)
                 .Select(x => (coordinates: x.Coordinates, surface: x.Surface))
                 .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
@@ -144,73 +209,13 @@ public static class BattleMapExtensions
             if (!canMoveBackward)
                 return new ReachabilityData(forwardReachableHexes, []);
             var oppositePosition = position.GetOppositeDirectionPosition();
-            // BattleMech-specific rule: no level changes allowed for backward movement
             var backwardReachableHexes = map
-                .GetReachableHexes(oppositePosition, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: 0)
+                .GetReachableHexes(oppositePosition, movementPoints, unitHeight, prohibitedHexes, maxLevelChange: maxLevelChangeBackward)
                 .Select(x => (coordinates: x.Coordinates, surface: x.Surface))
                 .Where(t => !friendlyUnitsCoordinates.Contains(t.coordinates))
                 .ToList();
 
             return new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
-        }
-
-
-        /// <summary>
-        /// Finds all possible paths from a start position to a target hex, considering all possible facing directions.
-        /// </summary>
-        /// <param name="startPosition">The starting position with facing</param>
-        /// <param name="targetHex">The target hex coordinates</param>
-        /// <param name="movementType">The type of movement (Jump, Walk, Run)</param>
-        /// <param name="movementPoints">Available movement points</param>
-        /// <param name="reachabilityData">Reachability data containing forward and backward reachable hexes</param>
-        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
-        /// <param name="pathFindingMode">The pathfinding strategy to use (the shortest or longest path)</param>
-        /// <param name="unitHeight">Unit height</param>
-        /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
-        public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
-            HexPosition startPosition,
-            HexCoordinates targetHex,
-            MovementType movementType,
-            int movementPoints,
-            ReachabilityData reachabilityData,
-            int unitHeight,
-            IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
-            PathFindingMode pathFindingMode = PathFindingMode.Shortest)
-        {
-            var possibleDirections = new Dictionary<HexDirection, MovementPath>();
-            var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
-            var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
-
-            foreach (var direction in HexDirectionExtensions.AllDirections)
-            {
-                var targetPos = new HexPosition(targetHex, direction);
-                MovementPath? path = null;
-
-                // Try forward movement (or Jump, which ignores reachability)
-                if (movementType == MovementType.Jump || isForwardReachable)
-                {
-                    // BattleMech-specific rule: max 2-level change for forward movement
-                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: 2);
-                }
-
-                // Try backward movement for Walk only
-                if (path == null && movementType == MovementType.Walk && isBackwardReachable)
-                {
-                    var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
-                    var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-
-                    // BattleMech-specific rule: no level changes allowed for backward movement
-                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: 0)
-                        ?.ReverseFacing();
-                }
-
-                if (path != null)
-                {
-                    possibleDirections[direction] = path;
-                }
-            }
-
-            return possibleDirections;
         }
     }
 }

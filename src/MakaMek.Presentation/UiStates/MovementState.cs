@@ -103,7 +103,9 @@ public class MovementState : IUiState
                 movementType,
                 _prohibitedHexes,
                 _friendlyUnitsCoordinates,
-                _selectedUnit.Height);
+                _selectedUnit.Height,
+                _selectedUnit.MaxLevelChangeForward,
+                _selectedUnit.MaxLevelChangeBackward);
 
             _viewModel.AddHighlight(_reachabilityData.Value.AllReachableCoordinates, new MovementReachableHighlight(movementType));
         }
@@ -257,6 +259,8 @@ public class MovementState : IUiState
             _movementPoints,
             _reachabilityData.Value,
             _selectedUnit.Height,
+            _selectedUnit.MaxLevelChangeForward,
+            _selectedUnit.MaxLevelChangeBackward,
             _prohibitedHexes) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
