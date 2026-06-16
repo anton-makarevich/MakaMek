@@ -257,7 +257,9 @@ public class MovementState : IUiState
             _movementPoints,
             _reachabilityData.Value,
             _selectedUnit.Height,
-            _prohibitedHexes) ?? [];
+            _prohibitedHexes,
+            maxLevelChangeForward: _selectedUnit.MaxLevelChangeForward,
+            maxLevelChangeBackward: _selectedUnit.MaxLevelChangeBackward) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
     }

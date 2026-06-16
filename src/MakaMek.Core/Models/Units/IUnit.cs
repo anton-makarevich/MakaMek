@@ -66,6 +66,16 @@ public interface IUnit
     int Height { get; }
 
     /// <summary>
+    /// Maximum per-hex elevation change allowed for forward movement.
+    /// </summary>
+    int MaxLevelChangeForward { get; }
+
+    /// <summary>
+    /// Maximum per-hex elevation change allowed for backward movement.
+    /// </summary>
+    int MaxLevelChangeBackward { get; }
+
+    /// <summary>
     /// Determines if this unit can have partial cover from elevation.
     /// Only standing mechs can have partial cover.
     /// </summary>

@@ -118,6 +118,16 @@ public abstract class Unit : IUnit
     /// </summary>
     public abstract int Height { get; }
 
+    /// <summary>
+    /// Maximum per-hex elevation change allowed for forward movement.
+    /// </summary>
+    public virtual int MaxLevelChangeForward => 0;
+
+    /// <summary>
+    /// Maximum per-hex elevation change allowed for backward movement.
+    /// </summary>
+    public virtual int MaxLevelChangeBackward => 0;
+
     private IReadOnlyList<Weapon>? _availableWeaponsCache;
 
     /// <summary>

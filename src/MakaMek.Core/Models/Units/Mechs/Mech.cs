@@ -678,6 +678,16 @@ public class Mech : Unit
     public override int Height => IsProne ? 1 : 2;
 
     /// <summary>
+    /// BattleMechs can change elevation by up to 2 levels per hex when moving forward.
+    /// </summary>
+    public override int MaxLevelChangeForward => 2;
+
+    /// <summary>
+    /// BattleMechs cannot change elevation when moving backward.
+    /// </summary>
+    public override int MaxLevelChangeBackward => 0;
+
+    /// <summary>
     /// Determines if this mech can have partial cover from elevation.
     /// Only standing mechs (not prone) can have partial cover.
     /// </summary>

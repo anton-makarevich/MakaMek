@@ -3102,4 +3102,20 @@ public class UnitTests
 
         sut.IsSkidding.ShouldBeTrue();
     }
+
+    [Fact]
+    public void MaxLevelChangeForward_Default_ReturnsZero()
+    {
+        var sut = CreateTestUnit();
+
+        sut.MaxLevelChangeForward.ShouldBe(0);
+    }
+
+    [Fact]
+    public void MaxLevelChangeBackward_Default_ReturnsZero()
+    {
+        var sut = CreateTestUnit();
+
+        sut.MaxLevelChangeBackward.ShouldBe(0);
+    }
 }

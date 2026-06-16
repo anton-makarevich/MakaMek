@@ -3133,4 +3133,20 @@ public class MechTests
 
          heatData.DissipationData.WaterDissipationBonus.ShouldBe(6, "cap should be reached from 2+5=7 heat sinks before engine is considered");
      }
+
+     [Fact]
+     public void MaxLevelChangeForward_ReturnsTwo()
+     {
+         var mech = new Mech("Test", "Mech", 50, CreateBasicPartsData());
+
+         mech.MaxLevelChangeForward.ShouldBe(2);
+     }
+
+     [Fact]
+     public void MaxLevelChangeBackward_ReturnsZero()
+     {
+         var mech = new Mech("Test", "Mech", 50, CreateBasicPartsData());
+
+         mech.MaxLevelChangeBackward.ShouldBe(0);
+     }
 }
