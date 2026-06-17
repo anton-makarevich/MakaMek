@@ -236,7 +236,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     newPath.Add(nextPos);
 
                     var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-                    var newHexesTraveled = current.HexesTraveled + 1;
+                    var isNewCoord = current.Path.All(p => p.Coordinates != nextCoord);
+                    var newHexesTraveled = current.HexesTraveled + (isNewCoord ? 1 : 0);
 
                     if (totalCost > maxMovementPoints)
                         continue;

@@ -2690,4 +2690,47 @@ public class BattleMapTests
         bridgePath.ShouldNotBeNull();
         bridgePath.TotalCost.ShouldBe(3);
     }
+
+    [Fact]
+    public void FindPath_ShortestMode_CachedPathExceedsBudget_ReturnsNull()
+    {
+        var sut = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        var initialPath = sut.FindPath(start, target, MovementType.Walk, 20, 1);
+        initialPath.ShouldNotBeNull();
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 1, 1);
+
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_CachedPathExceedsBudget_SearchesAgain()
+    {
+        var sut = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        var initialPath = sut.FindPath(start, target, MovementType.Walk, 20, 1, null, PathFindingMode.Longest);
+        initialPath.ShouldNotBeNull();
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 3, 1, null, PathFindingMode.Longest);
+
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_ShortestMode_VisitedPruning_SkipsMoreExpensiveConvergentPaths()
+    {
+        var sut = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 15, 1);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBeLessThanOrEqualTo(15);
+    }
 }
