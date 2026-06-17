@@ -117,7 +117,7 @@ private readonly MovementPathCache _movementPathCache = new();
 private readonly MovementPathCache _movementLongPathCache = new();
 ```
 
-The shortest and longest path caches are two separate instances of the same class with identical structure. The only reason they're separate is because the two pathfinding methods use different caches. If the methods were unified, this could be a single cache keyed by `PathFindingMode`.
+The remaining split is the two cache instances. With `FindPathCore(PathFindingMode)` already in place, this could become a single cache keyed by `PathFindingMode`.
 
 ### 2.3 Reachability is recomputed in `GetPathsToHexWithAllFacings` callers ❌ Open
 
