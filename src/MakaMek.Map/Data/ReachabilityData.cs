@@ -12,6 +12,17 @@ public readonly record struct ReachabilityData(
     private readonly Lazy<IReadOnlyList<(HexCoordinates coordinates, HexSurface surface)>> _allReachableHexes = 
         new(() => ForwardReachableHexes.Union(BackwardReachableHexes).ToList());
     
+    private readonly Lazy<HashSet<HexCoordinates>> _forwardReachableCoordinates = 
+        new(() => ForwardReachableHexes.Select(x => x.coordinates).ToHashSet());
+    
+    private readonly Lazy<HashSet<HexCoordinates>> _backwardReachableCoordinates = 
+        new(() => BackwardReachableHexes.Select(x => x.coordinates).ToHashSet());
+    
+    private readonly Lazy<HashSet<HexCoordinates>> _allReachableCoordinates = 
+        new(() => ForwardReachableHexes.Select(x => x.coordinates)
+            .Concat(BackwardReachableHexes.Select(x => x.coordinates))
+            .ToHashSet());
+    
     /// <summary>
     /// All reachable hexes (union of forward and backward)
     /// </summary>
@@ -20,25 +31,20 @@ public readonly record struct ReachabilityData(
     /// <summary>
     /// Unique reachable coordinates (deduplicated)
     /// </summary>
-    public IReadOnlySet<HexCoordinates> AllReachableCoordinates => 
-        AllReachableHexes.Select(x => x.coordinates).ToHashSet();
+    public IReadOnlySet<HexCoordinates> AllReachableCoordinates => _allReachableCoordinates.Value;
     
     /// <summary>
     /// Checks if a hex is reachable (either forward or backward) on any surface
     /// </summary>
-    public bool IsHexReachable(HexCoordinates hex) =>
-        ForwardReachableHexes.Any(x => x.coordinates == hex) || 
-        BackwardReachableHexes.Any(x => x.coordinates == hex);
+    public bool IsHexReachable(HexCoordinates hex) => _allReachableCoordinates.Value.Contains(hex);
     
     /// <summary>
     /// Checks if a hex is reachable by forward movement on any surface
     /// </summary>
-    public bool IsForwardReachable(HexCoordinates hex) =>
-        ForwardReachableHexes.Any(x => x.coordinates == hex);
+    public bool IsForwardReachable(HexCoordinates hex) => _forwardReachableCoordinates.Value.Contains(hex);
     
     /// <summary>
     /// Checks if a hex is reachable by backward movement on any surface
     /// </summary>
-    public bool IsBackwardReachable(HexCoordinates hex) =>
-        BackwardReachableHexes.Any(x => x.coordinates == hex);
+    public bool IsBackwardReachable(HexCoordinates hex) => _backwardReachableCoordinates.Value.Contains(hex);
 }
