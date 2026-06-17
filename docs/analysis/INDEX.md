@@ -16,3 +16,9 @@ Technical analyses, integration studies, design evaluations, and race condition 
 |----------|---------|
 | [Rules-Provider-Analysis.md](Rules-Provider-Analysis.md) | Software architecture analysis of rules provider design options and trade-offs |
 | [Rules-Provider-Analysis-Updated.md](Rules-Provider-Analysis-Updated.md) | Updated rules provider analysis incorporating revised requirements and findings |
+
+## Reachability Analyses
+
+| Document | Summary |
+|----------|---------|
+| [reachability-api.md](reachability-api.md) | Analysis of the three-layer reachability API with implementation status of each identified issue |
