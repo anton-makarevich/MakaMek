@@ -56,9 +56,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return FindJumpPath(start, target, maxMovementPoints);
         }
 
-        return pathFindingMode == PathFindingMode.Shortest
-            ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange)
-            : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange);
+        return FindPathCore(pathFindingMode, start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange);
     }
 
     /// <summary>
@@ -129,272 +127,167 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         return segments;
     }
 
-    /// <summary>
-    /// Finds the shortest path between two positions (original behavior)
-    /// </summary>
-    private MovementPath? FindShortestPath(HexPosition start,
+    private readonly record struct PathfindingState(
+        HexPosition Position,
+        List<HexPosition> Path,
+        int Cost,
+        int HexesTraveled
+    );
+
+    private MovementPath? FindPathCore(
+        PathFindingMode mode,
+        HexPosition start,
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes,
         int unitHeight,
-        int? maxLevelChange = null)
-    {
-        prohibitedHexes??= new HashSet<HexCoordinates>();
-        var useCache = prohibitedHexes.Count == 0;
-
-        if (useCache)
-        {
-            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange, unitHeight);
-            if (cachedPath != null)
-            {
-                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
-            }
-        }
-
-        // If start and target are in the same hex, just return turning segments
-        if (start.Coordinates == target.Coordinates)
-        {
-            if (start.Surface != target.Surface)
-                return null;
-            var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) _movementPathCache.Add(path, unitHeight);
-            return path;
-        }
-
-        var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost), int>();
-        var visited = new Dictionary<HexPosition, int>();
-
-        frontier.Enqueue((start, [start], 0), 0);
-        visited[start] = 0;
-
-        while (frontier.Count > 0)
-        {
-            var (current, path, currentCost) = frontier.Dequeue();
-
-            // Check if we've reached the target
-            if (current == target)
-            {
-                // Convert path to segments
-                var segments = ConvertPathToSegments(path);
-                var result = new MovementPath(segments, movementType, maxLevelChange);
-                if (useCache) _movementPathCache.Add(result, unitHeight);
-                return result;
-            }
-
-            // For each adjacent hex
-            foreach (var nextCoord in current.Coordinates.GetAllNeighbours())
-            {
-                var hex = GetHex(nextCoord);
-                if (hex == null || prohibitedHexes.Contains(nextCoord))
-                    continue;
-
-                var currentHex = GetHex(current.Coordinates);
-                if (currentHex == null) continue;
-
-                // Get required facing for movement
-                var requiredFacing = current.Coordinates.GetDirectionToNeighbour(nextCoord);
-
-                // Calculate turning steps and cost if needed
-                var turningSteps = current.GetTurningSteps(requiredFacing).ToList();
-                var turningCost = turningSteps.Count;
-
-                // Branch on destination surface — physical possibility filter only.
-                foreach (var toSurface in hex.GetHexSurfaces())
-                {
-                    if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
-                        && !hex.CanStandOnGround(unitHeight)) continue;
-
-                    var elevationChange = hex.GetElevationChange(currentHex, current.Surface, toSurface);
-                    var levelCost = Math.Abs(elevationChange);
-
-                    if (levelCost > maxLevelChange)
-                        continue;
-
-                    var nextPos = new HexPosition(nextCoord, requiredFacing, toSurface);
-                    var newPath = new List<HexPosition>(path);
-                    newPath.AddRange(turningSteps);
-                    newPath.Add(nextPos);
-
-                    // Calculate total cost including terrain, hex entry, and level change
-                    var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-
-                    if (totalCost > maxMovementPoints)
-                        continue;
-
-                    // Skip if we've visited this state with a lower or equal cost
-                    if (visited.TryGetValue(nextPos, out var visitedCost) && totalCost >= visitedCost)
-                        continue;
-
-                    visited[nextPos] = totalCost;
-
-                    // Calculate priority based on remaining distance plus current cost
-                    var priority = totalCost + nextCoord.DistanceTo(target.Coordinates);
-
-                    // If we're at target coordinates but wrong facing, add turning steps to target facing
-                    if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
-                    {
-                        var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
-                        var finalCost = totalCost + finalTurningSteps.Count;
-                        if (finalCost > maxMovementPoints) continue;
-                        newPath.AddRange(finalTurningSteps);
-                        frontier.Enqueue((new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost), priority);
-                    }
-                    else
-                    {
-                        frontier.Enqueue((nextPos, newPath, totalCost), priority);
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Finds the longest path that maximizes hexes traversed within the movement budget.
-    /// The method does not guarantee to find the longest actual path, but it's good enough for the purpose.
-    /// </summary>
-    private MovementPath? FindLongestPath(HexPosition start,
-        HexPosition target,
-        MovementType movementType,
-        int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes,
-        int unitHeight,
-        int? maxLevelChange = null)
+        int? maxLevelChange)
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
         var useCache = prohibitedHexes.Count == 0;
 
+        var cache = mode == PathFindingMode.Shortest
+            ? _movementPathCache
+            : _movementLongPathCache;
+
         if (useCache)
         {
-            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange, unitHeight);
+            var cachedPath = cache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
             {
-                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
+                if (cachedPath.TotalCost <= maxMovementPoints)
+                    return cachedPath;
+                if (mode == PathFindingMode.Shortest)
+                    return null;
             }
         }
 
-        // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
             if (start.Surface != target.Surface)
                 return null;
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) _movementLongPathCache.Add(path, unitHeight);
+            if (path != null && useCache) cache.Add(path, unitHeight);
             return path;
         }
 
-        // Track the best path found so far (highest hexes traveled)
         MovementPath? bestPath = null;
         var bestHexesTraveled = 0;
 
-        // Use a priority queue that prioritizes higher hex counts
-        var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost, int hexesTraveled), (int, int)>();
-        var visited = new Dictionary<HexPosition, (int cost, int hexesTraveled)>();
+        var frontier = new PriorityQueue<PathfindingState, (int, int)>();
+        var visited = new Dictionary<HexPosition, (int cost, int hexes)>();
 
-        frontier.Enqueue((start, [start], 0, 0), (0, 0));
+        frontier.Enqueue(new PathfindingState(start, [start], 0, 0), (0, 0));
         visited[start] = (0, 0);
 
         while (frontier.Count > 0)
         {
-            var (current, path, currentCost, hexesTraveled) = frontier.Dequeue();
+            var current = frontier.Dequeue();
 
-            // Check if we've reached the target
-            if (current == target)
+            if (current.Position == target)
             {
-                // Convert path to segments
-                var segments = ConvertPathToSegments(path);
+                var segments = ConvertPathToSegments(current.Path);
                 var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
 
-                // Update the best path if this one has more hexes traveled
+                if (mode == PathFindingMode.Shortest)
+                {
+                    if (useCache) _movementPathCache.Add(candidatePath, unitHeight);
+                    return candidatePath;
+                }
+
                 if (candidatePath.HexesTraveled > bestHexesTraveled)
                 {
                     bestPath = candidatePath;
                     bestHexesTraveled = candidatePath.HexesTraveled;
                 }
 
-                // Continue searching for longer paths
                 continue;
             }
 
-            // For each adjacent hex
-            foreach (var nextCoord in current.Coordinates.GetAllNeighbours())
+            foreach (var nextCoord in current.Position.Coordinates.GetAllNeighbours())
             {
                 var hex = GetHex(nextCoord);
                 if (hex == null || prohibitedHexes.Contains(nextCoord))
                     continue;
 
-                var currentHex = GetHex(current.Coordinates);
+                var currentHex = GetHex(current.Position.Coordinates);
                 if (currentHex == null) continue;
 
-                // Get required facing for movement
-                var requiredFacing = current.Coordinates.GetDirectionToNeighbour(nextCoord);
+                var requiredFacing = current.Position.Coordinates.GetDirectionToNeighbour(nextCoord);
 
-                // Calculate turning steps and cost if needed
-                var turningSteps = current.GetTurningSteps(requiredFacing).ToList();
+                var turningSteps = current.Position.GetTurningSteps(requiredFacing).ToList();
                 var turningCost = turningSteps.Count;
 
-                // Branch on destination surface — physical possibility filter only.
                 foreach (var toSurface in hex.GetHexSurfaces())
                 {
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
                         && !hex.CanStandOnGround(unitHeight)) continue;
 
-                    var elevationChange = hex.GetElevationChange(currentHex, current.Surface, toSurface);
+                    var elevationChange = hex.GetElevationChange(currentHex, current.Position.Surface, toSurface);
                     var levelCost = Math.Abs(elevationChange);
 
                     if (levelCost > maxLevelChange)
                         continue;
 
                     var nextPos = new HexPosition(nextCoord, requiredFacing, toSurface);
-                    var newPath = new List<HexPosition>(path);
+                    var newPath = new List<HexPosition>(current.Path);
                     newPath.AddRange(turningSteps);
                     newPath.Add(nextPos);
 
-                    // Calculate total cost including terrain, hex entry, and level change
-                    var totalCost = currentCost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
-                    var newHexesTraveled = hexesTraveled + 1;
+                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+                    var isNewCoord = current.Path.All(p => p.Coordinates != nextCoord);
+                    var newHexesTraveled = current.HexesTraveled + (isNewCoord ? 1 : 0);
 
                     if (totalCost > maxMovementPoints)
                         continue;
 
-                    // For the longest path, allow revisiting if we have the same cost but more hexes traveled
                     if (visited.TryGetValue(nextPos, out var visitedState))
                     {
-                        // Skip only if we've visited with both lower-or-equal cost AND more-or-equal hexes
-                        if (visitedState.cost <= totalCost && visitedState.hexesTraveled >= newHexesTraveled)
-                            continue;
+                        if (mode == PathFindingMode.Shortest)
+                        {
+                            if (visitedState.cost <= totalCost)
+                                continue;
+                        }
+                        else
+                        {
+                            if (visitedState.cost <= totalCost && visitedState.hexes >= newHexesTraveled)
+                                continue;
+                        }
                     }
 
                     visited[nextPos] = (totalCost, newHexesTraveled);
 
-                    // Priority: negative hexes traveled (to maximize), then distance (to reach target)
-                    var priority = (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
-
-                    // If we're at target coordinates but wrong facing, add turning steps to target facing
                     if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
                     {
                         var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
                         var finalCost = totalCost + finalTurningSteps.Count;
                         if (finalCost > maxMovementPoints) continue;
                         newPath.AddRange(finalTurningSteps);
-                        frontier.Enqueue((new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), priority);
+                        var finalPriority = mode == PathFindingMode.Shortest
+                            ? (finalCost, 0)
+                            : (-newHexesTraveled, 0);
+                        frontier.Enqueue(new PathfindingState(new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), finalPriority);
                     }
                     else
                     {
-                        frontier.Enqueue((nextPos, newPath, totalCost, newHexesTraveled), priority);
+                        var priority = mode == PathFindingMode.Shortest
+                            ? (totalCost + nextCoord.DistanceTo(target.Coordinates), 0)
+                            : (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
+                        frontier.Enqueue(new PathfindingState(nextPos, newPath, totalCost, newHexesTraveled), priority);
                     }
                 }
             }
         }
 
-        if (bestPath != null && useCache)
+        if (mode == PathFindingMode.Longest)
         {
-            _movementLongPathCache.Add(bestPath, unitHeight);
+            if (bestPath != null && useCache)
+                _movementLongPathCache.Add(bestPath, unitHeight);
+            return bestPath;
         }
 
-        return bestPath;
+        return null;
     }
 
     /// <summary>
