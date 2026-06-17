@@ -24,7 +24,7 @@ The reachability API spans three layers:
 
 | Layer | File | Purpose |
 |-------|------|---------|
-| **Low-level** | [BattleMap.cs](file:///c:/Users/Anton/source/repos/MakaMek/src/MakaMek.Map/Models/BattleMap.cs) | `GetReachableHexes`, `GetJumpReachableHexes`, `FindPath` |
+| **Low-level** | [BattleMap.cs](../../src/MakaMek.Map/Models/BattleMap.cs) | `GetReachableHexes`, `GetJumpReachableHexes`, `FindPath` |
 | **Mid-level** | [BattleMapExtensions.cs](file:///c:/Users/Anton/source/repos/MakaMek/src/MakaMek.Core/Models/Map/BattleMapExtensions.cs) | `GetReachableHexesForUnit`, `GetReachableHexesForPosition`, `GetPathsToHexWithAllFacings` |
 | **Data** | [ReachabilityData.cs](file:///c:/Users/Anton/source/repos/MakaMek/src/MakaMek.Map/Data/ReachabilityData.cs) | Forward/backward reachable hex storage |
 
