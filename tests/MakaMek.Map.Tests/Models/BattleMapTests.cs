@@ -453,8 +453,8 @@ public class BattleMapTests
         var lightWoodsSegment = movementSegments
             .FirstOrDefault(s => s.To.Coordinates == new HexCoordinates(1, 2));
         lightWoodsSegment.ShouldNotBeNull();
-        lightWoodsSegment.Costs.Any(c => c is HexEnterMovementCost h && h.Value == 1).ShouldBeTrue();
-        lightWoodsSegment.Costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.LightWoods && t.Value == 1).ShouldBeTrue();
+        lightWoodsSegment.Costs.Any(c => c is HexEnterMovementCost { Value: 1 }).ShouldBeTrue();
+        lightWoodsSegment.Costs.Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.LightWoods, Value: 1 }).ShouldBeTrue();
         lightWoodsSegment.Cost.ShouldBe(2); // 1 entry + 1 terrain
     }
 
@@ -680,7 +680,7 @@ public class BattleMapTests
         var sut = new BattleMap(2, 2);
         var hex = new Hex(new HexCoordinates(1, 1));
         sut.AddHex(hex);
-        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top);
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
 
         // Act
@@ -697,7 +697,7 @@ public class BattleMapTests
         var sut = new BattleMap(2, 2);
         var hex = new Hex(new HexCoordinates(1, 1));
         sut.AddHex(hex);
-        var start = new HexPosition(hex.Coordinates, HexDirection.Top, HexSurface.Ground);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top);
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom, HexSurface.Bridge);
 
         // Act
@@ -892,8 +892,8 @@ public class BattleMapTests
         var result = sut.GetLineOfSight(attacker, target, 2);
 
         // Assert
-        // LOS should be blocked because the line passes through multiple heavy woods hexes
-        // Each heavy wood has an intervening factor of 2, and total intervening factor >= 3 blocks LOS
+        // LOS should be blocked because the line passes through multiple heavy woods hexes.
+        // Each heavy wood has an intervening factor of 2, and a total intervening factor >= 3 blocks LOS
         result.HasLineOfSight.ShouldBeFalse($"LOS should be blocked by heavy woods cluster between {attacker} and {target}");
     }
 
@@ -1563,8 +1563,8 @@ public class BattleMapTests
 
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
 
-        // Act - With limited MP, elevated hexes may be unreachable
-        // Hex 2: 1 terrain + 1 level = 2 MP
+        // Act - With limited MP, elevated hexes may be unreachable.
+        // Hex 2: 1 terrain + 1 level = 2 MP.
         // Hex 3: 1+1 + 1+1 = 4 MP (through hex 2)
         var reachable = sut.GetReachableHexes(start, 3, 1, maxLevelChange: 2).ToList();
 
@@ -2076,7 +2076,7 @@ public class BattleMapTests
         toHex.AddTerrain(new ClearTerrain());
         sut.AddHex(toHex);
 
-        // Act - Shallow water (depth 0) < unit height (1), so not submerged. Target also not submerged (height 1)
+        // Act - Shallow water (depth 0) < unit height (1), so not submerged. Target also isn't submerged (height 1)
         var result = sut.GetLineOfSight(from, to, 1, 1);
 
         // Assert
@@ -2680,7 +2680,7 @@ public class BattleMapTests
             "Bridge surface should be reachable at cost 3 (1 terrain + 2 climb)");
 
         // Verify costs match FindPath results for each surface
-        var groundTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight, HexSurface.Ground);
+        var groundTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
         var groundPath = sut.FindPath(start, groundTarget, MovementType.Walk, mpBudget, unitHeight: 1);
         groundPath.ShouldNotBeNull();
         groundPath.TotalCost.ShouldBe(1);
@@ -2709,28 +2709,53 @@ public class BattleMapTests
     [Fact]
     public void FindPath_LongestMode_CachedPathExceedsBudget_SearchesAgain()
     {
-        var sut = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var sut = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+        const int tightBudget = 10;
 
+        // Cache a long path using the full budget
         var initialPath = sut.FindPath(start, target, MovementType.Walk, 20, 1, null, PathFindingMode.Longest);
         initialPath.ShouldNotBeNull();
+        // Confirm the cached long path exceeds the tight budget, which is required to trigger re-search
+        initialPath.TotalCost.ShouldBeGreaterThan(tightBudget);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 3, 1, null, PathFindingMode.Longest);
+        // When the cached path exceeds budget in Longest mode, the algorithm re-searches
+        // (unlike Shortest mode which returns null without re-searching)
+        var path = sut.FindPath(start, target, MovementType.Walk, tightBudget, 1, null, PathFindingMode.Longest);
 
-        path.ShouldBeNull();
+        path.ShouldNotBeNull(); // Re-search found a valid path within the tight budget
+        path.TotalCost.ShouldBeLessThanOrEqualTo(tightBudget);
+        path.HexesTraveled.ShouldBeLessThan(initialPath.HexesTraveled); // Re-searched path is shorter than the cached long path
     }
 
     [Fact]
     public void FindPath_ShortestMode_VisitedPruning_SkipsMoreExpensiveConvergentPaths()
     {
-        var sut = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
-        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+        // Build a map with two routes converging at (2,2):
+        // Route A (cheap):     (1,1) → (2,1)[Clear]      → (2,2): 2 turns + 1 MP + 1 turn + 1 MP = 5 MP
+        // Route B (expensive): (1,1) → (1,2)[HeavyWoods] → (2,2): 3 turns + 3 MP + 1 turn + 1 MP + 1 turn = 9 MP.
+        // Visited pruning must discard Route B once (2,2) is already reached cheaper via Route A
+        var sut = new BattleMap(2, 2);
+        var hex11 = new Hex(new HexCoordinates(1, 1));
+        hex11.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex11);
+        var hex21 = new Hex(new HexCoordinates(2, 1));
+        hex21.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex21);
+        var hex12 = new Hex(new HexCoordinates(1, 2));
+        hex12.AddTerrain(new HeavyWoodsTerrain());
+        sut.AddHex(hex12);
+        var hex22 = new Hex(new HexCoordinates(2, 2));
+        hex22.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex22);
 
-        var path = sut.FindPath(start, target, MovementType.Walk, 15, 1);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 20, 1);
 
         path.ShouldNotBeNull();
-        path.TotalCost.ShouldBeLessThanOrEqualTo(15);
+        path.TotalCost.ShouldBe(5); // Optimal cost via cheap route; expensive convergent route was pruned
     }
 }
