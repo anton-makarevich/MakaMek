@@ -155,7 +155,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         {
             var cachedPath = cache.Get(start, target, false, maxLevelChange, unitHeight);
             if (cachedPath != null)
-                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
+            {
+                if (cachedPath.TotalCost <= maxMovementPoints)
+                    return cachedPath;
+                if (mode == PathFindingMode.Shortest)
+                    return null;
+            }
         }
 
         if (start.Coordinates == target.Coordinates)
@@ -252,20 +257,22 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
                     visited[nextPos] = (totalCost, newHexesTraveled);
 
-                    var priority = mode == PathFindingMode.Shortest
-                        ? (totalCost + nextCoord.DistanceTo(target.Coordinates), 0)
-                        : (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
-
                     if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
                     {
                         var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
                         var finalCost = totalCost + finalTurningSteps.Count;
                         if (finalCost > maxMovementPoints) continue;
                         newPath.AddRange(finalTurningSteps);
-                        frontier.Enqueue(new PathfindingState(new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), priority);
+                        var finalPriority = mode == PathFindingMode.Shortest
+                            ? (finalCost, 0)
+                            : (-newHexesTraveled, 0);
+                        frontier.Enqueue(new PathfindingState(new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), finalPriority);
                     }
                     else
                     {
+                        var priority = mode == PathFindingMode.Shortest
+                            ? (totalCost + nextCoord.DistanceTo(target.Coordinates), 0)
+                            : (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
                         frontier.Enqueue(new PathfindingState(nextPos, newPath, totalCost, newHexesTraveled), priority);
                     }
                 }
