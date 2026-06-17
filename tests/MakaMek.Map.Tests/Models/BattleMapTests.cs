@@ -2758,4 +2758,24 @@ public class BattleMapTests
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(5); // Optimal cost via cheap route; expensive convergent route was pruned
     }
+
+    [Fact]
+    public void FindPath_LongestMode_LoopPath_PrefersMoreDistinctHexes()
+    {
+        // Arrange: 2×2 clear map. Two routes from (1,1) to (2,2):
+        // Direct: (1,1) → (2,1) → (2,2)          — HexesTraveled=2, ~5 MP
+        // Loop:   (1,1) → (2,1) → (1,2) → (2,2)  — HexesTraveled=3, ~10 MP
+        // Longest mode must prefer the loop (more distinct hexes) within the 12 MP budget.
+        // The pruning condition (cost<=c AND hexes>=h) must NOT discard the loop path when
+        // it arrives at an intermediate hex with more distinct hexes than the direct route did.
+        var sut = BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 12, 1, null, PathFindingMode.Longest);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBeLessThanOrEqualTo(12);
+        path.HexesTraveled.ShouldBe(3); // Loop chosen over the direct 2-hex route
+    }
 }
