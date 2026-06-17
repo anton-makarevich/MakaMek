@@ -123,18 +123,6 @@ The remaining split is the two cache instances. With `FindPathCore(PathFindingMo
 
 All three consumers follow the exact same pattern:
 
-```csharp
-// Step 1: Compute reachability
-var reachabilityData = map.GetReachableHexesForUnit(...);
-
-// Step 2: For each reachable hex, get paths
-foreach (var coords in reachabilityData.AllReachableCoordinates)
-{
-    var paths = map.GetPathsToHexWithAllFacings(
-        ..., reachabilityData, ...);
-}
-```
-
 `GetPathsToHexWithAllFacings` uses `ReachabilityData` only to check `IsForwardReachable` / `IsBackwardReachable`, which just scans a `List` via `.Any()`. This is O(n) per call on an uncached list.
 
 ---
