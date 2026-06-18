@@ -1042,6 +1042,34 @@ public class WeaponSelectionViewModelTests
     }
     
     [Fact]
+    public void ApplyAimedShotResultMultipleTimes_ShouldRestoreBaselineOnClear()
+    {
+        // Arrange
+        CreateSut(target: _target, isInRange: true);
+        var baseline = CreateTestBreakdown(6);
+        var aimed1 = CreateTestBreakdown(8);
+        var aimed2 = CreateTestBreakdown(7);
+        _sut.ModifiersBreakdown = baseline;
+        _sut.AimedHeadModifiersBreakdown = aimed1;
+        _sut.AimedOtherModifiersBreakdown = aimed1;
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
+
+        _toHitCalculator.AddAimedShotModifier(baseline, PartLocation.Head).Returns(aimed1);
+        _toHitCalculator.AddAimedShotModifier(aimed1, PartLocation.CenterTorso).Returns(aimed2);
+
+        // Act
+        _sut.ApplyAimedShotResult(PartLocation.Head);
+        _sut.ApplyAimedShotResult(PartLocation.CenterTorso);
+        _sut.ClearAimedShot();
+
+        // Assert
+        _sut.ModifiersBreakdown.ShouldBe(baseline);
+        _sut.AimedShotTarget.ShouldBeNull();
+        _sut.IsAimedShot.ShouldBeFalse();
+    }
+
+    [Fact]
     public void ClearAimedShot_ShouldRestoreOriginalBreakdown()
     {
         // Arrange
