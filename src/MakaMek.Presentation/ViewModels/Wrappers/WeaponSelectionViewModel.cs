@@ -281,7 +281,7 @@ public class WeaponSelectionViewModel : BindableBase
         AimedShotTarget = location;
 
         _originalModifiersBreakdown ??= ModifiersBreakdown;
-        if (ModifiersBreakdown != null)
-            ModifiersBreakdown = _toHitCalculator.AddAimedShotModifier(ModifiersBreakdown, location);
+        if (_originalModifiersBreakdown != null)
+            ModifiersBreakdown = _toHitCalculator.AddAimedShotModifier(_originalModifiersBreakdown, location);
     }
 }

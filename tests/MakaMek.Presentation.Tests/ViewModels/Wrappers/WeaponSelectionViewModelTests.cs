@@ -1056,7 +1056,7 @@ public class WeaponSelectionViewModelTests
         _sut.IsSelected = true;
 
         _toHitCalculator.AddAimedShotModifier(baseline, PartLocation.Head).Returns(aimed1);
-        _toHitCalculator.AddAimedShotModifier(aimed1, PartLocation.CenterTorso).Returns(aimed2);
+        _toHitCalculator.AddAimedShotModifier(baseline, PartLocation.CenterTorso).Returns(aimed2);
 
         // Act
         _sut.ApplyAimedShotResult(PartLocation.Head);
