@@ -40,6 +40,7 @@ public class EndStateTests
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
+    private readonly Guid _idempotencyKey = Guid.NewGuid();
 
     public EndStateTests()
     {
@@ -84,7 +85,6 @@ public class EndStateTests
             _hashService,
             Substitute.For<ILogger<ClientGame>>());
         
-        var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(
             Arg.Any<Guid>(),
             Arg.Any<Guid>(),
@@ -94,7 +94,7 @@ public class EndStateTests
             Arg.Any<Guid?>(),
             Arg.Any<int>(),
             Arg.Any<string?>())
-            .Returns(idempotencyKey);
+            .Returns(_idempotencyKey);
         
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -109,7 +109,7 @@ public class EndStateTests
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
             PilotAssignments = [],
-            IdempotencyKey = idempotencyKey
+            IdempotencyKey = _idempotencyKey
         });
         _unit1 = _battleMapViewModel.Units.First();
     
@@ -630,6 +630,88 @@ public class EndStateTests
     {
         var unit = Substitute.For<IUnit>();
         ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanActivePlayerAct_ShutdownActionBlocksThenAckUnblocks()
+    {
+        // This directly tests the underlying ACK mechanism on ClientGame
+        // Without going through EndState, to verify pending command lifecycle
+
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Before any action, player can act
+        _game.CanActivePlayerAct.ShouldBeTrue();
+
+        // Execute shutdown action
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+        shutdownAction.OnExecute();
+
+        // After action, pending commands should block
+        _game.CanActivePlayerAct.ShouldBeFalse();
+
+        // Simulate server ACK by receiving the re-broadcasted command back
+        _game.HandleCommand(new ShutdownUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player.Id,
+            UnitId = _unit1.Id,
+            IdempotencyKey = _idempotencyKey,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // After ACK, player can act again
+        _game.CanActivePlayerAct.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ShouldBeTrue_AfterShutdownActionAndAck()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+
+        // Act - Execute the shutdown action, which publishes a ShutdownUnitCommand with IdempotencyKey
+        shutdownAction.OnExecute();
+
+        // Simulate receiving the re-broadcasted command back (server ACK)
+        _game.HandleCommand(new ShutdownUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player.Id,
+            UnitId = _unit1.Id,
+            IdempotencyKey = _idempotencyKey,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert - End Turn button should still be available
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ShouldBeTrue_AfterStartupActionAndAck()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(0);
+        var startupAction = _sut.GetAvailableActions().First(a => a.Label == "Startup");
+
+        // Act - Execute the startup action, which publishes a StartupUnitCommand with IdempotencyKey
+        startupAction.OnExecute();
+
+        // Simulate receiving the re-broadcasted command back (server ACK)
+        // Use a different GameOriginId to bypass ShouldHandleCommand filter
+        _game.HandleCommand(new StartupUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player.Id,
+            UnitId = _unit1.Id,
+            IdempotencyKey = _idempotencyKey
+        });
+
+        // Assert - End Turn button should still be available
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
     }
 
     private static void BindViewModelCurrentStateTo(EndState state, BattleMapViewModel viewModel)

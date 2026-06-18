@@ -97,6 +97,10 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         // Apply the shutdown and broadcast to all clients
         Game.OnUnitShutdown(serverShutdownCommand);
         Game.CommandPublisher.PublishCommand(serverShutdownCommand);
+
+        // Re-broadcast the original client command so clients can ACK their pending command
+        shutdownUnitCommand.GameOriginId = Game.Id;
+        Game.CommandPublisher.PublishCommand(shutdownUnitCommand);
     }
 
     private void HandleStartupUnitCommand(StartupUnitCommand startupUnitCommand)
@@ -122,6 +126,10 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         // Apply the startup and broadcast to all clients
         Game.OnMechRestart(serverStartupCommand);
         Game.CommandPublisher.PublishCommand(serverStartupCommand);
+
+        // Re-broadcast the original client command so clients can ACK their pending command
+        startupUnitCommand.GameOriginId = Game.Id;
+        Game.CommandPublisher.PublishCommand(startupUnitCommand);
     }
 
     private bool HaveAllPlayersEndedTurn()

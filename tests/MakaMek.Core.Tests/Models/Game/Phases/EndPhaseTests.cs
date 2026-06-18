@@ -267,7 +267,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Act
         _sut.HandleCommand(shutdownCommand);
 
-        // Assert
+        // Assert - server command is published
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<UnitShutdownCommand>(cmd =>
                 cmd.UnitId == unit.Id &&
@@ -276,6 +276,13 @@ public class EndPhaseTests : GamePhaseTestsBase
                 cmd.ShutdownData.Turn == Game.Turn &&
                 cmd.AvoidShutdownRoll == null &&
                 cmd.IsAutomaticShutdown == false));
+
+        // Assert - original client command is re-broadcast for ACK
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<ShutdownUnitCommand>(cmd =>
+                cmd.PlayerId == _player1Id &&
+                cmd.UnitId == unit.Id &&
+                cmd.GameOriginId == Game.Id));
 
         unit.IsShutdown.ShouldBeTrue();
         unit.CurrentShutdownData.ShouldNotBeNull();
@@ -430,11 +437,19 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Act
         _sut.HandleCommand(startupCommand);
 
-        // Assert
+        // Assert - server command is published
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<UnitStartupCommand>(cmd =>
                 cmd.UnitId == unit.Id &&
                 cmd.GameOriginId == Game.Id));
+
+        // Assert - original client command is re-broadcast for ACK
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<StartupUnitCommand>(cmd =>
+                cmd.PlayerId == _player1Id &&
+                cmd.UnitId == unit.Id &&
+                cmd.GameOriginId == Game.Id));
+
         // Verify the calculator was invoked with the correct mech and turn
         MockHeatEffectsCalculator.Received(1).AttemptRestart(
             Arg.Is<Mech>(m => m.Id == unit.Id),
