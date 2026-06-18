@@ -22,3 +22,9 @@ Technical analyses, integration studies, design evaluations, and race condition 
 | Document | Summary |
 |----------|---------|
 | [reachability-api.md](reachability-api.md) | Analysis of the three-layer reachability API with implementation status of each identified issue |
+
+## UI/UX Analyses
+
+| Document | Summary |
+|----------|---------|
+| [inputs-patterns.md](inputs-patterns.md) | Analysis of user input patterns in the UI state machine — overlays, action menus, and identified inconsistencies |
