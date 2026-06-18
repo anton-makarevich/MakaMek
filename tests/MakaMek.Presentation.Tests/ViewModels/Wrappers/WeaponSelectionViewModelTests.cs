@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
-using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -24,8 +23,7 @@ public class WeaponSelectionViewModelTests
     private readonly Weapon _weapon;
     private readonly Mech _target;
     private Action<Weapon, bool>? _selectionChangedAction;
-    private readonly Action<AimedShotLocationSelectorViewModel> _onShowAimedShotLocationSelector = Substitute.For<Action<AimedShotLocationSelectorViewModel>>();
-    private readonly Action _onHideAimedShotLocationSelector = Substitute.For<Action>();
+    private readonly Action<WeaponSelectionViewModel> _onAimedShotRequest = Substitute.For<Action<WeaponSelectionViewModel>>();
     private WeaponSelectionViewModel _sut = null!;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
@@ -153,8 +151,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (_, _) => { },
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator);
 
@@ -206,8 +203,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator,
             remainingShots);
@@ -238,8 +234,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator);
 
@@ -273,8 +268,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator,
             remainingShots);
@@ -297,8 +291,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator,
             0)
@@ -326,8 +319,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator,
             5)
@@ -354,8 +346,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator,
             0);
@@ -381,8 +372,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator)
         {
@@ -426,8 +416,7 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator)
         {
@@ -504,8 +493,7 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             _target,
             _selectionChangedAction,
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator)
         {
@@ -535,8 +523,7 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             _target,
             _selectionChangedAction,
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator)
         {
@@ -889,7 +876,7 @@ public class WeaponSelectionViewModelTests
     }
 
     [Fact]
-    public void ShowAimedShotSelector_WithValidConditions_ShouldCallShowCallback()
+    public void ShowAimedShotSelector_WithValidConditions_ShouldCallRequestDelegate()
     {
         // Arrange
         CreateSut(target: _target, isInRange: true);
@@ -901,11 +888,11 @@ public class WeaponSelectionViewModelTests
         _sut.ShowAimedShotSelector();
 
         // Assert
-        _onShowAimedShotLocationSelector.Received(1).Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+        _onAimedShotRequest.Received(1).Invoke(_sut);
     }
 
     [Fact]
-    public void ShowAimedShotSelector_WithNoTarget_ShouldNotCallShowCallback()
+    public void ShowAimedShotSelector_WithNoTarget_ShouldNotCallRequestDelegate()
     {
         // Arrange
         CreateSut(target: null);
@@ -914,11 +901,11 @@ public class WeaponSelectionViewModelTests
         _sut.ShowAimedShotSelector();
 
         // Assert
-        _onShowAimedShotLocationSelector.DidNotReceive().Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+        _onAimedShotRequest.DidNotReceive().Invoke(Arg.Any<WeaponSelectionViewModel>());
     }
 
     [Fact]
-    public void ShowAimedShotSelector_WithNoAimedShotBreakdowns_ShouldNotCallShowCallback()
+    public void ShowAimedShotSelector_WithNoAimedShotBreakdowns_ShouldNotCallRequestDelegate()
     {
         // Arrange
         CreateSut(target: _target);
@@ -929,7 +916,7 @@ public class WeaponSelectionViewModelTests
         _sut.ShowAimedShotSelector();
 
         // Assert
-        _onShowAimedShotLocationSelector.DidNotReceive().Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+        _onAimedShotRequest.DidNotReceive().Invoke(Arg.Any<WeaponSelectionViewModel>());
     }
 
     [Fact]
@@ -1010,7 +997,7 @@ public class WeaponSelectionViewModelTests
     }
 
     [Fact]
-    public void ShowAimedShotSelector_CreatesCorrectViewModel()
+    public void ShowAimedShotSelector_ShouldInvokeRequestWithItself()
     {
         // Arrange
         CreateSut(target: _target, isInRange: true);
@@ -1020,24 +1007,18 @@ public class WeaponSelectionViewModelTests
         _sut.AimedHeadModifiersBreakdown = headBreakdown;
         _sut.AimedOtherModifiersBreakdown = otherBreakdown;
 
-        AimedShotLocationSelectorViewModel? capturedViewModel = null;
-        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
-            .Do(x => capturedViewModel = x.Arg<AimedShotLocationSelectorViewModel>());
-
         // Act
         _sut.ShowAimedShotSelector();
 
         // Assert
-        capturedViewModel.ShouldNotBeNull();
-        capturedViewModel.HeadPart.ShouldNotBeNull();
-        capturedViewModel.CenterTorsoPart.ShouldNotBeNull();
+        _onAimedShotRequest.Received(1).Invoke(_sut);
     }
     
     [Theory]
     [InlineData(PartLocation.Head)]
     [InlineData(PartLocation.CenterTorso)]
     [InlineData(PartLocation.RightLeg)]
-    public void AimedShotLocationSelectorViewModel_ShouldUpdateBreakDownWhenCompleted(PartLocation targetLocation)
+    public void ApplyAimedShotResult_ShouldUpdateBreakdownAndTarget(PartLocation targetLocation)
     {
         // Arrange
         CreateSut(target: _target, isInRange: true);
@@ -1051,18 +1032,12 @@ public class WeaponSelectionViewModelTests
         
         _toHitCalculator.AddAimedShotModifier(initialBreakdown, targetLocation).Returns(updatedBreakdown);
 
-        AimedShotLocationSelectorViewModel? capturedViewModel = null;
-        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
-            .Do(x => capturedViewModel = x.Arg<AimedShotLocationSelectorViewModel>());
-        _sut.ShowAimedShotSelector();
-
         // Act
-        capturedViewModel!.SelectPart(targetLocation);
+        _sut.ApplyAimedShotResult(targetLocation);
         
         // Assert
         _sut.ModifiersBreakdown.ShouldBe(updatedBreakdown);    
         _sut.AimedShotTarget.ShouldBe(targetLocation);
-        _onHideAimedShotLocationSelector.Received(1).Invoke();
         _toHitCalculator.Received(1).AddAimedShotModifier(initialBreakdown, targetLocation);
     }
     
@@ -1081,13 +1056,8 @@ public class WeaponSelectionViewModelTests
 
         _toHitCalculator.AddAimedShotModifier(baseline, PartLocation.Head).Returns(aimed);
 
-        AimedShotLocationSelectorViewModel? vm = null;
-        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
-            .Do(x => vm = x.Arg<AimedShotLocationSelectorViewModel>());
-        _sut.ShowAimedShotSelector();
-
-        // Aim at head
-        vm!.SelectPart(PartLocation.Head);
+        // Apply aimed shot at head
+        _sut.ApplyAimedShotResult(PartLocation.Head);
         _sut.ModifiersBreakdown.ShouldBe(aimed);
 
         // Act
@@ -1112,8 +1082,7 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             target,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
-            _onShowAimedShotLocationSelector,
-            _onHideAimedShotLocationSelector,
+            _onAimedShotRequest,
             _localizationService,
             _toHitCalculator);
     }
