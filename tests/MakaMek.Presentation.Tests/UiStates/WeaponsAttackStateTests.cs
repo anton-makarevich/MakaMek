@@ -2284,4 +2284,140 @@ public class WeaponsAttackStateTests
         var unit = Substitute.For<IUnit>();
         ((IUiState)_sut).CanSelectUnit(unit).ShouldBeTrue();
     }
+
+    [Fact]
+    public void HandleAimedShotRequest_ShowsLocationSelector_WhenAllConditionsMet()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+
+        attacker.Deploy(attackerPosition, null);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        target.Deploy(targetPosition, null);
+
+        // Mock AddAimedShotModifier to return non-null breakdowns
+        var headBreakdown = new ToHitBreakdown
+        {
+            GunneryBase = new GunneryRollModifier { Value = 4 },
+            AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
+            TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Medium Laser" },
+            TerrainModifiers = [],
+            HasLineOfSight = true,
+            FiringArc = FiringArc.Front
+        };
+        var otherBreakdown = new ToHitBreakdown
+        {
+            GunneryBase = new GunneryRollModifier { Value = 4 },
+            AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
+            TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Medium Laser" },
+            TerrainModifiers = [],
+            HasLineOfSight = true,
+            FiringArc = FiringArc.Front
+        };
+
+        _toHitCalculator.AddAimedShotModifier(Arg.Any<ToHitBreakdown>(), PartLocation.Head).Returns(headBreakdown);
+        _toHitCalculator.AddAimedShotModifier(Arg.Any<ToHitBreakdown>(), PartLocation.CenterTorso).Returns(otherBreakdown);
+
+        // Select unit and go to target selection
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponVm = _sut.WeaponSelectionItems.First(w => w.Weapon == weapon);
+
+        // Select the weapon so that Target and Aimed breakdowns are set on the VM
+        weaponVm.IsSelected = true;
+
+        weaponVm.Target.ShouldNotBeNull();
+        weaponVm.IsAimedShotAvailable.ShouldBeTrue();
+        weaponVm.AimedHeadModifiersBreakdown.ShouldNotBeNull();
+        weaponVm.AimedOtherModifiersBreakdown.ShouldNotBeNull();
+
+        // Act
+        weaponVm.ShowAimedShotSelector();
+
+        // Assert
+        _battleMapViewModel.UnitPartSelector.ShouldNotBeNull();
+        _battleMapViewModel.IsUnitPartSelectorVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleAimedShotRequest_AppliesAimedShotResult_WhenLocationSelectedViaCallback()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+
+        attacker.Deploy(attackerPosition, null);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        target.Deploy(targetPosition, null);
+
+        var headBreakdown = new ToHitBreakdown
+        {
+            GunneryBase = new GunneryRollModifier { Value = 4 },
+            AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
+            TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Medium Laser" },
+            TerrainModifiers = [],
+            HasLineOfSight = true,
+            FiringArc = FiringArc.Front
+        };
+        var otherBreakdown = new ToHitBreakdown
+        {
+            GunneryBase = new GunneryRollModifier { Value = 4 },
+            AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
+            TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier { Value = 0, Range = RangeBracket.Medium, Distance = 5, WeaponName = "Medium Laser" },
+            TerrainModifiers = [],
+            HasLineOfSight = true,
+            FiringArc = FiringArc.Front
+        };
+
+        _toHitCalculator.AddAimedShotModifier(Arg.Any<ToHitBreakdown>(), PartLocation.Head).Returns(headBreakdown);
+        _toHitCalculator.AddAimedShotModifier(Arg.Any<ToHitBreakdown>(), PartLocation.CenterTorso).Returns(otherBreakdown);
+
+        // Set up weapon VMs and select weapon
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponVm = _sut.WeaponSelectionItems.First(w => w.Weapon == weapon);
+        weaponVm.IsSelected = true;
+
+        // Show the selector
+        weaponVm.ShowAimedShotSelector();
+        var selectorVm = _battleMapViewModel.UnitPartSelector;
+        selectorVm.ShouldNotBeNull();
+
+        // Act - select a body part via the selector's callback
+        selectorVm.SelectPart(PartLocation.Head);
+
+        // Assert
+        weaponVm.AimedShotTarget.ShouldBe(PartLocation.Head);
+        _battleMapViewModel.IsUnitPartSelectorVisible.ShouldBeFalse();
+        _battleMapViewModel.UnitPartSelector.ShouldBeNull();
+    }
 }
