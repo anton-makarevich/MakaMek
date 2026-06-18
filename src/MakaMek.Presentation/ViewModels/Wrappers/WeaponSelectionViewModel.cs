@@ -11,8 +11,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class WeaponSelectionViewModel : BindableBase
 {
     private readonly Action<Weapon, bool> _onSelectionChanged;
-    private readonly Action<AimedShotLocationSelectorViewModel> _onShowAimedShotLocationSelector;
-    private readonly Action _onHideAimedShotLocationSelector;
+    private readonly Action<WeaponSelectionViewModel> _onAimedShotRequest;
     private bool _isEnabled;
     private readonly ILocalizationService _localizationService;
     private readonly IToHitCalculator _toHitCalculator;
@@ -25,8 +24,7 @@ public class WeaponSelectionViewModel : BindableBase
         bool isEnabled,
         IUnit? target,
         Action<Weapon, bool> onSelectionChanged,
-        Action<AimedShotLocationSelectorViewModel> onShowAimedShotLocationSelector, 
-        Action onHideAimedShotLocationSelector,
+        Action<WeaponSelectionViewModel> onAimedShotRequest,
         ILocalizationService localizationService,
         IToHitCalculator toHitCalculator,
         int remainingAmmoShots = -1)
@@ -39,8 +37,7 @@ public class WeaponSelectionViewModel : BindableBase
         _onSelectionChanged = onSelectionChanged;
         _localizationService = localizationService;
         _toHitCalculator = toHitCalculator;
-        _onShowAimedShotLocationSelector = onShowAimedShotLocationSelector;
-        _onHideAimedShotLocationSelector = onHideAimedShotLocationSelector;
+        _onAimedShotRequest = onAimedShotRequest;
         RemainingAmmoShots = remainingAmmoShots;
     }
 
@@ -273,29 +270,18 @@ public class WeaponSelectionViewModel : BindableBase
         if (!IsAimedShotAvailable || AimedHeadModifiersBreakdown == null || AimedOtherModifiersBreakdown == null)
             return;
 
-        var bodyPartSelector = new AimedShotLocationSelectorViewModel(
-            Target,
-            AimedHeadModifiersBreakdown,
-            AimedOtherModifiersBreakdown,
-            OnAimedShotTargetSelected,
-            _localizationService
-        );
-        // Create and show the body part selector
-
-        _onShowAimedShotLocationSelector(bodyPartSelector);
+        _onAimedShotRequest(this);
     }
 
     /// <summary>
-    /// Handles the selection of an aimed shot target
+    /// Applies the result of an aimed shot location selection
     /// </summary>
-    private void OnAimedShotTargetSelected(PartLocation targetLocation)
+    public void ApplyAimedShotResult(PartLocation location)
     {
-        AimedShotTarget = targetLocation;
+        AimedShotTarget = location;
 
-        _originalModifiersBreakdown = ModifiersBreakdown;
+        _originalModifiersBreakdown ??= ModifiersBreakdown;
         if (_originalModifiersBreakdown != null)
-            ModifiersBreakdown = _toHitCalculator.AddAimedShotModifier(_originalModifiersBreakdown, targetLocation);
-
-        _onHideAimedShotLocationSelector();
+            ModifiersBreakdown = _toHitCalculator.AddAimedShotModifier(_originalModifiersBreakdown, location);
     }
 }
