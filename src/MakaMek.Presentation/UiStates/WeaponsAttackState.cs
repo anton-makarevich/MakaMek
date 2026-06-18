@@ -566,8 +566,7 @@ public class WeaponsAttackState : IUiState
                 isEnabled: false,
                 target: null,
                 onSelectionChanged: HandleWeaponSelection,
-                _viewModel.ShowAimedShotLocationSelector,
-                _viewModel.HideAimedShotLocationSelector,
+                onAimedShotRequest: HandleAimedShotRequest,
                 localizationService: _viewModel.LocalizationService,
                 toHitCalculator: Game.ToHitCalculator,
                 remainingAmmoShots: Attacker.GetRemainingAmmoShots(weapon)
@@ -694,6 +693,27 @@ public class WeaponsAttackState : IUiState
         UpdateWeaponViewModels();
         UpdateSelectedTargetViewModel();
         _viewModel.NotifyStateChanged();
+    }
+
+    private void HandleAimedShotRequest(WeaponSelectionViewModel weaponVm)
+    {
+        if (weaponVm.Target == null
+            || weaponVm.AimedHeadModifiersBreakdown == null
+            || weaponVm.AimedOtherModifiersBreakdown == null)
+            return;
+
+        var selectorVm = new AimedShotLocationSelectorViewModel(
+            weaponVm.Target,
+            weaponVm.AimedHeadModifiersBreakdown,
+            weaponVm.AimedOtherModifiersBreakdown,
+            location =>
+            {
+                weaponVm.ApplyAimedShotResult(location);
+                _viewModel.HideAimedShotLocationSelector();
+            },
+            _viewModel.LocalizationService);
+
+        _viewModel.ShowAimedShotLocationSelector(selectorVm);
     }
 
     private void HandleSetPrimaryTarget(IUnit target)
