@@ -132,7 +132,7 @@ public class HexTests
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(2);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -147,7 +147,7 @@ public class HexTests
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new RoadTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(2);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -164,7 +164,7 @@ public class HexTests
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(3);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -181,7 +181,7 @@ public class HexTests
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(2);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -197,7 +197,7 @@ public class HexTests
         var toHex = new Hex(new HexCoordinates(1, 0));
         toHex.AddTerrain(new HeavyWoodsTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(2);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -212,7 +212,7 @@ public class HexTests
         fromHex.AddTerrain(new ClearTerrain());
         var toHex = new Hex(new HexCoordinates(1, 0)); // no terrains at all
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(1);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
@@ -229,7 +229,7 @@ public class HexTests
         toHex.AddTerrain(new RoadTerrain());
         toHex.AddTerrain(new RoughTerrain());
 
-        var costs = toHex.GetEnterMovementCost(fromHex).ToList();
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
 
         costs.Count.ShouldBe(2);
         costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();

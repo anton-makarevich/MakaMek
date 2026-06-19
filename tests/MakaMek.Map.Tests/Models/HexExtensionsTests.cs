@@ -151,15 +151,15 @@ public class HexExtensionsTests
     }
 
     [Theory]
-    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road, true)]
-    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Road, true)]
-    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Bridge, true)]
-    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Pavement, false)]
-    [InlineData(MakaMekTerrains.Pavement, MakaMekTerrains.Road, false)]
-    [InlineData(MakaMekTerrains.Water, MakaMekTerrains.Bridge, false)]
-    [InlineData(MakaMekTerrains.LightWoods, MakaMekTerrains.Road, false)]
-    public void IsOnRoadOrBridge_Should_ReturnCorrectValue(MakaMekTerrains fromHexTerrain, MakaMekTerrains toHexTerrain,
-        bool isOnRoad)
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road, HexSurface.Ground, HexSurface.Ground, true)]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Road, HexSurface.Bridge, HexSurface.Ground, true)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Bridge, HexSurface.Ground, HexSurface.Bridge, true)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Pavement, HexSurface.Ground, HexSurface.Ground, false)]
+    [InlineData(MakaMekTerrains.Pavement, MakaMekTerrains.Road, HexSurface.Ground, HexSurface.Ground, false)]
+    [InlineData(MakaMekTerrains.Water, MakaMekTerrains.Bridge, HexSurface.Bridge, HexSurface.Ground, false)]
+    [InlineData(MakaMekTerrains.LightWoods, MakaMekTerrains.Road, HexSurface.Ground, HexSurface.Ground, false)]
+    public void IsOnRoadOrBridge_Should_ReturnCorrectValue(MakaMekTerrains fromHexTerrain,
+        MakaMekTerrains toHexTerrain, HexSurface toSurface, HexSurface fromSurface, bool isOnRoad)
     {
         // Arrange
         var fromHex = new Hex(new HexCoordinates(1, 1));
@@ -168,10 +168,62 @@ public class HexExtensionsTests
         toHex.AddTerrain(Terrain.CreateTerrainOfType(toHexTerrain));
         
         // Act
-        var result = fromHex.IsOnRoadOrBridge(toHex);
+        var result = fromHex.IsOnRoadOrBridge(toHex, fromSurface, toSurface);
         
         // Assert
         result.ShouldBe(isOnRoad);
+    }
+
+    [Fact]
+    public void IsOnRoadOrBridge_GroundToGroundThroughBridgeHex_ReturnsFalse()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1));
+        fromHex.AddTerrain(new BridgeTerrain(1, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1));
+        toHex.AddTerrain(new BridgeTerrain(1, 0));
+
+        var result = fromHex.IsOnRoadOrBridge(toHex, HexSurface.Ground, HexSurface.Ground);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsOnRoadOrBridge_BridgeToBridge_ReturnsTrue()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1));
+        fromHex.AddTerrain(new BridgeTerrain(1, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1));
+        toHex.AddTerrain(new BridgeTerrain(1, 0));
+
+        var result = fromHex.IsOnRoadOrBridge(toHex, HexSurface.Bridge, HexSurface.Bridge);
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsOnRoadOrBridge_RoadToRoadOnGround_ReturnsTrue()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1));
+        fromHex.AddTerrain(new RoadTerrain());
+        var toHex = new Hex(new HexCoordinates(2, 1));
+        toHex.AddTerrain(new RoadTerrain());
+
+        var result = fromHex.IsOnRoadOrBridge(toHex, HexSurface.Ground, HexSurface.Ground);
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsOnRoadOrBridge_GroundUnitOnBridgeHexToBridge_ReturnsFalse()
+    {
+        var fromHex = new Hex(new HexCoordinates(1, 1));
+        fromHex.AddTerrain(new BridgeTerrain(1, 0));
+        var toHex = new Hex(new HexCoordinates(2, 1));
+        toHex.AddTerrain(new BridgeTerrain(1, 0));
+
+        var result = fromHex.IsOnRoadOrBridge(toHex, HexSurface.Ground, HexSurface.Bridge);
+
+        result.ShouldBeFalse();
     }
 
     [Fact]

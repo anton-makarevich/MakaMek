@@ -221,7 +221,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+            new PathSegment(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top, HexSurface.Bridge), new HexPosition(new HexCoordinates(2, 2), HexDirection.Top, HexSurface.Bridge), []));
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
     }
