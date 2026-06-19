@@ -30,6 +30,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Install mise tools
+        uses: jdx/mise-action@v2
+
+      - name: Install Serena
+        run: mise run install-serena
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@v1.15.10
         env:
