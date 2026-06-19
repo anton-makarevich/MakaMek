@@ -2599,7 +2599,7 @@ public class BattleMapTests
     {
         var sut = new BattleMap(2, 1);
         var hex1 = new Hex(new HexCoordinates(1, 1));
-        hex1.AddTerrain(new ClearTerrain());
+        hex1.AddTerrain(new RoadTerrain());
         sut.AddHex(hex1);
         var hex2 = new Hex(new HexCoordinates(2, 1));
         hex2.AddTerrain(new BridgeTerrain(1, 0));
@@ -2658,7 +2658,7 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void GetReachableHexes_MultiSurfaceBridge_ReportsBothSurfaces()
+    public void GetReachableHexes_ClearToBridge_UnitFitsUnder_ReportsOnlyGroundSurface()
     {
         var sut = new BattleMap(2, 1);
         var hex1 = new Hex(new HexCoordinates(1, 1));
@@ -2673,22 +2673,60 @@ public class BattleMapTests
 
         var reachable = sut.GetReachableHexes(start, mpBudget, unitHeight: 1).ToList();
 
-        // Both surfaces should be reported with their respective costs
+        // Unit fits under bridge (clearance 2, height 1) and source lacks road —
+        // only Ground surface should be reported; Bridge is skipped
         reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground && h.Cost == 1,
             "Ground surface under bridge should be reachable at cost 1");
-        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge && h.Cost == 3,
-            "Bridge surface should be reachable at cost 3 (1 terrain + 2 climb)");
+        reachable.ShouldNotContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge,
+            "Bridge surface should be skipped when unit fits under and source hex has no road");
+    }
 
-        // Verify costs match FindPath results for each surface
-        var groundTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
-        var groundPath = sut.FindPath(start, groundTarget, MovementType.Walk, mpBudget, unitHeight: 1);
-        groundPath.ShouldNotBeNull();
-        groundPath.TotalCost.ShouldBe(1);
+    [Fact]
+    public void GetReachableHexes_ClearToBridge_UnitDoesNotFit_ReportsOnlyBridgeSurface()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddHex(hex2);
 
-        var bridgeTarget = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight, HexSurface.Bridge);
-        var bridgePath = sut.FindPath(start, bridgeTarget, MovementType.Walk, mpBudget, unitHeight: 1);
-        bridgePath.ShouldNotBeNull();
-        bridgePath.TotalCost.ShouldBe(3);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        const int mpBudget = 4;
+
+        var reachable = sut.GetReachableHexes(start, mpBudget, unitHeight: 2).ToList();
+
+        // Unit does NOT fit under bridge (clearance 1, height 2) — Ground is blocked by
+        // the clearance check, and Bridge remains available as a climb surface
+        reachable.ShouldNotContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground,
+            "Ground surface under bridge should be blocked when unit does not fit under");
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge,
+            "Bridge surface should be reachable when unit must climb because it does not fit under");
+    }
+
+    [Fact]
+    public void GetReachableHexes_RoadToBridge_UnitFitsUnder_ReportsBothSurfaces()
+    {
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
+        hex1.AddTerrain(new RoadTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1));
+        hex2.AddTerrain(new BridgeTerrain(2, 0));
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        const int mpBudget = 4;
+
+        var reachable = sut.GetReachableHexes(start, mpBudget, unitHeight: 1).ToList();
+
+        // Source hex has road so the bridge-skip rule does not apply —
+        // both Ground and Bridge surfaces should be reachable
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Ground && h.Cost == 1,
+            "Ground surface under bridge should be reachable at cost 1");
+        reachable.ShouldContain(h => h.Coordinates == new HexCoordinates(2, 1) && h.Surface == HexSurface.Bridge,
+            "Bridge surface should remain reachable when source hex has a road");
     }
 
     [Fact]
