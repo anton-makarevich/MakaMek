@@ -220,6 +220,24 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterMovementCost_EnteringBridgeSurfaceOverWater_ExcludesWaterCost()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new WaterTerrain(-1));
+        toHex.AddTerrain(new BridgeTerrain(0, 0));
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Bridge).ToList();
+
+        costs.Count.ShouldBe(2);
+        costs.Any(c => c is HexEnterMovementCost { Value: 1 }).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.Bridge, Value: 0 }).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.Water }).ShouldBeFalse();
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
     public void GetEnterMovementCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_ReturnsRoadTotal1()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));

@@ -5,6 +5,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -871,5 +872,66 @@ public class BattleMapExtensionsTests
 
         reachabilityData.ForwardReachableHexes.Select(x => x.Coordinates).ShouldContain(new HexCoordinates(2, 1),
             "Road-to-bridge movement should bypass clearance check regardless of unit height");
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_EnteringBridgeOverWater_DoesNotIncludeWaterCost_WhenUnitUsesBridgeSurface()
+    {
+        // Reproduces movement step 0402:3 -> 0403:3 from the bridge-over-water edge case:
+        // water depth 1 with bridge clearance 1 forces a height-2 mech onto the bridge surface,
+        // so entering the hex should not also charge water terrain cost.
+        var map = new BattleMap(6, 6);
+
+        var approachHex = new Hex(new HexCoordinates(4, 2));
+        approachHex.AddTerrain(new ClearTerrain());
+        map.AddHex(approachHex);
+
+        var bridgeOverWaterHex = new Hex(new HexCoordinates(4, 3));
+        bridgeOverWaterHex.AddTerrain(new WaterTerrain(-1));
+        bridgeOverWaterHex.AddTerrain(new BridgeTerrain(0, 0));
+        map.AddHex(bridgeOverWaterHex);
+
+        var continuationHex = new Hex(new HexCoordinates(4, 4));
+        continuationHex.AddTerrain(new WaterTerrain(-1));
+        continuationHex.AddTerrain(new BridgeTerrain(0, 0));
+        map.AddHex(continuationHex);
+
+        var startPosition = new HexPosition(new HexCoordinates(4, 2), HexDirection.Bottom);
+        var targetHex = new HexCoordinates(4, 3);
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 10,
+            canMoveBackward: false,
+            movementType: MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>(),
+            unitHeight: 2,
+            maxLevelChangeForward: 2,
+            maxLevelChangeBackward: 0);
+
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 10,
+            reachabilityData,
+            unitHeight: 2,
+            maxLevelChangeForward: 2,
+            maxLevelChangeBackward: 0,
+            targetSurface: HexSurface.Bridge);
+
+        paths.ShouldNotBeEmpty();
+        var path = paths[HexDirection.Bottom];
+        var bridgeEntrySegment = path.Segments
+            .First(s => s.From.Coordinates != s.To.Coordinates && s.To.Coordinates == targetHex);
+
+        bridgeEntrySegment.To.Surface.ShouldBe(HexSurface.Bridge);
+        bridgeEntrySegment.Costs
+            .Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.Water })
+            .ShouldBeFalse("Water cost should not apply when the unit enters on the bridge surface");
+        bridgeEntrySegment.Costs
+            .Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.Bridge, Value: 0 })
+            .ShouldBeTrue();
+        bridgeEntrySegment.Cost.ShouldBe(1, "Bridge entry should cost only the base hex entry MP");
     }
 }

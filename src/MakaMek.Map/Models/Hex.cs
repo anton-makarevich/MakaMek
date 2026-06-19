@@ -96,14 +96,23 @@ public class Hex : IDisposable
             return [hexEntry, terrainCost];
         }
 
-        var terrainCosts = _terrains.Values.Select(t => new TerrainMovementCost
-        {
-            TerrainId = t.Id,
-            Value = t.MovementCost,
-            Depth = this.GetWaterDepth()
-        }).ToList();
+        var terrainCosts = _terrains.Values
+            .Where(t => AppliesToSurface(t.Id, toSurface))
+            .Select(t => new TerrainMovementCost
+            {
+                TerrainId = t.Id,
+                Value = t.MovementCost,
+                Depth = this.GetWaterDepth()
+            }).ToList();
 
         return [hexEntry, ..terrainCosts];
+
+        static bool AppliesToSurface(MakaMekTerrains terrainId, HexSurface surface) => (terrainId, surface) switch
+        {
+            (MakaMekTerrains.Water, HexSurface.Bridge) => false,
+            (MakaMekTerrains.Bridge, HexSurface.Ground) => false,
+            _ => true
+        };
     }
 
     /// <summary>
