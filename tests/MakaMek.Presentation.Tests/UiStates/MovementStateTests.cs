@@ -77,6 +77,10 @@ public class MovementStateTests
         _localizationService.GetString("MovementType_Jump").Returns("Jump");
         _localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         _localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
+        _localizationService.GetString("Action_SelectSurface").Returns("Select surface");
+        _localizationService.GetString("Surface_Ground").Returns("Ground");
+        _localizationService.GetString("Surface_Bridge").Returns("On the bridge");
+        _localizationService.GetString("Surface_Option_WithCost").Returns("{0} — {1} MP");
 
         var dispatcherService = Substitute.For<IDispatcherService>();
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
@@ -457,6 +461,65 @@ public class MovementStateTests
         // Assert - back to selecting target hex
         _battleMapViewModel.IsSurfaceSelectorVisible.ShouldBeFalse();
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+    }
+
+    [Fact]
+    public void HandleTargetHexSelection_SelectSurfaceFromSelector_TransitionsToDirectionSelection()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position, null);
+
+        // Add bridge terrain to create multiple surfaces (Ground + Bridge)
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        targetHex.AddTerrain(new BridgeTerrain(2, 0));
+
+        _sut.HandleUnitSelectionFromList(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Select the bridge hex to trigger surface selector
+        _sut.HandleHexSelection(targetHex);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingSurface);
+        _battleMapViewModel.IsSurfaceSelectorVisible.ShouldBeTrue();
+        var surfaceSelector = _battleMapViewModel.SurfaceSelector;
+        surfaceSelector.ShouldNotBeNull();
+
+        // Act - select a surface (Ground)
+        surfaceSelector.SelectSurface(HexSurface.Ground);
+
+        // Assert - should transition to direction selection
+        _battleMapViewModel.IsSurfaceSelectorVisible.ShouldBeFalse();
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(targetHex.Coordinates);
+        _battleMapViewModel.AvailableDirections.ShouldNotBeEmpty();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingDirection);
+    }
+
+    [Fact]
+    public void SelectingSurfaceStep_HasCorrectActionLabel()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position, null);
+
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        targetHex.AddTerrain(new BridgeTerrain(2, 0));
+
+        _sut.HandleUnitSelectionFromList(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Act
+        _sut.HandleHexSelection(targetHex);
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingSurface);
+        _sut.ActionLabel.ShouldBe("Select surface");
     }
 
     [Fact]
