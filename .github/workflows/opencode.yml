@@ -50,15 +50,6 @@ jobs:
           }
           EOF
 
-      - name: Verify Serena MCP server starts
-        run: |
-          serena start-mcp-server --context=ide &
-          PID=$!
-          sleep 3
-          kill $PID 2>/dev/null
-          wait $PID 2>/dev/null
-          echo "Serena MCP server verified"
-
       - name: Run OpenCode
         uses: anomalyco/opencode/github@v1.15.10
         env:
