@@ -281,3 +281,5 @@ serve-wasm.ps1
 .ai
 .serena/memories
 opencode.json
+.agents/skills
+skills-lock.json
