@@ -102,11 +102,15 @@ public class ReachableAreaTest
         var sut = new ReachableArea(forwardReachableHexes, backwardReachableHexes);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe([
+        var expected = new[]
+        {
             new HexCoordinates(1, 1),
             new HexCoordinates(2, 2),
             new HexCoordinates(3, 3),
-            new HexCoordinates(4, 4)]);
+            new HexCoordinates(4, 4)
+        };
+        sut.AllReachableHexes.Select(x => x.Coordinates).OrderBy(x => x.Q).ThenBy(x => x.R)
+            .ShouldBe(expected.OrderBy(x => x.Q).ThenBy(x => x.R));
     }
     
     [Fact]
@@ -164,10 +168,14 @@ public class ReachableAreaTest
         var sut = new ReachableArea(forwardReachableHexes, backwardReachableHexes);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe([
+        var expected = new[]
+        {
             new HexCoordinates(1, 1), 
             new HexCoordinates(2, 2), 
-            new HexCoordinates(3, 3)]);
+            new HexCoordinates(3, 3)
+        };
+        sut.AllReachableHexes.Select(x => x.Coordinates).OrderBy(x => x.Q).ThenBy(x => x.R)
+            .ShouldBe(expected.OrderBy(x => x.Q).ThenBy(x => x.R));
     }
     
     [Fact]
