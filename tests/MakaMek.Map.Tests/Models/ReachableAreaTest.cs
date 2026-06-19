@@ -289,6 +289,8 @@ public class ReachableAreaTest
         var result = sut.GetReachableSurfacesForCoordinate(new HexCoordinates(1, 1)).ToList();
 
         result.Count.ShouldBe(2);
+        result.ShouldContain(r => r.Surface == HexSurface.Ground && r.Cost == 3);
+        result.ShouldContain(r => r.Surface == HexSurface.Bridge && r.Cost == 2);
     }
 
     [Fact]
