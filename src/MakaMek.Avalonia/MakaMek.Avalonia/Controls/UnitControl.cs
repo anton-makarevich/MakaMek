@@ -370,16 +370,10 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
                 var button = new Button
                 {
-                    Background = new SolidColorBrush(Colors.Aqua),
-                    Padding = new Thickness(8, 4),
-                    CornerRadius = new CornerRadius(4),
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Content = new TextBlock
-                    {
-                        Text = action.Label,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }
+                    Content = action.Label
                 };
+                button.Classes.Add("actionButtonText");
 
                 button.Click += (_, _) =>
                 {

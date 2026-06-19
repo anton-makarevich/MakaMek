@@ -176,5 +176,29 @@
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
+
+    <!-- Action Text Button (consistent text-based action button for in-map and overlay use) -->
+    <Style Selector="Button.actionButtonText">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style Selector="Button.actionButtonText:pointerover">
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
+    </Style>
+
+    <Style Selector="Button.actionButtonText:pressed">
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
+        <Setter Property="Opacity" Value="0.8"/>
+    </Style>
+
+    <Style Selector="Button.actionButtonText:disabled">
+        <Setter Property="Opacity" Value="0.5"/>
+    </Style>
 </Styles>
 

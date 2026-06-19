@@ -8,10 +8,10 @@
             Padding="8">
         <StackPanel x:Name="ButtonsContainer" Spacing="4">
             <Button x:Name="GroundButton"
-                    Classes="outline"
+                    Classes="actionButtonText"
                     Click="GroundButton_OnClick"/>
             <Button x:Name="BridgeButton"
-                    Classes="outline"
+                    Classes="actionButtonText"
                     Click="BridgeButton_OnClick"/>
         </StackPanel>
     </Border>
