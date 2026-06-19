@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
@@ -15,7 +16,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         if (segment.From.Coordinates != segment.To.Coordinates) return null;
 
         var turnHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
-        if (turnHex == null || !turnHex.HasHardPavement()) return null;
+        if (turnHex == null || !turnHex.HasHardPavement((HexSurface)segment.From.Surface)) return null;
 
         // Skip if this is the last hex of the path
         if (segment.To.Coordinates == context.MoveCommand.MovementPath.Last().To.Coordinates) return null;
@@ -98,7 +99,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             if (nextHex == null)
                 break;
 
-            var movementCost = nextHex.GetEnterMovementCost(currentHex);
+            var movementCost = nextHex.GetEnterMovementCost(currentHex, HexSurface.Ground, HexSurface.Ground);
             var fromPos = new HexPosition(currentCoords, skidFacing);
             var toPos = new HexPosition(nextCoords, skidFacing);
             var skidSegment = new PathSegment(fromPos, toPos, [])

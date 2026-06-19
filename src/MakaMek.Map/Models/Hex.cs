@@ -96,6 +96,34 @@ public class Hex : IDisposable
     }
 
     /// <summary>
+    /// Gets the movement costs for entering this hex from another hex,
+    /// considering road/paved connections filtered by surface level.
+    /// </summary>
+    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    {
+        var hexEntry = new HexEnterMovementCost { Value = 1 };
+
+        if (fromHex.GetRoadOrPavedTerrain(fromSurface) is not null && this.GetRoadOrPavedTerrain(toSurface) is { } toRoad)
+        {
+            // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
+            var terrainCost = new TerrainMovementCost
+            {
+                TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
+            };
+            return [hexEntry, terrainCost];
+        }
+
+        var terrainCosts = _terrains.Values.Select(t => new TerrainMovementCost
+        {
+            TerrainId = t.Id,
+            Value = t.MovementCost,
+            Depth = this.GetWaterDepth()
+        }).ToList();
+
+        return [hexEntry, ..terrainCosts];
+    }
+
+    /// <summary>
     /// Observable that emits when the highlight collection changes
     /// </summary>
     public IObservable<IReadOnlyCollection<IHexHighlightType>> HighlightsChanged => _highlightsSubject.AsObservable();

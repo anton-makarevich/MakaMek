@@ -215,14 +215,47 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
     public void Check_WhenHexesAreConnectedByBridge_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top, HexSurface.Bridge), null);
         Game.BattleMap!.GetHex(new HexCoordinates(1, 2))!.AddTerrain(new BridgeTerrain());
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain());
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top, HexSurface.Bridge), new HexPosition(2, 2, HexDirection.Top, HexSurface.Bridge), []));
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void Check_WhenMovingUnderBridgeOnGround_TriggersWaterEntry()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(1, 2))!.AddTerrain(new BridgeTerrain());
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain());
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
     }
 }

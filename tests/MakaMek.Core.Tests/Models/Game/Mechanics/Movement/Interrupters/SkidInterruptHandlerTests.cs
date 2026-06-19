@@ -179,4 +179,20 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 1)).ShouldBeNull();
     }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenUnderBridgeOnGround_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(3, 2))!.AddTerrain(new BridgeTerrain());
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Bottom), new HexPosition(4, 2, HexDirection.Bottom), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 2)).ShouldBeNull();
+    }
 }

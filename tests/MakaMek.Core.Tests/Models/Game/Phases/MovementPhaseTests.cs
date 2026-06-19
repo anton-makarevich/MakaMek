@@ -1679,15 +1679,15 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var moveCommand = new MoveUnitCommand
         {
-            MovementType = MovementType.Walk,
+            MovementType = MovementType.Run,
             GameOriginId = Game.Id,
             PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom), new HexPosition(3, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top, HexSurface.Bridge), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top, HexSurface.Bridge), new HexPosition(2, 2, HexDirection.Bottom, HexSurface.Bridge), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom, HexSurface.Bridge), new HexPosition(3, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         };
 
@@ -1805,9 +1805,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             MovementPath =
             [
-                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom), new HexPosition(3, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top, HexSurface.Bridge), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top, HexSurface.Bridge), new HexPosition(2, 2, HexDirection.Bottom, HexSurface.Bridge), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom, HexSurface.Bridge), new HexPosition(3, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
             ]
         };
 

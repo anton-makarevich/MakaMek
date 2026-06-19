@@ -520,6 +520,62 @@ public class HexExtensionsTests
         result.ShouldBe(HexSurface.Bridge);
     }
 
+    [Theory]
+    [InlineData(MakaMekTerrains.Road, HexSurface.Ground, MakaMekTerrains.Road)]
+    [InlineData(MakaMekTerrains.Pavement, HexSurface.Ground, MakaMekTerrains.Pavement)]
+    [InlineData(MakaMekTerrains.Bridge, HexSurface.Bridge, MakaMekTerrains.Bridge)]
+    [InlineData(MakaMekTerrains.Bridge, HexSurface.Ground, null)]
+    [InlineData(MakaMekTerrains.Road, HexSurface.Bridge, null)]
+    [InlineData(MakaMekTerrains.Pavement, HexSurface.Bridge, null)]
+    [InlineData(MakaMekTerrains.HeavyWoods, HexSurface.Ground, null)]
+    public void GetRoadOrPavedTerrain_WithSurface_ReturnsTerrainFilteredBySurface(
+        MakaMekTerrains terrainToAdd, HexSurface surface, MakaMekTerrains? expectedTerrain)
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(Terrain.CreateTerrainOfType(terrainToAdd));
+
+        var terrainId = sut.GetRoadOrPavedTerrain(surface)?.Id;
+
+        terrainId.ShouldBe(expectedTerrain);
+    }
+
+    [Theory]
+    [InlineData(MakaMekTerrains.Road, HexSurface.Ground, true)]
+    [InlineData(MakaMekTerrains.Bridge, HexSurface.Bridge, true)]
+    [InlineData(MakaMekTerrains.Pavement, HexSurface.Ground, true)]
+    [InlineData(MakaMekTerrains.Bridge, HexSurface.Ground, false)]
+    [InlineData(MakaMekTerrains.Road, HexSurface.Bridge, false)]
+    [InlineData(MakaMekTerrains.Clear, HexSurface.Ground, false)]
+    public void HasHardPavement_WithSurface_ReturnsRightValue(MakaMekTerrains terrainType, HexSurface surface, bool expectedResult)
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(Terrain.CreateTerrainOfType(terrainType));
+
+        var result = sut.HasHardPavement(surface);
+
+        result.ShouldBe(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Road, HexSurface.Ground, HexSurface.Ground, true)]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Bridge, HexSurface.Bridge, HexSurface.Bridge, true)]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Bridge, HexSurface.Ground, HexSurface.Ground, false)]
+    [InlineData(MakaMekTerrains.Road, MakaMekTerrains.Bridge, HexSurface.Ground, HexSurface.Bridge, true)]
+    [InlineData(MakaMekTerrains.Bridge, MakaMekTerrains.Road, HexSurface.Bridge, HexSurface.Ground, true)]
+    public void IsOnRoadOrBridge_WithSurfaces_ReturnsCorrectValue(
+        MakaMekTerrains sourceTerrain, MakaMekTerrains destTerrain,
+        HexSurface sourceSurface, HexSurface destSurface, bool expected)
+    {
+        var sourceHex = new Hex(new HexCoordinates(1, 1));
+        sourceHex.AddTerrain(Terrain.CreateTerrainOfType(sourceTerrain));
+        var destHex = new Hex(new HexCoordinates(2, 1));
+        destHex.AddTerrain(Terrain.CreateTerrainOfType(destTerrain));
+
+        var result = destHex.IsOnRoadOrBridge(sourceHex, sourceSurface, destSurface);
+
+        result.ShouldBe(expected);
+    }
+
     [Fact]
     public void GetHighestSurface_ReturnsGround_WhenBridgeHasNegativeHeight()
     {

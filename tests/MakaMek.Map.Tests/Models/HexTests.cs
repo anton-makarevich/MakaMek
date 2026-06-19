@@ -220,6 +220,48 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterMovementCost_WithSurface_BridgeHexOnGround_DoesNotGetRoadDiscount()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new RoadTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new BridgeTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        // On Ground, Bridge is not road terrain, so no road-to-road optimization.
+        // All terrain costs apply: hex entry (1) + bridge (0) + heavy woods (2) = 3
+        costs.Sum(c => c.Value).ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_WithSurface_BridgeToBridge_GetsRoadDiscount()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new BridgeTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new BridgeTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Bridge, HexSurface.Bridge).ToList();
+
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_WithSurface_RoadToRoadOnGround_GetsRoadDiscount()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new RoadTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new RoadTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
     public void GetEnterMovementCost_BothHexesRoadPavedWithDifferentUnderlyingTerrains_ReturnsRoadTotal1()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));
