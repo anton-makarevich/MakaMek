@@ -224,6 +224,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
                         && !hex.CanStandOnGround(unitHeight)) continue;
 
+                    if (toSurface == HexSurface.Bridge && currentHex.GetRoadOrPavedTerrain() == null
+                        && hex.CanStandOnGround(unitHeight)) continue;
+
                     var elevationChange = hex.GetElevationChange(currentHex, current.Position.Surface, toSurface);
                     var levelCost = Math.Abs(elevationChange);
 
@@ -338,6 +341,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 {
                     if (toSurface == HexSurface.Ground && neighborHex.GetBridgeHeight() != null
                         && !neighborHex.CanStandOnGround(unitHeight)) continue;
+
+                    if (toSurface == HexSurface.Bridge && currentHex.GetRoadOrPavedTerrain() == null
+                        && neighborHex.CanStandOnGround(unitHeight)) continue;
 
                     var levelCost = Math.Abs(neighborHex.GetElevationChange(currentHex, current.Surface, toSurface));
 
