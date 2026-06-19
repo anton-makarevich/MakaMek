@@ -18,12 +18,7 @@ public class SurfaceSelectorViewModel : BindableBase
         Action? onCancel = null)
     {
         _onSurfaceSelected = onSurfaceSelected;
-        Options = availableSurfaces.Select(s => new SurfaceOptionViewModel
-        {
-            Surface = s.Surface,
-            Cost = s.Cost,
-            FormattedLabel = FormatSurfaceLabel(s.Surface, s.Cost, localizationService)
-        }).ToList();
+        Options = availableSurfaces.Select(s => new HexReachabilityViewModel(s,localizationService)).ToList();
         CancelCommand = new AsyncCommand(() =>
         {
             onCancel?.Invoke();
@@ -31,7 +26,7 @@ public class SurfaceSelectorViewModel : BindableBase
         });
     }
 
-    public IReadOnlyList<SurfaceOptionViewModel> Options { get; }
+    public IReadOnlyList<HexReachabilityViewModel> Options { get; }
 
     public ICommand CancelCommand { get; }
 
@@ -39,22 +34,4 @@ public class SurfaceSelectorViewModel : BindableBase
     {
         _onSurfaceSelected(surface);
     }
-
-    private static string FormatSurfaceLabel(HexSurface surface, int cost, ILocalizationService localizationService)
-    {
-        var surfaceName = surface switch
-        {
-            HexSurface.Bridge => localizationService.GetString("Surface_Bridge"),
-            HexSurface.Ground => localizationService.GetString("Surface_Ground"),
-            _ => surface.ToString()
-        };
-        return string.Format(localizationService.GetString("Surface_Option_WithCost"), surfaceName, cost);
-    }
-}
-
-public class SurfaceOptionViewModel
-{
-    public HexSurface Surface { get; set; }
-    public int Cost { get; set; }
-    public string FormattedLabel { get; set; } = string.Empty;
 }

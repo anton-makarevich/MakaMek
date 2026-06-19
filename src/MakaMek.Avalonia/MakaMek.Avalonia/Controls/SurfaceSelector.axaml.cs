@@ -27,13 +27,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
             set => SetValue(SurfaceSelectedCommandProperty, value);
         }
 
-        public static readonly DirectProperty<SurfaceSelector, IEnumerable<SurfaceOptionViewModel>?> OptionsProperty =
-            AvaloniaProperty.RegisterDirect<SurfaceSelector, IEnumerable<SurfaceOptionViewModel>?>(
+        public static readonly DirectProperty<SurfaceSelector, IEnumerable<HexReachabilityViewModel>?> OptionsProperty =
+            AvaloniaProperty.RegisterDirect<SurfaceSelector, IEnumerable<HexReachabilityViewModel>?>(
                 nameof(Options), o => o.Options,
                 (o, v) => o.Options = v);
 
-        private IEnumerable<SurfaceOptionViewModel>? _options;
-        public IEnumerable<SurfaceOptionViewModel>? Options
+        private IEnumerable<HexReachabilityViewModel>? _options;
+        public IEnumerable<HexReachabilityViewModel>? Options
         {
             get => _options;
             set
