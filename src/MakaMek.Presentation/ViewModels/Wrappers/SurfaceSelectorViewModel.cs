@@ -12,7 +12,7 @@ public class SurfaceSelectorViewModel : BindableBase
     private readonly Action<HexSurface> _onSurfaceSelected;
 
     public SurfaceSelectorViewModel(
-        IEnumerable<ReachableHexData> availableSurfaces,
+        IEnumerable<HexReachabilityData> availableSurfaces,
         Action<HexSurface> onSurfaceSelected,
         ILocalizationService localizationService,
         Action? onCancel = null)

@@ -21,7 +21,7 @@ public class MovementState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly MoveUnitCommandBuilder _builder;
     private IUnit? _selectedUnit;
-    private ReachabilityData? _reachabilityData;
+    private ReachableArea? _reachabilityData;
     private readonly IReadOnlySet<HexCoordinates> _prohibitedHexes;
     private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
     private int _movementPoints;
@@ -799,7 +799,7 @@ public class MovementState : IUiState
     {
         public HexCoordinates TargetHex { get; }
 
-        public SelectingSurfaceStep(MovementState state, HexCoordinates targetHex, IReadOnlyList<ReachableHexData> availableSurfaces) : base(state)
+        public SelectingSurfaceStep(MovementState state, HexCoordinates targetHex, IReadOnlyList<HexReachabilityData> availableSurfaces) : base(state)
         {
             TargetHex = targetHex;
 

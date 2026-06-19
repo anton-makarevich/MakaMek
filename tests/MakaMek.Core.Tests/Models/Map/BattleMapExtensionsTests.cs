@@ -322,7 +322,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away
-        var reachabilityData = new ReachabilityData([new ReachableHexData(targetHex, HexSurface.Ground, 0)], []);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -353,7 +353,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 9); // 4 hexes away
-        var reachabilityData = new ReachabilityData([new ReachableHexData(targetHex, HexSurface.Ground, 0)], []);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -378,7 +378,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away in the forward direction
-        var reachabilityData = new ReachabilityData([new ReachableHexData(targetHex, HexSurface.Ground, 0)], []);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -407,7 +407,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 3); // 2 hexes away in the backward direction
-        var reachabilityData = new ReachabilityData([], [new ReachableHexData(targetHex, HexSurface.Ground, 0)]);
+        var reachabilityData = new ReachableArea([], [new HexReachabilityData(targetHex, HexSurface.Ground, 0)]);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -436,7 +436,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
-        var reachabilityData = new ReachabilityData([], []);
+        var reachabilityData = new ReachableArea([], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -461,7 +461,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 5); // Same hex
-        var reachabilityData = new ReachabilityData([new ReachableHexData(targetHex, HexSurface.Ground, 0)], []);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -493,7 +493,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
-        var reachabilityData = new ReachabilityData([new ReachableHexData(targetHex, HexSurface.Ground, 0)], []);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
         var prohibitedHexes = new HashSet<HexCoordinates> { new(5, 6) }; // Block the direct path
 
         // Act
@@ -650,7 +650,7 @@ public class BattleMapExtensionsTests
 
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
         var targetHex = new HexCoordinates(2, 1);
-        var reachabilityData = new ReachabilityData([], []); // Not reachable due to level restriction
+        var reachabilityData = new ReachableArea([], []); // Not reachable due to level restriction
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -684,7 +684,7 @@ public class BattleMapExtensionsTests
         var targetHex = new HexCoordinates(1, 1);
         
         // Target is backward and has level change
-        var reachabilityData = new ReachabilityData([], [new ReachableHexData(targetHex, HexSurface.Ground, 0)]);
+        var reachabilityData = new ReachableArea([], [new HexReachabilityData(targetHex, HexSurface.Ground, 0)]);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(

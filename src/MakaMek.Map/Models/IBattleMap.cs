@@ -32,7 +32,7 @@ public interface IBattleMap
     /// Multiple entries may be returned for the same coordinate when both surfaces are
     /// independently reachable (e.g., both Ground and Bridge surfaces of a bridge hex).
     /// </summary>
-    IEnumerable<ReachableHexData> GetReachableHexes(
+    IEnumerable<HexReachabilityData> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
         int unitHeight,
@@ -43,7 +43,7 @@ public interface IBattleMap
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
     /// regardless of terrain or facing direction
     /// </summary>
-    IEnumerable<ReachableHexData> GetJumpReachableHexes(
+    IEnumerable<HexReachabilityData> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null);

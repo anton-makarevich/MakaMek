@@ -1,15 +1,15 @@
-﻿using Sanet.MakaMek.Map.Models;
+﻿using Sanet.MakaMek.Map.Data;
 
-namespace Sanet.MakaMek.Map.Data;
+namespace Sanet.MakaMek.Map.Models;
 
 /// <summary>
 /// Contains the reachable hexes for a unit with surface and cost information
 /// </summary>
-public readonly record struct ReachabilityData(
-    IReadOnlyList<ReachableHexData> ForwardReachableHexes,
-    IReadOnlyList<ReachableHexData> BackwardReachableHexes)
+public readonly record struct ReachableArea(
+    IReadOnlyList<HexReachabilityData> ForwardReachableHexes,
+    IReadOnlyList<HexReachabilityData> BackwardReachableHexes)
 {
-    private readonly Lazy<IReadOnlyList<ReachableHexData>> _allReachableHexes = 
+    private readonly Lazy<IReadOnlyList<HexReachabilityData>> _allReachableHexes = 
         new(() => ForwardReachableHexes.Union(BackwardReachableHexes).ToList());
     
     private readonly Lazy<HashSet<HexCoordinates>> _forwardReachableCoordinates = 
@@ -26,7 +26,7 @@ public readonly record struct ReachabilityData(
     /// <summary>
     /// All reachable hexes (union of forward and backward)
     /// </summary>
-    public IReadOnlyList<ReachableHexData> AllReachableHexes => _allReachableHexes.Value;
+    public IReadOnlyList<HexReachabilityData> AllReachableHexes => _allReachableHexes.Value;
     
     /// <summary>
     /// Unique reachable coordinates (deduplicated)
@@ -51,7 +51,7 @@ public readonly record struct ReachabilityData(
     /// <summary>
     /// Gets all reachable surface entries for a given coordinate
     /// </summary>
-    public IEnumerable<ReachableHexData> GetReachableSurfacesForCoordinate(HexCoordinates coords)
+    public IEnumerable<HexReachabilityData> GetReachableSurfacesForCoordinate(HexCoordinates coords)
     {
         return ForwardReachableHexes.Concat(BackwardReachableHexes)
             .Where(x => x.Coordinates == coords);
