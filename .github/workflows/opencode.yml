@@ -30,6 +30,35 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Install mise tools
+        uses: jdx/mise-action@v2
+
+      - name: Install Serena
+        run: mise run install-serena
+
+      - name: Configure Serena for OpenCode
+        run: |
+          cat > opencode.json << 'EOF'
+          {
+            "mcp": {
+              "serena": {
+                "type": "local",
+                "command": ["serena", "start-mcp-server", "--context=ide"],
+                "enabled": true
+              }
+            }
+          }
+          EOF
+
+      - name: Verify Serena MCP server starts
+        run: |
+          serena start-mcp-server --context=ide &
+          PID=$!
+          sleep 3
+          kill $PID 2>/dev/null
+          wait $PID 2>/dev/null
+          echo "Serena MCP server verified"
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@v1.15.10
         env:

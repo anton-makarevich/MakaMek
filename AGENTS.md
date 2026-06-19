@@ -13,3 +13,7 @@ The `.agents/skills/navigate-docs/SKILL.md` skill teaches efficient documentatio
 Available skills in `.agents/skills/`:
 - `generate-unit-tests` — generate xUnit tests for a C# class
 - `navigate-docs` — locate relevant documentation efficiently via index files
+
+## MCP Tools
+
+Prefer Serena and Jetbrains/Rider tools when available 

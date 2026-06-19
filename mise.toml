@@ -1,2 +1,10 @@
 [tools]
 "gh" = "2.93.0"
+"uv" = "0.6.2"
+
+[tasks.install-serena]
+description = "Installs the Serena MCP server via uv tool install"
+run = """
+uv tool install -p 3.13 serena-agent
+serena --version
+"""
