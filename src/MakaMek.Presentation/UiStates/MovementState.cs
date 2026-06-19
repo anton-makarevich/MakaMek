@@ -811,7 +811,11 @@ public class MovementState : IUiState
                     State.HandleSurfaceSelection(surface);
                 },
                 State._viewModel.LocalizationService,
-                () => State._viewModel.HideSurfaceSelector());
+                () =>
+                {
+                    State._viewModel.HideSurfaceSelector();
+                    State.TransitionTo(new SelectingTargetHexStep(State));
+                });
             State._viewModel.ShowSurfaceSelector(targetHex, vm);
             State._viewModel.NotifyStateChanged();
         }

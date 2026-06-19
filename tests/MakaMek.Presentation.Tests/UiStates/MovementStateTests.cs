@@ -18,7 +18,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -424,6 +423,40 @@ public class MovementStateTests
         // Assert
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
         _battleMapViewModel.AvailableDirections.ShouldBeNull();
+    }
+
+    [Fact]
+    public void HandleTargetHexSelection_CancelSurfaceSelector_ReturnsToSelectingTargetHexStep()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position, null);
+
+        // Add bridge terrain to create multiple surfaces (Ground + Bridge)
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        targetHex.AddTerrain(new BridgeTerrain(2, 0));
+
+        _sut.HandleUnitSelectionFromList(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Act - select the bridge hex, which should trigger surface selector
+        _sut.HandleHexSelection(targetHex);
+
+        // Assert surface selector is shown
+        _battleMapViewModel.IsSurfaceSelectorVisible.ShouldBeTrue();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingSurface);
+        var surfaceSelector = _battleMapViewModel.SurfaceSelector;
+        surfaceSelector.ShouldNotBeNull();
+
+        // Act - cancel the surface selector
+        surfaceSelector.CancelCommand.Execute(null);
+
+        // Assert - back to selecting target hex
+        _battleMapViewModel.IsSurfaceSelectorVisible.ShouldBeFalse();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
     }
 
     [Fact]
