@@ -161,9 +161,9 @@ public class MovementEngineTests
         
         // Mock empty reachable hexes for all movement types
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
-            .Returns(new List<ReachableHexData>());
+            .Returns(new List<HexReachabilityData>());
         _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
-            .Returns(new List<ReachableHexData>());
+            .Returns(new List<HexReachabilityData>());
         
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
@@ -191,7 +191,7 @@ public class MovementEngineTests
 
         // Mock reachable hexes
         var targetHex = new HexCoordinates(2, 2);
-        var reachableHexes = new List<ReachableHexData>
+        var reachableHexes = new List<HexReachabilityData>
         {
             new(targetHex, HexSurface.Ground, 1)
         };
@@ -399,8 +399,8 @@ public class MovementEngineTests
         _clientGame.Players.Returns([_player]);
         
         var targetHex = new HexCoordinates(2, 2);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
-        var jumpReachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
+        var jumpReachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
@@ -450,8 +450,8 @@ public class MovementEngineTests
         _clientGame.Players.Returns([_player]);
         
         var targetHex = new HexCoordinates(2, 2);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
-        var jumpReachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
+        var jumpReachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
@@ -512,7 +512,7 @@ public class MovementEngineTests
         
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 2) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 2) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
         
@@ -570,7 +570,7 @@ public class MovementEngineTests
 
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
@@ -636,7 +636,7 @@ public class MovementEngineTests
 
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
@@ -695,7 +695,7 @@ public class MovementEngineTests
         
         // Mock empty reachable hexes (no candidates)
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
-            .Returns(new List<ReachableHexData>());
+            .Returns(new List<HexReachabilityData>());
         
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;
@@ -741,7 +741,7 @@ public class MovementEngineTests
         
         // Set up the battle map to return valid paths
         var targetHex = new HexCoordinates(2, 2);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
@@ -773,7 +773,7 @@ public class MovementEngineTests
     private void SetupValidMovement()
     {
         var targetHex = new HexCoordinates(2, 2);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex, HexSurface.Ground, 1) };
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
@@ -958,7 +958,7 @@ public class MovementEngineTests
 
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
@@ -1022,7 +1022,7 @@ public class MovementEngineTests
 
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 
@@ -1087,7 +1087,7 @@ public class MovementEngineTests
 
         var targetHex1 = new HexCoordinates(2, 2);
         var targetHex2 = new HexCoordinates(3, 3);
-        var reachableHexes = new List<ReachableHexData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
+        var reachableHexes = new List<HexReachabilityData> { new(targetHex1, HexSurface.Ground, 1), new(targetHex2, HexSurface.Ground, 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
 

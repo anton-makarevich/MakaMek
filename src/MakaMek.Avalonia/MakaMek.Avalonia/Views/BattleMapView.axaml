@@ -25,6 +25,12 @@
                 Position="{Binding DirectionSelectorPosition}"
                 DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
                 Foreground="{Binding ActivePlayerTint}"/>
+            <controls:SurfaceSelector
+                x:Name="SurfaceSelector"
+                IsVisible="{Binding IsSurfaceSelectorVisible}"
+                Options="{Binding SurfaceSelector.Options}"
+                Position="{Binding SurfaceSelectorPosition}"
+                SurfaceSelectedCommand="{Binding SurfaceSelectedCommand}"/>
         </mapControls:HexMap>
         
         <Grid x:Name="TurnStatus"
@@ -202,32 +208,26 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="uiStates:StateAction">
-                        <Button Padding="15,10"
+                        <Button Classes="actionButtonText"
                                 Command="{Binding OnExecute, Converter={StaticResource ActionToCommandConverter}}"
                                 HorizontalAlignment="Center" 
                                 IsVisible="{Binding IsVisible}"
                                 Background="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
-                                Foreground="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}">
-                            <TextBlock Text="{Binding Label}"
-                                       FontSize="16"
-                                       FontWeight="Bold"/>
-                        </Button>
+                                Foreground="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                                Content="{Binding Label}"/>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
             <!-- Player Action Button -->
-            <Button HorizontalAlignment="Center"
+            <Button Classes="actionButtonText"
+                    HorizontalAlignment="Center"
                     VerticalAlignment="Bottom"
-                    Padding="15,10"
                     Command="{Binding HandlePlayerAction}"
                     IsVisible="{Binding IsPlayerActionButtonVisible}"
                     Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
-                    Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}">
-                <TextBlock Text="{Binding PlayerActionLabel}"
-                         FontSize="16"
-                         FontWeight="Bold"/>
-            </Button>
+                    Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                    Content="{Binding PlayerActionLabel}"/>
         </StackPanel>
 
         <!-- Record Sheet Panel -->

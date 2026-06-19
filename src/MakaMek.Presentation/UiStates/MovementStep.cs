@@ -5,6 +5,7 @@ public enum MovementStep
     SelectingUnit,
     SelectingMovementType,
     SelectingTargetHex,
+    SelectingSurface,
     SelectingDirection,
     SelectingStandingUpDirection,
     ConfirmMovement,

@@ -88,8 +88,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             }
         }
 
-        // Ensure DirectionSelector stays on top
+        // Ensure overlays stay on top
         MapCanvas.Children.Add(directionSelector);
+        MapCanvas.Children.Add(SurfaceSelector);
 
         MapCanvas.Width = maxH + 2*HexCoordinatesPixelExtensions.HexWidth;
         MapCanvas.Height = maxV + 3*HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
@@ -108,6 +109,16 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             {
                 var directionSelectorPosition = clickPosition - DirectionSelector.Bounds.Position;
                 if (DirectionSelector.HandleInteraction(directionSelectorPosition)) return;
+            }
+        }
+
+        // Handle SurfaceSelector interaction
+        if (SurfaceSelector.IsVisible)
+        {
+            if (SurfaceSelector.Bounds.Contains(clickPosition))
+            {
+                var surfaceSelectorPosition = clickPosition - SurfaceSelector.Bounds.Position;
+                if (SurfaceSelector.HandleInteraction(surfaceSelectorPosition)) return;
             }
         }
 

@@ -1,0 +1,17 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:models="clr-namespace:Sanet.MakaMek.Map.Models;assembly=Sanet.MakaMek.Map"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.SurfaceSelector">
+    <StackPanel x:Name="ButtonsContainer"
+                Spacing="4">
+        <Button x:Name="GroundButton"
+                HorizontalAlignment="Stretch"
+                Classes="actionButtonText"
+                Click="GroundButton_OnClick"/>
+        <Button x:Name="BridgeButton"
+                HorizontalAlignment="Stretch"
+                Classes="actionButtonText"
+                Click="BridgeButton_OnClick"/>
+    </StackPanel>
+</UserControl>

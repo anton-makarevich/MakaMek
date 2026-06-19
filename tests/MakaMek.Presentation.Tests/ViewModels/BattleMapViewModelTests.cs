@@ -37,6 +37,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.Services;
@@ -638,6 +639,94 @@ public class BattleMapViewModelTests
         // Assert
         _sut.IsDirectionSelectorVisible.ShouldBeFalse();
         _sut.AvailableDirections.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ShowSurfaceSelector_SetsPositionViewModelAndVisibility()
+    {
+        // Arrange
+        var position = new HexCoordinates(2, 3);
+        var surfaceSelector = new SurfaceSelectorViewModel(
+            [],
+            _ => { },
+            _localizationService);
+
+        // Act
+        _sut.ShowSurfaceSelector(position, surfaceSelector);
+
+        // Assert
+        _sut.SurfaceSelectorPosition.ShouldBe(position);
+        _sut.SurfaceSelector.ShouldBe(surfaceSelector);
+        _sut.IsSurfaceSelectorVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HideSurfaceSelector_ClearsVisibilityViewModelAndPosition()
+    {
+        // Arrange
+        var position = new HexCoordinates(2, 3);
+        var surfaceSelector = new SurfaceSelectorViewModel(
+            [],
+            _ => { },
+            _localizationService);
+        _sut.ShowSurfaceSelector(position, surfaceSelector);
+
+        // Act
+        _sut.HideSurfaceSelector();
+
+        // Assert
+        _sut.IsSurfaceSelectorVisible.ShouldBeFalse();
+        _sut.SurfaceSelector.ShouldBeNull();
+        _sut.SurfaceSelectorPosition.ShouldBeNull();
+    }
+
+    [Fact]
+    public void HideSurfaceSelectorCommand_ExecutesHideSurfaceSelector()
+    {
+        // Arrange
+        var position = new HexCoordinates(2, 3);
+        var surfaceSelector = new SurfaceSelectorViewModel(
+            [],
+            _ => { },
+            _localizationService);
+        _sut.ShowSurfaceSelector(position, surfaceSelector);
+
+        // Act
+        _sut.HideSurfaceSelectorCommand.Execute(null);
+
+        // Assert
+        _sut.IsSurfaceSelectorVisible.ShouldBeFalse();
+        _sut.SurfaceSelector.ShouldBeNull();
+        _sut.SurfaceSelectorPosition.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SurfaceSelectedCommand_CallsSelectSurfaceOnSelector()
+    {
+        // Arrange
+        var hexSurface = HexSurface.Bridge;
+        var selectedSurfaces = new List<HexSurface>();
+        var surfaceSelector = new SurfaceSelectorViewModel(
+            [],
+            surface => selectedSurfaces.Add(surface),
+            _localizationService);
+        _sut.ShowSurfaceSelector(new HexCoordinates(1, 1), surfaceSelector);
+
+        // Act
+        _sut.SurfaceSelectedCommand(hexSurface);
+
+        // Assert
+        selectedSurfaces.ShouldHaveSingleItem();
+        selectedSurfaces[0].ShouldBe(hexSurface);
+    }
+
+    [Fact]
+    public void IsSurfaceSelectorVisible_DefaultsToFalse()
+    {
+        // Act & Assert
+        _sut.IsSurfaceSelectorVisible.ShouldBeFalse();
+        _sut.SurfaceSelector.ShouldBeNull();
+        _sut.SurfaceSelectorPosition.ShouldBeNull();
     }
 
     [Fact]
