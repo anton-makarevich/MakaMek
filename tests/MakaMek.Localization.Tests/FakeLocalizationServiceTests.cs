@@ -138,6 +138,11 @@ public class FakeLocalizationServiceTests
     }
 
     [Theory]
+    [InlineData("Action_SelectSurface", "Select surface")]
+    [InlineData("Surface_Bridge", "On the bridge")]
+    [InlineData("Surface_Ground", "Ground")]
+    [InlineData("Surface_Option_WithCost", "{0} — {1} MP")]
+    [InlineData("BattleMap_SelectSurface_Title", "Select destination surface")]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
     // Terrain names

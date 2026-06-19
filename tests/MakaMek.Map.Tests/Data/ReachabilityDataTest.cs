@@ -6,11 +6,14 @@ namespace Sanet.MakaMek.Map.Tests.Data;
 
 public class ReachabilityDataTest
 {
+    private static ReachableHexData H(HexCoordinates coords, HexSurface surface = HexSurface.Ground, int cost = 0)
+        => new(coords, surface, cost);
+
     [Fact]
     public void IsForwardReachable_ReturnsTrue_WhenHexIsForwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var forwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData(forwardReachableHexes, []);
 
         // Act & Assert
@@ -21,7 +24,7 @@ public class ReachabilityDataTest
     public void IsForwardReachable_ReturnsFalse_WhenHexIsNotForwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var forwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData(forwardReachableHexes, []);
 
         // Act & Assert
@@ -32,7 +35,7 @@ public class ReachabilityDataTest
     public void IsBackwardReachable_ReturnsTrue_WhenHexIsBackwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var backwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData([], backwardReachableHexes);
 
         // Act & Assert
@@ -43,7 +46,7 @@ public class ReachabilityDataTest
     public void IsBackwardReachable_ReturnsFalse_WhenHexIsNotBackwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var backwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData([], backwardReachableHexes);
 
         // Act & Assert
@@ -54,7 +57,7 @@ public class ReachabilityDataTest
     public void IsHexReachable_ReturnsTrue_WhenHexIsForwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var forwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData(forwardReachableHexes, []);
 
         // Act & Assert
@@ -65,7 +68,7 @@ public class ReachabilityDataTest
     public void IsHexReachable_ReturnsTrue_WhenHexIsBackwardReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
+        var backwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
         var sut = new ReachabilityData([], backwardReachableHexes);
 
         // Act & Assert
@@ -76,8 +79,8 @@ public class ReachabilityDataTest
     public void IsHexReachable_ReturnsFalse_WhenHexIsNotReachable()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = [(new HexCoordinates(1, 1), HexSurface.Ground)];
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = [(new HexCoordinates(2, 2), HexSurface.Ground)];
+        var forwardReachableHexes = new[] { H(new HexCoordinates(1, 1)) };
+        var backwardReachableHexes = new[] { H(new HexCoordinates(2, 2)) };
         var sut = new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
 
         // Act & Assert
@@ -88,14 +91,18 @@ public class ReachabilityDataTest
     public void AllReachableHexes_ReturnsUnionOfForwardAndBackwardReachableHexes()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground), (new HexCoordinates(2, 2), HexSurface.Ground)];
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(3, 3), HexSurface.Ground), (new HexCoordinates(4, 4), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(3, 3)), H(new HexCoordinates(4, 4))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.coordinates).ShouldBe([
+        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe([
             new HexCoordinates(1, 1),
             new HexCoordinates(2, 2),
             new HexCoordinates(3, 3),
@@ -116,40 +123,48 @@ public class ReachabilityDataTest
     public void AllReachableHexes_ReturnsForwardReachableHexes_WhenNoBackwardReachableHexes()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground), (new HexCoordinates(2, 2), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, []);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.coordinates).ShouldBe(
-            forwardReachableHexes.Select(x => x.coordinates));
+        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe(
+            forwardReachableHexes.Select(x => x.Coordinates));
     }
     
     [Fact]
     public void AllReachableHexes_ReturnsBackwardReachableHexes_WhenNoForwardReachableHexes()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(3, 3), HexSurface.Ground), (new HexCoordinates(4, 4), HexSurface.Ground)];
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(3, 3)), H(new HexCoordinates(4, 4))
+        };
         var sut = new ReachabilityData([], backwardReachableHexes);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.coordinates).ShouldBe(
-            backwardReachableHexes.Select(x => x.coordinates));
+        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe(
+            backwardReachableHexes.Select(x => x.Coordinates));
     }
     
     [Fact]
     public void AllReachableHexes_ReturnsUniqueHexes_WhenForwardAndBackwardReachableHexesOverlap()
     {
         // Arrange
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground), (new HexCoordinates(2, 2), HexSurface.Ground)];
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(2, 2), HexSurface.Ground), (new HexCoordinates(3, 3), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(2, 2)), H(new HexCoordinates(3, 3))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
 
         // Act & Assert
-        sut.AllReachableHexes.Select(x => x.coordinates).ShouldBe([
+        sut.AllReachableHexes.Select(x => x.Coordinates).ShouldBe([
             new HexCoordinates(1, 1), 
             new HexCoordinates(2, 2), 
             new HexCoordinates(3, 3)]);
@@ -158,12 +173,14 @@ public class ReachabilityDataTest
     [Fact]
     public void AllReachableCoordinates_ReturnsUnionOfForwardAndBackwardCoordinates()
     {
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground),
-                (new HexCoordinates(2, 2), HexSurface.Ground)];
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(3, 3), HexSurface.Ground),
-                (new HexCoordinates(4, 4), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(3, 3)), H(new HexCoordinates(4, 4))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
 
         sut.AllReachableCoordinates.ShouldBe([
@@ -184,8 +201,10 @@ public class ReachabilityDataTest
     [Fact]
     public void AllReachableCoordinates_ReturnsForwardCoordinates_WhenNoBackwardReachableHexes()
     {
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground), (new HexCoordinates(2, 2), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, []);
 
         sut.AllReachableCoordinates.ShouldBe([
@@ -196,8 +215,10 @@ public class ReachabilityDataTest
     [Fact]
     public void AllReachableCoordinates_ReturnsBackwardCoordinates_WhenNoForwardReachableHexes()
     {
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(3, 3), HexSurface.Ground), (new HexCoordinates(4, 4), HexSurface.Ground)];
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(3, 3)), H(new HexCoordinates(4, 4))
+        };
         var sut = new ReachabilityData([], backwardReachableHexes);
 
         sut.AllReachableCoordinates.ShouldBe([
@@ -208,15 +229,68 @@ public class ReachabilityDataTest
     [Fact]
     public void AllReachableCoordinates_ReturnsUniqueCoordinates_WhenForwardAndBackwardOverlap()
     {
-        List<(HexCoordinates coordinates, HexSurface surface)> forwardReachableHexes = 
-            [(new HexCoordinates(1, 1), HexSurface.Ground), (new HexCoordinates(2, 2), HexSurface.Ground)];
-        List<(HexCoordinates coordinates, HexSurface surface)> backwardReachableHexes = 
-            [(new HexCoordinates(2, 2), HexSurface.Ground), (new HexCoordinates(3, 3), HexSurface.Ground)];
+        var forwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(1, 1)), H(new HexCoordinates(2, 2))
+        };
+        var backwardReachableHexes = new[]
+        {
+            H(new HexCoordinates(2, 2)), H(new HexCoordinates(3, 3))
+        };
         var sut = new ReachabilityData(forwardReachableHexes, backwardReachableHexes);
 
         sut.AllReachableCoordinates.ShouldBe([
             new HexCoordinates(1, 1), 
             new HexCoordinates(2, 2), 
             new HexCoordinates(3, 3)], ignoreOrder: true);
+    }
+    
+    [Fact]
+    public void GetReachableSurfacesForCoordinate_ReturnsSurfaces_WhenCoordinateFoundInForward()
+    {
+        var forward = new[] { H(new HexCoordinates(1, 1)), H(new HexCoordinates(1, 1), HexSurface.Bridge, 5) };
+        var sut = new ReachabilityData(forward, []);
+
+        var result = sut.GetReachableSurfacesForCoordinate(new HexCoordinates(1, 1)).ToList();
+
+        result.Count.ShouldBe(2);
+        result.ShouldContain(r => r.Surface == HexSurface.Ground && r.Cost == 0);
+        result.ShouldContain(r => r.Surface == HexSurface.Bridge && r.Cost == 5);
+    }
+
+    [Fact]
+    public void GetReachableSurfacesForCoordinate_ReturnsSurfaces_WhenCoordinateFoundInBackward()
+    {
+        var backward = new[] { H(new HexCoordinates(1, 1)), H(new HexCoordinates(1, 1), HexSurface.Bridge, 4) };
+        var sut = new ReachabilityData([], backward);
+
+        var result = sut.GetReachableSurfacesForCoordinate(new HexCoordinates(1, 1)).ToList();
+
+        result.Count.ShouldBe(2);
+        result.ShouldContain(r => r.Surface == HexSurface.Ground);
+        result.ShouldContain(r => r.Surface == HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void GetReachableSurfacesForCoordinate_CombinesForwardAndBackward()
+    {
+        var forward = new[] { H(new HexCoordinates(1, 1), HexSurface.Ground, 3) };
+        var backward = new[] { H(new HexCoordinates(1, 1), HexSurface.Bridge, 2) };
+        var sut = new ReachabilityData(forward, backward);
+
+        var result = sut.GetReachableSurfacesForCoordinate(new HexCoordinates(1, 1)).ToList();
+
+        result.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetReachableSurfacesForCoordinate_ReturnsEmpty_WhenCoordinateNotFound()
+    {
+        var forward = new[] { H(new HexCoordinates(2, 2)) };
+        var sut = new ReachabilityData(forward, []);
+
+        var result = sut.GetReachableSurfacesForCoordinate(new HexCoordinates(1, 1));
+
+        result.ShouldBeEmpty();
     }
 }

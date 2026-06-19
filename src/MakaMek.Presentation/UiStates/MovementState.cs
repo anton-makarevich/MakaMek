@@ -12,6 +12,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
 
@@ -228,6 +229,7 @@ public class MovementState : IUiState
             _builder.Reset();
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
+            _viewModel.HideSurfaceSelector();
             ClearHighlighting();
             TransitionTo(new SelectingUnitStep(this));
             _viewModel.NotifySelectedUnitChanged();
@@ -249,21 +251,69 @@ public class MovementState : IUiState
             return;
         }
         
-        // Use the extension method to find all possible paths to the target hex
-        var startPosition = _selectedPath.Destination;
+        var availableSurfaces = _reachabilityData.Value
+            .GetReachableSurfacesForCoordinate(hex.Coordinates)
+            .DistinctBy(s => s.Surface)
+            .ToList();
+
+        if (availableSurfaces.Count == 0)
+        {
+            ResetUnitSelection();
+            return;
+        }
+
+        // If only one surface, proceed directly
+        if (availableSurfaces.Count == 1)
+        {
+            var surface = availableSurfaces[0].Surface;
+            _movementPoints = GetRemainingMovementPoints();
+            BuildPathsForSurfaceSelection(hex, surface);
+            return;
+        }
+
+        // Multiple surfaces - pause for user selection
+        TransitionTo(new SelectingSurfaceStep(this, hex.Coordinates, availableSurfaces));
+    }
+
+    private void BuildPathsForSurfaceSelection(Hex hex, HexSurface surface)
+    {
+        var startPosition = _selectedPath!.Destination;
         _movementPoints = GetRemainingMovementPoints();
-        _possibleDirections = Game.BattleMap?.GetPathsToHexWithAllFacings(
+        _possibleDirections = Game!.BattleMap?.GetPathsToHexWithAllFacings(
             startPosition,
             hex.Coordinates,
-            _selectedPath.MovementType,
+            _selectedPath!.MovementType,
             _movementPoints,
-            _reachabilityData.Value,
-            _selectedUnit.Height,
+            _reachabilityData!.Value,
+            _selectedUnit!.Height,
             _selectedUnit.MaxLevelChangeForward,
             _selectedUnit.MaxLevelChangeBackward,
-            _prohibitedHexes) ?? [];
+            _prohibitedHexes,
+            targetSurface: surface) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
+    }
+
+    private void HandleSurfaceSelection(HexSurface surface)
+    {
+        var targetHex = (_step as SelectingSurfaceStep)?.TargetHex;
+        if (targetHex == null) return;
+        
+        _movementPoints = GetRemainingMovementPoints();
+        var startPosition = _selectedPath!.Destination;
+        _possibleDirections = Game!.BattleMap?.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            _selectedPath!.MovementType,
+            _movementPoints,
+            _reachabilityData!.Value,
+            _selectedUnit!.Height,
+            _selectedUnit.MaxLevelChangeForward,
+            _selectedUnit.MaxLevelChangeBackward,
+            _prohibitedHexes,
+            targetSurface: surface) ?? [];
+
+        TransitionTo(new SelectingDirectionStep(this, targetHex));
     }
     
     private void CompleteMovement()
@@ -276,6 +326,7 @@ public class MovementState : IUiState
             _selectedUnit = null;
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
+            _viewModel.HideSurfaceSelector();
             _viewModel.NotifySelectedUnitChanged();
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             TransitionTo(new CompletedStep(this));
@@ -526,6 +577,7 @@ public class MovementState : IUiState
             
             // Reset the movement state
             _viewModel.HideDirectionSelector();
+            _viewModel.HideSurfaceSelector();
             _viewModel.NotifyStateChanged();
             
             // Publish the command
@@ -741,6 +793,30 @@ public class MovementState : IUiState
         {
             State.HandleTargetHexSelection(hex);
         }
+    }
+
+    private sealed class SelectingSurfaceStep : MovementStepBase
+    {
+        public HexCoordinates TargetHex { get; }
+
+        public SelectingSurfaceStep(MovementState state, HexCoordinates targetHex, IReadOnlyList<ReachableHexData> availableSurfaces) : base(state)
+        {
+            TargetHex = targetHex;
+
+            var vm = new SurfaceSelectorViewModel(
+                availableSurfaces,
+                surface =>
+                {
+                    State._viewModel.HideSurfaceSelector();
+                    State.HandleSurfaceSelection(surface);
+                },
+                State._viewModel.LocalizationService,
+                () => State._viewModel.HideSurfaceSelector());
+            State._viewModel.ShowSurfaceSelector(targetHex, vm);
+            State._viewModel.NotifyStateChanged();
+        }
+        public override MovementStep Step => MovementStep.SelectingSurface;
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectSurface");
     }
 
     private sealed class SelectingDirectionStep : MovementStepBase

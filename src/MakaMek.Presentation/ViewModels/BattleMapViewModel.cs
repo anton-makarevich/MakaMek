@@ -84,6 +84,50 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         private set => SetProperty(ref field, value);
     }
 
+    public SurfaceSelectorViewModel? SurfaceSelector
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    public bool IsSurfaceSelectorVisible
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    public HexCoordinates? SurfaceSelectorPosition
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    public void ShowSurfaceSelector(HexCoordinates position, SurfaceSelectorViewModel vm)
+    {
+        SurfaceSelectorPosition = position;
+        SurfaceSelector = vm;
+        IsSurfaceSelectorVisible = true;
+        NotifyStateChanged();
+    }
+
+    public void HideSurfaceSelector()
+    {
+        IsSurfaceSelectorVisible = false;
+        SurfaceSelector = null;
+        SurfaceSelectorPosition = null;
+    }
+
+    public ICommand HideSurfaceSelectorCommand => new AsyncCommand(() =>
+    {
+        HideSurfaceSelector();
+        return Task.CompletedTask;
+    });
+
+    public void SurfaceSelectedCommand(HexSurface surface)
+    {
+        SurfaceSelector?.SelectSurface(surface);
+    }
+
     public void DirectionSelectedCommand(HexDirection direction)
     {
         CurrentState.HandleFacingSelection(direction);

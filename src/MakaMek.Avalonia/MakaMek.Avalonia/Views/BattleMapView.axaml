@@ -25,6 +25,12 @@
                 Position="{Binding DirectionSelectorPosition}"
                 DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
                 Foreground="{Binding ActivePlayerTint}"/>
+            <controls:SurfaceSelector
+                x:Name="SurfaceSelector"
+                IsVisible="{Binding IsSurfaceSelectorVisible}"
+                Options="{Binding SurfaceSelector.Options}"
+                Position="{Binding SurfaceSelectorPosition}"
+                SurfaceSelectedCommand="{Binding SurfaceSelectedCommand}"/>
         </mapControls:HexMap>
         
         <Grid x:Name="TurnStatus"
