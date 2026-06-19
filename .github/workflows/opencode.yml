@@ -33,6 +33,9 @@ jobs:
       - name: Install mise tools
         uses: jdx/mise-action@v2
 
+      - name: Install skills
+        run: mise run install-skills
+
       - name: Install Serena
         run: mise run install-serena
 
