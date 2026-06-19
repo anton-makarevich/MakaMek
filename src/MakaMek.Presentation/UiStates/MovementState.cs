@@ -256,12 +256,6 @@ public class MovementState : IUiState
             .DistinctBy(s => s.Surface)
             .ToList();
 
-        if (availableSurfaces.Count == 0)
-        {
-            ResetUnitSelection();
-            return;
-        }
-
         // If only one surface, proceed directly
         if (availableSurfaces.Count == 1)
         {
