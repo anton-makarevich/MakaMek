@@ -3,16 +3,15 @@
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:models="clr-namespace:Sanet.MakaMek.Map.Models;assembly=Sanet.MakaMek.Map"
              x:Class="Sanet.MakaMek.Avalonia.Controls.SurfaceSelector">
-    <Border Background="{StaticResource OverlayTransparentBrush}"
-            CornerRadius="8"
-            Padding="8">
-        <StackPanel x:Name="ButtonsContainer" Spacing="4">
-            <Button x:Name="GroundButton"
-                    Classes="actionButtonText"
-                    Click="GroundButton_OnClick"/>
-            <Button x:Name="BridgeButton"
-                    Classes="actionButtonText"
-                    Click="BridgeButton_OnClick"/>
-        </StackPanel>
-    </Border>
+    <StackPanel x:Name="ButtonsContainer"
+                Spacing="4">
+        <Button x:Name="GroundButton"
+                HorizontalAlignment="Stretch"
+                Classes="actionButtonText"
+                Click="GroundButton_OnClick"/>
+        <Button x:Name="BridgeButton"
+                HorizontalAlignment="Stretch"
+                Classes="actionButtonText"
+                Click="BridgeButton_OnClick"/>
+    </StackPanel>
 </UserControl>
