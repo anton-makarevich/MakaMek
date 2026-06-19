@@ -36,6 +36,20 @@ jobs:
       - name: Install Serena
         run: mise run install-serena
 
+      - name: Configure Serena for OpenCode
+        run: |
+          cat > opencode.json << 'EOF'
+          {
+            "mcp": {
+              "serena": {
+                "type": "local",
+                "command": ["serena", "start-mcp-server", "--context=ide"],
+                "enabled": true
+              }
+            }
+          }
+          EOF
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@v1.15.10
         env:
