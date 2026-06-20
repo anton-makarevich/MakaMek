@@ -533,6 +533,9 @@ public class Mech : Unit
         if (MovementTaken?.MovementType == MovementType.Jump) 
             return false;
 
+        // Cannot stand up when skidding
+        if (IsSkidding) return false;
+
         if (!IsGyroAvailable) return false;
 
         var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
@@ -629,6 +632,13 @@ public class Mech : Unit
 
         MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
     }
+
+    public void ApplySkid(MechSkidCommand skidCommand)
+    {
+        if (skidCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
+        ApplyDamage(hits, skidCommand.DamageData.FallDirection);
+    }
+    
     
     public override HexPosition? Position
     {

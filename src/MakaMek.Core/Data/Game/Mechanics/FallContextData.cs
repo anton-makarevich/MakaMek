@@ -49,9 +49,18 @@ public record FallContextData
     /// </summary>
     public bool WasJumping { get; init; }
     
+    /// <summary>
+    /// The skid damage data (only applies when skidding during a fall)
+    /// </summary>
+    public FallingDamageData? SkidDamageData { get; init; }
+    
+    /// <summary>
+    /// The distance the unit skidded in hexes
+    /// </summary>
+    public int SkidDistance { get; init; }
+
     public MechFallCommand ToMechFallCommand()
     {
-        // Convert FallContextData to MechFallCommand
         return new MechFallCommand
         {
             UnitId = UnitId,
@@ -61,6 +70,18 @@ public record FallContextData
             DamageData = FallingDamageData,
             FallPilotingSkillRoll = PilotingSkillRoll,
             PilotDamagePilotingSkillRoll = PilotDamagePilotingSkillRoll
+        };
+    }
+
+    public MechSkidCommand? ToMechSkidCommand()
+    {
+        if (SkidDamageData == null) return null;
+        return new MechSkidCommand
+        {
+            UnitId = UnitId,
+            GameOriginId = GameId,
+            SkidDistance = SkidDistance,
+            DamageData = SkidDamageData
         };
     }
 

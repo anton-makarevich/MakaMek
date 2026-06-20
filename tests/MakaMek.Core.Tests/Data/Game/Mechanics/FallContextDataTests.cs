@@ -160,4 +160,48 @@ public class FallContextDataTests
         // Assert
         result.ShouldBeNull();
     }
+
+    [Fact]
+    public void ToMechSkidCommand_WhenNoSkidDamageData_ShouldReturnNull()
+    {
+        var fallContextData = new FallContextData
+        {
+            UnitId = _unitId,
+            GameId = _gameId,
+            IsFalling = true,
+            SkidDamageData = null
+        };
+
+        var result = fallContextData.ToMechSkidCommand();
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ToMechSkidCommand_WhenSkidDamageDataExists_ShouldCreateCorrectCommand()
+    {
+        var skidDamageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([], 5),
+            new DiceResult(4),
+            HitDirection.Front
+        );
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = _unitId,
+            GameId = _gameId,
+            IsFalling = true,
+            SkidDamageData = skidDamageData,
+            SkidDistance = 3
+        };
+
+        var result = fallContextData.ToMechSkidCommand();
+
+        var command = result.ShouldNotBeNull();
+        command.UnitId.ShouldBe(_unitId);
+        command.GameOriginId.ShouldBe(_gameId);
+        command.SkidDistance.ShouldBe(3);
+        command.DamageData.ShouldBe(skidDamageData);
+    }
 }

@@ -154,11 +154,23 @@ public class FallProcessor : IFallProcessor
                 pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
             }
 
-            var fallingDamageData = isFallingNow
-                ? context is SkidCheckRollContext skidCtx
-                    ? _fallingDamageCalculator.CalculateSkidDamage(mech, skidCtx.SkidDistance)
-                    : _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping)
-                : null;
+            FallingDamageData? fallingDamageData = null;
+            FallingDamageData? skidDamageData = null;
+
+            if (isFallingNow)
+            {
+                fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping);
+
+                if (context is SkidCheckRollContext skidCtx && skidCtx.SkidDistance > 0)
+                {
+                    skidDamageData = _fallingDamageCalculator.CalculateSkidDamage(
+                        mech,
+                        skidCtx.SkidDistance,
+                        fallingDamageData.FacingAfterFall,
+                        fallingDamageData.FacingDiceRoll,
+                        fallingDamageData.FallDirection);
+                }
+            }
 
             var fallContextData = new FallContextData
             {
@@ -169,7 +181,9 @@ public class FallProcessor : IFallProcessor
                 PilotDamagePilotingSkillRoll = pilotDamagePsr,
                 FallingDamageData = fallingDamageData,
                 LevelsFallen = levelsFallen,
-                WasJumping = wasJumping
+                WasJumping = wasJumping,
+                SkidDamageData = skidDamageData,
+                SkidDistance = context is SkidCheckRollContext skidCtx2 ? skidCtx2.SkidDistance : 0
             };
 
             results.Add(fallContextData);

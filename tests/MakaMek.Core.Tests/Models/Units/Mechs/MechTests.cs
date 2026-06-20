@@ -1,5 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -2091,6 +2093,29 @@ public class MechTests
     }
 
     [Fact]
+    public void CanStandup_ShouldReturnFalse_WhenSkidding()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        sut.Move(new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])],
+            MovementType.Walk), null, isCompleted: false);
+        sut.SetProne();
+
+        // Act
+        var canStandup = sut.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up after skidding");
+    }
+
+    [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {
         // Arrange
@@ -3142,11 +3167,121 @@ public class MechTests
          mech.MaxLevelChangeForward.ShouldBe(2);
      }
 
-     [Fact]
-     public void MaxLevelChangeBackward_ReturnsZero()
-     {
-         var mech = new Mech("Test", "Mech", 50, CreateBasicPartsData());
+    [Fact]
+    public void MaxLevelChangeBackward_ReturnsZero()
+    {
+        var mech = new Mech("Test", "Mech", 50, CreateBasicPartsData());
 
-         mech.MaxLevelChangeBackward.ShouldBe(0);
-     }
+        mech.MaxLevelChangeBackward.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ApplySkid_ShouldNotApplyDamage_WhenDamageDataIsNull()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var initialArmor = sut.Parts[PartLocation.LeftArm].CurrentArmor;
+
+        var command = new MechSkidCommand
+        {
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = null,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        sut.ApplySkid(command);
+
+        sut.Parts[PartLocation.LeftArm].CurrentArmor.ShouldBe(initialArmor);
+    }
+
+    [Fact]
+    public void ApplySkid_ShouldApplyDamage_WhenDamageDataHasValidHitLocations()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var initialArmor = sut.Parts[PartLocation.LeftArm].CurrentArmor;
+
+        var hitData = new LocationHitData(
+            [new LocationDamageData(PartLocation.LeftArm, 5, 0, false)],
+            [],
+            [],
+            PartLocation.LeftArm);
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([hitData], 5),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        sut.ApplySkid(command);
+
+        sut.Parts[PartLocation.LeftArm].CurrentArmor.ShouldBe(initialArmor - 5);
+    }
+
+    [Fact]
+    public void ApplySkid_ShouldNotSetProne()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        var hitData = new LocationHitData(
+            [new LocationDamageData(PartLocation.LeftArm, 0, 1, false)],
+            [],
+            [],
+            PartLocation.LeftArm);
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([hitData], 1),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        sut.ApplySkid(command);
+
+        sut.IsProne.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplySkid_ShouldNotDamagePilot()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        var hitData = new LocationHitData(
+            [new LocationDamageData(PartLocation.LeftArm, 0, 1, false)],
+            [],
+            [],
+            PartLocation.LeftArm);
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([hitData], 1),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        sut.ApplySkid(command);
+
+        sut.Pilot.ShouldNotBeNull();
+        sut.Pilot.Injuries.ShouldBe(0);
+    }
 }

@@ -61,15 +61,21 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             };
 
             var fallCommand = skidFallContext.ToMechFallCommand();
+            var skidCommand = skidFallContext.ToMechSkidCommand();
+
+            var actions = new List<IGameAction>
+            {
+                new MoveUnitAction(modifiedCommand, publish: true),
+                new ApplyFallAction(mech, fallCommand)
+            };
+            if (skidCommand != null)
+                actions.Add(new ApplySkidAction(mech, skidCommand.Value));
 
             return new MovementInterruptResult
             {
                 ShouldStop = true,
-                GameActions = new List<IGameAction>
-                {
-                    new MoveUnitAction(modifiedCommand, publish: true),
-                    new ApplyFallAction(mech, fallCommand)
-                }
+                DeferStepConsumption = false,
+                GameActions = actions
             };
         }
 
