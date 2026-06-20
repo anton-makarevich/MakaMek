@@ -1616,6 +1616,69 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void ProcessMoveCommand_WhenSkidFall_AndCanStandup_ShouldNotDeferStep()
+    {
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var roadHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        roadHex!.AddTerrain(new RoadTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom), new HexPosition(3, 2, HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(1, 3),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert - ApplySkidAction forces deferAfterFall = false (lines 201-202),
+        // so turn is finalized even though Mech can stand up
+        unit.HasMoved.ShouldBeTrue();
+        unit.Position!.Coordinates.ShouldBe(new HexCoordinates(2, 1));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.IsCompleted && cmd.MovementPath.Count == 3));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+        CommandPublisher.Received().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+    }
+
+    [Fact]
     public void ProcessMoveCommand_WhenRunSkidOnRoadPasses_ShouldPublishPsrResult()
     {
         SetMap();
