@@ -183,6 +183,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
+    [InlineData("Command_MechSkid_Base", "{0} skidded {1} hexes (skid damage)")]
     [InlineData("PilotingSkillRollType_BridgeCollapse", "Bridge Collapse")]
     [InlineData("PilotingSkillRollType_BridgeCollapse_WithHeight", "{0} (Height: {1})")]
     [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
