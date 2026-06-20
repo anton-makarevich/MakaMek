@@ -198,6 +198,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             commands.AddRange(action.Process(Game));
             if (unit is Mech fallingMech && action is ApplyFallAction)
                 deferAfterFall = fallingMech.CanStandup();
+            if (action is ApplySkidAction)
+                deferAfterFall = false;
         }
 
         foreach (var cmd in commands)

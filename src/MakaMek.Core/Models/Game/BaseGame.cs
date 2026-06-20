@@ -273,6 +273,15 @@ public abstract class BaseGame : IGame
         mech.ApplyFall(fallCommand);
     }
 
+    internal void OnMechSkidding(MechSkidCommand skidCommand)
+    {
+        if (_players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == skidCommand.UnitId) is not Mech mech) return;
+
+        mech.ApplySkid(skidCommand);
+    }
+
     internal void OnMechStandUp(MechStandUpCommand standUpCommand)
     {
         // Find the unit with the given ID across all players
@@ -445,6 +454,7 @@ public abstract class BaseGame : IGame
             TurnEndedCommand => CommandValidationResult.Valid(),
             RequestGameLobbyStatusCommand => CommandValidationResult.Valid(),
             MechFallCommand => CommandValidationResult.Valid(),
+            MechSkidCommand => CommandValidationResult.Valid(),
             TryStandupCommand => CommandValidationResult.Valid(),
             MechStandUpCommand => CommandValidationResult.Valid(),
             UnitShutdownCommand => CommandValidationResult.Valid(),

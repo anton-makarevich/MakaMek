@@ -1466,8 +1466,12 @@ public class FallProcessorTests
         SetupRollResult(false, PilotingSkillRollType.SkidCheck);
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>())
+            .Returns(fallingDamageData);
+
         var skidDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>())
             .Returns(skidDamageData);
 
         // Act
@@ -1477,10 +1481,10 @@ public class FallProcessorTests
         result.IsFalling.ShouldBeTrue();
         result.LevelsFallen.ShouldBe(0);
         result.WasJumping.ShouldBeFalse();
-        result.FallingDamageData.ShouldBe(skidDamageData);
+        result.FallingDamageData.ShouldBe(fallingDamageData);
 
-        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
     [Fact]
@@ -1498,7 +1502,7 @@ public class FallProcessorTests
         result.IsFalling.ShouldBeFalse();
         result.FallingDamageData.ShouldBeNull();
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateSkidDamage(Arg.Any<Unit>(), Arg.Any<int>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateSkidDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
@@ -1512,8 +1516,12 @@ public class FallProcessorTests
         SetupRollResult(false, PilotingSkillRollType.SkidCheck);
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>())
+            .Returns(fallingDamageData);
+
         var skidDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3))
+        _mockFallingDamageCalculator.CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>())
             .Returns(skidDamageData);
 
         // Act
@@ -1521,7 +1529,8 @@ public class FallProcessorTests
 
         // Assert
         result.IsFalling.ShouldBeTrue();
-        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3));
+        _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
     [Theory]

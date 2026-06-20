@@ -325,7 +325,7 @@ public class FallingDamageCalculatorTests
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         Should.Throw<ArgumentOutOfRangeException>(() =>
-            _sut.CalculateSkidDamage(unit, -1))
+            _sut.CalculateSkidDamage(unit, -1, HexDirection.Top, new DiceResult(1), HitDirection.Front))
             .ParamName.ShouldBe("skidDistance");
     }
 
@@ -335,7 +335,7 @@ public class FallingDamageCalculatorTests
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         Should.Throw<ArgumentOutOfRangeException>(() =>
-            _sut.CalculateSkidDamage(unit, -1));
+            _sut.CalculateSkidDamage(unit, -1, HexDirection.Top, new DiceResult(1), HitDirection.Front));
 
         _mockLogger.Received(1).Log(
             LogLevel.Error,
@@ -351,7 +351,7 @@ public class FallingDamageCalculatorTests
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         Should.Throw<ArgumentException>(() =>
-            _sut.CalculateSkidDamage(unit, 1))
+            _sut.CalculateSkidDamage(unit, 1, HexDirection.Top, new DiceResult(1), HitDirection.Front))
             .Message.ShouldContain("must be deployed");
     }
 
@@ -364,7 +364,7 @@ public class FallingDamageCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
 
-        var result = _sut.CalculateSkidDamage(mech, 4);
+        var result = _sut.CalculateSkidDamage(mech, 4, HexDirection.Top, new DiceResult(1), HitDirection.Front);
 
         result.HitLocations.TotalDamage.ShouldBe(4);
     }
@@ -378,7 +378,7 @@ public class FallingDamageCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
 
-        var result = _sut.CalculateSkidDamage(mech, 3);
+        var result = _sut.CalculateSkidDamage(mech, 3, HexDirection.Top, new DiceResult(1), HitDirection.Front);
 
         result.HitLocations.TotalDamage.ShouldBe(8);
     }
@@ -408,7 +408,7 @@ public class FallingDamageCalculatorTests
                 Arg.Any<HitDirection>())
             .Returns([new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)]);
 
-        var result = _sut.CalculateSkidDamage(mech, 3);
+        var result = _sut.CalculateSkidDamage(mech, 3, HexDirection.Top, new DiceResult(1), HitDirection.Front);
 
         result.HitLocations.TotalDamage.ShouldBe(8);
         result.HitLocations.HitLocations.Count.ShouldBe(2);
@@ -434,7 +434,7 @@ public class FallingDamageCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
 
-        var result = _sut.CalculateSkidDamage(mech, 1);
+        var result = _sut.CalculateSkidDamage(mech, 1, HexDirection.Top, new DiceResult(1), HitDirection.Front);
 
         result.HitLocations.TotalDamage.ShouldBe(2);
     }
@@ -448,7 +448,7 @@ public class FallingDamageCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
 
-        var result = _sut.CalculateSkidDamage(mech, 1);
+        var result = _sut.CalculateSkidDamage(mech, 1, HexDirection.Top, new DiceResult(1), HitDirection.Front);
 
         result.HitLocations.TotalDamage.ShouldBe(1);
     }

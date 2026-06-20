@@ -2,7 +2,7 @@ namespace Sanet.MakaMek.Localization;
 
 public class FakeLocalizationService : ILocalizationService
 {
-    protected readonly Dictionary<string, string> _strings = new()
+    protected readonly Dictionary<string, string> Strings = new()
     {
         ["Command_JoinGame"] = "{0} has joined game with {1} units",
         ["Command_PlayerLeft"] = "{0} has left the game",
@@ -85,6 +85,7 @@ public class FakeLocalizationService : ILocalizationService
         ["MovementCost_Jump"] = "jump, {0} MP",
         ["MovementCost_StandUpAttempt"] = "stand up attempt, {0} MP",
         ["MovementCost_HexEnter"] = "entered hex, {0} MP",
+        ["Command_MechSkid_Base"] = "{0} skidded {1} hexes (skid damage)",
         ["Command_MechFalling_PsrIntro"] = "{0} may fall",
         ["Command_MechFalling_Base"] = "{0} fell",
         ["Command_MechFalling_Levels"] = " {0} level(s)",
@@ -457,6 +458,6 @@ public class FakeLocalizationService : ILocalizationService
 
     public virtual string GetString(string key)
     {
-        return _strings.TryGetValue(key, out var value) ? value : key;
+        return Strings.TryGetValue(key, out var value) ? value : key;
     }
 }

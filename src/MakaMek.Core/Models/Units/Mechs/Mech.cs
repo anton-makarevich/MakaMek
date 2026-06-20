@@ -629,6 +629,13 @@ public class Mech : Unit
 
         MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
     }
+
+    public void ApplySkid(MechSkidCommand skidCommand)
+    {
+        if (skidCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
+        ApplyDamage(hits, skidCommand.DamageData.FallDirection);
+    }
+    
     
     public override HexPosition? Position
     {
