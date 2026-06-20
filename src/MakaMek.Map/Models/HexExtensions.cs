@@ -100,12 +100,19 @@ public static class HexExtensions
             return hex.GetTerrain(MakaMekTerrains.Bridge);
         }
 
-        public bool IsOnRoadOrBridge(Hex fromHex)
+        public bool IsOnRoadOrBridge(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
         {
             var toTerrain = hex.GetRoadOrPavedTerrain();
             var fromTerrain = fromHex.GetRoadOrPavedTerrain();
-            return toTerrain?.Id is MakaMekTerrains.Bridge or MakaMekTerrains.Road
-                && fromTerrain?.Id is MakaMekTerrains.Bridge or MakaMekTerrains.Road;
+
+            return IsAppropriate(fromTerrain, fromSurface) && IsAppropriate(toTerrain, toSurface);
+
+            bool IsAppropriate(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
+            {
+                (MakaMekTerrains.Road, HexSurface.Ground) => true,
+                (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
+                _ => false
+            };
         }
     }
 }

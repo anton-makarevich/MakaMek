@@ -109,7 +109,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>();
-                costList.AddRange(hex.GetEnterMovementCost(fromHex));
+                costList.AddRange(hex.GetEnterMovementCost(fromHex, from.Surface, to.Surface));
                 if (levelCost > 0)
                 {
                     costList.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
@@ -238,7 +238,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     newPath.AddRange(turningSteps);
                     newPath.Add(nextPos);
 
-                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex, current.Position.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
                     var isNewCoord = current.Path.All(p => p.Coordinates != nextCoord);
                     var newHexesTraveled = current.HexesTraveled + (isNewCoord ? 1 : 0);
 
@@ -350,7 +350,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     if (levelCost > maxLevelChange)
                         continue;
 
-                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex).Sum(c => c.Value) + turningCost + levelCost;
+                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex, current.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
 
                     if (totalCost > maxMovementPoints)
                         continue;

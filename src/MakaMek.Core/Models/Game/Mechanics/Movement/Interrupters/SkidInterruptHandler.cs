@@ -98,7 +98,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             if (nextHex == null)
                 break;
 
-            var movementCost = nextHex.GetEnterMovementCost(currentHex);
+            var movementCost = nextHex.GetEnterMovementCost(currentHex, HexSurface.Ground, HexSurface.Ground);
             var fromPos = new HexPosition(currentCoords, skidFacing);
             var toPos = new HexPosition(nextCoords, skidFacing);
             var skidSegment = new PathSegment(fromPos, toPos, [])

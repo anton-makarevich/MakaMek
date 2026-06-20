@@ -439,8 +439,11 @@ public class MovementStateTests
         var unit = _battleMapViewModel.Units.First();
         unit.Deploy(position, null);
 
+        // Road on start hex so both Ground and Bridge surfaces are reachable on the bridge hex
+        _game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new RoadTerrain());
+
         // Add bridge terrain to create multiple surfaces (Ground + Bridge)
-        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        var targetHex = _game.BattleMap.GetHex(new HexCoordinates(1, 2))!;
         targetHex.AddTerrain(new BridgeTerrain(2, 0));
 
         _sut.HandleUnitSelectionFromList(unit);
@@ -473,8 +476,10 @@ public class MovementStateTests
         var unit = _battleMapViewModel.Units.First();
         unit.Deploy(position, null);
 
+        _game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new RoadTerrain());
+
         // Add bridge terrain to create multiple surfaces (Ground + Bridge)
-        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        var targetHex = _game.BattleMap.GetHex(new HexCoordinates(1, 2))!;
         targetHex.AddTerrain(new BridgeTerrain(2, 0));
 
         _sut.HandleUnitSelectionFromList(unit);
@@ -508,7 +513,9 @@ public class MovementStateTests
         var unit = _battleMapViewModel.Units.First();
         unit.Deploy(position, null);
 
-        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new RoadTerrain());
+
+        var targetHex = _game.BattleMap.GetHex(new HexCoordinates(1, 2))!;
         targetHex.AddTerrain(new BridgeTerrain(2, 0));
 
         _sut.HandleUnitSelectionFromList(unit);

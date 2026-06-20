@@ -7,6 +7,7 @@ description = "Installs all skills (local + third-party) to .agents/skills via t
 run = [
   "npx -y skills add ./skills --dir .agents/skills -y",
   "npx -y skills add https://github.com/vercel-labs/skills --skill find-skills --dir .agents/skills -y",
+  "npx -y skills add https://github.com/mattpocock/skills --skill tdd --skill triage --dir .agents/skills -y",
 ]
 
 [tasks.install-serena]

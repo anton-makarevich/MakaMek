@@ -71,11 +71,22 @@ public class Hex : IDisposable
     /// considering road/paved connections. Returns both the hex entry cost
     /// and the additional terrain-specific cost.
     /// </summary>
-    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex)
+    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
     {
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
-        if (fromHex.GetRoadOrPavedTerrain() is not null && this.GetRoadOrPavedTerrain() is { } toRoad)
+        bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
+        {
+            (MakaMekTerrains.Road, HexSurface.Ground) => true,
+            (MakaMekTerrains.Pavement, HexSurface.Ground) => true,
+            (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
+            _ => false
+        };
+
+        var fromTerrain = fromHex.GetRoadOrPavedTerrain();
+        var toTerrain = this.GetRoadOrPavedTerrain();
+
+        if (IsRoadSurface(fromTerrain, fromSurface) && IsRoadSurface(toTerrain, toSurface) && toTerrain is { } toRoad)
         {
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
             var terrainCost = new TerrainMovementCost
@@ -85,14 +96,23 @@ public class Hex : IDisposable
             return [hexEntry, terrainCost];
         }
 
-        var terrainCosts = _terrains.Values.Select(t => new TerrainMovementCost
-        {
-            TerrainId = t.Id,
-            Value = t.MovementCost,
-            Depth = this.GetWaterDepth()
-        }).ToList();
+        var terrainCosts = _terrains.Values
+            .Where(t => AppliesToSurface(t.Id, toSurface))
+            .Select(t => new TerrainMovementCost
+            {
+                TerrainId = t.Id,
+                Value = t.MovementCost,
+                Depth = this.GetWaterDepth()
+            }).ToList();
 
         return [hexEntry, ..terrainCosts];
+
+        static bool AppliesToSurface(MakaMekTerrains terrainId, HexSurface surface) => (terrainId, surface) switch
+        {
+            (MakaMekTerrains.Water, HexSurface.Bridge) => false,
+            (MakaMekTerrains.Bridge, HexSurface.Ground) => false,
+            _ => true
+        };
     }
 
     /// <summary>
