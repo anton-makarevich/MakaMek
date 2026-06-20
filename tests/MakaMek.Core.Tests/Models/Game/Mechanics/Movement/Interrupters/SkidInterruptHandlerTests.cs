@@ -153,6 +153,59 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void SkidInterruptHandler_Check_WhenSkidFailsWithSkidDamage_ReturnsStopWithFallAndSkidAction()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(3, 2))!.AddTerrain(new RoadTerrain());
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(1, 3),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3),
+                HitDirection.Front),
+            SkidDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 3),
+                new DiceResult(2),
+                HitDirection.Front),
+            SkidDistance = 1
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
+            Game,
+            MovementType.Run)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Bottom), new HexPosition(4, 2, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 2));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeTrue();
+        result.GameActions.ShouldContain(a => a is MoveUnitAction);
+        result.GameActions.ShouldContain(a => a is ApplyFallAction);
+        result.GameActions.ShouldContain(a => a is ApplySkidAction);
+    }
+
+    [Fact]
     public void SkidInterruptHandler_Check_WhenRunTurnOnNonRoad_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
