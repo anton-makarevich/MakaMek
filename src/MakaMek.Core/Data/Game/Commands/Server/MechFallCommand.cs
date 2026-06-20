@@ -98,22 +98,7 @@ public record struct MechFallCommand : IGameCommand
             stringBuilder.Append(localizationService.GetString("Command_MechFalling_Jumping"));
         }
             
-        stringBuilder.AppendFormat(
-            localizationService.GetString("Command_MechFalling_Damage"),
-            DamageData.HitLocations.TotalDamage);
-            
-        // Add detailed hit locations information - using the location's Render method
-        if (DamageData.HitLocations.HitLocations.Count > 0)
-        {
-            stringBuilder.AppendLine(); // Add a line break after total damage
-            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
-
-            // Render each hit location using the new method
-            foreach (var hitLocation in DamageData.HitLocations.HitLocations)
-            {
-                stringBuilder.Append(hitLocation.Render(localizationService));
-            }
-        }
+        DamageData.Render(stringBuilder, localizationService);
 
         if (PilotDamagePilotingSkillRoll == null) return stringBuilder.ToString().TrimEnd();
         stringBuilder.AppendLine(PilotDamagePilotingSkillRoll.Render(localizationService));

@@ -32,20 +32,7 @@ public record struct MechSkidCommand : IGameCommand
             unit.Model,
             command.SkidDistance);
 
-        stringBuilder.AppendFormat(
-            localizationService.GetString("Command_MechFalling_Damage"),
-            DamageData.HitLocations.TotalDamage);
-
-        if (DamageData.HitLocations.HitLocations.Count > 0)
-        {
-            stringBuilder.AppendLine();
-            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
-
-            foreach (var hitLocation in DamageData.HitLocations.HitLocations)
-            {
-                stringBuilder.Append(hitLocation.Render(localizationService));
-            }
-        }
+        DamageData.Render(stringBuilder, localizationService);
 
         return stringBuilder.ToString().TrimEnd();
     }
