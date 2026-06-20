@@ -256,6 +256,75 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterMovementCost_BothHexesPavedWithHeavyWoodsUnderlying_ReturnsCostsForPavementTotal1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new PavementTerrain());
+        fromHex.AddTerrain(new HeavyWoodsTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new PavementTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        costs.Count.ShouldBe(2);
+        costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Pavement && t.Value == 0).ShouldBeTrue();
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_OnlyDestinationHasPavement_ReturnsCostsForPavementTotal1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new PavementTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        costs.Count.ShouldBe(2);
+        costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Pavement && t.Value == 0).ShouldBeTrue();
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_OnlyDestinationHasPavementWithHeavyWoodsUnderlying_ReturnsAllTerrainCosts()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new PavementTerrain());
+        toHex.AddTerrain(new HeavyWoodsTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        costs.Count.ShouldBe(3);
+        costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Pavement && t.Value == 0).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.HeavyWoods && t.Value == 2).ShouldBeTrue();
+        costs.Sum(c => c.Value).ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetEnterMovementCost_BothHexesPavedWithDifferentUnderlyingTerrains_ReturnsPavementTotal1()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        fromHex.AddTerrain(new PavementTerrain());
+        fromHex.AddTerrain(new ClearTerrain());
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new PavementTerrain());
+        toHex.AddTerrain(new RoughTerrain());
+
+        var costs = toHex.GetEnterMovementCost(fromHex, HexSurface.Ground, HexSurface.Ground).ToList();
+
+        costs.Count.ShouldBe(2);
+        costs.Any(c => c is HexEnterMovementCost && c.Value == 1).ShouldBeTrue();
+        costs.Any(c => c is TerrainMovementCost t && t.TerrainId == MakaMekTerrains.Pavement && t.Value == 0).ShouldBeTrue();
+        costs.Sum(c => c.Value).ShouldBe(1);
+    }
+
+    [Fact]
     public void HighlightsChanged_ShouldEmit_WhenHighlightAdded()
     {
         // Arrange
