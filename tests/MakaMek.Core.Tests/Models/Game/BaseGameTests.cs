@@ -30,6 +30,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -1212,6 +1213,73 @@ public sealed class BaseGameTests : BaseGame
     }
     
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateMechFallCommand()
+    {
+        // Arrange
+        var command = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            DamageData = null
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateMechSkidCommand()
+    {
+        // Arrange
+        var command = new MechSkidCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = null
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateMechStandUpCommand()
+    {
+        // Arrange
+        var command = new MechStandUpCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+                DiceResults = [2, 2],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 0,
+                    Modifiers = []
+                }
+            },
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Walk
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
@@ -1666,6 +1734,93 @@ public sealed class BaseGameTests : BaseGame
 
         // Assert - AttemptStandup was NOT invoked: standup attempts counter remains 0
         mech.StandupAttempts.ShouldBe(0);
+    }
+
+    [Fact]
+    public void OnMechSkidding_DoesNothing_WhenUnitNotFound()
+    {
+        // Arrange
+        var command = new MechSkidCommand
+        {
+            GameOriginId = Id,
+            UnitId = Guid.NewGuid(),
+            SkidDistance = 1,
+            DamageData = null
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnMechSkidding(command));
+    }
+
+    [Fact]
+    public void OnMechSkidding_DoesNothing_WhenNoDamageData()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+
+        var command = new MechSkidCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech!.Id,
+            SkidDistance = 1,
+            DamageData = null
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnMechSkidding(command));
+    }
+
+    [Fact]
+    public void OnMechSkidding_AppliesDamage_WhenDamageDataProvided()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+
+        var hitLocations = new List<LocationHitData>
+        {
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [])
+        };
+        var centerTorsoPart = mech.Parts[PartLocation.CenterTorso];
+        var initialArmor = centerTorsoPart.CurrentArmor;
+
+        var command = new MechSkidCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech.Id,
+            SkidDistance = 2,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData(hitLocations, 5),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+
+        // Act
+        OnMechSkidding(command);
+
+        // Assert
+        centerTorsoPart.CurrentArmor.ShouldBe(initialArmor - 5);
     }
 
     public override void HandleCommand(IGameCommand command)
