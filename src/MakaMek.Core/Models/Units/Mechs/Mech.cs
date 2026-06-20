@@ -533,6 +533,9 @@ public class Mech : Unit
         if (MovementTaken?.MovementType == MovementType.Jump) 
             return false;
 
+        // Cannot stand up when skidding
+        if (IsSkidding) return false;
+
         if (!IsGyroAvailable) return false;
 
         var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);

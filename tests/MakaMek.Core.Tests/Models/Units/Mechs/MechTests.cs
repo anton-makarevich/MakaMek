@@ -2091,6 +2091,29 @@ public class MechTests
     }
 
     [Fact]
+    public void CanStandup_ShouldReturnFalse_WhenSkidding()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        sut.Move(new MovementPath([
+            new PathSegment(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])],
+            MovementType.Walk), null, isCompleted: false);
+        sut.SetProne();
+
+        // Act
+        var canStandup = sut.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up after skidding");
+    }
+
+    [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {
         // Arrange
