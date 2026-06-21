@@ -58,7 +58,7 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
                 [
                     new MoveUnitAction(truncatedCommand, publish: false),
                     new ApplyFallAction(mech, fallCommand),
-                    new WaterFallBroadcastAction(mech, truncatedCommand)
+                    new FallBroadcastAction(mech, truncatedCommand)
                 ]
             };
         }

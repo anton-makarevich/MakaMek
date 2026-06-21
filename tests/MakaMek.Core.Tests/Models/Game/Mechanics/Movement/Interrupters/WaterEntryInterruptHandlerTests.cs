@@ -135,7 +135,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         result.GameActions.Count.ShouldBe(3);
         result.GameActions[0].ShouldBeOfType<MoveUnitAction>();
         result.GameActions[1].ShouldBeOfType<ApplyFallAction>();
-        result.GameActions[2].ShouldBeOfType<WaterFallBroadcastAction>();
+        result.GameActions[2].ShouldBeOfType<FallBroadcastAction>();
     }
 
     [Fact]

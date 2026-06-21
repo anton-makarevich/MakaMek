@@ -960,6 +960,81 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenWalkRubbleFall_AndCannotStandup_ShouldPublishChangeActivePlayer()
+    {
+        SetMap();
+        _sut.Enter();
+
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new RubbleTerrain());
+
+        var pilotDamagePsr = new PilotingSkillRollData
+        {
+            RollContext = new PilotDamageFromFallRollContext(1),
+            DiceResults = [2, 2],
+            IsSuccessful = false,
+            PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new RubbleEntryRollContext(),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            PilotDamagePilotingSkillRoll = pilotDamagePsr,
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+            .Returns(fallContextData);
+
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.Empty,
+            PilotId = unit.Pilot!.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 2],
+            IsSuccessful = false,
+            Timestamp = DateTime.UtcNow
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([consciousnessCommand]);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        });
+
+        CommandPublisher.Received().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && !cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.IsCompleted));
+    }
+
+    [Fact]
     public void HandleCommand_WhenDeferredWaterFall_ShouldIgnoreMoveForOtherUnit()
     {
         SetMap();

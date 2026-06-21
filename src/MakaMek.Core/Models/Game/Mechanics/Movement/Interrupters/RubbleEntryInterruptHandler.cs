@@ -45,10 +45,6 @@ public class RubbleEntryInterruptHandler : IMovementInterruptHandler
                 MovementPath = truncatedPath.ToData(),
                 IsCompleted = false
             };
-            var broadcastCommand = truncatedCommand with
-            {
-                GameOriginId = context.Game.Id
-            };
 
             return new MovementInterruptResult
             {
@@ -57,7 +53,7 @@ public class RubbleEntryInterruptHandler : IMovementInterruptHandler
                 [
                     new MoveUnitAction(truncatedCommand, publish: false),
                     new ApplyFallAction(mech, fallCommand),
-                    new PublishCommandAction(broadcastCommand)
+                    new FallBroadcastAction(mech, truncatedCommand)
                 ]
             };
         }
