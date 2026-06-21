@@ -3244,4 +3244,164 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.IsCompleted && cmd.MovementPath.Count == 1));
     }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldProcessRubbleEntry_AndTruncateOnFall()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new RubbleTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new RubbleEntryRollContext(),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.MovementPath[0].To.Coordinates.Q == 2 && !cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldPublishPsrCommand_WhenRubbleEntrySucceeds_DuringWalk()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        hex!.AddTerrain(new RubbleTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Walk,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new RubbleEntryRollContext(),
+                DiceResults = [6, 6],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.DamageData == null && cmd.FallPilotingSkillRoll!.IsSuccessful));
+    }
+
+    [Fact]
+    public void ProcessMoveCommand_ShouldProcessJumpRubbleEntry()
+    {
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var hex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
+        hex!.AddTerrain(new RubbleTerrain());
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData()
+            ]
+        };
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new RubbleEntryRollContext(),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Jump).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
 }
