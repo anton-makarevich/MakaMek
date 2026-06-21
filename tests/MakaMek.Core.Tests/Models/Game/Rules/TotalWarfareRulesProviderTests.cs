@@ -484,6 +484,7 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.UpperLegActuatorHit, 1)]
     [InlineData(PilotingSkillRollType.LegDestroyed, 5)]
     [InlineData(PilotingSkillRollType.BridgeCollapse, 0)]
+    [InlineData(PilotingSkillRollType.RubbleEntry, 0)]
     public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
         int expectedModifier)
     {
