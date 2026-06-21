@@ -132,6 +132,14 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeTrue();
         result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
+
+        // Verify the published MoveUnitCommand uses server GameOriginId and null IdempotencyKey
+        var publishedMoveAction = result.GameActions
+            .OfType<MoveUnitAction>()
+            .FirstOrDefault(a => a.Command.IsCompleted);
+        publishedMoveAction.ShouldNotBeNull();
+        publishedMoveAction.Command.GameOriginId.ShouldBe(Game.Id);
+        publishedMoveAction.Command.IdempotencyKey.ShouldBeNull();
     }
 
     [Fact]
