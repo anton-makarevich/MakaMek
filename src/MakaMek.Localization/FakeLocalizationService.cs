@@ -119,6 +119,7 @@ public class FakeLocalizationService : ILocalizationService
         ["PilotingSkillRollType_JumpWithDamage"] = "Jump with damage",
         ["PilotingSkillRollType_WaterEntry"] = "Water Entry",
         ["PilotingSkillRollType_SkidCheck"] = "Skid Check",
+        ["PilotingSkillRollType_RubbleEntry"] = "Rubble Entry",
         ["PilotingSkillRollType_BridgeCollapse"] = "Bridge Collapse",
         ["PilotingSkillRollType_SkidCheck_WithHexes"] = "{0} ({1} hexes)",
         ["PilotingSkillRollType_WaterEntry_WithDepth"] = "{0} (Depth {1})",
