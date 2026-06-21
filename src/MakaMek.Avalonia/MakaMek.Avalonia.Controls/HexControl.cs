@@ -338,6 +338,7 @@ public class HexControl : Panel
 
     private Task UpdateRoadLayer()
     {
+        if (_hex.HasTerrain(MakaMekTerrains.Rubble)) return Task.CompletedTask;
         return UpdateBitmaskLayer(_roadBitmask,
             _terrainAssetService.GetRoadTextureImage, ZIndexRoadLayer);
     }
