@@ -120,14 +120,16 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     [
         new BridgeCollapseInterruptHandler(),
         new SkidInterruptHandler(),
-        new WaterEntryInterruptHandler()
+        new WaterEntryInterruptHandler(),
+        new RubbleEntryInterruptHandler()
     ];
 
     private readonly IReadOnlyList<IMovementInterruptHandler> _landingInterruptHandlers =
     [
         new BridgeCollapseInterruptHandler(),
         new JumpDamageInterruptHandler(),
-        new WaterEntryInterruptHandler()
+        new WaterEntryInterruptHandler(),
+        new RubbleEntryInterruptHandler()
     ];
 
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)

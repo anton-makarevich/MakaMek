@@ -76,6 +76,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Terrain_Road"] = "Road",
         ["Terrain_Pavement"] = "Pavement",
         ["Terrain_Bridge"] = "Bridge",
+        ["Terrain_Rubble"] = "Rubble",
         ["Direction_Forward"] = "forward",
         ["Direction_Backward"] = "backward",
         ["MovementCost_Terrain"] = "{0}, {1} MP",

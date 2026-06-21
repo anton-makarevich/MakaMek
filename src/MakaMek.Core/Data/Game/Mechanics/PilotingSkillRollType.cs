@@ -58,5 +58,10 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR required when a 'Mech enters water hex.
     /// </summary>
-    WaterEntry
+    WaterEntry,
+
+    /// <summary>
+    /// PSR required when a 'Mech enters a rubble hex.
+    /// </summary>
+    RubbleEntry
 }
