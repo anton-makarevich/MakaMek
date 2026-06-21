@@ -170,6 +170,36 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void ProcessCommand_BridgeCollapsedCommand_LogsAndUpdatesTerrain()
+    {
+        // Arrange
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        var hex = game.BattleMap!.GetHexes().First();
+        hex.AddTerrain(new BridgeTerrain(2, 40));
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeTrue();
+
+        var command = new BridgeCollapsedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Coordinates = hex.Coordinates.ToData(),
+            ConstructionFactor = 40,
+            TotalTonnage = 100,
+            TriggeringUnitId = Guid.NewGuid()
+        };
+
+        // Act
+        game.HandleCommand(command);
+
+        // Assert - hex terrain updated
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeFalse();
+        hex.HasTerrain(MakaMekTerrains.Rubble).ShouldBeTrue();
+        // Assert - command is logged
+        _sut.CommandLog.ShouldNotBeEmpty();
+    }
+
+    [Fact]
     public async Task NavigateToEndGame_NavigatesToRoot_WhenNotVictory()
     {
         // Arrange

@@ -48,6 +48,7 @@ public class HexControl : Panel
     private readonly CanonicalBitmaskResult? _waterBitmask;
     private readonly CanonicalBitmaskResult? _roadBitmask;
     private readonly IDisposable? _hexSubscription;
+    private readonly IDisposable? _terrainSubscription;
 
     private static Points GetHexPoints()
     {
@@ -134,6 +135,12 @@ public class HexControl : Panel
         _hexSubscription = _hex.HighlightsChanged
             .ObserveOn(localScheduler)
             .Subscribe(Highlight);
+
+        // Subscribe to terrain changes from the Hex model to re-render
+        _terrainSubscription = _hex.TerrainsChanged
+            .ObserveOn(localScheduler)
+            .Subscribe(_ => Render().SafeFireAndForget(ex => logger.LogError(ex, "Error re-rendering hex at {Q},{R}",
+                hex.Coordinates.Q, hex.Coordinates.R)));
 
         // Set position
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
@@ -433,6 +440,7 @@ public class HexControl : Panel
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _hexSubscription?.Dispose();
+        _terrainSubscription?.Dispose();
         ClearImageLayers();
         base.OnDetachedFromVisualTree(e);
     }
