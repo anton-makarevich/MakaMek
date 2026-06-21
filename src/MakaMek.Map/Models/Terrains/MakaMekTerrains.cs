@@ -44,5 +44,10 @@ public enum MakaMekTerrains
     /// <summary>
     /// Bridge terrain - elevated crossing over water or other obstacles
     /// </summary>
-    Bridge = 7
+    Bridge = 7,
+
+    /// <summary>
+    /// Rubble terrain - debris from collapsed bridge or destroyed building
+    /// </summary>
+    Rubble = 8
 }

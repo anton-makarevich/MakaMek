@@ -1192,6 +1192,27 @@ public sealed class BaseGameTests : BaseGame
     }
     
     [Fact]
+    public void OnBridgeCollapsed_ShouldRemoveBridgeAndAddRubble()
+    {
+        var coordinates = new HexCoordinates(3, 3);
+        var hex = BattleMap!.GetHex(coordinates)!;
+        hex.AddTerrain(new BridgeTerrain());
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeTrue();
+
+        var command = new BridgeCollapsedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Coordinates = coordinates.ToData(),
+            TriggeringUnitId = Guid.NewGuid()
+        };
+
+        OnBridgeCollapsed(command);
+
+        hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeFalse();
+        hex.HasTerrain(MakaMekTerrains.Rubble).ShouldBeTrue();
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateDisplaceUnitCommand()
     {
         // Arrange

@@ -6,7 +6,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
-public class WaterEntryInterruptHandler : IMovementInterruptHandler
+public class RubbleEntryInterruptHandler : IMovementInterruptHandler
 {
     public MovementInterruptResult? Check(MovementInterruptContext context)
     {
@@ -14,16 +14,12 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
         if (segment.From.Coordinates == segment.To.Coordinates) return null;
 
         var destinationHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.To.Coordinates));
-        if (destinationHex?.GetTerrain(MakaMekTerrains.Water) is not WaterTerrain { Height: <= -1 } water) return null;
-
-        var sourceHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
-        if (sourceHex is not null && destinationHex.IsOnRoadOrBridge(sourceHex, (HexSurface)segment.From.Surface, (HexSurface)segment.To.Surface)) return null;
+        if (destinationHex?.GetTerrain(MakaMekTerrains.Rubble) == null) return null;
 
         if (context.Unit is not Mech mech) return null;
 
-        var waterDepth = -1 * water.Height;
         var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
-            mech, new EnteringDeepWaterRollContext(waterDepth), context.Game, context.MoveCommand.MovementType);
+            mech, new RubbleEntryRollContext(), context.Game, context.MoveCommand.MovementType);
 
         if (fallContextData.IsFalling)
         {
@@ -31,7 +27,6 @@ public class WaterEntryInterruptHandler : IMovementInterruptHandler
 
             if (context.IsLandingCheck)
             {
-                // Jump landing: movement already complete, no path truncation or broadcast needed
                 return new MovementInterruptResult
                 {
                     ShouldStop = true,

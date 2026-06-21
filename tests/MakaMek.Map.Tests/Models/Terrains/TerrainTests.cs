@@ -15,6 +15,7 @@ public class TerrainTests
     [InlineData(MakaMekTerrains.Road, typeof(RoadTerrain))]
     [InlineData(MakaMekTerrains.Pavement, typeof(PavementTerrain))]
     [InlineData(MakaMekTerrains.Bridge, typeof(BridgeTerrain))]
+    [InlineData(MakaMekTerrains.Rubble, typeof(RubbleTerrain))]
     public void CreateTerrainOfType_KnownTypes_ReturnsCorrectConcreteType(MakaMekTerrains terrainType, Type expectedType)
     {
         var terrain = Terrain.CreateTerrainOfType(terrainType);

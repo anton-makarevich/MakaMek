@@ -401,6 +401,7 @@ public abstract class BaseGame : IGame
     {
         var hex = BattleMap?.GetHex(new HexCoordinates(command.Coordinates));
         hex?.RemoveTerrain(MakaMekTerrains.Bridge);
+        hex?.AddTerrain(new RubbleTerrain());
     }
 
     internal void OnUnitDisplaced(DisplaceUnitCommand command)

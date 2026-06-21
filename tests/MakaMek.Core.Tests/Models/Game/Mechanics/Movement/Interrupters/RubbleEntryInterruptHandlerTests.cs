@@ -15,9 +15,9 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement.Interrupters;
 
-public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
+public class RubbleEntryInterruptHandlerTests : GamePhaseTestsBase
 {
-    private readonly WaterEntryInterruptHandler _sut = new();
+    private readonly RubbleEntryInterruptHandler _sut = new();
     private Guid _unitId;
 
     protected override void SetupSut()
@@ -51,11 +51,22 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         };
 
     [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenShallowWater_ReturnsNull()
+    public void Check_WhenSameCoordinates_ReturnsNull()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(0));
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 2, HexDirection.Bottom), []));
+
+        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void Check_WhenNoRubbleTerrain_ReturnsNull()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
@@ -64,11 +75,11 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenDeepWaterPass_ReturnsPsrOnly()
+    public void Check_WhenRubblePsrPasses_ReturnsPsrOnly()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new RubbleTerrain());
 
         var successContext = new FallContextData
         {
@@ -77,13 +88,13 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
             IsFalling = false,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new EnteringDeepWaterRollContext(1),
+                RollContext = new RubbleEntryRollContext(),
                 DiceResults = [10, 10],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -98,11 +109,11 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenDeepWaterFall_ReturnsStopWithBroadcastAction()
+    public void Check_WhenRubbleFall_ReturnsStopWithActions()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new RubbleTerrain());
 
         var fallContext = new FallContextData
         {
@@ -111,7 +122,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new EnteringDeepWaterRollContext(1),
+                RollContext = new RubbleEntryRollContext(),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -122,7 +133,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -139,36 +150,11 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenSameCoordinates_ReturnsNull()
+    public void Check_WhenRubbleFallAndCannotStandup_ReturnsStopWithActions()
     {
         var mech = Game.Players[0].Units[0] as Mech;
         mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 2, HexDirection.Bottom), []));
-
-        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
-    }
-
-    [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenNoWaterTerrain_ReturnsNull()
-    {
-        var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        // No water terrain added - hex (2,2) is clear by default
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
-            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
-
-        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
-    }
-
-    [Fact]
-    public void WaterEntryInterruptHandler_Check_WhenLandingDeepWaterFall_ReturnsStopWithFallOnly()
-    {
-        var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new RubbleTerrain());
 
         var fallContext = new FallContextData
         {
@@ -177,7 +163,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
             IsFalling = true,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollContext = new EnteringDeepWaterRollContext(1),
+                RollContext = new RubbleEntryRollContext(),
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -188,7 +174,48 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeTrue();
+        result.GameActions.Count.ShouldBe(3);
+        result.GameActions[0].ShouldBeOfType<MoveUnitAction>();
+        result.GameActions[1].ShouldBeOfType<ApplyFallAction>();
+        result.GameActions[2].ShouldBeOfType<FallBroadcastAction>();
+    }
+
+    [Fact]
+    public void Check_WhenLandingCheckWithFall_ReturnsStopWithFallOnly()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(2, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new RubbleTerrain());
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new RubbleEntryRollContext(),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Jump)
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
@@ -209,20 +236,5 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeTrue();
         result.GameActions.ShouldHaveSingleItem();
         result.GameActions[0].ShouldBeOfType<ApplyFallAction>();
-    }
-
-    [Fact]
-    public void Check_WhenHexesAreConnectedByBridge_ReturnsNull()
-    {
-        var mech = Game.Players[0].Units[0] as Mech;
-        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
-        Game.BattleMap!.GetHex(new HexCoordinates(1, 2))!.AddTerrain(new BridgeTerrain());
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain());
-        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new WaterTerrain(-1));
-
-        var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
-            new PathSegment(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top, HexSurface.Bridge), new HexPosition(new HexCoordinates(2, 2), HexDirection.Top, HexSurface.Bridge), []));
-
-        _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0)).ShouldBeNull();
     }
 }

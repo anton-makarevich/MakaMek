@@ -16,6 +16,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     private static readonly SKColor WaterColor = new(0x46, 0x82, 0xB4);
     private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0);
     private static readonly SKColor RoadColor = new(0x33, 0x33, 0x33);
+    private static readonly SKColor RubbleColor = new(0x8B, 0x7D, 0x6B);
 
     private static readonly (float Dx, float Dy)[] DirectionOffsets =
     [
@@ -76,6 +77,11 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             roadPaint.StrokeWidth = dotDiameter * 0.2f;
             roadPaint.Color = RoadColor;
 
+            using var rubbleDotPaint = new SKPaint();
+            rubbleDotPaint.IsAntialias = true;
+            rubbleDotPaint.Style = SKPaintStyle.Fill;
+            rubbleDotPaint.Color = SKColors.Black;
+
             for (var q = 1; q <= width; q++)
             {
                 for (var r = 1; r <= height; r++)
@@ -108,8 +114,18 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
                         }
                     }
 
+                    if (hex.HasTerrain(MakaMekTerrains.Rubble))
+                    {
+                        var hexRadius = dotDiameter / 2;
+                        var dots = GenerateRubbleDots(coordinates, hexRadius);
+                        foreach (var dot in dots)
+                        {
+                            canvas.DrawCircle(x + dot.OffsetX, y + dot.OffsetY, dot.Radius, rubbleDotPaint);
+                        }
+                    }
+
                     if (hex.Level==0) continue;
-                    
+
                     var ringColor = GetElevationRingColor(hex);
                     strokePaint.Color = ringColor;
                     canvas.DrawCircle(x, y, dotDiameter / 2 * 0.85f, strokePaint);
@@ -130,7 +146,8 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             or MakaMekTerrains.LightWoods
             or MakaMekTerrains.HeavyWoods
             or MakaMekTerrains.Rough
-            or MakaMekTerrains.Water);
+            or MakaMekTerrains.Water
+            or MakaMekTerrains.Rubble);
 
         if (terrain == null)
             return ClearTerrainColor;
@@ -142,6 +159,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             MakaMekTerrains.HeavyWoods => HeavyWoodsColor,
             MakaMekTerrains.Rough => RoughColor,
             MakaMekTerrains.Water => WaterColor,
+            MakaMekTerrains.Rubble => RubbleColor,
             _ => ClearTerrainColor
         };
     }
@@ -159,5 +177,28 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         var lightValue = 0x88L + absLevel * 0x22L;
         var light = (byte)Math.Clamp(lightValue, 0x88L, 0xFFL);
         return new SKColor(light, light, light, 0xDD);
+    }
+
+    private static (float OffsetX, float OffsetY, float Radius)[] GenerateRubbleDots(HexCoordinates coordinates, float hexRadius)
+    {
+        var seed = coordinates.Q * 73856093 ^ coordinates.R * 19349663;
+        var random = new Random(seed);
+        var count = random.Next(3, 6);
+        var dots = new (float OffsetX, float OffsetY, float Radius)[count];
+
+        for (var i = 0; i < count; i++)
+        {
+            var dotRadius = hexRadius * (0.1f + (float)random.NextDouble() * 0.1f);
+            var maxDistance = hexRadius * 0.95f - dotRadius;
+            var distance = maxDistance > 0 ? (float)random.NextDouble() * maxDistance : 0;
+            var angle = (float)(random.NextDouble() * 2 * Math.PI);
+
+            dots[i] = (
+                (float)Math.Cos(angle) * distance,
+                (float)Math.Sin(angle) * distance,
+                dotRadius);
+        }
+
+        return dots;
     }
 }

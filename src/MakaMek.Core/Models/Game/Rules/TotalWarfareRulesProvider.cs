@@ -416,6 +416,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PilotingSkillRollType.UpperLegActuatorHit => 1,
             PilotingSkillRollType.LegDestroyed => 5, // +5 modifier for leg destroyed (pilot damage during fall)
             PilotingSkillRollType.BridgeCollapse => 0,
+            PilotingSkillRollType.RubbleEntry => 0,
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }

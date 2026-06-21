@@ -101,6 +101,6 @@ public class MovementInterruptHandlerTests : GamePhaseTestsBase
         done:
         triggeredResult.ShouldNotBeNull();
         triggeredResult.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
-        triggeredResult.GameActions.ShouldNotContain(a => a is WaterFallBroadcastAction);
+        triggeredResult.GameActions.ShouldNotContain(a => a is FallBroadcastAction);
     }
 }

@@ -154,6 +154,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Terrain_Road", "Road")]
     [InlineData("Terrain_Pavement", "Pavement")]
     [InlineData("Terrain_Bridge", "Bridge")]
+    [InlineData("Terrain_Rubble", "Rubble")]
     // MechFallingCommand strings
     [InlineData("Command_MechFalling_PsrIntro", "{0} may fall")]
     [InlineData("Command_MechFalling_Base", "{0} fell")]
@@ -182,6 +183,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_JumpWithDamage", "Jump with damage")]
     [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
+    [InlineData("PilotingSkillRollType_RubbleEntry", "Rubble Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
     [InlineData("Command_MechSkid_Base", "{0} skidded {1} hexes (skid damage)")]
     [InlineData("PilotingSkillRollType_BridgeCollapse", "Bridge Collapse")]
