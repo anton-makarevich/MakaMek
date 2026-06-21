@@ -41,18 +41,21 @@ public class Hex : IDisposable
 
     public void AddTerrain(Terrain terrain)
     {
+        if (_disposed) return;
         _terrains[terrain.Id] = terrain;
         _terrainsSubject.OnNext(default);
     }
 
     public void RemoveTerrain(MakaMekTerrains terrainId)
     {
+        if (_disposed) return;
         if (_terrains.Remove(terrainId))
             _terrainsSubject.OnNext(default);
     }
     
     public void ReplaceTerrains(List<Terrain> terrains)
     {
+        if (_disposed) return;
         _terrains.Clear();
         foreach (var terrain in terrains)
         {

@@ -759,4 +759,48 @@ public class HexTests
         // Assert
         completed.ShouldBeTrue();
     }
+
+    [Fact]
+    public void AddTerrain_ShouldNotThrow_WhenCalledAfterDispose()
+    {
+        var sut = new Hex(new HexCoordinates(0, 0));
+        var emittedCount = 0;
+        using var subscription = sut.TerrainsChanged.Subscribe(_ => emittedCount++);
+
+        sut.Dispose();
+        sut.AddTerrain(new HeavyWoodsTerrain());
+
+        emittedCount.ShouldBe(0);
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RemoveTerrain_ShouldNotThrow_WhenCalledAfterDispose()
+    {
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new HeavyWoodsTerrain());
+        var emittedCount = 0;
+        using var subscription = sut.TerrainsChanged.Subscribe(_ => emittedCount++);
+
+        sut.Dispose();
+        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+
+        emittedCount.ShouldBe(0);
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ReplaceTerrains_ShouldNotThrow_WhenCalledAfterDispose()
+    {
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new HeavyWoodsTerrain());
+        var emittedCount = 0;
+        using var subscription = sut.TerrainsChanged.Subscribe(_ => emittedCount++);
+
+        sut.Dispose();
+        sut.ReplaceTerrains([new ClearTerrain()]);
+
+        emittedCount.ShouldBe(0);
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeTrue();
+    }
 }
