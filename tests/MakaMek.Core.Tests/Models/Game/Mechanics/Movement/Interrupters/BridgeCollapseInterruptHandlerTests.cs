@@ -123,8 +123,10 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
             .Returns(fallContext);
 
+        var idempotencyKey = Guid.NewGuid();
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+        moveCommand = moveCommand with { IdempotencyKey = idempotencyKey };
 
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
 
@@ -133,13 +135,13 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
 
-        // Verify the published MoveUnitCommand uses server GameOriginId and null IdempotencyKey
+        // Verify the published MoveUnitCommand uses server GameOriginId and preserves IdempotencyKey
         var publishedMoveAction = result.GameActions
             .OfType<MoveUnitAction>()
             .FirstOrDefault(a => a.Command.IsCompleted);
         publishedMoveAction.ShouldNotBeNull();
         publishedMoveAction.Command.GameOriginId.ShouldBe(Game.Id);
-        publishedMoveAction.Command.IdempotencyKey.ShouldBeNull();
+        publishedMoveAction.Command.IdempotencyKey.ShouldBe(idempotencyKey);
     }
 
     [Fact]
