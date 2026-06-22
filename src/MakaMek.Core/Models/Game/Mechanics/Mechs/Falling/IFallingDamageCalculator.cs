@@ -10,5 +10,7 @@ public interface IFallingDamageCalculator
 {
     FallingDamageData CalculateFallingDamage(Unit unit, int levelsFallen, bool wasJumping);
 
+    FallingDamageData CalculateFallingDamage(Unit unit, int levelsFallen, bool wasJumping, DiceResult facingDiceRoll, HexDirection facingAfterFall);
+
     FallingDamageData CalculateSkidDamage(Unit unit, int skidDistance, HexDirection facingAfterFall, DiceResult facingRoll, HitDirection attackDirection);
 }

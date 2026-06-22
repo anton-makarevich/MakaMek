@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
@@ -33,10 +34,73 @@ public class SkidInterruptHandler : IMovementInterruptHandler
 
         var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
 
-        var skidPathSegments = GenerateSkidPathSegments(context.Game, segment.From, maxSkidDistance);
-        var skidContext = new SkidCheckRollContext(skidPathSegments.Count, hexesMoved);
+        var skidResult = GenerateSkidPathSegments(context.Game, segment.From, maxSkidDistance, mech);
+
+        if (skidResult.HasCliffFall)
+        {
+            var preCliffSkidDistance = skidResult.Segments.Count - 1;
+            var skidContext = new SkidCheckRollContext(
+                preCliffSkidDistance, hexesMoved, skidResult.LevelsFallen);
+            var initialFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
+                mech, skidContext, context.Game, context.MoveCommand.MovementType);
+
+            var facingDiceRoll = initialFallContext.FallingDamageData!.FacingDiceRoll;
+            var facingAfterFall = initialFallContext.FallingDamageData.FacingAfterFall;
+
+            var cliffFallContext = context.Game.FallProcessor.CreateCliffFallContext(
+                mech, skidResult.LevelsFallen, context.Game, facingDiceRoll, facingAfterFall);
+
+            var truncatedSegments = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
+            var truncatedPath = new MovementPath(truncatedSegments, context.MoveCommand.MovementType);
+            truncatedPath = truncatedPath
+                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
+                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+
+            var cliffSegments = skidResult.Segments.ToList();
+            var lastCliffSegment = cliffSegments[^1];
+            cliffSegments[^1] = lastCliffSegment with
+            {
+                Events = lastCliffSegment.Events.Append(
+                    new SegmentEvent(SegmentEventType.Fall)).ToArray()
+            };
+
+            var allSegments = truncatedPath.Segments
+                .Select(s => s.ToData())
+                .Concat(cliffSegments.Select(s => s.ToData()))
+                .ToList();
+
+            var modifiedPath = new MovementPath(allSegments, context.MoveCommand.MovementType);
+            var modifiedCommand = context.MoveCommand with
+            {
+                MovementPath = modifiedPath.ToData(),
+                IsCompleted = true,
+                GameOriginId = context.Game.Id
+            };
+
+            var initialFallCommand = initialFallContext.ToMechFallCommand();
+            var skidCommand = initialFallContext.ToMechSkidCommand();
+            var cliffFallCommand = cliffFallContext.ToMechFallCommand();
+
+            var actions = new List<IGameAction>
+            {
+                new MoveUnitAction(modifiedCommand, publish: true),
+                new ApplyFallAction(mech, initialFallCommand)
+            };
+            if (skidCommand != null)
+                actions.Add(new ApplySkidAction(mech, skidCommand.Value));
+            actions.Add(new ApplyFallAction(mech, cliffFallCommand));
+
+            return new MovementInterruptResult
+            {
+                ShouldStop = true,
+                DeferStepConsumption = false,
+                GameActions = actions
+            };
+        }
+
+        var skidContext2 = new SkidCheckRollContext(skidResult.Segments.Count, hexesMoved);
         var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
-            mech, skidContext, context.Game, context.MoveCommand.MovementType);
+            mech, skidContext2, context.Game, context.MoveCommand.MovementType);
 
         if (skidFallContext.IsFalling)
         {
@@ -48,7 +112,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
 
             var allSegments = truncatedPath.Segments
                 .Select(s => s.ToData())
-                .Concat(skidPathSegments.Select(s => s.ToData()))
+                .Concat(skidResult.Segments.Select(s => s.ToData()))
                 .ToList();
 
             var modifiedPath = new MovementPath(allSegments, context.MoveCommand.MovementType);
@@ -89,7 +153,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         };
     }
 
-    private static List<PathSegment> GenerateSkidPathSegments(ServerGame game, HexPositionData startPosition, int maxDistance)
+    private static SkidPathResult GenerateSkidPathSegments(ServerGame game, HexPositionData startPosition, int maxDistance, IUnit unit)
     {
         var skidPathSegments = new List<PathSegment>();
         var currentCoords = new HexCoordinates(startPosition.Coordinates);
@@ -122,14 +186,32 @@ public class SkidInterruptHandler : IMovementInterruptHandler
                 break;
             }
 
+            var elevationChange = nextHex.GetElevationChange(currentHex, currentSurface, nextSurface);
+            if (Math.Abs(elevationChange) > unit.MaxLevelChangeForward)
+            {
+                var fromPos = new HexPosition(currentCoords, skidFacing, currentSurface);
+                var toPos = new HexPosition(nextCoords, skidFacing, nextSurface);
+                var skidSegment = new PathSegment(fromPos, toPos, [])
+                {
+                    Events = [new SegmentEvent(SegmentEventType.Skid)]
+                };
+                skidPathSegments.Add(skidSegment);
+
+                return new SkidPathResult(
+                    skidPathSegments,
+                    true,
+                    Math.Abs(elevationChange),
+                    nextCoords);
+            }
+
             var movementCost = nextHex.GetEnterMovementCost(currentHex, currentSurface, nextSurface);
-            var fromPos = new HexPosition(currentCoords, skidFacing, currentSurface);
-            var toPos = new HexPosition(nextCoords, skidFacing, nextSurface);
-            var skidSegment = new PathSegment(fromPos, toPos, [])
+            var fromPos2 = new HexPosition(currentCoords, skidFacing, currentSurface);
+            var toPos2 = new HexPosition(nextCoords, skidFacing, nextSurface);
+            var normalSegment = new PathSegment(fromPos2, toPos2, [])
             {
                 Events = [new SegmentEvent(SegmentEventType.Skid)]
             };
-            skidPathSegments.Add(skidSegment);
+            skidPathSegments.Add(normalSegment);
 
             remainingSkidDistance -= movementCost.Sum(c => c.Value);
             currentCoords = nextCoords;
@@ -137,6 +219,6 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             currentSurface = nextSurface;
         }
 
-        return skidPathSegments;
+        return new SkidPathResult(skidPathSegments, false, 0, null);
     }
 }

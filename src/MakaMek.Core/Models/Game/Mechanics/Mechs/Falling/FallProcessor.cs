@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -87,6 +88,29 @@ public class FallProcessor : IFallProcessor
 
     public FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType)
         => ProcessRollContexts([rollContext], mech, game, movementType).First();
+
+    public FallContextData CreateCliffFallContext(Mech mech, int levelsFallen, IGame game, DiceResult facingDiceRoll, HexDirection facingAfterFall)
+    {
+        var fallingDamage = _fallingDamageCalculator.CalculateFallingDamage(
+            mech, levelsFallen, false, facingDiceRoll, facingAfterFall);
+
+        var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
+        var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
+        var pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
+
+        return new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = game.Id,
+            IsFalling = true,
+            FallingDamageData = fallingDamage,
+            LevelsFallen = levelsFallen,
+            WasJumping = false,
+            PilotDamagePilotingSkillRoll = pilotDamagePsr,
+            SkidDamageData = null,
+            SkidDistance = 0
+        };
+    }
 
     /// <summary>
     /// Core processing loop: evaluates each roll context in order (auto-falls first),
