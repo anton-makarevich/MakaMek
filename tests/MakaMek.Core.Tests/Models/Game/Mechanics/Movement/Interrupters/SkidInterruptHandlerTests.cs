@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
@@ -859,7 +858,8 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
 
         MockFallProcessor.Received(1).ProcessMovementAttempt(
             mech,
-            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3 
+                                                && ctx.FacingDiceRoll == sharedFacingRoll && ctx.FacingAfterFall == sharedFacing),
             Game,
             MovementType.Run);
     }
