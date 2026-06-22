@@ -285,3 +285,4 @@ opencode.json
 agent/skills
 data/skills
 skills-lock.json
+graphify-out/cache
