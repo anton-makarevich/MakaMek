@@ -428,6 +428,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
         PilotingSkillRollType.GyroDestroyed => false,
         PilotingSkillRollType.LegDestroyed => false,
         PilotingSkillRollType.BridgeCollapse => false,
+        PilotingSkillRollType.CliffFall => false,
         _ => true
     };
 

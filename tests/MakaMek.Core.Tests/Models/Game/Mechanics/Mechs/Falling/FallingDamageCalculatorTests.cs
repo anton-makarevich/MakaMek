@@ -88,6 +88,26 @@ public class FallingDamageCalculatorTests
             .Message.ShouldContain("Mech must be deployed");
     }
 
+    [Fact]
+    public void CalculateFallingDamage_WithPreRolledDice_WhenUnitIsNotMech_ThrowsArgumentException()
+    {
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
+
+        Should.Throw<ArgumentException>(() =>
+            _sut.CalculateFallingDamage(unit, 1, false, new DiceResult(1), HexDirection.Top))
+            .Message.ShouldContain("Only mechs can take falling damage");
+    }
+
+    [Fact]
+    public void CalculateFallingDamage_WithPreRolledDice_WhenMechNotDeployed_ThrowsArgumentException()
+    {
+        var mech = CreateTestMech(20);
+
+        Should.Throw<ArgumentException>(() =>
+            _sut.CalculateFallingDamage(mech, 1, false, new DiceResult(1), HexDirection.Top))
+            .Message.ShouldContain("Mech must be deployed");
+    }
+
     [Theory]
     [InlineData(0, false, 5)] // 0 levels, not jumping, 50 ton mech = 5 damage
     [InlineData(1, false, 10)] // 1 level, not jumping, 50 ton mech = 10 damage

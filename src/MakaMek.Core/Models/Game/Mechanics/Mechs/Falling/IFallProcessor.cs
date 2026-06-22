@@ -35,4 +35,5 @@ public interface IFallProcessor
     /// <param name="movementType">The type of movement being attempted</param>
     /// <returns>FallContextData containing the result of the movement attempt</returns>
     FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType);
+
 }

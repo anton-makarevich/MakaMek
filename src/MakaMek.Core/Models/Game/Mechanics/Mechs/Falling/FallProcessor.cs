@@ -147,6 +147,11 @@ public class FallProcessor : IFallProcessor
                     levelsFallen = 0;
                     wasJumping = false;
                 }
+                else if (context is CliffFallRollContext cliffCtx)
+                {
+                    levelsFallen = cliffCtx.LevelsFallen;
+                    wasJumping = false;
+                }
 
                 var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
@@ -159,7 +164,17 @@ public class FallProcessor : IFallProcessor
 
             if (isFallingNow)
             {
-                fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(mech, levelsFallen, wasJumping);
+                if (context is CliffFallRollContext cliffCtx2)
+                {
+                    fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
+                        mech, levelsFallen, false,
+                        cliffCtx2.FacingDiceRoll, cliffCtx2.FacingAfterFall);
+                }
+                else
+                {
+                    fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
+                        mech, levelsFallen, wasJumping);
+                }
 
                 if (context is SkidCheckRollContext skidCtx && skidCtx.SkidDistance > 0)
                 {

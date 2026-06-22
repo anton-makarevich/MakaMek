@@ -49,14 +49,35 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             throw new ArgumentException("Mech must be deployed", nameof(unit));
         }
 
+        var facingRoll = _diceRoller.RollD6();
+        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
+
+        return CalculateFallingDamage(unit, levelsFallen, wasJumping, facingRoll, newFacing);
+    }
+
+    public FallingDamageData CalculateFallingDamage(
+        Unit unit,
+        int levelsFallen,
+        bool wasJumping,
+        DiceResult facingDiceRoll,
+        HexDirection facingAfterFall)
+    {
+        if (unit is not Mech mech)
+        {
+            throw new ArgumentException("Only mechs can take falling damage", nameof(unit));
+        }
+
+        if (mech.Position == null)
+        {
+            throw new ArgumentException("Mech must be deployed", nameof(unit));
+        }
+
         var effectiveLevels = wasJumping ? 0 : levelsFallen;
         var totalDamage = (int)Math.Ceiling(mech.Tonnage / 10.0) * (effectiveLevels + 1);
 
-        var facingRoll = _diceRoller.RollD6();
-        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
-        var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
+        var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingDiceRoll.Result);
 
-        return DistributeDamage(mech, totalDamage, newFacing, facingRoll, attackDirection);
+        return DistributeDamage(mech, totalDamage, facingAfterFall, facingDiceRoll, attackDirection);
     }
 
     public FallingDamageData CalculateSkidDamage(Unit unit, int skidDistance, HexDirection facingAfterFall, DiceResult facingRoll, HitDirection attackDirection)
