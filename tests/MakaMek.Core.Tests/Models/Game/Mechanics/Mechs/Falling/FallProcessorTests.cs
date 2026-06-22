@@ -1643,4 +1643,105 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue();
     }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenFromContextAndCallOverloadedCalculateFallingDamage_WhenCliffFall()
+    {
+        // Arrange
+        var facingDiceRoll = new DiceResult(3);
+        var facingAfterFall = HexDirection.BottomLeft;
+        const int levelsFallen = 2;
+
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                _testMech, levelsFallen, false,
+                facingDiceRoll, facingAfterFall)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new CliffFallRollContext(levelsFallen, facingDiceRoll, facingAfterFall), _game, MovementType.Walk);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(levelsFallen);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Cliff fall is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(levelsFallen);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech, levelsFallen, false,
+            facingDiceRoll, facingAfterFall);
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldHandleCliffFallWithFailedPilotDamagePsr()
+    {
+        // Arrange
+        var facingDiceRoll = new DiceResult(5);
+        var facingAfterFall = HexDirection.TopRight;
+        const int levelsFallen = 3;
+
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage from fall");
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                _testMech, levelsFallen, false,
+                facingDiceRoll, facingAfterFall)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new CliffFallRollContext(levelsFallen, facingDiceRoll, facingAfterFall), _game, MovementType.Run);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(levelsFallen);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Cliff fall is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(levelsFallen);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldHandleCliffFallWithSuccessfulPilotDamagePsr()
+    {
+        // Arrange
+        var facingDiceRoll = new DiceResult(2);
+        var facingAfterFall = HexDirection.TopLeft;
+        const int levelsFallen = 1;
+
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                _testMech, levelsFallen, false,
+                facingDiceRoll, facingAfterFall)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech, new CliffFallRollContext(levelsFallen, facingDiceRoll, facingAfterFall), _game, MovementType.Walk);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(levelsFallen);
+        result.WasJumping.ShouldBeFalse();
+        result.PilotingSkillRoll.ShouldBeNull("Cliff fall is auto-fall, no PSR required");
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(levelsFallen);
+    }
 }
