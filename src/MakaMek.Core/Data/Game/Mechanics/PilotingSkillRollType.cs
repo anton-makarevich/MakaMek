@@ -63,5 +63,10 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR required when a 'Mech enters a rubble hex.
     /// </summary>
-    RubbleEntry
+    RubbleEntry,
+
+    /// <summary>
+    /// Automatic fall when a mech skids off a cliff edge.
+    /// </summary>
+    CliffFall
 }

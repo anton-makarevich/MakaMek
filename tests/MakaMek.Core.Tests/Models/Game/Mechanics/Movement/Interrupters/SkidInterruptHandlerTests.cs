@@ -432,12 +432,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 5, Modifiers = [] }
             }
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            new DiceResult(3),
-            HexDirection.Top)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -502,12 +501,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 HitDirection.Front),
             LevelsFallen = 5
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            5,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 5),
             Game,
-            new DiceResult(4),
-            HexDirection.Top)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -520,12 +518,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
 
         result.ShouldNotBeNull();
         result.ShouldStop.ShouldBeTrue();
-        MockFallProcessor.Received(1).CreateCliffFallContext(
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
             mech,
-            5,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 5),
             Game,
-            new DiceResult(4),
-            HexDirection.Top);
+            MovementType.Run);
     }
 
     [Fact]
@@ -571,8 +568,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeFalse();
         result.GameActions.ShouldHaveSingleItem();
         result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
-        MockFallProcessor.DidNotReceiveWithAnyArgs().CreateCliffFallContext(
-            default!, default, default!, default, default);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.AccidentalFallLevels == 0),
+            Game,
+            MovementType.Run);
     }
 
     // ──────────────────────────────────────────────
@@ -641,12 +641,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 5, Modifiers = [] }
             }
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            new DiceResult(3),
-            HexDirection.Top)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -737,12 +736,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 5, Modifiers = [] }
             }
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            sharedFacingRoll,
-            sharedFacing)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -754,12 +752,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 3));
 
-        MockFallProcessor.Received(1).CreateCliffFallContext(
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            sharedFacingRoll,
-            sharedFacing);
+            MovementType.Run);
     }
 
     [Fact]
@@ -819,12 +816,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 HitDirection.Front),
             LevelsFallen = 3
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            new DiceResult(3),
-            HexDirection.Top)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -909,12 +905,11 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 5, Modifiers = [] }
             }
         };
-        MockFallProcessor.CreateCliffFallContext(
+        MockFallProcessor.ProcessMovementAttempt(
             mech,
-            3,
+            Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            new DiceResult(3),
-            HexDirection.Top)
+            MovementType.Run)
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,

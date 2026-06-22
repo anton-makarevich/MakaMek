@@ -47,8 +47,11 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             var facingDiceRoll = initialFallContext.FallingDamageData!.FacingDiceRoll;
             var facingAfterFall = initialFallContext.FallingDamageData.FacingAfterFall;
 
-            var cliffFallContext = context.Game.FallProcessor.CreateCliffFallContext(
-                mech, skidResult.LevelsFallen, context.Game, facingDiceRoll, facingAfterFall);
+            var cliffFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
+                mech,
+                new CliffFallRollContext(skidResult.LevelsFallen, facingDiceRoll, facingAfterFall),
+                context.Game,
+                context.MoveCommand.MovementType);
 
             var truncatedSegments = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
             var truncatedPath = new MovementPath(truncatedSegments, context.MoveCommand.MovementType);
