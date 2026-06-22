@@ -2479,7 +2479,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var turnHex2 = Game.BattleMap!.GetHex(new HexCoordinates(6, 3))!;
         turnHex2.AddTerrain(new PavementTerrain());
 
-        var standardWaterHex = Game.BattleMap!.GetHex(new HexCoordinates(8, 4))!;
+        var standardWaterHex = Game.BattleMap!.GetHex(new HexCoordinates(8, 2))!;
         standardWaterHex.AddTerrain(new WaterTerrain(-1));
         var deepWaterHex = Game.BattleMap!.GetHex(new HexCoordinates(6, 2))!;
         deepWaterHex.AddTerrain(new WaterTerrain(-2));
