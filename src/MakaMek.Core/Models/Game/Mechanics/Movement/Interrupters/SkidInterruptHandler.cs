@@ -196,8 +196,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
                 return new SkidPathResult(
                     skidPathSegments,
                     true,
-                    Math.Abs(elevationChange),
-                    nextCoords);
+                    Math.Abs(elevationChange));
             }
 
             var movementCost = nextHex.GetEnterMovementCost(currentHex, currentSurface, nextSurface);
@@ -215,6 +214,6 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             currentSurface = nextSurface;
         }
 
-        return new SkidPathResult(skidPathSegments, false, 0, null);
+        return new SkidPathResult(skidPathSegments, false, 0);
     }
 }
