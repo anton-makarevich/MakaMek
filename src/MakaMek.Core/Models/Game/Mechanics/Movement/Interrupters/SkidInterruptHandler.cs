@@ -1,9 +1,12 @@
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
@@ -19,21 +22,12 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         var turnHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
         if (turnHex == null || !turnHex.HasHardPavement()) return null;
 
-        // Skip if this is the last hex of the path
         if (segment.To.Coordinates == context.MoveCommand.MovementPath.Last().To.Coordinates) return null;
 
         if (context.Unit is not Mech mech) return null;
 
-        var hexesMoved = 0;
-        for (var j = 0; j < context.SegmentIndex; j++)
-        {
-            var prevSegment = context.MoveCommand.MovementPath[j];
-            if (prevSegment.From.Coordinates != prevSegment.To.Coordinates)
-                hexesMoved++;
-        }
-
+        var hexesMoved = CountHexesMoved(context);
         var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
-
         var skidResult = GenerateSkidPathSegments(context.Game, segment.From, maxSkidDistance, mech);
 
         var skidContext = new SkidCheckRollContext(skidResult.Segments.Count, hexesMoved);
@@ -52,101 +46,133 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             };
         }
 
-        if (skidResult.HasCliffFall)
+        return skidResult.HasCliffFall
+            ? HandleSkidFailureWithCliffFall(context, mech, skidResult, skidFallContext)
+            : HandleSkidFailure(context, mech, skidResult, skidFallContext);
+    }
+
+    private static int CountHexesMoved(MovementInterruptContext context)
+    {
+        var hexesMoved = 0;
+        for (var j = 0; j < context.SegmentIndex; j++)
         {
-            var facingDiceRoll = skidFallContext.FallingDamageData!.FacingDiceRoll;
-            var facingAfterFall = skidFallContext.FallingDamageData.FacingAfterFall;
-
-            var cliffFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
-                mech,
-                new CliffFallRollContext(skidResult.LevelsFallen, facingDiceRoll, facingAfterFall),
-                context.Game,
-                context.MoveCommand.MovementType);
-
-            var truncatedSegments = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
-            var truncatedPath = new MovementPath(truncatedSegments, context.MoveCommand.MovementType);
-            truncatedPath = truncatedPath
-                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
-                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
-
-            var cliffSegments = skidResult.Segments.ToList();
-            var lastCliffSegment = cliffSegments[^1];
-            cliffSegments[^1] = lastCliffSegment with
-            {
-                Events = lastCliffSegment.Events.Append(
-                    new SegmentEvent(SegmentEventType.Fall)).ToArray()
-            };
-
-            var allSegments = truncatedPath.Segments
-                .Select(s => s.ToData())
-                .Concat(cliffSegments.Select(s => s.ToData()))
-                .ToList();
-
-            var modifiedPath = new MovementPath(allSegments, context.MoveCommand.MovementType);
-            var modifiedCommand = context.MoveCommand with
-            {
-                MovementPath = modifiedPath.ToData(),
-                IsCompleted = true,
-                GameOriginId = context.Game.Id
-            };
-
-            var initialFallCommand = skidFallContext.ToMechFallCommand();
-            var skidCommand = skidFallContext.ToMechSkidCommand();
-            var cliffFallCommand = cliffFallContext.ToMechFallCommand();
-
-            var actions = new List<IGameAction>
-            {
-                new MoveUnitAction(modifiedCommand, publish: true),
-                new ApplyFallAction(mech, initialFallCommand)
-            };
-            if (skidCommand != null)
-                actions.Add(new ApplySkidAction(mech, skidCommand.Value));
-            actions.Add(new ApplyFallAction(mech, cliffFallCommand));
-
-            return new MovementInterruptResult
-            {
-                ShouldStop = true,
-                DeferStepConsumption = false,
-                GameActions = actions
-            };
+            var prevSegment = context.MoveCommand.MovementPath[j];
+            if (prevSegment.From.Coordinates != prevSegment.To.Coordinates)
+                hexesMoved++;
         }
+        return hexesMoved;
+    }
 
-        var truncatedSegments2 = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
-        var truncatedPath2 = new MovementPath(truncatedSegments2, context.MoveCommand.MovementType);
-        truncatedPath2 = truncatedPath2
-            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
-            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+    private static MovementInterruptResult HandleSkidFailure(
+        MovementInterruptContext context,
+        Mech mech,
+        SkidPathResult skidResult,
+        FallContextData skidFallContext)
+    {
+        var modifiedCommand = BuildModifiedMoveCommand(
+            context, skidResult.Segments, SegmentEventType.Skid, SegmentEventType.Fall);
 
-        var allSegments2 = truncatedPath2.Segments
-            .Select(s => s.ToData())
-            .Concat(skidResult.Segments.Select(s => s.ToData()))
-            .ToList();
-
-        var modifiedPath2 = new MovementPath(allSegments2, context.MoveCommand.MovementType);
-        var modifiedCommand2 = context.MoveCommand with
-        {
-            MovementPath = modifiedPath2.ToData(),
-            IsCompleted = true,
-            GameOriginId = context.Game.Id
-        };
-
-        var fallCommand2 = skidFallContext.ToMechFallCommand();
-        var skidCommand2 = skidFallContext.ToMechSkidCommand();
-
-        var actions2 = new List<IGameAction>
-        {
-            new MoveUnitAction(modifiedCommand2, publish: true),
-            new ApplyFallAction(mech, fallCommand2)
-        };
-        if (skidCommand2 != null)
-            actions2.Add(new ApplySkidAction(mech, skidCommand2.Value));
+        var actions = BuildFallActions(
+            new MoveUnitAction(modifiedCommand, publish: true),
+            mech,
+            skidFallContext.ToMechFallCommand(),
+            skidFallContext.ToMechSkidCommand());
 
         return new MovementInterruptResult
         {
             ShouldStop = true,
             DeferStepConsumption = false,
-            GameActions = actions2
+            GameActions = actions
         };
+    }
+
+    private static MovementInterruptResult HandleSkidFailureWithCliffFall(
+        MovementInterruptContext context,
+        Mech mech,
+        SkidPathResult skidResult,
+        FallContextData skidFallContext)
+    {
+        var facingDiceRoll = skidFallContext.FallingDamageData!.FacingDiceRoll;
+        var facingAfterFall = skidFallContext.FallingDamageData.FacingAfterFall;
+
+        var cliffFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
+            mech,
+            new CliffFallRollContext(skidResult.LevelsFallen, facingDiceRoll, facingAfterFall),
+            context.Game,
+            context.MoveCommand.MovementType);
+
+        var cliffSegments = skidResult.Segments.ToList();
+        cliffSegments[^1] = cliffSegments[^1] with
+        {
+            Events = cliffSegments[^1].Events.Append(
+                new SegmentEvent(SegmentEventType.Fall)).ToArray()
+        };
+
+        var modifiedCommand = BuildModifiedMoveCommand(
+            context, cliffSegments, SegmentEventType.Skid, SegmentEventType.Fall);
+
+        var actions = BuildFallActions(
+            new MoveUnitAction(modifiedCommand, publish: true),
+            mech,
+            skidFallContext.ToMechFallCommand(),
+            skidFallContext.ToMechSkidCommand(),
+            cliffFallContext.ToMechFallCommand());
+
+        return new MovementInterruptResult
+        {
+            ShouldStop = true,
+            DeferStepConsumption = false,
+            GameActions = actions
+        };
+    }
+
+    private static MoveUnitCommand BuildModifiedMoveCommand(
+        MovementInterruptContext context,
+        IEnumerable<PathSegment> additionalSegments,
+        params SegmentEventType[] lastSegmentEvents)
+    {
+        var truncatedPath = new MovementPath(
+            context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList(),
+            context.MoveCommand.MovementType);
+
+        foreach (var eventType in lastSegmentEvents)
+            truncatedPath = truncatedPath.WithLastSegmentEvent(new SegmentEvent(eventType));
+
+        var allSegments = truncatedPath.Segments
+            .Select(s => s.ToData())
+            .Concat(additionalSegments.Select(s => s.ToData()))
+            .ToList();
+
+        var modifiedPath = new MovementPath(allSegments, context.MoveCommand.MovementType);
+
+        return context.MoveCommand with
+        {
+            MovementPath = modifiedPath.ToData(),
+            IsCompleted = true,
+            GameOriginId = context.Game.Id
+        };
+    }
+
+    private static List<IGameAction> BuildFallActions(
+        MoveUnitAction moveAction,
+        Mech mech,
+        MechFallCommand firstFallCommand,
+        MechSkidCommand? skidCommand,
+        MechFallCommand? secondFallCommand = null)
+    {
+        var actions = new List<IGameAction>
+        {
+            moveAction,
+            new ApplyFallAction(mech, firstFallCommand)
+        };
+
+        if (skidCommand != null)
+            actions.Add(new ApplySkidAction(mech, skidCommand.Value));
+
+        if (secondFallCommand != null)
+            actions.Add(new ApplyFallAction(mech, secondFallCommand.Value));
+
+        return actions;
     }
 
     private static SkidPathResult GenerateSkidPathSegments(ServerGame game, HexPositionData startPosition, int maxDistance, IUnit unit)
