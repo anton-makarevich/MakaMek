@@ -526,6 +526,52 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void SkidInterruptHandler_Check_WhenCliffAndPsrSucceeds_DoesNotThrowNullReference()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(3, 2))!.AddTerrain(new RoadTerrain());
+
+        // Set elevation so first skid hex has a 3-level drop (exceeds Mech.MaxLevelChangeForward=2)
+        SetHexLevel(Game.BattleMap!, new HexCoordinates(3, 2), 3);
+        SetHexLevel(Game.BattleMap!, new HexCoordinates(3, 1), 0);
+
+        // PSR succeeds: IsFalling=false, no FallingDamageData
+        var successContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(1, 2),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
+            Game,
+            MovementType.Run)
+            .Returns(successContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Bottom), new HexPosition(4, 2, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 2));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeFalse();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
+    }
+
+    [Fact]
     public void SkidInterruptHandler_Check_NoCliffWhenElevationChangeWithinLimits()
     {
         var mech = Game.Players[0].Units[0] as Mech;
