@@ -1,3 +1,4 @@
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
@@ -17,6 +18,7 @@ public class Hex : IDisposable
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
     private readonly HashSet<IHexHighlightType> _highlights = [];
     private readonly Subject<IReadOnlyCollection<IHexHighlightType>> _highlightsSubject = new();
+    private readonly Subject<Unit> _terrainsSubject = new();
     private bool _disposed;
 
     private IReadOnlyCollection<IHexHighlightType> HighlightsSnapshot  => _highlights.ToArray();
@@ -32,23 +34,34 @@ public class Hex : IDisposable
         Level = level;
     }
 
+    /// <summary>
+    /// Observable that emits when terrain collection changes
+    /// </summary>
+    public IObservable<Unit> TerrainsChanged => _terrainsSubject.AsObservable();
+
     public void AddTerrain(Terrain terrain)
     {
+        if (_disposed) return;
         _terrains[terrain.Id] = terrain;
+        _terrainsSubject.OnNext(default);
     }
 
     public void RemoveTerrain(MakaMekTerrains terrainId)
     {
-        _terrains.Remove(terrainId);
+        if (_disposed) return;
+        if (_terrains.Remove(terrainId))
+            _terrainsSubject.OnNext(default);
     }
     
     public void ReplaceTerrains(List<Terrain> terrains)
     {
+        if (_disposed) return;
         _terrains.Clear();
         foreach (var terrain in terrains)
         {
-            AddTerrain(terrain);
+            _terrains[terrain.Id] = terrain;
         }
+        _terrainsSubject.OnNext(default);
     }
 
     public bool HasTerrain(MakaMekTerrains terrainId) => _terrains.ContainsKey(terrainId);
@@ -201,6 +214,8 @@ public class Hex : IDisposable
         if (_disposed) return;
         _highlightsSubject.OnCompleted();
         _highlightsSubject.Dispose();
+        _terrainsSubject.OnCompleted();
+        _terrainsSubject.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

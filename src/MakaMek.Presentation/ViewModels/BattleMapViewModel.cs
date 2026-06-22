@@ -309,6 +309,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // Server ended the game - track state to allow UI to respond
                 ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error processing game ended command"));
                 break;
+            case BridgeCollapsedCommand:
+                // Terrain mutation handled by ClientGame.OnBridgeCollapsed;
+                // HexControl re-renders via TerrainsChanged subscription
+                break;
         }
 
         NotifyStateChanged();

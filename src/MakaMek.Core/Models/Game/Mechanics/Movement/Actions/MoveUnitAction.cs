@@ -5,6 +5,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 
 public class MoveUnitAction(MoveUnitCommand command, bool publish = false) : IGameAction
 {
+    public MoveUnitCommand Command => command;
+
     public IReadOnlyList<IGameCommand> Process(ServerGame game)
     {
         game.OnMoveUnit(command);

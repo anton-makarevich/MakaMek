@@ -140,6 +140,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case BridgeCollapsedCommand bridgeCollapsedCommand:
                 OnBridgeCollapsed(bridgeCollapsedCommand);
                 break;
+            case DisplaceUnitCommand displaceUnitCommand:
+                OnUnitDisplaced(displaceUnitCommand);
+                break;
             case MechStandUpCommand mechStandedUpCommand:
                 OnMechStandUp(mechStandedUpCommand);
                 break;

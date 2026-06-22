@@ -3206,4 +3206,67 @@ public class ClientGameTests
         // Assert
         hex.HasTerrain(MakaMekTerrains.Bridge).ShouldBeFalse();
     }
+
+    [Fact]
+    public void HandleCommand_ShouldDisplaceUnit_WhenDisplaceUnitCommandIsReceived()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var playerId = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+
+        var mapData = new BattleMapData
+        {
+            HexData =
+            [
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                },
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(2, 2),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                }
+            ]
+        };
+        var battleMap = BattleMapFactory.CreateFromData(mapData);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+
+        _sut.HandleCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = mapData
+        });
+
+        var unit = _sut.Players.SelectMany(p => p.Units).First();
+        var startPosition = new HexPosition(1, 1, HexDirection.Top);
+        unit.Deploy(startPosition, battleMap.GetHex(startPosition.Coordinates));
+
+        var displaceCommand = new DisplaceUnitCommand
+        {
+            UnitId = unit.Id,
+            FromCoordinates = new HexCoordinateData(1, 1),
+            ToCoordinates = new HexCoordinateData(2, 2),
+            NewFacing = (int)HexDirection.Top,
+            DisplacementReason = DisplacementReason.DominoEffect,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        // Act
+        _sut.HandleCommand(displaceCommand);
+
+        // Assert
+        unit.Position.ShouldNotBeNull();
+        unit.Position.Coordinates.ShouldBe(new HexCoordinates(2, 2));
+    }
 }
