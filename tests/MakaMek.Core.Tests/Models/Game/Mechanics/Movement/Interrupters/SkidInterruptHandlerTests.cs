@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
@@ -231,5 +232,135 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom), []));
 
         _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 1)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenWaterDepth1OnGround_StopsSkidAtWater()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 3, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 3))!.AddTerrain(new RoadTerrain());
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new WaterTerrain(-1));
+
+        var successContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(1, 3),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
+            Game,
+            MovementType.Run)
+            .Returns(successContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 3, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 3, HexDirection.Top), new HexPosition(3, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Bottom), new HexPosition(5, 3, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 3));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeFalse();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
+    }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenWaterDepth1OnBridge_DoesNotStopSkid()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 3, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 3))!.AddTerrain(new BridgeTerrain(2, 40));
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new BridgeTerrain(2, 40));
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new WaterTerrain(-1));
+
+        var successContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(2, 3),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
+            Game,
+            MovementType.Run)
+            .Returns(successContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 3, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 3, HexDirection.Top), new HexPosition(3, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top, HexSurface.Bridge), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Top, HexSurface.Bridge), new HexPosition(4, 3, HexDirection.Bottom, HexSurface.Bridge), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Bottom, HexSurface.Bridge), new HexPosition(5, 3, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 3));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeFalse();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
+    }
+
+    [Fact]
+    public void SkidInterruptHandler_Check_WhenWaterLevel0OnGround_DoesNotStopSkid()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 3, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 3))!.AddTerrain(new RoadTerrain());
+        Game.BattleMap!.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new WaterTerrain(0));
+
+        var successContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(2, 3),
+                DiceResults = [10, 10],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
+            Game,
+            MovementType.Run)
+            .Returns(successContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 3, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 3, HexDirection.Top), new HexPosition(3, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Bottom), new HexPosition(5, 3, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 3));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeFalse();
+        result.GameActions.ShouldHaveSingleItem();
+        result.GameActions[0].ShouldBeOfType<PublishCommandAction>();
     }
 }

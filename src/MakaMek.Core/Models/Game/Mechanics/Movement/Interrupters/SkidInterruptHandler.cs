@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
@@ -31,10 +32,8 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         }
 
         var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
-        var turnHexCoords = new HexCoordinates(segment.From.Coordinates);
-        var skidFacing = (HexDirection)segment.From.Facing;
 
-        var skidPathSegments = GenerateSkidPathSegments(context.Game, turnHexCoords, skidFacing, maxSkidDistance);
+        var skidPathSegments = GenerateSkidPathSegments(context.Game, segment.From, maxSkidDistance);
         var skidContext = new SkidCheckRollContext(skidPathSegments.Count, hexesMoved);
         var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
             mech, skidContext, context.Game, context.MoveCommand.MovementType);
@@ -90,11 +89,13 @@ public class SkidInterruptHandler : IMovementInterruptHandler
         };
     }
 
-    private List<PathSegment> GenerateSkidPathSegments(ServerGame game, HexCoordinates startCoords, HexDirection skidFacing, int maxDistance)
+    private static List<PathSegment> GenerateSkidPathSegments(ServerGame game, HexPositionData startPosition, int maxDistance)
     {
         var skidPathSegments = new List<PathSegment>();
-        var currentCoords = startCoords;
+        var currentCoords = new HexCoordinates(startPosition.Coordinates);
+        var skidFacing = (HexDirection)startPosition.Facing;
         var currentHex = game.BattleMap!.GetHex(currentCoords)!;
+        var currentSurface = (HexSurface)startPosition.Surface;
         var remainingSkidDistance = maxDistance;
 
         while (remainingSkidDistance > 0)
@@ -104,9 +105,26 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             if (nextHex == null)
                 break;
 
-            var movementCost = nextHex.GetEnterMovementCost(currentHex, HexSurface.Ground, HexSurface.Ground);
-            var fromPos = new HexPosition(currentCoords, skidFacing);
-            var toPos = new HexPosition(nextCoords, skidFacing);
+            var nextSurface = currentSurface switch
+            {
+                HexSurface.Bridge when nextHex.GetBridgeHeight() != null => HexSurface.Bridge,
+                _ => HexSurface.Ground
+            };
+
+            if (nextSurface == HexSurface.Ground && nextHex.GetWaterDepth() >= 1)
+            {
+                skidPathSegments.Add(new PathSegment(
+                    new HexPosition(currentCoords, skidFacing, currentSurface),
+                    new HexPosition(nextCoords, skidFacing, nextSurface), [])
+                {
+                    Events = [new SegmentEvent(SegmentEventType.Skid)]
+                });
+                break;
+            }
+
+            var movementCost = nextHex.GetEnterMovementCost(currentHex, currentSurface, nextSurface);
+            var fromPos = new HexPosition(currentCoords, skidFacing, currentSurface);
+            var toPos = new HexPosition(nextCoords, skidFacing, nextSurface);
             var skidSegment = new PathSegment(fromPos, toPos, [])
             {
                 Events = [new SegmentEvent(SegmentEventType.Skid)]
@@ -116,6 +134,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             remainingSkidDistance -= movementCost.Sum(c => c.Value);
             currentCoords = nextCoords;
             currentHex = nextHex;
+            currentSurface = nextSurface;
         }
 
         return skidPathSegments;
