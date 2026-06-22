@@ -10,6 +10,10 @@ run = [
   "npx -y skills add https://github.com/mattpocock/skills --skill tdd --skill triage --dir .agents/skills -y",
 ]
 
+[tasks.install-graphify]
+description = "Installs graphify CLI and sets up skills in .agents/skills"
+run = "uv tool install graphifyy"
+
 [tasks.install-serena]
 description = "Installs the Serena MCP server via uv tool install"
 run = """

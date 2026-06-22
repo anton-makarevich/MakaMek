@@ -1,5 +1,5 @@
 ---
-name: graphify
+name: graphify-windows
 description: "Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, where the question should be treated as a graphify query first. Turns any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools."
 ---
 
@@ -64,45 +64,67 @@ Only when the path is one or more `https://github.com/...` URLs, or several loca
 
 ### Step 1 - Ensure graphify is installed
 
-```bash
-# Detect the correct Python interpreter (handles uv tool, pipx, venv, system installs)
-PYTHON=""
-GRAPHIFY_BIN=$(which graphify 2>/dev/null)
-# 1. uv tool installs — most reliable on modern Mac/Linux
-if [ -z "$PYTHON" ] && command -v uv >/dev/null 2>&1; then
-    _UV_PY=$(uv tool run graphifyy python -c "import sys; print(sys.executable)" 2>/dev/null)
-    if [ -n "$_UV_PY" ]; then PYTHON="$_UV_PY"; fi
-fi
-# 2. Read shebang from graphify binary (pipx and direct pip installs)
-if [ -z "$PYTHON" ] && [ -n "$GRAPHIFY_BIN" ]; then
-    _SHEBANG=$(head -1 "$GRAPHIFY_BIN" | tr -d '#!')
-    case "$_SHEBANG" in
-        *[!a-zA-Z0-9/_.-]*) ;;
-        *) "$_SHEBANG" -c "import graphify" 2>/dev/null && PYTHON="$_SHEBANG" ;;
-    esac
-fi
-# 3. Fall back to python3
-if [ -z "$PYTHON" ]; then PYTHON="python3"; fi
-if ! "$PYTHON" -c "import graphify" 2>/dev/null; then
-    if command -v uv >/dev/null 2>&1; then
-        uv tool install --upgrade graphifyy -q 2>&1 | tail -3
-        _UV_PY=$(uv tool run graphifyy python -c "import sys; print(sys.executable)" 2>/dev/null)
-        if [ -n "$_UV_PY" ]; then PYTHON="$_UV_PY"; fi
-    else
-        "$PYTHON" -m pip install graphifyy -q 2>/dev/null \
-          || "$PYTHON" -m pip install graphifyy -q --break-system-packages 2>&1 | tail -3
-    fi
-fi
-# Write interpreter path for all subsequent steps (persists across invocations)
-mkdir -p graphify-out
-"$PYTHON" -c "import sys; open('graphify-out/.graphify_python', 'w', encoding='utf-8').write(sys.executable)"
+```powershell
+# Detect Python with graphify — uv/pipx-aware (fixes #831)
+New-Item -ItemType Directory -Force -Path graphify-out | Out-Null
+$GRAPHIFY_PYTHON = $null
+
+function Find-GraphifyPython {
+    # 1. uv tool install — 'uv tool dir' is authoritative, respects UV_TOOL_DIR automatically
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        $uvDir = (uv tool dir 2>$null).Trim()
+        if ($uvDir) {
+            $py = Join-Path $uvDir "graphifyy\Scripts\python.exe"
+            if (Test-Path $py) {
+                & $py -c "import graphify" 2>$null
+                if ($LASTEXITCODE -eq 0) { return $py }
+            }
+        }
+    }
+    # 2. pipx install — 'pipx environment' respects PIPX_HOME automatically
+    if (Get-Command pipx -ErrorAction SilentlyContinue) {
+        $venvs = (pipx environment --value PIPX_LOCAL_VENVS 2>$null).Trim()
+        if ($venvs) {
+            $py = Join-Path $venvs "graphifyy\Scripts\python.exe"
+            if (Test-Path $py) {
+                & $py -c "import graphify" 2>$null
+                if ($LASTEXITCODE -eq 0) { return $py }
+            }
+        }
+    }
+    # 3. Active venv / conda / pip-into-current-env
+    $pyCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pyCmd) {
+        & $pyCmd.Source -c "import graphify" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return (& $pyCmd.Source -c "import sys; print(sys.executable)").Trim()
+        }
+    }
+    return $null
+}
+
+# Try to find the right Python (uv → pipx → active env)
+$GRAPHIFY_PYTHON = Find-GraphifyPython
+
+# Not found — install then re-detect
+if (-not $GRAPHIFY_PYTHON) {
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        uv tool install --upgrade graphifyy -q 2>&1 | Select-Object -Last 3
+    } else {
+        pip install graphifyy -q 2>&1 | Select-Object -Last 3
+    }
+    $GRAPHIFY_PYTHON = Find-GraphifyPython
+}
+
+# Save interpreter path — all subsequent steps read this
+$GRAPHIFY_PYTHON | Out-File -FilePath graphify-out\.graphify_python -Encoding utf8 -NoNewline
 # Save scan root so `graphify update` (no args) knows where to look next time
-echo "$(cd INPUT_PATH && pwd)" > graphify-out/.graphify_root
+(Resolve-Path INPUT_PATH).Path | Out-File -FilePath graphify-out\.graphify_root -Encoding utf8 -NoNewline
 ```
 
 If the import succeeds, print nothing and move straight to Step 2.
 
-**In every subsequent bash block, replace `python3` with `$(cat graphify-out/.graphify_python)` to use the correct interpreter.**
+**In every subsequent block, run Python through the saved interpreter — `& (Get-Content graphify-out\.graphify_python)` in place of a bare `python3` — so every step uses the interpreter that actually has graphify.**
 
 ### Step 2 - Detect files
 
@@ -243,23 +265,31 @@ Only dispatch subagents for files listed in `graphify-out/.graphify_uncached.txt
 
 Load files from `graphify-out/.graphify_uncached.txt`. Split into chunks of 20-25 files each. Each image gets its own chunk (vision needs separate context). When splitting, group files from the same directory together so related artifacts land in the same chunk and cross-file relationships are more likely to be extracted.
 
-**Step B2 - Dispatch ALL subagents in a single message (OpenCode)**
+**Step B2 - Dispatch ALL subagents in a single message**
 
-> **OpenCode platform:** Uses `@mention` dispatch instead of the Agent tool. All mentions in a single message run in parallel.
+Call the Agent tool multiple times IN THE SAME RESPONSE - one call per chunk. This is the only way they run in parallel. If you make one Agent call, wait, then make another, you are doing it sequentially and defeating the purpose.
 
-Dispatch one `@mention` per chunk — ALL in the same response:
+**IMPORTANT - subagent type:** Always use `subagent_type="general-purpose"`. Do NOT use `Explore` - it is read-only and cannot write chunk files to disk, which silently drops extraction results. General-purpose has Write and Bash access which the subagent needs.
 
+Concrete example for 3 chunks:
 ```
-@agent Chunk CHUNK_NUM of TOTAL_CHUNKS: [extraction prompt with FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, DEEP_MODE substituted]
-
-@agent Chunk 2 of TOTAL_CHUNKS: [next chunk]
+[Agent tool call 1: files 1-15, subagent_type="general-purpose"]
+[Agent tool call 2: files 16-30, subagent_type="general-purpose"]
+[Agent tool call 3: files 31-45, subagent_type="general-purpose"]
 ```
+All three in one message. Not three separate messages.
 
-Wait for all agents to return. Parse each response as JSON. Accumulate nodes/edges/hyperedges across all results and write to `graphify-out/.graphify_semantic_new.json`. If the `@agent` path cannot write chunk files, fall back to the serial path that writes each `graphify-out/.graphify_chunk_NN.json` before merge.
+Each subagent receives this exact prompt (substitute FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, DEEP_MODE, and CHUNK_PATH).
+
+CHUNK_PATH must be an **absolute** path — derive it before dispatching:
+```powershell
+$PROJECT_ROOT = (Get-Location).Path  # cwd — where Part C globs graphify-out\ (NOT .graphify_root/scan dir, #1392)
+# Then for chunk N: $CHUNK_PATH = Join-Path $PROJECT_ROOT "graphify-out\.graphify_chunk_0N.json"
+```
 
 Subagent prompt template:
 
-See `references/extraction-spec.md` for the exact subagent prompt (JSON schema, node-ID rules, confidence rubric, hyperedge, and vision rules). Load it only here, only when at least one chunk holds a doc, paper, or image; a pure-code corpus has skipped Part B and never reads it. Pass each agent that prompt verbatim with FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, and DEEP_MODE substituted.
+See `references/extraction-spec.md` for the exact subagent prompt (JSON schema, node-ID rules, confidence rubric, frontmatter, hyperedge, and vision rules). Load it only here, only when at least one chunk holds a doc, paper, or image; a pure-code corpus has skipped Part B and never reads it. Pass each subagent that prompt verbatim with FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, DEEP_MODE, and CHUNK_PATH substituted, and have it write the result to CHUNK_PATH.
 
 **Step B3 - Collect, cache, and merge**
 
@@ -624,6 +654,19 @@ Neither is part of the default build. When the user runs `/graphify add <url>` t
 ## For the commit hook and native CLAUDE.md integration
 
 When the user asks to install the post-commit auto-rebuild hook or wire graphify into a project's CLAUDE.md, see `references/hooks.md`.
+
+---
+
+## Troubleshooting
+
+### PowerShell 5.1: Vertical scrolling stops working
+
+If vertical scrolling breaks in PowerShell after running graphify, this is caused by ANSI escape sequences from the `graspologic` library. Graphify v0.3.10+ suppresses this output, but if you still see the issue:
+
+1. **Upgrade graphify**: `pip install --upgrade graphifyy`
+2. **Use Windows Terminal** instead of the legacy PowerShell console — Windows Terminal handles ANSI codes correctly
+3. **Reset your terminal**: close and reopen PowerShell
+4. **Skip graspologic**: uninstall it (`pip uninstall graspologic`) and graphify will fall back to NetworkX's built-in Louvain algorithm, which produces no ANSI output
 
 ---
 
