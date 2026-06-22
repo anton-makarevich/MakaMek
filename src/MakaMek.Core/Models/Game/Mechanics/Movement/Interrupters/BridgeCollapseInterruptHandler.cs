@@ -126,7 +126,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         {
             new MoveUnitAction(truncatedCommand, publish: false),
             new BridgeCollapsedAction(bridgeCmd, publish: true),
-            new MoveUnitAction(truncatedCommand with { IsCompleted = true, GameOriginId = context.Game.Id, IdempotencyKey = null }, publish: true)
+            new MoveUnitAction(truncatedCommand with { IsCompleted = true, GameOriginId = context.Game.Id }, publish: true)
         };
 
         foreach (var hexUnit in unitsOnHex)
