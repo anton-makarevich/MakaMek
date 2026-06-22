@@ -36,16 +36,26 @@ public class SkidInterruptHandler : IMovementInterruptHandler
 
         var skidResult = GenerateSkidPathSegments(context.Game, segment.From, maxSkidDistance, mech);
 
+        var skidContext = new SkidCheckRollContext(skidResult.Segments.Count, hexesMoved);
+        var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
+            mech, skidContext, context.Game, context.MoveCommand.MovementType);
+
+        if (!skidFallContext.IsFalling)
+        {
+            return new MovementInterruptResult
+            {
+                ShouldStop = false,
+                GameActions = new List<IGameAction>
+                {
+                    new PublishCommandAction(skidFallContext.ToMechFallCommand())
+                }
+            };
+        }
+
         if (skidResult.HasCliffFall)
         {
-            var preCliffSkidDistance = skidResult.Segments.Count - 1;
-            var skidContext = new SkidCheckRollContext(
-                preCliffSkidDistance, hexesMoved, skidResult.LevelsFallen);
-            var initialFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
-                mech, skidContext, context.Game, context.MoveCommand.MovementType);
-
-            var facingDiceRoll = initialFallContext.FallingDamageData!.FacingDiceRoll;
-            var facingAfterFall = initialFallContext.FallingDamageData.FacingAfterFall;
+            var facingDiceRoll = skidFallContext.FallingDamageData!.FacingDiceRoll;
+            var facingAfterFall = skidFallContext.FallingDamageData.FacingAfterFall;
 
             var cliffFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
                 mech,
@@ -80,8 +90,8 @@ public class SkidInterruptHandler : IMovementInterruptHandler
                 GameOriginId = context.Game.Id
             };
 
-            var initialFallCommand = initialFallContext.ToMechFallCommand();
-            var skidCommand = initialFallContext.ToMechSkidCommand();
+            var initialFallCommand = skidFallContext.ToMechFallCommand();
+            var skidCommand = skidFallContext.ToMechSkidCommand();
             var cliffFallCommand = cliffFallContext.ToMechFallCommand();
 
             var actions = new List<IGameAction>
@@ -101,58 +111,41 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             };
         }
 
-        var skidContext2 = new SkidCheckRollContext(skidResult.Segments.Count, hexesMoved);
-        var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
-            mech, skidContext2, context.Game, context.MoveCommand.MovementType);
+        var truncatedSegments2 = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
+        var truncatedPath2 = new MovementPath(truncatedSegments2, context.MoveCommand.MovementType);
+        truncatedPath2 = truncatedPath2
+            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
+            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
 
-        if (skidFallContext.IsFalling)
+        var allSegments2 = truncatedPath2.Segments
+            .Select(s => s.ToData())
+            .Concat(skidResult.Segments.Select(s => s.ToData()))
+            .ToList();
+
+        var modifiedPath2 = new MovementPath(allSegments2, context.MoveCommand.MovementType);
+        var modifiedCommand2 = context.MoveCommand with
         {
-            var truncatedSegments = context.MoveCommand.MovementPath.Take(context.SegmentIndex + 1).ToList();
-            var truncatedPath = new MovementPath(truncatedSegments, context.MoveCommand.MovementType);
-            truncatedPath = truncatedPath
-                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Skid))
-                .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+            MovementPath = modifiedPath2.ToData(),
+            IsCompleted = true,
+            GameOriginId = context.Game.Id
+        };
 
-            var allSegments = truncatedPath.Segments
-                .Select(s => s.ToData())
-                .Concat(skidResult.Segments.Select(s => s.ToData()))
-                .ToList();
+        var fallCommand2 = skidFallContext.ToMechFallCommand();
+        var skidCommand2 = skidFallContext.ToMechSkidCommand();
 
-            var modifiedPath = new MovementPath(allSegments, context.MoveCommand.MovementType);
-            var modifiedCommand = context.MoveCommand with
-            {
-                MovementPath = modifiedPath.ToData(),
-                IsCompleted = true,
-                GameOriginId = context.Game.Id
-            };
+        var actions2 = new List<IGameAction>
+        {
+            new MoveUnitAction(modifiedCommand2, publish: true),
+            new ApplyFallAction(mech, fallCommand2)
+        };
+        if (skidCommand2 != null)
+            actions2.Add(new ApplySkidAction(mech, skidCommand2.Value));
 
-            var fallCommand = skidFallContext.ToMechFallCommand();
-            var skidCommand = skidFallContext.ToMechSkidCommand();
-
-            var actions = new List<IGameAction>
-            {
-                new MoveUnitAction(modifiedCommand, publish: true),
-                new ApplyFallAction(mech, fallCommand)
-            };
-            if (skidCommand != null)
-                actions.Add(new ApplySkidAction(mech, skidCommand.Value));
-
-            return new MovementInterruptResult
-            {
-                ShouldStop = true,
-                DeferStepConsumption = false,
-                GameActions = actions
-            };
-        }
-
-        var skidPsrCommand = skidFallContext.ToMechFallCommand();
         return new MovementInterruptResult
         {
-            ShouldStop = false,
-            GameActions = new List<IGameAction>
-            {
-                new PublishCommandAction(skidPsrCommand)
-            }
+            ShouldStop = true,
+            DeferStepConsumption = false,
+            GameActions = actions2
         };
     }
 

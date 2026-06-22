@@ -408,7 +408,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         };
         MockFallProcessor.ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 0 && ctx.AccidentalFallLevels == 3),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
             MovementType.Run)
             .Returns(initialFallContext);
@@ -484,7 +484,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         };
         MockFallProcessor.ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.AccidentalFallLevels == 5),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
             MovementType.Run)
             .Returns(initialFallContext);
@@ -617,7 +617,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         };
         MockFallProcessor.ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.AccidentalFallLevels == 3),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
             MovementType.Run)
             .Returns(initialFallContext);
@@ -799,7 +799,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         };
         MockFallProcessor.ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.AccidentalFallLevels == 3),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
             MovementType.Run)
             .Returns(initialFallContext);
@@ -838,7 +838,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         // Verify skid context was created with correct distance
         MockFallProcessor.Received(1).ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
             MovementType.Run);
     }
@@ -880,7 +880,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
         };
         MockFallProcessor.ProcessMovementAttempt(
             mech,
-            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 0),
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
             MovementType.Run)
             .Returns(initialFallContext);
