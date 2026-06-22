@@ -300,18 +300,18 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             }
         };
         MockFallProcessor.ProcessMovementAttempt(
-            Arg.Any<Mech>(),
-            Arg.Any<SkidCheckRollContext>(),
-            Arg.Any<ServerGame>(),
-            Arg.Any<MovementType>())
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
+            Game,
+            MovementType.Run)
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
             new PathSegment(new HexPosition(1, 3, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), []),
             new PathSegment(new HexPosition(2, 3, HexDirection.Top), new HexPosition(3, 3, HexDirection.Top), []),
-            new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top), []),
-            new PathSegment(new HexPosition(4, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Bottom), []),
-            new PathSegment(new HexPosition(4, 3, HexDirection.Bottom), new HexPosition(5, 3, HexDirection.Bottom), []));
+            new PathSegment(new HexPosition(3, 3, HexDirection.Top), new HexPosition(4, 3, HexDirection.Top, HexSurface.Bridge), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Top, HexSurface.Bridge), new HexPosition(4, 3, HexDirection.Bottom, HexSurface.Bridge), []),
+            new PathSegment(new HexPosition(4, 3, HexDirection.Bottom, HexSurface.Bridge), new HexPosition(5, 3, HexDirection.Bottom), []));
 
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 3));
 
