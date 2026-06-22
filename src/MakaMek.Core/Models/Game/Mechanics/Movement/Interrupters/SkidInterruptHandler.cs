@@ -183,7 +183,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             }
 
             var elevationChange = nextHex.GetElevationChange(currentHex, currentSurface, nextSurface);
-            if (Math.Abs(elevationChange) > unit.MaxLevelChangeForward)
+            if (elevationChange < -unit.MaxLevelChangeForward)
             {
                 var fromPos = new HexPosition(currentCoords, skidFacing, currentSurface);
                 var toPos = new HexPosition(nextCoords, skidFacing, nextSurface);

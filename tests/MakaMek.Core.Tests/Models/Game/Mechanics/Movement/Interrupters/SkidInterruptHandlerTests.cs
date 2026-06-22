@@ -572,6 +572,65 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void SkidInterruptHandler_Check_WhenUphillExceedsMaxLevelChange_DoesNotTriggerCliffFall()
+    {
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+        Game.BattleMap!.GetHex(new HexCoordinates(3, 2))!.AddTerrain(new RoadTerrain());
+
+        // Set elevation so skid path has a 3-level uphill (exceeds Mech.MaxLevelChangeForward=2)
+        // GetElevationChange returns to.standing - from.standing = positive for uphill
+        SetHexLevel(Game.BattleMap!, new HexCoordinates(3, 2), 0);
+        SetHexLevel(Game.BattleMap!, new HexCoordinates(3, 1), 3);
+
+        var fallContext = new FallContextData
+        {
+            UnitId = mech.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new SkidCheckRollContext(1, 2),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+            mech,
+            Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
+            Game,
+            MovementType.Run)
+            .Returns(fallContext);
+
+        var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Bottom), []),
+            new PathSegment(new HexPosition(3, 2, HexDirection.Bottom), new HexPosition(4, 2, HexDirection.Bottom), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 2));
+
+        result.ShouldNotBeNull();
+        result.ShouldStop.ShouldBeTrue();
+        result.GameActions.ShouldContain(a => a is MoveUnitAction);
+        result.GameActions.ShouldContain(a => a is ApplyFallAction);
+        // Only one ApplyFallAction (skid fall), not two (no cliff fall)
+        result.GameActions.Count(a => a is ApplyFallAction).ShouldBe(1);
+        // Verify no cliff fall processing was attempted
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            mech,
+            Arg.Any<CliffFallRollContext>(),
+            Game,
+            MovementType.Run);
+    }
+
+    [Fact]
     public void SkidInterruptHandler_Check_NoCliffWhenElevationChangeWithinLimits()
     {
         var mech = Game.Players[0].Units[0] as Mech;
