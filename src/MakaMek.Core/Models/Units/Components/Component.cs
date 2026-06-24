@@ -37,9 +37,17 @@ public abstract class Component : IManufacturedItem
 
     public bool IsActive { get; private set; } = true;
 
+    public bool IsFlooded { get; private set; }
+
+    public void Flood()
+    {
+        IsFlooded = true;
+    }
+
     public virtual bool IsAvailable => IsActive
                                && !IsDestroyed
                                && IsMounted
+                               && !IsFlooded
                                && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);
 
     /// <summary>

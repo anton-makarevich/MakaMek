@@ -32,6 +32,7 @@ public class ServerGame : BaseGame, IDisposable
         IToHitCalculator toHitCalculator,
         IDamageTransferCalculator damageTransferCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
+        IHullBreachCalculator hullBreachCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
@@ -43,6 +44,7 @@ public class ServerGame : BaseGame, IDisposable
         DiceRoller = diceRoller;
         DamageTransferCalculator = damageTransferCalculator;
         CriticalHitsCalculator = criticalHitsCalculator;
+        HullBreachCalculator = hullBreachCalculator;
         FallProcessor = fallProcessor;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
@@ -53,6 +55,8 @@ public class ServerGame : BaseGame, IDisposable
     public IDamageTransferCalculator DamageTransferCalculator { get; }
 
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
+
+    public IHullBreachCalculator HullBreachCalculator { get; }
 
     public IFallProcessor FallProcessor { get; }
 

@@ -36,11 +36,19 @@ public abstract class UnitPart
     /// Restores the armor and structure state from serialized data.
     /// Used by MechFactory when creating units from saved data.
     /// </summary>
-    internal void RestoreState(int currentArmor, int currentStructure, bool isBlownOff)
+    internal void RestoreState(int currentArmor, int currentStructure, bool isBlownOff, bool isBreached = false)
     {
         CurrentArmor = currentArmor;
         CurrentStructure = currentStructure;
         IsBlownOff = isBlownOff;
+        IsBreached = isBreached;
+        if (isBreached)
+        {
+            foreach (var component in _components)
+            {
+                component.Flood();
+            }
+        }
     }
     
     // Slots management
@@ -250,6 +258,17 @@ public abstract class UnitPart
     private UnitPart? DamageTransferPart => GetNextTransferLocation() is { } location 
                                             && Unit?.Parts.TryGetValue(location, out var part) == true ? part : null;
 
+    public bool IsBreached { get; private set; }
+
+    public void ApplyBreach()
+    {
+        IsBreached = true;
+        foreach (var component in _components)
+        {
+            component.Flood();
+        }
+    }
+
     public virtual bool IsPristine => !IsBlownOff 
                                       && CurrentArmor == MaxArmor 
                                       && CurrentStructure == MaxStructure;
@@ -311,7 +330,8 @@ public abstract class UnitPart
             Location = Location,
             CurrentFrontArmor = CurrentArmor,
             CurrentStructure = CurrentStructure,
-            IsBlownOff = IsBlownOff
+            IsBlownOff = IsBlownOff,
+            IsBreached = IsBreached
         };
     }
 

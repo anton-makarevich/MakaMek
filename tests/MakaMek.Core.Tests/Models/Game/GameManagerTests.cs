@@ -60,6 +60,7 @@ public class GameManagerTests : IDisposable
             _toHitCalculator,
             _damageTransferCalculator,
             _criticalHitsCalculator,
+            Substitute.For<IHullBreachCalculator>(),
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,

@@ -119,6 +119,23 @@ public abstract class Unit : IUnit
     public abstract int Height { get; }
 
     /// <summary>
+    /// Whether the unit is completely submerged in water.
+    /// Standing units (Height >= 2) are submerged in Depth 2+ water.
+    /// Prone units (Height == 1) are submerged in Depth 1+ water.
+    /// </summary>
+    public bool IsSubmerged
+    {
+        get
+        {
+            var waterDepth = Hex?.GetWaterDepth();
+            if (waterDepth is null) return false;
+            return Height >= 2
+                ? waterDepth >= 2
+                : waterDepth >= 1;
+        }
+    }
+
+    /// <summary>
     /// Maximum per-hex elevation change allowed for forward movement.
     /// </summary>
     public virtual int MaxLevelChangeForward => 0;
@@ -598,6 +615,63 @@ public abstract class Unit : IUnit
     /// Call after mutating parts/components outside normal damage flows.
     /// </summary>
     public abstract void UpdateDestroyedStatus();
+
+    /// <summary>
+    /// Applies a hull breach to a specific location, flooding its components and applying consequences.
+    /// </summary>
+    public void ApplyHullBreach(LocationHullBreachData breachData)
+    {
+        if (!_parts.TryGetValue(breachData.Location, out var targetPart)) return;
+
+        targetPart.ApplyBreach();
+
+        // If the breached location contains engine slots, apply that many hits to the engine
+        if (breachData.EngineHitsApplied > 0)
+        {
+            var engine = GetComponentsAtLocation<Engine>(breachData.Location).FirstOrDefault();
+            if (engine != null)
+            {
+                for (var i = 0; i < breachData.EngineHitsApplied; i++)
+                {
+                    engine.Hit();
+                }
+            }
+        }
+
+        // If location is Head, kill pilot and destroy the mech
+        if (breachData.Location == PartLocation.Head)
+        {
+            if (Pilot != null && !Pilot.IsDead)
+            {
+                Pilot.Kill();
+                AddEvent(new UiEvent(UiEventType.PilotDead, Name));
+            }
+            Status = UnitStatus.Destroyed;
+            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
+        }
+
+        // If a side torso is breached, flood the corresponding arm's components
+        if (breachData.Location == PartLocation.LeftTorso)
+        {
+            FloodArmComponents(PartLocation.LeftArm);
+        }
+        else if (breachData.Location == PartLocation.RightTorso)
+        {
+            FloodArmComponents(PartLocation.RightArm);
+        }
+
+        UpdateDestroyedStatus();
+        InvalidateAvailableWeaponsCache();
+    }
+
+    private void FloodArmComponents(PartLocation armLocation)
+    {
+        if (!_parts.TryGetValue(armLocation, out var armPart)) return;
+        foreach (var component in armPart.Components)
+        {
+            component.Flood();
+        }
+    }
 
     /// <summary>
     /// Applies pre-calculated critical hits data to the unit

@@ -381,6 +381,20 @@ public abstract class BaseGame : IGame
         }
     }
 
+    internal void OnHullBreach(HullBreachCommand hullBreachCommand)
+    {
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == hullBreachCommand.UnitId);
+
+        if (unit == null) return;
+
+        foreach (var breachData in hullBreachCommand.BreachedLocations)
+        {
+            unit.ApplyHullBreach(breachData);
+        }
+    }
+
     internal void OnCriticalHitsResolution(CriticalHitsResolutionCommand criticalHitsCommand)
     {
         // Find the target unit with the given ID across all players
@@ -465,6 +479,7 @@ public abstract class BaseGame : IGame
             StartupUnitCommand => CommandValidationResult.Valid(),
             AmmoExplosionCommand => CommandValidationResult.Valid(),
             CriticalHitsResolutionCommand => CommandValidationResult.Valid(),
+            HullBreachCommand => CommandValidationResult.Valid(),
             PlayerLeftCommand => CommandValidationResult.Valid(),
             GameEndedCommand => CommandValidationResult.Valid(),
             BridgeCollapsedCommand => CommandValidationResult.Valid(),
