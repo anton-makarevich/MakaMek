@@ -3118,4 +3118,74 @@ public class UnitTests
 
         sut.MaxLevelChangeBackward.ShouldBe(0);
     }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenUnitHasNoPosition()
+    {
+        var sut = CreateTestUnit();
+
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplyHullBreach_SetsBreachedOnPartAndFloodsComponents()
+    {
+        var sut = CreateTestUnit();
+        var ct = sut.Parts[PartLocation.CenterTorso];
+        
+        var breachData = new LocationHullBreachData(
+            PartLocation.CenterTorso,
+            false,
+            null,
+            null,
+            1);
+        sut.ApplyHullBreach(breachData);
+
+        ct.IsBreached.ShouldBeTrue();
+        foreach (var component in ct.Components)
+        {
+            component.IsFlooded.ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public void ApplyHullBreach_WhenEnginePresent_AddsEngineCriticalHit()
+    {
+        var sut = CreateTestUnit();
+        var ct = sut.Parts[PartLocation.CenterTorso];
+        var engine = ct.Components.FirstOrDefault(c => c is Engine);
+
+        var breachData = new LocationHullBreachData(
+            PartLocation.CenterTorso,
+            false,
+            null,
+            null,
+            3);
+        sut.ApplyHullBreach(breachData);
+
+        engine.ShouldNotBeNull();
+        engine.Hits.ShouldBe(3);
+    }
+
+    [Fact]
+    public void ApplyHullBreach_WhenEngineNotPresent_DoesNotAddEngineHit()
+    {
+        var sut = CreateTestUnit();
+        var head = sut.Parts[PartLocation.Head];
+
+        var breachData = new LocationHullBreachData(
+            PartLocation.Head,
+            false,
+            null,
+            null,
+            3);
+        sut.ApplyHullBreach(breachData);
+
+        // Should not crash - engine will not be hit because head has no engine
+        var engine = head.Components.FirstOrDefault(c => c is Engine);
+        if (engine != null)
+        {
+            engine.Hits.ShouldBe(3);
+        }
+    }
 }

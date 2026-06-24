@@ -527,7 +527,54 @@ public class ComponentTests
         // Act & Assert
         sut.IsSubmerged.ShouldBe(expected);
     }
-    
+
+    [Fact]
+    public void IsFlooded_Default_ReturnsFalse()
+    {
+        var sut = new TestComponent("Test", 1);
+        sut.IsFlooded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Flood_SetsIsFloodedTrue()
+    {
+        var sut = new TestComponent("Test", 1);
+        sut.Flood();
+        sut.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Flood_CanBeCalledMultipleTimes()
+    {
+        var sut = new TestComponent("Test", 1);
+        sut.Flood();
+        sut.Flood();
+        sut.Flood();
+        sut.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAvailable_ReturnsFalse_WhenFlooded()
+    {
+        var sut = new TestComponent("Test", 1);
+        var part = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.Mount(part, [0]);
+
+        sut.Flood();
+
+        sut.IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAvailable_ReturnsTrue_WhenNotFlooded()
+    {
+        var sut = new TestComponent("Test", 1);
+        var part = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.Mount(part, [0]);
+
+        sut.IsAvailable.ShouldBeTrue();
+    }
+
     private static List<UnitPart> CreateBasicPartsData()
     {
         var engineData = new ComponentData
