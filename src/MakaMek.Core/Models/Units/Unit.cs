@@ -120,8 +120,8 @@ public abstract class Unit : IUnit
 
     /// <summary>
     /// Whether the unit is completely submerged in water.
-    /// Standing units (Height >= 2) are submerged in Depth 2+ water.
-    /// Prone units (Height == 1) are submerged in Depth 1+ water.
+    /// A unit is submerged when water depth equals or exceeds its height.
+    /// Height already accounts for prone/standing state.
     /// </summary>
     public bool IsSubmerged
     {
@@ -129,9 +129,7 @@ public abstract class Unit : IUnit
         {
             var waterDepth = Hex?.GetWaterDepth();
             if (waterDepth is null) return false;
-            return Height >= 2
-                ? waterDepth >= 2
-                : waterDepth >= 1;
+            return waterDepth >= Height;
         }
     }
 
