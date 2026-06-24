@@ -260,7 +260,7 @@ public abstract class UnitPart
 
     public bool IsBreached { get; private set; }
 
-    public void ApplyBreach()
+    public virtual void ApplyBreach()
     {
         IsBreached = true;
         foreach (var component in _components)

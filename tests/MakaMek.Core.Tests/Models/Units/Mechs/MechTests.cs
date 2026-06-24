@@ -3004,6 +3004,21 @@ public class MechTests
         result.ShouldContain(MovementType.Jump);
     }
 
+    [Fact]
+    public void UpdateDestroyedStatus_ShouldDestroyUnit_WhenPilotIsDead()
+    {
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        pilot.Kill();
+
+        mech.UpdateDestroyedStatus();
+
+        mech.IsDestroyed.ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(PartLocation.LeftTorso, PartLocation.LeftArm)]
     [InlineData(PartLocation.RightTorso, PartLocation.RightArm)]

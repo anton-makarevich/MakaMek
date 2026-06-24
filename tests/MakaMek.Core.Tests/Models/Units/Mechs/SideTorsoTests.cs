@@ -49,6 +49,46 @@ public class SideTorsoTests
         sut.Facing.ShouldBe(HexDirection.Top);
     }
 
+    [Theory]
+    [InlineData(PartLocation.LeftTorso, PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightTorso, PartLocation.RightArm)]
+    public void ApplyBreach_ShouldFloodConnectedArm(PartLocation torsoLocation, PartLocation armLocation)
+    {
+        var torso = new SideTorso("SideTorso", torsoLocation, 8, 2, 5);
+        var arm = new Arm("Arm", armLocation, 10, 5);
+        _ = new Mech("Test", "TST-1A", 50, (List<UnitPart>)[torso, arm]);
+
+        torso.ApplyBreach();
+
+        foreach (var component in arm.Components)
+        {
+            component.IsFlooded.ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldNotThrow_WhenArmNotFound()
+    {
+        var torso = new SideTorso("SideTorso", PartLocation.LeftTorso, 8, 2, 5);
+        // Create mech with only the torso, no arm
+
+        torso.ApplyBreach();
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldFloodOwnComponents()
+    {
+        var sut = new SideTorso("SideTorso", PartLocation.LeftTorso, 8, 2, 5);
+
+        sut.ApplyBreach();
+
+        sut.IsBreached.ShouldBeTrue();
+        foreach (var component in sut.Components)
+        {
+            component.IsFlooded.ShouldBeTrue();
+        }
+    }
+
     [Fact]
     public void Level_ShouldReturn2_WhenNotMounted()
     {

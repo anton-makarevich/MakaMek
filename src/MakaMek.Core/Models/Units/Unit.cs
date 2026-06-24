@@ -636,38 +636,12 @@ public abstract class Unit : IUnit
             }
         }
 
-        // If location is Head, kill pilot and destroy the mech
-        if (breachData.Location == PartLocation.Head)
-        {
-            if (Pilot != null && !Pilot.IsDead)
-            {
-                Pilot.Kill();
-                AddEvent(new UiEvent(UiEventType.PilotDead, Name));
-            }
-            Status = UnitStatus.Destroyed;
-            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
-        }
-
-        // If a side torso is breached, flood the corresponding arm's components
-        if (breachData.Location == PartLocation.LeftTorso)
-        {
-            FloodArmComponents(PartLocation.LeftArm);
-        }
-        else if (breachData.Location == PartLocation.RightTorso)
-        {
-            FloodArmComponents(PartLocation.RightArm);
-        }
-
         UpdateDestroyedStatus();
         InvalidateAvailableWeaponsCache();
-    }
 
-    private void FloodArmComponents(PartLocation armLocation)
-    {
-        if (!_parts.TryGetValue(armLocation, out var armPart)) return;
-        foreach (var component in armPart.Components)
+        if (IsDestroyed)
         {
-            component.Flood();
+            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
     }
 
