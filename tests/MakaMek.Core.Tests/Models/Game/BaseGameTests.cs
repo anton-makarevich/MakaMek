@@ -1845,6 +1845,24 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateHullBreachCommand()
+    {
+        // Arrange
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            BreachedLocations = []
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void OnHullBreach_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
