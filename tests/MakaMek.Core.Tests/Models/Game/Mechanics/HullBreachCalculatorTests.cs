@@ -1,9 +1,11 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -55,6 +57,30 @@ public class HullBreachCalculatorTests
         int structureDamage)
     {
         return new LocationDamageData(location, armorDamage, structureDamage, false);
+    }
+
+    private Mech CreateTestMechWithXlEngine()
+    {
+        var equipment = new List<ComponentData>
+        {
+            new()
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments =
+                [
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 4),
+                    new LocationSlotAssignment(PartLocation.LeftTorso, 2, 3),
+                    new LocationSlotAssignment(PartLocation.RightTorso, 2, 3)
+                ],
+                SpecificData = new EngineStateData(EngineType.XLFusion, 160)
+            }
+        };
+        var mechData = MechFactoryTests.CreateDummyMechData(equipment, true);
+        var mech = _mechFactory.Create(mechData);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-2));
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+        return mech;
     }
 
     [Fact]
@@ -214,5 +240,19 @@ public class HullBreachCalculatorTests
         result.ShouldNotBeNull();
         result.BreachedLocations.Count.ShouldBe(1);
         result.BreachedLocations[0].Location.ShouldBe(PartLocation.LeftLeg);
+    }
+
+    [Fact]
+    public void CalculateAndApplyHullBreach_ShouldUsePerLocationEngineSlotCount_ForSplitEngine()
+    {
+        var testUnit = CreateTestMechWithXlEngine();
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(6)]);
+
+        var result = _sut.CalculateAndApplyHullBreach(testUnit,
+            [CreateLocationDamageData(PartLocation.LeftTorso, 3, 0)]);
+
+        result.ShouldNotBeNull();
+        result.BreachedLocations.Count.ShouldBe(1);
+        result.BreachedLocations[0].EngineHitsApplied.ShouldBe(3);
     }
 }

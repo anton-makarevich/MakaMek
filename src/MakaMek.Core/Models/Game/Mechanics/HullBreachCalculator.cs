@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -47,7 +46,7 @@ public class HullBreachCalculator : IHullBreachCalculator
             var engine = unit.GetComponentsAtLocation<Engine>(damagedLocation.Location).FirstOrDefault();
             if (engine != null)
             {
-                engineHitsApplied = engine.Size;
+                engineHitsApplied = engine.GetMountedAtLocationSlots(damagedLocation.Location).Length;
             }
 
             // Collect flooded component data for the command
