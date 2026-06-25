@@ -3181,11 +3181,7 @@ public class UnitTests
             3);
         sut.ApplyHullBreach(breachData);
 
-        // Should not crash - engine will not be hit because head has no engine
-        var engine = head.Components.FirstOrDefault(c => c is Engine);
-        if (engine != null)
-        {
-            engine.Hits.ShouldBe(3);
-        }
+        // Head has no engine, so no engine critical hit should be applied
+        head.Components.OfType<Engine>().ShouldBeEmpty();
     }
 }
