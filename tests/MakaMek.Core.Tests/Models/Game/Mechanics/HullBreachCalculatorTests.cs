@@ -229,7 +229,7 @@ public class HullBreachCalculatorTests
     }
 
     [Fact]
-    public void CalculateAndApplyHullBreach_ShouldSkipNonExistentLocation()
+    public void CalculateAndApplyHullBreach_ShouldApplyBreach_WhenLegLocationDamaged()
     {
         var testUnit = CreateTestMech();
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(6)]);

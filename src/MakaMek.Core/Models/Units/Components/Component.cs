@@ -7,7 +7,6 @@ public abstract class Component : IManufacturedItem
 {
     private readonly List<CriticalSlotAssignment> _slotAssignments = [];
     protected readonly ComponentDefinition _definition;
-    private readonly string? _manufacturerOverride;
 
     protected Component(ComponentDefinition definition, ComponentData? componentData = null)
     {
@@ -17,10 +16,11 @@ public abstract class Component : IManufacturedItem
         // Restore mutable state if provided
         if (componentData == null) return;
         if (!string.IsNullOrEmpty(componentData.Name)) Name = componentData.Name;
-        _manufacturerOverride = componentData.Manufacturer;
+        Manufacturer = componentData.Manufacturer;
         Hits = componentData.Hits;
         IsActive = componentData.IsActive;
         HasExploded = componentData.HasExploded;
+        IsFlooded = componentData.IsFlooded;
     }
 
     public string Name { get; protected set; }
@@ -57,7 +57,7 @@ public abstract class Component : IManufacturedItem
     public bool IsSubmerged => MountedOn.Any(part => part.IsSubmerged);
 
     public int Size => _definition.Size;
-    public string Manufacturer => _manufacturerOverride ?? "Unknown";
+    public string Manufacturer => field ?? "Unknown";
     public int BattleValue => _definition.BattleValue;
     public bool IsRemovable => _definition.IsRemovable;
 
@@ -219,6 +219,7 @@ public abstract class Component : IManufacturedItem
             Hits = Hits,
             IsActive = IsActive,
             HasExploded = HasExploded,
+            IsFlooded = IsFlooded,
             SpecificData = GetSpecificData()
         };
     }
