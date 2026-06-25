@@ -1844,6 +1844,119 @@ public sealed class BaseGameTests : BaseGame
         centerTorsoPart.CurrentArmor.ShouldBe(initialArmor - 5);
     }
 
+    [Fact]
+    public void OnHullBreach_DoesNothing_WhenUnitNotFound()
+    {
+        // Arrange
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            BreachedLocations = []
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnHullBreach(command));
+    }
+
+    [Fact]
+    public void OnHullBreach_ShouldApplyBreachToLocation()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech!.Id,
+            BreachedLocations =
+            [
+                new LocationHullBreachData(PartLocation.CenterTorso, true, null, null, 0)
+            ]
+        };
+
+        // Act
+        OnHullBreach(command);
+
+        // Assert
+        mech.Parts[PartLocation.CenterTorso].IsBreached.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnHullBreach_ShouldApplyBreachToAllLocations()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech!.Id,
+            BreachedLocations =
+            [
+                new LocationHullBreachData(PartLocation.CenterTorso, true, null, null, 0),
+                new LocationHullBreachData(PartLocation.LeftArm, true, null, null, 0)
+            ]
+        };
+
+        // Act
+        OnHullBreach(command);
+
+        // Assert
+        mech.Parts[PartLocation.CenterTorso].IsBreached.ShouldBeTrue();
+        mech.Parts[PartLocation.LeftArm].IsBreached.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnHullBreach_ShouldNotThrow_WhenLocationDoesNotExist()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Id,
+            UnitId = mech!.Id,
+            BreachedLocations =
+            [
+                new LocationHullBreachData((PartLocation)99, true, null, null, 0)
+            ]
+        };
+
+        // Act & Assert - Should not throw for invalid location
+        Should.NotThrow(() => OnHullBreach(command));
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
         // No-op for tests unless mocked
