@@ -97,11 +97,13 @@ public static class UnitExtensions
             
             var movementPathSegments = unit.MovementTaken?.ToData();
 
+            var unitName = unit.Name;
             return new UnitData
             {
                 Id = unit.Id,
                 Chassis = unit.Chassis,
                 Model = unit.Model,
+                Name = unitName,
                 Mass = unit.Tonnage,
                 EngineRating = engineRating,
                 EngineType = engineType,

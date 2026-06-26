@@ -48,6 +48,7 @@ public class UnitExtensionsTests
         convertedUnitData.Mass.ShouldBe(_originalUnitData.Mass);
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
+        convertedUnitData.Name.ShouldBe(mech.Name);
         convertedUnitData.State?.Position.ShouldBeNull();
     }
 
@@ -256,7 +257,63 @@ public class UnitExtensionsTests
         convertedUnitData.AdditionalAttributes.Count.ShouldBe(_originalUnitData.AdditionalAttributes.Count);
         convertedUnitData.Quirks.Count.ShouldBe(_originalUnitData.Quirks.Count);
     }
+
+    [Fact]
+    public void ToData_WithCustomName_PreservesName()
+    {
+        // Arrange
+        var unitDataWithName = _originalUnitData with { Name = "Custom Name" };
+        var mech = _mechFactory.Create(unitDataWithName);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.Name.ShouldBe("Custom Name");
+    }
     
+    [Fact]
+    public void ToData_WithNoCustomName_NameMatchesFallback()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.Name.ShouldBe("Locust LCT-1V");
+    }
+
+    [Fact]
+    public void ToData_WithCustomName_RoundTripsThroughFactory()
+    {
+        // Arrange
+        var unitDataWithName = _originalUnitData with { Name = "My Awesome Mech" };
+        var mech = _mechFactory.Create(unitDataWithName);
+
+        // Act
+        var data = mech.ToData();
+        var restoredMech = _mechFactory.Create(data);
+
+        // Assert
+        restoredMech.Name.ShouldBe("My Awesome Mech");
+    }
+
+    [Fact]
+    public void ToData_WithNoCustomName_RoundTripsWithFallback()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+
+        // Act
+        var data = mech.ToData();
+        var restoredMech = _mechFactory.Create(data);
+
+        // Assert
+        restoredMech.Name.ShouldBe("Locust LCT-1V");
+    }
+
     [Fact]
     public void ToData_WithNoDamage_ShouldNotIncludePartStates()
     {

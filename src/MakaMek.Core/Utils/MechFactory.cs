@@ -33,7 +33,8 @@ public class MechFactory : IMechFactory
             parts,
             1,
             false,
-            unitData.Id);
+            unitData.Id,
+            unitData.Name);
 
         // Add equipment to parts
         AddEquipmentToParts(mech, unitData);

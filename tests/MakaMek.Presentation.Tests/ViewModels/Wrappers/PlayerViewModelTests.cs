@@ -19,7 +19,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unitData = MechFactoryTests.CreateDummyMechData();
         await sut.AddUnit(unitData);
-        var unitId = sut.Units.First().Id!.Value;
+        var unitId = sut.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
@@ -58,7 +58,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(player, true);
         var unitData = MechFactoryTests.CreateDummyMechData();
         await sut.AddUnit(unitData);
-        var unitId = sut.Units.First().Id!.Value;
+        var unitId = sut.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
     }
@@ -72,7 +72,7 @@ public class PlayerViewModelTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         var pilotData = new PilotData();
         await sut.AddUnit(unitData, pilotData);
-        var unitId = sut.Units.First().Id!.Value;
+        var unitId = sut.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
@@ -89,7 +89,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unitData = MechFactoryTests.CreateDummyMechData();
         await sut.AddUnit(unitData);
-        var unitId = sut.Units.First().Id!.Value;
+        var unitId = sut.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
 

@@ -23,16 +23,18 @@ public abstract class Unit : IUnit
     protected readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
+    private string? _customName;
 
     public Hex? Hex { get; private set; }
 
     protected Unit(string chassis, string model, int tonnage,
         IEnumerable<UnitPart> parts,
-        Guid? id = null)
+        Guid? id = null,
+        string? name = null)
     {
         Chassis = chassis;
         Model = model;
-        Name = $"{chassis} {model}";
+        _customName = name;
         Tonnage = tonnage;
         _parts = parts.ToDictionary(p => p.Location, p => p);
         // Set the Unit reference for each part
@@ -51,7 +53,11 @@ public abstract class Unit : IUnit
 
     public string Chassis { get; }
     public string Model { get; }
-    public string Name { get; }
+    public string Name
+    {
+        get => !string.IsNullOrWhiteSpace(_customName) ? _customName : $"{Chassis} {Model}";
+        set => _customName = value;
+    }
     public int Tonnage { get; }
 
     public IPlayer? Owner { get; internal set; }

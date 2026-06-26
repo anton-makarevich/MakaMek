@@ -448,7 +448,7 @@ public class StartNewGameViewModelTests
         {
             PlayerId = localPlayerVm.Player.Id,
             PlayerName = localPlayerVm.Player.Name,
-            Units = localPlayerVm.Units.ToList(),
+            Units = localPlayerVm.GetUnitsData(),
             Tint = localPlayerVm.Player.Tint,
             GameOriginId = serverGameId, // This makes it look like it came from the server
             PilotAssignments = []
@@ -484,7 +484,7 @@ public class StartNewGameViewModelTests
         {
             PlayerId = localPlayerVm.Player.Id,
             PlayerName = localPlayerVm.Player.Name,
-            Units = localPlayerVm.Units.ToList(),
+            Units = localPlayerVm.GetUnitsData(),
             Tint = localPlayerVm.Player.Tint,
             GameOriginId = clientGameId, // Different from server ID
             PilotAssignments = []
@@ -1097,7 +1097,7 @@ public class StartNewGameViewModelTests
         _mechFactory.Create(Arg.Any<UnitData>()).Returns(realUnit);
         var localPlayerVm = _sut.Players.First();
         await localPlayerVm.AddUnit(unitData);
-        var unitId = localPlayerVm.Units.First().Id!.Value;
+        var unitId = localPlayerVm.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
@@ -1117,7 +1117,7 @@ public class StartNewGameViewModelTests
         var localPlayerVm = _sut.Players.First();
         var pilotData = new PilotData();
         await localPlayerVm.AddUnit(unitData, pilotData);
-        var unitId = localPlayerVm.Units.First().Id!.Value;
+        var unitId = localPlayerVm.Units.First().Id;
 
         await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
 

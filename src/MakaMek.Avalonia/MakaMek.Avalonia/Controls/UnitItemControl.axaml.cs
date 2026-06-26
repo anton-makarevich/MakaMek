@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -34,6 +35,9 @@ public partial class UnitItemControl : UserControl
 
     public static readonly StyledProperty<string?> PlayerTintProperty =
         AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
+
+    public static readonly StyledProperty<bool> CanEditUnitNameProperty =
+        AvaloniaProperty.Register<UnitItemControl, bool>(nameof(CanEditUnitName), defaultValue: false);
 
     public ICommand? InfoCommand
     {
@@ -71,6 +75,12 @@ public partial class UnitItemControl : UserControl
         set => SetValue(PlayerTintProperty, value);
     }
 
+    public bool CanEditUnitName
+    {
+        get => GetValue(CanEditUnitNameProperty);
+        set => SetValue(CanEditUnitNameProperty, value);
+    }
+
     public UnitItemControl()
     {
         InitializeComponent();
@@ -87,28 +97,28 @@ public partial class UnitItemControl : UserControl
         // Listen for PlayerTint property changes to update the tint
         PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, _) =>
         {
-            if (control.DataContext is UnitData unitData)
+            if (control.DataContext is UnitViewModel unitVm)
             {
-                control.LoadUnitImage(unitData).SafeFireAndForget();
+                control.LoadUnitImage(unitVm).SafeFireAndForget();
             }
         });
     }
     
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is UnitData unitData && _imageService != null)
+        if (DataContext is UnitViewModel unitVm && _imageService != null)
         {
-            LoadUnitImage(unitData).SafeFireAndForget();
+            LoadUnitImage(unitVm).SafeFireAndForget();
         }
     }
     
-    private async Task LoadUnitImage(UnitData unitData)
+    private async Task LoadUnitImage(UnitViewModel unitVm)
     {
         if (_imageService == null) return;
 
         try
         {
-            var image = await _imageService.GetImage("units/mechs", unitData.Model.ToUpper());
+            var image = await _imageService.GetImage("units/mechs", unitVm.Model.ToUpper());
             if (image != null && UnitImage != null)
             {
                 UnitImage.Source = image;
@@ -128,8 +138,7 @@ public partial class UnitItemControl : UserControl
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading unit image for {unitData.Model}: {ex.Message}");
+            Console.WriteLine($"Error loading unit image for {unitVm.Model}: {ex.Message}");
         }
     }
 }
-

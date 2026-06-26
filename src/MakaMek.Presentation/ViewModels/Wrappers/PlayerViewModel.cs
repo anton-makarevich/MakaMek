@@ -35,7 +35,7 @@ public class PlayerViewModel : BindableBase
 
     public PlayerStatus Status => Player.Status;
 
-    public ObservableCollection<UnitData> Units { get; }
+    public ObservableCollection<UnitViewModel> Units { get; }
 
     public bool IsBot => Player.ControlType == PlayerControlType.Bot;
 
@@ -163,12 +163,12 @@ public class PlayerViewModel : BindableBase
         if (unitId == Guid.Empty) return;
 
         var unit = Units.FirstOrDefault(u => u.Id == unitId);
-        if (unit == default) return;
+        if (unit == null) return;
 
         var pilotData = GetPilotDataForUnit(unitId);
         if (_showUnitInfo != null)
         {
-            await _showUnitInfo.Invoke(unit, pilotData);
+            await _showUnitInfo.Invoke(unit.UnitData, pilotData);
         }
     }
 
@@ -177,6 +177,7 @@ public class PlayerViewModel : BindableBase
         if (!CanRemoveUnit || unitId == Guid.Empty) return Task.CompletedTask;
 
         var unit = Units.FirstOrDefault(u => u.Id == unitId);
+        if (unit == null) return Task.CompletedTask;
         var removed = Units.Remove(unit);
         if (!removed) return Task.CompletedTask;
         
@@ -194,9 +195,9 @@ public class PlayerViewModel : BindableBase
     {
         if (unit.Id == null || unit.Id == Guid.Empty)
         {
-            unit.Id = Guid.NewGuid();
+            unit = unit with { Id = Guid.NewGuid() };
         }
-        Units.Add(unit);
+        Units.Add(new UnitViewModel(unit));
 
         // Create a default pilot for this unit
         _unitPilots[unit.Id!.Value] = pilotData ?? PilotData.CreateDefaultPilot("MechWarrior","");
@@ -251,6 +252,11 @@ public class PlayerViewModel : BindableBase
             
             AddUnit(unit, pilotAssignment.UnitId != Guid.Empty ? pilotAssignment.PilotData : null );
         }
+    }
+
+    public List<UnitData> GetUnitsData()
+    {
+        return Units.Select(u => u.UnitData).ToList();
     }
 
     /// <summary>

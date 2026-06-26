@@ -2,16 +2,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Data.Units;assembly=Sanet.MakaMek.Core"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
-             x:DataType="units:UnitData"
+             x:DataType="wrappers:UnitViewModel"
              x:Name="UnitItemUserControl">
     <Border Classes="card"
             Padding="5"
             Width="100"
-            Height="120"
+            Height="140"
             Background="{StaticResource SurfaceBrush}">
         <Grid>
             <StackPanel Spacing="4">
@@ -36,14 +36,19 @@
                     </Panel.RenderTransform>
                 </Panel>
 
-                <!-- Model Name -->
-                <TextBlock Text="{Binding Model}"
+                <!-- Display Name with Edit Toggle -->
+                <TextBlock Text="{Binding DisplayName}"
                            Classes="bodySmall"
                            Foreground="{StaticResource TextLightBrush}"
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            MaxLines="2"
-                           HorizontalAlignment="Center"/>
+                           HorizontalAlignment="Center"
+                           IsVisible="{Binding !IsEditingName}"/>
+                <TextBox Text="{Binding EditableName, Mode=TwoWay}"
+                         IsVisible="{Binding IsEditingName}"
+                         MinWidth="80"
+                         HorizontalAlignment="Center"/>
             </StackPanel>
 
             <!-- Info Button in Top Left Corner -->
@@ -57,7 +62,40 @@
                 <PathIcon Data="{StaticResource RecordSheetIcon}"/>
             </Button>
 
-            <!-- Remove Button in Top Right Corner -->
+            <!-- Edit/Save/Cancel Buttons in Top Right area -->
+            <StackPanel HorizontalAlignment="Right"
+                        Margin="0,-2,-2,0">
+                <!-- Edit Button -->
+                <Button
+                    Command="{Binding StartEditingName}"
+                    IsVisible="{Binding !IsEditingName}"
+                    IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_EditName'}"
+                    Classes="cornerBadge"
+                    Margin="0,0,0,2">
+                    <TextBlock Text="&#xf304;"/>
+                </Button>
+                <!-- Save Button -->
+                <Button
+                    Command="{Binding SaveName}"
+                    IsVisible="{Binding IsEditingName}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_SaveName'}"
+                    Classes="cornerBadge primary"
+                    Margin="0,0,0,2">
+                    <TextBlock Text="&#xf00c;"/>
+                </Button>
+                <!-- Cancel Button -->
+                <Button
+                    Command="{Binding CancelEditName}"
+                    IsVisible="{Binding IsEditingName}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_Cancel'}"
+                    Classes="cornerBadge"
+                    Margin="0,0,0,2">
+                    <TextBlock Text="&#xf00d;"/>
+                </Button>
+            </StackPanel>
+
+            <!-- Remove Button in Bottom Right Corner -->
             <Button
                 Command="{Binding #UnitItemUserControl.RemoveCommand}"
                 CommandParameter="{Binding #UnitItemUserControl.RemoveCommandParameter}"
@@ -65,10 +103,10 @@
                 ToolTip.Tip="{extensions:Localize 'UnitItem_RemoveUnit'}"
                 Classes="cornerBadge"
                 HorizontalAlignment="Right"
-                Margin="0,-2,-2,0">
+                VerticalAlignment="Bottom"
+                Margin="0,0,-2,0">
                 <TextBlock Text="&#xf2ed;"/>
             </Button>
         </Grid>
     </Border>
 </UserControl>
-
