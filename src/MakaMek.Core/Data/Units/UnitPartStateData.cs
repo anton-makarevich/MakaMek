@@ -32,5 +32,10 @@ public record struct UnitPartStateData
     /// Whether the part is blown off
     /// </summary>
     public bool IsBlownOff { get; init; }
+
+    /// <summary>
+    /// Whether the part has been breached by water
+    /// </summary>
+    public bool IsBreached { get; init; }
 }
 

@@ -488,6 +488,24 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         IEnumerable<ComponentHitData> allComponentHits = [];
         List<PartLocation> blownOffParts = [];
+
+        // Calculate and send hull breach if target was submerged and took damage
+        if (resolution.HitLocationsData?.HitLocations != null
+            && resolution.HitLocationsData.HitLocations
+                .Any(h => h.Damage.Any(d => d.ArmorDamage > 0 || d.StructureDamage > 0)))
+        {
+            var hullBreachCommand = Game.HullBreachCalculator
+                .CalculateAndApplyHullBreach(target,
+                    resolution.HitLocationsData.HitLocations
+                        .SelectMany(h => h.Damage).ToList());
+
+            if (hullBreachCommand != null)
+            {
+                hullBreachCommand.GameOriginId = Game.Id;
+                Game.CommandPublisher.PublishCommand(hullBreachCommand);
+            }
+        }
+
         // Calculate and send critical hits if any location received structure damage
         if (resolution.HitLocationsData?.HitLocations != null
             && resolution.HitLocationsData.HitLocations

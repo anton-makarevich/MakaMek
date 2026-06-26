@@ -6,4 +6,17 @@ public class SideTorso : Torso
         : base(name, location, maxArmor, maxRearArmor, maxStructure)
     {
     }
+
+    public override void ApplyBreach()
+    {
+        base.ApplyBreach();
+
+        if (Location is not (PartLocation.LeftTorso or PartLocation.RightTorso)) return;
+        var armLocation = Location == PartLocation.LeftTorso ? PartLocation.LeftArm : PartLocation.RightArm;
+        if (Unit?.Parts.TryGetValue(armLocation, out var armPart) != true) return;
+        foreach (var component in armPart?.Components??[])
+        {
+            component.Flood();
+        }
+    }
 }

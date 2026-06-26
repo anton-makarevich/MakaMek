@@ -119,6 +119,21 @@ public abstract class Unit : IUnit
     public abstract int Height { get; }
 
     /// <summary>
+    /// Whether the unit is completely submerged in water.
+    /// A unit is submerged when water depth equals or exceeds its height.
+    /// Height already accounts for prone/standing state.
+    /// </summary>
+    public bool IsSubmerged
+    {
+        get
+        {
+            var waterDepth = Hex?.GetWaterDepth();
+            if (waterDepth is null) return false;
+            return waterDepth >= Height;
+        }
+    }
+
+    /// <summary>
     /// Maximum per-hex elevation change allowed for forward movement.
     /// </summary>
     public virtual int MaxLevelChangeForward => 0;
@@ -598,6 +613,37 @@ public abstract class Unit : IUnit
     /// Call after mutating parts/components outside normal damage flows.
     /// </summary>
     public abstract void UpdateDestroyedStatus();
+
+    /// <summary>
+    /// Applies a hull breach to a specific location, flooding its components and applying consequences.
+    /// </summary>
+    public void ApplyHullBreach(LocationHullBreachData breachData)
+    {
+        if (!_parts.TryGetValue(breachData.Location, out var targetPart)) return;
+
+        targetPart.ApplyBreach();
+
+        // If the breached location contains engine slots, apply that many hits to the engine
+        if (breachData.EngineHitsApplied > 0)
+        {
+            var engine = GetComponentsAtLocation<Engine>(breachData.Location).FirstOrDefault();
+            if (engine != null)
+            {
+                for (var i = 0; i < breachData.EngineHitsApplied; i++)
+                {
+                    engine.Hit();
+                }
+            }
+        }
+
+        UpdateDestroyedStatus();
+        InvalidateAvailableWeaponsCache();
+
+        if (IsDestroyed)
+        {
+            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
+        }
+    }
 
     /// <summary>
     /// Applies pre-calculated critical hits data to the unit

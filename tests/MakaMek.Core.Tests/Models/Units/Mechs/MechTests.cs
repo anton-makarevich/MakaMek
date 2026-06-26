@@ -3004,6 +3004,21 @@ public class MechTests
         result.ShouldContain(MovementType.Jump);
     }
 
+    [Fact]
+    public void UpdateDestroyedStatus_ShouldDestroyUnit_WhenPilotIsDead()
+    {
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, parts);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        pilot.Kill();
+
+        mech.UpdateDestroyedStatus();
+
+        mech.IsDestroyed.ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(PartLocation.LeftTorso, PartLocation.LeftArm)]
     [InlineData(PartLocation.RightTorso, PartLocation.RightArm)]
@@ -3283,5 +3298,53 @@ public class MechTests
 
         sut.Pilot.ShouldNotBeNull();
         sut.Pilot.Injuries.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenNotDeployed()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsSubmerged_ReturnsFalse_WhenNoWater()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        sut.IsSubmerged.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(0, false)]  // Depth 0, standing height 2 → not submerged
+    [InlineData(1, false)]  // Depth 1, standing height 2 → not submerged
+    [InlineData(2, true)]   // Depth 2, standing height 2 → submerged
+    [InlineData(3, true)]   // Depth 3, standing height 2 → submerged
+    public void IsSubmerged_StandingMech(int depth, bool expected)
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-depth));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+
+        sut.IsSubmerged.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(0, false)]  // Depth 0, prone height 1 → not submerged
+    [InlineData(1, true)]   // Depth 1, prone height 1 → submerged
+    [InlineData(2, true)]   // Depth 2, prone height 1 → submerged
+    public void IsSubmerged_ProneMech(int depth, bool expected)
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var hex = new Hex(new HexCoordinates(1, 1));
+        hex.AddTerrain(new WaterTerrain(-depth));
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), hex);
+        sut.SetProne();
+
+        sut.IsSubmerged.ShouldBe(expected);
     }
 }

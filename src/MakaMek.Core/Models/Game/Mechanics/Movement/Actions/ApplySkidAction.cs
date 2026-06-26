@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Commands;
+﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -13,10 +14,25 @@ public class ApplySkidAction(Mech mech, MechSkidCommand command) : IGameAction
         game.OnMechSkidding(command);
         commands.Add(command);
 
-        var locationsWithDamagedStructure = command.DamageData?.HitLocations.HitLocations
-            .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
-            .SelectMany(h => h.Damage.Where(d => d.StructureDamage > 0))
+        var allDamagedLocations = command.DamageData?.HitLocations.HitLocations
+            .SelectMany(h => h.Damage)
             .ToList() ?? [];
+
+        // Check for hull breach if the mech took damage while submerged
+        if (allDamagedLocations.Count != 0)
+        {
+            var hullBreachCommand = game.HullBreachCalculator
+                .CalculateAndApplyHullBreach(mech, allDamagedLocations);
+            if (hullBreachCommand != null)
+            {
+                hullBreachCommand.GameOriginId = game.Id;
+                commands.Add(hullBreachCommand);
+            }
+        }
+
+        var locationsWithDamagedStructure = allDamagedLocations
+            .Where(d => d.StructureDamage > 0)
+            .ToList();
         if (locationsWithDamagedStructure.Count != 0)
         {
             var critCommand = game.CriticalHitsCalculator

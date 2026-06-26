@@ -215,4 +215,107 @@ public class ApplySkidActionTests : GamePhaseTestsBase
             _mech,
             Arg.Is<List<LocationDamageData>>(l => l.Count == 2));
     }
+
+    [Fact]
+    public void Process_WhenDamageDataExists_ShouldCallHullBreachCalculator()
+    {
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData(
+                [new LocationHitData(
+                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                    [],
+                    [],
+                    PartLocation.CenterTorso)],
+                5),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = _unitId,
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+        var sut = new ApplySkidAction(_mech, command);
+
+        sut.Process(Game);
+
+        Game.HullBreachCalculator.Received(1).CalculateAndApplyHullBreach(
+            _mech,
+            Arg.Is<List<LocationDamageData>>(l => l.Count == 1));
+    }
+
+    [Fact]
+    public void Process_WhenHullBreachCalculatorReturnsCommand_ShouldAddHullBreachCommandWithGameOriginId()
+    {
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData(
+                [new LocationHitData(
+                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                    [],
+                    [],
+                    PartLocation.CenterTorso)],
+                5),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = _unitId,
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+        var hullBreachCommand = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _unitId,
+            BreachedLocations = []
+        };
+        Game.HullBreachCalculator.CalculateAndApplyHullBreach(_mech, Arg.Any<List<LocationDamageData>>())
+            .Returns(hullBreachCommand);
+        var sut = new ApplySkidAction(_mech, command);
+
+        var result = sut.Process(Game);
+
+        result.Count.ShouldBe(2);
+        result[0].ShouldBe(command);
+        result[1].ShouldBe(hullBreachCommand);
+        hullBreachCommand.GameOriginId.ShouldBe(Game.Id);
+    }
+
+    [Fact]
+    public void Process_WhenDamageDataExistsAndHullBreachReturnsNull_ShouldNotAddBreachCommand()
+    {
+        var damageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData(
+                [new LocationHitData(
+                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                    [],
+                    [],
+                    PartLocation.CenterTorso)],
+                5),
+            new DiceResult(3),
+            HitDirection.Front);
+        var command = new MechSkidCommand
+        {
+            UnitId = _unitId,
+            SkidDistance = 1,
+            DamageData = damageData,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+        Game.HullBreachCalculator.CalculateAndApplyHullBreach(_mech, Arg.Any<List<LocationDamageData>>())
+            .Returns((HullBreachCommand?)null);
+        var sut = new ApplySkidAction(_mech, command);
+
+        var result = sut.Process(Game);
+
+        result.Count.ShouldBe(1);
+        result[0].ShouldBe(command);
+    }
 }

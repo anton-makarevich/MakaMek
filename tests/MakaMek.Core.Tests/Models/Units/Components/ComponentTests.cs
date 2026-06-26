@@ -527,7 +527,90 @@ public class ComponentTests
         // Act & Assert
         sut.IsSubmerged.ShouldBe(expected);
     }
-    
+
+    [Fact]
+    public void IsFlooded_Default_ReturnsFalse()
+    {
+        var sut = new TestComponent("Test");
+        sut.IsFlooded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Flood_SetsIsFloodedTrue()
+    {
+        var sut = new TestComponent("Test");
+        sut.Flood();
+        sut.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Flood_CanBeCalledMultipleTimes()
+    {
+        var sut = new TestComponent("Test");
+        sut.Flood();
+        sut.Flood();
+        sut.Flood();
+        sut.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAvailable_ReturnsFalse_WhenFlooded()
+    {
+        var sut = new TestComponent("Test");
+        var part = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.Mount(part, [0]);
+
+        sut.Flood();
+
+        sut.IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAvailable_ReturnsTrue_WhenNotFlooded()
+    {
+        var sut = new TestComponent("Test");
+        var part = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.Mount(part, [0]);
+
+        sut.IsAvailable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ToData_ShouldIncludeIsFlooded_WhenTrue()
+    {
+        var sut = new HeatSink();
+        sut.Flood();
+
+        var data = sut.ToData();
+
+        data.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ToData_ShouldIncludeIsFlooded_WhenFalse()
+    {
+        var sut = new HeatSink();
+
+        var data = sut.ToData();
+
+        data.IsFlooded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Constructor_ShouldRestoreIsFlooded_FromComponentData()
+    {
+        var data = new ComponentData
+        {
+            Type = MakaMekComponent.HeatSink,
+            Assignments = Array.Empty<LocationSlotAssignment>(),
+            IsFlooded = true
+        };
+
+        var sut = new HeatSink(data);
+
+        sut.IsFlooded.ShouldBeTrue();
+    }
+
     private static List<UnitPart> CreateBasicPartsData()
     {
         var engineData = new ComponentData

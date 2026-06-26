@@ -35,6 +35,12 @@ public record ComponentData
     public bool HasExploded { get; init; } // Default omitted when false
 
     /// <summary>
+    /// Whether this component is flooded (from a hull breach)
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsFlooded { get; init; }
+
+    /// <summary>
     /// Override name for this specific component instance (optional)
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

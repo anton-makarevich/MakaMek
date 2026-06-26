@@ -3269,4 +3269,43 @@ public class ClientGameTests
         unit.Position.ShouldNotBeNull();
         unit.Position.Coordinates.ShouldBe(new HexCoordinates(2, 2));
     }
+
+    [Fact]
+    public void HandleCommand_ShouldApplyHullBreach_WhenHullBreachCommandIsReceived()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        _sut.HandleCommand(joinCommand);
+
+        var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
+        mech.ShouldNotBeNull();
+
+        var hullBreachCommand = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            BreachedLocations =
+            [
+                new LocationHullBreachData(PartLocation.CenterTorso, true, null, null, 0)
+            ]
+        };
+
+        // Act
+        _sut.HandleCommand(hullBreachCommand);
+
+        // Assert
+        mech.Parts[PartLocation.CenterTorso].IsBreached.ShouldBeTrue();
+        _sut.CommandLog.ShouldContain(c => c is HullBreachCommand);
+    }
 }

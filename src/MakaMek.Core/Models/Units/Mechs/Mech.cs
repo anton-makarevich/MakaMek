@@ -119,6 +119,11 @@ public class Mech : Unit
 
     public override void UpdateDestroyedStatus()
     {
+        if (Pilot?.IsDead == true)
+        {
+            Status = UnitStatus.Destroyed;
+            return;
+        }
         if (_parts.TryGetValue(PartLocation.Head, out var head) && head.IsDestroyed)
         {
             Status = UnitStatus.Destroyed;

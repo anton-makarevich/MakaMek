@@ -659,6 +659,79 @@ public class UnitPartTests
         sut.IsSubmerged.ShouldBe(expected);
     }
 
+    [Fact]
+    public void IsBreached_Default_ReturnsFalse()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.IsBreached.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplyBreach_SetsIsBreachedTrue()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.ApplyBreach();
+        sut.IsBreached.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyBreach_FloodsAllComponents()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        var component = new TestComponent("TestComp", 1);
+        var added = sut.TryAddComponent(component, [4]);
+        added.ShouldBeTrue();
+
+        sut.ApplyBreach();
+
+        component.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RestoreState_WithBreachTrue_SetsIsBreachedAndFloodsComponents()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        var component = new TestComponent("TestComp", 1);
+        var added = sut.TryAddComponent(component, [4]);
+        added.ShouldBeTrue();
+
+        sut.RestoreState(10, 5, false, true);
+
+        sut.IsBreached.ShouldBeTrue();
+        component.IsFlooded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RestoreState_WithBreachFalse_DoesNotSetIsBreached()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+
+        sut.RestoreState(10, 5, false, false);
+
+        sut.IsBreached.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToData_WhenNotBreached_SerializesIsBreachedFalse()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+
+        var data = sut.ToData();
+
+        data.IsBreached.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToData_WhenBreached_SerializesIsBreachedTrue()
+    {
+        var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
+        sut.ApplyBreach();
+
+        var data = sut.ToData();
+
+        data.IsBreached.ShouldBeTrue();
+    }
+
     public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;

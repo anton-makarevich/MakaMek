@@ -178,6 +178,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case CriticalHitsResolutionCommand criticalHitsCommand:
                 OnCriticalHitsResolution(criticalHitsCommand);
                 break;
+            case HullBreachCommand hullBreachCommand:
+                OnHullBreach(hullBreachCommand);
+                break;
             case ErrorCommand errorCommand:
                 // Complete the pending task with failure
                 if (errorCommand.IdempotencyKey.HasValue)

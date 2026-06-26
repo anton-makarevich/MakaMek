@@ -66,6 +66,11 @@ public interface IUnit
     int Height { get; }
 
     /// <summary>
+    /// Whether the unit is completely submerged in water (standing in Depth 2+ or prone in Depth 1+).
+    /// </summary>
+    bool IsSubmerged { get; }
+
+    /// <summary>
     /// Maximum per-hex elevation change allowed for forward movement.
     /// </summary>
     int MaxLevelChangeForward { get; }
@@ -244,6 +249,12 @@ public interface IUnit
     /// </summary>
     /// <param name="criticalHitsData">Pre-calculated critical hits data from the server</param>
     void ApplyCriticalHits(List<LocationCriticalHitsData> criticalHitsData);
+
+    /// <summary>
+    /// Applies a hull breach to a specific location, flooding its components and applying consequences.
+    /// </summary>
+    /// <param name="breachData">The hull breach data for the location</param>
+    void ApplyHullBreach(LocationHullBreachData breachData);
 
     PartLocation? GetTransferLocation(PartLocation location);
     IEnumerable<T> GetAllComponents<T>() where T : Component;

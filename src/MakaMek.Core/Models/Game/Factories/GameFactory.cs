@@ -38,6 +38,8 @@ public class GameFactory : IGameFactory
     {
         var logger = _loggerFactory.CreateLogger<ServerGame>();
 
+        var hullBreachCalculator = new HullBreachCalculator(diceRoller);
+
         return new ServerGame(rulesProvider,
             mechFactory,
             commandPublisher,
@@ -45,6 +47,7 @@ public class GameFactory : IGameFactory
             toHitCalculator,
             damageTransferCalculator,
             criticalHitsCalculator,
+            hullBreachCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,

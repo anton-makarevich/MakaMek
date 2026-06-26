@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Map.Models;
 
@@ -17,6 +17,13 @@ public class Head : UnitPart
     }
 
     internal override bool CanBeBlownOff => true;
+
+    public override void ApplyBreach()
+    {
+        base.ApplyBreach();
+        if (Unit?.Pilot is not { IsDead: false }) return;
+        Unit.Pilot.Kill();
+    }
 
     public override bool BlowOff()
     {

@@ -117,16 +117,17 @@ public class MechFactory : IMechFactory
             var currentFrontArmor = partState.CurrentFrontArmor ?? part.MaxArmor;
             var currentStructure = partState.CurrentStructure ?? part.MaxStructure;
             var isBlownOff = partState.IsBlownOff;
+            var isBreached = partState.IsBreached;
 
             // Restore state based on a part type
             if (part is Torso torso)
             {
                 var currentRearArmor = partState.CurrentRearArmor ?? torso.MaxRearArmor;
-                torso.RestoreTorsoState(currentFrontArmor, currentRearArmor, currentStructure, isBlownOff);
+                torso.RestoreTorsoState(currentFrontArmor, currentRearArmor, currentStructure, isBlownOff, isBreached);
             }
             else
             {
-                part.RestoreState(currentFrontArmor, currentStructure, isBlownOff);
+                part.RestoreState(currentFrontArmor, currentStructure, isBlownOff, isBreached);
             }
         }
     }

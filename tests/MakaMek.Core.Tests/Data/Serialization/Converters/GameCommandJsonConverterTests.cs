@@ -1,10 +1,12 @@
 using System.Text.Json;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
@@ -418,6 +420,44 @@ public class GameCommandJsonConverterTests
         deployCommand.IdempotencyKey.ShouldBe(originalCommand.IdempotencyKey);
     }
 
+    [Fact]
+    public void RoundTrip_HullBreachCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalCommand = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            BreachedLocations =
+            [
+                new LocationHullBreachData(
+                    PartLocation.CenterTorso,
+                    false,
+                    [5, 6],
+                    null,
+                    3)
+            ]
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        deserializedCommand.ShouldNotBeNull();
+        deserializedCommand.ShouldBeOfType<HullBreachCommand>();
+
+        var hullBreachCommand = (HullBreachCommand)deserializedCommand;
+        hullBreachCommand.GameOriginId.ShouldBe(originalCommand.GameOriginId);
+        hullBreachCommand.UnitId.ShouldBe(originalCommand.UnitId);
+        hullBreachCommand.Timestamp.ShouldBe(originalCommand.Timestamp);
+        hullBreachCommand.BreachedLocations.Count.ShouldBe(1);
+        hullBreachCommand.BreachedLocations[0].Location.ShouldBe(PartLocation.CenterTorso);
+        hullBreachCommand.BreachedLocations[0].BreachRoll.ShouldBe([5, 6]);
+        hullBreachCommand.BreachedLocations[0].EngineHitsApplied.ShouldBe(3);
+    }
+
     [Theory]
     [InlineData("AmmoExplosionCommand")]
     [InlineData("ChangeActivePlayerCommand")]
@@ -428,6 +468,7 @@ public class GameCommandJsonConverterTests
     [InlineData("ErrorCommand")]
     [InlineData("GameEndedCommand")]
     [InlineData("HeatUpdatedCommand")]
+    [InlineData("HullBreachCommand")]
     [InlineData("JoinGameCommand")]
     [InlineData("MechFallCommand")]
     [InlineData("MechStandUpCommand")]

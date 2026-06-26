@@ -322,6 +322,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IDamageTransferCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IHullBreachCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),

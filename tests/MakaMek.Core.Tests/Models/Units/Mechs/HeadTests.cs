@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Events;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -188,6 +189,60 @@ public class HeadTests
         var sut = new Head("Head",  8, 3);
         
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldKillPilot()
+    {
+        var sut = new Head("Head", 8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        sut.ApplyBreach();
+
+        pilot.IsDead.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldNotThrow_WhenNoPilot()
+    {
+        var sut = new Head("Head", 8, 3);
+
+        sut.ApplyBreach();
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldFloodComponents()
+    {
+        var sut = new Head("Head", 8, 3);
+
+        sut.ApplyBreach();
+
+        sut.IsBreached.ShouldBeTrue();
+        foreach (var component in sut.Components)
+        {
+            component.IsFlooded.ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public void ApplyBreach_ShouldAddSinglePilotDeadEvent_WhenPilotIsAssigned()
+    {
+        var sut = new Head("Head", 8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        sut.ApplyBreach();
+
+        var pilotDeadCount = 0;
+        while (mech.DequeueNotification() is { } uiEvent)
+        {
+            if (uiEvent.Type == UiEventType.PilotDead)
+                pilotDeadCount++;
+        }
+        pilotDeadCount.ShouldBe(1);
     }
 
     [Fact]
