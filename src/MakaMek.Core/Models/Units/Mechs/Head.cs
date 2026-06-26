@@ -23,7 +23,6 @@ public class Head : UnitPart
         base.ApplyBreach();
         if (Unit?.Pilot is not { IsDead: false }) return;
         Unit.Pilot.Kill();
-        Unit.AddEvent(new UiEvent(UiEventType.PilotDead, Name));
     }
 
     public override bool BlowOff()

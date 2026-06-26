@@ -227,7 +227,7 @@ public class HeadTests
     }
 
     [Fact]
-    public void ApplyBreach_ShouldAddPilotDeadEvent_WhenPilotIsAssigned()
+    public void ApplyBreach_ShouldAddSinglePilotDeadEvent_WhenPilotIsAssigned()
     {
         var sut = new Head("Head", 8, 3);
         var mech = new Mech("Test", "TST-1A", 50, [sut]);
@@ -236,9 +236,13 @@ public class HeadTests
 
         sut.ApplyBreach();
 
-        var uiEvent = mech.DequeueNotification();
-        uiEvent.ShouldNotBeNull();
-        uiEvent.Type.ShouldBe(UiEventType.PilotDead);
+        var pilotDeadCount = 0;
+        while (mech.DequeueNotification() is { } uiEvent)
+        {
+            if (uiEvent.Type == UiEventType.PilotDead)
+                pilotDeadCount++;
+        }
+        pilotDeadCount.ShouldBe(1);
     }
 
     [Fact]
