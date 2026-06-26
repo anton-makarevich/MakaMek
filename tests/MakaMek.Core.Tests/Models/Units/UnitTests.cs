@@ -3184,4 +3184,51 @@ public class UnitTests
         // Head has no engine, so no engine critical hit should be applied
         head.Components.OfType<Engine>().ShouldBeEmpty();
     }
+
+    [Fact]
+    public void ApplyHullBreach_WithDestroyedCenterTorso_ShouldAddUnitDestroyedEvent()
+    {
+        var sut = CreateTestUnit();
+        var ct = sut.Parts[PartLocation.CenterTorso];
+
+        // Destroy center torso by applying damage directly to the part
+        ct.ApplyDamage(ct.CurrentArmor + ct.CurrentStructure, HitDirection.Front);
+        ct.IsDestroyed.ShouldBeTrue();
+
+        // Unit is NOT destroyed yet because UpdateDestroyedStatus hasn't been called
+        sut.IsDestroyed.ShouldBeFalse();
+
+        var initialEventCount = sut.Events.Count;
+
+        var breachData = new LocationHullBreachData(
+            PartLocation.CenterTorso,
+            false,
+            null,
+            null,
+            0);
+        sut.ApplyHullBreach(breachData);
+
+        // ApplyHullBreach calls UpdateDestroyedStatus which detects the destroyed CT
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.Events.Count.ShouldBe(initialEventCount + 1);
+        sut.Events[^1].Type.ShouldBe(UiEventType.UnitDestroyed);
+        sut.Events[^1].Parameters[0].ShouldBe(sut.Name);
+    }
+
+    [Fact]
+    public void ApplyHullBreach_WithNonDestroyedPart_ShouldNotAddUnitDestroyedEvent()
+    {
+        var sut = CreateTestUnit();
+
+        var breachData = new LocationHullBreachData(
+            PartLocation.LeftArm,
+            false,
+            null,
+            null,
+            0);
+        sut.ApplyHullBreach(breachData);
+
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.Events.Where(e => e.Type == UiEventType.UnitDestroyed).ShouldBeEmpty();
+    }
 }
