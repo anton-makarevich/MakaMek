@@ -1638,6 +1638,167 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         externalHeat.ShouldBe(5);
     }
 
+    [Fact]
+    public void Enter_ShouldPublishHullBreachCommand_WhenHullBreachCalculatorReturnsCommand()
+    {
+        // Arrange
+        SetMap();
+
+        var weapon = new TestWeapon();
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(weapon).ShouldBeTrue();
+
+        _player1Unit1.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon.Name,
+                    Type = weapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part.Location,
+                            weapon.MountedAtFirstLocationSlots.First(),
+                            weapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        var hullBreachCommand = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _player2Unit1.Id,
+            BreachedLocations = []
+        };
+        Game.HullBreachCalculator.CalculateAndApplyHullBreach(
+                Arg.Any<IUnit>(),
+                Arg.Any<List<LocationDamageData>>())
+            .Returns(hullBreachCommand);
+
+        SetupDiceRolls(8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<HullBreachCommand>(cmd =>
+                cmd.UnitId == _player2Unit1.Id &&
+                cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void Enter_ShouldNotPublishHullBreachCommand_WhenHullBreachCalculatorReturnsNull()
+    {
+        // Arrange
+        SetMap();
+
+        var weapon = new TestWeapon();
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(weapon).ShouldBeTrue();
+
+        _player1Unit1.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon.Name,
+                    Type = weapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part.Location,
+                            weapon.MountedAtFirstLocationSlots.First(),
+                            weapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Hull breach calculator returns null by default
+        SetupDiceRolls(8, 6);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<HullBreachCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldNotCallHullBreachCalculator_WhenAllDamageAbsorbedByPartialCover()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.LeftLeg);
+        mockRulesProvider.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
+        SetGameWithRulesProvider(mockRulesProvider);
+
+        SetMap();
+
+        var weapon = new TestWeapon();
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(weapon).ShouldBeTrue();
+
+        _player1Unit1.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon.Name,
+                    Type = weapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part.Location,
+                            weapon.MountedAtFirstLocationSlots.First(),
+                            weapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        SetupDiceRolls(8, 9);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        Game.HullBreachCalculator.DidNotReceive().CalculateAndApplyHullBreach(
+            Arg.Any<IUnit>(),
+            Arg.Any<List<LocationDamageData>>());
+    }
+
     private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
         Unit? target, WeaponTargetData? weaponTargetData = null, bool hasPartialCover = false, HexCoordinateData? coveringHex = null)
     {
