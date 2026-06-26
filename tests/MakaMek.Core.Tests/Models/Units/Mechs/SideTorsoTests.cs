@@ -70,7 +70,7 @@ public class SideTorsoTests
     public void ApplyBreach_ShouldNotThrow_WhenArmNotFound()
     {
         var torso = new SideTorso("SideTorso", PartLocation.LeftTorso, 8, 2, 5);
-        // Create mech with only the torso, no arm
+        _ = new Mech("Test", "TST-1A", 50, (List<UnitPart>)[torso]);
 
         torso.ApplyBreach();
     }
