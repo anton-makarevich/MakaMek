@@ -226,6 +226,7 @@ public class HullBreachCalculatorTests
         var floodedComponents = result.BreachedLocations[0].FloodedComponents;
         floodedComponents.ShouldNotBeNull();
         floodedComponents.Length.ShouldBeGreaterThan(0);
+        floodedComponents.ShouldAllBe(c => c.IsFlooded);
     }
 
     [Fact]

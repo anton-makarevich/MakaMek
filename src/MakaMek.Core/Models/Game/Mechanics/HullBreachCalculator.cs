@@ -49,21 +49,26 @@ public class HullBreachCalculator : IHullBreachCalculator
                 engineHitsApplied = engine.GetMountedAtLocationSlots(damagedLocation.Location).Length;
             }
 
-            // Collect flooded component data for the command
-            var floodedComponents = part.Components
-                .Select(c => c.ToData())
-                .ToArray();
-
             var breachData = new LocationHullBreachData(
                 damagedLocation.Location,
                 isAutomatic,
                 breachRoll,
-                floodedComponents.Length > 0 ? floodedComponents : null,
+                null, // Filled after ApplyBreach
                 engineHitsApplied
             );
 
             // Apply breach as side effect (matching CriticalHitsCalculator pattern)
             unit.ApplyHullBreach(breachData);
+
+            // Collect flooded component data after breach so IsFlooded is set
+            var floodedComponents = part.Components
+                .Select(c => c.ToData())
+                .ToArray();
+
+            breachData = breachData with
+            {
+                FloodedComponents = floodedComponents.Length > 0 ? floodedComponents : null
+            };
 
             breachedLocations.Add(breachData);
         }
