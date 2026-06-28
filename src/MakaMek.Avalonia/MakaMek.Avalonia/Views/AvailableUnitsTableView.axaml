@@ -144,7 +144,7 @@
                             Content="{extensions:Localize 'AvailableUnits_UnitInfo'}"
                             Command="{Binding ShowUnitInfoCommand}"
                             Classes="secondary"/>
-                    <Button Content="{extensions:Localize 'AvailableUnits_Cancel'}"
+                    <Button Content="{extensions:Localize 'Cancel'}"
                             Command="{Binding CancelCommand}"
                             Classes="primary"/>
                     <Button Content="{extensions:Localize 'AvailableUnits_AddUnit'}"

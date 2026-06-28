@@ -372,6 +372,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]
     [InlineData("Pilot_Status_Conscious", "CONSCIOUS")]
     [InlineData("Pilot_Status_Unconscious", "UNCONSCIOUS")]
+    // Generic action keys
+    [InlineData("Cancel", "Cancel")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_MiscellaneousKeys_ReturnsExpectedString(string key, string expected)
@@ -695,6 +697,8 @@ public class FakeLocalizationServiceTests
 
     [Theory]
     [InlineData("UnitItem_RemoveUnit", "Remove unit")]
+    [InlineData("UnitItem_EditName", "Edit unit name")]
+    [InlineData("UnitItem_SaveName", "Save name")]
     public void GetString_UnitItem_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -757,7 +761,6 @@ public class FakeLocalizationServiceTests
     [InlineData("AvailableUnits_Chassis", "Chassis")]
     [InlineData("AvailableUnits_Model", "Model")]
     [InlineData("AvailableUnits_Mass", "Mass")]
-    [InlineData("AvailableUnits_Cancel", "Cancel")]
     [InlineData("AvailableUnits_AddUnit", "Add Unit")]
     public void GetString_AvailableUnits_ReturnsExpectedString(string key, string expected)
     {
@@ -882,7 +885,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Players_AddBot", "Add Bot")]
     [InlineData("Players_EditName", "Edit player name")]
     [InlineData("Players_SaveName", "Save name")]
-    [InlineData("Players_Cancel", "Cancel")]
     [InlineData("Players_RemovePlayer", "Remove player")]
     [InlineData("Players_AddUnit", "Add Unit")]
     [InlineData("Players_JoinGame", "Join Game")]

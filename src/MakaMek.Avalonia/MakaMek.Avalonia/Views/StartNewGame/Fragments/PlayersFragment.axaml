@@ -70,7 +70,7 @@
                                     </Button>
                                     <Button Command="{Binding CancelEditName}"
                                             IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="{extensions:Localize 'Players_Cancel'}"
+                                            ToolTip.Tip="{extensions:Localize 'Cancel'}"
                                             Classes="secondary inlineIcon">
                                         <TextBlock Text="&#xf00d;"/>
                                     </Button>
