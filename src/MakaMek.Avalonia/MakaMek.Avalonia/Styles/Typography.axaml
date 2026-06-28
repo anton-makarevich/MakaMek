@@ -45,6 +45,13 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
+
+    <Style Selector="TextBox.bodySmall">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+    </Style>
     
     <!-- Label Styles -->
     <Style Selector="TextBlock.labelLarge">

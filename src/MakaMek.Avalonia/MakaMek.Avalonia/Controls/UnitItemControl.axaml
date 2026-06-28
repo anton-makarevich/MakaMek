@@ -47,6 +47,7 @@
                            IsVisible="{Binding !IsEditingName}"/>
                 <TextBox Text="{Binding EditableName, Mode=TwoWay}"
                          IsVisible="{Binding IsEditingName}"
+                         Classes="bodySmall"
                          MinWidth="80"
                          HorizontalAlignment="Center"/>
             </StackPanel>
