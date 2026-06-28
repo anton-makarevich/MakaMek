@@ -58,6 +58,8 @@ public class UnitViewModel : BindableBase
 
     public void SaveName()
     {
+        if (!IsEditingName) return;
+
         if (string.IsNullOrWhiteSpace(EditableName))
         {
             _unitData = _unitData with { Name = null };

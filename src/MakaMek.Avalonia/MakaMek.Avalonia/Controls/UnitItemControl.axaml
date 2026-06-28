@@ -47,6 +47,7 @@
                            IsVisible="{Binding !IsEditingName}"/>
                 <TextBox Text="{Binding EditableName, Mode=TwoWay}"
                          IsVisible="{Binding IsEditingName}"
+                         IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
                          Classes="bodySmall"
                          MinWidth="80"
                          HorizontalAlignment="Center"/>
@@ -80,6 +81,7 @@
                 <Button
                     Command="{Binding SaveName}"
                     IsVisible="{Binding IsEditingName}"
+                    IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
                     ToolTip.Tip="{extensions:Localize 'UnitItem_SaveName'}"
                     Classes="cornerBadge primary"
                     Margin="0,0,0,2">

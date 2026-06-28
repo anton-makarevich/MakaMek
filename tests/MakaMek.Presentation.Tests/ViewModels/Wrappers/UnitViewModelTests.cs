@@ -138,6 +138,19 @@ public class UnitViewModelTests
     }
 
     [Fact]
+    public void SaveName_WhenNotEditing_DoesNotChangeName()
+    {
+        var unitData = CreateUnitData("Original");
+        var sut = new UnitViewModel(unitData);
+
+        sut.SaveName();
+
+        sut.IsEditingName.ShouldBeFalse();
+        sut.DisplayName.ShouldBe("Original");
+        sut.UnitData.Name.ShouldBe("Original");
+    }
+
+    [Fact]
     public void CancelEditName_RevertsEditableNameAndExitsEditing()
     {
         var unitData = CreateUnitData("Original");
