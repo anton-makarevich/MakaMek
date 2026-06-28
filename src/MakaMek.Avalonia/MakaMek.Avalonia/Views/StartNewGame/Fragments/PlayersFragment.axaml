@@ -70,7 +70,7 @@
                                     </Button>
                                     <Button Command="{Binding CancelEditName}"
                                             IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="{extensions:Localize 'Players_Cancel'}"
+                                            ToolTip.Tip="{extensions:Localize 'Cancel'}"
                                             Classes="secondary inlineIcon">
                                         <TextBlock Text="&#xf00d;"/>
                                     </Button>
@@ -127,7 +127,8 @@
                                                         InfoCommandParameter="{Binding Id}"
                                                         RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
                                                         RemoveCommandParameter="{Binding Id}"
-                                                        IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>
+                                                        IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"
+                                                        CanEditUnitName="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanEditName}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

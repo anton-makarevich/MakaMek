@@ -269,6 +269,45 @@ public class MechFactoryTests
     }
 
     [Fact]
+    public void Create_WithCustomName_SetsNameFromUnitData()
+    {
+        // Arrange
+        var unitData = CreateDummyMechData() with { Name = "My Custom Locust" };
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        mech.Name.ShouldBe("My Custom Locust");
+    }
+
+    [Fact]
+    public void Create_WithoutName_FallsBackToChassisAndModel()
+    {
+        // Arrange
+        var unitData = CreateDummyMechData();
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        mech.Name.ShouldBe("Locust LCT-1V");
+    }
+
+    [Fact]
+    public void Create_WithBlankName_FallsBackToChassisAndModel()
+    {
+        // Arrange
+        var unitData = CreateDummyMechData() with { Name = "   " };
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        mech.Name.ShouldBe("Locust LCT-1V");
+    }
+
+    [Fact]
     public void Create_WithNoEquipment_CreatesBasicMech()
     {
         // Arrange

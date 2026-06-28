@@ -146,6 +146,47 @@ public class UnitTests
     }
     
     [Fact]
+    public void Name_ReturnsChassisAndModel_WhenNoCustomNameSet()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act
+        var name = sut.Name;
+
+        // Assert
+        name.ShouldBe("Test Unit");
+    }
+
+    [Fact]
+    public void Name_ReturnsCustomName_WhenCustomNameIsSet()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        const string customName = "My Custom Unit";
+
+        // Act
+        sut.Name = customName;
+
+        // Assert
+        sut.Name.ShouldBe(customName);
+    }
+
+    [Fact]
+    public void Name_CustomNameSetter_OverridesDefaultName()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act
+        sut.Name = "Override";
+
+        // Assert
+        sut.Name.ShouldBe("Override");
+        sut.Name.ShouldNotBe("Test Unit");
+    }
+
+    [Fact]
     public void CanHavePartialCover_ReturnsFalse_ByDefault()
     {
         // Arrange

@@ -46,8 +46,9 @@ public class Mech : Unit
         IEnumerable<UnitPart> parts,
         int possibleTorsoRotation = 1,
         bool canFlipArms = false,
-        Guid? id = null)
-        : base(chassis, model, tonnage, parts, id)
+        Guid? id = null,
+        string? name = null)
+        : base(chassis, model, tonnage, parts, id, name)
     {
         PossibleTorsoRotation = possibleTorsoRotation;
         CanFlipArms = canFlipArms;

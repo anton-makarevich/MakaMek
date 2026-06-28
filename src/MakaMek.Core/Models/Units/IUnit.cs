@@ -21,7 +21,7 @@ public interface IUnit
 {
     string Chassis { get; }
     string Model { get; }
-    string Name { get; }
+    string Name { get; set; }
     int Tonnage { get; }
     IPlayer? Owner { get; }
 
