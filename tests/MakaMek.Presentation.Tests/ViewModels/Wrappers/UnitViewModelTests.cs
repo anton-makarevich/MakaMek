@@ -88,6 +88,31 @@ public class UnitViewModelTests
     }
 
     [Fact]
+    public void StartEditingName_WhenNameIsNull_SetsEditableNameToEmpty()
+    {
+        var unitData = CreateUnitData();
+        var sut = new UnitViewModel(unitData);
+
+        sut.StartEditingName();
+
+        sut.EditableName.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SaveName_WithoutChanges_WhenNameIsNull_PreservesNull()
+    {
+        var unitData = CreateUnitData();
+        var sut = new UnitViewModel(unitData);
+
+        sut.StartEditingName();
+        sut.SaveName();
+
+        sut.IsEditingName.ShouldBeFalse();
+        sut.UnitData.Name.ShouldBeNull();
+        sut.DisplayName.ShouldBe("Locust LCT-1V");
+    }
+
+    [Fact]
     public void CanEditName_ReturnsFalse_WhenEditing()
     {
         var unitData = CreateUnitData();

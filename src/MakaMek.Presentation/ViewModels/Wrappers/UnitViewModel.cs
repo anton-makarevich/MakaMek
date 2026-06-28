@@ -53,7 +53,7 @@ public class UnitViewModel : BindableBase
         if (!CanEditName) return;
 
         IsEditingName = true;
-        EditableName = DisplayName;
+        EditableName = _unitData.Name ?? string.Empty;
     }
 
     public void SaveName()
