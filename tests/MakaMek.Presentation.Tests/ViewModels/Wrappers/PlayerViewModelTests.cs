@@ -97,4 +97,112 @@ public class PlayerViewModelTests
             Arg.Is<UnitData>(u => u.Id == unitId),
             Arg.Any<PilotData?>());
     }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldNotRemoveUnit_WhenCanRemoveUnitIsFalse()
+    {
+        // isLocalPlayer: false => CanRemoveUnit is false
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, false);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(unitId);
+
+        sut.Units.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldNotRemoveUnit_WhenUnitIdIsEmpty()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(Guid.Empty);
+
+        sut.Units.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldNotRemoveUnit_WhenUnitNotFound()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(Guid.NewGuid());
+
+        sut.Units.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldRemoveUnit_WhenUnitExists()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(unitId);
+
+        sut.Units.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldRemovePilotData_WhenUnitIsRemoved()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var pilotData = new PilotData();
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(unitId);
+
+        sut.GetPilotDataForUnit(unitId).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldNotifyCanJoinAndCanSetReady_WhenUnitIsRemoved()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+        var unitId = sut.Units.First().Id;
+
+        var changedProperties = new List<string>();
+        sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != null) changedProperties.Add(e.PropertyName);
+        };
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(unitId);
+
+        changedProperties.ShouldContain(nameof(sut.CanJoin));
+        changedProperties.ShouldContain(nameof(sut.CanSetReady));
+    }
+
+    [Fact]
+    public async Task RemoveUnitCommand_ShouldInvokeOnUnitChanged_WhenUnitIsRemoved()
+    {
+        var onUnitChangedCalled = false;
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true, onUnitChanged: () => onUnitChangedCalled = true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        await sut.AddUnit(unitData);
+        // Reset the flag since AddUnit also invokes onUnitChanged
+        onUnitChangedCalled = false;
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.RemoveUnitCommand).ExecuteAsync(unitId);
+
+        onUnitChangedCalled.ShouldBeTrue();
+    }
 }
