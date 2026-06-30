@@ -114,7 +114,8 @@ public class MapGeneratorBuilder
     /// <summary>
     /// Adds river generation. Rivers flow from the map edge inward with a
     /// directional probability of 50% straight / 25% clockwise / 25% counter-clockwise.
-    /// Rivers terminate at the map edge, at a lake hex, or at another river.
+    /// Rivers terminate at the map edge, at a lake hex, at another river,
+    /// or when an elevation change would reverse the locked flow direction.
     /// Must be called after <see cref="WithLakes"/> if both are used.
     /// </summary>
     /// <param name="riverCount">Number of rivers to generate.</param>
