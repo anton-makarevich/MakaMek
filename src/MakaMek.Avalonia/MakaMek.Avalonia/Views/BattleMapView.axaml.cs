@@ -67,7 +67,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             if (bitmaskService != null && game.BattleMap != null && (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge)))
             {
                 var rawRoad = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road, (current, neighbor) => current.CanRoadConnectTo(neighbor));
-                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Bridge);
+                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Bridge, (current, neighbor) => current.CanRoadConnectTo(neighbor));
                 roadBitmask = bitmaskService.CanonicalizeRawMask((byte)(rawRoad | rawBridge));
             }
 

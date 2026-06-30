@@ -14,6 +14,7 @@ public class RoadPathGenerator
     private const int StraightProbability = 85;
     private const int AdjacentProbability = 10;
     private const int OtherProbability = 5;
+    private const int MaxPassableLevelDifference = 1;
 
     private readonly int _width;
     private readonly int _height;
@@ -73,6 +74,7 @@ public class RoadPathGenerator
         while (queue.Count > 0)
         {
             var (hex, straightDirection) = queue.Dequeue();
+            var hexLevel = _levelLookup?.Invoke(hex);
 
             foreach (var candidate in HexDirectionExtensions.AllDirections)
             {
@@ -85,7 +87,7 @@ public class RoadPathGenerator
                 if (road.Contains(targetHex) || _existingRoadHexes.Contains(targetHex))
                     continue;
 
-                if (_levelLookup != null && Math.Abs(_levelLookup(targetHex) - _levelLookup(hex)) > 1)
+                if (hexLevel != null && Math.Abs(_levelLookup!(targetHex) - hexLevel.Value) > MaxPassableLevelDifference)
                     continue;
 
                 var probability = GetProbabilityForDirection(candidate, straightDirection);

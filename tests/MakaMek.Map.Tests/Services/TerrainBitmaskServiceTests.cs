@@ -803,4 +803,28 @@ public class TerrainBitmaskServiceTests
     {
         Should.Throw<ArgumentOutOfRangeException>(() => _ = new CanonicalBitmaskResult(0, steps));
     }
+
+    [Fact]
+    public void ComputeRawBitmask_NullCurrentHexWithFilter_NoBitsSet()
+    {
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+
+        // currentHex is null (out of bounds or not found)
+        map.GetHex(centerCoords).Returns((Hex?)null);
+
+        // All neighbors have the matching terrain
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Road);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        Func<Hex, Hex, bool> filter = (current, neighbor) => true;
+
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
+
+        result.ShouldBe((byte)0);
+    }
 }

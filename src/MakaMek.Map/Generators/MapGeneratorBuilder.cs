@@ -143,9 +143,10 @@ public class MapGeneratorBuilder
     /// map edge. Where a road hex coincides with water (a lake or river hex produced
     /// by an earlier overlay) a <see cref="BridgeTerrain"/> is placed instead of a
     /// plain <see cref="RoadTerrain"/>, modelling a bridge spanning the water.
-    /// Must be called after <see cref="WithLakes"/> and <see cref="WithRivers"/> if
-    /// bridges over those water bodies are desired, so the last-overlay-wins pattern
-    /// lets roads/bridges override the underlying water.
+    /// When <see cref="WithHills"/> is enabled, roads also avoid crossing elevation
+    /// changes greater than one level. Must be called after <see cref="WithLakes"/>
+    /// and <see cref="WithRivers"/> if bridges over those water bodies are desired,
+    /// so the last-overlay-wins pattern lets roads/bridges override the underlying water.
     /// </summary>
     /// <param name="roadCount">Number of roads to generate.</param>
     public MapGeneratorBuilder WithRoads(int roadCount)
