@@ -8,12 +8,14 @@ public class RiverPathGenerator
     private readonly int _height;
     private readonly Random _random;
     private readonly HashSet<HexCoordinates>? _existingWaterHexes;
+    private readonly Func<HexCoordinates, int>? _levelLookup;
 
     public RiverPathGenerator(
         int width,
         int height,
         Random? random = null,
-        HashSet<HexCoordinates>? existingWaterHexes = null)
+        HashSet<HexCoordinates>? existingWaterHexes = null,
+        Func<HexCoordinates, int>? levelLookup = null)
     {
         if (width < 1)
             throw new ArgumentOutOfRangeException(nameof(width), "Width must be at least 1.");
@@ -24,6 +26,7 @@ public class RiverPathGenerator
         _height = height;
         _random = random ?? new Random();
         _existingWaterHexes = existingWaterHexes;
+        _levelLookup = levelLookup;
     }
 
     public Dictionary<HexCoordinates, int> GenerateRivers(int riverCount)
@@ -54,6 +57,7 @@ public class RiverPathGenerator
         var centerDirection = startHex.GetDirectionToward(GetCenterHexCoordinate(), _random);
         var currentPos = startHex;
         HexDirection? currentDir = null;
+        int? lockedFlowSign = null;
 
         while (true)
         {
@@ -72,6 +76,19 @@ public class RiverPathGenerator
 
             if (river.Contains(nextHex))
                 break;
+
+            if (_levelLookup != null)
+            {
+                var delta = _levelLookup(nextHex) - _levelLookup(currentPos);
+                if (delta != 0)
+                {
+                    var sign = Math.Sign(delta);
+                    if (lockedFlowSign == null)
+                        lockedFlowSign = sign;
+                    else if (sign != lockedFlowSign.Value)
+                        break;
+                }
+            }
 
             river.Add(nextHex);
             currentPos = nextHex;
