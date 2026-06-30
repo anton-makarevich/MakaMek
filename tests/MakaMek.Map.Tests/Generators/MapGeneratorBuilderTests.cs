@@ -348,4 +348,47 @@ public class MapGeneratorBuilderTests
                 .ShouldBe(h2.GetTerrains().Select(t => t.ToData().Type));
         }
     }
+
+    [Fact]
+    public void CombiningHillsAndRivers_ProducesBothElevationAndWater()
+    {
+        var sut = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithHills(coverage: 0.4, maxElevation: 3)
+            .WithRivers(3)
+            .WithSeed(42)
+            .Build();
+
+        var hexes = AllCoords().Select(sut.Generate).ToList();
+
+        hexes.ShouldContain(h => h.Level > 0);
+        hexes.ShouldContain(h => h.HasTerrain(MakaMekTerrains.Water));
+    }
+
+    [Fact]
+    public void CombiningHillsAndRivers_SeededGeneration_IsReproducible()
+    {
+        var gen1 = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithHills(coverage: 0.4, maxElevation: 3)
+            .WithRivers(3)
+            .WithSeed(123)
+            .Build();
+
+        var gen2 = new MapGeneratorBuilder(Width, Height)
+            .WithBaseTerrain(new ClearTerrain())
+            .WithHills(coverage: 0.4, maxElevation: 3)
+            .WithRivers(3)
+            .WithSeed(123)
+            .Build();
+
+        foreach (var coords in AllCoords())
+        {
+            var h1 = gen1.Generate(coords);
+            var h2 = gen2.Generate(coords);
+            h1.Level.ShouldBe(h2.Level);
+            h1.GetTerrains().Select(t => t.ToData().Type)
+                .ShouldBe(h2.GetTerrains().Select(t => t.ToData().Type));
+        }
+    }
 }

@@ -185,4 +185,114 @@ public class RiverPathGeneratorTests
         var river = generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
         river.Count.ShouldBe(river.Distinct().Count());
     }
+
+    [Fact]
+    public void GenerateRivers_WithElevationGradient_FlowsSingleDirection()
+    {
+        // Level = Q creates a gradient: low on the left, high on the right.
+        // Every river's non-zero elevation deltas must share a single sign.
+        Func<HexCoordinates, int> levelLookup = coords => coords.Q - 1;
+
+        var generator = new RiverPathGenerator(
+            Width, Height, new Random(42), levelLookup: levelLookup);
+
+        var rivers = Enumerable.Range(0, 5)
+            .Select(_ => generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>()))
+            .ToList();
+
+        foreach (var river in rivers)
+        {
+            int? direction = null;
+            for (var i = 1; i < river.Count; i++)
+            {
+                var delta = levelLookup(river[i]) - levelLookup(river[i - 1]);
+                if (delta == 0)
+                    continue;
+                var sign = Math.Sign(delta);
+                direction ??= sign;
+                sign.ShouldBe(direction.Value, "river must not reverse vertical direction");
+            }
+        }
+    }
+
+    [Fact]
+    public void GenerateRivers_WithStepElevation_TerminatesAtLevelChangeReversal()
+    {
+        // Left half level 0, right half level 5 — a sharp cliff at Q=8.
+        // Rivers starting on one side will lock flow direction and stop
+        // when they'd need to reverse.
+        Func<HexCoordinates, int> levelLookup = coords => coords.Q >= 8 ? 5 : 0;
+
+        var generator = new RiverPathGenerator(
+            Width, Height, new Random(19), levelLookup: levelLookup);
+
+        var river = generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+
+        var direction = 0;
+        for (var i = 1; i < river.Count; i++)
+        {
+            var delta = levelLookup(river[i]) - levelLookup(river[i - 1]);
+            if (delta == 0)
+                continue;
+            if (direction == 0)
+                direction = Math.Sign(delta);
+            else
+            {
+                // If the river ever reversed direction it would have been
+                // terminated; therefore every non-zero delta must match.
+                Math.Sign(delta).ShouldBe(direction);
+            }
+        }
+
+        // The river should still produce at least a start hex
+        river.ShouldNotBeEmpty();
+
+        // Verify the test was non-vacuous: the river must have crossed the
+        // elevation step at least once, otherwise direction locking was never
+        // exercised.
+        direction.ShouldNotBe(0, "river must cross the Q=8 cliff to test reversal");
+    }
+
+    [Fact]
+    public void GenerateRivers_WithoutElevation_BehavesAsBefore()
+    {
+        var withElevation = new RiverPathGenerator(
+            Width, Height, new Random(42),
+            levelLookup: coords => coords.Q);
+
+        var withoutElevation = new RiverPathGenerator(
+            Width, Height, new Random(42));
+
+        var riverWith = withElevation.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+        var riverWithout = withoutElevation.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+
+        // Both should produce valid rivers starting at the edge
+        riverWith.ShouldNotBeEmpty();
+        riverWithout.ShouldNotBeEmpty();
+
+        // The paths may differ because elevation constrains flow,
+        // but both must produce connected paths (each hex has a neighbor)
+        static bool HasNeighbor(HexCoordinates hex, List<HexCoordinates> river) =>
+            river.Any(h => h != hex && hex.GetAllNeighbours().Contains(h));
+
+        if (riverWithout.Count > 1)
+            riverWithout.All(h => HasNeighbor(h, riverWithout)).ShouldBeTrue();
+
+        if (riverWith.Count > 1)
+            riverWith.All(h => HasNeighbor(h, riverWith)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRivers_WithElevation_SeededGeneration_IsReproducible()
+    {
+        Func<HexCoordinates, int> levelLookup = coords => coords.Q;
+
+        RiverPathGenerator CreateGenerator(int seed) => new(
+            Width, Height, new Random(seed), levelLookup: levelLookup);
+
+        var river1 = CreateGenerator(99).GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+        var river2 = CreateGenerator(99).GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
+
+        river1.ShouldBe(river2);
+    }
 }

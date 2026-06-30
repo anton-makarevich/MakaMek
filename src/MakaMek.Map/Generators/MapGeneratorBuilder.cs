@@ -17,6 +17,7 @@ public class MapGeneratorBuilder
     private Terrain _baseTerrain = new ClearTerrain();
     private LevelConfiguration? _levelConfig;
     private int? _seed;
+    private ILevelProvider? _levelProvider;
     private Dictionary<HexCoordinates, int>? _lakePatches;
     private Dictionary<HexCoordinates, int>? _riverPatches;
     private Dictionary<HexCoordinates, int>? _roadPatches;
@@ -113,7 +114,8 @@ public class MapGeneratorBuilder
     /// <summary>
     /// Adds river generation. Rivers flow from the map edge inward with a
     /// directional probability of 50% straight / 25% clockwise / 25% counter-clockwise.
-    /// Rivers terminate at the map edge, at a lake hex, or at another river.
+    /// Rivers terminate at the map edge, at a lake hex, at another river,
+    /// or when an elevation change would reverse the locked flow direction.
     /// Must be called after <see cref="WithLakes"/> if both are used.
     /// </summary>
     /// <param name="riverCount">Number of rivers to generate.</param>
@@ -124,7 +126,8 @@ public class MapGeneratorBuilder
             {
                 var generator = new RiverPathGenerator(
                     _width, _height, rng,
-                    _lakePatches?.Keys.ToHashSet());
+                    _lakePatches?.Keys.ToHashSet(),
+                    coords => _levelProvider?.GetLevel(coords) ?? 0);
                 var rivers = generator.GenerateRivers(riverCount);
                 _riverPatches = rivers;
                 return rivers;
@@ -192,17 +195,18 @@ public class MapGeneratorBuilder
         var rngOffset = 0;
         Random CreateRng() => _seed.HasValue ? new Random(_seed.Value + rngOffset++) : new Random();
 
+        // Build the level provider first so overlay factories can consult elevation data
+        _levelProvider = _levelConfig is not null
+            ? new HillLevelProvider(_width, _height, _levelConfig.HillCoverage, _levelConfig.MaxElevation,
+                _levelConfig.Seed.HasValue ? new Random(_levelConfig.Seed.Value) : CreateRng())
+            : new FlatLevelProvider();
+
         // Materialize overlays: each gets its own Random so they don't interfere
         var builtOverlays = _overlays
             .Select(o => (new Dictionary<HexCoordinates, int>(o.PatchFactory(CreateRng())), o.TerrainSelector, o.Additive))
             .ToList();
 
-        ILevelProvider levelProvider = _levelConfig is not null
-            ? new HillLevelProvider(_width, _height, _levelConfig.HillCoverage, _levelConfig.MaxElevation,
-                _levelConfig.Seed.HasValue ? new Random(_levelConfig.Seed.Value) : CreateRng())
-            : new FlatLevelProvider();
-
-        return new CompositeGenerator(_width, _height, _baseTerrain, levelProvider, builtOverlays, CreateRng());
+        return new CompositeGenerator(_width, _height, _baseTerrain, _levelProvider, builtOverlays, CreateRng());
     }
 }
 
