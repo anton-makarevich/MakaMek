@@ -224,7 +224,7 @@ public class RiverPathGeneratorTests
         Func<HexCoordinates, int> levelLookup = coords => coords.Q >= 8 ? 5 : 0;
 
         var generator = new RiverPathGenerator(
-            Width, Height, new Random(42), levelLookup: levelLookup);
+            Width, Height, new Random(19), levelLookup: levelLookup);
 
         var river = generator.GenerateSingleRiver(new Dictionary<HexCoordinates, int>());
 
@@ -246,6 +246,11 @@ public class RiverPathGeneratorTests
 
         // The river should still produce at least a start hex
         river.ShouldNotBeEmpty();
+
+        // Verify the test was non-vacuous: the river must have crossed the
+        // elevation step at least once, otherwise direction locking was never
+        // exercised.
+        direction.ShouldNotBe(0, "river must cross the Q=8 cliff to test reversal");
     }
 
     [Fact]
