@@ -97,7 +97,7 @@ public class HexMap : Canvas
         _isPressed = false;
         _isManipulating = false; // Always reset on release
 
-        if (wasPressed && !wasManipulating && e != null)
+        if (wasPressed && !wasManipulating && !_isZooming && e != null)
         {
             _clickPosition = e.GetPosition(this);
             if (_clickPosition.HasValue)
