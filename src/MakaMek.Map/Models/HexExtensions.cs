@@ -100,6 +100,23 @@ public static class HexExtensions
             return hex.GetTerrain(MakaMekTerrains.Bridge);
         }
 
+        public int? GetRoadSurfaceLevel()
+        {
+            var roadTerrain = hex.GetRoadOrPavedTerrain();
+            if (roadTerrain == null) return null;
+            return roadTerrain.Id == MakaMekTerrains.Bridge
+                ? hex.GetStandingLevel(HexSurface.Bridge)
+                : hex.GetStandingLevel(HexSurface.Ground);
+        }
+
+        public bool CanRoadConnectTo(Hex neighbor)
+        {
+            var myLevel = hex.GetRoadSurfaceLevel();
+            var neighborLevel = neighbor.GetRoadSurfaceLevel();
+            if (myLevel == null || neighborLevel == null) return false;
+            return Math.Abs(myLevel.Value - neighborLevel.Value) < 2;
+        }
+
         public bool IsOnRoadOrBridge(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
         {
             var toTerrain = hex.GetRoadOrPavedTerrain();
