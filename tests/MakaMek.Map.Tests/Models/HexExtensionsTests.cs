@@ -582,4 +582,177 @@ public class HexExtensionsTests
 
         result.ShouldBe(HexSurface.Ground);
     }
+
+    [Fact]
+    public void GetRoadSurfaceLevel_NoRoadTerrain_ReturnsNull()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1));
+        sut.AddTerrain(new ClearTerrain());
+
+        var result = sut.GetRoadSurfaceLevel();
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetRoadSurfaceLevel_GroundRoad_ReturnsBottomLevel()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        sut.AddTerrain(new RoadTerrain());
+
+        var result = sut.GetRoadSurfaceLevel();
+
+        result.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetRoadSurfaceLevel_Pavement_ReturnsBottomLevel()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        sut.AddTerrain(new PavementTerrain());
+
+        var result = sut.GetRoadSurfaceLevel();
+
+        result.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetRoadSurfaceLevel_Bridge_ReturnsLevelPlusBridgeHeight()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 1 };
+        sut.AddTerrain(new BridgeTerrain(2, 0));
+
+        var result = sut.GetRoadSurfaceLevel();
+
+        result.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetRoadSurfaceLevel_BridgeOverWater_ReturnsBridgeSurfaceLevel()
+    {
+        var sut = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        sut.AddTerrain(new BridgeTerrain(1, 0));
+        sut.AddTerrain(new WaterTerrain(-1));
+
+        var result = sut.GetRoadSurfaceLevel();
+
+        result.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_NoRoadOnEither_ReturnsFalse()
+    {
+        var current = new Hex(new HexCoordinates(1, 1));
+        current.AddTerrain(new ClearTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1));
+        neighbor.AddTerrain(new ClearTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_NoRoadOnNeighbor_ReturnsFalse()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 0 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1));
+        neighbor.AddTerrain(new ClearTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_NoRoadOnCurrent_ReturnsFalse()
+    {
+        var current = new Hex(new HexCoordinates(1, 1));
+        current.AddTerrain(new ClearTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        neighbor.AddTerrain(new RoadTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_EqualLevelGroundRoads_ReturnsTrue()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 2 };
+        neighbor.AddTerrain(new RoadTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_DifferenceOfOne_ReturnsTrue()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 3 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 2 };
+        neighbor.AddTerrain(new RoadTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_DifferenceOfTwo_ReturnsFalse()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        neighbor.AddTerrain(new RoadTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_RoadToBridgeWithHeightOne_ReturnsTrue()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        neighbor.AddTerrain(new BridgeTerrain(1, 0));
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_RoadToBridgeWithHeightZero_ReturnsFalseWhenDifferenceTooLarge()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 2 };
+        current.AddTerrain(new RoadTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 0 };
+        neighbor.AddTerrain(new BridgeTerrain(0, 0));
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRoadConnectTo_PavementToPavementEqualLevel_ReturnsTrue()
+    {
+        var current = new Hex(new HexCoordinates(1, 1)) { Level = 1 };
+        current.AddTerrain(new PavementTerrain());
+        var neighbor = new Hex(new HexCoordinates(2, 1)) { Level = 1 };
+        neighbor.AddTerrain(new PavementTerrain());
+
+        var result = current.CanRoadConnectTo(neighbor);
+
+        result.ShouldBeTrue();
+    }
 }

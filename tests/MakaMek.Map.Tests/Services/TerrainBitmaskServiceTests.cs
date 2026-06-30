@@ -523,9 +523,10 @@ public class TerrainBitmaskServiceTests
         result.RotationSteps.ShouldBe(2);
     }
 
-    private static Hex CreateHexWithTerrain(MakaMekTerrains terrainType)
+    private static Hex CreateHexWithTerrain(MakaMekTerrains terrainType, int? level = null)
     {
         var hex = new Hex(new HexCoordinates(0, 0));
+        if (level.HasValue) hex.Level = level.Value;
         Terrain terrain = terrainType switch
         {
             MakaMekTerrains.Clear => new ClearTerrain(),
@@ -533,6 +534,7 @@ public class TerrainBitmaskServiceTests
             MakaMekTerrains.HeavyWoods => new HeavyWoodsTerrain(),
             MakaMekTerrains.Rough => new RoughTerrain(),
             MakaMekTerrains.Water => new WaterTerrain(),
+            MakaMekTerrains.Road => new RoadTerrain(),
             _ => throw new ArgumentOutOfRangeException(nameof(terrainType))
         };
 
@@ -639,6 +641,140 @@ public class TerrainBitmaskServiceTests
         result.RotationSteps.ShouldBe(3);
     }
 
+    [Fact]
+    public void ComputeRawBitmask_WithRoadFilter_ConnectedNeighbor_SetsBit()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Road, level: 3);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        foreach (var direction in directions)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = direction == HexDirection.Top
+                ? CreateHexWithTerrain(MakaMekTerrains.Road, level: 3)
+                : CreateHexWithTerrain(MakaMekTerrains.Clear);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        Func<Hex, Hex, bool> filter = (current, neighbor) => current.CanRoadConnectTo(neighbor);
+
+        // Act
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
+
+        // Assert
+        result.ShouldBe((byte)0b000001);
+    }
+
+    [Fact]
+    public void ComputeRawBitmask_WithRoadFilter_LevelDifferenceTooLarge_DoesNotSetBit()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Road, level: 2);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        foreach (var direction in directions)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = direction == HexDirection.Top
+                ? CreateHexWithTerrain(MakaMekTerrains.Road, level: 0)
+                : CreateHexWithTerrain(MakaMekTerrains.Clear);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        Func<Hex, Hex, bool> filter = (current, neighbor) => current.CanRoadConnectTo(neighbor);
+
+        // Act
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
+
+        // Assert
+        result.ShouldBe((byte)0);
+    }
+
+    [Fact]
+    public void ComputeCanonicalBitmask_WithRoadFilter_ConnectedNeighbor_CanonicalizesCorrectly()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Road, level: 1);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        foreach (var direction in directions)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = direction == HexDirection.Top
+                ? CreateHexWithTerrain(MakaMekTerrains.Road, level: 1)
+                : CreateHexWithTerrain(MakaMekTerrains.Clear);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        Func<Hex, Hex, bool> filter = (current, neighbor) => current.CanRoadConnectTo(neighbor);
+
+        // Act
+        var result = _sut.ComputeCanonicalBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
+
+        // Assert
+        result.CanonicalMask.ShouldBe((byte)0b000001);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ComputeRawBitmask_NonRoadTerrain_NullFilter_BehavesSameAsNoFilter()
+    {
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Water);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Water);
+
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Water, null);
+
+        result.ShouldBe((byte)0b111111);
+    }
+
+    [Fact]
+    public void ComputeCanonicalBitmask_NonRoadTerrain_NullFilter_BehavesSameAsNoFilter()
+    {
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Water);
+
+        var result = _sut.ComputeCanonicalBitmask(map, centerCoords, MakaMekTerrains.Water, null);
+
+        result.CanonicalMask.ShouldBe((byte)0b111111);
+        result.RotationSteps.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ComputeRawBitmask_WithRoadFilter_DefaultParameter_DoesNotFilter()
+    {
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+        var directions = HexDirectionExtensions.AllDirections;
+
+        SetupNeighborsByBitmask(map, centerCoords, directions, MakaMekTerrains.Road);
+
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road);
+
+        result.ShouldBe((byte)0b111111);
+    }
+
     [Theory]
     [InlineData(0b000001, 0)]
     [InlineData(0b000010, 5)]
@@ -666,5 +802,29 @@ public class TerrainBitmaskServiceTests
     public void CanonicalBitmaskResult_InvalidRotation_Throws(int steps)
     {
         Should.Throw<ArgumentOutOfRangeException>(() => _ = new CanonicalBitmaskResult(0, steps));
+    }
+
+    [Fact]
+    public void ComputeRawBitmask_NullCurrentHexWithFilter_NoBitsSet()
+    {
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+
+        // currentHex is null (out of bounds or not found)
+        map.GetHex(centerCoords).Returns((Hex?)null);
+
+        // All neighbors have the matching terrain
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = CreateHexWithTerrain(MakaMekTerrains.Road);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        Func<Hex, Hex, bool> filter = (current, neighbor) => true;
+
+        var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
+
+        result.ShouldBe((byte)0);
     }
 }

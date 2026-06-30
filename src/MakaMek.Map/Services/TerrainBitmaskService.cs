@@ -9,16 +9,18 @@ namespace Sanet.MakaMek.Map.Services;
 public class TerrainBitmaskService : ITerrainBitmaskService
 {
     /// <inheritdoc />
-    public byte ComputeRawBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType)
+    public byte ComputeRawBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null)
     {
         byte mask = 0;
         var directions = HexDirectionExtensions.AllDirections;
+        var currentHex = map.GetHex(coordinates);
 
         for (var i = 0; i < directions.Length; i++)
         {
             var neighborCoords = coordinates.GetNeighbour(directions[i]);
             var neighborHex = map.GetHex(neighborCoords);
-            if (neighborHex != null && neighborHex.HasTerrain(terrainType))
+            if (neighborHex != null && neighborHex.HasTerrain(terrainType)
+                                     && (neighborFilter == null || (currentHex != null && neighborFilter(currentHex, neighborHex))))
             {
                 mask |= (byte)(1 << i);
             }
@@ -28,9 +30,9 @@ public class TerrainBitmaskService : ITerrainBitmaskService
     }
 
     /// <inheritdoc />
-    public CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType)
+    public CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null)
     {
-        var raw = ComputeRawBitmask(map, coordinates, terrainType);
+        var raw = ComputeRawBitmask(map, coordinates, terrainType, neighborFilter);
         return Canonicalize(raw);
     }
 

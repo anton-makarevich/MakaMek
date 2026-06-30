@@ -7,24 +7,28 @@ namespace Sanet.MakaMek.Map.Generators;
 /// Unlike rivers (which follow a single meandering path), roads branch: at every
 /// hex each of the six directions is rolled independently against a probability
 /// that favors continuing straight, producing organic forks and junctions.
+/// Roads cannot cross elevation changes greater than 1 level.
 /// </summary>
 public class RoadPathGenerator
 {
     private const int StraightProbability = 85;
     private const int AdjacentProbability = 10;
     private const int OtherProbability = 5;
+    private const int MaxPassableLevelDifference = 1;
 
     private readonly int _width;
     private readonly int _height;
     private readonly Random _random;
     private readonly HashSet<HexCoordinates> _existingRoadHexes = [];
     private readonly HashSet<HexCoordinates>? _existingWaterHexes;
+    private readonly Func<HexCoordinates, int>? _levelLookup;
 
     public RoadPathGenerator(
         int width,
         int height,
         Random? random = null,
-        HashSet<HexCoordinates>? existingWaterHexes = null)
+        HashSet<HexCoordinates>? existingWaterHexes = null,
+        Func<HexCoordinates, int>? levelLookup = null)
     {
         if (width < 1)
             throw new ArgumentOutOfRangeException(nameof(width), "Width must be at least 1.");
@@ -35,6 +39,7 @@ public class RoadPathGenerator
         _height = height;
         _random = random ?? new Random();
         _existingWaterHexes = existingWaterHexes;
+        _levelLookup = levelLookup;
     }
 
     public Dictionary<HexCoordinates, int> GenerateRoads(int roadCount)
@@ -69,6 +74,7 @@ public class RoadPathGenerator
         while (queue.Count > 0)
         {
             var (hex, straightDirection) = queue.Dequeue();
+            var hexLevel = _levelLookup?.Invoke(hex);
 
             foreach (var candidate in HexDirectionExtensions.AllDirections)
             {
@@ -79,6 +85,9 @@ public class RoadPathGenerator
                     continue;
 
                 if (road.Contains(targetHex) || _existingRoadHexes.Contains(targetHex))
+                    continue;
+
+                if (hexLevel != null && Math.Abs(_levelLookup!(targetHex) - hexLevel.Value) > MaxPassableLevelDifference)
                     continue;
 
                 var probability = GetProbabilityForDirection(candidate, straightDirection);

@@ -199,4 +199,55 @@ public class RoadPathGeneratorTests
         var allHexes = roads.Keys.ToList();
         allHexes.Count.ShouldBe(allHexes.Distinct().Count());
     }
+
+    [Fact]
+    public void RoadsRespectElevationConstraint_WithinSingleNetwork()
+    {
+        const int mapWidth = 10;
+        const int mapHeight = 10;
+
+        // Flat on the left (level 0), elevated plateau on the right (level 3).
+        // The steep step between col 5 and 6 creates a diff of 3 (> 1).
+        // A single road network should never cross such a steep boundary.
+        int LevelLookup(HexCoordinates coords) => coords.Q <= mapWidth / 2 ? 0 : 3;
+
+        var generator = new RoadPathGenerator(mapWidth, mapHeight, new Random(42), null, LevelLookup);
+        var roads = generator.GenerateRoads(1);
+
+        foreach (var hex in roads.Keys)
+        {
+            var hexLevel = LevelLookup(hex);
+            foreach (var neighbor in hex.GetAllNeighbours())
+            {
+                if (!roads.ContainsKey(neighbor)) continue;
+                var diff = Math.Abs(hexLevel - LevelLookup(neighbor));
+                diff.ShouldBeLessThanOrEqualTo(1,
+                    $"Road hex {hex} (level {hexLevel}) and neighbor {neighbor} " +
+                    $"(level {LevelLookup(neighbor)}) have elevation difference {diff} > 1");
+            }
+        }
+    }
+
+    [Fact]
+    public void SingleRoad_StaysOnOneSideOfSteepSlope()
+    {
+        const int mapWidth = 10;
+        const int mapHeight = 10;
+
+        // Level 0 on left (Q <= 5), level 3 on right (Q >= 6).
+        // With the elevation constraint the road cannot cross the boundary.
+        int LevelLookup(HexCoordinates coords) => coords.Q <= mapWidth / 2 ? 0 : 3;
+
+        var generator = new RoadPathGenerator(mapWidth, mapHeight, new Random(42), null, LevelLookup);
+        var roads = generator.GenerateRoads(1);
+
+        var leftSide = roads.Keys.Where(c => LevelLookup(c) == 0).ToList();
+        var rightSide = roads.Keys.Where(c => LevelLookup(c) == 3).ToList();
+
+        // The starting edge hex determines which side the road occupies,
+        // but it must remain entirely on one side of the steep slope.
+        (leftSide.Count == 0 || rightSide.Count == 0).ShouldBeTrue(
+            $"Road hexes found on both sides of the steep boundary: " +
+            $"{leftSide.Count} on left, {rightSide.Count} on right");
+    }
 }

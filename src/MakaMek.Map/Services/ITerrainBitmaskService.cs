@@ -16,13 +16,21 @@ public interface ITerrainBitmaskService
     /// Bit N is set when the neighbor in direction N has the terrain.
     /// Out-of-bounds neighbors are treated as not having the terrain.
     /// </summary>
-    byte ComputeRawBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType);
+    /// <param name="neighborFilter">
+    /// Optional predicate evaluated against (currentHex, neighborHex).
+    /// When non-null, a direction bit is only set if the filter returns true.
+    /// </param>
+    byte ComputeRawBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null);
 
     /// <summary>
     /// Computes the raw bitmask and then canonicalizes it by rotating across all
     /// 6 possible 60° orientations, selecting the lowest numeric value.
     /// </summary>
-    CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType);
+    /// <param name="neighborFilter">
+    /// Optional predicate evaluated against (currentHex, neighborHex).
+    /// When non-null, a direction bit is only set if the filter returns true.
+    /// </param>
+    CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null);
 
     /// <summary>
     /// Canonicalizes a precomputed 6-bit raw bitmask by rotating across all 6 possible 60° orientations,
