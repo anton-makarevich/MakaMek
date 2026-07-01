@@ -2,7 +2,7 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 
-namespace Sanet.MakaMek.Avalonia.Styles.TemplatedControls;
+namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
 public class GamePanel : ContentControl
 {

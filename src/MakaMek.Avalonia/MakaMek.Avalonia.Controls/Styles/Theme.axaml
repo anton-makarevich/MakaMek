@@ -1,0 +1,13 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Include all style files -->
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Typography.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Buttons.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Panels.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Controls.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Layouts.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/GamePanel.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/ActionButton.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/ToolBar.axaml"/>
+</Styles>

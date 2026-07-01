@@ -19,13 +19,13 @@
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Styles/Styles/Resources.axaml"/>
+                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
              
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Styles/Styles/Theme.axaml"/>
+        <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Theme.axaml"/>
     </Application.Styles>
 </Application>

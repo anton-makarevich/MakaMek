@@ -4,7 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace Sanet.MakaMek.Avalonia.Styles.TemplatedControls;
+namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
 public class ToolBar : TemplatedControl
 {
