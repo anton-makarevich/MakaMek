@@ -1,6 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:controls="using:Sanet.MakaMek.Avalonia.Views.TemplatedControls">
+        xmlns:controls="using:Sanet.MakaMek.Avalonia.Styles.TemplatedControls">
     <Design.PreviewWith>
         <controls:GamePanel />
     </Design.PreviewWith>
@@ -42,4 +42,3 @@
         </Setter>
     </Style>
 </Styles>
-

@@ -8,7 +8,6 @@
     <Application.Resources>
         <ResourceDictionary>
             <di:ServiceCollection x:Key="ServiceCollection"/>
-            <FontFamily x:Key="AwesomeFontSolid">avares://Sanet.MakaMek.Avalonia/Assets/Fonts/#Font Awesome 6 Free Solid</FontFamily>
             <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
             <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
@@ -20,18 +19,13 @@
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
-                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Animations.axaml"/>
-                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Icons.axaml"/>
+                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Styles/Styles/Resources.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
              
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="Styles/Theme.axaml"/>
-        <StyleInclude Source="Views/TemplatedControls/GamePanel.axaml"/>
-        <StyleInclude Source="Views/TemplatedControls/ActionButton.axaml"/>
-        <StyleInclude Source="Views/TemplatedControls/ToolBar.axaml"/>
+        <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Styles/Styles/Theme.axaml"/>
     </Application.Styles>
 </Application>

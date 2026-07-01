@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
-             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Styles.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Styles"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
