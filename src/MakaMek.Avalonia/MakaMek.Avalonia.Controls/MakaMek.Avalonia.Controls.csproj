@@ -7,10 +7,15 @@
     <AssemblyName>Sanet.MakaMek.Avalonia.Controls</AssemblyName>
     <RootNamespace>Sanet.MakaMek.Avalonia.Controls</RootNamespace>
     <Description>Avalonia UI controls for MakaMek</Description>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="../../../README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
   <ItemGroup>

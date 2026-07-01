@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace Sanet.MakaMek.Avalonia.Views.TemplatedControls;
+namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
 public class ActionButton : Button
 {

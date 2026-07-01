@@ -1,10 +1,10 @@
-﻿using System.Windows.Input;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace Sanet.MakaMek.Avalonia.Views.TemplatedControls;
+namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
 public class ToolBar : TemplatedControl
 {

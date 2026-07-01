@@ -1,5 +1,5 @@
 using Shouldly;
-using Sanet.MakaMek.Avalonia.Views.TemplatedControls;
+using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
 namespace MakaMek.Avalonia.Tests.Controls
 {

@@ -28,12 +28,12 @@
     <Style Selector="Button.main-menu">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
-        <Setter Property="Padding" Value="25,15"/> <!-- Slightly larger padding -->
-        <Setter Property="FontSize" Value="18"/> <!-- Larger font size -->
+        <Setter Property="Padding" Value="25,15"/>
+        <Setter Property="FontSize" Value="18"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="FontWeight" Value="SemiBold"/> <!-- Make it slightly bolder -->
+        <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
     
     <Style Selector="Button.main-menu:pointerover">
@@ -201,4 +201,3 @@
         <Setter Property="Opacity" Value="0.5"/>
     </Style>
 </Styles>
-
