@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
@@ -89,6 +90,7 @@ public static class BotContainerServices
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
+        services.AddSingleton<IWeaponAttackResolver, WeaponAttackResolver>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
         services.AddSingleton<IGameManager, GameManager>();
