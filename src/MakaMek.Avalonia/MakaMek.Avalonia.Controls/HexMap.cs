@@ -178,9 +178,8 @@ public class HexMap : Canvas
         {
             _isZooming = false;
             _isPressed = false;
+            _isManipulating = false;
         }
-
-        _isManipulating = false;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
