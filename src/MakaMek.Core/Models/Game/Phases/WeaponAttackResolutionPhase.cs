@@ -13,10 +13,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 {
-    private int _currentPlayerIndex;
-    private int _currentUnitIndex;
-    private int _currentWeaponIndex;
-    
     // List of players in initiative order for attack resolution
     private List<IPlayer> _playersInOrder = [];
     
@@ -26,6 +22,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
 
+    private readonly record struct AttackQueueItem(
+        IPlayer Player,
+        IUnit Attacker,
+        Weapon? Weapon,
+        IUnit? TargetUnit,
+        WeaponTargetData WeaponTargetData
+    );
+
     public override void Enter()
     {
         // Clear any accumulated damage data from previous phases
@@ -33,9 +37,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Initialize the attack resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
-        _currentPlayerIndex = 0;
-        _currentUnitIndex = 0;
-        _currentWeaponIndex = 0;
         
         // Prepare the dictionary of units with targets for each player
         PrepareUnitsWithTargets();
@@ -61,6 +62,29 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
     }
 
+    private List<AttackQueueItem> BuildAttackQueue()
+    {
+        var queue = new List<AttackQueueItem>();
+        foreach (var player in _playersInOrder)
+        {
+            if (!_unitsWithTargets.TryGetValue(player.Id, out var unitsWithTargets))
+                continue;
+            foreach (var unit in unitsWithTargets)
+            {
+                var weaponTargets = unit.DeclaredWeaponTargets ?? [];
+                foreach (var weaponTarget in weaponTargets)
+                {
+                    var primaryAssignment = weaponTarget.Weapon.Assignments[0];
+                    var weapon = unit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
+                    var allUnits = Game.Players.SelectMany(p => p.Units);
+                    var targetUnit = allUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
+                    queue.Add(new AttackQueueItem(player, unit, weapon, targetUnit, weaponTarget));
+                }
+            }
+        }
+        return queue;
+    }
+
     private void ResolveNextAttack()
     {
         if (Game.BattleMap == null)
@@ -68,88 +92,40 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             throw new Exception("Battle map is null");
         }
 
-        // Check if we've processed all players
-        if (_currentPlayerIndex >= _playersInOrder.Count)
+        var attackQueue = BuildAttackQueue();
+
+        foreach (var item in attackQueue)
         {
-            // Calculate PSRs for all units that accumulated damage during this phase
-            CalculateEndOfPhasePsrs();
-            
-            Game.TransitionToNextPhase(Name);
-            return;
-        }
+            var currentUnit = item.Attacker;
+            var currentWeapon = item.Weapon;
+            var targetUnit = item.TargetUnit;
 
-        var currentPlayer = _playersInOrder[_currentPlayerIndex];
-
-        // Skip players with no units that have targets
-        if (!_unitsWithTargets.TryGetValue(currentPlayer.Id, out var unitsWithTargets) || unitsWithTargets.Count == 0)
-        {
-            MoveToNextPlayer();
-            ResolveNextAttack();
-            return;
-        }
-
-        // Check if we've processed all units for the current player
-        if (_currentUnitIndex >= unitsWithTargets.Count)
-        {
-            MoveToNextPlayer();
-            ResolveNextAttack();
-            return;
-        }
-
-        var currentUnit = unitsWithTargets[_currentUnitIndex];
-        var weaponTargets = currentUnit.DeclaredWeaponTargets??[];
-
-        // Check if we've processed all weapon targets for the current unit
-        if (_currentWeaponIndex >= weaponTargets.Count)
-        {
-            MoveToNextUnit();
-            ResolveNextAttack();
-            return;
-        }
-
-        var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
-        
-        // Find the weapon and target unit
-        var primaryAssignment = currentWeaponTarget.Weapon.Assignments[0];
-        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
-        
-        // Take all units not just alive as we should resolve attack even if the unit is already destroyed
-        var allUnits = Game.Players.SelectMany(p => p.Units); 
-        var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
-
-        if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position!=null)
-        {
-            // Check if attacker has partial cover from target's perspective (reversed LOS)
-            // Leg-mounted weapons cannot fire when the attacker has partial cover
-            var reversedLosResult = Game.BattleMap.GetLineOfSight(
-                targetUnit.Position.Coordinates,
-                currentUnit.Position.Coordinates,
-                targetUnit.Height, // highest weapon is ok here 
-                currentUnit.Height);
-            var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
-            
-            // Check if this weapon can receive cover
-            var canBeCovered = Game.RulesProvider.CanPartBeCovered(primaryAssignment.Location);
-            
-            if (attackerHasPartialCover && canBeCovered)
+            if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position != null)
             {
-                // Skip leg weapon attack when attacker has partial cover
-                Game.Logger.LogInformation(
-                    "Skipping leg-mounted weapon {WeaponName} attack from {AttackerName} to {TargetName} - attacker has partial cover",
-                    currentWeapon.Name, currentUnit.Name, targetUnit.Name);
-            }
-            else
-            {
-                var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
-                FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
+                var reversedLosResult = Game.BattleMap.GetLineOfSight(
+                    targetUnit.Position.Coordinates,
+                    currentUnit.Position.Coordinates,
+                    targetUnit.Height,
+                    currentUnit.Height);
+                var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
+                var canBeCovered = Game.RulesProvider.CanPartBeCovered(item.WeaponTargetData.Weapon.Assignments[0].Location);
+
+                if (attackerHasPartialCover && canBeCovered)
+                {
+                    Game.Logger.LogInformation(
+                        "Skipping leg-mounted weapon {WeaponName} attack from {AttackerName} to {TargetName} - attacker has partial cover",
+                        currentWeapon.Name, currentUnit.Name, targetUnit.Name);
+                }
+                else
+                {
+                    var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData);
+                    FinalizeAttackResolution(item.Player, currentUnit, currentWeapon, targetUnit, resolution);
+                }
             }
         }
 
-        // Move to the next weapon
-        _currentWeaponIndex++;
-
-        // Continue resolving attacks
-        ResolveNextAttack();
+        CalculateEndOfPhasePsrs();
+        Game.TransitionToNextPhase(Name);
     }
 
     private AttackResolutionData ResolveAttack(IUnit attacker, IUnit target, Weapon weapon, WeaponTargetData weaponTargetData)
@@ -550,19 +526,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
         foreach (var part in allDestroyedParts)
             accumulatedDamage.AllDestroyedParts.Add(part);
-    }
-
-    private void MoveToNextUnit()
-    {
-        _currentUnitIndex++;
-        _currentWeaponIndex = 0;
-    }
-    
-    private void MoveToNextPlayer()
-    {
-        _currentPlayerIndex++;
-        _currentUnitIndex = 0;
-        _currentWeaponIndex = 0;
     }
 
     public override void HandleCommand(IGameCommand command)
