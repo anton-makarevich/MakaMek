@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -19,6 +20,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
+
+    private readonly IReadOnlyList<IAttackResolutionGate> _attackResolutionGates =
+    [
+        new AttackerPartialCoverGate()
+    ];
 
     private readonly record struct AttackQueueItem(
         IPlayer Player,
@@ -100,25 +106,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
             if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position != null)
             {
-                var reversedLosResult = Game.BattleMap.GetLineOfSight(
-                    targetUnit.Position.Coordinates,
-                    currentUnit.Position.Coordinates,
-                    targetUnit.Height,
-                    currentUnit.Height);
-                var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
-                var canBeCovered = Game.RulesProvider.CanPartBeCovered(item.WeaponTargetData.Weapon.Assignments[0].Location);
+                var shouldSkip = false;
+                var primaryAssignment = item.WeaponTargetData.Weapon.Assignments[0];
+                foreach (var gate in _attackResolutionGates)
+                {
+                    if (!gate.ShouldSkip(currentUnit, targetUnit, currentWeapon, primaryAssignment, Game.BattleMap, Game))
+                        continue;
+                    shouldSkip = true;
+                    break;
+                }
 
-                if (attackerHasPartialCover && canBeCovered)
-                {
-                    Game.Logger.LogInformation(
-                        "Skipping leg-mounted weapon {WeaponName} attack from {AttackerName} to {TargetName} - attacker has partial cover",
-                        currentWeapon.Name, currentUnit.Name, targetUnit.Name);
-                }
-                else
-                {
-                    var resolution = Game.WeaponAttackResolver.ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData, Game.BattleMap);
-                    FinalizeAttackResolution(item.Player, currentUnit, currentWeapon, targetUnit, resolution);
-                }
+                if (shouldSkip) continue;
+
+                var resolution = Game.WeaponAttackResolver.ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData, Game.BattleMap);
+                FinalizeAttackResolution(item.Player, currentUnit, currentWeapon, targetUnit, resolution);
             }
         }
 
