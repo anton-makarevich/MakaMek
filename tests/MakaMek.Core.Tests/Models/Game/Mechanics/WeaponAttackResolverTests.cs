@@ -41,7 +41,7 @@ public class WeaponAttackResolverTests
         _sut = new WeaponAttackResolver(_rulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
     }
 
-    private LocationHitData InvokeDetermineHitLocation(HitDirection hitDirection, int dmg,
+    private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolver resolver, HitDirection hitDirection, int dmg,
         Unit? target, WeaponTargetData? weaponTargetData = null, bool hasPartialCover = false, HexCoordinateData? coveringHex = null)
     {
         weaponTargetData ??= new WeaponTargetData
@@ -58,7 +58,7 @@ public class WeaponAttackResolverTests
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (LocationHitData)method!.Invoke(_sut, [hitDirection, dmg, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex])!;
+        return (LocationHitData)method!.Invoke(resolver, [hitDirection, dmg, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex])!;
     }
 
     [Fact]
@@ -93,10 +93,8 @@ public class WeaponAttackResolverTests
             TargetId = mech.Id,
             IsPrimaryTarget = false
         };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var data = (LocationHitData)method!.Invoke(sut, [HitDirection.Front, 5, mech, weapon, weaponTargetData, null, false, null])!;
+
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         data.InitialLocation.ShouldBe(PartLocation.LeftArm);
         data.Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
@@ -137,10 +135,8 @@ public class WeaponAttackResolverTests
             TargetId = mech.Id,
             IsPrimaryTarget = false
         };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var data = (LocationHitData)method!.Invoke(sut, [HitDirection.Front, 5, mech, weapon, weaponTargetData, null, false, null])!;
+
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         data.Damage.Last().Location.ShouldBe(PartLocation.CenterTorso);
     }
@@ -176,7 +172,7 @@ public class WeaponAttackResolverTests
             AimedShotTarget = PartLocation.LeftArm
         };
 
-        var data = InvokeDetermineHitLocation(HitDirection.Front, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         data.InitialLocation.ShouldBe(PartLocation.LeftArm);
         data.Damage[0].Location.ShouldBe(PartLocation.LeftArm);
@@ -218,10 +214,7 @@ public class WeaponAttackResolverTests
             AimedShotTarget = PartLocation.LeftArm
         };
 
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var data = (LocationHitData)method!.Invoke(sut, [HitDirection.Front, 5, mech, weapon, weaponTargetData, null, false, null])!;
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
         data.Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
@@ -256,10 +249,8 @@ public class WeaponAttackResolverTests
             TargetId = mech.Id,
             IsPrimaryTarget = false
         };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var data = (LocationHitData)method!.Invoke(sut, [HitDirection.Front, 5, mech, weapon, weaponTargetData, null, true, new HexCoordinateData(1, 1)])!;
+
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData, true, new HexCoordinateData(1, 1));
 
         data.Damage.ShouldBeEmpty();
         data.CoveringHexAbsorption.ShouldNotBeNull();
@@ -296,10 +287,8 @@ public class WeaponAttackResolverTests
             TargetId = mech.Id,
             IsPrimaryTarget = false
         };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var data = (LocationHitData)method!.Invoke(sut, [HitDirection.Front, 5, mech, weapon, weaponTargetData, null, true, new HexCoordinateData(1, 1)])!;
+
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData, true, new HexCoordinateData(1, 1));
 
         data.Damage.ShouldNotBeEmpty();
         data.CoveringHexAbsorption.ShouldBeNull();
@@ -334,7 +323,7 @@ public class WeaponAttackResolverTests
     }
 
     [Fact]
-    public void ResolveAttack_ShouldThrowException_WhenBattleMapIsNull()
+    public void ResolveAttack_ShouldThrowArgumentNullException_WhenBattleMapIsNull()
     {
         var attacker = Substitute.For<IUnit>();
         var target = Substitute.For<IUnit>();
@@ -351,10 +340,106 @@ public class WeaponAttackResolverTests
             IsPrimaryTarget = true
         };
 
-        var exception = Should.Throw<Exception>(() =>
+        Should.Throw<ArgumentNullException>(() =>
             _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, null!));
+    }
 
-        exception.Message.ShouldBe("Battle map is null");
+    [Fact]
+    public void ResolveAttack_ShouldReturnMiss_WhenToHitRollIsBelowTarget()
+    {
+        var weapon = CreateMountedWeapon();
+        var weaponTargetData = CreateWeaponTargetData(weapon);
+        var attacker = CreateAttackerWithPosition();
+        var target = CreateTargetWithPosition();
+        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(12);
+        _diceRoller.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]);
+
+        var result = _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
+
+        result.IsHit.ShouldBeFalse();
+        result.ToHitNumber.ShouldBe(12);
+        result.HitLocationsData.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveAttack_ShouldReturnHit_WhenToHitRollIsSufficient()
+    {
+        var weapon = CreateMountedWeapon();
+        var weaponTargetData = CreateWeaponTargetData(weapon);
+        var attacker = CreateAttackerWithPosition();
+        var target = CreateTargetWithPosition();
+        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(2);
+        _diceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(4)],
+            [new DiceResult(5), new DiceResult(5)]
+        );
+
+        var losResult = LineOfSightResult.Unblocked(
+            attacker.Position!.Coordinates,
+            target.Position!.Coordinates,
+            weapon.FirstMountPart!.Level,
+            target.Height);
+        battleMap.GetLineOfSight(
+            attacker.Position!.Coordinates,
+            target.Position!.Coordinates,
+            weapon.FirstMountPart.Level,
+            target.Height).Returns(losResult);
+
+        var result = _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
+
+        result.IsHit.ShouldBeTrue();
+        result.ToHitNumber.ShouldBe(2);
+        result.HitLocationsData.ShouldNotBeNull();
+        result.HitLocationsData.HitLocations.ShouldNotBeEmpty();
+        result.HitLocationsData.TotalDamage.ShouldBe(weapon.Damage);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithClusterWeapon_ShouldDistributeDamageAcrossMultipleHitLocations()
+    {
+        var weapon = CreateMountedWeapon(clusters: 5, clusterSize: 3);
+        var weaponTargetData = CreateWeaponTargetData(weapon);
+        var attacker = CreateAttackerWithPosition();
+        var target = CreateTargetWithPosition();
+        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(2);
+        mockRulesProvider.GetClusterHits(Arg.Any<int>(), 15).Returns(12);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftTorso);
+        mockRulesProvider.HasPartialCover(target, Arg.Any<LineOfSightResult>()).Returns(false);
+
+        _diceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(4)],
+            [new DiceResult(6), new DiceResult(5)],
+            [new DiceResult(5), new DiceResult(5)],
+            [new DiceResult(5), new DiceResult(5)],
+            [new DiceResult(5), new DiceResult(5)],
+            [new DiceResult(5), new DiceResult(5)]
+        );
+
+        var losResult = LineOfSightResult.Unblocked(
+            attacker.Position!.Coordinates,
+            target.Position!.Coordinates,
+            weapon.FirstMountPart!.Level,
+            target.Height);
+        battleMap.GetLineOfSight(
+            attacker.Position!.Coordinates,
+            target.Position!.Coordinates,
+            weapon.FirstMountPart.Level,
+            target.Height).Returns(losResult);
+
+        var result = sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
+
+        result.IsHit.ShouldBeTrue();
+        result.HitLocationsData.ShouldNotBeNull();
+        result.HitLocationsData.HitLocations.Count.ShouldBe(4);
+        result.HitLocationsData.TotalDamage.ShouldBe(60);
     }
 
     [Fact]
@@ -421,10 +506,49 @@ public class WeaponAttackResolverTests
         result.ShouldBe(HitDirection.Right);
     }
 
-    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5, int externalHeat = 2)
+    private static Weapon CreateMountedWeapon(int clusters = 1, int clusterSize = 1)
+    {
+        var weapon = new TestWeapon(clusters: clusters, clusterSize: clusterSize);
+        var mountPart = new Arm("RightArm", PartLocation.RightArm, 5, 5);
+        weapon.Mount(mountPart, [0]);
+        return weapon;
+    }
+
+    private static WeaponTargetData CreateWeaponTargetData(Weapon weapon)
+    {
+        return new WeaponTargetData
+        {
+            Weapon = new ComponentData
+            {
+                Name = weapon.Name,
+                Type = weapon.ComponentType,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 1)]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = true
+        };
+    }
+
+    private static IUnit CreateAttackerWithPosition()
+    {
+        var attacker = Substitute.For<IUnit>();
+        attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
+        attacker.Height.Returns(2);
+        return attacker;
+    }
+
+    private static IUnit CreateTargetWithPosition()
+    {
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns(new HexPosition(3, 3, HexDirection.Top));
+        target.Height.Returns(2);
+        return target;
+    }
+
+    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null,
+            int damage = 5, int externalHeat = 2, int clusters = 1, int clusterSize = 1)
         : Weapon(new WeaponDefinition(
             "Test Weapon", damage, 3,
             new WeaponRange(0, 3, 6, 9),
-            type, 10, null, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, externalHeat));
-
+            type, 10, null, clusters, clusterSize, 1, 1, MakaMekComponent.MachineGun, ammoType, externalHeat));
 }

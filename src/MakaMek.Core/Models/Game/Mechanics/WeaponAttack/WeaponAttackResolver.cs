@@ -34,10 +34,7 @@ public class WeaponAttackResolver : IWeaponAttackResolver
         WeaponTargetData weaponTargetData,
         IBattleMap battleMap)
     {
-        if (battleMap == null)
-        {
-            throw new Exception("Battle map is null");
-        }
+        ArgumentNullException.ThrowIfNull(battleMap);
 
         if (weapon.FirstMountPart == null)
         {

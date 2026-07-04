@@ -1,14 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
@@ -18,8 +15,7 @@ public class AttackerPartialCoverGateTests
 {
     private readonly IRulesProvider _rulesProvider = Substitute.For<IRulesProvider>();
     private readonly IBattleMap _battleMap = Substitute.For<IBattleMap>();
-    private readonly ILogger<ServerGame> _logger = Substitute.For<ILogger<ServerGame>>();
-    private readonly ServerGame _game;
+    private readonly ILogger _logger = Substitute.For<ILogger>();
     private readonly AttackerPartialCoverGate _sut = new();
 
     private readonly IUnit _attacker = Substitute.For<IUnit>();
@@ -28,22 +24,6 @@ public class AttackerPartialCoverGateTests
 
     public AttackerPartialCoverGateTests()
     {
-        _game = new ServerGame(
-            _rulesProvider,
-            Substitute.For<IMechFactory>(),
-            Substitute.For<Sanet.MakaMek.Core.Services.Transport.ICommandPublisher>(),
-            Substitute.For<Sanet.MakaMek.Core.Models.Game.Dice.IDiceRoller>(),
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<IDamageTransferCalculator>(),
-            Substitute.For<ICriticalHitsCalculator>(),
-            Substitute.For<IHullBreachCalculator>(),
-            Substitute.For<IPilotingSkillCalculator>(),
-            Substitute.For<IConsciousnessCalculator>(),
-            Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IFallProcessor>(),
-            Substitute.For<IWeaponAttackResolver>(),
-            _logger);
-
         _attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         _attacker.Height.Returns(2);
 
@@ -76,7 +56,7 @@ public class AttackerPartialCoverGateTests
 
         var primaryAssignment = new LocationSlotAssignment(PartLocation.LeftLeg, 1, 1);
 
-        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _game);
+        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
 
         result.ShouldBeTrue();
     }
@@ -90,12 +70,12 @@ public class AttackerPartialCoverGateTests
 
         var primaryAssignment = new LocationSlotAssignment(PartLocation.LeftLeg, 1, 1);
 
-        _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _game);
+        _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
 
         _logger.Received(1).Log(
             LogLevel.Information,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Skipping leg-mounted weapon")),
+            Arg.Is<object>(o => o.ToString()!.Contains("Skipping weapon at LeftLeg")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -109,7 +89,7 @@ public class AttackerPartialCoverGateTests
 
         var primaryAssignment = new LocationSlotAssignment(PartLocation.LeftLeg, 1, 1);
 
-        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _game);
+        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
 
         result.ShouldBeFalse();
     }
@@ -123,7 +103,7 @@ public class AttackerPartialCoverGateTests
 
         var primaryAssignment = new LocationSlotAssignment(PartLocation.CenterTorso, 1, 1);
 
-        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _game);
+        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
 
         result.ShouldBeFalse();
     }
@@ -137,7 +117,7 @@ public class AttackerPartialCoverGateTests
 
         var primaryAssignment = new LocationSlotAssignment(PartLocation.CenterTorso, 1, 1);
 
-        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _game);
+        var result = _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
 
         result.ShouldBeFalse();
     }

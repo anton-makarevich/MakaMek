@@ -38,7 +38,8 @@ private readonly record struct AttackQueueItem(
     IUnit Attacker,
     Weapon? Weapon,
     IUnit? TargetUnit,
-    WeaponTargetData WeaponTargetData
+    WeaponTargetData WeaponTargetData,
+    LocationSlotAssignment PrimaryAssignment
 );
 ```
 
@@ -46,7 +47,7 @@ Produced once by `BuildAttackQueue()`. Contains everything needed to resolve a s
 
 ### `BuildAttackQueue()` — flattening step
 
-Walks `_playersInOrder`, then each player's units in `_unitsWithTargets`, then each unit's `DeclaredWeaponTargets`. For each weapon target it resolves the mounted `Weapon` (via `unit.GetMountedComponentAtLocation<Weapon>`) and the target `IUnit` (via `Game.Players.SelectMany(p => p.Units)`). The result is a flat `List<AttackQueueItem>` that the main loop iterates.
+Walks `_playersInOrder`, then each player's units in `_unitsWithTargets`, then each unit's `DeclaredWeaponTargets`. The flattened unit list (`allUnits`) is materialised once at the top of the method rather than recomputed per weapon target. For each weapon target it resolves the mounted `Weapon` (via `unit.GetMountedComponentAtLocation<Weapon>`) and the target `IUnit` (via `allUnits`). The result is a flat `List<AttackQueueItem>` that the main loop iterates.
 
 ### `IWeaponAttackResolver` — the mandatory pipeline
 
@@ -78,7 +79,8 @@ Private helpers `DetermineHitLocation`, `ResolveClusterWeaponHit`, and `Determin
 public interface IAttackResolutionGate
 {
     bool ShouldSkip(IUnit attacker, IUnit target, Weapon weapon,
-        LocationSlotAssignment primaryAssignment, IBattleMap battleMap, ServerGame game);
+        LocationSlotAssignment primaryAssignment, IBattleMap battleMap,
+        IRulesProvider rulesProvider, ILogger logger);
 }
 ```
 
@@ -111,14 +113,14 @@ After all attacks resolve, iterates accumulated damage data and runs `Game.FallP
 
 ## Control flow
 
-```
+```text
 Enter()
   │
   ├─ Clear _accumulatedDamageData
   ├─ Build _playersInOrder from Game.InitiativeOrder
   ├─ PrepareUnitsWithTargets()
   │
-  └─ ResolveNextAttack()
+  └─ ResolveAllAttacks()
        │
        ├─ Guard: Game.BattleMap == null → throw
        │

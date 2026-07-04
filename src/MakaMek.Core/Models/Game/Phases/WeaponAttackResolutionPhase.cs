@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
@@ -31,7 +32,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         IUnit Attacker,
         Weapon? Weapon,
         IUnit? TargetUnit,
-        WeaponTargetData WeaponTargetData
+        WeaponTargetData WeaponTargetData,
+        LocationSlotAssignment PrimaryAssignment
     );
 
     public override void Enter()
@@ -46,7 +48,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         PrepareUnitsWithTargets();
         
         // Start resolving attacks
-        ResolveNextAttack();
+        ResolveAllAttacks();
     }
     
     private void PrepareUnitsWithTargets()
@@ -69,6 +71,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private List<AttackQueueItem> BuildAttackQueue()
     {
         var queue = new List<AttackQueueItem>();
+        var allUnits = Game.Players.SelectMany(p => p.Units).ToList();
         foreach (var player in _playersInOrder)
         {
             if (!_unitsWithTargets.TryGetValue(player.Id, out var unitsWithTargets))
@@ -80,16 +83,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 {
                     var primaryAssignment = weaponTarget.Weapon.Assignments[0];
                     var weapon = unit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
-                    var allUnits = Game.Players.SelectMany(p => p.Units);
                     var targetUnit = allUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
-                    queue.Add(new AttackQueueItem(player, unit, weapon, targetUnit, weaponTarget));
+                    queue.Add(new AttackQueueItem(player, unit, weapon, targetUnit, weaponTarget, primaryAssignment));
                 }
             }
         }
         return queue;
     }
 
-    private void ResolveNextAttack()
+    private void ResolveAllAttacks()
     {
         if (Game.BattleMap == null)
         {
@@ -107,10 +109,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position != null)
             {
                 var shouldSkip = false;
-                var primaryAssignment = item.WeaponTargetData.Weapon.Assignments[0];
                 foreach (var gate in _attackResolutionGates)
                 {
-                    if (!gate.ShouldSkip(currentUnit, targetUnit, currentWeapon, primaryAssignment, Game.BattleMap, Game))
+                    if (!gate.ShouldSkip(currentUnit, targetUnit, currentWeapon, item.PrimaryAssignment, Game.BattleMap, Game.RulesProvider, Game.Logger))
                         continue;
                     shouldSkip = true;
                     break;
