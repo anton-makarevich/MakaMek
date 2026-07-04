@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -30,11 +31,14 @@ public class GameFactoryTests
     private readonly IHashService _hashService= Substitute.For<IHashService>();
     private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
     private readonly GameFactory _sut;
+    private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
+    private readonly IWeaponAttackResolver _weaponAttackResolver = Substitute.For<IWeaponAttackResolver>();
+    private readonly ILogger _logger = Substitute.For<ILogger>();
 
     public GameFactoryTests()
     {
-        _loggerFactory.CreateLogger(Arg.Any<string>()).Returns(Substitute.For<ILogger>());
-        _sut = new GameFactory(_loggerFactory);
+        _loggerFactory.CreateLogger(Arg.Any<string>()).Returns(_logger);
+        _sut = new GameFactory(_loggerFactory, _weaponAttackResolver);
     }
 
     [Fact]
@@ -52,7 +56,7 @@ public class GameFactoryTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            Substitute.For<IFallProcessor>());
+            _fallProcessor);
 
         // Assert
         serverGame.ShouldNotBeNull();

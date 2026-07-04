@@ -2,21 +2,17 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Map.Data;
-using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 {
-    private int _currentPlayerIndex;
-    private int _currentUnitIndex;
-    private int _currentWeaponIndex;
-    
     // List of players in initiative order for attack resolution
     private List<IPlayer> _playersInOrder = [];
     
@@ -26,6 +22,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
 
+    private readonly IReadOnlyList<IAttackResolutionGate> _attackResolutionGates =
+    [
+        new AttackerPartialCoverGate()
+    ];
+
+    private readonly record struct AttackQueueItem(
+        IPlayer Player,
+        IUnit Attacker,
+        Weapon? Weapon,
+        IUnit? TargetUnit,
+        WeaponTargetData WeaponTargetData,
+        LocationSlotAssignment PrimaryAssignment
+    );
+
     public override void Enter()
     {
         // Clear any accumulated damage data from previous phases
@@ -33,15 +43,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Initialize the attack resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
-        _currentPlayerIndex = 0;
-        _currentUnitIndex = 0;
-        _currentWeaponIndex = 0;
         
         // Prepare the dictionary of units with targets for each player
         PrepareUnitsWithTargets();
         
         // Start resolving attacks
-        ResolveNextAttack();
+        ResolveAllAttacks();
     }
     
     private void PrepareUnitsWithTargets()
@@ -61,379 +68,64 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
     }
 
-    private void ResolveNextAttack()
+    private List<AttackQueueItem> BuildAttackQueue()
     {
-        if (Game.BattleMap == null)
+        var queue = new List<AttackQueueItem>();
+        var allUnits = Game.Players.SelectMany(p => p.Units).ToList();
+        foreach (var player in _playersInOrder)
         {
-            throw new Exception("Battle map is null");
-        }
-
-        // Check if we've processed all players
-        if (_currentPlayerIndex >= _playersInOrder.Count)
-        {
-            // Calculate PSRs for all units that accumulated damage during this phase
-            CalculateEndOfPhasePsrs();
-            
-            Game.TransitionToNextPhase(Name);
-            return;
-        }
-
-        var currentPlayer = _playersInOrder[_currentPlayerIndex];
-
-        // Skip players with no units that have targets
-        if (!_unitsWithTargets.TryGetValue(currentPlayer.Id, out var unitsWithTargets) || unitsWithTargets.Count == 0)
-        {
-            MoveToNextPlayer();
-            ResolveNextAttack();
-            return;
-        }
-
-        // Check if we've processed all units for the current player
-        if (_currentUnitIndex >= unitsWithTargets.Count)
-        {
-            MoveToNextPlayer();
-            ResolveNextAttack();
-            return;
-        }
-
-        var currentUnit = unitsWithTargets[_currentUnitIndex];
-        var weaponTargets = currentUnit.DeclaredWeaponTargets??[];
-
-        // Check if we've processed all weapon targets for the current unit
-        if (_currentWeaponIndex >= weaponTargets.Count)
-        {
-            MoveToNextUnit();
-            ResolveNextAttack();
-            return;
-        }
-
-        var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
-        
-        // Find the weapon and target unit
-        var primaryAssignment = currentWeaponTarget.Weapon.Assignments[0];
-        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
-        
-        // Take all units not just alive as we should resolve attack even if the unit is already destroyed
-        var allUnits = Game.Players.SelectMany(p => p.Units); 
-        var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
-
-        if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position!=null)
-        {
-            // Check if attacker has partial cover from target's perspective (reversed LOS)
-            // Leg-mounted weapons cannot fire when the attacker has partial cover
-            var reversedLosResult = Game.BattleMap.GetLineOfSight(
-                targetUnit.Position.Coordinates,
-                currentUnit.Position.Coordinates,
-                targetUnit.Height, // highest weapon is ok here 
-                currentUnit.Height);
-            var attackerHasPartialCover = Game.RulesProvider.HasPartialCover(currentUnit, reversedLosResult);
-            
-            // Check if this weapon can receive cover
-            var canBeCovered = Game.RulesProvider.CanPartBeCovered(primaryAssignment.Location);
-            
-            if (attackerHasPartialCover && canBeCovered)
+            if (!_unitsWithTargets.TryGetValue(player.Id, out var unitsWithTargets))
+                continue;
+            foreach (var unit in unitsWithTargets)
             {
-                // Skip leg weapon attack when attacker has partial cover
-                Game.Logger.LogInformation(
-                    "Skipping leg-mounted weapon {WeaponName} attack from {AttackerName} to {TargetName} - attacker has partial cover",
-                    currentWeapon.Name, currentUnit.Name, targetUnit.Name);
-            }
-            else
-            {
-                var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
-                FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
-            }
-        }
-
-        // Move to the next weapon
-        _currentWeaponIndex++;
-
-        // Continue resolving attacks
-        ResolveNextAttack();
-    }
-
-    private AttackResolutionData ResolveAttack(IUnit attacker, IUnit target, Weapon weapon, WeaponTargetData weaponTargetData)
-    {
-        if (Game.BattleMap == null)
-        {
-            throw new Exception("Battle map is null");
-        }
-
-        if (weapon.FirstMountPart == null)
-        {
-            throw new ArgumentException($"Weapon {weapon.Name} is not mounted", nameof(weapon));
-        }
-        
-        // Calculate to-hit number, including aimed shot modifiers if applicable
-        var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
-            attacker,
-            target,
-            weapon,
-            Game.BattleMap,
-            weaponTargetData.IsPrimaryTarget,
-            weaponTargetData.AimedShotTarget);
-        
-        // Roll 2D6 for attack
-        var attackRoll = Game.DiceRoller.Roll2D6();
-        var totalRoll = attackRoll.Sum(d => d.Result);
-
-        var isHit = totalRoll >= toHitNumber;
-
-        // Determine an attack direction (will be null if not a hit)
-        var attackDirection = HitDirection.Front;
-
-        // If hit, determine location and damage
-        AttackHitLocationsData? hitLocationsData = null;
-
-        if (!isHit) return new AttackResolutionData(toHitNumber,
-            attackRoll,
-            isHit,
-            attackDirection,
-            weapon.ExternalHeat,
-            hitLocationsData);
-        // Determine an attack direction once for this weapon attack
-        attackDirection = DetermineAttackDirection(attacker, target);
-
-        // Compute LOS and check for partial cover
-        var losResult = Game.BattleMap.GetLineOfSight(
-            attacker.Position!.Coordinates,
-            target.Position!.Coordinates,
-            weapon.FirstMountPart.Level,
-            target.Height);
-        var hasPartialCover = Game.RulesProvider.HasPartialCover(target, losResult);
-        var coveringHex = hasPartialCover && losResult.HexPath.Count >= 2
-            ? losResult.HexPath[^2].Hex.Coordinates.ToData()
-            : null;
-
-        // Check if it's a cluster weapon
-        if (weapon.WeaponSize > 1)
-        {
-            // It's a cluster weapon, handle multiple hits
-            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection, weaponTargetData, hasPartialCover, coveringHex);
-
-            // Create hit locations data with multiple hits
-            return new AttackResolutionData(toHitNumber,
-                attackRoll,
-                isHit,
-                attackDirection,
-                weapon.ExternalHeat,
-                hitLocationsData);
-        }
-
-        // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection, weapon.Damage, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex);
-
-        // Create hit locations data with a single hit
-        hitLocationsData = new AttackHitLocationsData(
-            [hitLocationData],
-            weapon.Damage,
-            [], // No cluster roll for standard weapons
-            1 // Single hit
-        );
-
-        return new AttackResolutionData(toHitNumber,
-            attackRoll,
-            isHit,
-            attackDirection,
-            weapon.ExternalHeat,
-            hitLocationsData);
-    }
-
-    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon,
-        IUnit target,
-        HitDirection attackDirection,
-        WeaponTargetData weaponTargetData,
-        bool hasPartialCover = false,
-        HexCoordinateData? coveringHex = null)
-    {
-        // Roll for cluster hits
-        var clusterRoll = Game.DiceRoller.Roll2D6();
-        var clusterRollTotal = clusterRoll.Sum(d => d.Result);
-        
-        // Determine how many missiles hit by the cluster hit table
-        var missilesHit = Game.RulesProvider.GetClusterHits(clusterRollTotal, weapon.WeaponSize);
-        
-        // Calculate damage per missile
-        var damagePerMissile = weapon.Damage / weapon.WeaponSize;
-        
-        // Calculate how many complete clusters hit and if there's a partial cluster
-        var completeClusterHits = missilesHit / weapon.ClusterSize;
-        var remainingMissiles = missilesHit % weapon.ClusterSize;
-        
-        var hitLocations = new List<LocationHitData>();
-        var totalDamage = 0;
-
-        // For each complete cluster that hit
-        for (var i = 0; i < completeClusterHits; i++)
-        {
-            // Calculate damage for this cluster
-            var clusterDamage = weapon.ClusterSize * damagePerMissile;
-
-            // Determine the hit location for this cluster
-            // Pass accumulated hit locations so damage calculation considers previous clusters
-            var hitLocationData = DetermineHitLocation(attackDirection,
-                clusterDamage,
-                target,
-                weapon,
-                weaponTargetData,
-                hitLocations,
-                hasPartialCover,
-                coveringHex);
-
-            // Add to hit locations and update total damage
-            hitLocations.Add(hitLocationData);
-            totalDamage += clusterDamage;
-        }
-
-        // If there are remaining missiles (partial cluster)
-        if (remainingMissiles > 0)
-        {
-            // Calculate damage for the partial cluster
-            var partialClusterDamage = remainingMissiles * damagePerMissile;
-
-            // Determine the hit location for the partial cluster
-            // Pass accumulated hit locations so damage calculation considers previous clusters
-            var hitLocationData = DetermineHitLocation(
-                attackDirection,
-                partialClusterDamage,
-                target,
-                weapon,
-                weaponTargetData,
-                hitLocations,
-                hasPartialCover,
-                coveringHex);
-
-            // Add to hit locations and update total damage
-            hitLocations.Add(hitLocationData);
-            totalDamage += partialClusterDamage;
-        }
-
-        return new AttackHitLocationsData(hitLocations, totalDamage, clusterRoll, missilesHit);
-    }
-
-    /// <summary>
-    /// Determines the hit location for an attack
-    /// </summary>
-    /// <param name="attackDirection">The direction of the attack</param>
-    /// <param name="damage">The damage to be applied to this location</param>
-    /// <param name="target">The target unit</param>
-    /// <param name="weapon">The firing weapon</param>
-    /// <param name="weaponTargetData">Weapon's target data</param>
-    /// <param name="accumulatedHitLocations">Optional list of previously resolved hit locations from earlier clusters</param>
-    /// <param name="hasPartialCover">Whether the target has partial cover</param>
-    /// <param name="coveringHex">The coordinates of the hex providing cover (if any)</param>
-    /// <returns>Hit location data with location, damage and dice roll</returns>
-    private LocationHitData DetermineHitLocation(
-        HitDirection attackDirection,
-        int damage,
-        IUnit target,
-        Weapon weapon,
-        WeaponTargetData weaponTargetData,
-        IReadOnlyList<LocationHitData>? accumulatedHitLocations = null,
-        bool hasPartialCover = false,
-        HexCoordinateData? coveringHex = null)
-    {
-        // If the weapon target data specifies a specific location, use that
-        PartLocation? aimedShotLocation = null;
-        int[] aimedShotRollResult = [];
-        if (IsAimedShotPossible(target, weapon, weaponTargetData))
-        {
-            aimedShotRollResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
-            var aimedShotRoll = aimedShotRollResult.Sum();
-            var successValues = Game.RulesProvider.GetAimedShotSuccessValues();
-            if (successValues.Contains(aimedShotRoll))
-            {
-                aimedShotLocation = weaponTargetData.AimedShotTarget;
-            }
-        }
-
-        int[] locationRoll = [];
-        // If the aimed shot location is null, determine the hit location normally
-        var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
-        
-        // Check if partial cover absorbed this hit (legs are protected by partial cover)
-        if (hasPartialCover && coveringHex!=null &&
-            Game.RulesProvider.CanPartBeCovered(hitLocation))
-        {
-            return new LocationHitData(
-                [],
-                aimedShotRollResult,
-                locationRoll,
-                hitLocation,
-                new CoveringHexData(coveringHex, damage));
-        }
-        
-        // Store the initial location in case we need to transfer
-        var initialLocation = hitLocation;
-        
-        // Check if the location is already destroyed and transfer if needed
-        while (target.Parts.TryGetValue(hitLocation, out var part) && part.IsDestroyed)
-        {
-            var nextLocation = part.GetNextTransferLocation();
-            if (nextLocation == null || nextLocation == hitLocation)
-                break;
-
-            hitLocation = nextLocation.Value;
-        }
-        
-        // Use DamageTransferCalculator to calculate damage distribution
-        // Pass accumulated hit locations so the calculator can apply previous cluster damage
-        var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
-            target, hitLocation, damage, attackDirection, accumulatedHitLocations);
-
-        return new LocationHitData(
-            damageData,
-            aimedShotRollResult,
-            locationRoll,
-            initialLocation);
-
-        bool IsAimedShotPossible(IUnit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
-        {
-            return unit.IsImmobile // Immobile target
-                   && weapon1.IsAimShotCapable // Aimed shot-capable weapon
-                   && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
-        }
-
-        // Get hit location based on the roll and attack direction
-        PartLocation GetHitLocation(out int[] innerLocationRoll)
-        {
-            // Roll for hit location
-            innerLocationRoll = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
-            var locationRollTotal = innerLocationRoll.Sum();
-            return Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
-        }
-    }
-
-    /// <summary>
-    /// Determines the direction from which the attack is coming
-    /// </summary>
-    /// <param name="attacker">The attacking unit</param>
-    /// <param name="target">The target unit</param>
-    /// <returns>The direction from which the attack is coming</returns>
-    private HitDirection DetermineAttackDirection(IUnit? attacker, IUnit target)
-    {
-        // Default to forward if no attacker is provided or positions are missing
-        if (attacker?.Position == null || target.Position == null)
-            return HitDirection.Front;
-            
-        // Check each firing arc to determine which one contains the attacker
-        // TODO this is a temporary simplified approach, actually attack direction and firing arc are different things
-        foreach (var arc in Enum.GetValues<FiringArc>())
-        {
-            if (target.Position.Coordinates.IsInFiringArc(attacker.Position.Coordinates, target.Position.Facing, arc))
-            {
-                return arc switch
+                var weaponTargets = unit.DeclaredWeaponTargets ?? [];
+                foreach (var weaponTarget in weaponTargets)
                 {
-                    FiringArc.Left => HitDirection.Left,
-                    FiringArc.Right => HitDirection.Right,
-                    FiringArc.Rear => HitDirection.Rear,
-                    _ => HitDirection.Front
-                };
+                    var primaryAssignment = weaponTarget.Weapon.Assignments[0];
+                    var weapon = unit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
+                    var targetUnit = allUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
+                    queue.Add(new AttackQueueItem(player, unit, weapon, targetUnit, weaponTarget, primaryAssignment));
+                }
             }
         }
-        
-        // Default to forward if no arc is determined
-        return HitDirection.Front;
+        return queue;
+    }
+
+    private void ResolveAllAttacks()
+    {
+        if (Game.BattleMap == null)
+        {
+            throw new Exception("Battle map is null");
+        }
+
+        var attackQueue = BuildAttackQueue();
+
+        foreach (var item in attackQueue)
+        {
+            var currentUnit = item.Attacker;
+            var currentWeapon = item.Weapon;
+            var targetUnit = item.TargetUnit;
+
+            if (currentWeapon != null && targetUnit is { Position: not null } && currentUnit.Position != null)
+            {
+                var shouldSkip = false;
+                foreach (var gate in _attackResolutionGates)
+                {
+                    if (!gate.ShouldSkip(currentUnit, targetUnit, currentWeapon, item.PrimaryAssignment, Game.BattleMap, Game.RulesProvider, Game.Logger))
+                        continue;
+                    shouldSkip = true;
+                    break;
+                }
+
+                if (shouldSkip) continue;
+
+                var resolution = Game.WeaponAttackResolver.ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData, Game.BattleMap);
+                FinalizeAttackResolution(item.Player, currentUnit, currentWeapon, targetUnit, resolution);
+            }
+        }
+
+        CalculateEndOfPhasePsrs();
+        Game.TransitionToNextPhase(Name);
     }
 
     private void FinalizeAttackResolution(IPlayer player, IUnit attacker, Weapon weapon, IUnit target,
@@ -550,19 +242,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
         foreach (var part in allDestroyedParts)
             accumulatedDamage.AllDestroyedParts.Add(part);
-    }
-
-    private void MoveToNextUnit()
-    {
-        _currentUnitIndex++;
-        _currentWeaponIndex = 0;
-    }
-    
-    private void MoveToNextPlayer()
-    {
-        _currentPlayerIndex++;
-        _currentUnitIndex = 0;
-        _currentWeaponIndex = 0;
     }
 
     public override void HandleCommand(IGameCommand command)

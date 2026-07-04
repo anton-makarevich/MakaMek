@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -708,6 +709,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
             MockFallProcessor,
+            Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
 
         var playerId = Guid.NewGuid();

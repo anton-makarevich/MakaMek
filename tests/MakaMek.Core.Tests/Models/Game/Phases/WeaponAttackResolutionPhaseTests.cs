@@ -14,10 +14,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Tests.Utils;
-using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 using Shouldly.ShouldlyExtensionMethods;
@@ -36,8 +32,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private  IUnit _player2Unit1 = null!;
     private  IGamePhase _mockNextPhase = null!;
     private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
-    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     protected override void SetupSut()
     {
@@ -738,169 +732,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void DetermineHitLocation_ShouldTransferToNextLocation_WhenInitialLocationIsDestroyed()
-    {
-        // Arrange
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        SetGameWithRulesProvider(mockRulesProvider);
-
-        // Create a mech with multiple parts including a destroyed left arm
-        var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
-        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
-
-        // Destroy the left arm
-        leftArm.ApplyDamage(10, HitDirection.Front); // Apply enough damage to destroy it
-        leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
-
-        var mech = new Mech("TestChassis", "TestModel", 50, [leftArm, leftTorso, centerTorso]);
-
-        // Configure the rule provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
-
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
-        );
-        
-        // Act
-        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech);
-
-        // Assert
-        // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
-        data.InitialLocation.ShouldBe(PartLocation.LeftArm);
-        data.Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
-    }
-
-    [Fact]
-    public void DetermineHitLocation_ShouldTransferMultipleTimes_WhenMultipleLocationsInChainAreDestroyed()
-    {
-        // Arrange
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        SetGameWithRulesProvider(mockRulesProvider);
-
-        // Create a mech with multiple parts including destroyed left arm and left torso
-        var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
-        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
-
-        // Destroy the left arm and left torso
-        leftArm.ApplyDamage(10, HitDirection.Front); // Apply enough damage to destroy it
-        leftTorso.ApplyDamage(20, HitDirection.Front); // Apply enough damage to destroy it
-
-        leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
-        leftTorso.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
-
-        var mech = new Mech("TestChassis", "TestModel", 50, [leftArm, leftTorso, centerTorso]);
-
-        // Configure the rule provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
-
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
-        );
-        
-        // Act
-        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech);
-
-        // Assert
-        // Should have transferred from LeftArm to LeftTorso to CenterTorso
-        data.Damage.Last().Location.ShouldBe(PartLocation.CenterTorso);
-    }
-    
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void DetermineHitLocation_WithSuccessfulAimedShot_ShouldHitIntendedLocation(int secondD6)
-    {
-        // Arrange
-        var mechData = MechFactoryTests.CreateDummyMechData();
-        var mech = new MechFactory(
-            _rulesProvider,
-            _componentProvider,
-            _localizationService).Create(mechData);
-        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
-        mech.Shutdown(shutdownData);
-        
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(secondD6)] // in 6-8 rangeBracket
-        );
-        
-        var weaponTargetData = new WeaponTargetData
-        {
-            Weapon = new ComponentData
-            {
-                Name = "Test Weapon",
-                Type = MakaMekComponent.MachineGun,
-                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
-            },
-            TargetId = Guid.NewGuid(),
-            IsPrimaryTarget = false,
-            AimedShotTarget = PartLocation.LeftArm
-        };
-        
-        // Act
-        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, weaponTargetData);
-
-        // Assert
-        // Should hit the intended location (LeftArm) due to a successful aimed shot
-        data.InitialLocation.ShouldBe(PartLocation.LeftArm);
-        data.Damage[0].Location.ShouldBe(PartLocation.LeftArm);
-    }
-    
-    [Theory]
-    [InlineData(1)]
-    [InlineData(6)]
-    public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable(int secondD6)
-    {
-        // Arrange
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        SetGameWithRulesProvider(mockRulesProvider);
-        var mechData = MechFactoryTests.CreateDummyMechData();
-        var mech = new MechFactory(
-            _rulesProvider,
-            _componentProvider,
-            _localizationService).Create(mechData);
-        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
-        mech.Shutdown(shutdownData);
-
-        // Configure the rule provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
-
-        // Configure aimed shot success values
-        mockRulesProvider.GetAimedShotSuccessValues().Returns([6, 7, 8]);
-
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 rangeBracket
-        );
-        
-        var weaponTargetData = new WeaponTargetData
-        {
-            Weapon = new ComponentData
-            {
-                Name = "Test Weapon",
-                Type = MakaMekComponent.MachineGun,
-                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
-            },
-            TargetId = Guid.NewGuid(),
-            IsPrimaryTarget = false,
-            AimedShotTarget = PartLocation.LeftArm
-        };
-        
-        // Act
-        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, weaponTargetData);
-
-        // Assert
-        // Should hit location from the table (CenterTorso) due to unsuccessful aimed shot
-        data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
-        data.Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
-    }
-    
-    [Fact]
     public void Enter_ShouldTrackDestroyedParts_WhenApplyingDamage()
     {
         // Arrange - Setup weapon targets
@@ -1436,73 +1267,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
     // Helper to invoke private method
     [Fact]
-    public void DetermineHitLocation_ShouldAbsorbDamageByCoveringHex_WhenPartialCoverAppliesToLeg()
-    {
-        // Arrange
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        SetGameWithRulesProvider(mockRulesProvider);
-
-        // Create a mech with parts
-        var leftLeg = new Leg("LeftLeg", PartLocation.LeftLeg, 10, 5);
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
-
-        var mech = new Mech("TestChassis", "TestModel", 50, [leftLeg, centerTorso]);
-
-        // Configure the rule provider to return LeftLeg as the hit location (covered by partial cover)
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftLeg);
-        mockRulesProvider.CanPartBeCovered(PartLocation.LeftLeg).Returns(true);
-
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(4)] // 9 for hit location roll (LeftLeg)
-        );
-        
-        // Act
-        var data = InvokeDetermineHitLocation(_sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
-
-        // Assert
-        // Should have empty damage (absorbed by covering hex)
-        data.Damage.ShouldBeEmpty();
-        data.CoveringHexAbsorption.ShouldNotBeNull();
-        data.CoveringHexAbsorption!.AbsorbedDamage.ShouldBe(5);
-        data.CoveringHexAbsorption.CoveringHex.ShouldBe(new HexCoordinateData(1, 1));
-        data.InitialLocation.ShouldBe(PartLocation.LeftLeg);
-    }
-
-    [Fact]
-    public void DetermineHitLocation_ShouldApplyDamageNormally_WhenPartialCoverButNotCoveredLocation()
-    {
-        // Arrange
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        SetGameWithRulesProvider(mockRulesProvider);
-
-        // Create a mech with parts
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
-
-        var mech = new Mech("TestChassis", "TestModel", 50, [centerTorso]);
-
-        // Configure the rule provider to return CenterTorso as the hit location (not covered by partial cover)
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
-        mockRulesProvider.CanPartBeCovered(PartLocation.CenterTorso).Returns(false);
-
-        // Configure dice rolls for hit location
-        DiceRoller.Roll2D6().Returns(
-            [new DiceResult(3), new DiceResult(4)] // 7 for hit location roll (CenterTorso)
-        );
-
-        var sut = new WeaponAttackResolutionPhase(Game);
-
-        // Act
-        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, null, true, new HexCoordinateData(1, 1));
-
-        // Assert
-        // Should have damage applied normally (not absorbed)
-        data.Damage.ShouldNotBeEmpty();
-        data.CoveringHexAbsorption.ShouldBeNull();
-        data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
-    }
-
-    [Fact]
     public void Enter_ShouldNotApplyExternalHeat_WhenAllHitsAbsorbedByPartialCover()
     {
         // Arrange
@@ -1799,26 +1563,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Any<List<LocationDamageData>>());
     }
 
-    private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
-        Unit? target, WeaponTargetData? weaponTargetData = null, bool hasPartialCover = false, HexCoordinateData? coveringHex = null)
-    {
-        weaponTargetData ??= new WeaponTargetData
-        {
-            Weapon = new ComponentData
-            {
-                Name = "Test Weapon",
-                Type = MakaMekComponent.MachineGun,
-                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
-            },
-            TargetId = target?.Id ?? Guid.NewGuid(),
-            IsPrimaryTarget = false
-        };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData, null, hasPartialCover, coveringHex])!;
-    }
-    
     private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit
@@ -2556,42 +2300,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.AttackerId == _player1Unit1.Id &&
                 cmd.WeaponData.Assignments.Any(a => a.Location == PartLocation.LeftLeg)));
-    }
-
-    [Fact]
-    public void ResolveAttack_ShouldThrowArgumentException_WhenWeaponIsNotMounted()
-    {
-        // Arrange
-        SetMap();
-
-        var unmountedWeapon = new TestWeapon();
-        unmountedWeapon.FirstMountPart.ShouldBeNull();
-
-        var weaponTargetData = new WeaponTargetData
-        {
-            Weapon = new ComponentData
-            {
-                Name = unmountedWeapon.Name,
-                Type = unmountedWeapon.ComponentType,
-                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 1)]
-            },
-            TargetId = _player2Unit1.Id,
-            IsPrimaryTarget = true
-        };
-
-        var method = typeof(WeaponAttackResolutionPhase).GetMethod("ResolveAttack",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        method.ShouldNotBeNull();
-
-        // Act
-        var exception = Should.Throw<System.Reflection.TargetInvocationException>((Action)Act);
-        
-        // Assert
-        exception.InnerException.ShouldBeOfType<ArgumentException>();
-        exception.InnerException!.Message.ShouldBe("Weapon Test Weapon is not mounted (Parameter 'weapon')");
-        return;
-
-        void Act() => method.Invoke(_sut, [_player1Unit1, _player2Unit1, unmountedWeapon, weaponTargetData]);
     }
 
     [Fact]
