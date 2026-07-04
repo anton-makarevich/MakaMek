@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -331,6 +332,95 @@ public class WeaponAttackResolverTests
 
         exception.Message.ShouldBe("Weapon Test Weapon is not mounted (Parameter 'weapon')");
     }
+
+    [Fact]
+    public void ResolveAttack_ShouldThrowException_WhenBattleMapIsNull()
+    {
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var weapon = new TestWeapon();
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new ComponentData
+            {
+                Name = weapon.Name,
+                Type = weapon.ComponentType,
+                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 1)]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = true
+        };
+
+        var exception = Should.Throw<Exception>(() =>
+            _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, null!));
+
+        exception.Message.ShouldBe("Battle map is null");
+    }
+
+    [Fact]
+    public void DetermineAttackDirection_ShouldReturnFront_WhenAttackerPositionIsNull()
+    {
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
+        attacker.Position.Returns((HexPosition?)null);
+
+        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void DetermineAttackDirection_ShouldReturnFront_WhenTargetPositionIsNull()
+    {
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
+        target.Position.Returns((HexPosition?)null);
+
+        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void DetermineAttackDirection_ShouldReturnLeft_WhenTargetInLeftFiringArc()
+    {
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
+        attacker.Position.Returns(new HexPosition(-2, 0, HexDirection.Top));
+
+        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+
+        result.ShouldBe(HitDirection.Left);
+    }
+
+    [Fact]
+    public void DetermineAttackDirection_ShouldReturnRight_WhenTargetInRightFiringArc()
+    {
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
+        attacker.Position.Returns(new HexPosition(2, 0, HexDirection.Top));
+
+        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+
+        result.ShouldBe(HitDirection.Right);
+    }
+
     private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5, int externalHeat = 2)
         : Weapon(new WeaponDefinition(
             "Test Weapon", damage, 3,
