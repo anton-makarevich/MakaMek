@@ -76,20 +76,24 @@ public class HexMap : Canvas
 
         // Start a timer to determine if this is a manipulation
         _manipulationTokenSource?.Cancel();
-        _manipulationTokenSource?.Dispose();
-        _manipulationTokenSource = new CancellationTokenSource();
+        if (_manipulationTokenSource?.TryReset() != true)
+        {
+            _manipulationTokenSource?.Dispose();
+            _manipulationTokenSource = new CancellationTokenSource();
+        }
         Task.Delay(SelectionThresholdMilliseconds, _manipulationTokenSource.Token)
             .ContinueWith(_ =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    _isManipulating = true; // Set the flag if the delay completes
+                    if (_manipulationTokenSource?.Token.IsCancellationRequested == false && !_isZooming)
+                        _isManipulating = true;
                 });
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
         _isPressed = true;
     }
 
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs? e)
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _manipulationTokenSource?.Cancel();
         var wasPressed = _isPressed;
@@ -97,7 +101,7 @@ public class HexMap : Canvas
         _isPressed = false;
         _isManipulating = false; // Always reset on release
 
-        if (wasPressed && !wasManipulating && !_isZooming && e != null)
+        if (wasPressed && !wasManipulating && !_isZooming)
         {
             _clickPosition = e.GetPosition(this);
             if (_clickPosition.HasValue)
@@ -139,6 +143,8 @@ public class HexMap : Canvas
         _isManipulating = true;
         _isZooming = true;
 
+        _manipulationTokenSource?.Cancel();
+
         // Guard against degenerate scale values from out-of-bounds fingers
         if (e.Scale <= 0) return;
 
@@ -153,21 +159,25 @@ public class HexMap : Canvas
         // preventing wild offsets when a finger drifts outside the control.
         var safeOrigin = ClampOriginToBounds(e.ScaleOrigin);
         ApplyZoom(incrementalFactor, safeOrigin);
+
+        e.Handled = true;
     }
 
     private Point ClampOriginToBounds(Point origin)
     {
         // ScaleOrigin is already in HexMap-local coordinates.
-        // Just clamp it within the HexMap's own bounds to guard against
-        // fingers drifting outside the control.
+        // Pad the clamp range so pinch midpoints slightly outside the
+        // control do not cause a mid-gesture content snap.
+        const double padding = 1200.0;
         return new Point(
-            Math.Clamp(origin.X, 0, Bounds.Width),
-            Math.Clamp(origin.Y, 0, Bounds.Height)
+            Math.Clamp(origin.X, -padding, Bounds.Width + padding),
+            Math.Clamp(origin.Y, -padding, Bounds.Height + padding)
         );
     }
 
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
+        _manipulationTokenSource?.Cancel();
         _lastPinchScale = 1.0; // Reset for next gesture
         if (_isZooming)
         {
@@ -175,6 +185,8 @@ public class HexMap : Canvas
             _isPressed = false;
             _isManipulating = false;
         }
+
+        e.Handled = true;
     }
 
     private void ApplyZoom(double scaleFactor, Point origin)
