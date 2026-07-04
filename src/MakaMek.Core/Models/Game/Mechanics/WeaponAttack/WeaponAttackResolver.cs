@@ -242,20 +242,15 @@ public class WeaponAttackResolver : IWeaponAttackResolver
         if (attacker?.Position == null || target.Position == null)
             return HitDirection.Front;
 
-        foreach (var arc in Enum.GetValues<FiringArc>())
-        {
-            if (target.Position.Coordinates.IsInFiringArc(attacker.Position.Coordinates, target.Position.Facing, arc))
-            {
-                return arc switch
-                {
-                    FiringArc.Left => HitDirection.Left,
-                    FiringArc.Right => HitDirection.Right,
-                    FiringArc.Rear => HitDirection.Rear,
-                    _ => HitDirection.Front
-                };
-            }
-        }
+        var arc = target.Position.Coordinates.GetFiringArc(
+            attacker.Position.Coordinates, target.Position.Facing);
 
-        return HitDirection.Front;
+        return arc switch
+        {
+            FiringArc.Left => HitDirection.Left,
+            FiringArc.Right => HitDirection.Right,
+            FiringArc.Rear => HitDirection.Rear,
+            _ => HitDirection.Front
+        };
     }
 }
