@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -12,12 +11,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 {
-    private readonly IWeaponAttackResolver _weaponAttackResolver = new WeaponAttackResolver(
-        game.RulesProvider,
-        game.DiceRoller,
-        game.DamageTransferCalculator,
-        game.ToHitCalculator);
-
     // List of players in initiative order for attack resolution
     private List<IPlayer> _playersInOrder = [];
     
@@ -123,7 +116,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 }
                 else
                 {
-                    var resolution = _weaponAttackResolver.ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData, Game.BattleMap);
+                    var resolution = Game.WeaponAttackResolver.ResolveAttack(currentUnit, targetUnit, currentWeapon, item.WeaponTargetData, Game.BattleMap);
                     FinalizeAttackResolution(item.Player, currentUnit, currentWeapon, targetUnit, resolution);
                 }
             }

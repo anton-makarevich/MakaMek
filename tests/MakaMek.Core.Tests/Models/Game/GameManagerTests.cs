@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
@@ -65,6 +66,7 @@ public class GameManagerTests : IDisposable
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _fallProcessor,
+            Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>());
         _gameFactory.CreateServerGame(
             _rulesProvider,

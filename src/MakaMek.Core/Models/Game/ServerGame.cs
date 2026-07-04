@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -37,6 +38,7 @@ public class ServerGame : BaseGame, IDisposable
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
+        IWeaponAttackResolver weaponAttackResolver,
         ILogger<ServerGame> logger,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
@@ -46,6 +48,7 @@ public class ServerGame : BaseGame, IDisposable
         CriticalHitsCalculator = criticalHitsCalculator;
         HullBreachCalculator = hullBreachCalculator;
         FallProcessor = fallProcessor;
+        WeaponAttackResolver = weaponAttackResolver;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
@@ -59,6 +62,8 @@ public class ServerGame : BaseGame, IDisposable
     public IHullBreachCalculator HullBreachCalculator { get; }
 
     public IFallProcessor FallProcessor { get; }
+
+    public IWeaponAttackResolver WeaponAttackResolver { get; }
 
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
     

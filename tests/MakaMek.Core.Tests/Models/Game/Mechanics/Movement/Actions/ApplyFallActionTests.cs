@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -180,6 +181,7 @@ public class ApplyFallActionTests : GamePhaseTestsBase
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
             MockFallProcessor,
+            Substitute.For<IWeaponAttackResolver>(),
             null!, MockPhaseManager);
     }
 }
