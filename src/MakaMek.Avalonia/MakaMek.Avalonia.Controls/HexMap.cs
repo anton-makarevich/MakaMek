@@ -144,15 +144,10 @@ public class HexMap : Canvas
 
         var rawIncrementalFactor = e.Scale / _lastPinchScale;
 
-        // Clamp the incremental factor to a sane per-event range.
-        // Any single pinch event shouldn't zoom more than ~20% in one frame.
-        const double maxIncrementalFactor = 1.2;
-        const double minIncrementalFactor = 1.0 / maxIncrementalFactor;
-        var incrementalFactor = Math.Clamp(rawIncrementalFactor, minIncrementalFactor, maxIncrementalFactor);
+        _lastPinchScale = e.Scale;
 
-        _lastPinchScale = Math.Abs(rawIncrementalFactor - incrementalFactor) < 1e-9
-            ? e.Scale
-            : _lastPinchScale * incrementalFactor;
+        const double smoothing = 0.7;
+        var incrementalFactor = 1.0 + (rawIncrementalFactor - 1.0) * smoothing;
 
         // Use the parent-relative bounds to clamp the zoom origin,
         // preventing wild offsets when a finger drifts outside the control.
