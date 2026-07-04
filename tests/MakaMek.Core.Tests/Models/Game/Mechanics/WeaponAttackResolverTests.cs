@@ -64,8 +64,7 @@ public class WeaponAttackResolverTests
     [Fact]
     public void DetermineHitLocation_ShouldTransferToNextLocation_WhenInitialLocationIsDestroyed()
     {
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
         var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
@@ -103,8 +102,7 @@ public class WeaponAttackResolverTests
     [Fact]
     public void DetermineHitLocation_ShouldTransferMultipleTimes_WhenMultipleLocationsInChainAreDestroyed()
     {
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
         var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
@@ -183,8 +181,7 @@ public class WeaponAttackResolverTests
     [InlineData(6)]
     public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable(int secondD6)
     {
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         var mechData = MechFactoryTests.CreateDummyMechData();
         var mech = new MechFactory(
@@ -223,8 +220,7 @@ public class WeaponAttackResolverTests
     [Fact]
     public void DetermineHitLocation_ShouldAbsorbDamageByCoveringHex_WhenPartialCoverAppliesToLeg()
     {
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         var leftLeg = new Leg("LeftLeg", PartLocation.LeftLeg, 10, 5);
         var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
@@ -262,8 +258,7 @@ public class WeaponAttackResolverTests
     [Fact]
     public void DetermineHitLocation_ShouldApplyDamageNormally_WhenPartialCoverButNotCoveredLocation()
     {
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
 
@@ -406,8 +401,7 @@ public class WeaponAttackResolverTests
         var attacker = CreateAttackerWithPosition();
         var target = CreateTargetWithPosition();
         var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
-        var mockRulesProvider = Substitute.For<IRulesProvider>();
-        var sut = new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
+        var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
         _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(2);
         mockRulesProvider.GetClusterHits(Arg.Any<int>(), 15).Returns(12);
@@ -504,6 +498,12 @@ public class WeaponAttackResolverTests
         var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
 
         result.ShouldBe(HitDirection.Right);
+    }
+
+    private WeaponAttackResolver CreateSutWithMockRules(out IRulesProvider mockRulesProvider)
+    {
+        mockRulesProvider = Substitute.For<IRulesProvider>();
+        return new WeaponAttackResolver(mockRulesProvider, _diceRoller, _damageTransferCalculator, _toHitCalculator);
     }
 
     private static Weapon CreateMountedWeapon(int clusters = 1, int clusterSize = 1)

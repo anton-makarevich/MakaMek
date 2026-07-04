@@ -176,7 +176,7 @@ public class WeaponAttackResolver : IWeaponAttackResolver
     {
         PartLocation? aimedShotLocation = null;
         int[] aimedShotRollResult = [];
-        if (IsAimedShotPossible(target, weapon, weaponTargetData))
+        if (IsAimedShotPossible())
         {
             aimedShotRollResult = _diceRoller.Roll2D6().Select(d => d.Result).ToArray();
             var aimedShotRoll = aimedShotRollResult.Sum();
@@ -202,11 +202,12 @@ public class WeaponAttackResolver : IWeaponAttackResolver
         }
 
         var initialLocation = hitLocation;
+        var visited = new HashSet<PartLocation> { hitLocation };
 
         while (target.Parts.TryGetValue(hitLocation, out var part) && part.IsDestroyed)
         {
             var nextLocation = part.GetNextTransferLocation();
-            if (nextLocation == null || nextLocation == hitLocation)
+            if (nextLocation == null || !visited.Add(nextLocation.Value))
                 break;
 
             hitLocation = nextLocation.Value;
@@ -221,11 +222,11 @@ public class WeaponAttackResolver : IWeaponAttackResolver
             locationRoll,
             initialLocation);
 
-        bool IsAimedShotPossible(IUnit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
+        bool IsAimedShotPossible()
         {
-            return unit.IsImmobile
-                   && weapon1.IsAimShotCapable
-                   && weaponTargetData1.AimedShotTarget.HasValue;
+            return target.IsImmobile
+                   && weapon.IsAimShotCapable
+                   && weaponTargetData.AimedShotTarget.HasValue;
         }
 
         PartLocation GetHitLocation(out int[] innerLocationRoll)
