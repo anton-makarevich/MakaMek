@@ -1,21 +1,10 @@
 # Weapon Attack Resolution Pattern
 
-How the Weapon Attack phase resolves declared attacks across all units and players, without recursive iteration or mandraulic pipeline logic embedded in the phase. The pattern keeps `WeaponAttackResolutionPhase` thin — an orchestrator that flattens the attack space, runs gates, delegates resolution, and finalizes results.
+How the Weapon Attack phase resolves declared attacks across all units and players. The pattern keeps `WeaponAttackResolutionPhase` thin — an orchestrator that flattens the attack space, runs gates, delegates resolution, and finalizes results.
 
 ## Why
 
-The original phase walked a three-level index (player → unit → weapon) via tail-recursive calls:
-
-```
-ResolveNextAttack calls itself for:
-  - advancing to the next player (no more units)
-  - advancing to the next unit (no more weapons)
-  - advancing to the next weapon (attack resolved)
-```
-
-This was equivalent to nested `for` loops but harder to follow because index advancement was split across `MoveToNextPlayer()`, `MoveToNextUnit()`, and inline `_currentWeaponIndex++`. The resolution pipeline (`ResolveAttack` → `DetermineHitLocation`/`ResolveClusterWeaponHit`) lived in the phase itself, making it impossible to unit-test resolution logic without constructing a full phase instance.
-
-The refactored pattern decomposes the phase into three distinct layers, mirroring the Movement phase's separation of concerns:
+The phase is decomposed into three distinct layers, mirroring the Movement phase's separation of concerns:
 
 1. **Phase (orchestrator)** — flattens the attack space with `BuildAttackQueue()`, runs optional gates, delegates to the resolver, and publishes commands.
 2. **IWeaponAttackResolver** — mandatory sequential dice/damage pipeline (to-hit → direction → LOS/cover → hit location). Every attack passes through the same steps.
@@ -58,8 +47,6 @@ Produced once by `BuildAttackQueue()`. Contains everything needed to resolve a s
 ### `BuildAttackQueue()` — flattening step
 
 Walks `_playersInOrder`, then each player's units in `_unitsWithTargets`, then each unit's `DeclaredWeaponTargets`. For each weapon target it resolves the mounted `Weapon` (via `unit.GetMountedComponentAtLocation<Weapon>`) and the target `IUnit` (via `Game.Players.SelectMany(p => p.Units)`). The result is a flat `List<AttackQueueItem>` that the main loop iterates.
-
-This eliminates the three index fields (`_currentPlayerIndex`, `_currentUnitIndex`, `_currentWeaponIndex`) and the `MoveToNextPlayer()`/`MoveToNextUnit()` helpers.
 
 ### `IWeaponAttackResolver` — the mandatory pipeline
 
@@ -186,8 +173,6 @@ Three layers of testing, mirroring the Movement phase:
 | **Gates** (unit) | `AttackerPartialCoverGate.ShouldSkip` | Construct the gate, call `ShouldSkip` with controlled game/map state. Tests live in `AttackerPartialCoverGateTests`. |
 | **Phase** (integration) | `Enter()` → full resolution flow, queue ordering, gate interaction, command publishing | Set up `ServerGame` with players/units/declared targets, call `Enter()`, assert commands published. Tests live in `WeaponAttackResolutionPhaseTests`. |
 
-The resolver tests that were originally written against the phase via reflection (`DetermineHitLocation_*`, `ResolveAttack_ShouldThrow*`) now exercise `WeaponAttackResolver` directly — either through the public `ResolveAttack` API or via reflection on the resolver class. The `Enter()`-driven phase tests remain unchanged.
-
 ## Extension guide
 
 ### Adding a new pre-attack gate
@@ -208,6 +193,8 @@ The pipeline inside `WeaponAttackResolver` is **not** pluggable by design (see r
 ### Adding a post-hit consequence
 
 Add the logic in `FinalizeAttackResolution` (or extract it into a dedicated finalizer class if the consequence set grows significantly). Follow the existing pattern: mutate game state, publish commands, update `_accumulatedDamageData`. Write tests against phase-level `Enter()` or, if extracted, against the finalizer in isolation.
+
+For future reference only: if post-hit ordering becomes fragile or additional post-hit effects are introduced, extract the discrete side-effects of `FinalizeAttackResolution` (apply damage/heat, publish `WeaponAttackResolutionCommand`, hull breach, critical hits, consciousness rolls) into `IGameAction` implementations under `Mechanics/WeaponAttack/Actions/`, executed via the canonical `ProcessInterruptResult`-style loop (accumulate commands from `action.Process(Game)`, then publish in order). For this ticket, leave `FinalizeAttackResolution` intact in the phase, unchanged.
 
 ## Rationale: Why not `IMovementInterruptHandler` wholesale?
 
