@@ -177,6 +177,11 @@ public class HexMap : Canvas
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        // Capture release fires PointerCaptureLost synchronously, and that handler
+        // clears _isPressed/_isManipulating — snapshot first so clicks still register.
+        var wasPressed = _isPressed;
+        var wasManipulating = _isManipulating;
+
         _activePointers.Remove(e.Pointer);
         try { e.Pointer.Capture(null); } catch { /* ignore */ }
 
@@ -207,8 +212,6 @@ public class HexMap : Canvas
         }
 
         _manipulationTokenSource?.Cancel();
-        var wasPressed = _isPressed;
-        var wasManipulating = _isManipulating;
         _isPressed = false;
         _isManipulating = false;
 
