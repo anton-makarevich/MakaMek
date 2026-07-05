@@ -126,12 +126,15 @@ public class HexMap : Canvas
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        // Ignore moves from pointers we are not tracking — using them would
+        // reuse stale pan state (_lastPointerPosition) from another pointer.
+        if (!_activePointers.ContainsKey(e.Pointer)) return;
+
         // Always compute parent position via explicit local→parent conversion
         var localPos = e.GetPosition(this);
         var parentPos = LocalToParent(localPos);
 
-        if (_activePointers.ContainsKey(e.Pointer))
-            _activePointers[e.Pointer] = parentPos;
+        _activePointers[e.Pointer] = parentPos;
 
         if (_isZooming && _activePointers.Count >= 2)
         {
@@ -220,6 +223,14 @@ public class HexMap : Canvas
     private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
         _activePointers.Remove(e.Pointer);
+
+        // Fully reset gesture state so later pointer moves can resume normal
+        // pan/click handling instead of being stuck in a stale gesture.
+        _manipulationTokenSource?.Cancel();
+        _isZooming = false;
+        _isPressed = false;
+        _isManipulating = false;
+        _calculator.ResetPinchSmoothing();
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
