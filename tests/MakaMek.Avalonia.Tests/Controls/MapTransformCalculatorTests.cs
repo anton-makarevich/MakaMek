@@ -274,4 +274,34 @@ public class MapTransformCalculatorTests
         result.X.ShouldBe(expectedX);
         result.Y.ShouldBe(expectedY);
     }
+
+    [Fact]
+    public void MinScale_ShouldBeClamped_WhenSetAboveMaxScale()
+    {
+        // Act
+        _sut.MinScale = _sut.MaxScale + 1.0;
+
+        // Assert
+        _sut.MinScale.ShouldBeLessThanOrEqualTo(_sut.MaxScale);
+    }
+
+    [Fact]
+    public void MaxScale_ShouldBeClamped_WhenSetBelowMinScale()
+    {
+        // Act
+        _sut.MaxScale = _sut.MinScale - 0.1;
+
+        // Assert
+        _sut.MaxScale.ShouldBeGreaterThanOrEqualTo(_sut.MinScale);
+    }
+
+    [Fact]
+    public void MinScale_AndMaxScale_ShouldRemainOrdered_WhenSetInAnyOrder()
+    {
+        // Set MaxScale first, then MinScale to the same value — edge case
+        _sut.MaxScale = 3.0;
+        _sut.MinScale = 3.0;
+
+        _sut.MinScale.ShouldBeLessThanOrEqualTo(_sut.MaxScale);
+    }
 }

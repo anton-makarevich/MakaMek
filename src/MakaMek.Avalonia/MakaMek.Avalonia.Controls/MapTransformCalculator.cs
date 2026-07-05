@@ -31,8 +31,28 @@ public class MapTransformCalculator
     public double TranslateX { get; private set; }
     public double TranslateY { get; private set; }
 
-    public double MinScale { get; set; } = 0.5;
-    public double MaxScale { get; set; } = 2.0;
+    private double _minScale = 0.5;
+    private double _maxScale = 2.0;
+
+    /// <summary>
+    /// Lower bound for zoom. Clamped to [0, MaxScale] on assignment so that
+    /// MinScale &lt;= MaxScale is always satisfied.
+    /// </summary>
+    public double MinScale
+    {
+        get => _minScale;
+        set => _minScale = Math.Clamp(value, 0, _maxScale);
+    }
+
+    /// <summary>
+    /// Upper bound for zoom. Clamped to [MinScale, ∞) on assignment so that
+    /// MaxScale &gt;= MinScale is always satisfied.
+    /// </summary>
+    public double MaxScale
+    {
+        get => _maxScale;
+        set => _maxScale = Math.Max(value, _minScale);
+    }
 
     /// <summary>
     /// The current transform expressed as an Avalonia <see cref="Matrix"/>.
