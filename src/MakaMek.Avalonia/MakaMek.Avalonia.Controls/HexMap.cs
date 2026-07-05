@@ -15,7 +15,7 @@ public class HexMap : Canvas
     private Point _lastPointerPosition;
     private readonly TranslateTransform _mapTranslateTransform = new();
     private readonly ScaleTransform _mapScaleTransform = new() { ScaleX = 1, ScaleY = 1 };
-    private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs. pan
+    private const int SelectionThresholdMilliseconds = 250;
     private const double DragThresholdPixels = 3.0;
     private bool _isManipulating;
     private bool _isZooming;
@@ -23,28 +23,32 @@ public class HexMap : Canvas
     private CancellationTokenSource? _manipulationTokenSource;
     private Point? _clickPosition;
 
-    // Track last pinch scale to compute incremental factor
-    private double _lastPinchScale = 1.0;
+    // Manual multi-touch tracking. We capture pointers ourselves (instead of
+    // using PinchGestureRecognizer) so events keep flowing when fingers drift
+    // outside HexMap bounds. PinchGestureRecognizer cannot coexist with
+    // explicit Pointer.Capture — that's what broke pinch in the previous attempt.
+    private readonly Dictionary<IPointer, Point> _activePointers = new();
 
-    /// <summary>
-    /// Gets or sets the minimum scale factor for zooming.
-    /// </summary>
+    // Pinch baseline captured at the moment the 2nd finger goes down.
+    // All zoom updates are computed ABSOLUTELY from this baseline, never
+    // incrementally — that prevents jitter from compounding across frames.
+    private double _pinchStartDistance;
+    private double _pinchStartMapScale;
+    private Point _pinchStartMapTranslate;
+    private Point _pinchStartMidpointParent;
+
+    // Low-pass-filtered current state to suppress touch jitter (worst near
+    // screen edges / camera notches, especially at the top of the display).
+    private Point _smoothedMidpointParent;
+    private double _smoothedDistanceRatio = 1.0;
+    private bool _pinchSmoothingInitialized;
+    private const double MidpointSmoothingAlpha = 0.4;
+    private const double DistanceSmoothingAlpha = 0.35;
+
     public double MinScale { get; set; } = 0.5;
-
-    /// <summary>
-    /// Gets or sets the maximum scale factor for zooming.
-    /// </summary>
     public double MaxScale { get; set; } = 2.0;
-
-    /// <summary>
-    /// Gets or sets the scale step for zoom operations.
-    /// </summary>
     public double ScaleStep { get; set; } = 0.1;
 
-    /// <summary>
-    /// Event raised when the content is clicked (not dragged).
-    /// Provides the click position in canvas coordinates.
-    /// </summary>
     public event EventHandler<Point>? ContentClicked;
 
     public HexMap()
@@ -53,71 +57,96 @@ public class HexMap : Canvas
         transformGroup.Children.Add(_mapScaleTransform);
         transformGroup.Children.Add(_mapTranslateTransform);
         RenderTransform = transformGroup;
-        // Fix the origin at top-left forever — all math is explicit from here
         RenderTransformOrigin = new RelativePoint(new Point(0, 0), RelativeUnit.Absolute);
 
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheelChanged;
-
-        var pinchGestureRecognizer = new PinchGestureRecognizer();
-        GestureRecognizers.Add(pinchGestureRecognizer);
-        AddHandler(PinchEvent, OnPinchChanged);
-        AddHandler(PinchEndedEvent, OnPinchEnded);
+        PointerCaptureLost += OnPointerCaptureLost;
     }
+
+    private Visual ParentVisual => this.Parent as Visual ?? this;
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_isZooming) return;
-        _lastPointerPosition = e.GetPosition(this.Parent as Visual ?? this);
-
-        _isManipulating = false; // Reset manipulation flag
-
-        // Start a timer to determine if this is a manipulation
-        _manipulationTokenSource?.Cancel();
-        if (_manipulationTokenSource?.TryReset() != true)
+        // Capture touch/pen pointers so PointerMoved keeps firing even when
+        // the finger drifts outside HexMap's hit-test area. This is what
+        // stops the "freeze then jump" near edges. Mouse is left uncaptured
+        // so child controls still get normal hit-testing.
+        if (e.Pointer.Type is PointerType.Touch or PointerType.Pen)
         {
-            _manipulationTokenSource?.Dispose();
-            _manipulationTokenSource = new CancellationTokenSource();
+            try { e.Pointer.Capture(this); } catch { /* ignore */ }
         }
-        Task.Delay(SelectionThresholdMilliseconds, _manipulationTokenSource.Token)
+
+        var position = e.GetPosition(ParentVisual);
+        _activePointers[e.Pointer] = position;
+
+        if (_activePointers.Count >= 2 && !_isZooming)
+        {
+            // Second finger down → start pinch
+            StartPinch();
+            _isZooming = true;
+            _isManipulating = true;
+            _manipulationTokenSource?.Cancel();
+            return;
+        }
+
+        if (_activePointers.Count >= 2) return; // 3rd+ finger during pinch: just track
+
+        // Single-finger path — set up pan / click detection
+        _lastPointerPosition = position;
+        _isManipulating = false;
+
+        _manipulationTokenSource?.Cancel();
+        _manipulationTokenSource = new CancellationTokenSource();
+        var token = _manipulationTokenSource.Token;
+        Task.Delay(SelectionThresholdMilliseconds, token)
             .ContinueWith(_ =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (_manipulationTokenSource?.Token.IsCancellationRequested == false && !_isZooming)
+                    if (!token.IsCancellationRequested && !_isZooming)
                         _isManipulating = true;
                 });
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
         _isPressed = true;
     }
 
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void StartPinch()
     {
-        _manipulationTokenSource?.Cancel();
-        var wasPressed = _isPressed;
-        var wasManipulating = _isManipulating;
-        _isPressed = false;
-        _isManipulating = false; // Always reset on release
-
-        if (wasPressed && !wasManipulating && !_isZooming)
-        {
-            _clickPosition = e.GetPosition(this);
-            if (_clickPosition.HasValue)
-                ContentClicked?.Invoke(this, _clickPosition.Value);
-        }
+        var points = _activePointers.Values.ToArray();
+        if (points.Length < 2) return;
+        _pinchStartDistance = Distance(points[0], points[1]);
+        _pinchStartMidpointParent = Midpoint(points[0], points[1]);
+        _pinchStartMapScale = _mapScaleTransform.ScaleX;
+        _pinchStartMapTranslate = new Point(_mapTranslateTransform.X, _mapTranslateTransform.Y);
+        _smoothedMidpointParent = _pinchStartMidpointParent;
+        _smoothedDistanceRatio = 1.0;
+        _pinchSmoothingInitialized = false;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        var position = e.GetPosition(ParentVisual);
+
+        if (_activePointers.ContainsKey(e.Pointer))
+            _activePointers[e.Pointer] = position;
+
+        if (_isZooming && _activePointers.Count >= 2)
+        {
+            UpdatePinch();
+            return;
+        }
+
         if (_isZooming) return;
-        var currentPoint = e.GetCurrentPoint(this.Parent as Visual ?? this);
+
+        var currentPoint = e.GetCurrentPoint(ParentVisual);
         var isMouseDragging = currentPoint.Properties.IsLeftButtonPressed;
         var isTouchOrPen = currentPoint.Pointer.Type is PointerType.Touch or PointerType.Pen
                            && _isPressed;
         if (!isMouseDragging && !isTouchOrPen) return;
-        var position = e.GetPosition(this.Parent as Visual ?? this);
+
         var delta = position - _lastPointerPosition;
         _lastPointerPosition = position;
 
@@ -132,84 +161,152 @@ public class HexMap : Canvas
         _mapTranslateTransform.Y += delta.Y;
     }
 
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void UpdatePinch()
     {
-        var delta = e.Delta.Y * ScaleStep;
-        ApplyZoom(1 + delta, e.GetPosition(this));
-    }
+        var points = _activePointers.Values.ToArray();
+        if (points.Length < 2 || _pinchStartDistance <= 0) return;
 
-    private void OnPinchChanged(object? sender, PinchEventArgs e)
-    {
-        _isManipulating = true;
-        _isZooming = true;
+        var currentDistance = Distance(points[0], points[1]);
+        var currentMidpoint = Midpoint(points[0], points[1]);
+        var rawRatio = currentDistance / _pinchStartDistance;
 
-        _manipulationTokenSource?.Cancel();
-
-        // Guard against degenerate scale values from out-of-bounds fingers
-        if (e.Scale <= 0) return;
-
-        var rawIncrementalFactor = e.Scale / _lastPinchScale;
-
-        _lastPinchScale = e.Scale;
-
-        const double smoothing = 0.7;
-        var incrementalFactor = 1.0 + (rawIncrementalFactor - 1.0) * smoothing;
-
-        // Use the parent-relative bounds to clamp the zoom origin,
-        // preventing wild offsets when a finger drifts outside the control.
-        var safeOrigin = ClampOriginToBounds(e.ScaleOrigin);
-        ApplyZoom(incrementalFactor, safeOrigin);
-
-        e.Handled = true;
-    }
-
-    private Point ClampOriginToBounds(Point origin)
-    {
-        // ScaleOrigin is already in HexMap-local coordinates.
-        // Pad the clamp range so pinch midpoints slightly outside the
-        // control do not cause a mid-gesture content snap.
-        const double padding = 1200.0;
-        return new Point(
-            Math.Clamp(origin.X, -padding, Bounds.Width + padding),
-            Math.Clamp(origin.Y, -padding, Bounds.Height + padding)
-        );
-    }
-
-    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
-    {
-        _manipulationTokenSource?.Cancel();
-        _lastPinchScale = 1.0; // Reset for next gesture
-        if (_isZooming)
+        if (!_pinchSmoothingInitialized)
         {
-            _isZooming = false;
-            _isPressed = false;
-            _isManipulating = false;
+            _smoothedDistanceRatio = rawRatio;
+            _smoothedMidpointParent = currentMidpoint;
+            _pinchSmoothingInitialized = true;
+        }
+        else
+        {
+            _smoothedDistanceRatio += (rawRatio - _smoothedDistanceRatio) * DistanceSmoothingAlpha;
+            _smoothedMidpointParent = new Point(
+                _smoothedMidpointParent.X + (currentMidpoint.X - _smoothedMidpointParent.X) * MidpointSmoothingAlpha,
+                _smoothedMidpointParent.Y + (currentMidpoint.Y - _smoothedMidpointParent.Y) * MidpointSmoothingAlpha);
         }
 
-        e.Handled = true;
+        var targetScale = Math.Clamp(_pinchStartMapScale * _smoothedDistanceRatio, MinScale, MaxScale);
+        ApplyZoomAbsolute(targetScale, _smoothedMidpointParent, _pinchStartMapScale, _pinchStartMapTranslate);
     }
 
-    private void ApplyZoom(double scaleFactor, Point origin)
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        var currentScale = _mapScaleTransform.ScaleX;
-        var newScale = currentScale * scaleFactor;
-        newScale = Math.Clamp(newScale, MinScale, MaxScale);
+        _activePointers.Remove(e.Pointer);
+        try { e.Pointer.Capture(null); } catch { /* ignore */ }
 
-        // Actual factor after clamping — avoids drift when hitting the boundary
-        var actualFactor = newScale / currentScale;
-        if (Math.Abs(actualFactor - 1.0) < 1e-9) return;
+        if (_isZooming)
+        {
+            if (_activePointers.Count >= 2)
+            {
+                // A finger lifted but two remain — restart baseline with the
+                // new pair so the zoom ratio doesn't suddenly jump.
+                StartPinch();
+            }
+            else
+            {
+                // Pinch ended
+                _isZooming = false;
+                _pinchSmoothingInitialized = false;
+                _smoothedDistanceRatio = 1.0;
 
-        // Fold origin into translate so the point under the finger stays fixed
-        _mapTranslateTransform.X = origin.X - actualFactor * (origin.X - _mapTranslateTransform.X);
-        _mapTranslateTransform.Y = origin.Y - actualFactor * (origin.Y - _mapTranslateTransform.Y);
+                if (_activePointers.Count == 1)
+                {
+                    // One finger remains → seamlessly hand off to pan
+                    _lastPointerPosition = _activePointers.Values.First();
+                    _isPressed = true;
+                    _isManipulating = true;
+                }
+                else
+                {
+                    _isPressed = false;
+                    _isManipulating = false;
+                }
+            }
+            return;
+        }
 
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
+        // Single-finger release (pan or click)
+        _manipulationTokenSource?.Cancel();
+        var wasPressed = _isPressed;
+        var wasManipulating = _isManipulating;
+        _isPressed = false;
+        _isManipulating = false;
+
+        if (wasPressed && !wasManipulating)
+        {
+            _clickPosition = e.GetPosition(this);
+            if (_clickPosition.HasValue)
+                ContentClicked?.Invoke(this, _clickPosition.Value);
+        }
+    }
+
+    private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (e.Pointer is not null)
+            _activePointers.Remove(e.Pointer);
+    }
+
+    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        // Wheel position arrives in HexMap-local coords; convert to parent
+        // coords so ApplyZoom gets the origin in the same space as Translate.
+        var localPos = e.GetPosition(this);
+        var parentPos = TranslateLocalToParent(localPos);
+        var delta = e.Delta.Y * ScaleStep;
+        ApplyZoom(1 + delta, parentPos);
     }
 
     /// <summary>
-    /// Resets the map to its default position and zoom level.
+    /// parentPos = Scale * localPos + Translate (the RenderTransform formula).
     /// </summary>
+    private Point TranslateLocalToParent(Point local)
+    {
+        var s = _mapScaleTransform.ScaleX;
+        return new Point(
+            local.X * s + _mapTranslateTransform.X,
+            local.Y * s + _mapTranslateTransform.Y);
+    }
+
+    /// <summary>
+    /// Sets the absolute target scale, anchoring <paramref name="originParent"/>
+    /// (in PARENT coords) so the point under the finger stays fixed in screen space.
+    /// Computed from gesture-start state so jitter in origin doesn't compound.
+    /// </summary>
+    private void ApplyZoomAbsolute(double targetScale, Point originParent, double startScale, Point startTranslate)
+    {
+        targetScale = Math.Clamp(targetScale, MinScale, MaxScale);
+        var factorFromStart = targetScale / startScale;
+
+        _mapScaleTransform.ScaleX = targetScale;
+        _mapScaleTransform.ScaleY = targetScale;
+
+        // Keep origin fixed in parent space:
+        //   contentUnderFinger_at_start_local = (originParent - startTranslate) / startScale
+        //   originParent = contentUnderFinger_local * targetScale + newTranslate
+        //   => newTranslate = originParent - (originParent - startTranslate) * factorFromStart
+        _mapTranslateTransform.X = originParent.X - (originParent.X - startTranslate.X) * factorFromStart;
+        _mapTranslateTransform.Y = originParent.Y - (originParent.Y - startTranslate.Y) * factorFromStart;
+    }
+
+    private void ApplyZoom(double scaleFactor, Point originParent)
+    {
+        var currentScale = _mapScaleTransform.ScaleX;
+        var newScale = Math.Clamp(currentScale * scaleFactor, MinScale, MaxScale);
+        var actualFactor = newScale / currentScale;
+        if (Math.Abs(actualFactor - 1.0) < 1e-9) return;
+
+        var currentTranslate = new Point(_mapTranslateTransform.X, _mapTranslateTransform.Y);
+        _mapScaleTransform.ScaleX = newScale;
+        _mapScaleTransform.ScaleY = newScale;
+        _mapTranslateTransform.X = originParent.X - (originParent.X - currentTranslate.X) * actualFactor;
+        _mapTranslateTransform.Y = originParent.Y - (originParent.Y - currentTranslate.Y) * actualFactor;
+    }
+
+    private static double Distance(Point a, Point b)
+        => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+
+    private static Point Midpoint(Point a, Point b)
+        => new((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
+
     public void CenterMap()
     {
         _mapTranslateTransform.X = 0;
@@ -218,18 +315,12 @@ public class HexMap : Canvas
         _mapScaleTransform.ScaleY = 1;
     }
 
-    /// <summary>
-    /// Resets only the zoom level to 1.0, maintaining the current pan position.
-    /// </summary>
     public void ResetZoom()
     {
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
     }
 
-    /// <summary>
-    /// Exports the base canvas (ignoring user pan/zoom) as a PNG byte array.
-    /// </summary>
     public byte[] ToPng()
     {
         var savedX = _mapTranslateTransform.X;
