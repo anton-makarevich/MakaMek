@@ -10,6 +10,7 @@ public record AttackReachableHighlight(IReadOnlyList<string> WeaponNames) : IHex
 {
     public int RenderOrder => 1;
     public string Name => nameof(AttackReachableHighlight);
+    public string BoundaryOutlineColor => "#FFB347";
 
     public string Render(ILocalizationService localizationService) =>
         string.Join(", ", WeaponNames);

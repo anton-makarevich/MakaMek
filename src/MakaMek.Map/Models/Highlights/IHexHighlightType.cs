@@ -19,6 +19,11 @@ public interface IHexHighlightType
     string Name { get; }
 
     /// <summary>
+    /// The hex color string used for boundary outlines of this highlight type.
+    /// </summary>
+    string BoundaryOutlineColor { get; }
+
+    /// <summary>
     /// Localized text describing this highlight for UI display.
     /// </summary>
     string Render(ILocalizationService localizationService);

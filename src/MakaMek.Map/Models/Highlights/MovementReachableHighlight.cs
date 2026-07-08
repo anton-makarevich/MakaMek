@@ -10,6 +10,7 @@ public record MovementReachableHighlight(MovementType MovementType) : IHexHighli
 {
     public int RenderOrder => 0;
     public string Name => nameof(MovementReachableHighlight);
+    public string BoundaryOutlineColor => "#00BFFF";
 
     public string Render(ILocalizationService localizationService) =>
         MovementType switch

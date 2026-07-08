@@ -10,6 +10,7 @@ public record LosBlockingHighlight(LineOfSightBlockReason Reason, HexCoordinates
 {
     public int RenderOrder => 2;
     public string Name => nameof(LosBlockingHighlight);
+    public string BoundaryOutlineColor => "#8B0000";
 
     /// <summary>
     /// The reason why the line of sight is blocked at this hex.

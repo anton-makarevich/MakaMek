@@ -603,7 +603,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         }
 
         var outlineColor = GetBoundaryOutlineColor(highlightType);
-        _highlightBoundaryOutlines = ComputeBoundaryOutlines(coordinates, outlineColor);
+        var newOutlines = ComputeBoundaryOutlines(coordinates, outlineColor);
+        var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>(_highlightBoundaryOutlines);
+        foreach (var (coord, outline) in newOutlines)
+            merged[coord] = outline;
+        _highlightBoundaryOutlines = merged;
         NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
     }
 
@@ -641,13 +645,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     private static string GetBoundaryOutlineColor(IHexHighlightType highlightType) =>
-        highlightType switch
-        {
-            MovementReachableHighlight => "#00BFFF",
-            AttackReachableHighlight => "#FFB347",
-            LosBlockingHighlight => "#8B0000",
-            _ => "#FFFFFF"
-        };
+        highlightType.BoundaryOutlineColor;
 
     public List<IUnit> UnitsToDeploy
     {
