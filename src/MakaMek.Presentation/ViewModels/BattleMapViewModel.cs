@@ -534,7 +534,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             foreach (var (coord, highlight) in perHexHighlights)
             {
                 var highlightType = highlight.GetType();
-                if (!groups.TryGetValue(highlightType, out var entry))
+                if (!groups.TryGetValue(highlightType, out _))
                     groups[highlightType] = (GetBoundaryOutlineColor(highlight), []);
                 groups[highlightType].Coords.Add(coord);
             }
