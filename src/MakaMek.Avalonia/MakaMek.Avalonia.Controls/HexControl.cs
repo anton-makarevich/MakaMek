@@ -27,6 +27,7 @@ public class HexControl : Panel
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
     private readonly List<Image> _terrainImageLayers = [];
+    private readonly List<Shape> _borderOutlineLayers = [];
     private HexRenderConfiguration _renderConfiguration;
     private TextBlock? _highlightTextLabel;
     private readonly Label? _terrainInfoLabel;
@@ -43,6 +44,7 @@ public class HexControl : Panel
     private const int ZIndexOverlays = 20;
     private const int ZIndexRoadLayer = 25;
     private const int ZIndexPolygon = 30;
+    private const int ZIndexBorderOutline = ZIndexPolygon;
     private const int ZIndexLabel = 31;
 
     private readonly CanonicalBitmaskResult? _waterBitmask;
@@ -50,7 +52,7 @@ public class HexControl : Panel
     private readonly IDisposable? _hexSubscription;
     private readonly IDisposable? _terrainSubscription;
 
-    private static Points GetHexPoints()
+    public static Points GetHexPoints()
     {
         const double width = HexCoordinatesPixelExtensions.HexWidth;
         const double height = HexCoordinatesPixelExtensions.HexHeight;
@@ -248,6 +250,63 @@ public class HexControl : Panel
         }
 
         _terrainImageLayers.Clear();
+    }
+
+    /// <summary>
+    /// Clears the current border outline from this hex.
+    /// </summary>
+    public void ClearBorderOutline()
+    {
+        SetBorderOutline(0, Brushes.Transparent, 0);
+    }
+
+    /// <summary>
+    /// Sets the border outline for the edges selected by <paramref name="edgeMask"/>.
+    /// </summary>
+    /// <param name="edgeMask">The 6-bit edge mask to draw. Bit 0 maps to Top, bit 1 to TopRight, and so on.</param>
+    /// <param name="color">The outline color.</param>
+    /// <param name="thickness">The outline stroke thickness.</param>
+    public void SetBorderOutline(byte edgeMask, Color color, double thickness)
+    {
+        SetBorderOutline(edgeMask, new SolidColorBrush(color), thickness);
+    }
+
+    /// <summary>
+    /// Sets the border outline for the edges selected by <paramref name="edgeMask"/>.
+    /// </summary>
+    /// <param name="edgeMask">The 6-bit edge mask to draw. Bit 0 maps to Top, bit 1 to TopRight, and so on.</param>
+    /// <param name="brush">The outline brush.</param>
+    /// <param name="thickness">The outline stroke thickness.</param>
+    public void SetBorderOutline(byte edgeMask, IBrush brush, double thickness)
+    {
+        foreach (var layer in _borderOutlineLayers)
+        {
+            Children.Remove(layer);
+        }
+
+        _borderOutlineLayers.Clear();
+
+        if ((edgeMask & 0x3F) == 0) return;
+
+        var points = GetHexPoints();
+        var directions = HexDirectionExtensions.AllDirections;
+        for (var i = 0; i < directions.Length; i++)
+        {
+            if ((edgeMask & (1 << i)) == 0) continue;
+
+            var (startIndex, endIndex) = directions[i].GetHexPointEdgeCornerIndices();
+            var layer = new Polyline
+            {
+                Points = new Points([points[startIndex], points[endIndex]]),
+                Stroke = brush,
+                StrokeThickness = thickness,
+                IsHitTestVisible = false,
+                ZIndex = ZIndexBorderOutline
+            };
+
+            Children.Add(layer);
+            _borderOutlineLayers.Add(layer);
+        }
     }
 
     private void AddImageLayer(Bitmap? image, int zIndex, double rotationAngle = 0)

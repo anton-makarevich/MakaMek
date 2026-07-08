@@ -29,6 +29,16 @@ public class MovementReachableHighlightTests
         sut.Name.ShouldBe(nameof(MovementReachableHighlight));
     }
 
+    [Fact]
+    public void ShouldHaveCorrectBoundaryOutlineColor()
+    {
+        // Arrange & Act
+        var sut = new MovementReachableHighlight(MovementType.Walk);
+
+        // Assert
+        sut.BoundaryOutlineColor.ShouldBe("#00BFFF");
+    }
+
     [Theory]
     [InlineData(MovementType.Walk)]
     [InlineData(MovementType.Run)]

@@ -40,6 +40,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             game.Logger.LogError("Terrain asset service is not available");
             return;
         }
+
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
         _movementPathSegments.Clear();
@@ -53,32 +54,37 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         var bitmaskService = ViewModel?.TerrainBitmaskService;
 
-        foreach (var hex in game.BattleMap?.GetHexes()??[])
+        foreach (var hex in game.BattleMap?.GetHexes() ?? [])
         {
             var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
 
             CanonicalBitmaskResult? waterBitmask = null;
             if (bitmaskService != null && game.BattleMap != null && hex.HasTerrain(MakaMekTerrains.Water))
             {
-                waterBitmask = bitmaskService.ComputeCanonicalBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Water);
+                waterBitmask =
+                    bitmaskService.ComputeCanonicalBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Water);
             }
 
             CanonicalBitmaskResult? roadBitmask = null;
-            if (bitmaskService != null && game.BattleMap != null && (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge)))
+            if (bitmaskService != null && game.BattleMap != null &&
+                (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge)))
             {
-                var rawRoad = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road, (current, neighbor) => current.CanRoadConnectTo(neighbor));
-                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Bridge, (current, neighbor) => current.CanRoadConnectTo(neighbor));
+                var rawRoad = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road,
+                    (current, neighbor) => current.CanRoadConnectTo(neighbor));
+                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates,
+                    MakaMekTerrains.Bridge, (current, neighbor) => current.CanRoadConnectTo(neighbor));
                 roadBitmask = bitmaskService.CanonicalizeRawMask((byte)(rawRoad | rawBridge));
             }
 
-            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges, hexConfiguration, waterBitmask, roadBitmask, ViewModel?.Scheduler);
+            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges,
+                hexConfiguration, waterBitmask, roadBitmask, ViewModel?.Scheduler);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;
         }
 
         _unitControls = ViewModel?.Units
-            .Select(u=>new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
+            .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
             .ToList();
         if (_unitControls != null)
         {
@@ -92,12 +98,14 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         MapCanvas.Children.Add(directionSelector);
         MapCanvas.Children.Add(SurfaceSelector);
 
-        MapCanvas.Width = maxH + 2*HexCoordinatesPixelExtensions.HexWidth;
-        MapCanvas.Height = maxV + 3*HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
-        
+        MapCanvas.Width = maxH + 2 * HexCoordinatesPixelExtensions.HexWidth;
+        MapCanvas.Height =
+            maxV + 3 * HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
+
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
         UpdateWeaponAttacks();
+        UpdateHighlightBoundaryOutlines();
     }
 
     private void OnMapContentClicked(object? sender, Point clickPosition)
@@ -138,7 +146,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             .OfType<HexControl>()
             .FirstOrDefault(h => h.IsPointInside(clickPosition));
 
-        if (_selectedHex != null && ViewModel!=null)
+        if (_selectedHex != null && ViewModel != null)
         {
             // Assign the hex coordinates to the ViewModel's unit position
             ViewModel?.HandleHexSelection(_selectedHex.Hex);
@@ -151,7 +159,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel is { Game: not null })
         {
             RenderMap(ViewModel.Game);
-            ViewModel.PropertyChanged+=OnViewModelPropertyChanged;
+            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
     }
 
@@ -164,6 +172,10 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         else if (e.PropertyName == nameof(ViewModel.WeaponAttacks))
         {
             UpdateWeaponAttacks();
+        }
+        else if (e.PropertyName == nameof(ViewModel.HighlightBoundaryOutlines))
+        {
+            UpdateHighlightBoundaryOutlines();
         }
         else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
         {
@@ -178,6 +190,29 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
     }
 
+    private void UpdateHighlightBoundaryOutlines()
+    {
+        if (ViewModel == null)
+        {
+            MapCanvas.ApplyBorderOutlines(null);
+            return;
+        }
+
+        var outlines = ViewModel.HighlightBoundaryOutlines
+            .Select(kvp =>
+            {
+                var color = Color.TryParse(kvp.Value.Color, out var parsed)
+                    ? parsed
+                    : Colors.White;
+                return new KeyValuePair<HexCoordinates, BorderOutlineData>(
+                    kvp.Key,
+                    new BorderOutlineData(kvp.Value.EdgeMask, color, kvp.Value.Thickness));
+            })
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        MapCanvas.ApplyBorderOutlines(outlines.Count > 0 ? outlines : null);
+    }
+
     private void UpdateMovementPath()
     {
         if (ViewModel == null) return;
@@ -187,6 +222,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             {
                 MapCanvas.Children.Remove(pathSegmentControl);
             }
+
             _movementPathSegments.Clear();
             return;
         }
@@ -210,10 +246,11 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             MapCanvas.Children.Remove(control);
         }
+
         _weaponAttackControls.Clear();
-    
+
         if (ViewModel?.WeaponAttacks == null) return;
-    
+
         foreach (var attack in ViewModel.WeaponAttacks)
         {
             var control = new WeaponAttackControl(attack);
@@ -230,6 +267,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
-        TurnInfoPanel.MaxWidth = Math.Max(e.NewSize.Width-6, 300);
+        TurnInfoPanel.MaxWidth = Math.Max(e.NewSize.Width - 6, 300);
     }
 }

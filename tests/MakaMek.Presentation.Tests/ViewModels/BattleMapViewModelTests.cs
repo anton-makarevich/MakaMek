@@ -457,7 +457,229 @@ public class BattleMapViewModelTests
         viewModel.TerrainBitmaskService.ShouldNotBeNull();
         viewModel.TerrainBitmaskService.ShouldBe(terrainBitmaskService);
     }
-    
+
+    [Fact]
+    public void HighlightCoordinates_ComputesBoundaryOutlinesForProvidedCoordinates()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var centerCoords = new HexCoordinates(1, 2);
+        var topCoords = centerCoords.GetNeighbour(HexDirection.Top);
+        var coordinates = new HashSet<HexCoordinates> { centerCoords, topCoords };
+
+        // Act
+        viewModel.HighlightCoordinates(coordinates, new MovementReachableHighlight(MovementType.Walk));
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(2);
+        viewModel.HighlightBoundaryOutlines[centerCoords].EdgeMask.ShouldBe((byte)0b111110);
+        viewModel.HighlightBoundaryOutlines[topCoords].EdgeMask.ShouldBe((byte)0b110111);
+        viewModel.HighlightBoundaryOutlines[centerCoords].Color.ShouldBe("#00BFFF");
+        game.BattleMap!.GetHex(centerCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(topCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ClearHighlights_ClearsBoundaryOutlines()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var centerCoords = new HexCoordinates(1, 1);
+        viewModel.HighlightCoordinates(
+            new HashSet<HexCoordinates> { centerCoords },
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Act
+        viewModel.ClearHighlights();
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void HighlightCoordinates_MergesBoundaryOutlines_WhenCalledWithDifferentHighlightTypes()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var movementCoords = new HexCoordinates(1, 1);
+        var attackCoords = new HexCoordinates(2, 2);
+        var attackTopCoords = attackCoords.GetNeighbour(HexDirection.Top);
+        var movementSet = new HashSet<HexCoordinates> { movementCoords };
+        var attackSet = new HashSet<HexCoordinates> { attackCoords, attackTopCoords };
+
+        // Act
+        viewModel.HighlightCoordinates(movementSet, new MovementReachableHighlight(MovementType.Walk));
+        viewModel.HighlightCoordinates(attackSet, new AttackReachableHighlight(new List<string> { "Medium Laser" }));
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
+        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
+        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[attackTopCoords].Color.ShouldBe("#FFB347");
+        game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(attackTopCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HighlightRegions_ComputesBoundaryOutlinesForProvidedRegions()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var movementCoords = new HexCoordinates(1, 1);
+        var attackCoords = new HexCoordinates(2, 2);
+        var attackNeighbour = attackCoords.GetNeighbour(HexDirection.Top);
+        var regions = new Dictionary<HexCoordinates, IHexHighlightType>
+        {
+            { movementCoords, new MovementReachableHighlight(MovementType.Walk) },
+            { attackCoords, new AttackReachableHighlight(new List<string> { "Medium Laser" }) },
+            { attackNeighbour, new AttackReachableHighlight(new List<string> { "Medium Laser" }) }
+        };
+
+        // Act
+        viewModel.HighlightRegions(regions);
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
+        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
+        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[attackNeighbour].Color.ShouldBe("#FFB347");
+        game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(attackNeighbour)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HighlightRegions_DoesNothing_WhenDictionaryIsEmpty()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        viewModel.HighlightCoordinates(
+            new HashSet<HexCoordinates> { new(1, 1) },
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Act
+        viewModel.HighlightRegions(new Dictionary<HexCoordinates, IHexHighlightType>());
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldNotBeEmpty();
+        game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HighlightCoordinates_ClearsBoundaryOutlines_WhenTerrainBitmaskServiceIsNull()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(null);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var coordinates = new HashSet<HexCoordinates> { new(1, 1) };
+
+        // Act
+        viewModel.HighlightCoordinates(
+            coordinates,
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldBeEmpty();
+        game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HighlightRegions_ClearsBoundaryOutlines_WhenTerrainBitmaskServiceIsNull()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(null);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var regions = new Dictionary<HexCoordinates, IHexHighlightType>
+        {
+            { new HexCoordinates(1, 1), new MovementReachableHighlight(MovementType.Walk) }
+        };
+
+        // Act
+        viewModel.HighlightRegions(regions);
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldBeEmpty();
+        game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RemoveHighlight_RemovesSpecificHighlightFromCoordinates()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var coords1 = new HexCoordinates(1, 1);
+        var coords2 = new HexCoordinates(1, 2);
+        viewModel.HighlightCoordinates(
+            new HashSet<HexCoordinates> { coords1, coords2 },
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Act
+        viewModel.RemoveHighlight<MovementReachableHighlight>(new HashSet<HexCoordinates> { coords1 });
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(1);
+        viewModel.HighlightBoundaryOutlines.ContainsKey(coords1).ShouldBeFalse();
+        viewModel.HighlightBoundaryOutlines.ContainsKey(coords2).ShouldBeTrue();
+        game.BattleMap!.GetHex(coords1)!.HasHighlight<MovementReachableHighlight>().ShouldBeFalse();
+        game.BattleMap.GetHex(coords2)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RemoveHighlight_DoesNothing_WhenCoordinatesAreNotHighlighted()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var coords = new HexCoordinates(1, 1);
+        viewModel.HighlightCoordinates(
+            new HashSet<HexCoordinates> { coords },
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Pre-assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(1);
+
+        // Act
+        viewModel.RemoveHighlight<MovementReachableHighlight>(new HashSet<HexCoordinates> { new(9, 9) });
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(1);
+        game.BattleMap!.GetHex(coords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
     [Fact]
     public void Scheduler_ShouldReturnDispatcherServiceScheduler()
     {
@@ -2546,6 +2768,22 @@ public class BattleMapViewModelTests
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());
+    }
+
+    private BattleMapViewModel CreateViewModel(ITerrainBitmaskService? terrainBitmaskService = null)
+    {
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        return new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            terrainBitmaskService);
     }
 
 

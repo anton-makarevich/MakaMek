@@ -49,5 +49,16 @@ public static class HexDirectionExtensions
             var diff = Math.Abs((int)target - (int)direction);
             return Math.Min(diff, 6 - diff);
         }
+
+        /// <summary>
+        /// Gets the ordered pair of hex polygon corner indices that form this edge.
+        /// The indices match the clockwise winding used by HexControl.GetHexPoints().
+        /// </summary>
+        /// <returns>The start and end corner indices for the edge.</returns>
+        public (int StartIndex, int EndIndex) GetHexPointEdgeCornerIndices()
+        {
+            var directionIndex = (int)direction;
+            return ((5 - directionIndex + 6) % 6, (4 - directionIndex + 6) % 6);
+        }
     }
 }

@@ -66,6 +66,22 @@ public class HexDirectionTests
         result.ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(HexDirection.Top, 5, 4)]
+    [InlineData(HexDirection.TopRight, 4, 3)]
+    [InlineData(HexDirection.BottomRight, 3, 2)]
+    [InlineData(HexDirection.Bottom, 2, 1)]
+    [InlineData(HexDirection.BottomLeft, 1, 0)]
+    [InlineData(HexDirection.TopLeft, 0, 5)]
+    public void GetHexPointEdgeCornerIndices_ReturnsCornerPairForDirection(
+        HexDirection direction, int expectedStartIndex, int expectedEndIndex)
+    {
+        var result = direction.GetHexPointEdgeCornerIndices();
+
+        result.StartIndex.ShouldBe(expectedStartIndex);
+        result.EndIndex.ShouldBe(expectedEndIndex);
+    }
+
     [Fact]
     public void AllDirections_ContainsAllEnumValues()
     {

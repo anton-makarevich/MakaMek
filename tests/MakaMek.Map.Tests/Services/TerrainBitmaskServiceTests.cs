@@ -59,6 +59,54 @@ public class TerrainBitmaskServiceTests
     }
 
     [Fact]
+    public void ComputeBoundaryMask_SingleHex_ReturnsAllBitsSet()
+    {
+        var centerCoords = new HexCoordinates(3, 3);
+        var coordinatesSet = new HashSet<HexCoordinates> { centerCoords };
+
+        var result = _sut.ComputeBoundaryMask(centerCoords, coordinatesSet);
+
+        result.ShouldBe((byte)0b111111);
+    }
+
+    [Fact]
+    public void ComputeBoundaryMask_InteriorHex_ReturnsZero()
+    {
+        var centerCoords = new HexCoordinates(3, 3);
+        var coordinatesSet = new HashSet<HexCoordinates> { centerCoords };
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            coordinatesSet.Add(centerCoords.GetNeighbour(direction));
+        }
+
+        var result = _sut.ComputeBoundaryMask(centerCoords, coordinatesSet);
+
+        result.ShouldBe((byte)0);
+    }
+
+    [Fact]
+    public void ComputeBoundaryMask_MultiHexCluster_SetsOnlyOuterEdges()
+    {
+        var centerCoords = new HexCoordinates(3, 3);
+        var topCoords = centerCoords.GetNeighbour(HexDirection.Top);
+        var topRightCoords = centerCoords.GetNeighbour(HexDirection.TopRight);
+        var coordinatesSet = new HashSet<HexCoordinates>
+        {
+            centerCoords,
+            topCoords,
+            topRightCoords
+        };
+
+        var centerMask = _sut.ComputeBoundaryMask(centerCoords, coordinatesSet);
+        var topMask = _sut.ComputeBoundaryMask(topCoords, coordinatesSet);
+        var topRightMask = _sut.ComputeBoundaryMask(topRightCoords, coordinatesSet);
+
+        centerMask.ShouldBe((byte)0b111100);
+        topMask.ShouldBe((byte)0b110011);
+        topRightMask.ShouldBe((byte)0b001111);
+    }
+
+    [Fact]
     public void ComputeRawBitmask_SingleNeighborInTopDirection_SetsBit0()
     {
         // Arrange

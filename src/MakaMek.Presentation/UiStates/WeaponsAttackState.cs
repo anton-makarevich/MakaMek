@@ -422,6 +422,11 @@ public class WeaponsAttackState : IUiState
             }
         }
 
+        var losBlockedCoords = new HashSet<HexCoordinates>();
+        var losHighlights = new Dictionary<HexCoordinates, LosBlockingHighlight>();
+        var reachableCoords = new HashSet<HexCoordinates>();
+        var reachableHighlights = new Dictionary<HexCoordinates, AttackReachableHighlight>();
+
         // Pass 3: Combine per-level LOS results into final weapon ranges
         // Add LosBlockingHighlight only for hexes where ALL levels fail LOS
         if (Game.BattleMap != null)
@@ -460,7 +465,8 @@ public class WeaponsAttackState : IUiState
                     {
                         var reason = losResult.BlockReason;
                         var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                        _viewModel.AddHighlight(new HashSet<HexCoordinates> { hex }, highlight);
+                        losBlockedCoords.Add(hex);
+                        losHighlights[hex] = highlight;
                     }
                 }
             }
@@ -502,10 +508,17 @@ public class WeaponsAttackState : IUiState
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
             var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
-            _viewModel.AddHighlight(
-                new HashSet<HexCoordinates> { hex },
-                new AttackReachableHighlight(orderedWeaponNames));
+            reachableCoords.Add(hex);
+            reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames);
         }
+
+        // Apply all highlights in a single batch call so boundary outlines
+        // are computed once over the full region per highlight type.
+        var perHexHighlights = new Dictionary<HexCoordinates, IHexHighlightType>(
+            losHighlights.Count + reachableHighlights.Count);
+        foreach (var (k, v) in losHighlights) perHexHighlights[k] = v;
+        foreach (var (k, v) in reachableHighlights) perHexHighlights[k] = v;
+        _viewModel.HighlightRegions(perHexHighlights);
     }
 
     private void ClearWeaponRangeHighlights()
