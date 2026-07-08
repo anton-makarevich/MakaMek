@@ -98,6 +98,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
         UpdateWeaponAttacks();
+        UpdateHighlightBoundaryOutlines();
     }
 
     private void OnMapContentClicked(object? sender, Point clickPosition)
@@ -165,6 +166,10 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             UpdateWeaponAttacks();
         }
+        else if (e.PropertyName == nameof(ViewModel.HighlightBoundaryOutlines))
+        {
+            UpdateHighlightBoundaryOutlines();
+        }
         else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
         {
             if (ViewModel?.HexConfiguration != null)
@@ -175,6 +180,31 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
                     hexControl.UpdateRenderConfiguration(config);
                 }
             }
+        }
+    }
+
+    private void UpdateHighlightBoundaryOutlines()
+    {
+        var hexControls = MapCanvas.Children.OfType<HexControl>().ToList();
+        foreach (var hexControl in hexControls)
+        {
+            hexControl.ClearBorderOutline();
+        }
+
+        if (ViewModel == null || ViewModel.HighlightBoundaryOutlines.Count == 0) return;
+
+        foreach (var hexControl in hexControls)
+        {
+            if (!ViewModel.HighlightBoundaryOutlines.TryGetValue(hexControl.Hex.Coordinates, out var outline))
+            {
+                continue;
+            }
+
+            var color = Color.TryParse(outline.Color, out var parsed)
+                ? parsed
+                : Colors.White;
+
+            hexControl.SetBorderOutline(outline.EdgeMask, color, outline.Thickness);
         }
     }
 

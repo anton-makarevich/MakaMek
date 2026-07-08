@@ -457,6 +457,52 @@ public class BattleMapViewModelTests
         viewModel.TerrainBitmaskService.ShouldNotBeNull();
         viewModel.TerrainBitmaskService.ShouldBe(terrainBitmaskService);
     }
+
+    [Fact]
+    public void AddHighlight_ComputesBoundaryOutlinesForProvidedCoordinates()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var centerCoords = new HexCoordinates(1, 2);
+        var topCoords = centerCoords.GetNeighbour(HexDirection.Top);
+        var coordinates = new HashSet<HexCoordinates> { centerCoords, topCoords };
+
+        // Act
+        viewModel.AddHighlight(coordinates, new MovementReachableHighlight(MovementType.Walk));
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.Count.ShouldBe(2);
+        viewModel.HighlightBoundaryOutlines[centerCoords].EdgeMask.ShouldBe((byte)0b111110);
+        viewModel.HighlightBoundaryOutlines[topCoords].EdgeMask.ShouldBe((byte)0b110111);
+        viewModel.HighlightBoundaryOutlines[centerCoords].Color.ShouldBe("#00BFFF");
+        game.BattleMap!.GetHex(centerCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        game.BattleMap.GetHex(topCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ClearHighlights_ClearsBoundaryOutlines()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(new TerrainBitmaskService());
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var centerCoords = new HexCoordinates(1, 1);
+        viewModel.AddHighlight(
+            new HashSet<HexCoordinates> { centerCoords },
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Act
+        viewModel.ClearHighlights();
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldBeEmpty();
+    }
     
     [Fact]
     public void Scheduler_ShouldReturnDispatcherServiceScheduler()
@@ -2546,6 +2592,22 @@ public class BattleMapViewModelTests
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());
+    }
+
+    private BattleMapViewModel CreateViewModel(ITerrainBitmaskService? terrainBitmaskService = null)
+    {
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        return new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            terrainBitmaskService);
     }
 
 

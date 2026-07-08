@@ -30,6 +30,30 @@ public class TerrainBitmaskService : ITerrainBitmaskService
     }
 
     /// <inheritdoc />
+    public byte ComputeBoundaryMask(HexCoordinates coordinates, IReadOnlySet<HexCoordinates> coordinatesSet)
+    {
+        return ComputeBoundaryMask(coordinates, coordinatesSet.Contains);
+    }
+
+    /// <inheritdoc />
+    public byte ComputeBoundaryMask(HexCoordinates coordinates, Func<HexCoordinates, bool> containsCoordinate)
+    {
+        byte mask = 0;
+        var directions = HexDirectionExtensions.AllDirections;
+
+        for (var i = 0; i < directions.Length; i++)
+        {
+            var neighborCoords = coordinates.GetNeighbour(directions[i]);
+            if (!containsCoordinate(neighborCoords))
+            {
+                mask |= (byte)(1 << i);
+            }
+        }
+
+        return mask;
+    }
+
+    /// <inheritdoc />
     public CanonicalBitmaskResult ComputeCanonicalBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null)
     {
         var raw = ComputeRawBitmask(map, coordinates, terrainType, neighborFilter);

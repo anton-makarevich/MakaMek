@@ -29,6 +29,14 @@ using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
+/// <summary>
+/// Border outline rendering data for a highlighted hex.
+/// </summary>
+/// <param name="EdgeMask">The 6-bit edge mask to draw.</param>
+/// <param name="Color">The outline color string.</param>
+/// <param name="Thickness">The outline stroke thickness.</param>
+public sealed record HighlightBoundaryOutline(byte EdgeMask, string Color, double Thickness);
+
 public class BattleMapViewModel : BaseViewModel, IDisposable
 {
     private IClientGame? _game;
@@ -40,6 +48,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IPlatformService _platformService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+    private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
+        new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
 
     public HexCoordinates? DirectionSelectorPosition
@@ -71,6 +81,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         get;
         private set => SetProperty(ref field, value);
     }
+
+    /// <summary>
+    /// Boundary outlines for the current highlighted coordinate group.
+    /// </summary>
+    public IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> HighlightBoundaryOutlines =>
+        _highlightBoundaryOutlines;
 
     public AimedShotLocationSelectorViewModel? UnitPartSelector
     {
@@ -496,6 +512,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
+        UpdateHighlightBoundaryOutlines(coordinates, highlightType);
         foreach (var hex in hexesToHighlight)
         {
             hex.AddHighlight(highlightType);
@@ -515,6 +532,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             hex.RemoveHighlight<T>();
         }
+        RemoveHighlightBoundaryOutlines(coordinates);
     }
 
     /// <summary>
@@ -528,7 +546,62 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             hex.ClearHighlights();
         }
+        ClearHighlightBoundaryOutlines();
     }
+
+    private void UpdateHighlightBoundaryOutlines(
+        IReadOnlySet<HexCoordinates> coordinates,
+        IHexHighlightType highlightType)
+    {
+        if (TerrainBitmaskService == null)
+        {
+            ClearHighlightBoundaryOutlines();
+            return;
+        }
+
+        const double outlineThickness = 2;
+        var outlineColor = GetBoundaryOutlineColor(highlightType);
+        _highlightBoundaryOutlines = coordinates
+            .Select(coordinatesItem => new
+            {
+                Coordinates = coordinatesItem,
+                Mask = TerrainBitmaskService.ComputeBoundaryMask(coordinatesItem, coordinates)
+            })
+            .Where(item => item.Mask != 0)
+            .ToDictionary(
+                item => item.Coordinates,
+                item => new HighlightBoundaryOutline(item.Mask, outlineColor, outlineThickness));
+
+        NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
+    }
+
+    private void RemoveHighlightBoundaryOutlines(IReadOnlySet<HexCoordinates> coordinates)
+    {
+        if (_highlightBoundaryOutlines.Count == 0) return;
+
+        _highlightBoundaryOutlines = _highlightBoundaryOutlines
+            .Where(item => !coordinates.Contains(item.Key))
+            .ToDictionary(item => item.Key, item => item.Value);
+
+        NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
+    }
+
+    private void ClearHighlightBoundaryOutlines()
+    {
+        if (_highlightBoundaryOutlines.Count == 0) return;
+
+        _highlightBoundaryOutlines = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
+        NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
+    }
+
+    private static string GetBoundaryOutlineColor(IHexHighlightType highlightType) =>
+        highlightType switch
+        {
+            MovementReachableHighlight => "#00BFFF",
+            AttackReachableHighlight => "#FFB347",
+            LosBlockingHighlight => "#8B0000",
+            _ => "#FFFFFF"
+        };
 
     public List<IUnit> UnitsToDeploy
     {

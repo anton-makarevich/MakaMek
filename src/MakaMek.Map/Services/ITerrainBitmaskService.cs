@@ -23,6 +23,18 @@ public interface ITerrainBitmaskService
     byte ComputeRawBitmask(IBattleMap map, HexCoordinates coordinates, MakaMekTerrains terrainType, Func<Hex, Hex, bool>? neighborFilter = null);
 
     /// <summary>
+    /// Computes the 6-bit boundary mask for a hex within a set of coordinates.
+    /// Bit N is set when the neighbor in direction N is not part of the set.
+    /// </summary>
+    byte ComputeBoundaryMask(HexCoordinates coordinates, IReadOnlySet<HexCoordinates> coordinatesSet);
+
+    /// <summary>
+    /// Computes the 6-bit boundary mask for a hex using a membership predicate.
+    /// Bit N is set when the neighbor in direction N is not accepted by the predicate.
+    /// </summary>
+    byte ComputeBoundaryMask(HexCoordinates coordinates, Func<HexCoordinates, bool> containsCoordinate);
+
+    /// <summary>
     /// Computes the raw bitmask and then canonicalizes it by rotating across all
     /// 6 possible 60° orientations, selecting the lowest numeric value.
     /// </summary>
