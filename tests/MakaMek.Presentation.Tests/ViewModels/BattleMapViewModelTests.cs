@@ -583,7 +583,28 @@ public class BattleMapViewModelTests
 
         // Assert
         viewModel.HighlightBoundaryOutlines.ShouldNotBeEmpty();
-        game.BattleMap.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+        game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HighlightCoordinates_ClearsBoundaryOutlines_WhenTerrainBitmaskServiceIsNull()
+    {
+        // Arrange
+        var viewModel = CreateViewModel(null);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        viewModel.Game = game;
+
+        var coordinates = new HashSet<HexCoordinates> { new(1, 1) };
+
+        // Act
+        viewModel.HighlightCoordinates(
+            coordinates,
+            new MovementReachableHighlight(MovementType.Walk));
+
+        // Assert
+        viewModel.HighlightBoundaryOutlines.ShouldBeEmpty();
+        game.BattleMap!.GetHex(new HexCoordinates(1, 1))!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
     }
 
     [Fact]

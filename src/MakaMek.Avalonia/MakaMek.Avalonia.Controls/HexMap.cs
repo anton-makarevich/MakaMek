@@ -283,6 +283,7 @@ public class HexMap : Canvas
 
             var left = Canvas.GetLeft(hexControl);
             var top = Canvas.GetTop(hexControl);
+            var brush = new SolidColorBrush(outline.Color);
 
             for (var i = 0; i < directions.Length; i++)
             {
@@ -295,7 +296,7 @@ public class HexMap : Canvas
                         new Point(left + points[startIndex].X, top + points[startIndex].Y),
                         new Point(left + points[endIndex].X, top + points[endIndex].Y)
                     ]),
-                    Stroke = new SolidColorBrush(outline.Color),
+                    Stroke = brush,
                     StrokeThickness = outline.Thickness,
                     IsHitTestVisible = false,
                     ZIndex = ZIndexBorderOutline
