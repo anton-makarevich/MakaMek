@@ -472,7 +472,7 @@ public class BattleMapViewModelTests
         var coordinates = new HashSet<HexCoordinates> { centerCoords, topCoords };
 
         // Act
-        viewModel.AddHighlight(coordinates, new MovementReachableHighlight(MovementType.Walk));
+        viewModel.HighlightCoordinates(coordinates, new MovementReachableHighlight(MovementType.Walk));
 
         // Assert
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(2);
@@ -493,7 +493,7 @@ public class BattleMapViewModelTests
         viewModel.Game = game;
 
         var centerCoords = new HexCoordinates(1, 1);
-        viewModel.AddHighlight(
+        viewModel.HighlightCoordinates(
             new HashSet<HexCoordinates> { centerCoords },
             new MovementReachableHighlight(MovementType.Walk));
 

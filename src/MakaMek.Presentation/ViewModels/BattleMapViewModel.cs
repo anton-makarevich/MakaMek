@@ -507,7 +507,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     /// <param name="coordinates">The hex coordinates to highlight</param>
     /// <param name="highlightType">The type of highlight to add</param>
-    internal void AddHighlight(IReadOnlySet<HexCoordinates> coordinates, IHexHighlightType highlightType)
+    internal void HighlightCoordinates(IReadOnlySet<HexCoordinates> coordinates, IHexHighlightType highlightType)
     {
         var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
@@ -515,6 +515,50 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         foreach (var hex in hexesToHighlight)
         {
             hex.AddHighlight(highlightType);
+        }
+    }
+
+    internal void HighlightRegions(
+        IReadOnlyDictionary<HexCoordinates, IHexHighlightType> perHexHighlights)
+    {
+        if (perHexHighlights.Count == 0) return;
+
+        if (TerrainBitmaskService == null)
+        {
+            ClearHighlightBoundaryOutlines();
+        }
+        else
+        {
+            // Group coordinates by highlight type for boundary computation
+            var groups = new Dictionary<Type, (string Color, HashSet<HexCoordinates> Coords)>();
+            foreach (var (coord, highlight) in perHexHighlights)
+            {
+                var highlightType = highlight.GetType();
+                if (!groups.TryGetValue(highlightType, out var entry))
+                    groups[highlightType] = (GetBoundaryOutlineColor(highlight), []);
+                groups[highlightType].Coords.Add(coord);
+            }
+
+            var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
+            foreach (var (color, coords) in groups.Values)
+            {
+                var outliner = ComputeBoundaryOutlines(coords, color);
+                // Sets are disjoint per type, so simple addition is safe
+                foreach (var (coord, outline) in outliner)
+                    merged[coord] = outline;
+            }
+
+            _highlightBoundaryOutlines = merged;
+            NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
+        }
+
+        // Apply per-hex highlights
+        if (Game?.BattleMap == null) return;
+        var hexMap = Game.BattleMap.GetHexes().ToDictionary(h => h.Coordinates);
+        foreach (var (coord, highlight) in perHexHighlights)
+        {
+            if (hexMap.TryGetValue(coord, out var hex))
+                hex.AddHighlight(highlight);
         }
     }
 
@@ -558,20 +602,23 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return;
         }
 
-        const double outlineThickness = 2;
         var outlineColor = GetBoundaryOutlineColor(highlightType);
-        _highlightBoundaryOutlines = coordinates
-            .Select(coordinatesItem => new
-            {
-                Coordinates = coordinatesItem,
-                Mask = TerrainBitmaskService.ComputeBoundaryMask(coordinatesItem, coordinates)
-            })
-            .Where(item => item.Mask != 0)
-            .ToDictionary(
-                item => item.Coordinates,
-                item => new HighlightBoundaryOutline(item.Mask, outlineColor, outlineThickness));
-
+        _highlightBoundaryOutlines = ComputeBoundaryOutlines(coordinates, outlineColor);
         NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
+    }
+
+    private Dictionary<HexCoordinates, HighlightBoundaryOutline> ComputeBoundaryOutlines(
+        IReadOnlySet<HexCoordinates> coordinates, string color)
+    {
+        const double outlineThickness = 2;
+        return coordinates
+            .Select(c => new
+            {
+                Coordinates = c,
+                Mask = TerrainBitmaskService!.ComputeBoundaryMask(c, coordinates)
+            })
+            .Where(x => x.Mask != 0)
+            .ToDictionary(x => x.Coordinates, x => new HighlightBoundaryOutline(x.Mask, color, outlineThickness));
     }
 
     private void RemoveHighlightBoundaryOutlines(IReadOnlySet<HexCoordinates> coordinates)

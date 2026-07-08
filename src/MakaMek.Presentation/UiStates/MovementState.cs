@@ -108,7 +108,7 @@ public class MovementState : IUiState
                 _selectedUnit.MaxLevelChangeForward,
                 _selectedUnit.MaxLevelChangeBackward);
 
-            _viewModel.AddHighlight(_reachabilityData.Value.AllReachableCoordinates, new MovementReachableHighlight(movementType));
+            _viewModel.HighlightCoordinates(_reachabilityData.Value.AllReachableCoordinates, new MovementReachableHighlight(movementType));
         }
 
         _viewModel.NotifyStateChanged();
