@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -33,6 +35,9 @@ public class HexMap : Canvas
     private Point? _clickPosition;
 
     private readonly Dictionary<IPointer, Point> _activePointers = new();
+
+    private readonly List<Polyline> _borderOutlines = [];
+    private const int ZIndexBorderOutline = 100;
 
     public double MinScale
     {
@@ -254,6 +259,52 @@ public class HexMap : Canvas
     {
         _calculator.ResetZoom();
         SyncTransform();
+    }
+
+    /// <summary>
+    /// Renders border outlines for hex boundaries directly on the map canvas
+    /// at a high ZIndex so they render on top of all hex controls.
+    /// </summary>
+    public void ApplyBorderOutlines(IReadOnlyDictionary<HexCoordinates, BorderOutlineData>? outlines)
+    {
+        foreach (var outline in _borderOutlines)
+            Children.Remove(outline);
+        _borderOutlines.Clear();
+
+        if (outlines == null || outlines.Count == 0) return;
+
+        var points = HexControl.GetHexPoints();
+        var directions = HexDirectionExtensions.AllDirections;
+        var hexControls = Children.OfType<HexControl>().ToList();
+
+        foreach (var hexControl in hexControls)
+        {
+            if (!outlines.TryGetValue(hexControl.Hex.Coordinates, out var outline)) continue;
+
+            var left = Canvas.GetLeft(hexControl);
+            var top = Canvas.GetTop(hexControl);
+
+            for (var i = 0; i < directions.Length; i++)
+            {
+                if ((outline.EdgeMask & (1 << i)) == 0) continue;
+
+                var (startIndex, endIndex) = directions[i].GetHexPointEdgeCornerIndices();
+                var layer = new Polyline
+                {
+                    Points = new Points([
+                        new Point(left + points[startIndex].X, top + points[startIndex].Y),
+                        new Point(left + points[endIndex].X, top + points[endIndex].Y)
+                    ]),
+                    Stroke = new SolidColorBrush(outline.Color),
+                    StrokeThickness = outline.Thickness,
+                    IsHitTestVisible = false,
+                    ZIndex = ZIndexBorderOutline
+                };
+
+                Children.Add(layer);
+                _borderOutlines.Add(layer);
+            }
+        }
     }
 
     public byte[] ToPng()

@@ -52,7 +52,7 @@ public class HexControl : Panel
     private readonly IDisposable? _hexSubscription;
     private readonly IDisposable? _terrainSubscription;
 
-    private static Points GetHexPoints()
+    public static Points GetHexPoints()
     {
         const double width = HexCoordinatesPixelExtensions.HexWidth;
         const double height = HexCoordinatesPixelExtensions.HexHeight;
