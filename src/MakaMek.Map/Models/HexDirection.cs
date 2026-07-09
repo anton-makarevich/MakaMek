@@ -52,7 +52,7 @@ public static class HexDirectionExtensions
 
         /// <summary>
         /// Gets the ordered pair of hex polygon corner indices that form this edge.
-        /// The indices match the clockwise winding used by HexControl.GetHexPoints().
+        /// The indices match the clockwise winding used by HexagonGeometry.GetCorners().
         /// </summary>
         /// <returns>The start and end corner indices for the edge.</returns>
         public (int StartIndex, int EndIndex) GetHexPointEdgeCornerIndices()

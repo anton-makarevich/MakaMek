@@ -1,29 +1,32 @@
+using System.Reactive.Concurrency;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
+using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
 /// <summary>
 /// A canvas control with built-in pan and zoom functionality for hex-based maps.
+/// Owns a HexRenderControl internally for rendering all hex tiles.
 /// </summary>
 public class HexMap : Canvas
 {
     private Point _lastPointerPosition;
 
-    // Single matrix transform bound to RenderTransform. The transform math lives
-    // in _calculator; after any state change we sync the matrix from it.
     private readonly MatrixTransform _mapTransform = new()
     {
         Matrix = new Matrix(1, 0, 0, 1, 0, 0)
     };
 
-    // Reusable, Avalonia-event-free pan/zoom/pinch math.
     private readonly MapTransformCalculator _calculator = new();
 
     private const int SelectionThresholdMilliseconds = 250;
@@ -36,8 +39,7 @@ public class HexMap : Canvas
 
     private readonly Dictionary<IPointer, Point> _activePointers = new();
 
-    private readonly List<Polyline> _borderOutlines = [];
-    private const int ZIndexBorderOutline = 100;
+    private HexRenderControl? _hexRenderControl;
 
     public double MinScale
     {
@@ -67,16 +69,43 @@ public class HexMap : Canvas
         PointerCaptureLost += OnPointerCaptureLost;
     }
 
-    /// <summary>
-    /// Convert HexMap-local coords (what e.GetPosition(this) returns) to
-    /// parent coords using the CURRENT matrix: parent = local * s + t.
-    /// </summary>
     private Point LocalToParent(Point local) => _calculator.LocalToParent(local);
 
-    /// <summary>
-    /// Push the calculator's current matrix onto the bound RenderTransform.
-    /// </summary>
     private void SyncTransform() => _mapTransform.Matrix = _calculator.Matrix;
+
+    /// <summary>
+    /// Sets the hex render data and configuration, creating or updating the internal HexRenderControl.
+    /// Must be called after Children.Clear() to ensure the renderer is at the bottom layer.
+    /// </summary>
+    public void SetHexData(
+        IEnumerable<HexRenderData> data,
+        HexRenderConfiguration configuration,
+        ILogger logger,
+        ITerrainAssetService terrainAssetService,
+        ILocalizationService? localizationService,
+        IScheduler scheduler)
+    {
+        var renderer = new HexRenderControl(logger, terrainAssetService, localizationService, scheduler);
+        renderer.SetHexData(data, configuration);
+        Children.Insert(0, renderer);
+        _hexRenderControl = renderer;
+    }
+
+    /// <summary>
+    /// Updates the boundary outlines on the internal HexRenderControl.
+    /// </summary>
+    public void SetBoundaryOutlines(IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>? outlines)
+    {
+        _hexRenderControl?.SetBoundaryOutlines(outlines);
+    }
+
+    /// <summary>
+    /// Updates the render configuration on the internal HexRenderControl.
+    /// </summary>
+    public void UpdateHexConfiguration(HexRenderConfiguration configuration)
+    {
+        _hexRenderControl?.UpdateConfiguration(configuration);
+    }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -85,9 +114,6 @@ public class HexMap : Canvas
             try { e.Pointer.Capture(this); } catch { /* ignore */ }
         }
 
-        // Get position in PARENT coords — explicitly via local, then convert.
-        // This is the key fix: e.GetPosition(this) ALWAYS returns local coords,
-        // and LocalToParent converts using the current matrix.
         var localPos = e.GetPosition(this);
         var parentPos = LocalToParent(localPos);
         _activePointers[e.Pointer] = parentPos;
@@ -131,11 +157,8 @@ public class HexMap : Canvas
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        // Ignore moves from pointers we are not tracking — using them would
-        // reuse stale pan state (_lastPointerPosition) from another pointer.
         if (!_activePointers.ContainsKey(e.Pointer)) return;
 
-        // Always compute parent position via explicit local→parent conversion
         var localPos = e.GetPosition(this);
         var parentPos = LocalToParent(localPos);
 
@@ -166,7 +189,6 @@ public class HexMap : Canvas
 
         if (!_isManipulating) return;
 
-        // Pan: delta is in parent coords, translate is in parent coords (via matrix)
         _calculator.Pan(delta);
         SyncTransform();
     }
@@ -182,8 +204,6 @@ public class HexMap : Canvas
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        // Capture release fires PointerCaptureLost synchronously, and that handler
-        // clears _isPressed/_isManipulating — snapshot first so clicks still register.
         var wasPressed = _isPressed;
         var wasManipulating = _isManipulating;
 
@@ -194,7 +214,7 @@ public class HexMap : Canvas
         {
             if (_activePointers.Count >= 2)
             {
-                StartPinch(); // re-baseline with the remaining pair
+                StartPinch();
             }
             else
             {
@@ -232,8 +252,6 @@ public class HexMap : Canvas
     {
         _activePointers.Remove(e.Pointer);
 
-        // Fully reset gesture state so later pointer moves can resume normal
-        // pan/click handling instead of being stuck in a stale gesture.
         _manipulationTokenSource?.Cancel();
         _isZooming = false;
         _isPressed = false;
@@ -259,53 +277,6 @@ public class HexMap : Canvas
     {
         _calculator.ResetZoom();
         SyncTransform();
-    }
-
-    /// <summary>
-    /// Renders border outlines for hex boundaries directly on the map canvas
-    /// at a high ZIndex so they render on top of all hex controls.
-    /// </summary>
-    public void ApplyBorderOutlines(IReadOnlyDictionary<HexCoordinates, BorderOutlineData>? outlines)
-    {
-        foreach (var outline in _borderOutlines)
-            Children.Remove(outline);
-        _borderOutlines.Clear();
-
-        if (outlines == null || outlines.Count == 0) return;
-
-        var points = HexControl.GetHexPoints();
-        var directions = HexDirectionExtensions.AllDirections;
-        var hexControls = Children.OfType<HexControl>().ToList();
-
-        foreach (var hexControl in hexControls)
-        {
-            if (!outlines.TryGetValue(hexControl.Hex.Coordinates, out var outline)) continue;
-
-            var left = Canvas.GetLeft(hexControl);
-            var top = Canvas.GetTop(hexControl);
-            var brush = new SolidColorBrush(outline.Color);
-
-            for (var i = 0; i < directions.Length; i++)
-            {
-                if ((outline.EdgeMask & (1 << i)) == 0) continue;
-
-                var (startIndex, endIndex) = directions[i].GetHexPointEdgeCornerIndices();
-                var layer = new Polyline
-                {
-                    Points = new Points([
-                        new Point(left + points[startIndex].X, top + points[startIndex].Y),
-                        new Point(left + points[endIndex].X, top + points[endIndex].Y)
-                    ]),
-                    Stroke = brush,
-                    StrokeThickness = outline.Thickness,
-                    IsHitTestVisible = false,
-                    ZIndex = ZIndexBorderOutline
-                };
-
-                Children.Add(layer);
-                _borderOutlines.Add(layer);
-            }
-        }
     }
 
     public byte[] ToPng()

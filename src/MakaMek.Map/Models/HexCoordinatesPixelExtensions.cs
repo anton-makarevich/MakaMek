@@ -98,4 +98,45 @@ public static class HexCoordinatesPixelExtensions
             return false;
         }
     }
+
+    /// <summary>
+    /// Converts pixel/content-space coordinates back to the nearest hex coordinates.
+    /// Inverts the offset-column H/V forward formulas using cube/axial rounding.
+    /// </summary>
+    public static HexCoordinates FromPixel(double x, double y)
+    {
+        var size = HexWidth / 2.0;
+
+        // Convert pixel to standard flat-top axial coordinates
+        var q = x * 2.0 / 3.0 / size;
+        var r = (-x / 3.0 + Math.Sqrt(3) / 3.0 * y) / size;
+
+        // Axial to cube
+        var cx = q;
+        var cz = r;
+        var cy = -cx - cz;
+
+        // Cube rounding
+        var rx = Math.Round(cx, MidpointRounding.AwayFromZero);
+        var ry = Math.Round(cy, MidpointRounding.AwayFromZero);
+        var rz = Math.Round(cz, MidpointRounding.AwayFromZero);
+
+        var xDiff = Math.Abs(rx - cx);
+        var yDiff = Math.Abs(ry - cy);
+        var zDiff = Math.Abs(rz - cz);
+
+        if (xDiff > yDiff && xDiff > zDiff)
+            rx = -ry - rz;
+        else if (yDiff > zDiff)
+            ry = -rx - rz;
+
+        // Rounded cube to axial
+        var axialQ = (int)rx;
+        var axialR = (int)rz;
+
+        // Axial to odd-r offset: R_offset = r_axial + (q + (q & 1)) / 2
+        var offsetR = axialR + (axialQ + (axialQ & 1)) / 2;
+
+        return new HexCoordinates(axialQ, offsetR);
+    }
 }

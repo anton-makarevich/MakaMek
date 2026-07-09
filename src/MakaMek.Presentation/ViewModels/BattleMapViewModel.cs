@@ -326,7 +326,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case BridgeCollapsedCommand:
                 // Terrain mutation handled by ClientGame.OnBridgeCollapsed;
-                // HexControl re-renders via TerrainsChanged subscription
+                // HexRenderControl re-renders via TerrainsChanged subscription
                 break;
         }
 
