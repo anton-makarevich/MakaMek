@@ -2412,8 +2412,8 @@ public class WeaponsAttackStateTests
         var selectorVm = _battleMapViewModel.UnitPartSelector;
         selectorVm.ShouldNotBeNull();
 
-        // Act - select a body part via the selector's callback
-        selectorVm.SelectPart(PartLocation.Head);
+        // Act - select a body part via the selector's command
+        selectorVm.SelectPartCommand.Execute(PartLocation.Head);
 
         // Assert
         weaponVm.AimedShotTarget.ShouldBe(PartLocation.Head);

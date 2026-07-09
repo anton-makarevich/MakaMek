@@ -138,15 +138,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         return Task.CompletedTask;
     });
 
-    public void SurfaceSelectedCommand(HexSurface surface)
-    {
-        SurfaceSelector?.SelectSurface(surface);
-    }
+    public ICommand SurfaceSelectedCommand { get; }
 
-    public void DirectionSelectedCommand(HexDirection direction)
-    {
-        CurrentState.HandleFacingSelection(direction);
-    }
+    public ICommand DirectionSelectedCommand { get; }
 
     public BattleMapViewModel(
         IImageService imageService,
@@ -172,6 +166,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        SurfaceSelectedCommand = new AsyncCommand<HexSurface>(surface =>
+        {
+            SurfaceSelector?.SelectSurface(surface);
+            return Task.CompletedTask;
+        });
+        DirectionSelectedCommand = new AsyncCommand<HexDirection>(direction =>
+        {
+            CurrentState.HandleFacingSelection(direction);
+            return Task.CompletedTask;
+        });
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
