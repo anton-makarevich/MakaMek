@@ -6,6 +6,7 @@
 description = "Installs all skills (local + third-party) to .agents/skills via the skills.sh CLI"
 run = [
   "npx -y skills add ./skills --dir .agents/skills -y",
+  "npx -y skills add https://github.com/atherio-danp/cde-dotnetcc/tree/main/.claude/skills --skill dotnet-performance-review --dir .agents/skills -y",
   "npx -y skills add https://github.com/vercel-labs/skills --skill find-skills --dir .agents/skills -y",
   "npx -y skills add https://github.com/mattpocock/skills --skill tdd --skill triage --skill writing-great-skills --dir .agents/skills -y",
 ]
