@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
@@ -228,8 +229,16 @@ public class HexRenderControl : Control
         var outlinePen = new Pen(Brushes.White, 1);
         var allDirections = HexDirectionExtensions.AllDirections;
 
-        foreach (var (coords, data) in _hexData)
+        // Sort hexes top-to-bottom, left-to-right for correct back-to-front overlap
+        var sortedCoords = _hexData.Keys
+            .OrderBy(c => c.V)
+            .ThenBy(c => c.H)
+            .ToList();
+
+        // Pass 1: all hex content layers
+        foreach (var coords in sortedCoords)
         {
+            var data = _hexData[coords];
             var ox = coords.H;
             var oy = coords.V;
             var hex = data.Hex;
@@ -307,20 +316,7 @@ public class HexRenderControl : Control
                         context.DrawGeometry(fill, stroke != null ? new Pen(stroke, 1) : null, _hexPolygon);
                 }
 
-                // 8. Boundary outlines
-                if (_boundaryOutlines.TryGetValue(coords, out var boundary) && boundary.EdgeMask != 0)
-                {
-                    var boundaryBrush = ParseBrush(boundary.Color);
-                    var bp = new Pen(boundaryBrush, boundary.Thickness);
-                    for (var i = 0; i < allDirections.Length; i++)
-                    {
-                        if ((boundary.EdgeMask & (1 << i)) == 0) continue;
-                        var (startIdx, endIdx) = allDirections[i].GetHexPointEdgeCornerIndices();
-                        context.DrawLine(bp, _cornerPoints[startIdx], _cornerPoints[endIdx]);
-                    }
-                }
-
-                // 9a. Coordinate label (top-center)
+                // 8a. Coordinate label (top-center)
                 if (config.ShowLabels)
                 {
                     var coordText = new FormattedText(
@@ -334,7 +330,7 @@ public class HexRenderControl : Control
                     context.DrawText(coordText, new Point(coordX, 2));
                 }
 
-                // 9b. Terrain info label (bottom-center)
+                // 8b. Terrain info label (bottom-center)
                 if (config.ShowLabels)
                 {
                     var labelContent = GenerateLabelContent(hex);
@@ -353,7 +349,7 @@ public class HexRenderControl : Control
                     }
                 }
 
-                // 9c. Highlight text (center)
+                // 8c. Highlight text (center)
                 if (config.ShowHighlightLabels && highlights.Count > 0 && _localizationService != null)
                 {
                     var highest = highlights[^1];
@@ -373,6 +369,28 @@ public class HexRenderControl : Control
                     var hlX = (hexW - hlFormatted.Width) / 2;
                     var hlY = (hexH - hlFormatted.Height) / 2;
                     context.DrawText(hlFormatted, new Point(hlX, hlY));
+                }
+            }
+        }
+
+        // Pass 2: boundary outlines on top of all hex content
+        foreach (var coords in sortedCoords)
+        {
+            if (!_boundaryOutlines.TryGetValue(coords, out var boundary) || boundary.EdgeMask == 0)
+                continue;
+
+            var ox = coords.H;
+            var oy = coords.V;
+
+            using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
+            {
+                var boundaryBrush = ParseBrush(boundary.Color);
+                var bp = new Pen(boundaryBrush, boundary.Thickness);
+                for (var i = 0; i < allDirections.Length; i++)
+                {
+                    if ((boundary.EdgeMask & (1 << i)) == 0) continue;
+                    var (startIdx, endIdx) = allDirections[i].GetHexPointEdgeCornerIndices();
+                    context.DrawLine(bp, _cornerPoints[startIdx], _cornerPoints[endIdx]);
                 }
             }
         }
