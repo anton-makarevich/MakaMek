@@ -10,6 +10,7 @@ using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -23,7 +24,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
-    private HexControl? _selectedHex;
 
     public BattleMapView()
     {
@@ -51,9 +51,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         var hexConfiguration = ViewModel?.HexConfiguration.ToConfiguration();
         var localizationService = ViewModel?.LocalizationService;
-
         var bitmaskService = ViewModel?.TerrainBitmaskService;
 
+        var hexDataList = new List<HexRenderData>();
         foreach (var hex in game.BattleMap?.GetHexes() ?? [])
         {
             var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
@@ -76,12 +76,20 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
                 roadBitmask = bitmaskService.CanonicalizeRawMask((byte)(rawRoad | rawBridge));
             }
 
-            var hexControl = new HexControl(hex, game.Logger, terrainAssetService, localizationService, edges,
-                hexConfiguration, waterBitmask, roadBitmask, ViewModel?.Scheduler);
-            MapCanvas.Children.Add(hexControl);
+            hexDataList.Add(new HexRenderData(
+                hex, edges, waterBitmask, roadBitmask));
+
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;
         }
+
+        MapCanvas.SetHexData(
+            hexDataList,
+            hexConfiguration ?? HexRenderConfiguration.Default,
+            game.Logger,
+            terrainAssetService,
+            localizationService,
+            ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default);
 
         _unitControls = ViewModel?.Units
             .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
@@ -100,7 +108,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         MapCanvas.Width = maxH + 2 * HexCoordinatesPixelExtensions.HexWidth;
         MapCanvas.Height =
-            maxV + 3 * HexCoordinatesPixelExtensions.HexHeight; //this is a bit of a workaround to fit the menu
+            maxV + 3 * HexCoordinatesPixelExtensions.HexHeight;
 
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
@@ -141,15 +149,14 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             }
         }
 
-        // If no controls were interacted with, handle hex selection
-        _selectedHex = MapCanvas.Children
-            .OfType<HexControl>()
-            .FirstOrDefault(h => h.IsPointInside(clickPosition));
-
-        if (_selectedHex != null && ViewModel != null)
+        // Hex selection via pixel→coordinate lookup
+        if (ViewModel?.Game?.BattleMap != null)
         {
-            // Assign the hex coordinates to the ViewModel's unit position
-            ViewModel?.HandleHexSelection(_selectedHex.Hex);
+            var coords = HexCoordinatesPixelExtensions.FromPixel(clickPosition.X, clickPosition.Y);
+            var hex = ViewModel.Game.BattleMap.GetHexes()
+                .FirstOrDefault(h => h.Coordinates == coords);
+            if (hex != null)
+                ViewModel.HandleHexSelection(hex);
         }
     }
 
@@ -182,35 +189,15 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             if (ViewModel?.HexConfiguration != null)
             {
                 var config = ViewModel.HexConfiguration.ToConfiguration();
-                foreach (var hexControl in MapCanvas.Children.OfType<HexControl>())
-                {
-                    hexControl.UpdateRenderConfiguration(config);
-                }
+                MapCanvas.UpdateHexConfiguration(config);
             }
         }
     }
 
     private void UpdateHighlightBoundaryOutlines()
     {
-        if (ViewModel == null)
-        {
-            MapCanvas.ApplyBorderOutlines(null);
-            return;
-        }
-
-        var outlines = ViewModel.HighlightBoundaryOutlines
-            .Select(kvp =>
-            {
-                var color = Color.TryParse(kvp.Value.Color, out var parsed)
-                    ? parsed
-                    : Colors.White;
-                return new KeyValuePair<HexCoordinates, BorderOutlineData>(
-                    kvp.Key,
-                    new BorderOutlineData(kvp.Value.EdgeMask, color, kvp.Value.Thickness));
-            })
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-        MapCanvas.ApplyBorderOutlines(outlines.Count > 0 ? outlines : null);
+        MapCanvas.SetBoundaryOutlines(
+            ViewModel?.HighlightBoundaryOutlines);
     }
 
     private void UpdateMovementPath()
@@ -241,7 +228,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void UpdateWeaponAttacks()
     {
-        // Clear existing attacks
         foreach (var control in _weaponAttackControls)
         {
             MapCanvas.Children.Remove(control);

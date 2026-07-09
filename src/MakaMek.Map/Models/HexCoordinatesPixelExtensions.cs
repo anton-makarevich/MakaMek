@@ -98,4 +98,50 @@ public static class HexCoordinatesPixelExtensions
             return false;
         }
     }
+
+    /// <summary>
+    /// Converts pixel/content-space coordinates back to the nearest hex coordinates.
+    /// Pixel origin (0,0) is the top-left corner of hex (0,0)'s bounding box.
+    /// The hex center is at (HexWidth/2, HexHeight/2), so we offset before inverting.
+    /// </summary>
+    public static HexCoordinates FromPixel(double x, double y)
+    {
+        const double size = HexWidth / 2.0;
+
+        // Shift so (0,0) maps to the hex center instead of top-left corner
+        var px = x - HexWidth / 2.0;
+        var py = y - HexHeight / 2.0;
+
+        // Convert pixel to standard flat-top axial coordinates
+        var q = px * 2.0 / 3.0 / size;
+        var r = (-px / 3.0 + Math.Sqrt(3) / 3.0 * py) / size;
+
+        // Axial to cube
+        var cy = -q - r;
+
+        // Cube rounding
+        var rx = Math.Round(q, MidpointRounding.AwayFromZero);
+        var ry = Math.Round(cy, MidpointRounding.AwayFromZero);
+        var rz = Math.Round(r, MidpointRounding.AwayFromZero);
+
+        var xDiff = Math.Abs(rx - q);
+        var yDiff = Math.Abs(ry - cy);
+        var zDiff = Math.Abs(rz - r);
+
+        if (xDiff > yDiff && xDiff > zDiff)
+            rx = -ry - rz;
+        else if (yDiff > zDiff)
+            ry = -rx - rz;
+        else
+            rz = -rx - ry;
+
+        // Rounded cube to axial
+        var axialQ = (int)rx;
+        var axialR = (int)rz;
+
+        // Axial to odd-r offset: R_offset = r_axial + (q + (q & 1)) / 2
+        var offsetR = axialR + (axialQ + (axialQ & 1)) / 2;
+
+        return new HexCoordinates(axialQ, offsetR);
+    }
 }

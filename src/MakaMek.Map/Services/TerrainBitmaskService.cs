@@ -3,7 +3,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Map.Services;
 
-// Note: BattleMap.GetHexEdges() and HexControl.UpdateEdgeLayers() are candidates for
+// Note: BattleMap.GetHexEdges() and HexagonGeometry.GetCorners() are candidates for
 // future refactoring to use this same bitmask infrastructure
 /// <inheritdoc />
 public class TerrainBitmaskService : ITerrainBitmaskService
