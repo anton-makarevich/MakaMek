@@ -400,7 +400,12 @@ public class HexRenderControl : Control
         double hexW, double hexH, double angleDegrees)
     {
         var radians = angleDegrees * Math.PI / 180.0;
-        using (context.PushTransform(Matrix.CreateRotation(radians)))
+        var cx = hexW / 2.0;
+        var cy = hexH / 2.0;
+        // Rotate around hex centre, matching old Image.RenderTransformOrigin=Center
+        using (context.PushTransform(Matrix.CreateTranslation(-cx, -cy) *
+                                     Matrix.CreateRotation(radians) *
+                                     Matrix.CreateTranslation(cx, cy)))
         {
             context.DrawImage(bitmap, new Rect(0, 0, hexW, hexH));
         }
