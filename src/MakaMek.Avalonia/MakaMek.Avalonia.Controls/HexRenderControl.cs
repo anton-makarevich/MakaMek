@@ -381,13 +381,8 @@ public class HexRenderControl : Control
     private static void DrawRotatedBitmap(DrawingContext context, Bitmap bitmap,
         double hexW, double hexH, double angleDegrees)
     {
-        var cx = hexW / 2;
-        var cy = hexH / 2;
         var radians = angleDegrees * Math.PI / 180.0;
-        using (context.PushTransform(
-                   Matrix.CreateTranslation(cx, cy) *
-                   Matrix.CreateRotation(radians) *
-                   Matrix.CreateTranslation(-cx, -cy)))
+        using (context.PushTransform(Matrix.CreateRotation(radians)))
         {
             context.DrawImage(bitmap, new Rect(0, 0, hexW, hexH));
         }
