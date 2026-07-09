@@ -241,7 +241,7 @@ public class HexMap : Canvas
         _isPressed = false;
         _isManipulating = false;
 
-        if (_suppressCapture)
+        if (_suppressCapture && e.Pointer.Type is PointerType.Touch or PointerType.Pen)
         {
             _suppressCapture = false;
             return;
