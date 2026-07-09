@@ -111,7 +111,10 @@ public class HexMap : Canvas
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_suppressCapture && e.Pointer.Type is PointerType.Touch or PointerType.Pen)
+        {
+            _suppressCapture = false;
             return;
+        }
 
         if (e.Pointer.Type is PointerType.Touch or PointerType.Pen)
         {
