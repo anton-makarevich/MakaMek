@@ -38,6 +38,7 @@ public class HexMap : Canvas
     private Point? _clickPosition;
 
     private readonly Dictionary<IPointer, Point> _activePointers = new();
+    private bool _suppressCapture;
 
     private HexRenderControl? _hexRenderControl;
 
@@ -109,6 +110,12 @@ public class HexMap : Canvas
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (_suppressCapture && e.Pointer.Type is PointerType.Touch or PointerType.Pen)
+        {
+            _suppressCapture = false;
+            return;
+        }
+
         if (e.Pointer.Type is PointerType.Touch or PointerType.Pen)
         {
             try { e.Pointer.Capture(this); } catch { /* ignore */ }
@@ -206,11 +213,12 @@ public class HexMap : Canvas
     {
         var wasPressed = _isPressed;
         var wasManipulating = _isManipulating;
+        var wasZooming = _isZooming;
 
         _activePointers.Remove(e.Pointer);
         try { e.Pointer.Capture(null); } catch { /* ignore */ }
 
-        if (_isZooming)
+        if (wasZooming)
         {
             if (_activePointers.Count >= 2)
             {
@@ -218,20 +226,13 @@ public class HexMap : Canvas
             }
             else
             {
-                _isZooming = false;
-                _calculator.ResetPinchSmoothing();
+                _activePointers.Clear();
+                _suppressCapture = true;
 
-                if (_activePointers.Count == 1)
-                {
-                    _lastPointerPosition = _activePointers.Values.First();
-                    _isPressed = true;
-                    _isManipulating = true;
-                }
-                else
-                {
-                    _isPressed = false;
-                    _isManipulating = false;
-                }
+                _isZooming = false;
+                _isManipulating = false;
+                _isPressed = false;
+                _calculator.ResetPinchSmoothing();
             }
             return;
         }
@@ -239,6 +240,12 @@ public class HexMap : Canvas
         _manipulationTokenSource?.Cancel();
         _isPressed = false;
         _isManipulating = false;
+
+        if (_suppressCapture && e.Pointer.Type is PointerType.Touch or PointerType.Pen)
+        {
+            _suppressCapture = false;
+            return;
+        }
 
         if (wasPressed && !wasManipulating)
         {
@@ -251,6 +258,7 @@ public class HexMap : Canvas
     private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
         _activePointers.Remove(e.Pointer);
+        _suppressCapture = false;
 
         _manipulationTokenSource?.Cancel();
         _isZooming = false;
