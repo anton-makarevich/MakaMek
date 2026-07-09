@@ -1,14 +1,11 @@
 using System.Globalization;
-using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
-using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
@@ -23,7 +20,6 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 
 public class HexRenderControl : Control
 {
-    private readonly ILogger _logger;
     private readonly ILocalizationService? _localizationService;
     private readonly DecodedBitmapCache _bitmapCache;
     private readonly IScheduler _scheduler;
@@ -38,13 +34,10 @@ public class HexRenderControl : Control
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
 
-    public HexRenderControl(
-        ILogger logger,
-        ITerrainAssetService terrainAssetService,
+    public HexRenderControl(ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService,
         IScheduler? scheduler)
     {
-        _logger = logger;
         _localizationService = localizationService;
         _scheduler = scheduler ?? new SynchronizationContextScheduler(SynchronizationContext.Current!);
         _bitmapCache = new DecodedBitmapCache(terrainAssetService, QueueInvalidate);
@@ -55,7 +48,7 @@ public class HexRenderControl : Control
         var sg = new StreamGeometry();
         using (var ctx = sg.Open())
         {
-            ctx.BeginFigure(_cornerPoints[0], true);
+            ctx.BeginFigure(_cornerPoints[0]);
             for (var i = 1; i < _cornerPoints.Length; i++)
                 ctx.LineTo(_cornerPoints[i]);
             ctx.EndFigure(true);
@@ -226,7 +219,7 @@ public class HexRenderControl : Control
         var hexW = HexCoordinatesPixelExtensions.HexWidth;
         var hexH = HexCoordinatesPixelExtensions.HexHeight;
 
-        var outlinePen = new Pen(Brushes.White, 1);
+        var outlinePen = new Pen(Brushes.White);
         var allDirections = HexDirectionExtensions.AllDirections;
 
         // Sort hexes top-to-bottom, left-to-right for correct back-to-front overlap
@@ -238,10 +231,9 @@ public class HexRenderControl : Control
         // Pass 1: all hex content layers
         foreach (var coords in sortedCoords)
         {
-            var data = _hexData[coords];
+            var (hex, readOnlyList, canonicalBitmaskResult, roadBitmask) = _hexData[coords];
             var ox = coords.H;
             var oy = coords.V;
-            var hex = data.Hex;
 
             using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
             {
@@ -253,7 +245,7 @@ public class HexRenderControl : Control
                     context.DrawImage(baseBitmap, new Rect(0, 0, hexW, hexH));
 
                 // 2. Elevation edges
-                foreach (var edge in data.Edges)
+                foreach (var edge in readOnlyList)
                 {
                     if (edge.ElevationDifference == 0) continue;
                     var edgeType = edge.ElevationDifference > 0
@@ -268,15 +260,15 @@ public class HexRenderControl : Control
                 }
 
                 // 3. Water (rotated)
-                if (data.WaterBitmask != null)
+                if (canonicalBitmaskResult != null)
                 {
                     var waterKey = DecodedBitmapCache.WaterKey(hex.Biome,
-                        data.WaterBitmask.CanonicalMask, data.WaterBitmask.RotationSteps);
+                        canonicalBitmaskResult.CanonicalMask, canonicalBitmaskResult.RotationSteps);
                     var waterBitmap = _bitmapCache.GetOrSchedule(waterKey,
-                        () => _bitmapCache.AssetService.GetWaterTextureImage(hex.Biome, data.WaterBitmask!));
+                        () => _bitmapCache.AssetService.GetWaterTextureImage(hex.Biome, canonicalBitmaskResult));
                     if (waterBitmap != null)
                         DrawRotatedBitmap(context, waterBitmap, hexW, hexH,
-                            -data.WaterBitmask.RotationSteps * 60.0);
+                            -canonicalBitmaskResult.RotationSteps * 60.0);
                 }
 
                 // 4. Terrain overlays
@@ -292,15 +284,15 @@ public class HexRenderControl : Control
                 }
 
                 // 5. Road (skipped when Rubble)
-                if (!hex.HasTerrain(MakaMekTerrains.Rubble) && data.RoadBitmask != null)
+                if (!hex.HasTerrain(MakaMekTerrains.Rubble) && roadBitmask != null)
                 {
                     var roadKey = DecodedBitmapCache.RoadKey(hex.Biome,
-                        data.RoadBitmask.CanonicalMask, data.RoadBitmask.RotationSteps);
+                        roadBitmask.CanonicalMask, roadBitmask.RotationSteps);
                     var roadBitmap = _bitmapCache.GetOrSchedule(roadKey,
-                        () => _bitmapCache.AssetService.GetRoadTextureImage(hex.Biome, data.RoadBitmask!));
+                        () => _bitmapCache.AssetService.GetRoadTextureImage(hex.Biome, roadBitmask));
                     if (roadBitmap != null)
                         DrawRotatedBitmap(context, roadBitmap, hexW, hexH,
-                            -data.RoadBitmask.RotationSteps * 60.0);
+                            -roadBitmask.RotationSteps * 60.0);
                 }
 
                 // 6. Hex polygon outline
@@ -313,7 +305,7 @@ public class HexRenderControl : Control
                 {
                     var (stroke, fill) = GetHighlightBrushes(highlight);
                     if (fill != null || stroke != null)
-                        context.DrawGeometry(fill, stroke != null ? new Pen(stroke, 1) : null, _hexPolygon);
+                        context.DrawGeometry(fill, stroke != null ? new Pen(stroke) : null, _hexPolygon);
                 }
 
                 // 8a. Coordinate label (top-center)

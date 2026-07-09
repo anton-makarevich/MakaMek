@@ -85,7 +85,7 @@ public class HexMap : Canvas
         ILocalizationService? localizationService,
         IScheduler scheduler)
     {
-        var renderer = new HexRenderControl(logger, terrainAssetService, localizationService, scheduler);
+        var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler);
         renderer.SetHexData(data, configuration);
         Children.Insert(0, renderer);
         _hexRenderControl = renderer;
