@@ -34,38 +34,17 @@ public class HexagonGeometryTests
         corners[5].Y.ShouldBe(0);
     }
 
-    [Fact]
-    public void GetCorners_EachEdgeMapsToTwoAdjacentCorners()
+    [Theory]
+    [InlineData(HexDirection.Top, 5, 4)]
+    [InlineData(HexDirection.TopRight, 4, 3)]
+    [InlineData(HexDirection.BottomRight, 3, 2)]
+    [InlineData(HexDirection.Bottom, 2, 1)]
+    [InlineData(HexDirection.BottomLeft, 1, 0)]
+    [InlineData(HexDirection.TopLeft, 0, 5)]
+    public void GetCorners_EachEdgeMapsToTwoAdjacentCorners(HexDirection direction, int expectedStart, int expectedEnd)
     {
-        var direction = HexDirection.Top;
         var (start, end) = direction.GetHexPointEdgeCornerIndices();
-        // Top edge spans TopLeft→TopRight (indices 5→4)
-        start.ShouldBe(5);
-        end.ShouldBe(4);
-
-        direction = HexDirection.TopRight;
-        (start, end) = direction.GetHexPointEdgeCornerIndices();
-        start.ShouldBe(4);
-        end.ShouldBe(3);
-
-        direction = HexDirection.BottomRight;
-        (start, end) = direction.GetHexPointEdgeCornerIndices();
-        start.ShouldBe(3);
-        end.ShouldBe(2);
-
-        direction = HexDirection.Bottom;
-        (start, end) = direction.GetHexPointEdgeCornerIndices();
-        start.ShouldBe(2);
-        end.ShouldBe(1);
-
-        direction = HexDirection.BottomLeft;
-        (start, end) = direction.GetHexPointEdgeCornerIndices();
-        start.ShouldBe(1);
-        end.ShouldBe(0);
-
-        direction = HexDirection.TopLeft;
-        (start, end) = direction.GetHexPointEdgeCornerIndices();
-        start.ShouldBe(0);
-        end.ShouldBe(5);
+        start.ShouldBe(expectedStart);
+        end.ShouldBe(expectedEnd);
     }
 }

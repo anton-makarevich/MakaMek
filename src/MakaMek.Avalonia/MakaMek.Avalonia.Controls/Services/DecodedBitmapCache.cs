@@ -93,6 +93,7 @@ public class DecodedBitmapCache
     {
         if (_cache.TryRemove(key, out var existing))
             existing?.Dispose();
+        lock (_inFlight) { _inFlight.Remove(key); }
     }
 
     // Cache key builders

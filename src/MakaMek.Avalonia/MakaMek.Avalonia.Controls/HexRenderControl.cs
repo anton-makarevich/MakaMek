@@ -29,7 +29,16 @@ public class HexRenderControl : Control
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
     private bool _invalidateQueued;
+    private readonly object _syncLock = new();
     private readonly List<IDisposable> _subscriptions = [];
+
+    private static readonly Pen WhiteOutlinePen = new(Brushes.White);
+    private static readonly SolidColorBrush MovementReachableStroke = new(Color.Parse("#00BFFF"));
+    private static readonly SolidColorBrush MovementReachableFill = new(Color.Parse("#3300BFFF"));
+    private static readonly SolidColorBrush AttackReachableStroke = new(Color.Parse("#FFB347"));
+    private static readonly SolidColorBrush AttackReachableFill = new(Color.Parse("#33FFB347"));
+    private static readonly SolidColorBrush LosBlockingStroke = new(Color.Parse("#8B0000"));
+    private static readonly SolidColorBrush LosBlockingFill = new(Color.Parse("#338B0000"));
 
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
@@ -191,7 +200,7 @@ public class HexRenderControl : Control
 
     private void QueueInvalidate()
     {
-        lock (this)
+        lock (_syncLock)
         {
             if (_invalidateQueued) return;
             _invalidateQueued = true;
@@ -199,7 +208,7 @@ public class HexRenderControl : Control
 
         Dispatcher.UIThread.Post(() =>
         {
-            lock (this) { _invalidateQueued = false; }
+            lock (_syncLock) { _invalidateQueued = false; }
             InvalidateVisual();
         }, DispatcherPriority.Render);
     }
@@ -219,7 +228,6 @@ public class HexRenderControl : Control
         var hexW = HexCoordinatesPixelExtensions.HexWidth;
         var hexH = HexCoordinatesPixelExtensions.HexHeight;
 
-        var outlinePen = new Pen(Brushes.White);
         var allDirections = HexDirectionExtensions.AllDirections;
 
         // Sort hexes top-to-bottom, left-to-right for correct back-to-front overlap
@@ -297,7 +305,7 @@ public class HexRenderControl : Control
 
                 // 6. Hex polygon outline
                 if (config.ShowOutline)
-                    context.DrawGeometry(null, outlinePen, _hexPolygon);
+                    context.DrawGeometry(null, WhiteOutlinePen, _hexPolygon);
 
                 // 7. Highlight fills/strokes ordered by RenderOrder
                 var highlights = hex.Highlights.OrderBy(h => h.RenderOrder).ToList();
@@ -407,15 +415,9 @@ public class HexRenderControl : Control
     {
         return highlight switch
         {
-            MovementReachableHighlight => (
-                new SolidColorBrush(Color.Parse("#00BFFF")),
-                new SolidColorBrush(Color.Parse("#3300BFFF"))),
-            AttackReachableHighlight => (
-                new SolidColorBrush(Color.Parse("#FFB347")),
-                new SolidColorBrush(Color.Parse("#33FFB347"))),
-            LosBlockingHighlight => (
-                new SolidColorBrush(Color.Parse("#8B0000")),
-                new SolidColorBrush(Color.Parse("#338B0000"))),
+            MovementReachableHighlight => (MovementReachableStroke, MovementReachableFill),
+            AttackReachableHighlight => (AttackReachableStroke, AttackReachableFill),
+            LosBlockingHighlight => (LosBlockingStroke, LosBlockingFill),
             _ => (Brushes.White, null)
         };
     }

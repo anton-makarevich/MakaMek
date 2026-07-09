@@ -130,6 +130,10 @@ public static class HexCoordinatesPixelExtensions
 
         if (xDiff > yDiff && xDiff > zDiff)
             rx = -ry - rz;
+        else if (yDiff > zDiff)
+            ry = -rx - rz;
+        else
+            rz = -rx - ry;
 
         // Rounded cube to axial
         var axialQ = (int)rx;

@@ -105,6 +105,15 @@ public class HexCoordinatesPixelExtensionsTests
     }
 
     [Fact]
+    public void FromPixel_ZDominantRounding_ReturnsCorrectHex()
+    {
+        // Point at (80, 10) triggers the z-diff cube-rounding correction branch
+        // because its r fractional part (~-0.584) has the largest rounding error.
+        var result = HexCoordinatesPixelExtensions.FromPixel(80, 10);
+        result.ShouldBe(new HexCoordinates(0, 0));
+    }
+
+    [Fact]
     public void FromPixel_PointNearBottomRightOfOrigin_ReturnsCorrectHex()
     {
         // Point at (30, 30) — well inside hex (0,0)
