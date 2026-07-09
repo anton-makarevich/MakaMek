@@ -8,19 +8,21 @@ public class HexCoordinatesPixelExtensionsFromPixelTests
     [Fact]
     public void FromPixel_CenterOfOrigin_ReturnsOrigin()
     {
-        var result = HexCoordinatesPixelExtensions.FromPixel(0, 0);
+        var result = HexCoordinatesPixelExtensions.FromPixel(
+            HexCoordinatesPixelExtensions.HexWidth / 2,
+            HexCoordinatesPixelExtensions.HexHeight / 2);
         result.ShouldBe(new HexCoordinates(0, 0));
     }
 
     [Theory]
-    [InlineData(0, 0, 0, 0)]
-    [InlineData(75, 0, 1, 0)]
-    [InlineData(150, 0, 2, 0)]
-    [InlineData(0, 86.60254037844386, 0, 1)]
-    [InlineData(75, 43.30127018922193, 1, 1)]
-    [InlineData(150, 86.60254037844386, 2, 1)]
-    [InlineData(75, -43.30127018922193, 1, 0)]
-    [InlineData(0, -86.60254037844386, 0, -1)]
+    [InlineData(50, 43.30127018922193, 0, 0)]
+    [InlineData(125, 0, 1, 0)]
+    [InlineData(200, 43.30127018922193, 2, 0)]
+    [InlineData(50, 129.9038105676658, 0, 1)]
+    [InlineData(125, 86.60254037844386, 1, 1)]
+    [InlineData(200, 129.9038105676658, 2, 1)]
+    [InlineData(-25, 0, -1, 0)]
+    [InlineData(50, -43.30127018922193, 0, -1)]
     public void FromPixel_HexCenter_ReturnsExactHex(
         double x, double y, int expectedQ, int expectedR)
     {
@@ -33,8 +35,8 @@ public class HexCoordinatesPixelExtensionsFromPixelTests
     public void FromPixel_RoundTripWithHAndV_ReturnsOriginal()
     {
         var original = new HexCoordinates(3, 5);
-        var h = original.H;
-        var v = original.V;
+        var h = original.H + HexCoordinatesPixelExtensions.HexWidth / 2.0;
+        var v = original.V + HexCoordinatesPixelExtensions.HexHeight / 2.0;
         var result = HexCoordinatesPixelExtensions.FromPixel(h, v);
         result.ShouldBe(original);
     }
@@ -57,8 +59,8 @@ public class HexCoordinatesPixelExtensionsFromPixelTests
 
         foreach (var original in testCases)
         {
-            var h = original.H;
-            var v = original.V;
+            var h = original.H + HexCoordinatesPixelExtensions.HexWidth / 2.0;
+            var v = original.V + HexCoordinatesPixelExtensions.HexHeight / 2.0;
             var result = HexCoordinatesPixelExtensions.FromPixel(h, v);
             result.ShouldBe(original, $"Failed for ({original.Q}, {original.R}) at pixel ({h}, {v})");
         }
@@ -67,10 +69,9 @@ public class HexCoordinatesPixelExtensionsFromPixelTests
     [Fact]
     public void FromPixel_NearEdge_ReturnsCorrectHex()
     {
-        // Point at (50, 0) is the right corner of hex (0,0) — shared between
-        // (0,0), (1,0), and (1,1) depending on rounding
-        var result = HexCoordinatesPixelExtensions.FromPixel(50, 0);
-        result.ShouldBeOneOf(new HexCoordinates(0, 0), new HexCoordinates(1, 0), new HexCoordinates(1, 1));
+        // Point at (100, 10) is inside hex (1, 0) but not at its center
+        var result = HexCoordinatesPixelExtensions.FromPixel(100, 10);
+        result.ShouldBe(new HexCoordinates(1, 0));
     }
 
     [Fact]
@@ -84,15 +85,16 @@ public class HexCoordinatesPixelExtensionsFromPixelTests
     [Fact]
     public void FromPixel_PointNearBottomOfOrigin_ReturnsBottomHex()
     {
-        // Point at (0, 70) — just below hex (0,0) center, should be in (0,1)
+        // Point at (0, 70) — left of hex (0,0) center, actually inside hex (-1, 1)
         var result = HexCoordinatesPixelExtensions.FromPixel(0, 70);
-        result.ShouldBe(new HexCoordinates(0, 1));
+        result.ShouldBe(new HexCoordinates(-1, 1));
     }
 
     [Fact]
     public void FromPixel_WithNegativeCoordinates_WorksCorrectly()
     {
-        var result = HexCoordinatesPixelExtensions.FromPixel(-75, 43.30127018922193);
+        // Center of hex (-1, 1): H=-75, V=43.301, center = (-25, 86.603)
+        var result = HexCoordinatesPixelExtensions.FromPixel(-25, 86.60254037844386);
         result.ShouldBe(new HexCoordinates(-1, 1));
     }
 }

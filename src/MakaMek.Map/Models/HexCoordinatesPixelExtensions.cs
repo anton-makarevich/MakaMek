@@ -101,34 +101,35 @@ public static class HexCoordinatesPixelExtensions
 
     /// <summary>
     /// Converts pixel/content-space coordinates back to the nearest hex coordinates.
-    /// Inverts the offset-column H/V forward formulas using cube/axial rounding.
+    /// Pixel origin (0,0) is the top-left corner of hex (0,0)'s bounding box.
+    /// The hex center is at (HexWidth/2, HexHeight/2), so we offset before inverting.
     /// </summary>
     public static HexCoordinates FromPixel(double x, double y)
     {
-        var size = HexWidth / 2.0;
+        const double size = HexWidth / 2.0;
+
+        // Shift so (0,0) maps to the hex center instead of top-left corner
+        var px = x - HexWidth / 2.0;
+        var py = y - HexHeight / 2.0;
 
         // Convert pixel to standard flat-top axial coordinates
-        var q = x * 2.0 / 3.0 / size;
-        var r = (-x / 3.0 + Math.Sqrt(3) / 3.0 * y) / size;
+        var q = px * 2.0 / 3.0 / size;
+        var r = (-px / 3.0 + Math.Sqrt(3) / 3.0 * py) / size;
 
         // Axial to cube
-        var cx = q;
-        var cz = r;
-        var cy = -cx - cz;
+        var cy = -q - r;
 
         // Cube rounding
-        var rx = Math.Round(cx, MidpointRounding.AwayFromZero);
+        var rx = Math.Round(q, MidpointRounding.AwayFromZero);
         var ry = Math.Round(cy, MidpointRounding.AwayFromZero);
-        var rz = Math.Round(cz, MidpointRounding.AwayFromZero);
+        var rz = Math.Round(r, MidpointRounding.AwayFromZero);
 
-        var xDiff = Math.Abs(rx - cx);
+        var xDiff = Math.Abs(rx - q);
         var yDiff = Math.Abs(ry - cy);
-        var zDiff = Math.Abs(rz - cz);
+        var zDiff = Math.Abs(rz - r);
 
         if (xDiff > yDiff && xDiff > zDiff)
             rx = -ry - rz;
-        else if (yDiff > zDiff)
-            ry = -rx - rz;
 
         // Rounded cube to axial
         var axialQ = (int)rx;
