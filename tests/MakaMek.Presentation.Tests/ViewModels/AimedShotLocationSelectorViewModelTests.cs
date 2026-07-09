@@ -55,7 +55,7 @@ public class AimedShotLocationSelectorViewModelTests
         var sut = CreateViewModel();
 
         // Act
-        sut.SelectPart(PartLocation.Head);
+        sut.SelectPartCommand.Execute(PartLocation.Head);
 
         // Assert
         _selectedPart.ShouldBe(PartLocation.Head);
@@ -135,7 +135,7 @@ public class AimedShotLocationSelectorViewModelTests
         _selectedPart.ShouldBeNull();
         
         // Act
-        sut.SelectPart(location);
+        sut.SelectPartCommand.Execute(location);
 
         // Assert
         _selectedPart.ShouldBe(location);

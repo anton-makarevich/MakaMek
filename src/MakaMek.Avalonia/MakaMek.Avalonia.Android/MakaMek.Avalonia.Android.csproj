@@ -11,6 +11,7 @@
         <AndroidPackageFormat>apk</AndroidPackageFormat>
         <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
         <AssemblyName>Sanet.MakaMek.Avalonia.Android</AssemblyName>
+        <AndroidDexDuplicatedClassesWarningAsError>false</AndroidDexDuplicatedClassesWarningAsError>
         <RootNamespace>Sanet.MakaMek.Avalonia.Android</RootNamespace>
     </PropertyGroup>
 

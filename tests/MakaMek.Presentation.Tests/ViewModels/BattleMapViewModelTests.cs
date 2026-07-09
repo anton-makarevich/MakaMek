@@ -965,7 +965,7 @@ public class BattleMapViewModelTests
         _sut.ShowSurfaceSelector(new HexCoordinates(1, 1), surfaceSelector);
 
         // Act
-        _sut.SurfaceSelectedCommand(hexSurface);
+        _sut.SurfaceSelectedCommand.Execute(hexSurface);
 
         // Assert
         selectedSurfaces.ShouldHaveSingleItem();

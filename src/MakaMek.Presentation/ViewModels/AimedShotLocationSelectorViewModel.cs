@@ -1,4 +1,6 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Mechanics;
+﻿using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -28,6 +30,7 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
         _aimedOtherModifiersBreakdown = aimedOtherModifiersBreakdown;
         _onPartSelected = onPartSelected;
         _localizationService = localizationService;
+        SelectPartCommand = new AsyncCommand<PartLocation>(loc => { _onPartSelected(loc); return Task.CompletedTask; });
         InitializeBodyParts();
     }
     
@@ -39,6 +42,8 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
     public UnitPartViewModel RightArmPart { get; private set; } = null!;
     public UnitPartViewModel LeftLegPart { get; private set; } = null!;
     public UnitPartViewModel RightLegPart { get; private set; } = null!;
+
+    public ICommand SelectPartCommand { get; }
 
     private void InitializeBodyParts()
     {
@@ -87,8 +92,4 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
         };
     }
 
-    public void SelectPart(PartLocation location)
-    {
-        _onPartSelected(location);
-    }
 }
