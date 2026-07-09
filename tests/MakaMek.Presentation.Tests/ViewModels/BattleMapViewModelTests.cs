@@ -22,7 +22,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -590,7 +589,7 @@ public class BattleMapViewModelTests
     public void HighlightCoordinates_ClearsBoundaryOutlines_WhenTerrainBitmaskServiceIsNull()
     {
         // Arrange
-        var viewModel = CreateViewModel(null);
+        var viewModel = CreateViewModel();
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         viewModel.Game = game;
@@ -611,7 +610,7 @@ public class BattleMapViewModelTests
     public void HighlightRegions_ClearsBoundaryOutlines_WhenTerrainBitmaskServiceIsNull()
     {
         // Arrange
-        var viewModel = CreateViewModel(null);
+        var viewModel = CreateViewModel();
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         viewModel.Game = game;
@@ -970,6 +969,23 @@ public class BattleMapViewModelTests
         // Assert
         selectedSurfaces.ShouldHaveSingleItem();
         selectedSurfaces[0].ShouldBe(hexSurface);
+    }
+
+    [Theory]
+    [InlineData(HexDirection.Top)]
+    [InlineData(HexDirection.Bottom)]
+    [InlineData(HexDirection.TopRight)]
+    public void DirectionSelectedCommand_CallsHandleFacingSelectionOnCurrentState(HexDirection direction)
+    {
+        // Arrange
+        var mockState = Substitute.For<IUiState>();
+        SetCurrentState(_sut, mockState);
+
+        // Act
+        _sut.DirectionSelectedCommand.Execute(direction);
+
+        // Assert
+        mockState.Received(1).HandleFacingSelection(direction);
     }
 
     [Fact]
