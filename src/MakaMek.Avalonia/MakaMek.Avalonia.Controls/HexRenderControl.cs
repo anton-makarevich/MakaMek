@@ -29,7 +29,7 @@ public class HexRenderControl : Control
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
     private bool _invalidateQueued;
-    private readonly object _syncLock = new();
+    private readonly Lock _syncLock = new();
     private readonly List<IDisposable> _subscriptions = [];
 
     private static readonly Pen WhiteOutlinePen = new(Brushes.White);
@@ -97,19 +97,40 @@ public class HexRenderControl : Control
 
     public async Task PrefetchAllBitmapsAsync(ITerrainAssetService assetService)
     {
+        var enqueuedKeys = new HashSet<string>();
         var tasks = new List<Task>();
-        foreach (var (_, data) in _hexData)
+        foreach (var (_, (hex, readOnlyList, canonicalBitmaskResult, roadBitmask)) in _hexData)
         {
-            var hex = data.Hex;
             var biome = hex.Biome;
-            tasks.Add(PrefetchBaseAsync(assetService, biome));
-            tasks.Add(PrefetchEdgesAsync(assetService, biome, data.Edges, hex.Coordinates));
-            tasks.Add(PrefetchWaterAsync(assetService, biome, data.WaterBitmask));
-            tasks.Add(PrefetchRoadAsync(assetService, biome, data.RoadBitmask));
+
+            if (enqueuedKeys.Add(DecodedBitmapCache.BaseKey(biome)))
+                tasks.Add(PrefetchBaseAsync(assetService, biome));
+
+            tasks.Add(PrefetchEdgesAsync(assetService, biome, readOnlyList, hex.Coordinates));
+
+            if (canonicalBitmaskResult != null)
+            {
+                var key = DecodedBitmapCache.WaterKey(biome,
+                    canonicalBitmaskResult.CanonicalMask, canonicalBitmaskResult.RotationSteps);
+                if (enqueuedKeys.Add(key))
+                    tasks.Add(PrefetchWaterAsync(assetService, biome, canonicalBitmaskResult));
+            }
+
+            if (roadBitmask != null)
+            {
+                var key = DecodedBitmapCache.RoadKey(biome,
+                    roadBitmask.CanonicalMask, roadBitmask.RotationSteps);
+                if (enqueuedKeys.Add(key))
+                    tasks.Add(PrefetchRoadAsync(assetService, biome, roadBitmask));
+            }
+
             foreach (var terrain in hex.GetTerrains())
             {
                 if (terrain.Id == MakaMekTerrains.Clear) continue;
-                tasks.Add(PrefetchOverlayAsync(assetService, biome, terrain.Id));
+                var key = DecodedBitmapCache.OverlayKey(biome,
+                    terrain.Id.ToString().ToLowerInvariant());
+                if (enqueuedKeys.Add(key))
+                    tasks.Add(PrefetchOverlayAsync(assetService, biome, terrain.Id));
             }
         }
         await Task.WhenAll(tasks);
@@ -239,7 +260,7 @@ public class HexRenderControl : Control
         // Pass 1: all hex content layers
         foreach (var coords in sortedCoords)
         {
-            var (hex, readOnlyList, canonicalBitmaskResult, roadBitmask) = _hexData[coords];
+            var (hex, edges, water, road) = _hexData[coords];
             var ox = coords.H;
             var oy = coords.V;
 
@@ -253,7 +274,7 @@ public class HexRenderControl : Control
                     context.DrawImage(baseBitmap, new Rect(0, 0, hexW, hexH));
 
                 // 2. Elevation edges
-                foreach (var edge in readOnlyList)
+                foreach (var edge in edges)
                 {
                     if (edge.ElevationDifference == 0) continue;
                     var edgeType = edge.ElevationDifference > 0
@@ -268,15 +289,15 @@ public class HexRenderControl : Control
                 }
 
                 // 3. Water (rotated)
-                if (canonicalBitmaskResult != null)
+                if (water != null)
                 {
                     var waterKey = DecodedBitmapCache.WaterKey(hex.Biome,
-                        canonicalBitmaskResult.CanonicalMask, canonicalBitmaskResult.RotationSteps);
+                        water.CanonicalMask, water.RotationSteps);
                     var waterBitmap = _bitmapCache.GetOrSchedule(waterKey,
-                        () => _bitmapCache.AssetService.GetWaterTextureImage(hex.Biome, canonicalBitmaskResult));
+                        () => _bitmapCache.AssetService.GetWaterTextureImage(hex.Biome, water));
                     if (waterBitmap != null)
                         DrawRotatedBitmap(context, waterBitmap, hexW, hexH,
-                            -canonicalBitmaskResult.RotationSteps * 60.0);
+                            -water.RotationSteps * 60.0);
                 }
 
                 // 4. Terrain overlays
@@ -292,15 +313,15 @@ public class HexRenderControl : Control
                 }
 
                 // 5. Road (skipped when Rubble)
-                if (!hex.HasTerrain(MakaMekTerrains.Rubble) && roadBitmask != null)
+                if (!hex.HasTerrain(MakaMekTerrains.Rubble) && road != null)
                 {
                     var roadKey = DecodedBitmapCache.RoadKey(hex.Biome,
-                        roadBitmask.CanonicalMask, roadBitmask.RotationSteps);
+                        road.CanonicalMask, road.RotationSteps);
                     var roadBitmap = _bitmapCache.GetOrSchedule(roadKey,
-                        () => _bitmapCache.AssetService.GetRoadTextureImage(hex.Biome, roadBitmask));
+                        () => _bitmapCache.AssetService.GetRoadTextureImage(hex.Biome, road));
                     if (roadBitmap != null)
                         DrawRotatedBitmap(context, roadBitmap, hexW, hexH,
-                            -roadBitmask.RotationSteps * 60.0);
+                            -road.RotationSteps * 60.0);
                 }
 
                 // 6. Hex polygon outline
