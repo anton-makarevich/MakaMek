@@ -68,12 +68,19 @@ public sealed class FileCommandLogger : ICommandLogger
         {
             foreach (var line in _queue.GetConsumingEnumerable())
             {
-                await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8);
+                try
+                {
+                    await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8);
+                }
+                catch
+                {
+                    // Swallow transient write failures so the next queued line is still processed
+                }
             }
         }
-        catch
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
         {
-            // Ignore cancellation/other errors here to keep the loop resilient
+            // Expected during shutdown: CompleteAdding races with Dispose
         }
     }
 
