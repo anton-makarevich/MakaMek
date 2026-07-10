@@ -6,7 +6,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.DI;
-using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.About;
 using Sanet.MakaMek.Avalonia.Views.EndGame;

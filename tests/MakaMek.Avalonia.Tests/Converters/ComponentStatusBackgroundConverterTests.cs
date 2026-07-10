@@ -7,7 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using NSubstitute;
-using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 

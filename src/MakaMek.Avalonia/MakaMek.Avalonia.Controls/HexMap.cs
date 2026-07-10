@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
@@ -84,9 +85,10 @@ public class HexMap : Canvas
         ILogger logger,
         ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        IAvaloniaResourcesLocator? resourcesLocator = null)
     {
-        var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler);
+        var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler, resourcesLocator);
         renderer.SetHexData(data, configuration);
         Children.Insert(0, renderer);
         _hexRenderControl = renderer;

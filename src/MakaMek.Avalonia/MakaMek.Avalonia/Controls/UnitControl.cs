@@ -15,6 +15,7 @@ using AsyncAwaitBestPractices;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Utils;
