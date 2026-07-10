@@ -1,0 +1,41 @@
+name: PR Version Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from current branch
+        id: current-version
+        run: |
+          version=$(grep '<VersionPrefix>' Directory.Build.props | sed 's/.*<VersionPrefix>\(.*\)<\/VersionPrefix>.*/\1/')
+          echo "Current version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Get version from main branch
+        id: main-version
+        run: |
+          version=$(git show origin/main:Directory.Build.props | grep '<VersionPrefix>' | sed 's/.*<VersionPrefix>\(.*\)<\/VersionPrefix>.*/\1/')
+          echo "Main version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        run: |
+          current="${{ steps.current-version.outputs.version }}"
+          main="${{ steps.main-version.outputs.version }}"
+          echo "Current: $current"
+          echo "Main:    $main"
+          if [ "$current" = "$main" ]; then
+            echo "::error::VersionPrefix ($current) must be bumped before merging into main."
+            exit 1
+          fi
+          echo "Version differs — check passed."
