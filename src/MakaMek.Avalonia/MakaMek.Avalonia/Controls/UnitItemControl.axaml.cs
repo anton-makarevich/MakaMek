@@ -118,7 +118,7 @@ public partial class UnitItemControl : UserControl
 
         try
         {
-            var image = await _imageService.GetImage("units/mechs", unitVm.Model.ToUpper());
+            var image = await _imageService.GetImage("units/mechs", unitVm.Model.ToUpperInvariant());
             if (image != null && UnitImage != null)
             {
                 UnitImage.Source = image;

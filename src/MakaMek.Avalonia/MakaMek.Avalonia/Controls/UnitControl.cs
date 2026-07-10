@@ -513,7 +513,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         private async Task UpdateImage()
         {
-            var image = await _imageService.GetImage("units/mechs", _unit.Model.ToUpper());
+            var image = await _imageService.GetImage("units/mechs", _unit.Model.ToUpperInvariant());
             if (image != null)
             {
                 _unitImage.Source = image;
@@ -563,7 +563,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 VerticalAlignment = VerticalAlignment.Center,
                 Child = new TextBlock
                 {
-                    Text = label.ToUpper(),
+                    Text = label.ToUpperInvariant(),
                     Foreground = _contrastingForegroundConverter != null
                         ? _contrastingForegroundConverter.Convert(_unit.Owner?.Tint, typeof(IBrush), null, null) as
                             IBrush
