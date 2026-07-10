@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -20,14 +21,15 @@ public class FallProcessor : IFallProcessor
     /// <summary>
     /// Maps critical-hit component types to the PSR roll type they trigger.
     /// </summary>
-    private static readonly Dictionary<MakaMekComponent, PilotingSkillRollType> ComponentFallReasonMap = new()
-    {
-        { MakaMekComponent.Gyro, PilotingSkillRollType.GyroHit },
-        { MakaMekComponent.LowerLegActuator, PilotingSkillRollType.LowerLegActuatorHit },
-        { MakaMekComponent.UpperLegActuator, PilotingSkillRollType.UpperLegActuatorHit },
-        { MakaMekComponent.Hip, PilotingSkillRollType.HipActuatorHit },
-        { MakaMekComponent.FootActuator, PilotingSkillRollType.FootActuatorHit }
-    };
+    private static readonly FrozenDictionary<MakaMekComponent, PilotingSkillRollType> ComponentFallReasonMap =
+        new Dictionary<MakaMekComponent, PilotingSkillRollType>
+        {
+            { MakaMekComponent.Gyro, PilotingSkillRollType.GyroHit },
+            { MakaMekComponent.LowerLegActuator, PilotingSkillRollType.LowerLegActuatorHit },
+            { MakaMekComponent.UpperLegActuator, PilotingSkillRollType.UpperLegActuatorHit },
+            { MakaMekComponent.Hip, PilotingSkillRollType.HipActuatorHit },
+            { MakaMekComponent.FootActuator, PilotingSkillRollType.FootActuatorHit }
+        }.ToFrozenDictionary();
 
     public FallProcessor(
         IRulesProvider rulesProvider,

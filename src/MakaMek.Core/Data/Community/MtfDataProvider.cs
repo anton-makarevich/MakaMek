@@ -8,14 +8,18 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Data.Community;
 
-public class MtfDataProvider:IUnitDataProvider
+public partial class MtfDataProvider : IUnitDataProvider
 {
     private readonly IComponentProvider _componentProvider;
-    private readonly string[] _nicknamePatterns = 
-    [
-        @"^([^']+)'([^']+)'$",
-        @"^([^(]+)\(([^)]+)\)$"
-    ];
+
+    [GeneratedRegex(@"^([^']+)'([^']+)'$")]
+    private static partial Regex NicknameSingleQuotePattern();
+
+    [GeneratedRegex(@"^([^(]+)\(([^)]+)\)$")]
+    private static partial Regex NicknameParenPattern();
+
+    [GeneratedRegex(@"(\w+)\s+Armor:(\d+)", RegexOptions.IgnoreCase)]
+    private static partial Regex ArmorValuePattern();
 
     public MtfDataProvider(IComponentProvider componentProvider)
     {
@@ -40,8 +44,8 @@ public class MtfDataProvider:IUnitDataProvider
             EngineType = mechData["engine-type"],
             ArmorValues = armorValues,
             Equipment = equipment,
-            Quirks = mechData.Where(pair => pair.Key.StartsWith("quirk")).ToDictionary(),
-            AdditionalAttributes = mechData.Where(pair => pair.Key.StartsWith("system")).ToDictionary()
+            Quirks = mechData.Where(pair => pair.Key.StartsWith("quirk", StringComparison.Ordinal)).ToDictionary(),
+            AdditionalAttributes = mechData.Where(pair => pair.Key.StartsWith("system", StringComparison.Ordinal)).ToDictionary()
         };
     }
 
@@ -52,7 +56,7 @@ public class MtfDataProvider:IUnitDataProvider
         var systemsCount = 0;
         foreach (var line in lines)
         {
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("Config:"))
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("Config:", StringComparison.Ordinal))
                 continue;
 
             var colonIndex = line.IndexOf(':');
@@ -71,15 +75,15 @@ public class MtfDataProvider:IUnitDataProvider
             }
             else
             {
-                if (key.StartsWith("quirk"))
+                if (key.StartsWith("quirk", StringComparison.Ordinal))
                 {
                     key = $"{key}{++quirksCount}";
                 }
-                if (key.StartsWith("system"))
+                if (key.StartsWith("system", StringComparison.Ordinal))
                 {
                     key = $"{key}{++systemsCount}";
                 }
-                if (key.StartsWith("model"))
+                if (key.StartsWith("model", StringComparison.Ordinal))
                 {
                     // Extract the model and nickname from the model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
                     var (model, nickname) = ExtractModelAndNickname(value);
@@ -100,14 +104,19 @@ public class MtfDataProvider:IUnitDataProvider
         var model = modelNickname;
         string? nickname = null;
         
-        foreach (var pattern in _nicknamePatterns)
+        var match = NicknameSingleQuotePattern().Match(model);
+        if (match.Success)
         {
-            var match = Regex.Match(model, pattern);
+            model = match.Groups[1].Value.Trim();
+            nickname = match.Groups[2].Value.Trim();
+        }
+        else
+        {
+            match = NicknameParenPattern().Match(model);
             if (match.Success)
             {
                 model = match.Groups[1].Value.Trim();
                 nickname = match.Groups[2].Value.Trim();
-                break;
             }
         }
         
@@ -117,7 +126,7 @@ public class MtfDataProvider:IUnitDataProvider
     private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)
     {
         // Track components by location and slot for consolidation,
-        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>>();
+        var locationSlotComponents = new Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>>();
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
         PartLocation? currentLocation = null;
         var currentSlotIndex = 0;
@@ -151,7 +160,7 @@ public class MtfDataProvider:IUnitDataProvider
             // Parse armor values
             if (parsingArmor)
             {
-                var match = Regex.Match(line, @"(\w+)\s+Armor:(\d+)", RegexOptions.IgnoreCase);
+                var match = ArmorValuePattern().Match(line);
                 if (match.Success && TryParseLocation(match.Groups[1].Value, out var location))
                 {
                     var value = int.Parse(match.Groups[2].Value);
@@ -175,7 +184,7 @@ public class MtfDataProvider:IUnitDataProvider
             }
 
             // Check for location headers
-            if (line.EndsWith(":"))
+            if (line.EndsWith(":", StringComparison.Ordinal))
             {
                 var locationText = line[..^1].Trim();
                 if (TryParseLocation(locationText, out var location))
@@ -183,7 +192,7 @@ public class MtfDataProvider:IUnitDataProvider
                     currentLocation = location;
                     currentSlotIndex = 0; // Reset slot index for a new location
                     if (!locationSlotComponents.ContainsKey(location))
-                        locationSlotComponents[location] = new Dictionary<int, (MakaMekComponent, ComponentOptions)>();
+                        locationSlotComponents[location] = new SortedDictionary<int, (MakaMekComponent, ComponentOptions)>();
                 }
                 continue;
             }
@@ -227,14 +236,14 @@ public class MtfDataProvider:IUnitDataProvider
     /// <summary>
     /// Converts location-slot component data to component-centric ComponentData objects
     /// </summary>
-    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents, Dictionary<string, string> mechData)
+    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents, Dictionary<string, string> mechData)
     {
         var componentDataList = new List<ComponentData>();
         var processedSlots = new HashSet<(PartLocation, int)>(); // Track processed slots
 
         foreach (var (location, slotComponents) in locationSlotComponents)
         {
-            foreach (var (slot, (component, options)) in slotComponents.OrderBy(kvp => kvp.Key))
+            foreach (var (slot, (component, options)) in slotComponents)
             {
                 if (processedSlots.Contains((location, slot)))
                     continue;
@@ -305,7 +314,7 @@ public class MtfDataProvider:IUnitDataProvider
         MakaMekComponent component,
         PartLocation startLocation,
         int startSlot,
-        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
+        Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
         HashSet<(PartLocation, int)> processedSlots,
         int expectedSize)
     {
@@ -334,7 +343,7 @@ public class MtfDataProvider:IUnitDataProvider
             {
                 if (totalAssignedSlots >= expectedSize) break;
 
-                foreach (var (slot, (slotComponent, _)) in slotComponents.OrderBy(kvp => kvp.Key))
+                foreach (var (slot, (slotComponent, _)) in slotComponents)
                 {
                     if (slotComponent != component || processedSlots.Contains((location, slot)))
                         continue;
@@ -366,7 +375,7 @@ public class MtfDataProvider:IUnitDataProvider
         MakaMekComponent component,
         PartLocation location,
         int startSlot,
-        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
+        Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
         HashSet<(PartLocation, int)> processedSlots,
         int maxSlots = int.MaxValue)
     {

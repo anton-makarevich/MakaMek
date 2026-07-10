@@ -341,7 +341,7 @@ public class MtfDataProviderTests
     {
         // Arrange
         var sut = new MtfDataProvider(_componentProvider);
-        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>>
+        var locationSlotComponents = new Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>>
         {
             [PartLocation.LeftArm] = new()
             {

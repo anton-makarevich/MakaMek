@@ -16,7 +16,6 @@ public sealed class FileCommandLogger : ICommandLogger
     private readonly Task _worker;
     private readonly string _logDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MakaMek", "Commands");
-    private bool _isDisposed;
 
     public FileCommandLogger(ILocalizationService localizationService, IGame game)
     {
@@ -65,21 +64,16 @@ public sealed class FileCommandLogger : ICommandLogger
             // If directory creation fails, we still keep draining queue and swallowing errors
         }
 
-        while (!_isDisposed)
+        try
         {
-            try
+            foreach (var line in _queue.GetConsumingEnumerable())
             {
-                if (_queue.Count < 1) continue;
-                var line = _queue.TryTake(out var item, 100) ? item : null;
-                if (line == null)
-                    continue;
-                // Append asynchronously; create the file if it doesn't exist
                 await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8);
             }
-            catch
-            {
-                // Ignore cancellation/other errors here to keep the loop resilient
-            }
+        }
+        catch
+        {
+            // Ignore cancellation/other errors here to keep the loop resilient
         }
     }
 
@@ -88,7 +82,7 @@ public sealed class FileCommandLogger : ICommandLogger
         try
         {
             _queue.CompleteAdding();
-            _worker.Wait(TimeSpan.FromSeconds(2));
+            _worker.Wait(TimeSpan.FromSeconds(5));
         }
         catch
         {
@@ -97,7 +91,6 @@ public sealed class FileCommandLogger : ICommandLogger
         finally
         {
             _queue.Dispose();
-            _isDisposed = true;
         }
     }
 }

@@ -16,7 +16,7 @@ public class AvaloniaAssetImageService : IImageService<Bitmap>
 
     public Task<Bitmap?> GetImage(string assetType, string assetName)
     {
-        var path = $"{_assetsBasePath}/{assetType.ToLower()}/{assetName.ToLower()}.png";
+        var path = $"{_assetsBasePath}/{assetType.ToLowerInvariant()}/{assetName.ToLowerInvariant()}.png";
         return Task.FromResult(_cache.GetOrAdd(path, LoadImage));
     }
 
