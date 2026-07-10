@@ -1,4 +1,4 @@
-﻿name: opencode
+name: opencode
 
 on:
   issue_comment:
@@ -54,7 +54,7 @@ jobs:
           EOF
 
       - name: Run OpenCode
-        uses: anomalyco/opencode/github@v1.15.10
+        uses: anomalyco/opencode/github@v1.17.18
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
