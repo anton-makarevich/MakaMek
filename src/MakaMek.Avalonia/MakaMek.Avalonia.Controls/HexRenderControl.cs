@@ -31,6 +31,11 @@ public class HexRenderControl : Control
     private bool _invalidateQueued;
     private readonly Lock _syncLock = new();
     private readonly List<IDisposable> _subscriptions = [];
+    private List<HexCoordinates> _sortedCoords = [];
+    private readonly Dictionary<HexCoordinates, FormattedText> _coordLabelCache = new();
+    private readonly Dictionary<HexCoordinates, FormattedText?> _terrainLabelCache = new();
+    private readonly Dictionary<HexCoordinates, List<IHexHighlightType>> _sortedHighlightsCache = new();
+    private readonly Dictionary<(string Color, double Thickness), Pen> _boundaryPenCache = new();
 
     private static readonly Pen WhiteOutlinePen = new(Brushes.White);
     private static readonly SolidColorBrush MovementReachableStroke = new(Color.Parse("#00BFFF"));
@@ -39,6 +44,10 @@ public class HexRenderControl : Control
     private static readonly SolidColorBrush AttackReachableFill = new(Color.Parse("#33FFB347"));
     private static readonly SolidColorBrush LosBlockingStroke = new(Color.Parse("#8B0000"));
     private static readonly SolidColorBrush LosBlockingFill = new(Color.Parse("#338B0000"));
+    private static readonly Pen MovementReachablePen = new(MovementReachableStroke);
+    private static readonly Pen AttackReachablePen = new(AttackReachableStroke);
+    private static readonly Pen LosBlockingPen = new(LosBlockingStroke);
+    private static readonly Pen WhiteHighlightPen = new(Brushes.White);
 
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
@@ -80,12 +89,33 @@ public class HexRenderControl : Control
             SubscribeToHex(item.Hex);
         }
 
+        _sortedCoords = _hexData.Keys
+            .OrderBy(c => c.V)
+            .ThenBy(c => c.H)
+            .ToList();
+
+        _coordLabelCache.Clear();
+        foreach (var (coords, _) in _hexData)
+        {
+            _coordLabelCache[coords] = CreateCoordLabel(coords);
+        }
+
+        _terrainLabelCache.Clear();
+        _sortedHighlightsCache.Clear();
+
         InvalidateVisual();
     }
 
     public void SetBoundaryOutlines(IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>? outlines)
     {
         _boundaryOutlines = outlines ?? new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
+        _boundaryPenCache.Clear();
+        foreach (var (_, boundary) in _boundaryOutlines)
+        {
+            var key = (boundary.Color, boundary.Thickness);
+            if (!_boundaryPenCache.ContainsKey(key))
+                _boundaryPenCache[key] = new Pen(ParseBrush(boundary.Color), boundary.Thickness);
+        }
         InvalidateVisual();
     }
 
@@ -212,11 +242,19 @@ public class HexRenderControl : Control
     {
         _subscriptions.Add(hex.HighlightsChanged
             .ObserveOn(_scheduler)
-            .Subscribe(_ => QueueInvalidate()));
+            .Subscribe(_ =>
+            {
+                _sortedHighlightsCache.Remove(hex.Coordinates);
+                QueueInvalidate();
+            }));
 
         _subscriptions.Add(hex.TerrainsChanged
             .ObserveOn(_scheduler)
-            .Subscribe(_ => QueueInvalidate()));
+            .Subscribe(_ =>
+            {
+                _terrainLabelCache.Remove(hex.Coordinates);
+                QueueInvalidate();
+            }));
     }
 
     private void QueueInvalidate()
@@ -246,16 +284,13 @@ public class HexRenderControl : Control
     public override void Render(DrawingContext context)
     {
         var config = _configuration;
-        var hexW = HexCoordinatesPixelExtensions.HexWidth;
-        var hexH = HexCoordinatesPixelExtensions.HexHeight;
+        const double hexW = HexCoordinatesPixelExtensions.HexWidth;
+        const double hexH = HexCoordinatesPixelExtensions.HexHeight;
 
         var allDirections = HexDirectionExtensions.AllDirections;
 
         // Sort hexes top-to-bottom, left-to-right for correct back-to-front overlap
-        var sortedCoords = _hexData.Keys
-            .OrderBy(c => c.V)
-            .ThenBy(c => c.H)
-            .ToList();
+        var sortedCoords = _sortedCoords;
 
         // Pass 1: all hex content layers
         foreach (var coords in sortedCoords)
@@ -329,24 +364,25 @@ public class HexRenderControl : Control
                     context.DrawGeometry(null, WhiteOutlinePen, _hexPolygon);
 
                 // 7. Highlight fills/strokes ordered by RenderOrder
-                var highlights = hex.Highlights.OrderBy(h => h.RenderOrder).ToList();
+                if (!_sortedHighlightsCache.TryGetValue(coords, out var highlights))
+                {
+                    highlights = hex.Highlights.OrderBy(h => h.RenderOrder).ToList();
+                    _sortedHighlightsCache[coords] = highlights;
+                }
                 foreach (var highlight in highlights)
                 {
-                    var (stroke, fill) = GetHighlightBrushes(highlight);
-                    if (fill != null || stroke != null)
-                        context.DrawGeometry(fill, stroke != null ? new Pen(stroke) : null, _hexPolygon);
+                    var (pen, fill) = GetHighlightPenAndFill(highlight);
+                    if (fill != null || pen != null)
+                        context.DrawGeometry(fill, pen, _hexPolygon);
                 }
 
                 // 8a. Coordinate label (top-center)
                 if (config.ShowLabels)
                 {
-                    var coordText = new FormattedText(
-                        coords.ToString(),
-                        CultureInfo.CurrentCulture,
-                        FlowDirection.LeftToRight,
-                        Typeface.Default,
-                        12,
-                        Brushes.White);
+                    if (!_coordLabelCache.TryGetValue(coords, out var coordText))
+                    {
+                        coordText = CreateCoordLabel(coords);
+                    }
                     var coordX = (hexW - coordText.Width) / 2;
                     context.DrawText(coordText, new Point(coordX, 2));
                 }
@@ -354,16 +390,17 @@ public class HexRenderControl : Control
                 // 8b. Terrain info label (bottom-center)
                 if (config.ShowLabels)
                 {
-                    var labelContent = GenerateLabelContent(hex);
-                    if (labelContent != null)
+                    if (!_terrainLabelCache.TryGetValue(coords, out var infoText))
                     {
-                        var infoText = new FormattedText(
-                            labelContent,
-                            CultureInfo.CurrentCulture,
-                            FlowDirection.LeftToRight,
-                            Typeface.Default,
-                            11,
-                            Brushes.White);
+                        var labelContent = GenerateLabelContent(hex);
+                        infoText = labelContent != null
+                            ? new FormattedText(labelContent, CultureInfo.CurrentCulture,
+                                FlowDirection.LeftToRight, Typeface.Default, 11, Brushes.White)
+                            : null;
+                        _terrainLabelCache[coords] = infoText;
+                    }
+                    if (infoText != null)
+                    {
                         var infoX = (hexW - infoText.Width) / 2;
                         var infoY = hexH - infoText.Height - 2;
                         context.DrawText(infoText, new Point(infoX, infoY));
@@ -405,8 +442,7 @@ public class HexRenderControl : Control
 
             using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
             {
-                var boundaryBrush = ParseBrush(boundary.Color);
-                var bp = new Pen(boundaryBrush, boundary.Thickness);
+                var bp = _boundaryPenCache[(boundary.Color, boundary.Thickness)];
                 for (var i = 0; i < allDirections.Length; i++)
                 {
                     if ((boundary.EdgeMask & (1 << i)) == 0) continue;
@@ -432,14 +468,14 @@ public class HexRenderControl : Control
         }
     }
 
-    private static (IBrush? Stroke, IBrush? Fill) GetHighlightBrushes(IHexHighlightType highlight)
+    private static (Pen? Pen, IBrush? Fill) GetHighlightPenAndFill(IHexHighlightType highlight)
     {
         return highlight switch
         {
-            MovementReachableHighlight => (MovementReachableStroke, MovementReachableFill),
-            AttackReachableHighlight => (AttackReachableStroke, AttackReachableFill),
-            LosBlockingHighlight => (LosBlockingStroke, LosBlockingFill),
-            _ => (Brushes.White, null)
+            MovementReachableHighlight => (MovementReachablePen, MovementReachableFill),
+            AttackReachableHighlight => (AttackReachablePen, AttackReachableFill),
+            LosBlockingHighlight => (LosBlockingPen, LosBlockingFill),
+            _ => (WhiteHighlightPen, null)
         };
     }
 
@@ -448,6 +484,17 @@ public class HexRenderControl : Control
         if (Color.TryParse(colorHex, out var color))
             return new SolidColorBrush(color);
         return Brushes.White;
+    }
+
+    private static FormattedText CreateCoordLabel(HexCoordinates coords)
+    {
+        return new FormattedText(
+            coords.ToString(),
+            CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            12,
+            Brushes.White);
     }
 
     private static string? GenerateLabelContent(Hex hex)
