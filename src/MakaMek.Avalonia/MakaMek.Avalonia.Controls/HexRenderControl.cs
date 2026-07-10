@@ -290,8 +290,8 @@ public class HexRenderControl : Control
     public override void Render(DrawingContext context)
     {
         var config = _configuration;
-        var hexW = HexCoordinatesPixelExtensions.HexWidth;
-        var hexH = HexCoordinatesPixelExtensions.HexHeight;
+        const double hexW = HexCoordinatesPixelExtensions.HexWidth;
+        const double hexH = HexCoordinatesPixelExtensions.HexHeight;
 
         var allDirections = HexDirectionExtensions.AllDirections;
 
@@ -385,7 +385,16 @@ public class HexRenderControl : Control
                 // 8a. Coordinate label (top-center)
                 if (config.ShowLabels)
                 {
-                    var coordText = _coordLabelCache[coords];
+                    if (!_coordLabelCache.TryGetValue(coords, out var coordText))
+                    {
+                        coordText = new FormattedText(
+                            coords.ToString(),
+                            CultureInfo.CurrentCulture,
+                            FlowDirection.LeftToRight,
+                            Typeface.Default,
+                            12,
+                            Brushes.White);
+                    }
                     var coordX = (hexW - coordText.Width) / 2;
                     context.DrawText(coordText, new Point(coordX, 2));
                 }
