@@ -97,13 +97,7 @@ public class HexRenderControl : Control
         _coordLabelCache.Clear();
         foreach (var (coords, _) in _hexData)
         {
-            _coordLabelCache[coords] = new FormattedText(
-                coords.ToString(),
-                CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                Typeface.Default,
-                12,
-                Brushes.White);
+            _coordLabelCache[coords] = CreateCoordLabel(coords);
         }
 
         _terrainLabelCache.Clear();
@@ -387,13 +381,7 @@ public class HexRenderControl : Control
                 {
                     if (!_coordLabelCache.TryGetValue(coords, out var coordText))
                     {
-                        coordText = new FormattedText(
-                            coords.ToString(),
-                            CultureInfo.CurrentCulture,
-                            FlowDirection.LeftToRight,
-                            Typeface.Default,
-                            12,
-                            Brushes.White);
+                        coordText = CreateCoordLabel(coords);
                     }
                     var coordX = (hexW - coordText.Width) / 2;
                     context.DrawText(coordText, new Point(coordX, 2));
@@ -496,6 +484,17 @@ public class HexRenderControl : Control
         if (Color.TryParse(colorHex, out var color))
             return new SolidColorBrush(color);
         return Brushes.White;
+    }
+
+    private static FormattedText CreateCoordLabel(HexCoordinates coords)
+    {
+        return new FormattedText(
+            coords.ToString(),
+            CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            12,
+            Brushes.White);
     }
 
     private static string? GenerateLabelContent(Hex hex)
