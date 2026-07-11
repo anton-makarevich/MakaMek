@@ -2879,4 +2879,14 @@ public class BattleMapViewModelTests
         // Verify that the EndGameViewModel was initialized with the game
         endGameViewModel.Players.ShouldNotBeNull();
     }
+
+    [Fact]
+    public void CanExport_DependsOnBuildConfiguration()
+    {
+#if DEBUG
+        _sut.CanExport.ShouldBeTrue();
+#else
+        _sut.CanExport.ShouldBeFalse();
+#endif
+    }
 }

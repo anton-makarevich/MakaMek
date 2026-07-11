@@ -906,6 +906,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             // Silently ignore export failures (e.g. user cancelled save dialog)
         }
     });
+
+    public bool CanExport =>
+#if DEBUG
+        true;
+#else
+        false;
+#endif
+
     public ITerrainAssetService TerrainAssetService { get; }
 
     public ITerrainBitmaskService? TerrainBitmaskService { get; }
