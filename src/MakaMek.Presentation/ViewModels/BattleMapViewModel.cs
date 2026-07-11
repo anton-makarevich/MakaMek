@@ -898,7 +898,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 _localizationService.GetString("BattleMap_ExportPdfDialogTitle"),
                 "map.pdf",
                 pdfBytes,
-                ".pdf",
+                "pdf",
                 "PDF files");
         }
         catch (Exception)
