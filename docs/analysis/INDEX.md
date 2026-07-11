@@ -28,3 +28,4 @@ Technical analyses, integration studies, design evaluations, and race condition 
 | Document | Summary |
 |----------|---------|
 | [inputs-patterns.md](inputs-patterns.md) | Analysis of user input patterns in the UI state machine — overlays, action menus, and identified inconsistencies |
+| [canvas-optimisations-analysis.md](canvas-optimisations-analysis.md) | Analysis of Avalonia Canvas viewport culling, virtualization, and rendering optimization strategies |
