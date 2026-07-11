@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -169,8 +170,15 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel is { Game: not null })
         {
             RenderMap(ViewModel.Game);
+            ViewModel.MapCaptureAsync = CaptureMapAsync;
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
+    }
+
+    private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureMapAsync()
+    {
+        var pngBytes = await MapCanvas.ToPngAsync();
+        return (pngBytes, (int)MapCanvas.Width, (int)MapCanvas.Height);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

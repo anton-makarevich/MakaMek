@@ -450,7 +450,7 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            terrainBitmaskService);
+            terrainBitmaskService: terrainBitmaskService);
 
         // Assert
         viewModel.TerrainBitmaskService.ShouldNotBeNull();
@@ -2799,7 +2799,7 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            terrainBitmaskService);
+            terrainBitmaskService: terrainBitmaskService);
     }
 
 

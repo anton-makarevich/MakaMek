@@ -86,6 +86,8 @@ public static class CoreServices
                 new AssemblyResourceStreamProvider("json", typeof(App).Assembly)));
         services.AddSingleton<IFileService, AvaloniaFileService>();
 
+        services.AddSingleton<IPdfExportService, PdfExportService>();
+
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();

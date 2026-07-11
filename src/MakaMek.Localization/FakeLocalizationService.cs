@@ -340,6 +340,8 @@ public class FakeLocalizationService : ILocalizationService
         ["BattleMap_ShowLabels"] = "Show Labels",
         ["BattleMap_ShowHexOutlines"] = "Show Hex Outlines",
         ["BattleMap_ShowHexHighlightText"] = "Show Hex Highlight Text",
+        ["BattleMap_ExportPdf"] = "Export Map as PDF",
+        ["BattleMap_ExportPdfDialogTitle"] = "Export Map as PDF",
         ["UnitBasicInfo_TurnIndicator"] = "T",
         ["UnitComponents_Component"] = "Component",
         ["UnitComponents_Slots"] = "Slots",

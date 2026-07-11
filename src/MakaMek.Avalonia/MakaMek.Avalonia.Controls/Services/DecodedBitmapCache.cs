@@ -13,12 +13,27 @@ namespace Sanet.MakaMek.Avalonia.Controls.Services;
 /// </summary>
 public class DecodedBitmapCache
 {
-    private readonly ITerrainAssetService _assetService;
     private readonly Action _invalidateAction;
     private readonly ConcurrentDictionary<string, Bitmap?> _cache = new();
     private readonly HashSet<string> _inFlight = [];
+    private int _pendingDecodes;
+    private TaskCompletionSource? _allDecodedTcs;
 
-    public ITerrainAssetService AssetService => _assetService;
+    public ITerrainAssetService AssetService { get; }
+
+    /// <summary>
+    /// Returns a task that completes when all in-flight decode operations have finished.
+    /// If no decodes are pending, returns a completed task immediately.
+    /// </summary>
+    public Task WhenAllDecoded()
+    {
+        lock (_inFlight)
+        {
+            if (_pendingDecodes == 0) return Task.CompletedTask;
+            _allDecodedTcs ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            return _allDecodedTcs.Task;
+        }
+    }
 
     /// <summary>
     /// Returns true if the given key already has a cached value (including null).
@@ -32,7 +47,7 @@ public class DecodedBitmapCache
 
     public DecodedBitmapCache(ITerrainAssetService assetService, Action invalidateAction)
     {
-        _assetService = assetService;
+        AssetService = assetService;
         _invalidateAction = invalidateAction;
     }
 
@@ -57,6 +72,7 @@ public class DecodedBitmapCache
 
     private async Task LoadAsync(string key, Func<Task<byte[]?>> fetch)
     {
+        lock (_inFlight) { _pendingDecodes++; }
         try
         {
             var bytes = await fetch();
@@ -73,6 +89,18 @@ public class DecodedBitmapCache
         {
             _cache[key] = null;
         }
+        finally
+        {
+            lock (_inFlight)
+            {
+                _pendingDecodes--;
+                if (_pendingDecodes == 0 && _allDecodedTcs != null)
+                {
+                    _allDecodedTcs.TrySetResult();
+                    _allDecodedTcs = null;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -83,7 +111,13 @@ public class DecodedBitmapCache
         foreach (var value in _cache.Values)
             value?.Dispose();
         _cache.Clear();
-        lock (_inFlight) { _inFlight.Clear(); }
+        lock (_inFlight)
+        {
+            _inFlight.Clear();
+            _pendingDecodes = 0;
+            _allDecodedTcs?.TrySetCanceled();
+            _allDecodedTcs = null;
+        }
     }
 
     /// <summary>

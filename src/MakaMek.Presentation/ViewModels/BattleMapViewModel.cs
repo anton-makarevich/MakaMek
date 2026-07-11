@@ -45,6 +45,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IPlatformService _platformService;
+    private readonly IPdfExportService? _pdfExportService;
+    private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
@@ -149,6 +151,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IDispatcherService dispatcherService,
         IRulesProvider rulesProvider,
         IPlatformService platformService,
+        IPdfExportService? pdfExportService = null,
+        IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null)
     {
         ImageService = imageService;
@@ -157,6 +161,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _platformService = platformService;
+        _pdfExportService = pdfExportService;
+        _fileService = fileService;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -870,6 +876,36 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public ICommand HideBodyPartSelectorCommand { get; }
 
     public ICommand LeaveGameCommand { get; }
+
+    /// <summary>
+    /// Callback provided by the view to capture the current map as PNG bytes.
+    /// Returns (PngBytes, WidthPixels, HeightPixels).
+    /// </summary>
+    public Func<Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)>>? MapCaptureAsync { get; set; }
+
+    public IAsyncCommand ExportMapToPdfCommand => field ??= new AsyncCommand(async () =>
+    {
+        if (MapCaptureAsync == null || _pdfExportService == null || _fileService == null) return;
+        try
+        {
+            var (pngBytes, widthPixels, heightPixels) = await MapCaptureAsync();
+            if (pngBytes.Length == 0) return;
+            var widthPoints = widthPixels * 72 / 96;
+            var heightPoints = heightPixels * 72 / 96;
+            var pdfBytes = await _pdfExportService.GeneratePdfFromPngAsync(
+                pngBytes, widthPoints, heightPoints);
+            await _fileService.SaveBinaryFile(
+                _localizationService.GetString("BattleMap_ExportPdfDialogTitle"),
+                "map.pdf",
+                pdfBytes,
+                ".pdf",
+                "PDF files");
+        }
+        catch (Exception)
+        {
+            // Silently ignore export failures (e.g. user cancelled save dialog)
+        }
+    });
     public ITerrainAssetService TerrainAssetService { get; }
 
     public ITerrainBitmaskService? TerrainBitmaskService { get; }
