@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
-using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
 

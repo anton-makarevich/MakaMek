@@ -48,6 +48,15 @@
     <Color x:Key="TargetingColor">#99D31111</Color>
     <Color x:Key="MovementColor">#4FC3F7</Color>
 
+    <!-- Hex Highlight Colors -->
+    <Color x:Key="MovementReachableStrokeColor">#00BFFF</Color>
+    <Color x:Key="MovementReachableFillColor">#3300BFFF</Color>
+    <Color x:Key="AttackReachableStrokeColor">#FFB347</Color>
+    <Color x:Key="AttackReachableFillColor">#33FFB347</Color>
+    <Color x:Key="LosBlockingStrokeColor">#8B0000</Color>
+    <Color x:Key="LosBlockingFillColor">#338B0000</Color>
+    <Color x:Key="WhiteHighlightColor">#FFFFFF</Color>
+
     <!-- Shadow Colors -->
     <Color x:Key="ShadowLightColor">#20000000</Color>
     <Color x:Key="ShadowMediumColor">#40000000</Color>
@@ -94,4 +103,12 @@
     <SolidColorBrush x:Key="OverlayTransparentBrush" Color="{StaticResource OverlayTransparentColor}"/>
     <SolidColorBrush x:Key="TargetingBrush" Color="{StaticResource TargetingColor}"/>
     <SolidColorBrush x:Key="MovementBrush" Color="{StaticResource MovementColor}"/>
+
+    <SolidColorBrush x:Key="MovementReachableStrokeBrush" Color="{StaticResource MovementReachableStrokeColor}"/>
+    <SolidColorBrush x:Key="MovementReachableFillBrush" Color="{StaticResource MovementReachableFillColor}"/>
+    <SolidColorBrush x:Key="AttackReachableStrokeBrush" Color="{StaticResource AttackReachableStrokeColor}"/>
+    <SolidColorBrush x:Key="AttackReachableFillBrush" Color="{StaticResource AttackReachableFillColor}"/>
+    <SolidColorBrush x:Key="LosBlockingStrokeBrush" Color="{StaticResource LosBlockingStrokeColor}"/>
+    <SolidColorBrush x:Key="LosBlockingFillBrush" Color="{StaticResource LosBlockingFillColor}"/>
+    <SolidColorBrush x:Key="WhiteHighlightBrush" Color="{StaticResource WhiteHighlightColor}"/>
 </ResourceDictionary>

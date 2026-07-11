@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Avalonia.Services;
+namespace Sanet.MakaMek.Avalonia.Controls.Services;
 
 public interface IAvaloniaResourcesLocator
 {

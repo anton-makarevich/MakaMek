@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
+using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
@@ -24,6 +25,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
+    private readonly AvaloniaResourcesLocator _resourcesLocator = new();
 
     public BattleMapView()
     {
@@ -89,7 +91,8 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             game.Logger,
             terrainAssetService,
             localizationService,
-            ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default);
+            ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default,
+            _resourcesLocator);
 
         _unitControls = ViewModel?.Units
             .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))

@@ -37,28 +37,40 @@ public class HexRenderControl : Control
     private readonly Dictionary<HexCoordinates, List<IHexHighlightType>> _sortedHighlightsCache = new();
     private readonly Dictionary<(string Color, double Thickness), Pen> _boundaryPenCache = new();
 
-    private static readonly Pen WhiteOutlinePen = new(Brushes.White);
-    private static readonly SolidColorBrush MovementReachableStroke = new(Color.Parse("#00BFFF"));
-    private static readonly SolidColorBrush MovementReachableFill = new(Color.Parse("#3300BFFF"));
-    private static readonly SolidColorBrush AttackReachableStroke = new(Color.Parse("#FFB347"));
-    private static readonly SolidColorBrush AttackReachableFill = new(Color.Parse("#33FFB347"));
-    private static readonly SolidColorBrush LosBlockingStroke = new(Color.Parse("#8B0000"));
-    private static readonly SolidColorBrush LosBlockingFill = new(Color.Parse("#338B0000"));
-    private static readonly Pen MovementReachablePen = new(MovementReachableStroke);
-    private static readonly Pen AttackReachablePen = new(AttackReachableStroke);
-    private static readonly Pen LosBlockingPen = new(LosBlockingStroke);
-    private static readonly Pen WhiteHighlightPen = new(Brushes.White);
+    private readonly Pen _whiteOutlinePen;
+    private readonly Pen _whiteHighlightPen;
+    private readonly IBrush _whiteHighlightBrush;
+    private readonly (Pen Pen, IBrush Fill) _movementHighlight;
+    private readonly (Pen Pen, IBrush Fill) _attackHighlight;
+    private readonly (Pen Pen, IBrush Fill) _losBlockingHighlight;
 
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
 
     public HexRenderControl(ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService,
-        IScheduler? scheduler)
+        IScheduler? scheduler,
+        IAvaloniaResourcesLocator? resourcesLocator)
     {
         _localizationService = localizationService;
         _scheduler = scheduler ?? new SynchronizationContextScheduler(SynchronizationContext.Current!);
         _bitmapCache = new DecodedBitmapCache(terrainAssetService, QueueInvalidate);
+
+        _whiteOutlinePen = new Pen(FindBrush(resourcesLocator, "WhiteHighlightBrush", Brushes.White));
+        _whiteHighlightPen = new Pen(FindBrush(resourcesLocator, "WhiteHighlightBrush", Brushes.White));
+        _whiteHighlightBrush = FindBrush(resourcesLocator, "WhiteHighlightBrush", Brushes.White);
+
+        var movementStroke = FindBrush(resourcesLocator, "MovementReachableStrokeBrush", new SolidColorBrush(Color.Parse("#00BFFF")));
+        var movementFill = FindBrush(resourcesLocator, "MovementReachableFillBrush", new SolidColorBrush(Color.Parse("#3300BFFF")));
+        _movementHighlight = (new Pen(movementStroke), movementFill);
+
+        var attackStroke = FindBrush(resourcesLocator, "AttackReachableStrokeBrush", new SolidColorBrush(Color.Parse("#FFB347")));
+        var attackFill = FindBrush(resourcesLocator, "AttackReachableFillBrush", new SolidColorBrush(Color.Parse("#33FFB347")));
+        _attackHighlight = (new Pen(attackStroke), attackFill);
+
+        var losStroke = FindBrush(resourcesLocator, "LosBlockingStrokeBrush", new SolidColorBrush(Color.Parse("#8B0000")));
+        var losFill = FindBrush(resourcesLocator, "LosBlockingFillBrush", new SolidColorBrush(Color.Parse("#338B0000")));
+        _losBlockingHighlight = (new Pen(losStroke), losFill);
 
         var corners = HexagonGeometry.GetCorners();
         _cornerPoints = corners.Select(c => new Point(c.X, c.Y)).ToArray();
@@ -361,7 +373,7 @@ public class HexRenderControl : Control
 
                 // 6. Hex polygon outline
                 if (config.ShowOutline)
-                    context.DrawGeometry(null, WhiteOutlinePen, _hexPolygon);
+                    context.DrawGeometry(null, _whiteOutlinePen, _hexPolygon);
 
                 // 7. Highlight fills/strokes ordered by RenderOrder
                 if (!_sortedHighlightsCache.TryGetValue(coords, out var highlights))
@@ -395,7 +407,7 @@ public class HexRenderControl : Control
                         var labelContent = GenerateLabelContent(hex);
                         infoText = labelContent != null
                             ? new FormattedText(labelContent, CultureInfo.CurrentCulture,
-                                FlowDirection.LeftToRight, Typeface.Default, 11, Brushes.White)
+                                FlowDirection.LeftToRight, Typeface.Default, 11, _whiteHighlightBrush)
                             : null;
                         _terrainLabelCache[coords] = infoText;
                     }
@@ -418,7 +430,7 @@ public class HexRenderControl : Control
                         FlowDirection.LeftToRight,
                         Typeface.Default,
                         9,
-                        Brushes.White)
+                        _whiteHighlightBrush)
                     {
                         MaxTextWidth = hexW - 10,
                         MaxTextHeight = hexH - 10,
@@ -468,14 +480,14 @@ public class HexRenderControl : Control
         }
     }
 
-    private static (Pen? Pen, IBrush? Fill) GetHighlightPenAndFill(IHexHighlightType highlight)
+    private (Pen? Pen, IBrush? Fill) GetHighlightPenAndFill(IHexHighlightType highlight)
     {
         return highlight switch
         {
-            MovementReachableHighlight => (MovementReachablePen, MovementReachableFill),
-            AttackReachableHighlight => (AttackReachablePen, AttackReachableFill),
-            LosBlockingHighlight => (LosBlockingPen, LosBlockingFill),
-            _ => (WhiteHighlightPen, null)
+            MovementReachableHighlight => _movementHighlight,
+            AttackReachableHighlight => _attackHighlight,
+            LosBlockingHighlight => _losBlockingHighlight,
+            _ => (_whiteHighlightPen, null)
         };
     }
 
@@ -486,7 +498,12 @@ public class HexRenderControl : Control
         return Brushes.White;
     }
 
-    private static FormattedText CreateCoordLabel(HexCoordinates coords)
+    private static IBrush FindBrush(IAvaloniaResourcesLocator? locator, string key, IBrush fallback)
+    {
+        return locator?.TryFindResource(key) as IBrush ?? fallback;
+    }
+
+    private FormattedText CreateCoordLabel(HexCoordinates coords)
     {
         return new FormattedText(
             coords.ToString(),
@@ -494,7 +511,7 @@ public class HexRenderControl : Control
             FlowDirection.LeftToRight,
             Typeface.Default,
             12,
-            Brushes.White);
+            _whiteHighlightBrush);
     }
 
     private static string? GenerateLabelContent(Hex hex)

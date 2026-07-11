@@ -3,7 +3,7 @@ using Avalonia.Media;
 using Sanet.MakaMek.Avalonia.Converters;
 using Shouldly;
 using NSubstitute;
-using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
