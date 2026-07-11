@@ -66,17 +66,22 @@ public sealed class FileCommandLogger : ICommandLogger
 
         try
         {
+            await using var writer = new StreamWriter(_filePath, append: true, Encoding.UTF8);
+            var flushCounter = 0;
             foreach (var line in _queue.GetConsumingEnumerable())
             {
                 try
                 {
-                    await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8);
+                    await writer.WriteAsync(line + Environment.NewLine);
+                    if (++flushCounter % 16 == 0)
+                        await writer.FlushAsync();
                 }
                 catch
                 {
                     // Swallow transient write failures so the next queued line is still processed
                 }
             }
+            await writer.FlushAsync();
         }
         catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
         {
