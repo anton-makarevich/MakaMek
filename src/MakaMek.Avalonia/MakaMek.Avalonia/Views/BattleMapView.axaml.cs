@@ -25,6 +25,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
+    private readonly AvaloniaResourcesLocator _resourcesLocator = new();
 
     public BattleMapView()
     {
@@ -91,7 +92,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             terrainAssetService,
             localizationService,
             ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default,
-            new AvaloniaResourcesLocator());
+            _resourcesLocator);
 
         _unitControls = ViewModel?.Units
             .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
