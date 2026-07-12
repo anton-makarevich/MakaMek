@@ -2886,7 +2886,7 @@ public class BattleMapViewModelTests
 #if DEBUG
         _sut.CanExportPdf.ShouldBeTrue();
 #else
-        _sut.CanExport.ShouldBeFalse();
+        _sut.CanExportPdf.ShouldBeFalse();
 #endif
     }
 

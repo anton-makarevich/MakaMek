@@ -46,7 +46,7 @@ public class HexRenderControl : Control
 
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
-    private TaskCompletionSource? _renderTcs;
+    private readonly List<TaskCompletionSource> _renderTcs = [];
 
     public HexRenderControl(ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService,
@@ -287,8 +287,8 @@ public class HexRenderControl : Control
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        _renderTcs?.TrySetCanceled();
-        _renderTcs = null;
+        foreach (var tcs in _renderTcs) tcs.TrySetCanceled();
+        _renderTcs.Clear();
         foreach (var sub in _subscriptions)
             sub.Dispose();
         _subscriptions.Clear();
@@ -467,8 +467,8 @@ public class HexRenderControl : Control
             }
         }
 
-        _renderTcs?.TrySetResult();
-        _renderTcs = null;
+        foreach (var tcs in _renderTcs) tcs.TrySetResult();
+        _renderTcs.Clear();
     }
 
     private static void DrawRotatedBitmap(DrawingContext context, Bitmap bitmap,
@@ -549,7 +549,7 @@ public class HexRenderControl : Control
     public Task WaitForNextRender()
     {
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _renderTcs = tcs;
+        _renderTcs.Add(tcs);
         InvalidateVisual();
         return tcs.Task;
     }
