@@ -170,7 +170,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel is { Game: not null })
         {
             RenderMap(ViewModel.Game);
-            ViewModel.MapCaptureAsync = CaptureMapAsync;
+            ViewModel.CaptureMap = CaptureMapAsync;
             ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
     }

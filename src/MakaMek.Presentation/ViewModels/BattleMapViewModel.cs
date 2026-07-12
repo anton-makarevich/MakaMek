@@ -881,14 +881,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// Callback provided by the view to capture the current map as PNG bytes.
     /// Returns (PngBytes, WidthPixels, HeightPixels).
     /// </summary>
-    public Func<Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)>>? MapCaptureAsync { get; set; }
+    public Func<Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)>>? CaptureMap { get; set; }
 
     public IAsyncCommand ExportMapToPdfCommand => field ??= new AsyncCommand(async () =>
     {
-        if (MapCaptureAsync == null || _pdfExportService == null || _fileService == null) return;
+        if (CaptureMap == null || _pdfExportService == null || _fileService == null) return;
         try
         {
-            var (pngBytes, widthPixels, heightPixels) = await MapCaptureAsync();
+            var (pngBytes, widthPixels, heightPixels) = await CaptureMap();
             if (pngBytes.Length == 0) return;
             var widthPoints = widthPixels * 72 / 96;
             var heightPoints = heightPixels * 72 / 96;
