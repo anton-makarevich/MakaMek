@@ -2,9 +2,11 @@ using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Services.ResourceProviders;
 using Shouldly;
 
 namespace Sanet.MakaMek.Assets.Tests.Services;
@@ -567,6 +569,90 @@ public class TerrainCachingServiceTests
         imageForMask3.ShouldNotBeNull();
         imageForMask1.Length.ShouldBeGreaterThan(0);
         imageForMask3.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task StreamProvider_ShouldLoadBiome_WhenProviderReturnsValidMmtxStream()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage("provider-biome", "Provider Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["resource1"]);
+        provider.GetResourceStream("resource1").Returns(mmtxStream);
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        biomes.Count.ShouldBe(1);
+        biomes.ShouldContain("provider-biome");
+        var variants = await sut.GetAvailableVariants("provider-biome", TerrainAssetType.Base, "base");
+        variants.ShouldContain(1);
+    }
+
+    [Fact]
+    public async Task StreamProvider_ShouldSkipGracefully_WhenGetResourceStreamReturnsNull()
+    {
+        // Arrange
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["resource1"]);
+        provider.GetResourceStream("resource1").Returns((Stream?)null);
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        biomes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task StreamProvider_ShouldLogErrorAndContinue_WhenGetResourceStreamThrows()
+    {
+        // Arrange
+        using var validStream = CreateMmtxPackage("valid-biome", "Valid Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var failingProvider = Substitute.For<IResourceStreamProvider>();
+        failingProvider.GetAvailableResourceIds().Returns(["bad-resource"]);
+        failingProvider.GetResourceStream("bad-resource")
+            .ThrowsAsync(new InvalidOperationException("corrupt package"));
+
+        var validProvider = Substitute.For<IResourceStreamProvider>();
+        validProvider.GetAvailableResourceIds().Returns(["valid-resource"]);
+        validProvider.GetResourceStream("valid-resource").Returns(validStream);
+
+        var sut = new TerrainCachingService([failingProvider, validProvider], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert — the failing provider did not block the valid one
+        biomes.Count.ShouldBe(1);
+        biomes.ShouldContain("valid-biome");
+    }
+
+    [Fact]
+    public async Task StreamProvider_ShouldHandleMultipleResources_SomeFailing()
+    {
+        // Arrange
+        using var validStream = CreateMmtxPackage("ok-biome", "OK Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["bad", "good"]);
+        provider.GetResourceStream("bad")
+            .ThrowsAsync(new InvalidOperationException("bad resource"));
+        provider.GetResourceStream("good").Returns(validStream);
+
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        biomes.Count.ShouldBe(1);
+        biomes.ShouldContain("ok-biome");
     }
 
     private static MemoryStream CreateMmtxPackage(
