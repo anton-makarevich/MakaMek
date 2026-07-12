@@ -14,7 +14,6 @@ using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Views.Avalonia;
@@ -59,28 +58,18 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var hexDataList = new List<HexRenderData>();
         foreach (var hex in game.BattleMap?.GetHexes() ?? [])
         {
-            var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
-
-            CanonicalBitmaskResult? waterBitmask = null;
-            if (bitmaskService != null && game.BattleMap != null && hex.HasTerrain(MakaMekTerrains.Water))
+            HexRenderData hexData;
+            if (bitmaskService != null && game.BattleMap != null)
             {
-                waterBitmask =
-                    bitmaskService.ComputeCanonicalBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Water);
+                hexData = HexRenderDataFactory.Create(game.BattleMap, hex.Coordinates, bitmaskService);
+            }
+            else
+            {
+                var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
+                hexData = new HexRenderData(hex, edges, null, null);
             }
 
-            CanonicalBitmaskResult? roadBitmask = null;
-            if (bitmaskService != null && game.BattleMap != null &&
-                (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge)))
-            {
-                var rawRoad = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates, MakaMekTerrains.Road,
-                    (current, neighbor) => current.CanRoadConnectTo(neighbor));
-                var rawBridge = bitmaskService.ComputeRawBitmask(game.BattleMap, hex.Coordinates,
-                    MakaMekTerrains.Bridge, (current, neighbor) => current.CanRoadConnectTo(neighbor));
-                roadBitmask = bitmaskService.CanonicalizeRawMask((byte)(rawRoad | rawBridge));
-            }
-
-            hexDataList.Add(new HexRenderData(
-                hex, edges, waterBitmask, roadBitmask));
+            hexDataList.Add(hexData);
 
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;

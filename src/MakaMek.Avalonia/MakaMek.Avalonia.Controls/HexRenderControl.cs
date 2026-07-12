@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -30,7 +31,7 @@ public class HexRenderControl : Control
 
     private bool _invalidateQueued;
     private readonly Lock _syncLock = new();
-    private readonly List<IDisposable> _subscriptions = [];
+    private readonly Dictionary<HexCoordinates, IDisposable> _subscriptions = [];
     private List<HexCoordinates> _sortedCoords = [];
     private readonly Dictionary<HexCoordinates, FormattedText> _coordLabelCache = new();
     private readonly Dictionary<HexCoordinates, FormattedText?> _terrainLabelCache = new();
@@ -89,7 +90,7 @@ public class HexRenderControl : Control
 
     public void SetHexData(IEnumerable<HexRenderData> data, HexRenderConfiguration configuration)
     {
-        foreach (var sub in _subscriptions)
+        foreach (var sub in _subscriptions.Values)
             sub.Dispose();
         _subscriptions.Clear();
         _hexData.Clear();
@@ -99,7 +100,7 @@ public class HexRenderControl : Control
         foreach (var item in data)
         {
             _hexData[item.Hex.Coordinates] = item;
-            SubscribeToHex(item.Hex);
+            _subscriptions[item.Hex.Coordinates] = SubscribeToHex(item.Hex);
         }
 
         _sortedCoords = _hexData.Keys
@@ -117,6 +118,43 @@ public class HexRenderControl : Control
         _sortedHighlightsCache.Clear();
 
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Replaces or inserts individual hex entries without rebuilding the whole renderer.
+    /// Existing subscriptions for updated coordinates are disposed and recreated.
+    /// New coordinates are inserted into <c>_sortedCoords</c> in (V, H) order via binary search.
+    /// Caches for the affected coordinates are invalidated, and a redraw is queued.
+    /// </summary>
+    public void UpdateHexEntries(IEnumerable<HexRenderData> data)
+    {
+        foreach (var item in data)
+        {
+            var coord = item.Hex.Coordinates;
+            var isNew = !_hexData.ContainsKey(coord);
+
+            // Dispose the old subscription if this coordinate already exists
+            if (_subscriptions.TryGetValue(coord, out var oldSub))
+                oldSub.Dispose();
+
+            _hexData[coord] = item;
+            _subscriptions[coord] = SubscribeToHex(item.Hex);
+
+            // Invalidate caches for this coordinate
+            _coordLabelCache[coord] = CreateCoordLabel(coord);
+            _terrainLabelCache.Remove(coord);
+            _sortedHighlightsCache.Remove(coord);
+
+            if (isNew)
+            {
+                // Binary-search insert to maintain (V, H) order
+                var insertIndex = _sortedCoords.BinarySearch(coord, HexRenderOrderComparer.Instance);
+                if (insertIndex < 0) insertIndex = ~insertIndex;
+                _sortedCoords.Insert(insertIndex, coord);
+            }
+        }
+
+        QueueInvalidate();
     }
 
     public void SetBoundaryOutlines(IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>? outlines)
@@ -251,23 +289,25 @@ public class HexRenderControl : Control
         }
     }
 
-    private void SubscribeToHex(Hex hex)
+    private IDisposable SubscribeToHex(Hex hex)
     {
-        _subscriptions.Add(hex.HighlightsChanged
+        var sub1 = hex.HighlightsChanged
             .ObserveOn(_scheduler)
             .Subscribe(_ =>
             {
                 _sortedHighlightsCache.Remove(hex.Coordinates);
                 QueueInvalidate();
-            }));
+            });
 
-        _subscriptions.Add(hex.TerrainsChanged
+        var sub2 = hex.TerrainsChanged
             .ObserveOn(_scheduler)
             .Subscribe(_ =>
             {
                 _terrainLabelCache.Remove(hex.Coordinates);
                 QueueInvalidate();
-            }));
+            });
+
+        return new CompositeDisposable(sub1, sub2);
     }
 
     private void QueueInvalidate()
@@ -289,7 +329,7 @@ public class HexRenderControl : Control
     {
         foreach (var tcs in _renderTcs) tcs.TrySetCanceled();
         _renderTcs.Clear();
-        foreach (var sub in _subscriptions)
+        foreach (var sub in _subscriptions.Values)
             sub.Dispose();
         _subscriptions.Clear();
         _bitmapCache.Clear();
@@ -397,6 +437,7 @@ public class HexRenderControl : Control
                     if (!_coordLabelCache.TryGetValue(coords, out var coordText))
                     {
                         coordText = CreateCoordLabel(coords);
+                        _coordLabelCache[coords] = coordText;
                     }
                     var coordX = (hexW - coordText.Width) / 2;
                     context.DrawText(coordText, new Point(coordX, 2));
@@ -566,6 +607,11 @@ public class HexRenderControl : Control
     /// Computes the bounding size of the map in pixels based on hex coordinate extents,
     /// including standard padding. Returns default if no hex data is loaded.
     /// </summary>
+    // ── Internal test helpers ────────────────────────────────────────────────
+    internal IReadOnlyDictionary<HexCoordinates, HexRenderData> HexData => _hexData;
+    internal IReadOnlyList<HexCoordinates> SortedCoords => _sortedCoords;
+    internal IReadOnlyDictionary<HexCoordinates, IDisposable> Subscriptions => _subscriptions;
+
     public Size GetMapExtentSize()
     {
         if (_sortedCoords.Count == 0) return default;
@@ -574,5 +620,16 @@ public class HexRenderControl : Control
         return new Size(
             maxH + 2 * HexCoordinatesPixelExtensions.HexWidth,
             maxV + 3 * HexCoordinatesPixelExtensions.HexHeight);
+    }
+
+    /// <summary>Compares <see cref="HexCoordinates"/> by (V, H) for sorted-coord binary-search inserts.</summary>
+    private sealed class HexRenderOrderComparer : IComparer<HexCoordinates>
+    {
+        public static readonly HexRenderOrderComparer Instance = new();
+        public int Compare(HexCoordinates x, HexCoordinates y)
+        {
+            var vCmp = x.V.CompareTo(y.V);
+            return vCmp != 0 ? vCmp : x.H.CompareTo(y.H);
+        }
     }
 }

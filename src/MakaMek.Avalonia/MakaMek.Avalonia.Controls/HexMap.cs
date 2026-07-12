@@ -95,6 +95,15 @@ public class HexMap : Canvas
     }
 
     /// <summary>
+    /// Updates individual hex entries on the internal HexRenderControl without recreating the renderer.
+    /// The same <see cref="HexRenderControl"/> instance is retained; no Children changes are made.
+    /// </summary>
+    public void UpdateHexEntries(IEnumerable<HexRenderData> data)
+    {
+        _hexRenderControl?.UpdateHexEntries(data);
+    }
+
+    /// <summary>
     /// Updates the boundary outlines on the internal HexRenderControl.
     /// </summary>
     public void SetBoundaryOutlines(IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>? outlines)
