@@ -621,8 +621,11 @@ public class HexRenderControl : Control
     private sealed class HexRenderOrderComparer : IComparer<HexCoordinates>
     {
         public static readonly HexRenderOrderComparer Instance = new();
-        public int Compare(HexCoordinates x, HexCoordinates y)
+        public int Compare(HexCoordinates? x, HexCoordinates? y)
         {
+            if (ReferenceEquals(x, y)) return 0;
+            if (x is null) return -1;
+            if (y is null) return 1;
             var vCmp = x.V.CompareTo(y.V);
             return vCmp != 0 ? vCmp : x.H.CompareTo(y.H);
         }

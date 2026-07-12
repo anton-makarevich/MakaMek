@@ -24,7 +24,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadManifest()
+    public async Task LoadTerrainFromMmtxStream_ShouldLoadManifest()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage();
@@ -40,7 +40,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldReturnNull_WhenMissingManifest()
+    public async Task LoadTerrainFromMmtxStream_ShouldReturnNull_WhenMissingManifest()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackageWithoutManifest();
@@ -53,7 +53,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldReturnNull_WhenMissingBiomeId()
+    public async Task LoadTerrainFromMmtxStream_ShouldReturnNull_WhenMissingBiomeId()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage("");
@@ -66,7 +66,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadBaseTerrain()
+    public async Task LoadTerrainFromMmtxStream_ShouldLoadBaseTerrain()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
@@ -81,7 +81,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadTerrainOverlays()
+    public async Task LoadTerrainFromMmtxStream_ShouldLoadTerrainOverlays()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
@@ -103,7 +103,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadEdgeImages()
+    public async Task LoadTerrainFromMmtxStream_ShouldLoadEdgeImages()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
@@ -121,7 +121,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalAssetVariantsAsOneBased()
+    public async Task LoadTerrainFromMmtxStream_ShouldTreatOptionalAssetVariantsAsOneBased()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
@@ -144,7 +144,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldTreatOptionalEdgeVariantsAsOneBased()
+    public async Task LoadTerrainFromMmtxStream_ShouldTreatOptionalEdgeVariantsAsOneBased()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
@@ -166,7 +166,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldLoadMultipleVariants()
+    public async Task LoadTerrainFromMmtxStream_ShouldLoadMultipleVariants()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1, 2, 3));
@@ -395,7 +395,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldIgnoreAssetWithNonIntegerVariant()
+    public async Task LoadTerrainFromMmtxStream_ShouldIgnoreAssetWithNonIntegerVariant()
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
@@ -414,7 +414,7 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStreamAsync_ShouldRejectDuplicateBiomeId()
+    public async Task LoadTerrainFromMmtxStream_ShouldRejectDuplicateBiomeId()
     {
         // Arrange
         using var firstStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
