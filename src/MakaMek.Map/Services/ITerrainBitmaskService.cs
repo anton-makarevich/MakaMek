@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -49,4 +50,11 @@ public interface ITerrainBitmaskService
     /// selecting the lowest numeric value.
     /// </summary>
     CanonicalBitmaskResult CanonicalizeRawMask(byte rawMask);
+
+    /// <summary>
+    /// Computes a <see cref="HexRenderData"/> for the hex at <paramref name="coordinates"/>,
+    /// including edge data, water bitmask, and road/bridge bitmask.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown when no hex exists at <paramref name="coordinates"/>.</exception>
+    HexRenderData CreateHexRenderData(IBattleMap map, HexCoordinates coordinates);
 }

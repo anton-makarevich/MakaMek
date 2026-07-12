@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services.ResourceProviders;
 
@@ -105,16 +104,16 @@ public class TerrainCachingService : ITerrainAssetService
     /// <inheritdoc />
     public async Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
-        return await GetBitmaskTextureAsync(biomeId, canonicalBitmask, TerrainAssetType.Water);
+        return await GetBitmaskTexture(biomeId, canonicalBitmask, TerrainAssetType.Water);
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetRoadTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
-        return await GetBitmaskTextureAsync(biomeId, canonicalBitmask, TerrainAssetType.Road);
+        return await GetBitmaskTexture(biomeId, canonicalBitmask, TerrainAssetType.Road);
     }
 
-    private async Task<byte[]?> GetBitmaskTextureAsync(string biomeId, CanonicalBitmaskResult canonicalBitmask, TerrainAssetType assetType)
+    private async Task<byte[]?> GetBitmaskTexture(string biomeId, CanonicalBitmaskResult canonicalBitmask, TerrainAssetType assetType)
     {
         await EnsureInitialized();
 
@@ -141,7 +140,7 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public async Task<BiomeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream)
+    public async Task<BiomeManifest?> LoadTerrainFromMmtxStream(Stream mmtxStream)
     {
         try
         {
@@ -233,7 +232,7 @@ public class TerrainCachingService : ITerrainAssetService
                         await using var stream = await provider.GetResourceStream(resourceId);
                         if (stream != null)
                         {
-                            await LoadTerrainFromMmtxStreamAsync(stream);
+                            await LoadTerrainFromMmtxStream(stream);
                         }
                     }
                     catch (Exception ex)

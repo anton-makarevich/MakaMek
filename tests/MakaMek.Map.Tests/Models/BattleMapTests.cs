@@ -2816,4 +2816,61 @@ public class BattleMapTests
         path.TotalCost.ShouldBeLessThanOrEqualTo(12);
         path.HexesTraveled.ShouldBe(3); // Loop chosen over the direct 2-hex route
     }
+
+    // ── GetAffectedCoordinates ───────────────────────────────────────────────
+
+    [Fact]
+    public void GetAffectedCoordinates_IncludesChangedHex()
+    {
+        var sut = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        sut.AddHex(new Hex(coord));
+
+        var result = sut.GetAffectedCoordinates(coord).ToList();
+
+        result.ShouldContain(coord);
+    }
+
+    [Fact]
+    public void GetAffectedCoordinates_ExcludesChangedHexWhenOffMap()
+    {
+        var sut = new BattleMap(1, 1);
+        var offMap = new HexCoordinates(5, 5);
+
+        var result = sut.GetAffectedCoordinates(offMap).ToList();
+
+        result.ShouldNotContain(offMap);
+    }
+
+    [Fact]
+    public void GetAffectedCoordinates_IncludesOnMapNeighbors()
+    {
+        var sut = new BattleMap(3, 3);
+        var coord = new HexCoordinates(1, 1);
+        sut.AddHex(new Hex(coord));
+        var neighbor = coord.GetNeighbour(HexDirection.TopRight);
+        if (sut.IsOnMap(neighbor))
+            sut.AddHex(new Hex(neighbor));
+
+        var result = sut.GetAffectedCoordinates(coord).ToList();
+
+        // At minimum the changed coord itself must be present
+        result.ShouldContain(coord);
+        // Every returned coordinate must be on the map
+        foreach (var c in result)
+            sut.IsOnMap(c).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetAffectedCoordinates_ExcludesOffMapNeighbors()
+    {
+        // A 1×1 map — all neighbors of (1,1) are off the map
+        var sut = new BattleMap(1, 1);
+        var coord = new HexCoordinates(1, 1);
+        sut.AddHex(new Hex(coord));
+
+        var result = sut.GetAffectedCoordinates(coord).ToList();
+
+        result.ShouldBe([coord]);
+    }
 }

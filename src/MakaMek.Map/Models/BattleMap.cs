@@ -710,6 +710,18 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         _losCache.Clear();
     }
 
+    public IEnumerable<HexCoordinates> GetAffectedCoordinates(HexCoordinates changedCoord)
+    {
+        if (IsOnMap(changedCoord))
+            yield return changedCoord;
+
+        foreach (var neighbor in changedCoord.GetAllNeighbours())
+        {
+            if (IsOnMap(neighbor))
+                yield return neighbor;
+        }
+    }
+
     public bool IsOnMap(HexCoordinates coordinates)
     {
         return coordinates.Q >= 1 && coordinates.Q <= Width &&

@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -95,5 +96,31 @@ public class TerrainBitmaskService : ITerrainBitmaskService
         }
 
         return new CanonicalBitmaskResult(canonical, rotationSteps);
+    }
+
+    /// <inheritdoc />
+    public HexRenderData CreateHexRenderData(IBattleMap map, HexCoordinates coordinates)
+    {
+        var hex = map.GetHex(coordinates)
+            ?? throw new ArgumentException($"No hex found at {coordinates}.", nameof(coordinates));
+
+        var edges = map.GetHexEdges(coordinates);
+
+        CanonicalBitmaskResult? waterBitmask = null;
+        if (hex.HasTerrain(MakaMekTerrains.Water))
+        {
+            waterBitmask = ComputeCanonicalBitmask(map, coordinates, MakaMekTerrains.Water);
+        }
+
+        CanonicalBitmaskResult? roadBitmask = null;
+        if (!hex.HasTerrain(MakaMekTerrains.Road) && !hex.HasTerrain(MakaMekTerrains.Bridge))
+            return new HexRenderData(hex, edges, waterBitmask, roadBitmask);
+        var rawRoad = ComputeRawBitmask(map, coordinates, MakaMekTerrains.Road,
+            (current, neighbor) => current.CanRoadConnectTo(neighbor));
+        var rawBridge = ComputeRawBitmask(map, coordinates, MakaMekTerrains.Bridge,
+            (current, neighbor) => current.CanRoadConnectTo(neighbor));
+        roadBitmask = CanonicalizeRawMask((byte)(rawRoad | rawBridge));
+
+        return new HexRenderData(hex, edges, waterBitmask, roadBitmask);
     }
 }
