@@ -649,6 +649,8 @@ public class FakeLocalizationServiceTests
     [InlineData("UnitPilot_Injuries", "Injuries: {0}/{1}")]
     [InlineData("UnitPilot_Status", "Status")]
     [InlineData("UnitPilot_Dead", "DEAD")]
+    [InlineData("UnitPilot_FirstName", "First Name:")]
+    [InlineData("UnitPilot_LastName", "Last Name:")]
     public void GetString_UnitPilot_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -700,6 +702,21 @@ public class FakeLocalizationServiceTests
     [InlineData("UnitItem_EditName", "Edit unit name")]
     [InlineData("UnitItem_SaveName", "Save name")]
     public void GetString_UnitItem_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UnitInfo_Save", "Save")]
+    [InlineData("UnitInfo_EditName", "Edit Name")]
+    public void GetString_UnitInfo_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
         var localizationService = new FakeLocalizationService();

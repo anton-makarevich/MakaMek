@@ -14,7 +14,7 @@ public class PlayerViewModelTests
     [Fact]
     public async Task ShowUnitInfoCommand_ShouldInvokeShowUnitInfoDelegate_WhenUnitExists()
     {
-        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, Task>>();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
         var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -23,32 +23,32 @@ public class PlayerViewModelTests
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
-        await showUnitInfo.Received(1).Invoke(Arg.Is<UnitData>(u => u.Id == unitId), Arg.Any<PilotData?>());
+        await showUnitInfo.Received(1).Invoke(Arg.Is<UnitData>(u => u.Id == unitId), Arg.Any<PilotData?>(), Arg.Any<bool>());
     }
 
     [Fact]
     public async Task ShowUnitInfoCommand_ShouldNotInvokeDelegate_WhenUnitIdIsEmpty()
     {
-        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, Task>>();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
         var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(Guid.Empty);
 
-        await showUnitInfo.DidNotReceive().Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>());
+        await showUnitInfo.DidNotReceive().Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>());
     }
 
     [Fact]
     public async Task ShowUnitInfoCommand_ShouldNotInvokeDelegate_WhenUnitNotFound()
     {
-        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, Task>>();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
         var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unknownId = Guid.NewGuid();
 
         await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unknownId);
 
-        await showUnitInfo.DidNotReceive().Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>());
+        await showUnitInfo.DidNotReceive().Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>());
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class PlayerViewModelTests
     [Fact]
     public async Task ShowUnitInfoCommand_ShouldPassCorrectPilotData_WhenUnitHasPilot()
     {
-        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, Task>>();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
         var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -78,13 +78,14 @@ public class PlayerViewModelTests
 
         await showUnitInfo.Received(1).Invoke(
             Arg.Is<UnitData>(u => u.Id == unitId),
-            Arg.Is<PilotData>(p => p.Equals(pilotData)));
+            Arg.Is<PilotData>(p => p.Equals(pilotData)),
+            Arg.Any<bool>());
     }
 
     [Fact]
     public async Task ShowUnitInfoCommand_ShouldPassDefaultPilotData_WhenUnitHasNoExplicitPilot()
     {
-        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, Task>>();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
         var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
         var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -95,7 +96,8 @@ public class PlayerViewModelTests
 
         await showUnitInfo.Received(1).Invoke(
             Arg.Is<UnitData>(u => u.Id == unitId),
-            Arg.Any<PilotData?>());
+            Arg.Any<PilotData?>(),
+            Arg.Any<bool>());
     }
 
     [Fact]
@@ -187,6 +189,93 @@ public class PlayerViewModelTests
 
         changedProperties.ShouldContain(nameof(sut.CanJoin));
         changedProperties.ShouldContain(nameof(sut.CanSetReady));
+    }
+
+    [Fact]
+    public async Task ExecuteShowUnitInfo_UpdatesPilot_WhenResultReturned()
+    {
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 4,
+            Piloting = 5
+        };
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var editedPilot = new PilotData
+        {
+            FirstName = "Jane",
+            LastName = "Smith",
+            Gunnery = 2,
+            Piloting = 3
+        };
+        var editedResult = new PilotEditResult(unitData, editedPilot);
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
+        showUnitInfo.Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>())
+            .Returns(Task.FromResult<PilotEditResult?>(editedResult));
+
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        var updatedPilot = sut.GetPilotDataForUnit(unitId);
+        updatedPilot.ShouldNotBeNull();
+        updatedPilot.Value.FirstName.ShouldBe("Jane");
+        updatedPilot.Value.LastName.ShouldBe("Smith");
+        updatedPilot.Value.Gunnery.ShouldBe(2);
+        updatedPilot.Value.Piloting.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task ExecuteShowUnitInfo_UpdatesUnitName_WhenResultContainsNewName()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "OldName" };
+        var editedUnitData = unitData with { Name = "NewName" };
+        var pilotData = new PilotData();
+        var editedResult = new PilotEditResult(editedUnitData, pilotData);
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
+        showUnitInfo.Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>())
+            .Returns(Task.FromResult<PilotEditResult?>(editedResult));
+
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        sut.Units.First().DisplayName.ShouldBe("NewName");
+    }
+
+    [Fact]
+    public async Task ExecuteShowUnitInfo_DoesNotUpdate_WhenResultIsNull()
+    {
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 4,
+            Piloting = 5
+        };
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
+        showUnitInfo.Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>())
+            .Returns(Task.FromResult<PilotEditResult?>(null));
+
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+
+        await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        var pilotResult = sut.GetPilotDataForUnit(unitId);
+        pilotResult.ShouldNotBeNull();
+        pilotResult.Value.FirstName.ShouldBe("John");
+        pilotResult.Value.LastName.ShouldBe("Doe");
     }
 
     [Fact]

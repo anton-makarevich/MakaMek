@@ -13,7 +13,6 @@
         <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
         <converters:ConsciousnessColorConverter x:Key="ConsciousnessColorConverter"/>
         <converters:ConsciousnessStatusConverter x:Key="ConsciousnessStatusConverter"/>
-        <converters:InvertBoolConverter x:Key="InvertBoolConverter"/>
     </UserControl.Resources>
     
     <StackPanel Classes="verticalSpaced" IsVisible="{Binding Converter={StaticResource NullToVisibilityConverter}}">
@@ -22,7 +21,7 @@
             <TextBlock Text="{extensions:Localize 'UnitPilot_PilotInformation'}" Classes="h4"/>
             <!-- Read-only name -->
             <StackPanel Classes="horizontalSpaced"
-                        IsVisible="{Binding #PilotInfoPanel.CanEdit, Converter={StaticResource InvertBoolConverter}}">
+                         IsVisible="{Binding !#PilotInfoPanel.CanEdit}">
                 <TextBlock Text="{extensions:Localize 'UnitPilot_Name'}" Classes="labelLarge"/>
                 <TextBlock Text="{Binding FullName}" Classes="body"/>
             </StackPanel>
@@ -45,7 +44,7 @@
             <TextBlock Text="{extensions:Localize 'UnitPilot_Skills'}" Classes="h4"/>
             <!-- Read-only skills -->
             <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto"
-                  IsVisible="{Binding #PilotInfoPanel.CanEdit, Converter={StaticResource InvertBoolConverter}}">
+                  IsVisible="{Binding !#PilotInfoPanel.CanEdit}">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge" />
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Gunnery}" Classes="body" />
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge" />

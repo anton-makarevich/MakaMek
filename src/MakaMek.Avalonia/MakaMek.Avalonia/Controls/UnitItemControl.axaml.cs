@@ -36,9 +36,6 @@ public partial class UnitItemControl : UserControl
     public static readonly StyledProperty<string?> PlayerTintProperty =
         AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
 
-    public static readonly StyledProperty<bool> CanEditUnitNameProperty =
-        AvaloniaProperty.Register<UnitItemControl, bool>(nameof(CanEditUnitName), defaultValue: false);
-
     public ICommand? InfoCommand
     {
         get => GetValue(InfoCommandProperty);
@@ -73,12 +70,6 @@ public partial class UnitItemControl : UserControl
     {
         get => GetValue(PlayerTintProperty);
         set => SetValue(PlayerTintProperty, value);
-    }
-
-    public bool CanEditUnitName
-    {
-        get => GetValue(CanEditUnitNameProperty);
-        set => SetValue(CanEditUnitNameProperty, value);
     }
 
     public UnitItemControl()

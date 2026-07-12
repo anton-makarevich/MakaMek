@@ -1101,7 +1101,7 @@ public class StartNewGameViewModelTests
 
         await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
-        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(Arg.Any<UnitInfoViewModel>());
     }
 
     [Fact]
@@ -1121,7 +1121,7 @@ public class StartNewGameViewModelTests
 
         await ((IAsyncCommand<Guid>)localPlayerVm.ShowUnitInfoCommand).ExecuteAsync(unitId);
 
-        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
             Arg.Is<UnitInfoViewModel>(vm => vm.HasPilot));
     }
 }
