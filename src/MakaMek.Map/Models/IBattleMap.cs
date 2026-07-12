@@ -82,4 +82,9 @@ public interface IBattleMap
     /// <param name="coordinates">The coordinates of the hex</param>
     /// <returns>A list of HexEdge objects for all 6 directions. Returns empty list if hex doesn't exist.</returns>
     IReadOnlyList<HexEdge> GetHexEdges(HexCoordinates coordinates);
+
+    /// <summary>
+    /// Returns the hex at <paramref name="changedCoord"/> and all of its neighbors that are on the map.
+    /// </summary>
+    IEnumerable<HexCoordinates> GetAffectedCoordinates(HexCoordinates changedCoord);
 }

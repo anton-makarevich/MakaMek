@@ -607,11 +607,6 @@ public class HexRenderControl : Control
     /// Computes the bounding size of the map in pixels based on hex coordinate extents,
     /// including standard padding. Returns default if no hex data is loaded.
     /// </summary>
-    // ── Internal test helpers ────────────────────────────────────────────────
-    internal IReadOnlyDictionary<HexCoordinates, HexRenderData> HexData => _hexData;
-    internal IReadOnlyList<HexCoordinates> SortedCoords => _sortedCoords;
-    internal IReadOnlyDictionary<HexCoordinates, IDisposable> Subscriptions => _subscriptions;
-
     public Size GetMapExtentSize()
     {
         if (_sortedCoords.Count == 0) return default;

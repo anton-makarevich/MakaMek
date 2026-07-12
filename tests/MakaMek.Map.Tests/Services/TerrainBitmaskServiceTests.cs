@@ -3,6 +3,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Shouldly;
+using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Map.Tests.Services;
 
@@ -874,5 +875,95 @@ public class TerrainBitmaskServiceTests
         var result = _sut.ComputeRawBitmask(map, centerCoords, MakaMekTerrains.Road, filter);
 
         result.ShouldBe((byte)0);
+    }
+
+    // ── CreateHexRenderData ──────────────────────────────────────────────────
+
+    [Fact]
+    public void CreateHexRenderData_ReturnsEdgesFromMap()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        map.AddHex(new Hex(coord));
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.Edges.ShouldNotBeEmpty();
+        result.Hex.Coordinates.ShouldBe(coord);
+    }
+
+    [Fact]
+    public void CreateHexRenderData_NoWaterTerrain_WaterBitmaskIsNull()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        map.AddHex(new Hex(coord));
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.WaterBitmask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CreateHexRenderData_WithWaterTerrain_WaterBitmaskIsNotNull()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        var hex = new Hex(coord);
+        hex.AddTerrain(new WaterTerrain());
+        map.AddHex(hex);
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.WaterBitmask.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateHexRenderData_NoRoadOrBridge_RoadBitmaskIsNull()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        map.AddHex(new Hex(coord));
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.RoadBitmask.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CreateHexRenderData_WithRoadTerrain_RoadBitmaskIsNotNull()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        var hex = new Hex(coord);
+        hex.AddTerrain(new RoadTerrain());
+        map.AddHex(hex);
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.RoadBitmask.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateHexRenderData_WithBridgeTerrain_RoadBitmaskIsNotNull()
+    {
+        var map = new BattleMap(3, 3);
+        var coord = new HexCoordinates(2, 2);
+        var hex = new Hex(coord);
+        hex.AddTerrain(new BridgeTerrain());
+        map.AddHex(hex);
+
+        var result = _sut.CreateHexRenderData(map, coord);
+
+        result.RoadBitmask.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateHexRenderData_HexNotOnMap_ThrowsArgumentException()
+    {
+        var map = new BattleMap(3, 3);
+
+        Should.Throw<ArgumentException>(() =>
+            _sut.CreateHexRenderData(map, new HexCoordinates(2, 2)));
     }
 }

@@ -61,7 +61,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             HexRenderData hexData;
             if (bitmaskService != null && game.BattleMap != null)
             {
-                hexData = HexRenderDataFactory.Create(game.BattleMap, hex.Coordinates, bitmaskService);
+                hexData = bitmaskService.CreateHexRenderData(game.BattleMap, hex.Coordinates);
             }
             else
             {
