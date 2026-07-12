@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -166,11 +167,16 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     protected override void OnViewModelSet()
     {
         base.OnViewModelSet();
-        if (ViewModel is { Game: not null })
-        {
-            RenderMap(ViewModel.Game);
-            ViewModel.PropertyChanged += OnViewModelPropertyChanged;
-        }
+        ViewModel?.CaptureMap = CaptureViewMap;
+        if (ViewModel is not { Game: not null }) return;
+        RenderMap(ViewModel.Game);
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureViewMap()
+    {
+        var pngBytes = await MapCanvas.ToPngAsync();
+        return (pngBytes, (int)MapCanvas.Width, (int)MapCanvas.Height);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -189,11 +195,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
         else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
         {
-            if (ViewModel?.HexConfiguration != null)
-            {
-                var config = ViewModel.HexConfiguration.ToConfiguration();
-                MapCanvas.UpdateHexConfiguration(config);
-            }
+            if (ViewModel?.HexConfiguration == null) return;
+            var config = ViewModel.HexConfiguration.ToConfiguration();
+            MapCanvas.UpdateHexConfiguration(config);
         }
     }
 

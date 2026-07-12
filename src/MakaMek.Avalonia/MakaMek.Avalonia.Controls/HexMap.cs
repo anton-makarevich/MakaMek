@@ -289,19 +289,45 @@ public class HexMap : Canvas
         SyncTransform();
     }
 
-    public byte[] ToPng()
+    public async Task<byte[]> ToPngAsync()
     {
         var saved = _mapTransform.Matrix;
         _mapTransform.Matrix = new Matrix(1, 0, 0, 1, 0, 0);
         try
         {
-            var w = double.IsNaN(Width) ? (int)Bounds.Width : (int)Width;
-            var h = double.IsNaN(Height) ? (int)Bounds.Height : (int)Height;
+            var (w, h) = ComputeCaptureSize();
+            if (w <= 0 || h <= 0) return [];
+
+            if (_hexRenderControl == null) return this.RenderToPngBytes(w, h);
+            // 1. First render pass — kicks off async bitmap loads
+            await _hexRenderControl.WaitForNextRender();
+
+            // 2. Wait for all bitmap loads to finish
+            await _hexRenderControl.BitmapCache.WhenAllDecoded();
+
+            // 3. Second render pass — cached bitmaps are now drawn
+            await _hexRenderControl.WaitForNextRender();
+
             return this.RenderToPngBytes(w, h);
         }
         finally
         {
             _mapTransform.Matrix = saved;
         }
+    }
+
+    private (int W, int H) ComputeCaptureSize()
+    {
+        if (!double.IsNaN(Width) && Width > 0 && !double.IsNaN(Height) && Height > 0)
+            return ((int)Width, (int)Height);
+
+        if (Bounds is { Width: > 0, Height: > 0 })
+            return ((int)Bounds.Width, (int)Bounds.Height);
+
+        if (_hexRenderControl == null) return (0, 0);
+        var extent = _hexRenderControl.GetMapExtentSize();
+        return extent is { Width: > 0, Height: > 0 } 
+            ? ((int)extent.Width, (int)extent.Height) 
+            : (0, 0);
     }
 }

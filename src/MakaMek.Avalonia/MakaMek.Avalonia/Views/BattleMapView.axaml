@@ -186,6 +186,15 @@
                 Command="{Binding ToggleMapSettings}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_MapSettings'}"
                 IconData="{StaticResource MapSettingsIcon}"/>
+
+            <!-- Export PDF Button -->
+            <Button Classes="actionButtonText"
+                    IsVisible="{Binding CanExportPdf}"
+                    Command="{Binding ExportMapToPdfCommand}"
+                    ToolTip.Tip="{extensions:Localize 'BattleMap_ExportPdf'}"
+                    Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
+                    Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                    Content="{extensions:Localize 'BattleMap_ExportPdf'}"/>
         </StackPanel>
 
         <StackPanel

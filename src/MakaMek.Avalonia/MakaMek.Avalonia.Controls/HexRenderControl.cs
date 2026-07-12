@@ -46,6 +46,7 @@ public class HexRenderControl : Control
 
     private readonly Geometry _hexPolygon;
     private readonly Point[] _cornerPoints;
+    private readonly List<TaskCompletionSource> _renderTcs = [];
 
     public HexRenderControl(ITerrainAssetService terrainAssetService,
         ILocalizationService? localizationService,
@@ -286,6 +287,8 @@ public class HexRenderControl : Control
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        foreach (var tcs in _renderTcs) tcs.TrySetCanceled();
+        _renderTcs.Clear();
         foreach (var sub in _subscriptions)
             sub.Dispose();
         _subscriptions.Clear();
@@ -463,6 +466,9 @@ public class HexRenderControl : Control
                 }
             }
         }
+
+        foreach (var tcs in _renderTcs) tcs.TrySetResult();
+        _renderTcs.Clear();
     }
 
     private static void DrawRotatedBitmap(DrawingContext context, Bitmap bitmap,
@@ -535,4 +541,38 @@ public class HexRenderControl : Control
     }
 
     public DecodedBitmapCache BitmapCache => _bitmapCache;
+
+    /// <summary>
+    /// Triggers a render pass and returns a task that completes after the next Render() call.
+    /// Used to kick off bitmap loads before capturing.
+    /// </summary>
+    public Task WaitForNextRender()
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _renderTcs.Add(tcs);
+        InvalidateVisual();
+        return tcs.Task;
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var extent = GetMapExtentSize();
+        return extent is { Width: > 0, Height: > 0 } 
+            ? extent 
+            : new Size(1, 1);
+    }
+
+    /// <summary>
+    /// Computes the bounding size of the map in pixels based on hex coordinate extents,
+    /// including standard padding. Returns default if no hex data is loaded.
+    /// </summary>
+    public Size GetMapExtentSize()
+    {
+        if (_sortedCoords.Count == 0) return default;
+        var maxH = _sortedCoords.Max(c => c.H);
+        var maxV = _sortedCoords.Max(c => c.V);
+        return new Size(
+            maxH + 2 * HexCoordinatesPixelExtensions.HexWidth,
+            maxV + 3 * HexCoordinatesPixelExtensions.HexHeight);
+    }
 }

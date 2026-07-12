@@ -450,7 +450,7 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            terrainBitmaskService);
+            terrainBitmaskService: terrainBitmaskService);
 
         // Assert
         viewModel.TerrainBitmaskService.ShouldNotBeNull();
@@ -2799,7 +2799,7 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            terrainBitmaskService);
+            terrainBitmaskService: terrainBitmaskService);
     }
 
 
@@ -2878,5 +2878,151 @@ public class BattleMapViewModelTests
         // Assert
         // Verify that the EndGameViewModel was initialized with the game
         endGameViewModel.Players.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CanExport_DependsOnBuildConfiguration()
+    {
+#if DEBUG
+        _sut.CanExportPdf.ShouldBeTrue();
+#else
+        _sut.CanExportPdf.ShouldBeFalse();
+#endif
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_DoesNothing_WhenCaptureMapIsNull()
+    {
+        var pdfService = Substitute.For<IPdfExportService>();
+        var fileService = Substitute.For<IFileService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            pdfService,
+            fileService);
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        await pdfService.DidNotReceive().GeneratePdfFromPngAsync(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>());
+        await fileService.DidNotReceive().SaveBinaryFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<byte[]>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_DoesNothing_WhenPdfExportServiceIsNull()
+    {
+        var fileService = Substitute.For<IFileService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            null,
+            fileService);
+        sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        await fileService.DidNotReceive().SaveBinaryFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<byte[]>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_DoesNothing_WhenFileServiceIsNull()
+    {
+        var pdfService = Substitute.For<IPdfExportService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            pdfService,
+            null);
+        sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        await pdfService.DidNotReceive().GeneratePdfFromPngAsync(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_DoesNothing_WhenPngBytesAreEmpty()
+    {
+        var pdfService = Substitute.For<IPdfExportService>();
+        var fileService = Substitute.For<IFileService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            pdfService,
+            fileService);
+        sut.CaptureMap = () => Task.FromResult((Array.Empty<byte>(), 100, 100));
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        await pdfService.DidNotReceive().GeneratePdfFromPngAsync(Arg.Any<byte[]>(), Arg.Any<int>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_ExportsPdf_WhenCaptureSucceeds()
+    {
+        var pngBytes = new byte[] { 1, 2, 3 };
+        var pdfBytes = new byte[] { 4, 5, 6 };
+        var pdfService = Substitute.For<IPdfExportService>();
+        pdfService.GeneratePdfFromPngAsync(pngBytes, 150, 225).Returns(pdfBytes);
+        var fileService = Substitute.For<IFileService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            pdfService,
+            fileService);
+        sut.CaptureMap = () => Task.FromResult((pngBytes, 200, 300));
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        await pdfService.Received(1).GeneratePdfFromPngAsync(pngBytes, 150, 225);
+        await fileService.Received(1).SaveBinaryFile(
+            Arg.Any<string>(),
+            "map.pdf",
+            pdfBytes,
+            "pdf",
+            "PDF files");
+    }
+
+    [Fact]
+    public async Task ExportMapToPdfCommand_LogsError_WhenCaptureThrows()
+    {
+        var pdfService = Substitute.For<IPdfExportService>();
+        var fileService = Substitute.For<IFileService>();
+        var sut = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            pdfService,
+            fileService);
+        sut.Game = _game;
+        sut.CaptureMap = () => throw new InvalidOperationException("capture failed");
+
+        await sut.ExportMapToPdfCommand.ExecuteAsync();
+
+        _game.Logger.Received(1).LogError(
+            Arg.Is<Exception>(ex => ex.Message == "capture failed"),
+            "PDF map export failed");
     }
 }
