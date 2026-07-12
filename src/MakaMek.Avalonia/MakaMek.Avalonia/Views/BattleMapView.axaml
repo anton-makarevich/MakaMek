@@ -189,7 +189,7 @@
 
             <!-- Export PDF Button -->
             <Button Classes="actionButtonText"
-                    IsVisible="{Binding CanExport}"
+                    IsVisible="{Binding CanExportPdf}"
                     Command="{Binding ExportMapToPdfCommand}"
                     ToolTip.Tip="{extensions:Localize 'BattleMap_ExportPdf'}"
                     Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"

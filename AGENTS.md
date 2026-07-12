@@ -10,10 +10,6 @@ Navigate to [`docs/INDEX.md`](docs/INDEX.md) for the full documentation hierarch
 
 The `.agents/skills/navigate-docs/SKILL.md` skill teaches efficient documentation discovery using the index hierarchy — read it before searching for documentation to avoid unnecessary file loading.
 
-Available skills in `.agents/skills/`:
-- `generate-unit-tests` — generate xUnit tests for a C# class
-- `navigate-docs` — locate relevant documentation efficiently via index files
-
 ## MCP Tools
 
-Prefer Serena and Jetbrains/Rider tools when available 
+Prefer Serena (`serena_initial_instructions`) and Rider tools when available 

@@ -287,6 +287,8 @@ public class HexRenderControl : Control
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _renderTcs?.TrySetCanceled();
+        _renderTcs = null;
         foreach (var sub in _subscriptions)
             sub.Dispose();
         _subscriptions.Clear();

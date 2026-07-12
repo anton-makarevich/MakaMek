@@ -114,7 +114,6 @@ public class DecodedBitmapCache
         lock (_inFlight)
         {
             _inFlight.Clear();
-            _pendingDecodes = 0;
             _allDecodedTcs?.TrySetCanceled();
             _allDecodedTcs = null;
         }

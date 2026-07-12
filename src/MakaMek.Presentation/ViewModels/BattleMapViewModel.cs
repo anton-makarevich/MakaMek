@@ -901,13 +901,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 "pdf",
                 "PDF files");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Silently ignore export failures (e.g. user cancelled save dialog)
+            Game?.Logger.LogError(ex, "PDF map export failed");
         }
     });
 
-    public bool CanExport =>
+    public bool CanExportPdf =>
 #if DEBUG
         true;
 #else
