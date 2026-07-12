@@ -87,7 +87,7 @@ public interface ITerrainAssetService
     /// </summary>
     /// <param name="mmtxStream">Stream containing the MMTX package data</param>
     /// <returns>The loaded biome manifest</returns>
-    Task<BiomeManifest?> LoadTerrainFromMmtxStreamAsync(Stream mmtxStream);
+    Task<BiomeManifest?> LoadTerrainFromMmtxStream(Stream mmtxStream);
     
     /// <summary>
     /// Clears all cached terrain data

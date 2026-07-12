@@ -175,7 +175,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureViewMap()
     {
-        var pngBytes = await MapCanvas.ToPngAsync();
+        var pngBytes = await MapCanvas.ToPng();
         return (pngBytes, (int)MapCanvas.Width, (int)MapCanvas.Height);
     }
 

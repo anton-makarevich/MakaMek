@@ -289,7 +289,7 @@ public class HexMap : Canvas
         SyncTransform();
     }
 
-    public async Task<byte[]> ToPngAsync()
+    public async Task<byte[]> ToPng()
     {
         var saved = _mapTransform.Matrix;
         _mapTransform.Matrix = new Matrix(1, 0, 0, 1, 0, 0);

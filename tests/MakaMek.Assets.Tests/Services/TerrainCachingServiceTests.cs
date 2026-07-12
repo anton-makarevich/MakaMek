@@ -28,7 +28,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage();
 
         // Act
-        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Assert
         manifest.ShouldNotBeNull();
@@ -44,7 +44,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackageWithoutManifest();
 
         // Act
-        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Assert
         manifest.ShouldBeNull();
@@ -57,7 +57,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage("");
 
         // Act
-        var manifest = await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        var manifest = await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Assert
         manifest.ShouldBeNull();
@@ -70,7 +70,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
 
         // Assert
@@ -88,7 +88,7 @@ public class TerrainCachingServiceTests
             .WithOverlay("rough", 0));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var lightwoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
         var heavyWoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "heavywoods");
         var roughVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "rough");
@@ -109,7 +109,7 @@ public class TerrainCachingServiceTests
             .WithEdge("bottom", "3", 1));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var topEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
         var bottomEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
 
@@ -127,7 +127,7 @@ public class TerrainCachingServiceTests
             .WithOverlay("lightwoods", 0, 2));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var baseVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
         var lightwoodsVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Overlay, "lightwoods");
 
@@ -150,7 +150,7 @@ public class TerrainCachingServiceTests
             .WithEdge("bottom", "3", 2));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var topEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
         var bottomEdgeVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeBottom, "3");
 
@@ -170,7 +170,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1, 2, 3));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
 
         // Assert
@@ -185,7 +185,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var image = await _sut.GetBaseBiomeImage("test-biome");
@@ -210,7 +210,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("lightwoods", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var image = await _sut.GetTerrainOverlayImage("test-biome", "lightwoods");
@@ -224,7 +224,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("lightwoods", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var image = await _sut.GetTerrainOverlayImage("test-biome", "nonexistent");
@@ -238,7 +238,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange — rough.png is a variant-0 asset (no suffix)
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithOverlay("rough", 0));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var image = await _sut.GetTerrainOverlayImage("test-biome", "rough");
@@ -255,7 +255,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithEdge("top", "0", 1)
             .WithEdge("bottom", "3", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
         // Act
@@ -272,7 +272,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithEdge("top", "0", 1)
             .WithEdge("bottom", "3", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var coordinates = new HexCoordinates(0, 0);
 
         // Act
@@ -288,7 +288,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithEdgeUniqueContent("top", "0", 1, 2, 3));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var coordinates = new HexCoordinates(5, 10);
 
         // Act - Get the same edge twice
@@ -305,7 +305,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithEdgeUniqueContent("top", "0", 1, 2, 3));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var distinctImages = new HashSet<string>();
@@ -340,8 +340,8 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream1 = CreateMmtxPackage("biome1", "Biome 1");
         using var mmtxStream2 = CreateMmtxPackage("biome2", "Biome 2");
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream1);
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream2);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream1);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream2);
 
         // Act
         var biomes = (await _sut.GetLoadedBiomes()).ToList();
@@ -357,7 +357,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage("test-biome", "Test Biome", "2.0.0");
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var manifest = await _sut.GetBiomeManifest("test-biome");
@@ -382,7 +382,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         _sut.ClearCache();
@@ -401,7 +401,7 @@ public class TerrainCachingServiceTests
             .WithRawEntry("base.png", PngHeader()));
 
         // Act
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
         var invalidVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base-abc");
 
@@ -419,11 +419,11 @@ public class TerrainCachingServiceTests
         using var secondStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
 
         // Act - Load the first biome successfully
-        var firstManifest = await _sut.LoadTerrainFromMmtxStreamAsync(firstStream);
+        var firstManifest = await _sut.LoadTerrainFromMmtxStream(firstStream);
         firstManifest.ShouldNotBeNull();
 
         // Attempt to load the duplicate biome
-        var secondManifest = await _sut.LoadTerrainFromMmtxStreamAsync(secondStream);
+        var secondManifest = await _sut.LoadTerrainFromMmtxStream(secondStream);
 
         // Assert
         secondManifest.ShouldBeNull(); // Should return null for duplicate
@@ -445,7 +445,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithWaterTexture("000001", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
 
         // Act
@@ -475,7 +475,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithWaterTexture("000001", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var canonicalBitmask = new CanonicalBitmaskResult(0b111111, 0);
 
         // Act
@@ -492,7 +492,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithWaterTexture("000001", 1)
             .WithWaterTexture("000011", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         // Act
         var imageForMask1 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000001, 0));
         var imageForMask3 = await _sut.GetWaterTextureImage("test-biome", new CanonicalBitmaskResult(0b000011, 0));
@@ -509,7 +509,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithRoadTexture("000001", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var canonicalBitmask = new CanonicalBitmaskResult(0b000001, 0);
 
         // Act
@@ -539,7 +539,7 @@ public class TerrainCachingServiceTests
         // Arrange
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithRoadTexture("000001", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
         var canonicalBitmask = new CanonicalBitmaskResult(0b111111, 0);
 
         // Act
@@ -556,7 +556,7 @@ public class TerrainCachingServiceTests
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
             .WithRoadTexture("000001", 1)
             .WithRoadTexture("000011", 1));
-        await _sut.LoadTerrainFromMmtxStreamAsync(mmtxStream);
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
         var imageForMask1 = await _sut.GetRoadTextureImage("test-biome", new CanonicalBitmaskResult(0b000001, 0));
