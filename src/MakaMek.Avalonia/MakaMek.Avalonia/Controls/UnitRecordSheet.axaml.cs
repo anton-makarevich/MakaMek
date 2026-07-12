@@ -1,6 +1,8 @@
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -25,6 +27,39 @@ public partial class UnitRecordSheet : UserControl
 
     public static readonly StyledProperty<object?> HeatProjectionProperty =
         AvaloniaProperty.Register<UnitRecordSheet, object?>(nameof(HeatProjection));
+
+    public static readonly StyledProperty<PilotViewModel?> EditablePilotProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, PilotViewModel?>(nameof(EditablePilot));
+
+    public static readonly StyledProperty<bool> CanEditProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanEdit));
+
+    public static readonly StyledProperty<ICommand?> SaveCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(SaveCommand));
+
+    public static readonly StyledProperty<ICommand?> CancelCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(CancelCommand));
+
+    public static readonly StyledProperty<string?> DisplayNameProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, string?>(nameof(DisplayName));
+
+    public static readonly StyledProperty<string?> EditableNameProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, string?>(nameof(EditableName));
+
+    public static readonly StyledProperty<bool> IsEditingNameProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(IsEditingName));
+
+    public static readonly StyledProperty<ICommand?> StartEditingNameCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(StartEditingNameCommand));
+
+    public static readonly StyledProperty<ICommand?> SaveNameCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(SaveNameCommand));
+
+    public static readonly StyledProperty<ICommand?> CancelEditNameCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(CancelEditNameCommand));
+
+    public static readonly StyledProperty<bool> CanEditNameProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanEditName));
 
     public Unit? Unit
     {
@@ -54,6 +89,72 @@ public partial class UnitRecordSheet : UserControl
     {
         get => GetValue(HeatProjectionProperty);
         set => SetValue(HeatProjectionProperty, value);
+    }
+
+    public PilotViewModel? EditablePilot
+    {
+        get => GetValue(EditablePilotProperty);
+        set => SetValue(EditablePilotProperty, value);
+    }
+
+    public bool CanEdit
+    {
+        get => GetValue(CanEditProperty);
+        set => SetValue(CanEditProperty, value);
+    }
+
+    public ICommand? SaveCommand
+    {
+        get => GetValue(SaveCommandProperty);
+        set => SetValue(SaveCommandProperty, value);
+    }
+
+    public ICommand? CancelCommand
+    {
+        get => GetValue(CancelCommandProperty);
+        set => SetValue(CancelCommandProperty, value);
+    }
+
+    public string? DisplayName
+    {
+        get => GetValue(DisplayNameProperty);
+        set => SetValue(DisplayNameProperty, value);
+    }
+
+    public string? EditableName
+    {
+        get => GetValue(EditableNameProperty);
+        set => SetValue(EditableNameProperty, value);
+    }
+
+    public bool IsEditingName
+    {
+        get => GetValue(IsEditingNameProperty);
+        set => SetValue(IsEditingNameProperty, value);
+    }
+
+    public ICommand? StartEditingNameCommand
+    {
+        get => GetValue(StartEditingNameCommandProperty);
+        set => SetValue(StartEditingNameCommandProperty, value);
+    }
+
+    public ICommand? SaveNameCommand
+    {
+        get => GetValue(SaveNameCommandProperty);
+        set => SetValue(SaveNameCommandProperty, value);
+    }
+
+    public ICommand? CancelEditNameCommand
+    {
+        get => GetValue(CancelEditNameCommandProperty);
+        set => SetValue(CancelEditNameCommandProperty, value);
+    }
+
+    public bool CanEditName
+    {
+        get => GetValue(CanEditNameProperty);
+        set => SetValue(CanEditNameProperty, value);
     }
 
     public UnitRecordSheet()

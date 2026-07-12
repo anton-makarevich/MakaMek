@@ -3,49 +3,106 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
-    <TabControl>
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
-            </TabItem.Header>
-            <StackPanel Margin="10">
-                <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
-                <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
-                <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
-            </StackPanel>
-        </TabItem>
-        <TabItem IsVisible="{Binding #UnitRecordSheetControl.HasPilot}">
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
-            </TabItem.Header>
-            <controls:UnitPilotInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit.Pilot}" />
-        </TabItem>
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
-            </TabItem.Header>
-            <controls:UnitHealthIndicator Unit="{Binding #UnitRecordSheetControl.Unit}"/>
-        </TabItem>
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
-            </TabItem.Header>
-            <controls:UnitWeaponsPanel Unit="{Binding #UnitRecordSheetControl.Unit}"/>
-        </TabItem>
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
-            </TabItem.Header>
-            <controls:UnitComponentsPanel Unit="{Binding #UnitRecordSheetControl.Unit}" />
-        </TabItem>
-        <TabItem IsVisible="{Binding #UnitRecordSheetControl.ShowEventsTab}">
-            <TabItem.Header>
-                <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
-            </TabItem.Header>
-            <controls:UnitEventsPanel/>
-        </TabItem>
-    </TabControl>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Unit Name Header (read-only) -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" Margin="10,10,10,0"
+                    HorizontalAlignment="Center"
+                    IsVisible="{Binding #UnitRecordSheetControl.Unit, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding #UnitRecordSheetControl.Unit.Chassis} {Binding #UnitRecordSheetControl.Unit.Model}"
+                       Classes="h3"/>
+        </StackPanel>
+
+        <!-- Editable unit name -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" Margin="10,10,10,0"
+                    HorizontalAlignment="Center"
+                    IsVisible="{Binding #UnitRecordSheetControl.IsEditingName}">
+            <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
+                     MinWidth="200" Classes="h3"/>
+            <Button Command="{Binding #UnitRecordSheetControl.SaveNameCommand}"
+                    ToolTip.Tip="{extensions:Localize 'UnitInfo_Save'}"
+                    Classes="primary inlineIcon">
+                <TextBlock Text="&#xf00c;"/>
+            </Button>
+            <Button Command="{Binding #UnitRecordSheetControl.CancelEditNameCommand}"
+                    ToolTip.Tip="{extensions:Localize 'Cancel'}"
+                    Classes="secondary inlineIcon">
+                <TextBlock Text="&#xf00d;"/>
+            </Button>
+        </StackPanel>
+
+        <!-- Edit button for unit name -->
+        <Button Grid.Row="0"
+                Command="{Binding #UnitRecordSheetControl.StartEditingNameCommand}"
+                IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
+                ToolTip.Tip="{extensions:Localize 'UnitInfo_EditName'}"
+                Classes="secondary inlineIcon"
+                HorizontalAlignment="Right"
+                Margin="0,10,10,0">
+            <TextBlock Text="&#xf304;"/>
+        </Button>
+
+        <!-- Tabs -->
+        <TabControl Grid.Row="1" Margin="0,5,0,0">
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+                </TabItem.Header>
+                <StackPanel Margin="10">
+                    <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
+                    <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
+                    <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
+                </StackPanel>
+            </TabItem>
+            <TabItem IsVisible="{Binding #UnitRecordSheetControl.HasPilot}">
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+                </TabItem.Header>
+                <controls:UnitPilotInfoPanel DataContext="{Binding #UnitRecordSheetControl.EditablePilot}"
+                                             CanEdit="{Binding #UnitRecordSheetControl.CanEdit}"/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+                </TabItem.Header>
+                <controls:UnitHealthIndicator Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                </TabItem.Header>
+                <controls:UnitWeaponsPanel Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+                </TabItem.Header>
+                <controls:UnitComponentsPanel Unit="{Binding #UnitRecordSheetControl.Unit}" />
+            </TabItem>
+            <TabItem IsVisible="{Binding #UnitRecordSheetControl.ShowEventsTab}">
+                <TabItem.Header>
+                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
+                </TabItem.Header>
+                <controls:UnitEventsPanel/>
+            </TabItem>
+        </TabControl>
+
+        <!-- Save/Cancel buttons at bottom -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    HorizontalAlignment="Center"
+                    Margin="10,5"
+                    IsVisible="{Binding #UnitRecordSheetControl.CanEdit}">
+            <Button Content="{extensions:Localize 'UnitInfo_Save'}"
+                    Command="{Binding #UnitRecordSheetControl.SaveCommand}"
+                    Classes="primary"/>
+            <Button Content="{extensions:Localize 'Cancel'}"
+                    Command="{Binding #UnitRecordSheetControl.CancelCommand}"
+                    Classes="secondary"/>
+        </StackPanel>
+    </Grid>
 </UserControl>
