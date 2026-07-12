@@ -16,7 +16,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -343,6 +342,7 @@ public abstract class NewGameViewModel : BaseViewModel
         bool canEdit = false)
     {
         var infoViewModel = new UnitInfoViewModel(unitData, pilotData, _mechFactory, canEdit);
+        infoViewModel.SetNavigationService(NavigationService);
         return await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(infoViewModel);
     }
 }

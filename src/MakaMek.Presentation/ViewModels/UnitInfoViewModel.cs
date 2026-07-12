@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
@@ -15,7 +14,6 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
     private readonly TaskCompletionSource<PilotEditResult?> _resultTaskCompletionSource = new();
     private UnitData _originalUnitData;
     private bool _isEditingName;
-    private string _editableName = string.Empty;
 
     public Unit Unit { get; }
     public bool HasPilot { get; }
@@ -74,9 +72,9 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
 
     public string EditableName
     {
-        get => _editableName;
-        set => SetProperty(ref _editableName, value);
-    }
+        get;
+        set => SetProperty(ref field, value);
+    } = string.Empty;
 
     public void StartEditingName()
     {
@@ -115,7 +113,7 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
         var editedPilot = Pilot?.SaveEdit();
         var result = new PilotEditResult(_originalUnitData, editedPilot ?? default);
         _resultTaskCompletionSource.TrySetResult(result);
-        return CloseAsync();
+        return Task.CompletedTask;
     }
 
     private Task Close()
