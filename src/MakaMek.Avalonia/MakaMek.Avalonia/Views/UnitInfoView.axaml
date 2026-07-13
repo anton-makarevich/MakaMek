@@ -16,6 +16,11 @@
         CloseCommand="{Binding CloseCommand}">
         <controls:UnitRecordSheet
             Unit="{Binding Unit}"
-            HasPilot="{Binding HasPilot}" />
+            HasPilot="{Binding HasPilot}"
+            CanEdit="{Binding CanEdit}"
+            EditablePilot="{Binding Pilot}"
+            SaveCommand="{Binding SaveCommand}"
+            CancelCommand="{Binding CloseCommand}"
+            EditableName="{Binding EditableName, Mode=TwoWay}"/>
     </templatedControls:GamePanel>
 </UserControl>

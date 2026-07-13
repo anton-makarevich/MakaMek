@@ -245,7 +245,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         if (!CanShowUnitInfo || _selectedUnit == null) return;
 
         var infoViewModel = new UnitInfoViewModel(_selectedUnit.Value, null, _mechFactory);
-        await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, object?>(infoViewModel);
+        await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(infoViewModel);
     }
 
     /// <summary>

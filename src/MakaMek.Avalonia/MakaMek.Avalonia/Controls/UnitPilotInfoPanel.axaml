@@ -2,11 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:pilots="clr-namespace:Sanet.MakaMek.Core.Models.Units.Pilots;assembly=Sanet.MakaMek.Core"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
-             x:DataType="pilots:IPilot"
+             x:DataType="wrappers:PilotViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPilotInfoPanel"
+             x:Name="PilotInfoPanel"
              mc:Ignorable="d">
     <UserControl.Resources>
         <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
@@ -18,20 +19,44 @@
         <!-- Pilot Name Section -->
         <StackPanel Classes="verticalSpaced">
             <TextBlock Text="{extensions:Localize 'UnitPilot_PilotInformation'}" Classes="h4"/>
-            <StackPanel Classes="horizontalSpaced">
+            <!-- Read-only name -->
+            <StackPanel Classes="horizontalSpaced"
+                         IsVisible="{Binding !#PilotInfoPanel.CanEdit}">
                 <TextBlock Text="{extensions:Localize 'UnitPilot_Name'}" Classes="labelLarge"/>
-                <TextBlock Text="{Binding Name}" Classes="body"/>
+                <TextBlock Text="{Binding FullName}" Classes="body"/>
+            </StackPanel>
+            <!-- Editable name -->
+            <StackPanel Classes="verticalSpaced"
+                        IsVisible="{Binding #PilotInfoPanel.CanEdit}">
+                <StackPanel Classes="horizontalSpaced">
+                    <TextBlock Text="{extensions:Localize 'UnitPilot_FirstName'}" Classes="labelLarge"/>
+                    <TextBox Text="{Binding EditableFirstName, Mode=TwoWay}" MinWidth="120"/>
+                </StackPanel>
+                <StackPanel Classes="horizontalSpaced">
+                    <TextBlock Text="{extensions:Localize 'UnitPilot_LastName'}" Classes="labelLarge"/>
+                    <TextBox Text="{Binding EditableLastName, Mode=TwoWay}" MinWidth="120"/>
+                </StackPanel>
             </StackPanel>
         </StackPanel>
 
         <!-- Skills Section -->
         <StackPanel Classes="verticalSpaced">
             <TextBlock Text="{extensions:Localize 'UnitPilot_Skills'}" Classes="h4"/>
-            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto">
+            <!-- Read-only skills -->
+            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto"
+                  IsVisible="{Binding !#PilotInfoPanel.CanEdit}">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge" />
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Gunnery}" Classes="body" />
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge" />
                 <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Piloting}" Classes="body"/>
+            </Grid>
+            <!-- Editable skills -->
+            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto"
+                  IsVisible="{Binding #PilotInfoPanel.CanEdit}">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditableGunnery, Mode=TwoWay}" MinWidth="50"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge" />
+                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding EditablePiloting, Mode=TwoWay}" MinWidth="50"/>
             </Grid>
         </StackPanel>
 

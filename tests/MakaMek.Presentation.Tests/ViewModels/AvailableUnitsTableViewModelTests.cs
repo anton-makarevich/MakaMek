@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -577,7 +578,7 @@ public class AvailableUnitsTableViewModelTests
 
         await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
 
-        await navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+        await navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(Arg.Any<UnitInfoViewModel>());
     }
 
     [Fact]
@@ -591,7 +592,7 @@ public class AvailableUnitsTableViewModelTests
 
         await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
 
-        await navigationService.DidNotReceive().ShowViewModelForResultAsync<UnitInfoViewModel, object?>(Arg.Any<UnitInfoViewModel>());
+        await navigationService.DidNotReceive().ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(Arg.Any<UnitInfoViewModel>());
     }
 
     private static List<UnitData> CreateTestUnits()

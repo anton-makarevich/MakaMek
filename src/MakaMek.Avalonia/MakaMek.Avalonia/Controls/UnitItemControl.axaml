@@ -36,21 +36,14 @@
                     </Panel.RenderTransform>
                 </Panel>
 
-                <!-- Display Name with Edit Toggle -->
+                <!-- Display Name -->
                 <TextBlock Text="{Binding DisplayName}"
                            Classes="bodySmall"
                            Foreground="{StaticResource TextLightBrush}"
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            MaxLines="2"
-                           HorizontalAlignment="Center"
-                           IsVisible="{Binding !IsEditingName}"/>
-                <TextBox Text="{Binding EditableName, Mode=TwoWay}"
-                         IsVisible="{Binding IsEditingName}"
-                         IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
-                         Classes="bodySmall"
-                         MinWidth="80"
-                         HorizontalAlignment="Center"/>
+                           HorizontalAlignment="Center"/>
             </StackPanel>
 
             <!-- Info Button in Top Left Corner -->
@@ -63,40 +56,6 @@
                 Margin="-2,-2,0,0">
                 <PathIcon Data="{StaticResource RecordSheetIcon}"/>
             </Button>
-
-            <!-- Edit/Save/Cancel Buttons in Top Right area -->
-            <StackPanel HorizontalAlignment="Right"
-                        Margin="0,-2,-2,0">
-                <!-- Edit Button -->
-                <Button
-                    Command="{Binding StartEditingName}"
-                    IsVisible="{Binding !IsEditingName}"
-                    IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
-                    ToolTip.Tip="{extensions:Localize 'UnitItem_EditName'}"
-                    Classes="cornerBadge"
-                    Margin="0,0,0,2">
-                    <TextBlock Text="&#xf304;"/>
-                </Button>
-                <!-- Save Button -->
-                <Button
-                    Command="{Binding SaveName}"
-                    IsVisible="{Binding IsEditingName}"
-                    IsEnabled="{Binding #UnitItemUserControl.CanEditUnitName}"
-                    ToolTip.Tip="{extensions:Localize 'UnitItem_SaveName'}"
-                    Classes="cornerBadge primary"
-                    Margin="0,0,0,2">
-                    <TextBlock Text="&#xf00c;"/>
-                </Button>
-                <!-- Cancel Button -->
-                <Button
-                    Command="{Binding CancelEditName}"
-                    IsVisible="{Binding IsEditingName}"
-                    ToolTip.Tip="{extensions:Localize 'UnitItem_Cancel'}"
-                    Classes="cornerBadge"
-                    Margin="0,0,0,2">
-                    <TextBlock Text="&#xf00d;"/>
-                </Button>
-            </StackPanel>
 
             <!-- Remove Button in Bottom Right Corner -->
             <Button

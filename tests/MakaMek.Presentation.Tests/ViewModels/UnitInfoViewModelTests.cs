@@ -2,7 +2,6 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -49,7 +48,7 @@ public class UnitInfoViewModelTests
         var unit = CreateRealUnit(unitData);
         _mechFactory.Create(unitData).Returns(unit);
 
-        var sut = new UnitInfoViewModel(unitData, pilotData, _mechFactory);
+        _ = new UnitInfoViewModel(unitData, pilotData, _mechFactory);
 
         unit.Pilot.ShouldNotBeNull();
     }
@@ -66,6 +65,174 @@ public class UnitInfoViewModelTests
         var resultTask = sut.GetResultAsync();
         resultTask.IsCompleted.ShouldBeFalse();
 
+        sut.CloseCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CanEdit_IsFalseByDefault()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory);
+
+        sut.CanEdit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanEdit_IsTrue_WhenPassedTrue()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
+
+        sut.CanEdit.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveCommand_ResolvesResultWithEditedPilotData()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 4,
+            Piloting = 5
+        };
+
+        var sut = new UnitInfoViewModel(unitData, pilotData, _mechFactory, canEdit: true);
+
+        var resultTask = sut.GetResultAsync();
+        sut.Pilot!.EditableFirstName = "Jane";
+        sut.Pilot!.EditableLastName = "Smith";
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.PilotData!.Value.FirstName.ShouldBe("Jane");
+        result.PilotData!.Value.LastName.ShouldBe("Smith");
+    }
+
+    [Fact]
+    public async Task SaveCommand_ResolvesResultWithEditedUnitName()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "Original" };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
+
+        var resultTask = sut.GetResultAsync();
+        sut.EditableName = "Renamed";
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.UnitData.Name.ShouldBe("Renamed");
+    }
+
+    [Fact]
+    public async Task SaveCommand_PreservesOriginalName_WhenEditableNameUnchanged()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "Original" };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
+
+        var resultTask = sut.GetResultAsync();
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.UnitData.Name.ShouldBe("Original");
+    }
+
+    [Fact]
+    public async Task SaveCommand_IgnoresEditableName_WhenCannotEdit()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "Original" };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: false);
+
+        var resultTask = sut.GetResultAsync();
+        sut.EditableName = "Should Not Stick";
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.UnitData.Name.ShouldBe("Original");
+    }
+
+    [Fact]
+    public async Task SaveCommand_ReturnsNullPilotData_WhenCannotEditAndPilotExists()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 4,
+            Piloting = 5
+        };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, pilotData, _mechFactory, canEdit: false);
+
+        var resultTask = sut.GetResultAsync();
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.PilotData.ShouldBeNull();
+    }
+
+    [Fact]
+    public void EditableName_InitializedFromDisplayName()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "My Mech" };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
+
+        sut.EditableName.ShouldBe("My Mech");
+    }
+
+    [Fact]
+    public void EditableName_FallsBackToChassisModel_WhenNameIsNull()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = null! };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory);
+
+        sut.EditableName.ShouldBe("Locust LCT-1V");
+    }
+
+    [Fact]
+    public async Task CloseCommand_ResolvesWithNull()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
+
+        var resultTask = sut.GetResultAsync();
         sut.CloseCommand.Execute(null);
 
         var result = await resultTask;

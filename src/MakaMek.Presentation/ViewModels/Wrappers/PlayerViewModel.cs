@@ -14,7 +14,7 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Func<PlayerViewModel, Task>? _showAvailableUnits;
-    private readonly Func<UnitData, PilotData?, Task>? _showUnitInfo;
+    private readonly Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>? _showUnitInfo;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
@@ -90,7 +90,7 @@ public class PlayerViewModel : BindableBase
         Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
         Func<PlayerViewModel, Task>? showAvailableUnits = null,
-        Func<UnitData, PilotData?, Task>? showUnitInfo = null,
+        Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>? showUnitInfo = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null,
         bool isDefaultPlayer = false,
@@ -168,7 +168,22 @@ public class PlayerViewModel : BindableBase
         var pilotData = GetPilotDataForUnit(unitId);
         if (_showUnitInfo != null)
         {
-            await _showUnitInfo.Invoke(unit.UnitData, pilotData);
+            var canEdit = CanEditName;
+            var result = await _showUnitInfo.Invoke(unit.UnitData, pilotData, canEdit);
+            if (result != null)
+            {
+                if (result.PilotData is { } editedPilot)
+                {
+                    UpdatePilotForUnit(unitId, editedPilot);
+                }
+                if (!string.IsNullOrWhiteSpace(result.UnitData.Name) &&
+                    result.UnitData.Name != unit.UnitData.Name)
+                {
+                    unit.StartEditingName();
+                    unit.EditableName = result.UnitData.Name;
+                    unit.SaveName();
+                }
+            }
         }
     }
 

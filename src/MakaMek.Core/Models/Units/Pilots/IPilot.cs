@@ -10,6 +10,16 @@ public interface IPilot
     Guid Id { get; }
 
     /// <summary>
+    /// First name of the pilot
+    /// </summary>
+    string FirstName { get; }
+
+    /// <summary>
+    /// Last name of the pilot
+    /// </summary>
+    string LastName { get; }
+
+    /// <summary>
     /// Current health of the pilot
     /// </summary>
     int Health { get; }
