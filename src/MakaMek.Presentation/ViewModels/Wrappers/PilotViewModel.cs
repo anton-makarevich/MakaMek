@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -8,40 +9,40 @@ public class PilotViewModel : BindableBase
     private const int MinSkill = 0;
     private const int MaxSkill = 8;
 
-    private PilotData _pilotData;
+    private readonly IPilot _pilot;
     private string _editableFirstName = string.Empty;
     private string _editableLastName = string.Empty;
     private int _editableGunnery;
     private int _editablePiloting;
 
-    public PilotViewModel(PilotData pilotData)
+    public PilotViewModel(IPilot pilot)
     {
-        _pilotData = pilotData;
+        _pilot = pilot;
     }
 
-    public Guid Id => _pilotData.Id;
+    public Guid Id => _pilot.Id;
 
-    public string FirstName => _pilotData.FirstName;
+    public string FirstName => _pilot.FirstName;
 
-    public string LastName => _pilotData.LastName;
+    public string LastName => _pilot.LastName;
 
     public string FullName => string.IsNullOrWhiteSpace(LastName)
         ? FirstName
         : $"{FirstName} {LastName}";
 
-    public int Gunnery => _pilotData.Gunnery;
+    public int Gunnery => _pilot.Gunnery;
 
-    public int Piloting => _pilotData.Piloting;
+    public int Piloting => _pilot.Piloting;
 
-    public int Health => _pilotData.Health;
+    public int Health => _pilot.Health;
 
-    public int Injuries => _pilotData.Injuries;
+    public int Injuries => _pilot.Injuries;
 
-    public bool IsConscious => _pilotData.IsConscious;
+    public bool IsConscious => _pilot.IsConscious;
 
-    public bool IsDead => Injuries >= Health;
+    public bool IsDead => _pilot.IsDead;
 
-    public int? UnconsciousInTurn => _pilotData.UnconsciousInTurn;
+    public int? UnconsciousInTurn => _pilot.UnconsciousInTurn;
 
     public string EditableFirstName
     {
@@ -67,8 +68,6 @@ public class PilotViewModel : BindableBase
         set => SetProperty(ref _editablePiloting, value);
     }
 
-    public PilotData PilotData => _pilotData;
-
     public void StartEditing()
     {
         EditableFirstName = FirstName;
@@ -89,22 +88,18 @@ public class PilotViewModel : BindableBase
         var gunnery = Math.Clamp(EditableGunnery, MinSkill, MaxSkill);
         var piloting = Math.Clamp(EditablePiloting, MinSkill, MaxSkill);
 
-        _pilotData = _pilotData with
+        return new PilotData
         {
+            Id = _pilot.Id,
             FirstName = firstName,
             LastName = lastName,
             Gunnery = gunnery,
-            Piloting = piloting
+            Piloting = piloting,
+            Health = _pilot.Health,
+            Injuries = _pilot.Injuries,
+            IsConscious = _pilot.IsConscious,
+            UnconsciousInTurn = _pilot.UnconsciousInTurn
         };
-
-        NotifyPropertyChanged(nameof(FirstName));
-        NotifyPropertyChanged(nameof(LastName));
-        NotifyPropertyChanged(nameof(FullName));
-        NotifyPropertyChanged(nameof(Gunnery));
-        NotifyPropertyChanged(nameof(Piloting));
-        NotifyPropertyChanged(nameof(PilotData));
-
-        return _pilotData;
     }
 
     public void CancelEdit()

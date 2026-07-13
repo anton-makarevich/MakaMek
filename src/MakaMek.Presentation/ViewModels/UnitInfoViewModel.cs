@@ -35,7 +35,7 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
             var pilot = new MechWarrior(pilotData.Value);
             Unit.AssignPilot(pilot);
             HasPilot = true;
-            Pilot = new PilotViewModel(pilotData.Value);
+            Pilot = new PilotViewModel(pilot);
         }
 
         CloseCommand = new AsyncCommand(Close);

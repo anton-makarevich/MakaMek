@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -9,15 +9,8 @@ public class PilotViewModelTests
     [Fact]
     public void StartEditing_CopiesCurrentValuesToEditable()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 3,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 3, piloting: 5);
+        var sut = new PilotViewModel(pilot);
 
         sut.StartEditing();
 
@@ -30,15 +23,8 @@ public class PilotViewModelTests
     [Fact]
     public void SaveEdit_UpdatesFirstNameAndLastName()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 3,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 3, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditableFirstName = "Jane";
@@ -47,23 +33,13 @@ public class PilotViewModelTests
 
         result.FirstName.ShouldBe("Jane");
         result.LastName.ShouldBe("Smith");
-        sut.FirstName.ShouldBe("Jane");
-        sut.LastName.ShouldBe("Smith");
-        sut.FullName.ShouldBe("Jane Smith");
     }
 
     [Fact]
     public void SaveEdit_TrimsWhitespaceFromNames()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 3,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 3, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditableFirstName = "  Jane  ";
@@ -77,15 +53,8 @@ public class PilotViewModelTests
     [Fact]
     public void SaveEdit_DefaultsEmptyFirstNameToMechWarrior()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 3,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 3, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditableFirstName = "";
@@ -97,15 +66,8 @@ public class PilotViewModelTests
     [Fact]
     public void SaveEdit_ClampsGunneryToRange()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 4,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 4, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditableGunnery = 10;
@@ -121,15 +83,8 @@ public class PilotViewModelTests
     [Fact]
     public void SaveEdit_ClampsPilotingToRange()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 4,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 4, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditablePiloting = 10;
@@ -145,15 +100,8 @@ public class PilotViewModelTests
     [Fact]
     public void CancelEdit_ResetsEditableToOriginal()
     {
-        var pilotData = new PilotData
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "John",
-            LastName = "Doe",
-            Gunnery = 3,
-            Piloting = 5
-        };
-        var sut = new PilotViewModel(pilotData);
+        var pilot = new MechWarrior("John", "Doe", gunnery: 3, piloting: 5);
+        var sut = new PilotViewModel(pilot);
         sut.StartEditing();
 
         sut.EditableFirstName = "Jane";
