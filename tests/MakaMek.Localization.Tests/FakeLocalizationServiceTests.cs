@@ -699,8 +699,10 @@ public class FakeLocalizationServiceTests
 
     [Theory]
     [InlineData("UnitItem_RemoveUnit", "Remove unit")]
+    [InlineData("UnitItem_Info", "Unit Info")]
     [InlineData("UnitItem_EditName", "Edit unit name")]
     [InlineData("UnitItem_SaveName", "Save name")]
+    [InlineData("UnitItem_NoPilot", "No Pilot")]
     public void GetString_UnitItem_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

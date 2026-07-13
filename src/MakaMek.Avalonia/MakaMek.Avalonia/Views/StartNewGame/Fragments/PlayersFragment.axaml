@@ -127,13 +127,14 @@
                                                         InfoCommandParameter="{Binding Id}"
                                                         RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
                                                         RemoveCommandParameter="{Binding Id}"
-                                                        IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>
+                                                        IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"
+                                                        CanEditUnitName="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanEditName}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         
                                         <Border Padding="5"
-                                                Width="100"
+                                                Width="120"
                                                 Height="120"
                                                 Classes="card"
                                                 IsVisible="{Binding CanAddUnit}">

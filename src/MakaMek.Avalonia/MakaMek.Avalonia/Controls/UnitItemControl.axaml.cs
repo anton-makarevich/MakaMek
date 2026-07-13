@@ -6,8 +6,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -32,6 +30,9 @@ public partial class UnitItemControl : UserControl
 
     public static readonly StyledProperty<object?> InfoCommandParameterProperty =
         AvaloniaProperty.Register<UnitItemControl, object?>(nameof(InfoCommandParameter));
+
+    public static readonly StyledProperty<bool> CanEditUnitNameProperty =
+        AvaloniaProperty.Register<UnitItemControl, bool>(nameof(CanEditUnitName), defaultValue: true);
 
     public static readonly StyledProperty<string?> PlayerTintProperty =
         AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
@@ -70,6 +71,12 @@ public partial class UnitItemControl : UserControl
     {
         get => GetValue(PlayerTintProperty);
         set => SetValue(PlayerTintProperty, value);
+    }
+
+    public bool CanEditUnitName
+    {
+        get => GetValue(CanEditUnitNameProperty);
+        set => SetValue(CanEditUnitNameProperty, value);
     }
 
     public UnitItemControl()

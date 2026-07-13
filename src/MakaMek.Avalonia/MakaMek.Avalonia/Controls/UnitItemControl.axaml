@@ -10,7 +10,7 @@
              x:Name="UnitItemUserControl">
     <Border Classes="card"
             Padding="5"
-            Width="100"
+            Width="120"
             Height="150"
             Background="{StaticResource SurfaceBrush}">
         <Grid>
@@ -18,25 +18,25 @@
                 <!-- Header: Action buttons -->
                 <Grid ColumnDefinitions="*,Auto"
                       Margin="0,0,0,2">
-                    <!-- Edit button (visible when CanEditName is true) -->
+                    <!-- Edit button (visible when CanEditUnitName is true) -->
                     <Button
                         Grid.Column="0"
                         Command="{Binding #UnitItemUserControl.InfoCommand}"
                         CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
                         ToolTip.Tip="{extensions:Localize 'UnitItem_EditName'}"
                         Classes="cornerBadge"
-                        IsVisible="{Binding CanEditName}"
+                        IsVisible="{Binding #UnitItemUserControl.CanEditUnitName}"
                         HorizontalAlignment="Left">
                         <TextBlock Text="&#xf304;"/>
                     </Button>
-                    <!-- Info button (visible when CanEditName is false) -->
+                    <!-- Info button (visible when CanEditUnitName is false) -->
                     <Button
                         Grid.Column="0"
                         Command="{Binding #UnitItemUserControl.InfoCommand}"
                         CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
                         ToolTip.Tip="{extensions:Localize 'UnitItem_Info'}"
                         Classes="cornerBadge"
-                        IsVisible="{Binding !CanEditName}"
+                        IsVisible="{Binding !#UnitItemUserControl.CanEditUnitName}"
                         HorizontalAlignment="Left">
                         <PathIcon Data="{StaticResource RecordSheetIcon}"/>
                     </Button>
