@@ -10,9 +10,14 @@
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- Unit Name Header (read-only) -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" Margin="10,10,10,0"
-                    HorizontalAlignment="Center"
-                    IsVisible="{Binding #UnitRecordSheetControl.Unit, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <TextBlock Text="{Binding #UnitRecordSheetControl.Unit.Chassis} {Binding #UnitRecordSheetControl.Unit.Model}"
+                    HorizontalAlignment="Center">
+            <StackPanel.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="#UnitRecordSheetControl.Unit" Converter="{x:Static ObjectConverters.IsNotNull}"/>
+                    <Binding Path="#UnitRecordSheetControl.IsEditingName" Converter="{x:Static BoolConverters.Not}"/>
+                </MultiBinding>
+            </StackPanel.IsVisible>
+            <TextBlock Text="{Binding #UnitRecordSheetControl.DisplayName}"
                        Classes="h3"/>
         </StackPanel>
 
@@ -37,7 +42,7 @@
         <!-- Edit button for unit name -->
         <Button Grid.Row="0"
                 Command="{Binding #UnitRecordSheetControl.StartEditingNameCommand}"
-                IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
+                IsVisible="{Binding #UnitRecordSheetControl.CanStartEditingName}"
                 ToolTip.Tip="{extensions:Localize 'UnitInfo_EditName'}"
                 Classes="secondary inlineIcon"
                 HorizontalAlignment="Right"

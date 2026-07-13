@@ -81,7 +81,7 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
         if (!CanEditName || !CanEdit) return;
 
         IsEditingName = true;
-        EditableName = _originalUnitData.Name ?? string.Empty;
+        EditableName = DisplayName;
     }
 
     public void SaveName()

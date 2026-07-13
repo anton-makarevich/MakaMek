@@ -17,6 +17,8 @@ public partial class UnitRecordSheet : UserControl
     static UnitRecordSheet()
     {
         UnitProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.OnUnitChanged());
+        CanEditProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.UpdateCanStartEditingName());
+        IsEditingNameProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.UpdateCanStartEditingName());
     }
 
     public static readonly StyledProperty<bool> ShowHeatLevelPanelProperty =
@@ -60,6 +62,9 @@ public partial class UnitRecordSheet : UserControl
 
     public static readonly StyledProperty<bool> CanEditNameProperty =
         AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanEditName));
+
+    public static readonly StyledProperty<bool> CanStartEditingNameProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanStartEditingName));
 
     public Unit? Unit
     {
@@ -157,6 +162,12 @@ public partial class UnitRecordSheet : UserControl
         set => SetValue(CanEditNameProperty, value);
     }
 
+    public bool CanStartEditingName
+    {
+        get => GetValue(CanStartEditingNameProperty);
+        set => SetValue(CanStartEditingNameProperty, value);
+    }
+
     public UnitRecordSheet()
     {
         InitializeComponent();
@@ -170,5 +181,10 @@ public partial class UnitRecordSheet : UserControl
         {
             EditablePilot = new PilotViewModel(pilot.ToData());
         }
+    }
+
+    private void UpdateCanStartEditingName()
+    {
+        CanStartEditingName = CanEdit && !IsEditingName;
     }
 }
