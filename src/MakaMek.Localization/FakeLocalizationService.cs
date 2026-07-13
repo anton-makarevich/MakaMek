@@ -374,6 +374,7 @@ public class FakeLocalizationService : ILocalizationService
         ["UnitItem_Info"] = "Unit Info",
         ["UnitItem_EditName"] = "Edit unit name",
         ["UnitItem_SaveName"] = "Save name",
+        ["UnitItem_NoPilot"] = "No Pilot",
         ["UnitPilot_FirstName"] = "First Name:",
         ["UnitPilot_LastName"] = "Last Name:",
         ["UnitInfo_Save"] = "Save",
@@ -471,6 +472,6 @@ public class FakeLocalizationService : ILocalizationService
 
     public virtual string GetString(string key)
     {
-        return Strings.TryGetValue(key, out var value) ? value : key;
+        return Strings.GetValueOrDefault(key, key);
     }
 }

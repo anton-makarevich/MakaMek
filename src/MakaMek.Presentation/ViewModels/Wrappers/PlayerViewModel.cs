@@ -172,16 +172,11 @@ public class PlayerViewModel : BindableBase
             var result = await _showUnitInfo.Invoke(unit.UnitData, pilotData, canEdit);
             if (result != null)
             {
+                var updatedUnitData = result.UnitData with { Id = unit.UnitData.Id };
+                unit.UpdateUnitData(updatedUnitData);
                 if (result.PilotData is { } editedPilot)
                 {
                     UpdatePilotForUnit(unitId, editedPilot);
-                }
-                if (!string.IsNullOrWhiteSpace(result.UnitData.Name) &&
-                    result.UnitData.Name != unit.UnitData.Name)
-                {
-                    unit.StartEditingName();
-                    unit.EditableName = result.UnitData.Name;
-                    unit.SaveName();
                 }
             }
         }
@@ -212,10 +207,10 @@ public class PlayerViewModel : BindableBase
         {
             unit = unit with { Id = Guid.NewGuid() };
         }
-        Units.Add(new UnitViewModel(unit));
+        var resolvedPilot = pilotData ?? PilotData.CreateDefaultPilot("MechWarrior","");
+        Units.Add(new UnitViewModel(unit, resolvedPilot));
 
-        // Create a default pilot for this unit
-        _unitPilots[unit.Id!.Value] = pilotData ?? PilotData.CreateDefaultPilot("MechWarrior","");
+        _unitPilots[unit.Id!.Value] = resolvedPilot;
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
@@ -293,6 +288,8 @@ public class PlayerViewModel : BindableBase
     public void UpdatePilotForUnit(Guid unitId, PilotData pilotData)
     {
         _unitPilots[unitId] = pilotData;
+        var unit = Units.FirstOrDefault(u => u.Id == unitId);
+        unit?.UpdatePilot(pilotData);
     }
 
     /// <summary>

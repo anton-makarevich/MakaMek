@@ -294,4 +294,95 @@ public class PlayerViewModelTests
 
         onUnitChangedCalled.ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task AddUnit_ShouldPassPilotData_ToUnitViewModel()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 3,
+            Piloting = 4
+        };
+
+        await sut.AddUnit(unitData, pilotData);
+
+        sut.Units.First().PilotName.ShouldBe("John Doe");
+    }
+
+    [Fact]
+    public async Task AddUnit_ShouldSetDefaultPilotName_WhenNoPilotProvided()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+
+        await sut.AddUnit(unitData);
+
+        sut.Units.First().PilotName.ShouldBe("MechWarrior");
+    }
+
+    [Fact]
+    public async Task UpdatePilotForUnit_ShouldRefreshUnitViewModelPilotName()
+    {
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe"
+        };
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+        sut.Units.First().PilotName.ShouldBe("John Doe");
+
+        var updatedPilot = new PilotData
+        {
+            FirstName = "Jane",
+            LastName = "Smith"
+        };
+        sut.UpdatePilotForUnit(unitId, updatedPilot);
+
+        sut.Units.First().PilotName.ShouldBe("Jane Smith");
+        sut.GetPilotDataForUnit(unitId)!.Value.FirstName.ShouldBe("Jane");
+        sut.GetPilotDataForUnit(unitId)!.Value.LastName.ShouldBe("Smith");
+    }
+
+    [Fact]
+    public async Task ExecuteShowUnitInfo_ShouldRefreshDisplayNameAndPilotName_WhenEditResultReturned()
+    {
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe"
+        };
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "OldName" };
+        var editedUnitData = unitData with { Name = "NewName" };
+        var editedPilot = new PilotData
+        {
+            FirstName = "Jane",
+            LastName = "Smith"
+        };
+        var editedResult = new PilotEditResult(editedUnitData, editedPilot);
+        var showUnitInfo = Substitute.For<Func<UnitData, PilotData?, bool, Task<PilotEditResult?>>>();
+        showUnitInfo.Invoke(Arg.Any<UnitData>(), Arg.Any<PilotData?>(), Arg.Any<bool>())
+            .Returns(Task.FromResult<PilotEditResult?>(editedResult));
+
+        var player = new Player(PlayerData.CreateDefault(), PlayerControlType.Human);
+        var sut = new PlayerViewModel(player, true, showUnitInfo: showUnitInfo);
+        await sut.AddUnit(unitData, pilotData);
+        var unitId = sut.Units.First().Id;
+        sut.Units.First().DisplayName.ShouldBe("OldName");
+        sut.Units.First().PilotName.ShouldBe("John Doe");
+
+        await ((IAsyncCommand<Guid>)sut.ShowUnitInfoCommand).ExecuteAsync(unitId);
+
+        sut.Units.First().DisplayName.ShouldBe("NewName");
+        sut.Units.First().PilotName.ShouldBe("Jane Smith");
+    }
 }

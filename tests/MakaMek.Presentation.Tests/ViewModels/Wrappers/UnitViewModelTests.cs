@@ -1,7 +1,9 @@
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -236,5 +238,120 @@ public class UnitViewModelTests
         var sut = new UnitViewModel(unitData);
 
         sut.Id.ShouldBe(Guid.Empty);
+    }
+
+    [Fact]
+    public void PilotName_ReturnsPilotName_WhenPilotDataProvided()
+    {
+        var unitData = CreateUnitData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe"
+        };
+        var sut = new UnitViewModel(unitData, pilotData);
+
+        sut.PilotName.ShouldBe("John Doe");
+    }
+
+    [Fact]
+    public void PilotName_ReturnsFallback_WhenPilotDataIsNull()
+    {
+        var unitData = CreateUnitData();
+        var sut = new UnitViewModel(unitData);
+
+        sut.PilotName.ShouldBe("No Pilot");
+    }
+
+    [Fact]
+    public void PilotName_ReturnsLocalizedFallback_WhenPilotDataIsNullAndServiceProvided()
+    {
+        var unitData = CreateUnitData();
+        var localizationService = Substitute.For<ILocalizationService>();
+        localizationService.GetString("UnitItem_NoPilot").Returns("Sin Piloto");
+        var sut = new UnitViewModel(unitData, null, localizationService);
+
+        sut.PilotName.ShouldBe("Sin Piloto");
+    }
+
+    [Fact]
+    public void PilotName_TrimsSpaces_WhenLastNameIsEmpty()
+    {
+        var unitData = CreateUnitData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = ""
+        };
+        var sut = new UnitViewModel(unitData, pilotData);
+
+        sut.PilotName.ShouldBe("John");
+    }
+
+    [Fact]
+    public void UpdatePilot_RaisesPropertyChanged()
+    {
+        var unitData = CreateUnitData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe"
+        };
+        var sut = new UnitViewModel(unitData, pilotData);
+        var changedProperties = new List<string>();
+        sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != null) changedProperties.Add(e.PropertyName);
+        };
+
+        var updatedPilot = new PilotData
+        {
+            FirstName = "Jane",
+            LastName = "Smith"
+        };
+        sut.UpdatePilot(updatedPilot);
+
+        changedProperties.ShouldContain(nameof(sut.PilotName));
+        sut.PilotName.ShouldBe("Jane Smith");
+    }
+
+    [Fact]
+    public void UpdatePilot_UpdatesPilotName()
+    {
+        var unitData = CreateUnitData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe"
+        };
+        var sut = new UnitViewModel(unitData, pilotData);
+
+        var updatedPilot = new PilotData
+        {
+            FirstName = "Jane",
+            LastName = "Smith"
+        };
+        sut.UpdatePilot(updatedPilot);
+
+        sut.PilotName.ShouldBe("Jane Smith");
+    }
+
+    [Fact]
+    public void UpdateUnitData_RaisesPropertyChanged()
+    {
+        var unitData = CreateUnitData("OldName");
+        var sut = new UnitViewModel(unitData);
+        var changedProperties = new List<string>();
+        sut.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != null) changedProperties.Add(e.PropertyName);
+        };
+
+        var newUnitData = CreateUnitData("NewName");
+        sut.UpdateUnitData(newUnitData);
+
+        changedProperties.ShouldContain(nameof(sut.DisplayName));
+        changedProperties.ShouldContain(nameof(sut.UnitData));
+        sut.DisplayName.ShouldBe("NewName");
     }
 }
