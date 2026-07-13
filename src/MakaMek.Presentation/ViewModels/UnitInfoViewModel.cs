@@ -72,14 +72,14 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
 
     private Task Save()
     {
-        var editedPilot = Pilot?.SaveEdit();
+        var editedPilot = CanEdit ? Pilot?.SaveEdit() : null;
 
         if (CanEdit && !string.IsNullOrWhiteSpace(EditableName) && EditableName.Trim() != DisplayName)
         {
             _originalUnitData = _originalUnitData with { Name = EditableName.Trim() };
         }
 
-        var result = new PilotEditResult(_originalUnitData, editedPilot ?? default);
+        var result = new PilotEditResult(_originalUnitData, editedPilot);
         _resultTaskCompletionSource.TrySetResult(result);
         return Task.CompletedTask;
     }

@@ -118,8 +118,8 @@ public class UnitInfoViewModelTests
 
         var result = await resultTask;
         result.ShouldNotBeNull();
-        result.PilotData.FirstName.ShouldBe("Jane");
-        result.PilotData.LastName.ShouldBe("Smith");
+        result.PilotData!.Value.FirstName.ShouldBe("Jane");
+        result.PilotData!.Value.LastName.ShouldBe("Smith");
     }
 
     [Fact]
@@ -176,6 +176,30 @@ public class UnitInfoViewModelTests
     }
 
     [Fact]
+    public async Task SaveCommand_ReturnsNullPilotData_WhenCannotEditAndPilotExists()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var pilotData = new PilotData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Gunnery = 4,
+            Piloting = 5
+        };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, pilotData, _mechFactory, canEdit: false);
+
+        var resultTask = sut.GetResultAsync();
+        sut.SaveCommand.Execute(null);
+
+        var result = await resultTask;
+        result.ShouldNotBeNull();
+        result.PilotData.ShouldBeNull();
+    }
+
+    [Fact]
     public void EditableName_InitializedFromDisplayName()
     {
         var unitData = MechFactoryTests.CreateDummyMechData() with { Name = "My Mech" };
@@ -185,6 +209,18 @@ public class UnitInfoViewModelTests
         var sut = new UnitInfoViewModel(unitData, null, _mechFactory, canEdit: true);
 
         sut.EditableName.ShouldBe("My Mech");
+    }
+
+    [Fact]
+    public void EditableName_FallsBackToChassisModel_WhenNameIsNull()
+    {
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Name = null! };
+        var unit = CreateRealUnit(unitData);
+        _mechFactory.Create(unitData).Returns(unit);
+
+        var sut = new UnitInfoViewModel(unitData, null, _mechFactory);
+
+        sut.EditableName.ShouldBe("Locust LCT-1V");
     }
 
     [Fact]

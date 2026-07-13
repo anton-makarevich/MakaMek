@@ -172,7 +172,10 @@ public class PlayerViewModel : BindableBase
             var result = await _showUnitInfo.Invoke(unit.UnitData, pilotData, canEdit);
             if (result != null)
             {
-                UpdatePilotForUnit(unitId, result.PilotData);
+                if (result.PilotData is { } editedPilot)
+                {
+                    UpdatePilotForUnit(unitId, editedPilot);
+                }
                 if (!string.IsNullOrWhiteSpace(result.UnitData.Name) &&
                     result.UnitData.Name != unit.UnitData.Name)
                 {
