@@ -15,7 +15,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -24,7 +23,6 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
-using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
 using Sanet.Transport;
 using Shouldly;
@@ -75,16 +73,7 @@ public class JoinGameViewModelTests
             .Returns(Task.FromResult(_transportPublisher));
             
         // Configure the game factory to return our mock client game
-        _gameFactory.CreateClientGame(_rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _toHitCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _mapFactory,
-                _hashService)
-            .Returns(_clientGame);
+        _gameFactory.CreateClientGame(_commandPublisher).Returns(_clientGame);
         
         // Configure dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
@@ -93,22 +82,15 @@ public class JoinGameViewModelTests
 
         // Create the view model with our mocks
         _sut = new JoinGameViewModel(
-            _rulesProvider,
-            _mechFactory,
             _unitsLoader,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,
-            _mapFactory,
             _cachingService,
-            _hashService,
             _botManager,
-            _logger);
+            _logger,
+            _mechFactory);
         _sut.AttachHandlers();
     }
 
@@ -207,15 +189,7 @@ public class JoinGameViewModelTests
         ConnectAndAckLobby();
         
         // Assert
-        _gameFactory.Received(1).CreateClientGame(_rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _mapFactory,
-            _hashService);
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
     }
     
     [Fact]
@@ -230,16 +204,7 @@ public class JoinGameViewModelTests
         ConnectAndAckLobby();
         
         // Assert - should not create a new game
-        _gameFactory.DidNotReceive().CreateClientGame(
-            Arg.Any<IRulesProvider>(),
-            Arg.Any<IMechFactory>(),
-            Arg.Any<ICommandPublisher>(), 
-            Arg.Any<IToHitCalculator>(),
-            Arg.Any<IPilotingSkillCalculator>(),
-            Arg.Any<IConsciousnessCalculator>(),
-            Arg.Any<IHeatEffectsCalculator>(),
-            Arg.Any<IBattleMapFactory>(),
-            Arg.Any<IHashService>());
+        _gameFactory.DidNotReceive().CreateClientGame(Arg.Any<ICommandPublisher>());
     }
 
     [Fact]
@@ -533,22 +498,15 @@ public class JoinGameViewModelTests
             .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
 
         var sut = new JoinGameViewModel(
-            _rulesProvider,
-            _mechFactory,
             _unitsLoader,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,
-            _mapFactory,
             cachingService,
-            _hashService,
             _botManager,
-            _logger);
+            _logger,
+            _mechFactory);
         sut.AttachHandlers();
 
         // Act
@@ -567,22 +525,15 @@ public class JoinGameViewModelTests
         cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
         var sut = new JoinGameViewModel(
-            _rulesProvider,
-            _mechFactory,
             _unitsLoader,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,
-            _mapFactory,
             cachingService,
-            _hashService,
             _botManager,
-            _logger);
+            _logger,
+            _mechFactory);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();
@@ -676,11 +627,7 @@ public class JoinGameViewModelTests
 
         // Assert
         _clientGame.IsDisposed.ShouldBeTrue(); // disposed at line 181
-        _gameFactory.Received(1).CreateClientGame(
-            _rulesProvider, _mechFactory, _commandPublisher,
-            _toHitCalculator, _pilotingSkillCalculator,
-            _consciousnessCalculator, _heatEffectsCalculator,
-            _mapFactory, _hashService);
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
     }
 
     [Fact]

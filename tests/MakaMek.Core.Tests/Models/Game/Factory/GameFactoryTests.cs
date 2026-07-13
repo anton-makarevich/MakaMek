@@ -38,25 +38,28 @@ public class GameFactoryTests
     public GameFactoryTests()
     {
         _loggerFactory.CreateLogger(Arg.Any<string>()).Returns(_logger);
-        _sut = new GameFactory(_loggerFactory, _weaponAttackResolver);
-    }
-
-    [Fact]
-    public void CreateServerGame_ReturnsServerGameInstance()
-    {
-        // Act
-        var serverGame = _sut.CreateServerGame(
-            _rulesProvider, 
+        _sut = new GameFactory(
+            _loggerFactory,
+            _weaponAttackResolver,
+            _rulesProvider,
             _mechFactory,
-            _commandPublisher, 
-            _diceRoller, 
+            _diceRoller,
             _toHitCalculator,
             _damageTransferCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _fallProcessor);
+            _fallProcessor,
+            _mapFactory,
+            _hashService);
+    }
+
+    [Fact]
+    public void CreateServerGame_ReturnsServerGameInstance()
+    {
+        // Act
+        var serverGame = _sut.CreateServerGame(_commandPublisher);
 
         // Assert
         serverGame.ShouldNotBeNull();
@@ -68,16 +71,7 @@ public class GameFactoryTests
     public void CreateClientGame_ReturnsClientGameInstance()
     {
         // Act
-        var clientGame = _sut.CreateClientGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher, 
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _mapFactory,
-            _hashService);
+        var clientGame = _sut.CreateClientGame(_commandPublisher);
 
         // Assert
         clientGame.ShouldNotBeNull();

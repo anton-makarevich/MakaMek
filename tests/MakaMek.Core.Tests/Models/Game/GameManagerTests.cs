@@ -11,9 +11,9 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Services.Logging;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 
@@ -22,30 +22,17 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game;
 public class GameManagerTests : IDisposable
 {
     private readonly GameManager _sut;
-    private readonly IRulesProvider _rulesProvider;
     private readonly ICommandPublisher _commandPublisher;
-    private readonly IDiceRoller _diceRoller;
-    private readonly IToHitCalculator _toHitCalculator;
-    private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly CommandTransportAdapter _transportAdapter;
     private readonly IGameFactory _gameFactory;
     private readonly ServerGame _serverGame;
     private readonly INetworkHostService _networkHostService;
-    private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
-    private readonly ICriticalHitsCalculator _criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
-    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
-    private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
-    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
-    private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
 
     public GameManagerTests()
     {
-        _rulesProvider = Substitute.For<IRulesProvider>();
         _commandPublisher = Substitute.For<ICommandPublisher>();
-        _diceRoller = Substitute.For<IDiceRoller>();
-        _toHitCalculator = Substitute.For<IToHitCalculator>();
         // Use a real adapter with a mock publisher for testing AddPublisher calls
         var initialPublisher = Substitute.For<ITransportPublisher>(); 
         var loggerFactory = Substitute.For<ILoggerFactory>();
@@ -54,46 +41,36 @@ public class GameManagerTests : IDisposable
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
 
-        _serverGame = new ServerGame(_rulesProvider,
-            _mechFactory,
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        var mechFactory = Substitute.For<IMechFactory>();
+        var diceRoller = Substitute.For<IDiceRoller>();
+        var toHitCalculator = Substitute.For<IToHitCalculator>();
+        var damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
+        var criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
+        var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
+        var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
+        var heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
+        var fallProcessor = Substitute.For<IFallProcessor>();
+
+        _serverGame = new ServerGame(rulesProvider,
+            mechFactory,
             _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
+            diceRoller,
+            toHitCalculator,
+            damageTransferCalculator,
+            criticalHitsCalculator,
             Substitute.For<IHullBreachCalculator>(),
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
+            pilotingSkillCalculator,
+            consciousnessCalculator,
+            heatEffectsCalculator,
+            fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>());
-        _gameFactory.CreateServerGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor).Returns(_serverGame);
+        _gameFactory.CreateServerGame(_commandPublisher).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _sut = new GameManager(
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
             _gameFactory,
             _localizationService,
             _commandLoggerFactory,
@@ -101,17 +78,7 @@ public class GameManagerTests : IDisposable
     }
     
     private GameManager CreateSutWithNullHost() => new GameManager(
-        _rulesProvider,
-        _mechFactory,
         _commandPublisher,
-        _diceRoller,
-        _toHitCalculator,
-        _damageTransferCalculator,
-        _criticalHitsCalculator,
-        _pilotingSkillCalculator,
-        _consciousnessCalculator,
-        _heatEffectsCalculator,
-        _fallProcessor,
         _gameFactory,
         _localizationService,
         _commandLoggerFactory);
@@ -132,18 +99,7 @@ public class GameManagerTests : IDisposable
         await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Initial mock + network publisher
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
-        _gameFactory.Received(1).CreateServerGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
     }
     
     [Fact]
@@ -170,18 +126,7 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only the initial mock publisher
-        _gameFactory.Received(1).CreateServerGame(
-            _rulesProvider, 
-            _mechFactory,
-            _commandPublisher, 
-            _diceRoller, 
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
     }
 
     [Fact]
@@ -196,18 +141,7 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only initial mock publisher
-        _gameFactory.Received(1).CreateServerGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
     }
 
     [Fact]
@@ -223,18 +157,7 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1);
-        _gameFactory.Received(1).CreateServerGame(
-            _rulesProvider, 
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
     }
 
     [Fact]

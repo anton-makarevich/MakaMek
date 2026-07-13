@@ -18,17 +18,24 @@ public class GameFactory : IGameFactory
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly IWeaponAttackResolver _weaponAttackResolver;
+    private readonly IRulesProvider _rulesProvider;
+    private readonly IMechFactory _mechFactory;
+    private readonly IDiceRoller _diceRoller;
+    private readonly IToHitCalculator _toHitCalculator;
+    private readonly IDamageTransferCalculator _damageTransferCalculator;
+    private readonly ICriticalHitsCalculator _criticalHitsCalculator;
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
+    private readonly IConsciousnessCalculator _consciousnessCalculator;
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator;
+    private readonly IFallProcessor _fallProcessor;
+    private readonly IBattleMapFactory _battleMapFactory;
+    private readonly IHashService _hashService;
 
-    public GameFactory(ILoggerFactory loggerFactory, IWeaponAttackResolver weaponAttackResolver)
-    {
-        _loggerFactory = loggerFactory;
-        _weaponAttackResolver = weaponAttackResolver;
-    }
-
-    public ServerGame CreateServerGame(
+    public GameFactory(
+        ILoggerFactory loggerFactory,
+        IWeaponAttackResolver weaponAttackResolver,
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         IDamageTransferCalculator damageTransferCalculator,
@@ -36,51 +43,61 @@ public class GameFactory : IGameFactory
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
-        IFallProcessor fallProcessor
-        )
+        IFallProcessor fallProcessor,
+        IBattleMapFactory battleMapFactory,
+        IHashService hashService)
+    {
+        _loggerFactory = loggerFactory;
+        _weaponAttackResolver = weaponAttackResolver;
+        _rulesProvider = rulesProvider;
+        _mechFactory = mechFactory;
+        _diceRoller = diceRoller;
+        _toHitCalculator = toHitCalculator;
+        _damageTransferCalculator = damageTransferCalculator;
+        _criticalHitsCalculator = criticalHitsCalculator;
+        _pilotingSkillCalculator = pilotingSkillCalculator;
+        _consciousnessCalculator = consciousnessCalculator;
+        _heatEffectsCalculator = heatEffectsCalculator;
+        _fallProcessor = fallProcessor;
+        _battleMapFactory = battleMapFactory;
+        _hashService = hashService;
+    }
+
+    public ServerGame CreateServerGame(ICommandPublisher commandPublisher)
     {
         var logger = _loggerFactory.CreateLogger<ServerGame>();
 
-        var hullBreachCalculator = new HullBreachCalculator(diceRoller);
+        var hullBreachCalculator = new HullBreachCalculator(_diceRoller);
 
-        return new ServerGame(rulesProvider,
-            mechFactory,
+        return new ServerGame(_rulesProvider,
+            _mechFactory,
             commandPublisher,
-            diceRoller,
-            toHitCalculator,
-            damageTransferCalculator,
-            criticalHitsCalculator,
+            _diceRoller,
+            _toHitCalculator,
+            _damageTransferCalculator,
+            _criticalHitsCalculator,
             hullBreachCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
-            fallProcessor,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _fallProcessor,
             _weaponAttackResolver,
             logger);
     }
 
-    public ClientGame CreateClientGame(
-        IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
-        ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory,
-        IHashService hashService)
+    public ClientGame CreateClientGame(ICommandPublisher commandPublisher)
     {
         var logger = _loggerFactory.CreateLogger<ClientGame>();
 
-        return new ClientGame(rulesProvider,
-            mechFactory,
+        return new ClientGame(_rulesProvider,
+            _mechFactory,
             commandPublisher,
-            toHitCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
-            mapFactory,
-            hashService,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _battleMapFactory,
+            _hashService,
             logger);
     }
 }

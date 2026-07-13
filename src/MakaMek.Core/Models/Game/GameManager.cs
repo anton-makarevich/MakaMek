@@ -1,13 +1,8 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
-using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport.Rx;
@@ -16,17 +11,7 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public class GameManager : IGameManager
 {
-    private readonly IRulesProvider _rulesProvider;
-    private readonly IMechFactory _mechFactory;
     private readonly ICommandPublisher _commandPublisher;
-    private readonly IDiceRoller _diceRoller;
-    private readonly IToHitCalculator _toHitCalculator;
-    private readonly IDamageTransferCalculator _damageTransferCalculator;
-    private readonly ICriticalHitsCalculator _criticalHitsCalculator;
-    private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    private readonly IFallProcessor _fallProcessor;
-    private readonly IConsciousnessCalculator _consciousnessCalculator;
-    private readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IGameFactory _gameFactory;
     private ServerGame? _serverGame;
     private readonly INetworkHostService? _networkHostService;
@@ -36,34 +21,13 @@ public class GameManager : IGameManager
     private ICommandLogger? _commandLogger;
     private Action<IGameCommand>? _logHandler;
 
-    public GameManager(IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
-        ICommandPublisher commandPublisher,
-        IDiceRoller diceRoller,
-        IToHitCalculator toHitCalculator,
-        IDamageTransferCalculator damageTransferCalculator,
-        ICriticalHitsCalculator criticalHitsCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
-        IFallProcessor fallProcessor,
+    public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
         ILocalizationService localizationService,
         ICommandLoggerFactory commandLoggerFactory,
         INetworkHostService? networkHostService = null)
     {
-        _rulesProvider = rulesProvider;
-        _mechFactory = mechFactory;
-
         _commandPublisher = commandPublisher;
-        _diceRoller = diceRoller;
-        _toHitCalculator = toHitCalculator;
-        _damageTransferCalculator = damageTransferCalculator;
-        _criticalHitsCalculator = criticalHitsCalculator;
-        _pilotingSkillCalculator = pilotingSkillCalculator;
-        _fallProcessor = fallProcessor;
-        _consciousnessCalculator = consciousnessCalculator;
-        _heatEffectsCalculator = heatEffectsCalculator;
         _gameFactory = gameFactory;
         _localizationService = localizationService;
         _commandLoggerFactory = commandLoggerFactory;
@@ -127,19 +91,7 @@ public class GameManager : IGameManager
         }
 
         // Create the game server instance
-        _serverGame = _gameFactory.CreateServerGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor
-        );
+        _serverGame = _gameFactory.CreateServerGame(_commandPublisher);
         // Start server listening loop in background
         _ = Task.Run(() => _serverGame?.Start());
 

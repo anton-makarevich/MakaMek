@@ -10,13 +10,8 @@ using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Tools.BotContainer.Configuration;
 
 namespace Sanet.MakaMek.Tools.BotContainer.Services;
@@ -28,15 +23,7 @@ public class IntegrationBotService : BackgroundService
     private readonly ICommandPublisher _commandPublisher;
     private readonly IGameFactory _gameFactory;
     private readonly IBotManager _botManager;
-    private readonly IRulesProvider _rulesProvider;
-    private readonly Core.Utils.IMechFactory _mechFactory;
     private readonly IUnitsLoader _unitsLoader;
-    private readonly IToHitCalculator _toHitCalculator;
-    private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    private readonly IConsciousnessCalculator _consciousnessCalculator;
-    private readonly IHeatEffectsCalculator _heatEffectsCalculator;
-    private readonly IBattleMapFactory _mapFactory;
-    private readonly IHashService _hashService;
     private readonly ILogger<IntegrationBotService> _logger;
     private readonly BotAgentClient _botAgentClient;
     private readonly ILoggerFactory _loggerFactory;
@@ -56,15 +43,7 @@ public class IntegrationBotService : BackgroundService
         ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
         IBotManager botManager,
-        IRulesProvider rulesProvider,
-        Core.Utils.IMechFactory mechFactory,
         IUnitsLoader unitsLoader,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory,
-        IHashService hashService,
         ILogger<IntegrationBotService> logger,
         BotAgentClient botAgentClient,
         ILoggerFactory loggerFactory,
@@ -76,15 +55,7 @@ public class IntegrationBotService : BackgroundService
         _commandPublisher = commandPublisher;
         _gameFactory = gameFactory;
         _botManager = botManager;
-        _rulesProvider = rulesProvider;
-        _mechFactory = mechFactory;
         _unitsLoader = unitsLoader;
-        _toHitCalculator = toHitCalculator;
-        _pilotingSkillCalculator = pilotingSkillCalculator;
-        _consciousnessCalculator = consciousnessCalculator;
-        _heatEffectsCalculator = heatEffectsCalculator;
-        _mapFactory = mapFactory;
-        _hashService = hashService;
         _logger = logger;
         _botAgentClient = botAgentClient;
         _loggerFactory = loggerFactory;
@@ -139,16 +110,7 @@ public class IntegrationBotService : BackgroundService
         var client = await _transportFactory.CreateAndStartClientPublisher(_config.ServerUrl);
         adapter.AddPublisher(client);
 
-        _clientGame = _gameFactory.CreateClientGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _mapFactory,
-            _hashService);
+        _clientGame = _gameFactory.CreateClientGame(_commandPublisher);
 
         _gameStateProvider.ClientGame = _clientGame;
 
