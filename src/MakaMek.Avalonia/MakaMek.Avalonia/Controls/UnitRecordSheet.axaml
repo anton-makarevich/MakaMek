@@ -7,56 +7,17 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Unit Name Header (read-only) -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" Margin="10,10,10,0"
-                    HorizontalAlignment="Center">
-            <StackPanel.IsVisible>
-                <MultiBinding Converter="{x:Static BoolConverters.And}">
-                    <Binding Path="#UnitRecordSheetControl.Unit" Converter="{x:Static ObjectConverters.IsNotNull}"/>
-                    <Binding Path="#UnitRecordSheetControl.IsEditingName" Converter="{x:Static BoolConverters.Not}"/>
-                </MultiBinding>
-            </StackPanel.IsVisible>
-            <TextBlock Text="{Binding #UnitRecordSheetControl.DisplayName}"
-                       Classes="h3"/>
-        </StackPanel>
-
-        <!-- Editable unit name -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" Margin="10,10,10,0"
-                    HorizontalAlignment="Center"
-                    IsVisible="{Binding #UnitRecordSheetControl.IsEditingName}">
-            <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
-                     MinWidth="200" Classes="h3"/>
-            <Button Command="{Binding #UnitRecordSheetControl.SaveNameCommand}"
-                    ToolTip.Tip="{extensions:Localize 'UnitInfo_Save'}"
-                    Classes="primary inlineIcon">
-                <TextBlock Text="&#xf00c;"/>
-            </Button>
-            <Button Command="{Binding #UnitRecordSheetControl.CancelEditNameCommand}"
-                    ToolTip.Tip="{extensions:Localize 'Cancel'}"
-                    Classes="secondary inlineIcon">
-                <TextBlock Text="&#xf00d;"/>
-            </Button>
-        </StackPanel>
-
-        <!-- Edit button for unit name -->
-        <Button Grid.Row="0"
-                Command="{Binding #UnitRecordSheetControl.StartEditingNameCommand}"
-                IsVisible="{Binding #UnitRecordSheetControl.CanStartEditingName}"
-                ToolTip.Tip="{extensions:Localize 'UnitInfo_EditName'}"
-                Classes="secondary inlineIcon"
-                HorizontalAlignment="Right"
-                Margin="0,10,10,0">
-            <TextBlock Text="&#xf304;"/>
-        </Button>
-
+    <Grid RowDefinitions="*,Auto">
         <!-- Tabs -->
-        <TabControl Grid.Row="1" Margin="0,5,0,0">
+        <TabControl Grid.Row="0" Margin="0,5,0,0">
             <TabItem>
                 <TabItem.Header>
                     <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
                 </TabItem.Header>
                 <StackPanel Margin="10">
+                    <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
+                             IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
+                             Margin="0,0,0,5"/>
                     <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
                     <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
                     <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
@@ -96,7 +57,7 @@
         </TabControl>
 
         <!-- Save/Cancel buttons at bottom -->
-        <StackPanel Grid.Row="2"
+        <StackPanel Grid.Row="1"
                     Orientation="Horizontal"
                     Spacing="10"
                     HorizontalAlignment="Center"

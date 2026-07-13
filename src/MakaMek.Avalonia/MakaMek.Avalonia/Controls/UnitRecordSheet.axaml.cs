@@ -17,8 +17,6 @@ public partial class UnitRecordSheet : UserControl
     static UnitRecordSheet()
     {
         UnitProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.OnUnitChanged());
-        CanEditProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.UpdateCanStartEditingName());
-        IsEditingNameProperty.Changed.AddClassHandler<UnitRecordSheet>((sender, _) => sender.UpdateCanStartEditingName());
     }
 
     public static readonly StyledProperty<bool> ShowHeatLevelPanelProperty =
@@ -42,29 +40,8 @@ public partial class UnitRecordSheet : UserControl
     public static readonly StyledProperty<ICommand?> CancelCommandProperty =
         AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(CancelCommand));
 
-    public static readonly StyledProperty<string?> DisplayNameProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, string?>(nameof(DisplayName));
-
     public static readonly StyledProperty<string?> EditableNameProperty =
         AvaloniaProperty.Register<UnitRecordSheet, string?>(nameof(EditableName));
-
-    public static readonly StyledProperty<bool> IsEditingNameProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(IsEditingName));
-
-    public static readonly StyledProperty<ICommand?> StartEditingNameCommandProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(StartEditingNameCommand));
-
-    public static readonly StyledProperty<ICommand?> SaveNameCommandProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(SaveNameCommand));
-
-    public static readonly StyledProperty<ICommand?> CancelEditNameCommandProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(CancelEditNameCommand));
-
-    public static readonly StyledProperty<bool> CanEditNameProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanEditName));
-
-    public static readonly StyledProperty<bool> CanStartEditingNameProperty =
-        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(CanStartEditingName));
 
     public Unit? Unit
     {
@@ -120,52 +97,10 @@ public partial class UnitRecordSheet : UserControl
         set => SetValue(CancelCommandProperty, value);
     }
 
-    public string? DisplayName
-    {
-        get => GetValue(DisplayNameProperty);
-        set => SetValue(DisplayNameProperty, value);
-    }
-
     public string? EditableName
     {
         get => GetValue(EditableNameProperty);
         set => SetValue(EditableNameProperty, value);
-    }
-
-    public bool IsEditingName
-    {
-        get => GetValue(IsEditingNameProperty);
-        set => SetValue(IsEditingNameProperty, value);
-    }
-
-    public ICommand? StartEditingNameCommand
-    {
-        get => GetValue(StartEditingNameCommandProperty);
-        set => SetValue(StartEditingNameCommandProperty, value);
-    }
-
-    public ICommand? SaveNameCommand
-    {
-        get => GetValue(SaveNameCommandProperty);
-        set => SetValue(SaveNameCommandProperty, value);
-    }
-
-    public ICommand? CancelEditNameCommand
-    {
-        get => GetValue(CancelEditNameCommandProperty);
-        set => SetValue(CancelEditNameCommandProperty, value);
-    }
-
-    public bool CanEditName
-    {
-        get => GetValue(CanEditNameProperty);
-        set => SetValue(CanEditNameProperty, value);
-    }
-
-    public bool CanStartEditingName
-    {
-        get => GetValue(CanStartEditingNameProperty);
-        set => SetValue(CanStartEditingNameProperty, value);
     }
 
     public UnitRecordSheet()
@@ -181,10 +116,5 @@ public partial class UnitRecordSheet : UserControl
         {
             EditablePilot = new PilotViewModel(pilot.ToData());
         }
-    }
-
-    private void UpdateCanStartEditingName()
-    {
-        CanStartEditingName = CanEdit && !IsEditingName;
     }
 }

@@ -21,12 +21,6 @@
             EditablePilot="{Binding Pilot}"
             SaveCommand="{Binding SaveCommand}"
             CancelCommand="{Binding CloseCommand}"
-            DisplayName="{Binding DisplayName}"
-            IsEditingName="{Binding IsEditingName}"
-            EditableName="{Binding EditableName}"
-            StartEditingNameCommand="{Binding StartEditingName}"
-            SaveNameCommand="{Binding SaveName}"
-            CancelEditNameCommand="{Binding CancelEditName}"
-            CanEditName="{Binding CanEditName}"/>
+            EditableName="{Binding EditableName, Mode=TwoWay}"/>
     </templatedControls:GamePanel>
 </UserControl>

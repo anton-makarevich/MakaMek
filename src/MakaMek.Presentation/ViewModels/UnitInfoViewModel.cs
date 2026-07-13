@@ -13,7 +13,6 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
 {
     private readonly TaskCompletionSource<PilotEditResult?> _resultTaskCompletionSource = new();
     private UnitData _originalUnitData;
-    private bool _isEditingName;
 
     public Unit Unit { get; }
     public bool HasPilot { get; }
@@ -46,6 +45,8 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
         {
             Pilot?.StartEditing();
         }
+
+        EditableName = DisplayName;
     }
 
     public string DisplayName
@@ -58,49 +59,10 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
         }
     }
 
-    public bool IsEditingName
-    {
-        get => _isEditingName;
-        set
-        {
-            SetProperty(ref _isEditingName, value);
-            NotifyPropertyChanged(nameof(CanEditName));
-        }
-    }
-
-    public bool CanEditName => !_isEditingName;
-
     public string EditableName
     {
         get;
         set => SetProperty(ref field, value);
-    } = string.Empty;
-
-    public void StartEditingName()
-    {
-        if (!CanEditName || !CanEdit) return;
-
-        IsEditingName = true;
-        EditableName = DisplayName;
-    }
-
-    public void SaveName()
-    {
-        if (!IsEditingName) return;
-
-        if (!string.IsNullOrWhiteSpace(EditableName))
-        {
-            _originalUnitData = _originalUnitData with { Name = EditableName.Trim() };
-        }
-
-        IsEditingName = false;
-        NotifyPropertyChanged(nameof(DisplayName));
-    }
-
-    public void CancelEditName()
-    {
-        EditableName = DisplayName;
-        IsEditingName = false;
     }
 
     public Task<PilotEditResult?> GetResultAsync()
@@ -111,6 +73,12 @@ public class UnitInfoViewModel : BaseViewModel, IResultProvider<PilotEditResult?
     private Task Save()
     {
         var editedPilot = Pilot?.SaveEdit();
+
+        if (CanEdit && !string.IsNullOrWhiteSpace(EditableName) && EditableName.Trim() != DisplayName)
+        {
+            _originalUnitData = _originalUnitData with { Name = EditableName.Trim() };
+        }
+
         var result = new PilotEditResult(_originalUnitData, editedPilot ?? default);
         _resultTaskCompletionSource.TrySetResult(result);
         return Task.CompletedTask;
