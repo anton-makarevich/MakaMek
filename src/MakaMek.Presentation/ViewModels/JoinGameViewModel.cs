@@ -8,16 +8,10 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -26,42 +20,27 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class JoinGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly ITransportFactory _transportFactory;
-    private readonly IBattleMapFactory _mapFactory;
 
     public JoinGameViewModel(
-        IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
-        IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
-        IHashService hashService,
         IBotManager botManager,
-        ILogger<JoinGameViewModel> logger)
-        : base(rulesProvider,
-            unitsLoader,
+        ILogger<JoinGameViewModel> logger,
+        IMechFactory mechFactory)
+        : base(unitsLoader,
             commandPublisher,
-            toHitCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
             dispatcherService,
             gameFactory,
             cachingService,
-            hashService,
             botManager,
             mechFactory,
             logger)
     {
         _transportFactory = transportFactory;
-        _mapFactory = mapFactory;
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
@@ -182,16 +161,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
                 _localGame.Dispose();
                 _localGame = null;
             }
-            _localGame = _gameFactory.CreateClientGame(
-                _rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _toHitCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _mapFactory,
-                _hashService);
+            _localGame = _gameFactory.CreateClientGame(_commandPublisher);
 
             _localGame.Logger.LogAttemptedToConnectToServerIp(ServerIp);
             

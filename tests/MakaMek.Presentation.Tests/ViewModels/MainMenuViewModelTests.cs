@@ -5,11 +5,7 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
-using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -29,7 +25,6 @@ public class MainMenuViewModelTests
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly ILogger<MainMenuViewModel> _logger = Substitute.For<ILogger<MainMenuViewModel>>();
 
     public MainMenuViewModelTests()
@@ -78,13 +73,7 @@ public class MainMenuViewModelTests
         var startVm = new StartNewGameViewModel(
             Substitute.For<IGameManager>(),
             Substitute.For<IUnitsLoader>(),
-            Substitute.For<IRulesProvider>(),
-            Substitute.For<IMechFactory>(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<IPilotingSkillCalculator>(),
-            Substitute.For<IConsciousnessCalculator>(),
-            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IDispatcherService>(),
             Substitute.For<IGameFactory>(),
             Substitute.For<IBattleMapFactory>(),
@@ -92,10 +81,10 @@ public class MainMenuViewModelTests
             Substitute.For<IMapPreviewRenderer>(),
             Substitute.For<IMapResourceProvider>(),
             Substitute.For<IFileService>(),
-            _hashService,
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<StartNewGameViewModel>>(),
-            _localizationService
+            _localizationService,
+            Substitute.For<IMechFactory>()
         );
         _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 
@@ -123,22 +112,15 @@ public class MainMenuViewModelTests
         var command = _sut.JoinGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
         var joinVm = new JoinGameViewModel(
-            Substitute.For<IRulesProvider>(),
-            Substitute.For<IMechFactory>(),
             Substitute.For<IUnitsLoader>(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<IPilotingSkillCalculator>(),
-            Substitute.For<IConsciousnessCalculator>(),
-            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IDispatcherService>(),
             Substitute.For<IGameFactory>(),
             Substitute.For<ITransportFactory>(),
-            Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
-            _hashService,
             Substitute.For<IBotManager>(),
-            Substitute.For<ILogger<JoinGameViewModel>>()
+            Substitute.For<ILogger<JoinGameViewModel>>(),
+            Substitute.For<IMechFactory>()
         );
         _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 

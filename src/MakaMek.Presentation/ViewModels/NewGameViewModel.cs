@@ -12,11 +12,7 @@ using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
@@ -30,16 +26,10 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly ObservableCollection<PlayerViewModel> _players = [];
     private IEnumerable<UnitData> _availableUnits = [];
 
-    protected readonly IRulesProvider _rulesProvider;
-    private readonly IUnitsLoader _unitsLoader;
     protected readonly ICommandPublisher _commandPublisher;
-    protected readonly IToHitCalculator _toHitCalculator;
-    protected readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    protected readonly IConsciousnessCalculator _consciousnessCalculator;
-    protected readonly IHeatEffectsCalculator _heatEffectsCalculator;
-    private readonly IDispatcherService _dispatcherService;
+    private readonly IUnitsLoader _unitsLoader;
     protected readonly IGameFactory _gameFactory;
-    protected readonly IHashService _hashService;
+    private readonly IDispatcherService _dispatcherService;
     private readonly IFileCachingService _cachingService;
     protected readonly IBotManager _botManager;
     protected readonly IMechFactory _mechFactory;
@@ -53,32 +43,20 @@ public abstract class NewGameViewModel : BaseViewModel
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
 
-    protected NewGameViewModel(IRulesProvider rulesProvider,
-        IUnitsLoader unitsLoader,
+    protected NewGameViewModel(IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IFileCachingService cachingService,
-        IHashService hashService,
         IBotManager botManager,
         IMechFactory mechFactory,
         ILogger logger)
     {
-        _rulesProvider = rulesProvider;
         _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
-        _toHitCalculator = toHitCalculator;
-        _pilotingSkillCalculator = pilotingSkillCalculator;
-        _consciousnessCalculator = consciousnessCalculator;
-        _heatEffectsCalculator = heatEffectsCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
-        _hashService = hashService;
         _botManager = botManager;
         _mechFactory = mechFactory;
         _logger = logger;

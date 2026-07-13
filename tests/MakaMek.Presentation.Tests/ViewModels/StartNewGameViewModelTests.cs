@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
@@ -11,7 +10,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -93,16 +91,7 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _hashService,
             _logger);
-        _gameFactory.CreateClientGame(_rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _toHitCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _mapFactory,
-                _hashService)
-            .Returns(_clientGame);
+        _gameFactory.CreateClientGame(_commandPublisher).Returns(_clientGame);
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
@@ -119,13 +108,7 @@ public class StartNewGameViewModelTests
         _sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _mapFactory,
@@ -133,10 +116,10 @@ public class StartNewGameViewModelTests
             _mapPreviewRenderer,
             _mapResourceProvider,
             _fileService,
-            _hashService,
             _botManager,
             _vmLogger,
-            _localizationService);
+            _localizationService,
+            _mechFactory);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -734,13 +717,7 @@ public class StartNewGameViewModelTests
         var sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _mapFactory,
@@ -748,10 +725,10 @@ public class StartNewGameViewModelTests
             _mapPreviewRenderer,
             _mapResourceProvider,
             _fileService,
-            _hashService,
             _botManager,
             _vmLogger,
-            _localizationService);
+            _localizationService,
+            _mechFactory);
         sut.AttachHandlers();
 
         // Assert
@@ -776,13 +753,7 @@ public class StartNewGameViewModelTests
         var sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _mapFactory,
@@ -790,10 +761,10 @@ public class StartNewGameViewModelTests
             _mapPreviewRenderer,
             _mapResourceProvider,
             _fileService,
-            _hashService,
             _botManager,
             _vmLogger,
-            _localizationService);
+            _localizationService,
+            _mechFactory);
         sut.AttachHandlers();
 
         // Act
@@ -813,13 +784,7 @@ public class StartNewGameViewModelTests
         var sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _mapFactory,
@@ -827,10 +792,10 @@ public class StartNewGameViewModelTests
             _mapPreviewRenderer,
             _mapResourceProvider,
             _fileService,
-            _hashService,
             _botManager,
             _vmLogger,
-            _localizationService);
+            _localizationService,
+            _mechFactory);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -848,13 +813,7 @@ public class StartNewGameViewModelTests
         var sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            _rulesProvider,
-            _mechFactory,
             _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _mapFactory,
@@ -862,10 +821,10 @@ public class StartNewGameViewModelTests
             _mapPreviewRenderer,
             _mapResourceProvider,
             _fileService,
-            _hashService,
             _botManager,
             _vmLogger,
-            _localizationService);
+            _localizationService,
+            _mechFactory);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -1017,12 +976,11 @@ public class StartNewGameViewModelTests
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
-            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
-            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            gameManager, _unitsLoader,
+            commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _hashService, _botManager,
-            _vmLogger, _localizationService);
+            _mapResourceProvider, _fileService, _botManager,
+            _vmLogger, _localizationService, _mechFactory);
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -1043,12 +1001,11 @@ public class StartNewGameViewModelTests
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
-            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
-            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            gameManager, _unitsLoader,
+            commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _hashService, _botManager,
-            _vmLogger, _localizationService);
+            _mapResourceProvider, _fileService, _botManager,
+            _vmLogger, _localizationService, _mechFactory);
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -1069,12 +1026,11 @@ public class StartNewGameViewModelTests
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader, _rulesProvider, _mechFactory,
-            commandPublisher, _toHitCalculator, _pilotingSkillCalculator,
-            _consciousnessCalculator, _heatEffectsCalculator, _dispatcherService,
+            gameManager, _unitsLoader,
+            commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _hashService, _botManager,
-            _vmLogger, _localizationService);
+            _mapResourceProvider, _fileService, _botManager,
+            _vmLogger, _localizationService, _mechFactory);
 
         sut.AttachHandlers();
         sut.AttachHandlers();

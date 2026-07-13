@@ -10,12 +10,8 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -29,7 +25,6 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
-    private readonly IBattleMapFactory _mapFactory;
     private readonly ILogger<StartNewGameViewModel> _logger;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
@@ -37,13 +32,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public StartNewGameViewModel(
         IGameManager gameManager,
         IUnitsLoader unitsLoader,
-        IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory,
@@ -51,27 +40,20 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IMapPreviewRenderer mapPreviewRenderer,
         IMapResourceProvider mapResourceProvider,
         IFileService fileService,
-        IHashService hashService,
         IBotManager botManager,
         ILogger<StartNewGameViewModel> logger,
-        ILocalizationService localizationService)
-        : base(rulesProvider,
-            unitsLoader,
+        ILocalizationService localizationService,
+        IMechFactory mechFactory)
+        : base(unitsLoader,
             commandPublisher,
-            toHitCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
             dispatcherService,
             gameFactory,
             cachingService,
-            hashService,
             botManager,
             mechFactory,
             logger)
     {
         _gameManager = gameManager;
-        _mapFactory = mapFactory;
         _logger = logger;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
@@ -85,16 +67,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             return;
         _commandPublisher.Subscribe(HandleServerCommand);
         // Use the factory to create the ClientGame
-        _localGame = _gameFactory.CreateClientGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _mapFactory,
-            _hashService);
+        _localGame = _gameFactory.CreateClientGame(_commandPublisher);
 
         // Initialize BotManager with the ClientGame and DecisionEngineProvider
         var decisionEngineProvider = new DecisionEngineProvider(_localGame);

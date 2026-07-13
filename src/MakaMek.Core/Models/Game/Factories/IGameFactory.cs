@@ -1,11 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
-using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Services.Cryptography;
-using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Map.Factories;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -17,32 +10,10 @@ public interface IGameFactory
     /// <summary>
     /// Creates a new server-side game instance.
     /// </summary>
-    ServerGame CreateServerGame(
-        IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
-        ICommandPublisher commandPublisher,
-        IDiceRoller diceRoller,
-        IToHitCalculator toHitCalculator,
-        IDamageTransferCalculator damageTransferCalculator,
-        ICriticalHitsCalculator criticalHitsCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
-        IFallProcessor fallProcessor
-        );
+    ServerGame CreateServerGame(ICommandPublisher commandPublisher);
 
     /// <summary>
     /// Creates a new client-side game instance.
     /// </summary>
-    ClientGame CreateClientGame(
-        IRulesProvider rulesProvider,
-        IMechFactory mechFactory,
-        ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory,
-        IHashService hashService
-    );
+    ClientGame CreateClientGame(ICommandPublisher commandPublisher);
 }
