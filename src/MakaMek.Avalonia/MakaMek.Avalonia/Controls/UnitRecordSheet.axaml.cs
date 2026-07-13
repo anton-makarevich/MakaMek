@@ -164,6 +164,11 @@ public partial class UnitRecordSheet : UserControl
 
     private void OnUnitChanged()
     {
-        HasPilot = Unit?.Pilot is not null;
+        var pilot = Unit?.Pilot;
+        HasPilot = pilot is not null;
+        if (pilot is not null && EditablePilot is null)
+        {
+            EditablePilot = new PilotViewModel(pilot.ToData());
+        }
     }
 }
