@@ -134,7 +134,7 @@
                                         </ItemsControl>
                                         
                                         <Border Padding="5"
-                                                Width="120"
+                                                Width="100"
                                                 Height="120"
                                                 Classes="card"
                                                 IsVisible="{Binding CanAddUnit}">
