@@ -7,7 +7,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class PilotViewModel : BindableBase
 {
     private const int MinSkill = 0;
-    private const int MaxSkill = 8;
+    private const int MaxSkill = 7;
 
     private readonly IPilot _pilot;
 

@@ -72,7 +72,7 @@ public class PilotViewModelTests
 
         sut.EditableGunnery = 10;
         var resultHigh = sut.SaveEdit();
-        resultHigh.Gunnery.ShouldBe(8);
+        resultHigh.Gunnery.ShouldBe(7);
 
         sut.StartEditing();
         sut.EditableGunnery = -5;
@@ -89,7 +89,7 @@ public class PilotViewModelTests
 
         sut.EditablePiloting = 10;
         var resultHigh = sut.SaveEdit();
-        resultHigh.Piloting.ShouldBe(8);
+        resultHigh.Piloting.ShouldBe(7);
 
         sut.StartEditing();
         sut.EditablePiloting = -5;

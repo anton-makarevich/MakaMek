@@ -358,6 +358,7 @@ public class FakeLocalizationService : ILocalizationService
         ["UnitPilot_Skills"] = "Skills",
         ["UnitPilot_Gunnery"] = "Gunnery:",
         ["UnitPilot_Piloting"] = "Piloting:",
+        ["UnitPilot_SkillsHint"] = "Lower is better (0 = Elite, 7 = Green)",
         ["UnitPilot_HealthStatus"] = "Health Status",
         ["UnitPilot_Injuries"] = "Injuries: {0}/{1}",
         ["UnitPilot_Status"] = "Status",
