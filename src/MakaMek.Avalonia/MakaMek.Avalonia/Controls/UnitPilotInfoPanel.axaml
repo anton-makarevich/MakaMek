@@ -26,17 +26,14 @@
                 <TextBlock Text="{Binding FullName}" Classes="body"/>
             </StackPanel>
             <!-- Editable name -->
-            <StackPanel Classes="verticalSpaced"
-                        IsVisible="{Binding #PilotInfoPanel.CanEdit}">
-                <StackPanel Classes="horizontalSpaced">
-                    <TextBlock Text="{extensions:Localize 'UnitPilot_FirstName'}" Classes="labelLarge"/>
-                    <TextBox Text="{Binding EditableFirstName, Mode=TwoWay}" MinWidth="120"/>
-                </StackPanel>
-                <StackPanel Classes="horizontalSpaced">
-                    <TextBlock Text="{extensions:Localize 'UnitPilot_LastName'}" Classes="labelLarge"/>
-                    <TextBox Text="{Binding EditableLastName, Mode=TwoWay}" MinWidth="120"/>
-                </StackPanel>
-            </StackPanel>
+            <Grid ColumnDefinitions="Auto,*"
+                  RowDefinitions="Auto,Auto"
+                  IsVisible="{Binding #PilotInfoPanel.CanEdit}">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_FirstName'}" Classes="labelLarge"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditableFirstName, Mode=TwoWay}" MinWidth="120" Margin="8,0,0,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_LastName'}" Classes="labelLarge"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EditableLastName, Mode=TwoWay}" MinWidth="120" Margin="8,0,0,0"/>
+            </Grid>
         </StackPanel>
 
         <!-- Skills Section -->
@@ -51,13 +48,24 @@
                 <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Piloting}" Classes="body"/>
             </Grid>
             <!-- Editable skills -->
-            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto"
-                  IsVisible="{Binding #PilotInfoPanel.CanEdit}">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditableGunnery, Mode=TwoWay}" MinWidth="50"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge" />
-                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding EditablePiloting, Mode=TwoWay}" MinWidth="50"/>
-            </Grid>
+            <StackPanel Classes="verticalSpaced"
+                        IsVisible="{Binding #PilotInfoPanel.CanEdit}">
+                <TextBlock Text="{extensions:Localize 'UnitPilot_SkillsHint'}" Classes="bodySmall" Opacity="0.6"/>
+                <StackPanel Classes="formGroupCompact">
+                    <StackPanel Classes="horizontalSpaced">
+                        <TextBlock Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge"/>
+                        <TextBlock Text="{Binding EditableGunnery}" Classes="labelLarge"/>
+                    </StackPanel>
+                    <Slider Value="{Binding EditableGunnery}" Minimum="0" Maximum="7" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                </StackPanel>
+                <StackPanel Classes="formGroupCompact">
+                    <StackPanel Classes="horizontalSpaced">
+                        <TextBlock Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge"/>
+                        <TextBlock Text="{Binding EditablePiloting}" Classes="labelLarge"/>
+                    </StackPanel>
+                    <Slider Value="{Binding EditablePiloting}" Minimum="0" Maximum="7" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
 
         <!-- Health Section -->

@@ -112,9 +112,16 @@ public partial class UnitRecordSheet : UserControl
     {
         var pilot = Unit?.Pilot;
         HasPilot = pilot is not null;
-        if (pilot is not null && EditablePilot is null)
+        if (pilot is not null)
         {
-            EditablePilot = new PilotViewModel(pilot);
+            if (EditablePilot?.Pilot != pilot)
+            {
+                EditablePilot = new PilotViewModel(pilot);
+            }
+        }
+        else
+        {
+            EditablePilot = null;
         }
     }
 }

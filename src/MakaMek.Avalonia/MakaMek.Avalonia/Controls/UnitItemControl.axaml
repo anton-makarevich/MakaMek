@@ -4,71 +4,115 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
-             mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
+             mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="160"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
              x:DataType="wrappers:UnitViewModel"
              x:Name="UnitItemUserControl">
     <Border Classes="card"
             Padding="5"
-            Width="100"
-            Height="140"
+            Width="120"
+            Height="150"
             Background="{StaticResource SurfaceBrush}">
-        <Grid>
-            <StackPanel Spacing="4">
-                <!-- Unit Image with Tint Overlay -->
-                <Panel Width="84" Height="84">
-                    <Image x:Name="UnitImage"
-                           Width="84"
-                           Height="84"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center">
-                    </Image>
+        <Grid RowDefinitions="Auto,*,Auto"
+              RowSpacing="2">
+            <!-- Header: Action buttons -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,Auto">
+                <!-- Edit button (visible when CanEditUnitName is true) -->
+                <Button
+                    Grid.Column="0"
+                    Command="{Binding #UnitItemUserControl.InfoCommand}"
+                    CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_EditName'}"
+                    Classes="cornerBadge"
+                    IsVisible="{Binding #UnitItemUserControl.CanEditUnitName}"
+                    HorizontalAlignment="Left">
+                    <TextBlock Text="&#xf304;"/>
+                </Button>
+                <!-- Info button (visible when CanEditUnitName is false) -->
+                <Button
+                    Grid.Column="0"
+                    Command="{Binding #UnitItemUserControl.InfoCommand}"
+                    CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_Info'}"
+                    Classes="cornerBadge"
+                    IsVisible="{Binding !#UnitItemUserControl.CanEditUnitName}"
+                    HorizontalAlignment="Left">
+                    <PathIcon Data="{StaticResource RecordSheetIcon}"/>
+                </Button>
+                <!-- Remove button -->
+                <Button
+                    Grid.Column="1"
+                    Command="{Binding #UnitItemUserControl.RemoveCommand}"
+                    CommandParameter="{Binding #UnitItemUserControl.RemoveCommandParameter}"
+                    IsVisible="{Binding #UnitItemUserControl.IsRemoveButtonVisible}"
+                    ToolTip.Tip="{extensions:Localize 'UnitItem_RemoveUnit'}"
+                    Classes="cornerBadge">
+                    <TextBlock Text="&#xf2ed;"/>
+                </Button>
+            </Grid>
 
-                    <!-- Tint Border - uses opacity mask to apply color only to non-transparent pixels -->
-                    <Border x:Name="TintBorder"
-                            Width="84"
-                            Height="84"
-                            Opacity="0.7"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"/>
-                    <Panel.RenderTransform>
-                        <RotateTransform Angle="180"/>
-                    </Panel.RenderTransform>
-                </Panel>
+            <!-- Unit Image with Tint Overlay -->
+            <Panel Grid.Row="1" Width="84" Height="84">
+                <Image x:Name="UnitImage"
+                       Width="84"
+                       Height="84"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
+                </Image>
 
-                <!-- Display Name -->
-                <TextBlock Text="{Binding DisplayName}"
+                <!-- Tint Border - uses opacity mask to apply color only to non-transparent pixels -->
+                <Border x:Name="TintBorder"
+                        Width="84"
+                        Height="84"
+                        Opacity="0.7"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+                <Panel.RenderTransform>
+                    <RotateTransform Angle="180"/>
+                </Panel.RenderTransform>
+            </Panel>
+
+            <!-- Pilot + Unit names -->
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="Auto,*"
+                  RowDefinitions="Auto,Auto"
+                  Margin="2,0">
+                <!-- Pilot icon -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="&#xf007;"
+                           FontFamily="{StaticResource AwesomeFontSolid}"
                            Classes="bodySmall"
                            Foreground="{StaticResource TextLightBrush}"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           MaxLines="2"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
-
-            <!-- Info Button in Top Left Corner -->
-            <Button
-                Command="{Binding #UnitItemUserControl.InfoCommand}"
-                CommandParameter="{Binding #UnitItemUserControl.InfoCommandParameter}"
-                ToolTip.Tip="{extensions:Localize 'UnitItem_Info'}"
-                Classes="cornerBadge"
-                HorizontalAlignment="Left"
-                Margin="-2,-2,0,0">
-                <PathIcon Data="{StaticResource RecordSheetIcon}"/>
-            </Button>
-
-            <!-- Remove Button in Bottom Right Corner -->
-            <Button
-                Command="{Binding #UnitItemUserControl.RemoveCommand}"
-                CommandParameter="{Binding #UnitItemUserControl.RemoveCommandParameter}"
-                IsVisible="{Binding #UnitItemUserControl.IsRemoveButtonVisible}"
-                ToolTip.Tip="{extensions:Localize 'UnitItem_RemoveUnit'}"
-                Classes="cornerBadge"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,-2,0">
-                <TextBlock Text="&#xf2ed;"/>
-            </Button>
+                           Margin="0,0,4,0"
+                           VerticalAlignment="Center"/>
+                <!-- Pilot name -->
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           Text="{Binding PilotName}"
+                           Classes="bodySmall"
+                           Foreground="{StaticResource TextLightBrush}"
+                           TextWrapping="WrapWithOverflow"
+                           TextTrimming="CharacterEllipsis"
+                           MaxHeight="36"
+                           VerticalAlignment="Center"/>
+                <!-- Unit icon -->
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="&#xf3ed;"
+                           FontFamily="{StaticResource AwesomeFontSolid}"
+                           Classes="bodySmall"
+                           Foreground="{StaticResource TextLightBrush}"
+                           Margin="0,0,4,0"
+                           VerticalAlignment="Center"/>
+                <!-- Unit name -->
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           Text="{Binding DisplayName}"
+                           Classes="bodySmall"
+                           Foreground="{StaticResource TextLightBrush}"
+                           TextWrapping="WrapWithOverflow"
+                           TextTrimming="CharacterEllipsis"
+                           MaxHeight="36"
+                           VerticalAlignment="Center"/>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

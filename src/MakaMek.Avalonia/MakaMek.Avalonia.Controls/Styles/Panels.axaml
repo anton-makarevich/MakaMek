@@ -50,20 +50,20 @@
     
     <!-- Compact Form Group -->
     <Style Selector="StackPanel.formGroupCompact">
-        <Setter Property="Spacing" Value="5"/>
-        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Spacing" Value="2"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
     </Style>
     
     <!-- Horizontal Spacing -->
     <Style Selector="StackPanel.horizontalSpaced">
         <Setter Property="Orientation" Value="Horizontal"/>
-        <Setter Property="Spacing" Value="5"/>
+        <Setter Property="Spacing" Value="4"/>
     </Style>
     
     <!-- Vertical Spacing -->
     <Style Selector="StackPanel.verticalSpaced">
         <Setter Property="Orientation" Value="Vertical"/>
-        <Setter Property="Spacing" Value="5"/>
+        <Setter Property="Spacing" Value="4"/>
     </Style>
     
     <!-- Dialog Overlay -->

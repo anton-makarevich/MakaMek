@@ -85,10 +85,14 @@ public abstract class NewGameViewModel : BaseViewModel
         var unitsData = playerVm.GetUnitsData();
 
         // Create pilot assignments for each unit
-        var pilotAssignments = unitsData.Select(unit => new PilotAssignmentData
+        var pilotAssignments = unitsData.Select(unit => 
         {
-            UnitId = unit.Id ?? Guid.NewGuid(),
-            PilotData = playerVm.GetPilotDataForUnit(unit.Id ?? Guid.NewGuid())?? PilotData.CreateDefaultPilot("MechWarrior","")
+            var unitId = unit.Id ?? Guid.NewGuid();
+            return new PilotAssignmentData
+            {
+                UnitId = unitId,
+                PilotData = playerVm.GetPilotDataForUnit(unitId) ?? PilotData.CreateDefaultPilot("MechWarrior", "")
+            };
         }).ToList();
 
         if (playerVm.Player.ControlType == PlayerControlType.Bot)

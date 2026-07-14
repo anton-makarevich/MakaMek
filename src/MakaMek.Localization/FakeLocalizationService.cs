@@ -358,6 +358,7 @@ public class FakeLocalizationService : ILocalizationService
         ["UnitPilot_Skills"] = "Skills",
         ["UnitPilot_Gunnery"] = "Gunnery:",
         ["UnitPilot_Piloting"] = "Piloting:",
+        ["UnitPilot_SkillsHint"] = "Lower is better (0 = Elite, 7 = Green)",
         ["UnitPilot_HealthStatus"] = "Health Status",
         ["UnitPilot_Injuries"] = "Injuries: {0}/{1}",
         ["UnitPilot_Status"] = "Status",
@@ -374,6 +375,7 @@ public class FakeLocalizationService : ILocalizationService
         ["UnitItem_Info"] = "Unit Info",
         ["UnitItem_EditName"] = "Edit unit name",
         ["UnitItem_SaveName"] = "Save name",
+        ["UnitItem_NoPilot"] = "No Pilot",
         ["UnitPilot_FirstName"] = "First Name:",
         ["UnitPilot_LastName"] = "Last Name:",
         ["UnitInfo_Save"] = "Save",
@@ -471,6 +473,6 @@ public class FakeLocalizationService : ILocalizationService
 
     public virtual string GetString(string key)
     {
-        return Strings.TryGetValue(key, out var value) ? value : key;
+        return Strings.GetValueOrDefault(key, key);
     }
 }
