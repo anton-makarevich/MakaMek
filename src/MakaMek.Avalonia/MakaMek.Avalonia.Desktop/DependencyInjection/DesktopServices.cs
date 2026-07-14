@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Desktop.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
+using Sanet.MVVM.ExternalNavigation.Desktop.Extensions;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Services;
 
@@ -34,7 +35,7 @@ public static class DesktopServices
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
 
         // Register external navigation service for desktop platform
-        services.AddSingleton<IExternalNavigationService, DesktopExternalNavigationService>();
+        services.AddDesktopExternalNavigation();
 
         // Register TaskPoolScheduler for desktop (multi-threaded)
         services.AddSingleton<IScheduler>(TaskPoolScheduler.Default);

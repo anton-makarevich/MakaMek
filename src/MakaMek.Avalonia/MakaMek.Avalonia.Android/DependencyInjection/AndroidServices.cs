@@ -1,9 +1,9 @@
 using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Avalonia.Android.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
+using Sanet.MVVM.ExternalNavigation.Android.Extensions;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Services;
 
@@ -33,7 +33,7 @@ public static class AndroidServices
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
 
         // Register external navigation service for an Android platform
-        services.AddSingleton<IExternalNavigationService, AndroidExternalNavigationService>();
+        services.AddAndroidExternalNavigation();
 
         // Register TaskPoolScheduler for Android (multi-threaded)
         services.AddSingleton<IScheduler>(TaskPoolScheduler.Default);
