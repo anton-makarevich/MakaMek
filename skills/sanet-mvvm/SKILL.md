@@ -1,9 +1,9 @@
 ---
 name: sanet-mvvm
-description: "Use this skill whenever working in a project that references Sanet.MVVM packages (Sanet.MVVM.Core, Sanet.MVVM.Navigation.Avalonia, Sanet.MVVM.Views.Avalonia, Sanet.MVVM.DI.Avalonia). Triggers include: creating or editing ViewModels, setting up navigation, implementing modal dialogs, registering views/VMs, configuring DI, wiring up commands, managing lifecycle (AttachHandlers / DetachHandlers), or bootstrapping an AvaloniaUI app with this framework. Also trigger when the user asks how to pass data between screens, show action dialogs, compose child ViewModels, or handle reactive subscriptions inside a Sanet.MVVM project. Consult this skill even for seemingly small tasks like adding a command or a new screen — the framework has specific patterns that must be followed."
+description: "Use this skill whenever working in a project that references Sanet.MVVM packages (Sanet.MVVM.Core, Sanet.MVVM.Navigation.Avalonia, Sanet.MVVM.Views.Avalonia, Sanet.MVVM.DI.Avalonia, Sanet.MVVM.ExternalNavigation.*). Triggers include: creating or editing ViewModels, setting up navigation, implementing modal dialogs, registering views/VMs, configuring DI, wiring up commands, managing lifecycle (AttachHandlers / DetachHandlers), bootstrapping an AvaloniaUI app with this framework, or opening URLs / emails via IExternalNavigationService. Also trigger when the user asks how to pass data between screens, show action dialogs, compose child ViewModels, handle reactive subscriptions, or open external links inside a Sanet.MVVM project. Consult this skill even for seemingly small tasks like adding a command or a new screen — the framework has specific patterns that must be followed."
 metadata:
   author: Anton Makarevich
-  version: "1.0"
+  version: "1.1"
   framework: Sanet.MVVM
   platform: AvaloniaUI
 ---
@@ -12,7 +12,9 @@ metadata:
 Lightweight MVVM framework for AvaloniaUI. Key packages:
 
 `Sanet.MVVM.Core` · `Sanet.MVVM.Navigation.Avalonia` ·
-`Sanet.MVVM.Views.Avalonia` · `Sanet.MVVM.DI.Avalonia`
+`Sanet.MVVM.Views.Avalonia` · `Sanet.MVVM.DI.Avalonia` ·
+`Sanet.MVVM.ExternalNavigation.Desktop` · `Sanet.MVVM.ExternalNavigation.Android` ·
+`Sanet.MVVM.ExternalNavigation.iOS` · `Sanet.MVVM.ExternalNavigation.Browser`
 
 ---
 
@@ -30,42 +32,7 @@ Before writing any code, pick the right path:
 | Pass data to the next screen | §6 → Data Passing |
 | Subscriptions / observables | §9 Lifecycle Patterns |
 | Child VM (no navigation) | §9 → Child ViewModels |
-
----
-
-## §1 — App Bootstrap
-
-name: sanet-mvvm
-description: "Use this skill whenever working in a project that references Sanet.MVVM packages (Sanet.MVVM.Core, Sanet.MVVM.Navigation.Avalonia, Sanet.MVVM.Views.Avalonia, Sanet.MVVM.DI.Avalonia). Triggers include: creating or editing ViewModels, setting up navigation, implementing modal dialogs, registering views/VMs, configuring DI, wiring up commands, managing lifecycle (AttachHandlers / DetachHandlers), or bootstrapping an AvaloniaUI app with this framework. Also trigger when the user asks how to pass data between screens, show action dialogs, compose child ViewModels, or handle reactive subscriptions inside a Sanet.MVVM project. Consult this skill even for seemingly small tasks like adding a command or a new screen — the framework has specific patterns that must be followed."
-metadata:
-  author: Anton Makarevich
-  version: "1.0"
-  framework: Sanet.MVVM
-  platform: AvaloniaUI
----
-
-# Sanet.MVVM – Agent Reference
-
-Lightweight MVVM framework for AvaloniaUI. Key packages:
-`Sanet.MVVM.Core` · `Sanet.MVVM.Navigation.Avalonia` ·
-`Sanet.MVVM.Views.Avalonia` · `Sanet.MVVM.DI.Avalonia`
-
----
-
-## Quick Decision Tree
-
-Before writing any code, pick the right path:
-
-| Task | Go to |
-|---|---|
-| New screen / ViewModel | §3 ViewModel + §4 View + §5 Registration |
-| Navigate to existing screen | §6 Navigation |
-| Modal / popup dialog (with or without a return value) | §7 Modal Dialogs |
-| Simple yes/no action dialog | §8 Action Dialogs |
-| First-time app setup | §1 Bootstrap + §2 DI |
-| Pass data to the next screen | §6 → Data Passing |
-| Subscriptions / observables | §9 Lifecycle Patterns |
-| Child VM (no navigation) | §9 → Child ViewModels |
+| Open URL / email in external app | §12 External Navigation |
 
 ---
 
@@ -107,6 +74,7 @@ if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
 - `INavigationService` → **singleton**, constructed with the lifetime object and the service provider.
 - ViewModels → **transient** (fresh state on every `GetNewViewModel<T>()` call).
 - Shared services (repositories, settings, etc.) → **singleton**.
+- `IExternalNavigationService` → **singleton**, registered via platform-specific extension method.
 
 ```csharp
 // Desktop
@@ -131,6 +99,12 @@ services.AddTransient<FilterViewModel>();
 
 // Domain services — singleton
 services.AddSingleton<IGameService, GameService>();
+
+// External navigation — platform-specific singleton
+services.AddDesktopExternalNavigation();    // Desktop
+services.AddAndroidExternalNavigation();   // Android
+services.AddIosExternalNavigation();       // iOS
+services.AddBrowserExternalNavigation();   // Browser (WASM)
 ```
 
 ---
@@ -464,3 +438,80 @@ When adding a screen, do **all** of these steps:
 | Use `NavigateToViewModelAsync` for modal/popup dialogs | Use `ShowViewModelForResultAsync` |
 | Resolve `NavigationService` in constructor | Access it lazily via the `NavigationService` property |
 | Use `NavigationService` in a modal VM without calling `SetNavigationService` first | Parent calls `modalVm.SetNavigationService(NavigationService)` before `ShowViewModelForResultAsync` |
+
+---
+
+## §12 — External Navigation
+
+`IExternalNavigationService` (from `Sanet.MVVM.Core.Services`) opens URLs and emails in the user's default browser or mail client. Platform-specific implementations are provided by `Sanet.MVVM.ExternalNavigation.*` packages.
+
+### DI Registration
+
+Register one platform-specific implementation per head project (see §2):
+
+```csharp
+// Desktop (Program.cs or DesktopServices.cs)
+services.AddDesktopExternalNavigation();
+
+// Android
+services.AddAndroidExternalNavigation();
+
+// iOS
+services.AddIosExternalNavigation();
+
+// Browser (WASM)
+services.AddBrowserExternalNavigation();
+```
+
+### Usage in a ViewModel
+
+Inject `IExternalNavigationService` via constructor and wrap calls in `AsyncCommand`:
+
+```csharp
+using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
+using Sanet.MVVM.Core.Services;
+using Sanet.MVVM.Core.ViewModels;
+
+public class AboutViewModel : BaseViewModel
+{
+    public AboutViewModel(IExternalNavigationService externalNavigationService)
+    {
+        OpenGitHubCommand = new AsyncCommand(
+            () => externalNavigationService.OpenUrlAsync("https://github.com/example"));
+        OpenContactCommand = new AsyncCommand(
+            () => externalNavigationService.OpenEmailAsync("user@example.com", "Subject"));
+    }
+
+    public ICommand OpenGitHubCommand { get; }
+    public ICommand OpenContactCommand { get; }
+}
+```
+
+**Available methods:**
+
+| Method | Purpose |
+|---|---|
+| `OpenUrlAsync(string url)` | Opens the URL in the default browser or external app |
+| `OpenEmailAsync(string emailAddress, string subject)` | Opens the mail client with pre-filled recipient and subject |
+
+**Rules:**
+- Both methods are fire-and-forget (return `Task.CompletedTask` on most platforms, `await` on iOS).
+- Exceptions are caught internally — never re-thrown. Log if needed.
+- Always wrap in `AsyncCommand` (or similar) when binding to UI commands.
+- The service is a singleton — safe to inject and hold in any ViewModel.
+
+### Testing
+
+Mock `IExternalNavigationService` with NSubstitute:
+
+```csharp
+using NSubstitute;
+using Sanet.MVVM.Core.Services;
+
+var navService = Substitute.For<IExternalNavigationService>();
+var vm = new MyViewModel(navService);
+
+// Verify call
+await navService.Received(1).OpenUrlAsync("https://example.com");
+```
