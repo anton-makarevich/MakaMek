@@ -10,15 +10,13 @@ public class PilotViewModel : BindableBase
     private const int MaxSkill = 8;
 
     private readonly IPilot _pilot;
-    private string _editableFirstName = string.Empty;
-    private string _editableLastName = string.Empty;
-    private int _editableGunnery;
-    private int _editablePiloting;
 
     public PilotViewModel(IPilot pilot)
     {
         _pilot = pilot;
     }
+
+    public IPilot Pilot => _pilot;
 
     public Guid Id => _pilot.Id;
 
@@ -46,26 +44,26 @@ public class PilotViewModel : BindableBase
 
     public string EditableFirstName
     {
-        get => _editableFirstName;
-        set => SetProperty(ref _editableFirstName, value);
-    }
+        get;
+        set => SetProperty(ref field, value);
+    } = string.Empty;
 
     public string EditableLastName
     {
-        get => _editableLastName;
-        set => SetProperty(ref _editableLastName, value);
-    }
+        get;
+        set => SetProperty(ref field, value);
+    } = string.Empty;
 
     public int EditableGunnery
     {
-        get => _editableGunnery;
-        set => SetProperty(ref _editableGunnery, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public int EditablePiloting
     {
-        get => _editablePiloting;
-        set => SetProperty(ref _editablePiloting, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public void StartEditing()
