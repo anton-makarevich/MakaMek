@@ -55,14 +55,18 @@
                         IsVisible="{Binding #PilotInfoPanel.CanEdit}">
                 <TextBlock Text="{extensions:Localize 'UnitPilot_SkillsHint'}" Classes="bodySmall" Opacity="0.6"/>
                 <StackPanel Classes="formGroupCompact">
-                    <TextBlock Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge"/>
+                    <StackPanel Classes="horizontalSpaced">
+                        <TextBlock Text="{extensions:Localize 'UnitPilot_Gunnery'}" Classes="labelLarge"/>
+                        <TextBlock Text="{Binding EditableGunnery}" Classes="labelLarge"/>
+                    </StackPanel>
                     <Slider Value="{Binding EditableGunnery}" Minimum="0" Maximum="7" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                    <TextBlock Text="{Binding EditableGunnery}" Classes="bodySmall"/>
                 </StackPanel>
                 <StackPanel Classes="formGroupCompact">
-                    <TextBlock Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge"/>
+                    <StackPanel Classes="horizontalSpaced">
+                        <TextBlock Text="{extensions:Localize 'UnitPilot_Piloting'}" Classes="labelLarge"/>
+                        <TextBlock Text="{Binding EditablePiloting}" Classes="labelLarge"/>
+                    </StackPanel>
                     <Slider Value="{Binding EditablePiloting}" Minimum="0" Maximum="7" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                    <TextBlock Text="{Binding EditablePiloting}" Classes="bodySmall"/>
                 </StackPanel>
             </StackPanel>
         </StackPanel>
