@@ -2084,6 +2084,107 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void GetLineOfSight_Clear_WhenTargetOnBridgeOverWater_NoSurfaceSupplied()
+    {
+        // Reproduces the ticket scenario: water depth 1, bridge height 0,
+        // target on bridge, no surface supplied — optimistic bridge inference should prevent submersion.
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-1));
+        toHex.AddTerrain(new BridgeTerrain(0, 0));
+        sut.AddHex(toHex);
+
+        // Attacker height 1 ensures the interpolated LOS at the mid hex > 0, avoiding elevation block
+        var result = sut.GetLineOfSight(from, to, 1);
+
+        result.HasLineOfSight.ShouldBeTrue("Optimistic bridge inference should prevent WaterSubmersion block");
+    }
+
+    [Fact]
+    public void GetLineOfSight_Clear_WhenEndpointSuppliedWithBridgeSurfaceOverWater()
+    {
+        // Occupied endpoint: explicit Bridge surface over deep water should not block.
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        toHex.AddTerrain(new BridgeTerrain(0, 0));
+        sut.AddHex(toHex);
+
+        var result = sut.GetLineOfSight(from, to, 1, 1, toSurface: HexSurface.Bridge);
+
+        result.HasLineOfSight.ShouldBeTrue("Explicit Bridge surface should not trigger WaterSubmersion");
+    }
+
+    [Fact]
+    public void GetLineOfSight_Blocked_WhenEndpointSuppliedWithGroundSurfaceOverDeepWater()
+    {
+        // Occupied endpoint: explicit Ground surface over deep water should still block.
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        toHex.AddTerrain(new BridgeTerrain(0, 0));
+        sut.AddHex(toHex);
+
+        var result = sut.GetLineOfSight(from, to, 1, 1, toSurface: HexSurface.Ground);
+
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        result.BlockingHexCoordinates.ShouldBe(to);
+    }
+
+    [Fact]
+    public void GetLineOfSight_Blocked_WhenPlainWaterHex_NoBridge_NoSurfaceSupplied()
+    {
+        // Control: plain water hex (no bridge, no surface supplied) should still block.
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        sut.AddHex(toHex);
+
+        var result = sut.GetLineOfSight(from, to, 1, 1);
+
+        result.HasLineOfSight.ShouldBeFalse();
+        result.BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        result.BlockingHexCoordinates.ShouldBe(to);
+    }
+
+    [Fact]
     public void ConvertPathToSegments_AscendingPath_SetsPositiveElevationChange()
     {
         // Arrange

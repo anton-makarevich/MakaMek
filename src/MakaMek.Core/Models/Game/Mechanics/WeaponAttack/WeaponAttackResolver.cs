@@ -71,7 +71,9 @@ public class WeaponAttackResolver : IWeaponAttackResolver
             attacker.Position!.Coordinates,
             target.Position!.Coordinates,
             weapon.FirstMountPart.Level,
-            target.Height);
+            target.Height,
+            attacker.Position.Surface,
+            target.Position.Surface);
         var hasPartialCover = _rulesProvider.HasPartialCover(target, losResult);
         var coveringHex = hasPartialCover && losResult.HexPath.Count >= 2
             ? losResult.HexPath[^2].Hex.Coordinates.ToData()

@@ -409,15 +409,18 @@ public class WeaponsAttackState : IUiState
                 {
                     var key = (hex, level);
                     
-                    var targetHeight = _viewModel.Units
-                        .FirstOrDefault(u => u.Position?.Coordinates == hex)
-                        ?.Height ?? 0;
+                    var targetUnit = _viewModel.Units
+                        .FirstOrDefault(u => u.Position?.Coordinates == hex);
+                    var targetHeight = targetUnit?.Height ?? 0;
+                    var toSurface = targetUnit?.Position?.Surface;
 
                     losResults[key] = Game.BattleMap.GetLineOfSight(
                         unitPosition.Coordinates,
                         hex,
                         level,
-                        targetHeight);
+                        targetHeight,
+                        unitPosition.Surface,
+                        toSurface);
                 }
             }
         }
@@ -602,7 +605,9 @@ public class WeaponsAttackState : IUiState
             SelectedTarget.Position.Coordinates,
             Attacker.Position.Coordinates,
             SelectedTarget.Height,
-            Attacker.Height);
+            Attacker.Height,
+            SelectedTarget.Position.Surface,
+            Attacker.Position.Surface);
         
         var attackerHasPartialCover = reversedLosResult != null && 
                                       Game.RulesProvider.HasPartialCover(Attacker, reversedLosResult);

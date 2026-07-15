@@ -412,7 +412,9 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// <param name="to">Target hex coordinates</param>
     /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
-    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0)
+    /// <param name="fromSurface">Surface level of an attacker unit, bull if no attacker (check from the lowest level)</param>
+    /// <param name="toSurface">Surface level of a target unit, null if no unit in a target hex</param>
+    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null)
     {
         var isFromOnMap = IsOnMap(from);
         var isToOnMap = IsOnMap(to);
@@ -431,11 +433,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 from: from, to: to,
                 blockingHex: fromHex == null ? from : to);
 
-        // Check for water submersion blocking
-        var fromWaterDepth = fromHex.GetWaterDepth();
-        var attackerSubmerged = fromWaterDepth is > 0 && fromWaterDepth >= attackHeight;
-        var toWaterDepth = toHex.GetWaterDepth();
-        var targetSubmerged = toWaterDepth is > 0 && toWaterDepth >= targetHeight;
+        // Compute submersion and standing levels using the surface-aware helper
+        var (attackerStandingLevel, attackerSubmerged) = fromHex.GetLosEndpointInfo(fromSurface, attackHeight);
+        var (targetStandingLevel, targetSubmerged) = toHex.GetLosEndpointInfo(toSurface, targetHeight);
+        var attackerLosLevel = attackerStandingLevel + attackHeight;
+        var targetLosLevel = targetStandingLevel + targetHeight;
         
         if (attackerSubmerged != targetSubmerged)
         {
@@ -444,9 +446,6 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 blockingHex: attackerSubmerged ? from : to,
                 reason: LineOfSightBlockReason.WaterSubmersion);
         }
-
-        var attackerLosLevel = fromHex.Level + attackHeight-(fromWaterDepth??0);
-        var targetLosLevel = toHex.Level + targetHeight-(toWaterDepth??0);
         
         // The same hex — always has LOS, no intervening path
         if (from == to)
