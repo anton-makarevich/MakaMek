@@ -425,9 +425,7 @@ public class WeaponsAttackState : IUiState
             }
         }
 
-        var losBlockedCoords = new HashSet<HexCoordinates>();
         var losHighlights = new Dictionary<HexCoordinates, LosBlockingHighlight>();
-        var reachableCoords = new HashSet<HexCoordinates>();
         var reachableHighlights = new Dictionary<HexCoordinates, AttackReachableHighlight>();
 
         // Pass 3: Combine per-level LOS results into final weapon ranges
@@ -468,7 +466,6 @@ public class WeaponsAttackState : IUiState
                     {
                         var reason = losResult.BlockReason;
                         var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                        losBlockedCoords.Add(hex);
                         losHighlights[hex] = highlight;
                     }
                 }
@@ -511,7 +508,6 @@ public class WeaponsAttackState : IUiState
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
             var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
-            reachableCoords.Add(hex);
             reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames);
         }
 
