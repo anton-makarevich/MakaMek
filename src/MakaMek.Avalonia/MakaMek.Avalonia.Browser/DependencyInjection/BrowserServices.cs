@@ -1,9 +1,9 @@
 using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Avalonia.Browser.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
+using Sanet.MVVM.ExternalNavigation.Browser.Extensions;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Services.Avalonia.Browser.Services;
@@ -34,7 +34,7 @@ public static class BrowserServices
         services.AddSingleton<IFileCachingService, BrowserCachingService>();
 
         // Register external navigation service for browser platform
-        services.AddSingleton<IExternalNavigationService, BrowserExternalNavigationService>();
+        services.AddBrowserExternalNavigation();
 
         // Register CurrentThreadScheduler for WASM (single-threaded)
         services.AddSingleton<IScheduler>(CurrentThreadScheduler.Instance);

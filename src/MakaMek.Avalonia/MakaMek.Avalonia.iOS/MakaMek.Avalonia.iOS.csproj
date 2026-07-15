@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="Avalonia.iOS" Version="12.1.0" />
+        <PackageReference Include="Sanet.MVVM.ExternalNavigation.iOS" Version="1.6.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,9 +1,9 @@
 using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Avalonia.iOS.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
+using Sanet.MVVM.ExternalNavigation.iOS.Extensions;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Services;
 
@@ -33,7 +33,7 @@ public static class IosServices
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
 
         // Register external navigation service for iOS platform
-        services.AddSingleton<IExternalNavigationService, IosExternalNavigationService>();
+        services.AddIosExternalNavigation();
 
         // Register TaskPoolScheduler for iOS (multi-threaded)
         services.AddSingleton<IScheduler>(TaskPoolScheduler.Default);

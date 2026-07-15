@@ -56,10 +56,8 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Support of water (lakes, rivers and water effects)
 - Support of roads and bridges (including bridge collision and skidding)
 
-#### Planned
-- Support of paved areas and buildings
-
 ### Future Phases
+- Support of paved areas and buildings
 - Physical attacks
 - Support of advanced tech rules (Clan, LosTech equipment and more)
 - Support for vehicles, battle armor and infantry
