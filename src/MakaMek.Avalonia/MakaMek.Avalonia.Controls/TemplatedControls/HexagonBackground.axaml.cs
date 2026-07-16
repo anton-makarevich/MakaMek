@@ -44,7 +44,7 @@ public class HexagonBackground : Control
         base.Render(context);
 
         var bounds = Bounds;
-        if (bounds.Width <= 0 || bounds.Height <= 0) return;
+        if (bounds.Width <= 0 || bounds.Height <= 0 || PatternScale <= 0) return;
 
         var pen = new Pen(Stroke, StrokeThickness);
 
@@ -54,7 +54,6 @@ public class HexagonBackground : Control
         var sw = cellWidth * PatternScale;
         var sh = cellHeight * PatternScale;
 
-        // Hexagon vertices within the pattern cell (from the original SVG)
         ReadOnlySpan<Point> hex1 =
         [
             new(25, 0), new(75, 0), new(100, 43.3),
@@ -70,32 +69,34 @@ public class HexagonBackground : Control
         var cols = (int)Math.Ceiling(bounds.Width / sw) + 2;
         var rows = (int)Math.Ceiling(bounds.Height / sh) + 2;
 
-        for (var row = -1; row <= rows; row++)
-        {
-            var oy = row * sh;
-            for (var col = -1; col <= cols; col++)
-            {
-                var ox = col * sw;
-                DrawHexagon(context, pen, hex1, ox, oy, PatternScale);
-                DrawHexagon(context, pen, hex2, ox, oy, PatternScale);
-            }
-        }
-    }
-
-    private static void DrawHexagon(DrawingContext context, Pen pen, ReadOnlySpan<Point> vertices,
-        double offsetX, double offsetY, double scale)
-    {
         var geometry = new StreamGeometry();
         using (var ctx = geometry.Open())
         {
-            ctx.BeginFigure(new Point(vertices[0].X * scale + offsetX, vertices[0].Y * scale + offsetY));
-            for (var i = 1; i < vertices.Length; i++)
+            for (var row = -1; row <= rows; row++)
             {
-                ctx.LineTo(new Point(vertices[i].X * scale + offsetX, vertices[i].Y * scale + offsetY));
+                var oy = row * sh;
+                for (var col = -1; col <= cols; col++)
+                {
+                    var ox = col * sw;
+                    AppendHexagon(ctx, hex1, ox, oy, PatternScale);
+                    AppendHexagon(ctx, hex2, ox, oy, PatternScale);
+                }
             }
-            ctx.EndFigure(true);
         }
 
         context.DrawGeometry(null, pen, geometry);
     }
+
+    private static void AppendHexagon(StreamGeometryContext ctx, ReadOnlySpan<Point> vertices,
+        double offsetX, double offsetY, double scale)
+    {
+        ctx.BeginFigure(new Point(vertices[0].X * scale + offsetX, vertices[0].Y * scale + offsetY));
+        for (var i = 1; i < vertices.Length; i++)
+        {
+            ctx.LineTo(new Point(vertices[i].X * scale + offsetX, vertices[i].Y * scale + offsetY));
+        }
+        ctx.EndFigure(true);
+    }
+
+    
 }
