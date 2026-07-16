@@ -9,10 +9,12 @@
              x:DataType="viewModels:SettingsViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.Settings.SettingsView">
 
-    <Grid Margin="10" RowDefinitions="Auto,*">
-        <!-- Toolbar with Back Button -->
-        <templatedControls:ToolBar
-            Title="{extensions:Localize 'SettingsView_Title'}"
+    <Grid>
+        <templatedControls:HexagonBackground/>
+        <Grid Margin="10" RowDefinitions="Auto,*">
+            <!-- Toolbar with Back Button -->
+            <templatedControls:ToolBar
+                Title="{extensions:Localize 'SettingsView_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
@@ -42,6 +44,7 @@
                 </Border>
 
             </StackPanel>
-        </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>

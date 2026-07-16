@@ -5,12 +5,15 @@
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.EndGame.EndGameView"
              x:DataType="viewModels:EndGameViewModel">
-    <Grid
-        Margin="10"
-        RowDefinitions="Auto,Auto,*,Auto">
+    <Grid>
+        <templatedControls:HexagonBackground/>
+        <Grid
+            Margin="10"
+            RowDefinitions="Auto,Auto,*,Auto">
         <!-- Title -->
         <TextBlock Grid.Row="0"
                    Text="{Binding TitleText}"
@@ -121,6 +124,7 @@
                 Classes="primary"
                 HorizontalAlignment="Center"
                 Margin="0,20"/>
+        </Grid>
     </Grid>
 </UserControl>
 

@@ -10,10 +10,12 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">
-    <Grid Classes="pageContainer"
-          RowDefinitions="Auto,*,Auto">
-        <templatedControls:ToolBar
-            Title="{extensions:Localize 'StartNewGame_Title'}"
+    <Grid>
+        <templatedControls:HexagonBackground/>
+        <Grid Classes="pageContainer"
+              RowDefinitions="Auto,*,Auto">
+            <templatedControls:ToolBar
+                Title="{extensions:Localize 'StartNewGame_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
@@ -38,7 +40,8 @@
                 Classes="primary"
                 IsEnabled="{Binding CanStartGame}"
                 HorizontalAlignment="Center"
-                Margin="0,10,0,0"/>
+                        Margin="0,10,0,0"/>
+        </Grid>
     </Grid>
 </UserControl>
 

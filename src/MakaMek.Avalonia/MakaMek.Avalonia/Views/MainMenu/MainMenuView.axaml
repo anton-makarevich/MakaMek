@@ -4,11 +4,13 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
              x:DataType="viewModels:MainMenuViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
  
     <Grid>
+        <templatedControls:HexagonBackground/>
         <!-- Loading Panel -->
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"

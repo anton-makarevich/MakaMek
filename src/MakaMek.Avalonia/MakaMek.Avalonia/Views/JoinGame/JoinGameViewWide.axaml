@@ -11,10 +11,12 @@
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls">
 
-    <Grid Margin="10" 
-          RowDefinitions="Auto,*">
-        <templatedControls:ToolBar
-            Title="{extensions:Localize 'JoinGame_Title'}"
+    <Grid>
+        <templatedControls:HexagonBackground/>
+        <Grid Margin="10" 
+              RowDefinitions="Auto,*">
+            <templatedControls:ToolBar
+                Title="{extensions:Localize 'JoinGame_Title'}"
             TitleAlignment="Center"
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"
@@ -32,6 +34,7 @@
             <!-- Players Fragment (Reused) -->
             <fragments2:PlayersFragment DataContext="{Binding}"/>
         </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
 
