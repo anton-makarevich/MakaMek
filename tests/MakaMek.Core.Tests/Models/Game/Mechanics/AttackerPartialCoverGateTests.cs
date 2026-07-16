@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -42,7 +41,9 @@ public class AttackerPartialCoverGateTests
                 _target.Position!.Coordinates,
                 _attacker.Position!.Coordinates,
                 _target.Height,
-                _attacker.Height)
+                _attacker.Height,
+                _target.Position.Surface,
+                _attacker.Position.Surface)
             .Returns(losResult);
         return losResult;
     }

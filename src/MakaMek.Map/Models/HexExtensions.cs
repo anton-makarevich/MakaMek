@@ -62,6 +62,31 @@ public static class HexExtensions
             return hex.GetStandingLevel(toSurface) - fromHex.GetStandingLevel(fromSurface);
         }
 
+        /// <summary>
+        /// Computes the effective standing level and submersion flag for a LOS endpoint.
+        ///
+        /// Occupied case (surface supplied): uses that surface directly for standing level.
+        ///   Submerged only when on Ground surface with water depth meeting/exceeding unit height.
+        ///
+        /// Empty case (surface null): if the hex has a bridge, resolves to Bridge surface
+        ///   (never submerged); otherwise resolves to Ground with the normal water-depth
+        ///   submersion rule.
+        /// The empty-hex optimistic bridge inference is intentionally forward-looking,
+        /// keeping bridge hexes visible/targetable and supporting future bridge-as-target functionality.
+        /// </summary>
+        public (int EffectiveStandingLevel, bool IsSubmerged) GetLosEndpointInfo(HexSurface? surface, int unitHeight)
+        {
+            var effectiveSurface = surface ?? (hex.GetBridgeHeight() != null ? HexSurface.Bridge : HexSurface.Ground);
+            var effectiveStandingLevel = hex.GetStandingLevel(effectiveSurface);
+
+            var waterDepth = hex.GetWaterDepth();
+            var isSubmerged = effectiveSurface == HexSurface.Ground
+                              && waterDepth is > 0
+                              && waterDepth >= unitHeight;
+
+            return (effectiveStandingLevel, isSubmerged);
+        }
+
         public IReadOnlyList<HexSurface> GetHexSurfaces()
         {
             return hex.GetBridgeHeight() != null

@@ -55,11 +55,13 @@ public interface IBattleMap
     /// <param name="to">Target hex coordinates</param>
     /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
+    /// <param name="fromSurface">Surface of the attacker endpoint. When null, the hex optimistically infers Bridge if a bridge is present.</param>
+    /// <param name="toSurface">Surface of the target endpoint. When null, the hex optimistically infers Bridge if a bridge is present.</param>
     /// <returns>
     /// A <see cref="LineOfSightResult"/> whose <see cref="LineOfSightResult.HasLineOfSight"/> property
     /// indicates whether LOS exists, with additional details about the blocking hex and reason.
     /// </returns>
-    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0);
+    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null);
 
     IEnumerable<Hex> GetHexes();
 

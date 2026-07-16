@@ -409,22 +409,23 @@ public class WeaponsAttackState : IUiState
                 {
                     var key = (hex, level);
                     
-                    var targetHeight = _viewModel.Units
-                        .FirstOrDefault(u => u.Position?.Coordinates == hex)
-                        ?.Height ?? 0;
+                    var targetUnit = _viewModel.Units
+                        .FirstOrDefault(u => u.Position?.Coordinates == hex);
+                    var targetHeight = targetUnit?.Height ?? 0;
+                    var toSurface = targetUnit?.Position?.Surface;
 
                     losResults[key] = Game.BattleMap.GetLineOfSight(
                         unitPosition.Coordinates,
                         hex,
                         level,
-                        targetHeight);
+                        targetHeight,
+                        unitPosition.Surface,
+                        toSurface);
                 }
             }
         }
 
-        var losBlockedCoords = new HashSet<HexCoordinates>();
         var losHighlights = new Dictionary<HexCoordinates, LosBlockingHighlight>();
-        var reachableCoords = new HashSet<HexCoordinates>();
         var reachableHighlights = new Dictionary<HexCoordinates, AttackReachableHighlight>();
 
         // Pass 3: Combine per-level LOS results into final weapon ranges
@@ -465,7 +466,6 @@ public class WeaponsAttackState : IUiState
                     {
                         var reason = losResult.BlockReason;
                         var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                        losBlockedCoords.Add(hex);
                         losHighlights[hex] = highlight;
                     }
                 }
@@ -508,7 +508,6 @@ public class WeaponsAttackState : IUiState
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
             var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
-            reachableCoords.Add(hex);
             reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames);
         }
 
@@ -602,7 +601,9 @@ public class WeaponsAttackState : IUiState
             SelectedTarget.Position.Coordinates,
             Attacker.Position.Coordinates,
             SelectedTarget.Height,
-            Attacker.Height);
+            Attacker.Height,
+            SelectedTarget.Position.Surface,
+            Attacker.Position.Surface);
         
         var attackerHasPartialCover = reversedLosResult != null && 
                                       Game.RulesProvider.HasPartialCover(Attacker, reversedLosResult);

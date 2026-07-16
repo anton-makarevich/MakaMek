@@ -15,7 +15,9 @@ public class AttackerPartialCoverGate : IAttackResolutionGate
             target.Position!.Coordinates,
             attacker.Position!.Coordinates,
             target.Height,
-            attacker.Height);
+            attacker.Height,
+            target.Position.Surface,
+            attacker.Position.Surface);
 
         var attackerHasPartialCover = rulesProvider.HasPartialCover(attacker, reversedLosResult);
         var canBeCovered = rulesProvider.CanPartBeCovered(primaryAssignment.Location);

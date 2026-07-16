@@ -67,7 +67,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk),null);
         
         // Set up enemy weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -75,7 +75,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4)));
         
         // Setup ToHit
@@ -110,7 +110,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up enemy weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -118,7 +118,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS - Obstruction
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>()).Returns(LineOfSightResult.Blocked(
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>()).Returns(LineOfSightResult.Blocked(
             new HexCoordinates(1, 1), new HexCoordinates(1, 4), new HexCoordinates(1, 2)));
 
         // Act
@@ -143,14 +143,14 @@ public class TacticalEvaluatorTests
             new(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])
         }, MovementType.Walk), null);
         
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var part = enemy.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
         
         var enemies = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 12)));
 
         // Act
@@ -187,7 +187,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var part = unit.Parts[PartLocation.RightArm];
         part.TryAddComponent(weapon);
@@ -195,7 +195,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(hasLos 
                 ? LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4))
                 : LineOfSightResult.Blocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4), new HexCoordinates(1, 2)));
@@ -244,7 +244,7 @@ public class TacticalEvaluatorTests
         }, MovementType.Walk), null);
         
         // Set up friendly weapon
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var part = unit.Parts[PartLocation.RightTorso];
         part.TryAddComponent(weapon);
@@ -252,7 +252,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4)));
         
         // Setup ToHit
@@ -290,13 +290,13 @@ public class TacticalEvaluatorTests
         var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
         enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
         var potentialTargets = new List<IUnit> { enemy1, enemy2 };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 6)));
         
         // ToHit for Enemy 1 -> 8 (prob 0.4166)
@@ -349,7 +349,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Enemy should be counted even if there is no LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Blocked(new HexCoordinates(1, 1), new HexCoordinates(1, 12), new HexCoordinates(1, 2)));
         
         // Setup ToHit
@@ -386,13 +386,13 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         // Weapon with long range of 9 (enemy is at range 10)
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 11)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -426,14 +426,14 @@ public class TacticalEvaluatorTests
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
         // Mount on a leg part - legs don't support torso rotation
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         var legPart = unit.Parts[partLocation]; 
         legPart.TryAddComponent(weapon);
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -464,13 +464,13 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -505,13 +505,13 @@ public class TacticalEvaluatorTests
         var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
         enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])], MovementType.Walk), null);
 
-        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null);
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
         unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
     
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>())
+        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);

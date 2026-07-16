@@ -382,7 +382,9 @@ public class WeaponAttackResolverTests
             attacker.Position!.Coordinates,
             target.Position!.Coordinates,
             weapon.FirstMountPart.Level,
-            target.Height).Returns(losResult);
+            target.Height,
+            attacker.Position.Surface,
+            target.Position.Surface).Returns(losResult);
 
         var result = _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
 
@@ -426,7 +428,9 @@ public class WeaponAttackResolverTests
             attacker.Position!.Coordinates,
             target.Position!.Coordinates,
             weapon.FirstMountPart.Level,
-            target.Height).Returns(losResult);
+            target.Height,
+            attacker.Position.Surface,
+            target.Position.Surface).Returns(losResult);
 
         var result = sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
 
