@@ -51,12 +51,20 @@
                     MinWidth="200"/>
         </StackPanel>
 
-        <!-- Version TextBlock -->
-        <TextBlock Classes="body"
-                   HorizontalAlignment="Right"
-                   VerticalAlignment="Bottom"
+        <!-- Logo & Version -->
+        <StackPanel HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="20"
+                    Spacing="4">
+            <Image Source="avares://Sanet.MakaMek.Avalonia/Assets/makameklogo.png"
                    Margin="10"
-                   Text="{Binding Version}"/>
+                   Stretch="UniformToFill"
+                   Width="480"
+                   MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=StackPanel}}"/>
+            <TextBlock Classes="body"
+                       HorizontalAlignment="Right"
+                       Text="{Binding Version}"/>
+        </StackPanel>
 
     </Grid>
 </UserControl>
