@@ -9,19 +9,21 @@
              x:DataType="viewModels:AboutViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.About.AboutView">
 
-    <Grid Margin="10" RowDefinitions="Auto,*">
-        <!-- Toolbar with Back Button -->
-        <templatedControls:ToolBar
-            Title="{extensions:Localize 'AboutView_Title'}"
-            TitleAlignment="Center"
-            LeftCommand="{Binding BackCommand}"
-            LeftIcon="{StaticResource BackArrowIcon}"/>
+    <Grid>
+        <templatedControls:HexagonBackground/>
+        <Grid Margin="10" RowDefinitions="Auto,*">
+            <!-- Toolbar with Back Button -->
+            <templatedControls:ToolBar
+                Title="{extensions:Localize 'AboutView_Title'}"
+                TitleAlignment="Center"
+                LeftCommand="{Binding BackCommand}"
+                LeftIcon="{StaticResource BackArrowIcon}"/>
 
-        <!-- Scrollable Content -->
-        <ScrollViewer Grid.Row="1" Margin="0,10,0,0">
-            <StackPanel Spacing="20" MaxWidth="800" HorizontalAlignment="Center">
-                
-                <!-- Version -->
+            <!-- Scrollable Content -->
+            <ScrollViewer Grid.Row="1" Margin="0,10,0,0">
+                <StackPanel Spacing="20" MaxWidth="800" HorizontalAlignment="Center">
+                    
+                    <!-- Version -->
                 <TextBlock Text="{Binding Version}"
                            Classes="h2"
                            HorizontalAlignment="Center"/>
@@ -111,8 +113,9 @@
                     </StackPanel>
                 </Border>
 
-            </StackPanel>
-        </ScrollViewer>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>
 

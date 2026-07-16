@@ -10,4 +10,5 @@
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/GamePanel.axaml"/>
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/ActionButton.axaml"/>
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/ToolBar.axaml"/>
+    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/TemplatedControls/HexagonBackground.axaml"/>
 </Styles>
