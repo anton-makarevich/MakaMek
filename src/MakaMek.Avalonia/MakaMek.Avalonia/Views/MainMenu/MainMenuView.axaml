@@ -60,7 +60,7 @@
                    Margin="10"
                    Stretch="UniformToFill"
                    Width="480"
-                   MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                   MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=StackPanel}}"/>
             <TextBlock Classes="body"
                        HorizontalAlignment="Right"
                        Text="{Binding Version}"/>
