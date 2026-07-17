@@ -48,7 +48,7 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 </details>
 
-### Phase 2. Support of map Levels and extended terrain types 🚧
+### Phase 2. Support of map Levels and extended terrain types ✅
 #### Implemented
 - Support of map Levels and detailed LOS highlighting
 - Support for rough terrain
