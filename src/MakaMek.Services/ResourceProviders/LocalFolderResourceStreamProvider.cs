@@ -17,7 +17,7 @@ public class LocalFolderResourceStreamProvider : IResourceStreamProvider
     public LocalFolderResourceStreamProvider(string folderPath, string fileExtension)
     {
         _folderPath = folderPath ?? throw new ArgumentNullException(nameof(folderPath));
-        _fileExtension = fileExtension ?? throw new ArgumentNullException(nameof(fileExtension));
+        _fileExtension = (fileExtension ?? throw new ArgumentNullException(nameof(fileExtension))).TrimStart('.');
     }
 
     /// <summary>
@@ -31,7 +31,11 @@ public class LocalFolderResourceStreamProvider : IResourceStreamProvider
             return Task.FromResult(Enumerable.Empty<string>());
         }
 
-        var files = Directory.GetFiles(_folderPath, $"*.{_fileExtension}", SearchOption.TopDirectoryOnly);
+        var files = Directory.GetFiles(_folderPath, $"*.{_fileExtension}", new EnumerationOptions
+        {
+            MatchCasing = MatchCasing.CaseInsensitive,
+            RecurseSubdirectories = false
+        });
         return Task.FromResult<IEnumerable<string>>(files);
     }
 

@@ -148,4 +148,16 @@ public class LocalFolderResourceStreamProviderTests : IDisposable
 
         result.Count.ShouldBe(1);
     }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_NormalizesLeadingDot()
+    {
+        File.WriteAllText(Path.Combine(_testFolder, "Atlas.mmux"), "data");
+
+        var sut = new LocalFolderResourceStreamProvider(_testFolder, ".mmux");
+
+        var result = (await sut.GetAvailableResourceIds()).ToList();
+
+        result.Count.ShouldBe(1);
+    }
 }
