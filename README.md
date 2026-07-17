@@ -48,20 +48,30 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 </details>
 
-### Phase 2. Support of map Levels and extended terrain types ✅
+<details>
+  <summary>Phase 2. Support of map Levels and extended terrain types ✅</summary>
 #### Implemented
 - Support of map Levels and detailed LOS highlighting
 - Support for rough terrain
 - [Map Editor](https://github.com/anton-makarevich/MakaMek.MapEditor) (separate project)
 - Support of water (lakes, rivers and water effects)
 - Support of roads and bridges (including bridge collision and skidding)
+</details>
+
+### Phase 3. Internet multiplayer — next 🚧
+- [Network Multiplayer PRD](docs/project/network-prd.md) - Relay-hub architecture for internet play
+
+#### Planned
+- Implement & deploy the thin cloud `RelayHub` (SignalR groups = rooms, WebSockets-only, containerized)
+- Room lifecycle & matchmaking — room-code creation on host, join-by-code, creator-is-server role establishment
+- Client reconnect + full state resync, stable within-game identity, host-loss → `GameEndedCommand`
+
 
 ### Future Phases
 - Support of paved areas and buildings
 - Physical attacks
 - Support of advanced tech rules (Clan, LosTech equipment and more)
 - Support for vehicles, battle armor and infantry
-- Multiplayer over the Internet (WebSockets/SignalR)
 - Tools for creating and managing custom units and maps, compatible with common community data formats
 - Monogame version with 3D graphics and possible VR/AR support
 
