@@ -1,7 +1,7 @@
 # Network Multiplayer (Relay Hub) - Product Requirements Document
 
 **Date:** 2026-07-17
-**Status:** Draft — #1225 resolved, remaining decisions in progress
+**Status:** Draft — #1225, #1229 resolved, remaining decisions in progress
 **Wayfinder map:** [Network PRD: relay-hub multiplayer #1224](https://github.com/anton-makarevich/MakaMek/issues/1224)
 
 ## Executive Summary
@@ -99,20 +99,20 @@ The direction below is **settled**; the detailed decisions marked *Open* are tra
 | Can `ServerGame` run in a browser/WASM head? | **Yes, unchanged.** `ServerGame.Start()` is an idle keep-alive loop (`while(!disposed && !gameOver){ await Task.Delay(100); }`) that yields to the browser event loop; real work runs synchronously in `HandleCommand` off the transport subscription. Single-threaded browser-wasm is fine for turn-based command bursts. Do **not** enable `<WasmEnableThreads>`. | [#1228](https://github.com/anton-makarevich/MakaMek/issues/1228) |
 | SignalR vs pure WebSockets for the relay? | **Recommend keeping SignalR** in "thin-relay" mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). Groups map to rooms; reconnect, keepalive, backpressure, in-order delivery and a scale-out path come for free; a pure-WS relay would reinvent all of it. WASM client works over `wss` (query-string token). | [#1226](https://github.com/anton-makarevich/MakaMek/issues/1226) |
 | Where to host the relay cheaply? | Budget easily met. **Coupled to the transport choice:** keep-SignalR ⇒ Fly.io (~$3–6/mo) or a small VPS (Hetzner ~€6/mo + Caddy TLS); the idle-optimal/cheapest option (Cloudflare Workers + Durable Objects, $0–5/mo) requires an edge JS/TS rewrite and cannot run SignalR. Avoid scale-to-zero for a persistent WS relay. Free fallback: Oracle Always-Free A1. | [#1227](https://github.com/anton-makarevich/MakaMek/issues/1227) |
-| What is the relay hub contract? | Rooms identified by 6-char base32 codes (2 h TTL, in-memory). **Creator-is-server** role model. Opaque `TransportMessage` envelope + `HubMessage` for hub events. Hub API: `CreateRoom` / `JoinRoom` / `LeaveRoom` / `Relay`. Reconnection via full state snapshot. Host loss → graceful termination (no migration). | [#1225](https://github.com/anton-makarevich/MakaMek/issues/1225) |
+| What is the relay hub contract? | Rooms identified by 6-char base32 codes (2 h TTL, in-memory). **Creator-is-server** role model. Opaque `RelayEnvelope` envelope + `HubMessage` for hub events. Hub API: `CreateRoom` / `JoinRoom` / `LeaveRoom` / `Relay`. Reconnection via full state snapshot. Host loss → graceful termination (no migration). | [#1225](https://github.com/anton-makarevich/MakaMek/issues/1225) |
+| Relay transport — SignalR-thin-relay vs. edge-WS rewrite? | **Confirmed: keep SignalR**, thin-relay mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). New `RelayHub` (room-aware server) and `RelayClientPublisher` (client) are added as **new classes in `Sanet.Transport.SignalR`** — reusing the SignalR dependency, not extending `TransportHub`/`SignalRHostManager`/`SignalRClientPublisher`, which are single-tenant-per-process (one embedded Kestrel instance per LAN game, static-event dispatch, no room concept) and are not safe to multiplex for a shared cloud relay. Those existing classes are left untouched. **LAN SignalR path: retained unchanged**, offered as a separate "Host LAN" option alongside the new "Host Online" (relay) option — no migration/removal in this effort. | [#1229](https://github.com/anton-makarevich/MakaMek/issues/1229) |
 
 ### Open (decided before implementation)
 
 | Decision | Ticket |
 |---|---|
-| Relay transport — SignalR-thin-relay on a .NET host vs. edge-WS rewrite | [#1229](https://github.com/anton-makarevich/MakaMek/issues/1229) |
 | Matchmaking & game discovery — room codes vs. listable lobby | [#1230](https://github.com/anton-makarevich/MakaMek/issues/1230) |
 | Connection resilience — reconnection, state resync, host-loss handling | [#1231](https://github.com/anton-makarevich/MakaMek/issues/1231) |
 | Trust & authority model for a dumb relay | [#1232](https://github.com/anton-makarevich/MakaMek/issues/1232) |
 
 ## Component Design
 
-> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228) while others remain open in the decision tickets.
+> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229) while others remain open in the decision tickets.
 
 ### 1. Cloud relay hub (thin SignalR hub) — *resolved per #1225*
 
@@ -134,15 +134,14 @@ A tiny ASP.NET Core SignalR hub with no game logic. Rooms are SignalR groups; th
 
 #### Message envelope
 
-Two distinct message types serve different layers:
+Two distinct message types serve different layers. **Naming note (found while resolving #1229):** `Sanet.Transport` already defines a `TransportMessage` record (`MessageType`, `SourceId: Guid`, `Payload`, `Timestamp`) — the type `ITransportPublisher.PublishMessage`/`Subscribe` actually use. The hub-fanned-out envelope below is a *different* type at a *different* layer (it wraps a serialized `Sanet.Transport.TransportMessage` as opaque `Payload`), so it's named `RelayEnvelope` to avoid colliding with the real one. Its `SenderId` (hub connection ID, for anti-spoof verification) is also distinct from the real `TransportMessage.SourceId` (a `Guid`, i.e. the existing `GameOriginId`) — the hub attaches the former without inspecting the latter.
 
 ```csharp
-// Transport-level: opaque game command envelope relayed through the hub.
-// The hub never inspects or deserializes Payload.
-public record TransportMessage(
-    string Type,           // Command type (e.g. "MoveUnit", "Attack")
-    string Payload,        // JSON-serialized command DTO
+// Relay-level: opaque envelope relayed through the hub.
+// The hub never inspects or deserializes Payload (a serialized Sanet.Transport.TransportMessage).
+public record RelayEnvelope(
     string SenderId,       // Connection ID of sender (hub-attached)
+    string Payload,        // JSON-serialized Sanet.Transport.TransportMessage
     long SequenceNumber,   // For ordering / replay
     DateTime Timestamp     // For timeout handling
 );
@@ -177,13 +176,13 @@ public interface IRelayHub
     Task LeaveRoom(string roomCode);
 
     // Game messaging
-    Task Relay(string roomCode, TransportMessage message);
+    Task Relay(string roomCode, RelayEnvelope message);
 
     // Hub events (received by clients)
     Task OnRoomCreated(RoomCreationResult result);
     Task OnPeerConnected(string peerId);
     Task OnPeerDisconnected(string peerId);
-    Task OnReceive(TransportMessage message);
+    Task OnReceive(RelayEnvelope message);
     Task OnError(HubError error);
 }
 
@@ -253,7 +252,7 @@ public class RelayHub : Hub<IRelayHub>
         return new JoinResult(true, role, playerId, null);
     }
 
-    public async Task Relay(string roomCode, TransportMessage message)
+    public async Task Relay(string roomCode, RelayEnvelope message)
     {
         // Hub never inspects payload — just fans out.
         await Clients.OthersInGroup(roomCode).OnReceive(message);
@@ -284,33 +283,41 @@ public class RelayHub : Hub<IRelayHub>
 
 Configuration (per research #1226): `HttpTransportType.WebSockets` + `SkipNegotiation` — a single `wss` upgrade, no fallback, no sticky-session requirement.
 
-### 2. Relay transport publisher — *proposed*
+### 2. Relay transport publisher — *resolved per #1229*
 
-A new `ITransportPublisher` that dials the relay outbound, used identically by host and clients. It slots into the existing `CommandTransportAdapter` with no changes to `ServerGame`/`ClientGame`.
+A new `RelayClientPublisher : ITransportPublisher`, added as a **new class in `Sanet.Transport.SignalR.Client`** (sibling of the existing `SignalRClientPublisher`, which is untouched and keeps serving LAN play). It dials the relay outbound, used identically by host and clients, and slots into the existing `CommandTransportAdapter` with no changes to `ServerGame`/`ClientGame`.
+
+It implements the *real* `ITransportPublisher.PublishMessage(TransportMessage message)` / `Subscribe(Action<TransportMessage>)` contract — `TransportMessage` here is the existing `Sanet.Transport.TransportMessage` (`MessageType`, `SourceId: Guid`, `Payload`, `Timestamp`), not the hub's `RelayEnvelope` (§1). Internally it serializes each `TransportMessage` into a `RelayEnvelope.Payload` for the trip through the hub, and deserializes back on receive — the hub itself never sees a `TransportMessage`, only the opaque envelope:
 
 ```csharp
-public class RelayClientPublisher : ITransportPublisher, IDisposable
+public class RelayClientPublisher : ITransportPublisher, IAsyncDisposable
 {
     private readonly HubConnection _connection;
     private readonly string _roomCode;
+    private readonly List<Action<TransportMessage>> _subscribers = [];
+    private long _sequenceNumber;
 
     public RelayClientPublisher(string hubUrl, string roomCode)
     {
         _roomCode = roomCode;
         _connection = new HubConnectionBuilder()
-            .WithUrl(hubUrl, o => o.SkipNegotiation = true,
-                     o => o.Transports = HttpTransportType.WebSockets)
-            .WithAutomaticReconnect(async _ =>
+            .WithUrl(hubUrl, o =>
             {
-                // Re-join the room after SignalR automatically reconnects.
-                await _connection.InvokeAsync("JoinRoom", _roomCode);
+                o.SkipNegotiation = true;
+                o.Transports = HttpTransportType.WebSockets;
             })
+            .WithAutomaticReconnect()
             .Build();
+
+        _connection.Reconnected += async _ =>
+            // Re-join the room after SignalR automatically reconnects.
+            await _connection.InvokeAsync("JoinRoom", _roomCode);
+
+        _connection.On<RelayEnvelope>("Receive", HandleEnvelopeReceived);
     }
 
     public async Task StartAsync()
     {
-        _connection.On<TransportMessage>("Receive", msg => _onMessage?.Invoke(msg));
         await _connection.StartAsync();
         await _connection.InvokeAsync("JoinRoom", _roomCode);
     }
@@ -320,20 +327,29 @@ public class RelayClientPublisher : ITransportPublisher, IDisposable
         if (_connection.State != HubConnectionState.Connected)
             throw new InvalidOperationException("Relay is not connected.");
 
-        try
-        {
-            await _connection.InvokeAsync("Relay", _roomCode, message);
-        }
-        catch (Exception ex) when (ex is not ObjectDisposedException)
-        {
-            // Log and rethrow so callers can react to relay failures
-            // rather than silently swallowing them (fire-and-forget).
-            throw;
-        }
+        var envelope = new RelayEnvelope(
+            SenderId: _connection.ConnectionId ?? string.Empty,
+            Payload: JsonSerializer.Serialize(message),
+            SequenceNumber: Interlocked.Increment(ref _sequenceNumber),
+            Timestamp: DateTime.UtcNow);
+
+        await _connection.InvokeAsync("Relay", _roomCode, envelope);
     }
 
-    public void Subscribe(Action<TransportMessage> onMessage) => _onMessage = onMessage;
-    private Action<TransportMessage>? _onMessage;
+    public void Subscribe(Action<TransportMessage> onMessageReceived)
+    {
+        lock (_subscribers) _subscribers.Add(onMessageReceived);
+    }
+
+    private void HandleEnvelopeReceived(RelayEnvelope envelope)
+    {
+        var message = JsonSerializer.Deserialize<TransportMessage>(envelope.Payload)!;
+        Action<TransportMessage>[] snapshot;
+        lock (_subscribers) snapshot = _subscribers.ToArray();
+        foreach (var subscriber in snapshot) subscriber(message);
+    }
+
+    public async ValueTask DisposeAsync() => await _connection.DisposeAsync();
 }
 ```
 
@@ -423,7 +439,7 @@ Minimal hardening built into the hub contract:
 
 | Measure | Detail |
 |---|---|
-| Sender verification | Hub attaches `SenderId` (connection ID) to every `TransportMessage`; receiving parties can verify origin. |
+| Sender verification | Hub attaches `SenderId` (connection ID) to every `RelayEnvelope`; receiving parties can verify origin. |
 | Room code entropy | 6-char base32 ≈ ~1 billion combinations; sufficient against brute-force join. |
 | Rate limiting | Max 10 join attempts per minute per IP. |
 | Message size limit | 256 KB max per message (well above any game command payload). |
@@ -463,16 +479,16 @@ Every ClientGame applies the server command (mirrors state)
 
 ## Hosting & Cost
 
-Per research (#1227), coupled to the transport decision (#1229):
+Per research (#1227), on the SignalR path settled in #1229:
 
-- **If SignalR is kept (recommended path):** deploy the thin relay as a small ASP.NET Core container on **Fly.io** (~$3–6/mo, always-on, runs the existing Dockerfile) or a **Hetzner VPS** (~€6/mo + Caddy for automatic `wss` TLS). A trimmed/AOT relay image is ~25–30 MiB and needs well under 256 MB RAM.
-- **Cheapest / idle-optimal alternative:** **Cloudflare Workers + Durable Objects** (WebSocket Hibernation), $0–5/mo — but requires rewriting the relay as edge JS/TS (no SignalR).
+- **Chosen:** deploy the thin relay as a small ASP.NET Core container on **Fly.io** (~$3–6/mo, always-on, runs the existing Dockerfile) or a **Hetzner VPS** (~€6/mo + Caddy for automatic `wss` TLS). A trimmed/AOT relay image is ~25–30 MiB and needs well under 256 MB RAM.
+- **Not pursued:** Cloudflare Workers + Durable Objects (WebSocket Hibernation), $0–5/mo — ruled out because it would require rewriting the relay as edge JS/TS (no SignalR support), which #1229 decided against.
 - **Free fallback:** Oracle Cloud Always-Free A1 ARM.
 - **Avoid** scale-to-zero platforms for a persistent WS relay (cold starts drop/delay connects); note Azure SignalR Free hard-caps at 20 concurrent connections.
 
 ## Implementation Plan
 
-> Sequenced after the open decisions (#1229, #1230, #1231, #1232) are locked. Hub contract (#1225) is resolved — room lifecycle, API, message envelope, role establishment, and security measures are specified above.
+> Sequenced after the open decisions (#1230, #1231, #1232) are locked. Hub contract (#1225) and relay transport (#1229) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, and security measures are specified above.
 
 ### Phase 1: Relay transport
 - Implement `RelayClientPublisher : ITransportPublisher` (outbound `wss`, room join, opaque fan-out).
@@ -499,7 +515,7 @@ Per research (#1227), coupled to the transport decision (#1229):
 - Host-loss: hub notifies clients (`HostDisconnected`) → clients exit to menu → room dissolved after 30 s (settled per #1225).
 
 ### Phase 6: Migration & polish
-- Decide fate of the LAN `SignalRHostService` path (retain for offline-LAN vs. remove).
+- LAN `SignalRHostService` path retained unchanged as a separate "Host LAN" option, alongside the new "Host Online" (relay) option (settled per #1229) — no removal/migration work in this effort.
 - Trust-model hardening if adopted (#1232).
 - End-to-end tests across desktop ↔ web ↔ mobile through the relay.
 
@@ -507,10 +523,9 @@ Per research (#1227), coupled to the transport decision (#1229):
 
 Tracked as decision tickets on the wayfinder map; each must be resolved before its dependent implementation phase:
 
-1. **Transport (#1229):** SignalR-thin-relay + .NET host vs. edge-WS rewrite (drives hosting choice).
-2. **Matchmaking (#1230):** room codes only, or a listable lobby.
-3. **Resilience (#1231):** resync mechanism (snapshot vs. command-log replay) and host-loss policy.
-4. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
+1. **Matchmaking (#1230):** room codes only, or a listable lobby.
+2. **Resilience (#1231):** resync mechanism (snapshot vs. command-log replay) and host-loss policy.
+3. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
 
 ## Success Criteria
 
@@ -523,4 +538,4 @@ Tracked as decision tickets on the wayfinder map; each must be resolved before i
 
 ## Summary
 
-The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225) is now resolved — room lifecycle, API, message envelope, role establishment, and security measures are specified. The remaining transport, matchmaking, resilience, and trust decisions are tracked on the wayfinder map and resolved before implementation begins.
+The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225) and the relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged) are now resolved. The remaining matchmaking, resilience, and trust decisions are tracked on the wayfinder map and resolved before implementation begins.
