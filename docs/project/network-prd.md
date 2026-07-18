@@ -133,8 +133,14 @@ public class RelayHub : Hub
 
     // Opaque fan-out: relay the already-serialized TransportMessage to the
     // OTHER members of the room. The hub never deserializes the payload.
-    public Task Relay(string roomCode, TransportMessage message) =>
-        Clients.OthersInGroup(roomCode).SendAsync("Receive", message);
+    public Task Relay(string roomCode, TransportMessage message)
+    {
+        // Verify the caller actually belongs to the claimed room.
+        if (!_connectionRooms.TryGetValue(Context.ConnectionId, out var rooms) || !rooms.Contains(roomCode))
+            return Task.CompletedTask;
+
+        return Clients.OthersInGroup(roomCode).SendAsync("Receive", message);
+    }
 
     // Track which rooms each connection has joined (hub-level, transient).
     private readonly Dictionary<string, List<string>> _connectionRooms = new();
