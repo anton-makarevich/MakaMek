@@ -13,7 +13,7 @@ MakaMek is a cross-platform, turn-based tactical BattleTech implementation built
 - **Run one test project:** `dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj`
 - **Run a single test / filter:** `dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj --filter "FullyQualifiedName~SomeTestClass"`
 - **Coverage (mirrors CI):**
-  ```
+  ```bash
   dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj \
     /p:CollectCoverage=true /p:CoverletOutputFormat=opencover \
     /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]*

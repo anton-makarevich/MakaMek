@@ -123,17 +123,33 @@ A tiny ASP.NET Core SignalR hub with no game logic — rooms are SignalR groups;
 public class RelayHub : Hub
 {
     // A party joins a room (by room code). Membership is the hub's only state.
-    public Task JoinRoom(string roomCode) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+    public async Task JoinRoom(string roomCode)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+        if (!_connectionRooms.ContainsKey(Context.ConnectionId))
+            _connectionRooms[Context.ConnectionId] = new List<string>();
+        _connectionRooms[Context.ConnectionId].Add(roomCode);
+    }
 
     // Opaque fan-out: relay the already-serialized TransportMessage to the
     // OTHER members of the room. The hub never deserializes the payload.
     public Task Relay(string roomCode, TransportMessage message) =>
         Clients.OthersInGroup(roomCode).SendAsync("Receive", message);
 
-    public override Task OnDisconnectedAsync(Exception? ex) =>
-        // Notify the room so the host can react (see Connection Resilience).
-        Clients.OthersInGroup(/* rooms of this connection */"").SendAsync("PeerLeft", Context.ConnectionId);
+    // Track which rooms each connection has joined (hub-level, transient).
+    private readonly Dictionary<string, List<string>> _connectionRooms = new();
+
+    public async override Task OnDisconnectedAsync(Exception? ex)
+    {
+        if (_connectionRooms.TryGetValue(Context.ConnectionId, out var rooms))
+        {
+            foreach (var room in rooms)
+            {
+                await Clients.OthersInGroup(room).SendAsync("PeerLeft", Context.ConnectionId, room);
+            }
+            _connectionRooms.Remove(Context.ConnectionId);
+        }
+    }
 }
 ```
 
@@ -155,7 +171,11 @@ public class RelayClientPublisher : ITransportPublisher, IDisposable
         _connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, o => o.SkipNegotiation = true,
                      o => o.Transports = HttpTransportType.WebSockets)
-            .WithAutomaticReconnect()   // reconnection comes from SignalR
+            .WithAutomaticReconnect(async _ =>
+            {
+                // Re-join the room after SignalR automatically reconnects.
+                await _connection.InvokeAsync("JoinRoom", _roomCode);
+            })
             .Build();
     }
 
@@ -166,8 +186,22 @@ public class RelayClientPublisher : ITransportPublisher, IDisposable
         await _connection.InvokeAsync("JoinRoom", _roomCode);
     }
 
-    public void PublishMessage(TransportMessage message) =>
-        _ = _connection.InvokeAsync("Relay", _roomCode, message);
+    public async Task PublishMessage(TransportMessage message)
+    {
+        if (_connection.State != HubConnectionState.Connected)
+            throw new InvalidOperationException("Relay is not connected.");
+
+        try
+        {
+            await _connection.InvokeAsync("Relay", _roomCode, message);
+        }
+        catch (Exception ex) when (ex is not ObjectDisposedException)
+        {
+            // Log and rethrow so callers can react to relay failures
+            // rather than silently swallowing them (fire-and-forget).
+            throw;
+        }
+    }
 
     public void Subscribe(Action<TransportMessage> onMessage) => _onMessage = onMessage;
     private Action<TransportMessage>? _onMessage;
