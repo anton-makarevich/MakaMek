@@ -78,6 +78,7 @@ payloads — it only fans each message out to the other members of the room.
 - **Outbound-only:** every party (host included) makes an outbound `wss` connection, so NAT/firewalls are a non-issue and browsers can participate fully.
 - **Symmetric hosting:** whoever "starts a server" runs `ServerGame` locally; the platform is irrelevant. **Web can host too** (see Decision Record below).
 - **Role from logic, not topology:** a joined party decides whether it is acting as "server" or "client" from local state, reusing the existing `GameOriginId` command-filtering rules.
+ - **Relay boundary:** The relay owns **session lifecycle** (room creation, membership, connection management) but never **game state or command semantics** — it does not inspect, validate, or process game commands. This distinction is intentional: the relay is a transport-level session manager, not a game server.
 
 ## Decision Record
 
@@ -125,9 +126,9 @@ A tiny ASP.NET Core SignalR hub with no game logic. Rooms are SignalR groups; th
 |---|---|---|
 | **Created** | Host calls `CreateRoom()` | Room exists; host not yet running `ServerGame`. Other clients cannot join until host is ready. |
 | **Active** | Host calls `SetHostReady()` | Accepting clients; game commands relayed between all members. |
-| **Dissolved** | Host disconnects *or* all clients leave | Room is marked for garbage collection (30 s grace for brief host blips). |
+| **Dissolved** | Host disconnects *or* all clients leave | Room is marked for garbage collection (30 s grace for brief host blips). Host re-join before timer expires cancels dissolution; timer expiry is irreversible. |
 
-**TTL:** Rooms expire after 2 hours of inactivity. In-memory only — no database.
+**TTL:** Rooms expire after 2 hours of inactivity. This applies to all states, including `Created` — a room whose host never calls `SetHostReady()` is garbage-collected after 2 h. In-memory only — no database.
 
 **Reconnection:** Once the room is closed (game started), new players are rejected with `RoomFull`. However, a player whose `playerId` is already in the room's roster may rejoin — this allows dropped clients to re-establish their connection during the game.
 
@@ -141,6 +142,7 @@ Two distinct message types serve different layers. **Naming note (found while re
 public record RelayEnvelope(
     string SenderId,       // Connection ID of sender (hub-attached)
     string Payload,        // JSON-serialized Sanet.Transport.TransportMessage
+    string SchemaVersion,  // Semver protocol version (e.g. "1.0.0"); reserved for future version negotiation; hub ignores in V1
     long SequenceNumber,   // Reserved for future ordering / replay use; assigned but not consumed in V1
     DateTime Timestamp     // For timeout handling
 );
@@ -173,7 +175,7 @@ public interface IRelayHub
     Task<RoomCreationResult> CreateRoom();
     Task<JoinResult> JoinRoom(string roomCode, string playerName, Guid playerId);
     Task LeaveRoom(string roomCode);
-    Task CloseRoom(string roomCode); // host calls when leaving the lobby stage; room stops accepting joins
+    Task CloseRoom(string roomCode); // host calls when entering the deployment phase (before first authoritative game command); room stops accepting new joins
 
     // Game messaging
     Task Relay(string roomCode, RelayEnvelope message);
@@ -217,7 +219,10 @@ public enum ErrorCode
     HostDisconnected,
     InvalidCode,
     ConnectionFailed,
-    HubAtCapacity      // hub-wide concurrent-room limit reached; see #1230
+    HubAtCapacity,     // hub-wide concurrent-room limit reached; see #1230
+    RateLimited,       // join or relay rate limit exceeded; see #1232
+    MessageTooLarge,   // payload exceeds 256 KB limit; see #1225
+    InvalidApiKey      // connection rejected — missing or invalid API key; see #1232
 }
 ```
 
@@ -254,8 +259,17 @@ public class RelayHub : Hub<IRelayHub>
         if (room.IsClosed && !room.HasPlayer(playerId)) // game already started; only known players may rejoin
             return new JoinResult(false, null, null, null, "Game already in progress");
 
+        // Duplicate connection handling: if this playerId already has an active
+        // connection, remove the old one from the group (last-connection-wins).
+        var existingConnectionId = room.GetConnectionForPlayer(playerId);
+        if (existingConnectionId != null && existingConnectionId != Context.ConnectionId)
+        {
+            await Groups.RemoveFromGroupAsync(existingConnectionId, roomCode);
+            await Clients.Client(room.HostId!).OnPeerDisconnected(existingConnectionId);
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
-        room.AddPlayer(playerId); // track known players for reconnection
+        room.AddPlayer(playerId, Context.ConnectionId); // track known players and their connections for reconnection
 
         var role = room.HostId == Context.ConnectionId ? "host" : "client";
 
@@ -269,8 +283,9 @@ public class RelayHub : Hub<IRelayHub>
 
     public async Task CloseRoom(string roomCode)
     {
-        // Host calls this when leaving the lobby stage. No further new JoinRoom
-        // calls are accepted; known players (already in the room's roster) may
+        // Host calls this when entering the deployment phase (immediately before
+        // the first authoritative game command). No further new JoinRoom calls
+        // are accepted; known players (already in the room's roster) may
         // still rejoin for reconnection. In-room parties are unaffected.
         await _roomManager.CloseRoomAsync(roomCode, Context.ConnectionId);
     }
@@ -360,6 +375,7 @@ public class RelayClientPublisher : ITransportPublisher, IAsyncDisposable
         var envelope = new RelayEnvelope(
             SenderId: _connection.ConnectionId ?? string.Empty,
             Payload: JsonSerializer.Serialize(message),
+            SchemaVersion: "1.0.0",
             SequenceNumber: Interlocked.Increment(ref _sequenceNumber),
             Timestamp: DateTime.UtcNow);
 
@@ -461,19 +477,41 @@ What's settled now, so that future effort doesn't require an identity migration:
    anything missed during the gap is lost (accepted v1 limitation)
 ```
 
+**Duplicate connection handling:**
+
+The room tracks a mapping of `playerId → connectionId`. If a `JoinRoom` call arrives with a `playerId` that already has an active connection in the room, the hub applies **last-connection-wins**: the old connection is removed from the room group and the host is notified of `OnPeerDisconnected` for the old connection, followed by `OnPeerConnected` for the new one. This handles both:
+
+- **Intentional duplicates** — a user opening a second browser tab with the same player identity.
+- **Reconnect races** — SignalR's auto-reconnect opens a new connection before the old one fully tears down.
+
+The old connection is not forcibly closed (SignalR does not support server-initiated disconnect); it is simply removed from the room group so it no longer receives relayed messages.
+
+**Sequence numbers (V1 behavior):**
+
+Sequence numbers are assigned by the sender but not validated, deduplicated, or used for ordering by the hub or receivers in V1. They exist in the envelope for future ordering and replay mechanisms. Receivers may safely ignore the field.
+
 **Host loss (unchanged from #1225):**
 
 ```text
 1. Hub detects host disconnection (OnDisconnectedAsync)
+   - Note: OnDisconnectedAsync fires only after SignalR's automatic reconnect
+     exhausts its retry attempts (default: 0, 2, 10, 30 s). Brief transport
+     blips are bridged automatically and never trigger host-loss handling.
 2. Hub notifies all clients in room (OnError with HostDisconnected)
 3. Clients gracefully exit to main menu
 4. Room marked for dissolution after 30 s grace period
+   - If the host re-joins via JoinRoom before the 30 s timer expires,
+     dissolution is cancelled and the room resumes normal operation.
+   - Once the timer expires, dissolution is irreversible and the room is
+     garbage-collected.
 5. No host migration — game ends (GameEndedCommand / shutdown lifecycle).
    This is a permanent design principle, not a v1 shortcut: host migration
    would require ServerGame to rehydrate authoritative state (it owns the
    dice roller and generates resolutions, unlike the purely event-sourced
    ClientGame) — deliberately out of scope, always.
 ```
+
+**Browser lifecycle:** Tab close, page refresh, and mobile browser tab suspension all result in WebSocket closure, which triggers the standard host disconnect flow above. There is no browser-specific host-loss path.
 
 When the future resync effort is scoped, it should cover: command-log replay vs. snapshot (informed by the resource-consumption test), and optionally host-side log/state persistence so the *same* host can recover after a crash or restart — entirely host-local, no relay/hub changes required for that part.
 
@@ -502,6 +540,7 @@ Minimal hardening built into the hub contract:
 | Connection gate | Static shared API key, passed as a query-string parameter on the hub URL, checked before the WS upgrade completes (#1232). **Not real protection** — filters low-effort automated traffic only; superseded by OAuth2/JWT when that's built. |
 | Message size limit | 256 KB max per message (well above any game command payload). |
 | Anonymous identity | `PlayerId` = GUID generated per game; `PlayerName` = user-entered, in-memory only. Duplicate names are permitted — command routing uses `PlayerId`, not the name. The lobby UI should handle duplicates gracefully (e.g. disambiguate visually). No persistent accounts or authentication. |
+| Deserialization resilience | The hub does not inspect payloads and cannot detect malformed messages. Receiving parties (host and clients) must handle deserialization failures gracefully — log the failure and ignore the message. A sender producing repeated invalid payloads is mitigated only by the per-connection `Relay()` rate limit (above). |
 
 ## Communication Flow
 
@@ -544,6 +583,10 @@ Per research (#1227), on the SignalR path settled in #1229:
 - **Free fallback:** Oracle Cloud Always-Free A1 ARM.
 - **Avoid** scale-to-zero platforms for a persistent WS relay (cold starts drop/delay connects); note Azure SignalR Free hard-caps at 20 concurrent connections.
 
+### Operational metrics (future)
+
+Not required for initial implementation, but the relay should eventually expose the following for production observability: active room count, active connection count, reconnect attempt count, join failure rate, `Relay()` throughput, dropped/malformed message count, and rate-limit hit count. These metrics inform capacity tuning for the config-driven limits (#1230, #1232).
+
 ## Implementation Plan
 
 > All decision tickets (#1225, #1229, #1230, #1231, #1232) are now resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, resilience scope, and trust/security measures are specified above. Implementation can proceed in the phases below.
@@ -563,7 +606,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 - Room-code creation on "start server"; join-by-code in `JoinGameViewModel`.
 - Creator-is-server role establishment (settled per #1225).
 - Hub-wide `MaxConcurrentRooms` config value; `CreateRoom()` returns `HubAtCapacity` with active-room count once reached (#1230).
-- `CloseRoom(roomCode)` called by the host on leaving the lobby stage; `JoinRoom` rejects with `RoomFull` for new players afterward, but allows known players to rejoin for reconnection (#1230).
+- `CloseRoom(roomCode)` called by the host when entering the deployment phase (before first authoritative game command); `JoinRoom` rejects with `RoomFull` for new players afterward, but allows known players to rejoin for reconnection (#1230).
 
 ### Phase 4: Web host enablement
 - Replace `DummyNetworkHostService` on the browser head with the relay-client attach path.
@@ -578,6 +621,27 @@ Per research (#1227), on the SignalR path settled in #1229:
 - LAN `SignalRHostService` path retained unchanged as a separate "Host LAN" option, alongside the new "Host Online" (relay) option (settled per #1229) — no removal/migration work in this effort.
 - OAuth2/JWT authentication is a named future extension (#1232), out of scope for this PRD.
 - End-to-end tests across desktop ↔ web ↔ mobile through the relay.
+
+**Testing matrix:**
+
+| Host | Client | Notes |
+|---|---|---|
+| Desktop | Desktop | baseline |
+| Desktop | Browser | web client joins desktop host |
+| Desktop | Mobile | mobile client joins desktop host |
+| Browser | Desktop | web host — key scenario for #1228 |
+| Browser | Browser | both in WASM |
+| Mobile | Desktop | mobile host (if supported) |
+
+**Key scenarios to cover:**
+- Reconnect during turn processing
+- Reconnect during deployment phase
+- Duplicate join (same player opens two tabs)
+- Host reconnect after SignalR reconnect exhaustion
+- Malformed payload handling (receiver logs and ignores)
+- Hub restart while games are in progress
+- Room TTL expiry with active connections
+- `CloseRoom` timing — new joins rejected after game starts; known players still rejoin
 
 ## Open Questions
 
