@@ -1,7 +1,7 @@
 # Network Multiplayer (Relay Hub) - Product Requirements Document
 
 **Date:** 2026-07-17
-**Status:** Draft — #1225, #1229 resolved, remaining decisions in progress
+**Status:** Draft — #1225, #1229, #1230 resolved, remaining decisions in progress
 **Wayfinder map:** [Network PRD: relay-hub multiplayer #1224](https://github.com/anton-makarevich/MakaMek/issues/1224)
 
 ## Executive Summary
@@ -101,18 +101,18 @@ The direction below is **settled**; the detailed decisions marked *Open* are tra
 | Where to host the relay cheaply? | Budget easily met. **Coupled to the transport choice:** keep-SignalR ⇒ Fly.io (~$3–6/mo) or a small VPS (Hetzner ~€6/mo + Caddy TLS); the idle-optimal/cheapest option (Cloudflare Workers + Durable Objects, $0–5/mo) requires an edge JS/TS rewrite and cannot run SignalR. Avoid scale-to-zero for a persistent WS relay. Free fallback: Oracle Always-Free A1. | [#1227](https://github.com/anton-makarevich/MakaMek/issues/1227) |
 | What is the relay hub contract? | Rooms identified by 6-char base32 codes (2 h TTL, in-memory). **Creator-is-server** role model. Opaque `RelayEnvelope` envelope + `HubMessage` for hub events. Hub API: `CreateRoom` / `JoinRoom` / `LeaveRoom` / `Relay`. Reconnection via full state snapshot. Host loss → graceful termination (no migration). | [#1225](https://github.com/anton-makarevich/MakaMek/issues/1225) |
 | Relay transport — SignalR-thin-relay vs. edge-WS rewrite? | **Confirmed: keep SignalR**, thin-relay mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). New `RelayHub` (room-aware server) and `RelayClientPublisher` (client) are added as **new classes in `Sanet.Transport.SignalR`** — reusing the SignalR dependency, not extending `TransportHub`/`SignalRHostManager`/`SignalRClientPublisher`, which are single-tenant-per-process (one embedded Kestrel instance per LAN game, static-event dispatch, no room concept) and are not safe to multiplex for a shared cloud relay. Those existing classes are left untouched. **LAN SignalR path: retained unchanged**, offered as a separate "Host LAN" option alongside the new "Host Online" (relay) option — no migration/removal in this effort. | [#1229](https://github.com/anton-makarevich/MakaMek/issues/1229) |
+| Matchmaking & game discovery — room codes vs. listable lobby? | **Confirmed: shareable room codes**, no listable lobby (reuses the #1225 `CreateRoom`/share-code/`JoinRoom` flow as-is). **"Room full"** = the game has already started, not a numeric player cap — enforced by a new `CloseRoom(roomCode)` hub method the host calls when leaving the lobby stage; `JoinRoom` rejects afterward. **Hub-wide concurrent-games cap (N)** is a config-only value on the relay, not pinned in this PRD — tuned operationally once running on real infra. Exceeding it fails `CreateRoom()` with a new `HubAtCapacity` error carrying the current active-room count, rather than a separate status-query endpoint. | [#1230](https://github.com/anton-makarevich/MakaMek/issues/1230) |
 
 ### Open (decided before implementation)
 
 | Decision | Ticket |
 |---|---|
-| Matchmaking & game discovery — room codes vs. listable lobby | [#1230](https://github.com/anton-makarevich/MakaMek/issues/1230) |
 | Connection resilience — reconnection, state resync, host-loss handling | [#1231](https://github.com/anton-makarevich/MakaMek/issues/1231) |
 | Trust & authority model for a dumb relay | [#1232](https://github.com/anton-makarevich/MakaMek/issues/1232) |
 
 ## Component Design
 
-> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229) while others remain open in the decision tickets.
+> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229, #1230) while others remain open in the decision tickets.
 
 ### 1. Cloud relay hub (thin SignalR hub) — *resolved per #1225*
 
@@ -174,6 +174,7 @@ public interface IRelayHub
     Task<RoomCreationResult> CreateRoom();
     Task<JoinResult> JoinRoom(string roomCode, string playerName);
     Task LeaveRoom(string roomCode);
+    Task CloseRoom(string roomCode); // host calls when leaving the lobby stage; room stops accepting joins
 
     // Game messaging
     Task Relay(string roomCode, RelayEnvelope message);
@@ -187,9 +188,11 @@ public interface IRelayHub
 }
 
 public record RoomCreationResult(
-    string RoomCode,
-    string HostId,
-    DateTime ExpiresAt
+    bool Success,
+    string? RoomCode,
+    string? HostId,
+    DateTime? ExpiresAt,
+    HubError? Error       // set when Success is false, e.g. HubAtCapacity
 );
 
 public record JoinResult(
@@ -208,12 +211,13 @@ public record HubError(
 public enum ErrorCode
 {
     RoomNotFound,
-    RoomFull,
+    RoomFull,          // game already started; see #1230
     RoomExpired,
     HostNotReady,
     HostDisconnected,
     InvalidCode,
-    ConnectionFailed
+    ConnectionFailed,
+    HubAtCapacity      // hub-wide concurrent-room limit reached; see #1230
 }
 ```
 
@@ -226,11 +230,16 @@ public class RelayHub : Hub<IRelayHub>
 
     public async Task<RoomCreationResult> CreateRoom()
     {
+        if (await _roomManager.IsAtCapacityAsync())
+        {
+            var activeCount = await _roomManager.GetActiveRoomCountAsync();
+            return new RoomCreationResult(false, null, null, null,
+                new HubError(ErrorCode.HubAtCapacity,
+                    $"Relay is at capacity ({activeCount} active games)", null));
+        }
+
         var room = await _roomManager.CreateRoomAsync();
-        return new RoomCreationResult(
-            room.Code,
-            Context.ConnectionId,
-            room.ExpiresAt);
+        return new RoomCreationResult(true, room.Code, Context.ConnectionId, room.ExpiresAt, null);
     }
 
     public async Task<JoinResult> JoinRoom(string roomCode, string playerName)
@@ -242,6 +251,9 @@ public class RelayHub : Hub<IRelayHub>
         if (room.HostId == null)
             return new JoinResult(false, null, null, "Host not ready");
 
+        if (room.IsClosed) // set by CloseRoom — game already started
+            return new JoinResult(false, null, null, "Game already in progress");
+
         await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
 
         var playerId = Guid.NewGuid().ToString();
@@ -250,6 +262,13 @@ public class RelayHub : Hub<IRelayHub>
         await Clients.Client(room.HostId).OnPeerConnected(Context.ConnectionId);
 
         return new JoinResult(true, role, playerId, null);
+    }
+
+    public async Task CloseRoom(string roomCode)
+    {
+        // Host calls this when leaving the lobby stage. No further JoinRoom
+        // calls are accepted; in-room parties are unaffected.
+        await _roomManager.CloseRoomAsync(roomCode, Context.ConnectionId);
     }
 
     public async Task Relay(string roomCode, RelayEnvelope message)
@@ -399,9 +418,14 @@ Because the relay is symmetric, a joined party must know whether it is the autho
 
 Host-role migration is explicitly out of scope (see #1231).
 
-### 5. Matchmaking & discovery — *proposed, pending #1230*
+### 5. Matchmaking & discovery — *resolved per #1230*
 
-Proposed minimum: **shareable room codes**. Creating a game creates a room and yields a short code/link; joiners enter the code (fits the anonymous-identity constraint, needs no accounts, and requires no state beyond the hub's group membership). A listable public lobby is a possible later addition.
+**Shareable room codes**, no listable lobby. Creating a game calls `CreateRoom()`, which creates a room and yields the short code from #1225; joiners enter the code via `JoinRoom()`. No accounts, no state beyond the hub's group membership — fits the anonymous-identity constraint. A listable public lobby is a possible later addition, not in this PRD.
+
+**Room capacity has two independent limits**, both surfaced as hub errors rather than a proactive status query:
+
+- **Per-room "full"** = the game has already started, not a player headcount. The host calls the new `CloseRoom(roomCode)` when leaving the lobby stage (deployment begins); `JoinRoom` afterward returns `ErrorCode.RoomFull`. There is no numeric player cap — sizing a game is a rules concern, not a transport one.
+- **Hub-wide capacity** caps the number of concurrent rooms the relay will run, to protect the minimal/cheap hosting chosen in #1229 from overload. It's a **config value on the relay** (e.g. `MaxConcurrentRooms` in `appsettings`), not a number pinned in this PRD — the right figure depends on the actual host's memory/CPU headroom under real traffic, which isn't known yet. `CreateRoom()` rejects with `ErrorCode.HubAtCapacity` (carrying the current active-room count) once the limit is reached; there's no separate "check capacity first" endpoint, keeping the hub's surface minimal.
 
 ### 6. Connection resilience — *protocol specified per #1225; implementation details pending #1231*
 
@@ -442,6 +466,7 @@ Minimal hardening built into the hub contract:
 | Sender verification | Hub attaches `SenderId` (connection ID) to every `RelayEnvelope`; receiving parties can verify origin. |
 | Room code entropy | 6-char base32 ≈ ~1 billion combinations; sufficient against brute-force join. |
 | Rate limiting | Max 10 join attempts per minute per IP. |
+| Capacity limit | Hub-wide concurrent-room cap (config value, #1230) protects the relay from resource exhaustion; `CreateRoom()` rejects with `HubAtCapacity` once reached. |
 | Message size limit | 256 KB max per message (well above any game command payload). |
 | Anonymous identity | `PlayerId` = GUID generated per game; `PlayerName` = user-entered, in-memory only. No persistent accounts or authentication. |
 
@@ -488,7 +513,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 ## Implementation Plan
 
-> Sequenced after the open decisions (#1230, #1231, #1232) are locked. Hub contract (#1225) and relay transport (#1229) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, and security measures are specified above.
+> Sequenced after the open decisions (#1231, #1232) are locked. Hub contract (#1225), relay transport (#1229), and matchmaking (#1230) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, and security measures are specified above.
 
 ### Phase 1: Relay transport
 - Implement `RelayClientPublisher : ITransportPublisher` (outbound `wss`, room join, opaque fan-out).
@@ -503,7 +528,8 @@ Per research (#1227), on the SignalR path settled in #1229:
 ### Phase 3: Room lifecycle & matchmaking
 - Room-code creation on "start server"; join-by-code in `JoinGameViewModel`.
 - Creator-is-server role establishment (settled per #1225).
-- Matchmaking discovery details (#1230) if listable lobby is in scope.
+- Hub-wide `MaxConcurrentRooms` config value; `CreateRoom()` returns `HubAtCapacity` with active-room count once reached (#1230).
+- `CloseRoom(roomCode)` called by the host on leaving the lobby stage; `JoinRoom` rejects with `RoomFull` afterward (#1230).
 
 ### Phase 4: Web host enablement
 - Replace `DummyNetworkHostService` on the browser head with the relay-client attach path.
@@ -523,9 +549,8 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 Tracked as decision tickets on the wayfinder map; each must be resolved before its dependent implementation phase:
 
-1. **Matchmaking (#1230):** room codes only, or a listable lobby.
-2. **Resilience (#1231):** resync mechanism (snapshot vs. command-log replay) and host-loss policy.
-3. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
+1. **Resilience (#1231):** resync mechanism (snapshot vs. command-log replay) and host-loss policy.
+2. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
 
 ## Success Criteria
 
@@ -538,4 +563,4 @@ Tracked as decision tickets on the wayfinder map; each must be resolved before i
 
 ## Summary
 
-The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225) and the relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged) are now resolved. The remaining matchmaking, resilience, and trust decisions are tracked on the wayfinder map and resolved before implementation begins.
+The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225), relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged), and matchmaking (#1230 — room codes; "full" = game started; config-driven hub capacity cap) are now resolved. The remaining resilience and trust decisions are tracked on the wayfinder map and resolved before implementation begins.
