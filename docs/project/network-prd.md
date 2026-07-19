@@ -317,6 +317,20 @@ public class RelayHub : Hub<IRelayHub>
         var sessionToken = Context.GetHttpContext()?.Request.Query["sessionToken"];
         var (roomCode, playerId, role) = await _roomManager.AuthenticateSessionAsync(sessionToken);
 
+        // Duplicate connection handling: last-connection-wins.
+        var existingConnectionId = _roomManager.GetConnectionId(playerId);
+        if (existingConnectionId != null)
+        {
+            // Remove the old connection from the room group and notify the host.
+            await Groups.RemoveFromGroupAsync(existingConnectionId, roomCode);
+            await Clients.Client(_roomManager.GetHostConnectionId(roomCode))
+                .OnPeerDisconnected(existingConnectionId);
+        }
+
+        // Host reconnection: cancel pending dissolution if the timer is active.
+        if (role == "host")
+            _roomManager.CancelDissolution(roomCode);
+
         await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
         _roomManager.AddConnection(playerId, Context.ConnectionId);
 
