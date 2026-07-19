@@ -1,7 +1,7 @@
 # Network Multiplayer (Relay Hub) - Product Requirements Document
 
 **Date:** 2026-07-17
-**Status:** Draft — #1225, #1229, #1230, #1231 resolved, remaining decisions in progress
+**Status:** Draft — all decision tickets resolved (#1225, #1229, #1230, #1231, #1232); ready for implementation planning
 **Wayfinder map:** [Network PRD: relay-hub multiplayer #1224](https://github.com/anton-makarevich/MakaMek/issues/1224)
 
 ## Executive Summary
@@ -103,16 +103,13 @@ The direction below is **settled**; the detailed decisions marked *Open* are tra
 | Relay transport — SignalR-thin-relay vs. edge-WS rewrite? | **Confirmed: keep SignalR**, thin-relay mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). New `RelayHub` (room-aware server) and `RelayClientPublisher` (client) are added as **new classes in `Sanet.Transport.SignalR`** — reusing the SignalR dependency, not extending `TransportHub`/`SignalRHostManager`/`SignalRClientPublisher`, which are single-tenant-per-process (one embedded Kestrel instance per LAN game, static-event dispatch, no room concept) and are not safe to multiplex for a shared cloud relay. Those existing classes are left untouched. **LAN SignalR path: retained unchanged**, offered as a separate "Host LAN" option alongside the new "Host Online" (relay) option — no migration/removal in this effort. | [#1229](https://github.com/anton-makarevich/MakaMek/issues/1229) |
 | Matchmaking & game discovery — room codes vs. listable lobby? | **Confirmed: shareable room codes**, no listable lobby (reuses the #1225 `CreateRoom`/share-code/`JoinRoom` flow as-is). **"Room full"** = the game has already started, not a numeric player cap — enforced by a new `CloseRoom(roomCode)` hub method the host calls when leaving the lobby stage; `JoinRoom` rejects afterward. **Hub-wide concurrent-games cap (N)** is a config-only value on the relay, not pinned in this PRD — tuned operationally once running on real infra. Exceeding it fails `CreateRoom()` with a new `HubAtCapacity` error carrying the current active-room count, rather than a separate status-query endpoint. | [#1230](https://github.com/anton-makarevich/MakaMek/issues/1230) |
 | Connection resilience — resync mechanism, identity, host-loss? | **Deferred by design:** resync (command-log replay vs. snapshot) and persistence are **not built in this effort** — committing to an in-memory command log needs a resource-consumption test first, not a guess. What *is* settled now: `JoinRoom` uses the caller-supplied `IPlayer.Id` directly as the hub-level identity (no separate hub-invented ID), so future resync/persistence work needs no identity migration. Host-loss policy is unchanged from #1225 (no migration, ever — a permanent principle, not a v1 shortcut). In v1, a dropped connection has no resync: SignalR's automatic reconnect bridges brief transport blips, but messages missed during a gap are simply lost — an accepted, explicit limitation pending a future research + persistence effort. | [#1231](https://github.com/anton-makarevich/MakaMek/issues/1231) |
+| Trust & authority model for a dumb relay? | **Now: anonymous, accept-risk** — no per-user authentication. Baseline v1 protections: room-code entropy + `JoinRoom` rate limit (#1225), a **new per-connection rate limit on `Relay()`** calls (config value, same treatment as the #1230 capacity cap — no number pinned without load data), message size limit (#1225), hub-wide capacity limit (#1230), and hub-tagged `SenderId` on every `RelayEnvelope` (#1225 — already gives anti-spoof "server origin can't be forged" hardening for free). Additionally, a **static shared API key** baked into official clients, required to connect to the hub at all, passed as a query-string parameter (browsers can't set custom WebSocket headers) and checked before the WS upgrade completes — explicitly **not real protection** (extractable from the client, no per-user identity), just a filter against low-effort automated traffic on a public endpoint. **Future:** real authentication via OAuth2/JWT against an external identity provider — not built now, and architecturally free to add later since SignalR/ASP.NET Core authenticate at the connection level, orthogonal to everything already decided. | [#1232](https://github.com/anton-makarevich/MakaMek/issues/1232) |
 
-### Open (decided before implementation)
-
-| Decision | Ticket |
-|---|---|
-| Trust & authority model for a dumb relay | [#1232](https://github.com/anton-makarevich/MakaMek/issues/1232) |
+All decision tickets on the wayfinder map are now resolved.
 
 ## Component Design
 
-> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229, #1230, #1231) while others remain open in the decision tickets.
+> The C# below is **illustrative** of the proposed shape; all contracts are now finalized (#1225, #1226, #1227, #1228, #1229, #1230, #1231, #1232).
 
 ### 1. Cloud relay hub (thin SignalR hub) — *resolved per #1225*
 
@@ -469,11 +466,18 @@ What's settled now, so that future effort doesn't require an identity migration:
 
 When the future resync effort is scoped, it should cover: command-log replay vs. snapshot (informed by the resource-consumption test), and optionally host-side log/state persistence so the *same* host can recover after a crash or restart — entirely host-local, no relay/hub changes required for that part.
 
-### 7. Trust & authority — *proposed, pending #1232*
+### 7. Trust & authority — *resolved per #1232*
 
-The relay is opaque and an ordinary client machine is authoritative, so a malicious peer could forge server-origin commands or impersonate a player. Proposed near-term posture: **accept-risk** for trusted-friends play (obscure room codes), with a note to consider **minimal hardening** later (hub-tagged sender identity so `GameOriginId`/server-origin can't be spoofed). Final call in #1232.
+The relay is opaque and an ordinary client machine is authoritative, so a malicious peer could in principle forge server-origin commands or impersonate a player. **v1 posture: anonymous, accept-risk** — no per-user authentication. This is acceptable because the hub-tagged `SenderId` on every `RelayEnvelope` (§1) already prevents forging server/`GameOriginId` origin without needing a separate identity system, and the layered infra protections below cover the realistic abuse surface for a small, cheap relay:
 
-### 8. Security considerations — *specified per #1225*
+- Room-code entropy + `JoinRoom` rate limit (10/min/IP, #1225).
+- **New:** per-connection rate limit on `Relay()` calls — a config value (no number pinned here, same reasoning as the #1230 capacity cap: real limits need load data, not a guess).
+- Message size limit (256 KB, #1225) and hub-wide concurrent-room capacity (#1230).
+- **New: static shared API key.** A single key baked into official clients, required to connect to the hub at all. Since the browser client can't set custom WebSocket headers, it travels as a query-string parameter on the hub URL and is checked by connection middleware before the WS upgrade completes. This is **explicitly not real protection** — it's extractable from any client build and doesn't identify individual users — its only job is filtering out low-effort automated/opportunistic traffic hitting a public endpoint.
+
+**Future extension (named, not built now): OAuth2/JWT.** Players authenticate against an external identity provider and connect with a bearer token. Nothing decided here blocks this — SignalR/ASP.NET Core authenticate at the connection level (`[Authorize]` + JWT bearer middleware), which is orthogonal to the `RelayEnvelope`/room contract.
+
+### 8. Security considerations — *specified per #1225, #1232*
 
 Minimal hardening built into the hub contract:
 
@@ -481,8 +485,10 @@ Minimal hardening built into the hub contract:
 |---|---|
 | Sender verification | Hub attaches `SenderId` (connection ID) to every `RelayEnvelope`; receiving parties can verify origin. |
 | Room code entropy | 6-char base32 ≈ ~1 billion combinations; sufficient against brute-force join. |
-| Rate limiting | Max 10 join attempts per minute per IP. |
+| Rate limiting (join) | Max 10 join attempts per minute per IP. |
+| Rate limiting (in-room) | Per-connection cap on `Relay()` calls (config value, #1232) — prevents a hostile or malfunctioning client from flooding the hub/peers once inside a room. |
 | Capacity limit | Hub-wide concurrent-room cap (config value, #1230) protects the relay from resource exhaustion; `CreateRoom()` rejects with `HubAtCapacity` once reached. |
+| Connection gate | Static shared API key, passed as a query-string parameter on the hub URL, checked before the WS upgrade completes (#1232). **Not real protection** — filters low-effort automated traffic only; superseded by OAuth2/JWT when that's built. |
 | Message size limit | 256 KB max per message (well above any game command payload). |
 | Anonymous identity | `PlayerId` = GUID generated per game; `PlayerName` = user-entered, in-memory only. No persistent accounts or authentication. |
 
@@ -529,7 +535,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 ## Implementation Plan
 
-> Sequenced after the open decisions (#1232) are locked. Hub contract (#1225), relay transport (#1229), matchmaking (#1230), and connection resilience (#1231) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, resilience scope, and security measures are specified above.
+> All decision tickets (#1225, #1229, #1230, #1231, #1232) are now resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, resilience scope, and trust/security measures are specified above. Implementation can proceed in the phases below.
 
 ### Phase 1: Relay transport
 - Implement `RelayClientPublisher : ITransportPublisher` (outbound `wss`, room join, opaque fan-out).
@@ -539,6 +545,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 ### Phase 2: Cloud relay hub
 - Implement the thin SignalR `RelayHub` per the settled contract (#1225): `IRelayHub` interface, `IRoomManager`, room lifecycle (Created → Active → Dissolved), 6-char base32 codes, 2 h TTL.
 - Implement `HubMessage` event flow (`PeerConnected`, `PeerDisconnected`, `OnError`, etc.).
+- Static API key check (query-string, before WS upgrade) and per-connection `Relay()` rate limit, alongside the existing join-rate-limit (settled per #1232).
 - Containerize; deploy to the chosen host (#1229/#1227) with `wss`/TLS.
 
 ### Phase 3: Room lifecycle & matchmaking
@@ -558,14 +565,12 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 ### Phase 6: Migration & polish
 - LAN `SignalRHostService` path retained unchanged as a separate "Host LAN" option, alongside the new "Host Online" (relay) option (settled per #1229) — no removal/migration work in this effort.
-- Trust-model hardening if adopted (#1232).
+- OAuth2/JWT authentication is a named future extension (#1232), out of scope for this PRD.
 - End-to-end tests across desktop ↔ web ↔ mobile through the relay.
 
 ## Open Questions
 
-Tracked as decision tickets on the wayfinder map; each must be resolved before its dependent implementation phase:
-
-1. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
+None — all decision tickets (#1225, #1229, #1230, #1231, #1232) are resolved. Deliberately deferred items (not open questions, but future work called out above): resync/persistence (#1231) pending a resource-consumption test, and OAuth2/JWT authentication (#1232).
 
 ## Success Criteria
 
@@ -578,4 +583,4 @@ Tracked as decision tickets on the wayfinder map; each must be resolved before i
 
 ## Summary
 
-The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225), relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged), matchmaking (#1230 — room codes; "full" = game started; config-driven hub capacity cap), and connection resilience (#1231 — resync and persistence deliberately deferred pending a resource-consumption test; `IPlayer.Id` used as the hub identity from day one; no host migration, ever) are now resolved. The remaining trust decision is tracked on the wayfinder map and resolved before implementation begins.
+The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). All five decision tickets are now resolved: the hub contract (#1225), relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged), matchmaking (#1230 — room codes; "full" = game started; config-driven hub capacity cap), connection resilience (#1231 — resync and persistence deliberately deferred pending a resource-consumption test; `IPlayer.Id` used as the hub identity from day one; no host migration, ever), and trust & authority (#1232 — anonymous access plus layered infra protections and a static API key now; OAuth2/JWT named as the future extension). Implementation can proceed in the phases above.
