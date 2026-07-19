@@ -1,7 +1,7 @@
 # Network Multiplayer (Relay Hub) - Product Requirements Document
 
 **Date:** 2026-07-17
-**Status:** Draft — #1225, #1229, #1230 resolved, remaining decisions in progress
+**Status:** Draft — #1225, #1229, #1230, #1231 resolved, remaining decisions in progress
 **Wayfinder map:** [Network PRD: relay-hub multiplayer #1224](https://github.com/anton-makarevich/MakaMek/issues/1224)
 
 ## Executive Summary
@@ -99,20 +99,20 @@ The direction below is **settled**; the detailed decisions marked *Open* are tra
 | Can `ServerGame` run in a browser/WASM head? | **Yes, unchanged.** `ServerGame.Start()` is an idle keep-alive loop (`while(!disposed && !gameOver){ await Task.Delay(100); }`) that yields to the browser event loop; real work runs synchronously in `HandleCommand` off the transport subscription. Single-threaded browser-wasm is fine for turn-based command bursts. Do **not** enable `<WasmEnableThreads>`. | [#1228](https://github.com/anton-makarevich/MakaMek/issues/1228) |
 | SignalR vs pure WebSockets for the relay? | **Recommend keeping SignalR** in "thin-relay" mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). Groups map to rooms; reconnect, keepalive, backpressure, in-order delivery and a scale-out path come for free; a pure-WS relay would reinvent all of it. WASM client works over `wss` (query-string token). | [#1226](https://github.com/anton-makarevich/MakaMek/issues/1226) |
 | Where to host the relay cheaply? | Budget easily met. **Coupled to the transport choice:** keep-SignalR ⇒ Fly.io (~$3–6/mo) or a small VPS (Hetzner ~€6/mo + Caddy TLS); the idle-optimal/cheapest option (Cloudflare Workers + Durable Objects, $0–5/mo) requires an edge JS/TS rewrite and cannot run SignalR. Avoid scale-to-zero for a persistent WS relay. Free fallback: Oracle Always-Free A1. | [#1227](https://github.com/anton-makarevich/MakaMek/issues/1227) |
-| What is the relay hub contract? | Rooms identified by 6-char base32 codes (2 h TTL, in-memory). **Creator-is-server** role model. Opaque `RelayEnvelope` envelope + `HubMessage` for hub events. Hub API: `CreateRoom` / `JoinRoom` / `LeaveRoom` / `Relay`. Reconnection via full state snapshot. Host loss → graceful termination (no migration). | [#1225](https://github.com/anton-makarevich/MakaMek/issues/1225) |
+| What is the relay hub contract? | Rooms identified by 6-char base32 codes (2 h TTL, in-memory). **Creator-is-server** role model. Opaque `RelayEnvelope` envelope + `HubMessage` for hub events. Hub API: `CreateRoom` / `JoinRoom` / `LeaveRoom` / `Relay`. Reconnection mechanism deferred, see #1231. Host loss → graceful termination (no migration). | [#1225](https://github.com/anton-makarevich/MakaMek/issues/1225) |
 | Relay transport — SignalR-thin-relay vs. edge-WS rewrite? | **Confirmed: keep SignalR**, thin-relay mode (`HttpTransportType.WebSockets` + `SkipNegotiation`). New `RelayHub` (room-aware server) and `RelayClientPublisher` (client) are added as **new classes in `Sanet.Transport.SignalR`** — reusing the SignalR dependency, not extending `TransportHub`/`SignalRHostManager`/`SignalRClientPublisher`, which are single-tenant-per-process (one embedded Kestrel instance per LAN game, static-event dispatch, no room concept) and are not safe to multiplex for a shared cloud relay. Those existing classes are left untouched. **LAN SignalR path: retained unchanged**, offered as a separate "Host LAN" option alongside the new "Host Online" (relay) option — no migration/removal in this effort. | [#1229](https://github.com/anton-makarevich/MakaMek/issues/1229) |
 | Matchmaking & game discovery — room codes vs. listable lobby? | **Confirmed: shareable room codes**, no listable lobby (reuses the #1225 `CreateRoom`/share-code/`JoinRoom` flow as-is). **"Room full"** = the game has already started, not a numeric player cap — enforced by a new `CloseRoom(roomCode)` hub method the host calls when leaving the lobby stage; `JoinRoom` rejects afterward. **Hub-wide concurrent-games cap (N)** is a config-only value on the relay, not pinned in this PRD — tuned operationally once running on real infra. Exceeding it fails `CreateRoom()` with a new `HubAtCapacity` error carrying the current active-room count, rather than a separate status-query endpoint. | [#1230](https://github.com/anton-makarevich/MakaMek/issues/1230) |
+| Connection resilience — resync mechanism, identity, host-loss? | **Deferred by design:** resync (command-log replay vs. snapshot) and persistence are **not built in this effort** — committing to an in-memory command log needs a resource-consumption test first, not a guess. What *is* settled now: `JoinRoom` uses the caller-supplied `IPlayer.Id` directly as the hub-level identity (no separate hub-invented ID), so future resync/persistence work needs no identity migration. Host-loss policy is unchanged from #1225 (no migration, ever — a permanent principle, not a v1 shortcut). In v1, a dropped connection has no resync: SignalR's automatic reconnect bridges brief transport blips, but messages missed during a gap are simply lost — an accepted, explicit limitation pending a future research + persistence effort. | [#1231](https://github.com/anton-makarevich/MakaMek/issues/1231) |
 
 ### Open (decided before implementation)
 
 | Decision | Ticket |
 |---|---|
-| Connection resilience — reconnection, state resync, host-loss handling | [#1231](https://github.com/anton-makarevich/MakaMek/issues/1231) |
 | Trust & authority model for a dumb relay | [#1232](https://github.com/anton-makarevich/MakaMek/issues/1232) |
 
 ## Component Design
 
-> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229, #1230) while others remain open in the decision tickets.
+> The C# below is **illustrative** of the proposed shape; some contracts are finalized (#1225, #1226, #1227, #1228, #1229, #1230, #1231) while others remain open in the decision tickets.
 
 ### 1. Cloud relay hub (thin SignalR hub) — *resolved per #1225*
 
@@ -172,7 +172,7 @@ public interface IRelayHub
 {
     // Room management
     Task<RoomCreationResult> CreateRoom();
-    Task<JoinResult> JoinRoom(string roomCode, string playerName);
+    Task<JoinResult> JoinRoom(string roomCode, string playerName, Guid playerId);
     Task LeaveRoom(string roomCode);
     Task CloseRoom(string roomCode); // host calls when leaving the lobby stage; room stops accepting joins
 
@@ -198,7 +198,7 @@ public record RoomCreationResult(
 public record JoinResult(
     bool Success,
     string? Role,       // "host" or "client"
-    string? PlayerId,
+    string? PlayerId,   // echoes the caller-supplied IPlayer.Id (#1231) — never hub-invented
     string? ErrorMessage
 );
 
@@ -242,7 +242,7 @@ public class RelayHub : Hub<IRelayHub>
         return new RoomCreationResult(true, room.Code, Context.ConnectionId, room.ExpiresAt, null);
     }
 
-    public async Task<JoinResult> JoinRoom(string roomCode, string playerName)
+    public async Task<JoinResult> JoinRoom(string roomCode, string playerName, Guid playerId)
     {
         var room = await _roomManager.GetRoomAsync(roomCode);
         if (room == null)
@@ -256,12 +256,13 @@ public class RelayHub : Hub<IRelayHub>
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
 
-        var playerId = Guid.NewGuid().ToString();
         var role = room.HostId == Context.ConnectionId ? "host" : "client";
 
         await Clients.Client(room.HostId).OnPeerConnected(Context.ConnectionId);
 
-        return new JoinResult(true, role, playerId, null);
+        // playerId is echoed as-is — it's the caller's own IPlayer.Id, never
+        // generated by the hub, so a future reconnect can reuse it unchanged (#1231).
+        return new JoinResult(true, role, playerId.ToString(), null);
     }
 
     public async Task CloseRoom(string roomCode)
@@ -313,12 +314,16 @@ public class RelayClientPublisher : ITransportPublisher, IAsyncDisposable
 {
     private readonly HubConnection _connection;
     private readonly string _roomCode;
+    private readonly string _playerName;
+    private readonly Guid _playerId; // the real IPlayer.Id — never hub-invented (#1231)
     private readonly List<Action<TransportMessage>> _subscribers = [];
     private long _sequenceNumber;
 
-    public RelayClientPublisher(string hubUrl, string roomCode)
+    public RelayClientPublisher(string hubUrl, string roomCode, string playerName, Guid playerId)
     {
         _roomCode = roomCode;
+        _playerName = playerName;
+        _playerId = playerId;
         _connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, o =>
             {
@@ -329,8 +334,10 @@ public class RelayClientPublisher : ITransportPublisher, IAsyncDisposable
             .Build();
 
         _connection.Reconnected += async _ =>
-            // Re-join the room after SignalR automatically reconnects.
-            await _connection.InvokeAsync("JoinRoom", _roomCode);
+            // Re-join with the same IPlayer.Id after SignalR automatically reconnects.
+            // NOTE: no resync happens here in v1 (#1231) — any messages missed
+            // during the gap are lost. This only re-establishes room membership.
+            await _connection.InvokeAsync("JoinRoom", _roomCode, _playerName, _playerId);
 
         _connection.On<RelayEnvelope>("Receive", HandleEnvelopeReceived);
     }
@@ -338,7 +345,7 @@ public class RelayClientPublisher : ITransportPublisher, IAsyncDisposable
     public async Task StartAsync()
     {
         await _connection.StartAsync();
-        await _connection.InvokeAsync("JoinRoom", _roomCode);
+        await _connection.InvokeAsync("JoinRoom", _roomCode, _playerName, _playerId);
     }
 
     public async Task PublishMessage(TransportMessage message)
@@ -427,31 +434,40 @@ Host-role migration is explicitly out of scope (see #1231).
 - **Per-room "full"** = the game has already started, not a player headcount. The host calls the new `CloseRoom(roomCode)` when leaving the lobby stage (deployment begins); `JoinRoom` afterward returns `ErrorCode.RoomFull`. There is no numeric player cap — sizing a game is a rules concern, not a transport one.
 - **Hub-wide capacity** caps the number of concurrent rooms the relay will run, to protect the minimal/cheap hosting chosen in #1229 from overload. It's a **config value on the relay** (e.g. `MaxConcurrentRooms` in `appsettings`), not a number pinned in this PRD — the right figure depends on the actual host's memory/CPU headroom under real traffic, which isn't known yet. `CreateRoom()` rejects with `ErrorCode.HubAtCapacity` (carrying the current active-room count) once the limit is reached; there's no separate "check capacity first" endpoint, keeping the hub's surface minimal.
 
-### 6. Connection resilience — *protocol specified per #1225; implementation details pending #1231*
+### 6. Connection resilience — *resolved (deferred scope) per #1231*
 
-Turn-based play makes resync tractable. The hub contract specifies the following flows:
+**Resync and persistence are explicitly not built in this effort.** Committing to an in-memory command log (or any resync mechanism) needs a resource-consumption test first — how memory scales with room count and game length on the minimal/cheap hosting chosen in #1229 — rather than a guess baked into the protocol now. That research + the actual resync mechanism, stable-identity reconnection, and optional host-side persistence are bundled as a **future effort**.
 
-**Client reconnection:**
+What's settled now, so that future effort doesn't require an identity migration:
+
+- `JoinRoom` takes the caller's own `IPlayer.Id` directly (`Task<JoinResult> JoinRoom(string roomCode, string playerName, Guid playerId)`) — the hub never invents its own player identity. Whatever reconnect/resync mechanism gets built later can key off this same ID unchanged.
+- **No other player-identity concept is introduced.** `JoinResult.PlayerId` simply echoes what was passed in.
+
+**Client reconnection (v1 behavior):**
 
 ```text
 1. Client detects connection loss (SignalR auto-reconnect)
-2. Client re-joins room with same PlayerId
-3. Hub notifies host of reconnection (OnPeerConnected)
-4. Host sends full state snapshot to reconnecting client
-5. Client applies snapshot and resumes normal operation
+2. Client re-joins the room with the same IPlayer.Id
+3. Hub notifies the host of reconnection (OnPeerConnected)
+4. No resync — the client resumes receiving new live messages only;
+   anything missed during the gap is lost (accepted v1 limitation)
 ```
 
-**Host loss:**
+**Host loss (unchanged from #1225):**
 
 ```text
 1. Hub detects host disconnection (OnDisconnectedAsync)
 2. Hub notifies all clients in room (OnError with HostDisconnected)
 3. Clients gracefully exit to main menu
 4. Room marked for dissolution after 30 s grace period
-5. No host migration — game ends (GameEndedCommand / shutdown lifecycle)
+5. No host migration — game ends (GameEndedCommand / shutdown lifecycle).
+   This is a permanent design principle, not a v1 shortcut: host migration
+   would require ServerGame to rehydrate authoritative state (it owns the
+   dice roller and generates resolutions, unlike the purely event-sourced
+   ClientGame) — deliberately out of scope, always.
 ```
 
-Detailed reconnection mechanisms (snapshot vs. command-log replay, stable identity format) are resolved in #1231.
+When the future resync effort is scoped, it should cover: command-log replay vs. snapshot (informed by the resource-consumption test), and optionally host-side log/state persistence so the *same* host can recover after a crash or restart — entirely host-local, no relay/hub changes required for that part.
 
 ### 7. Trust & authority — *proposed, pending #1232*
 
@@ -513,7 +529,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 ## Implementation Plan
 
-> Sequenced after the open decisions (#1231, #1232) are locked. Hub contract (#1225), relay transport (#1229), and matchmaking (#1230) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, and security measures are specified above.
+> Sequenced after the open decisions (#1232) are locked. Hub contract (#1225), relay transport (#1229), matchmaking (#1230), and connection resilience (#1231) are resolved — room lifecycle, API, message envelope, role establishment, transport choice, matchmaking, resilience scope, and security measures are specified above.
 
 ### Phase 1: Relay transport
 - Implement `RelayClientPublisher : ITransportPublisher` (outbound `wss`, room join, opaque fan-out).
@@ -536,9 +552,9 @@ Per research (#1227), on the SignalR path settled in #1229:
 - Verify `ServerGame` hosts in the WASM head (per #1228 — no engine change expected).
 
 ### Phase 5: Resilience
-- Client reconnect: re-join with same `PlayerId` → host sends full state snapshot → client resumes (protocol settled per #1225; replay mechanism in #1231).
-- Stable within-game identity for seat reclamation.
-- Host-loss: hub notifies clients (`HostDisconnected`) → clients exit to menu → room dissolved after 30 s (settled per #1225).
+- `JoinRoom` accepts the caller's own `IPlayer.Id`; no other identity concept introduced (settled per #1231).
+- No resync in this phase: a reconnect re-joins the room but does not recover missed state — explicitly deferred pending a resource-consumption test (#1231).
+- Host-loss: hub notifies clients (`HostDisconnected`) → clients exit to menu → room dissolved after 30 s (settled per #1225); no host migration, ever.
 
 ### Phase 6: Migration & polish
 - LAN `SignalRHostService` path retained unchanged as a separate "Host LAN" option, alongside the new "Host Online" (relay) option (settled per #1229) — no removal/migration work in this effort.
@@ -549,8 +565,7 @@ Per research (#1227), on the SignalR path settled in #1229:
 
 Tracked as decision tickets on the wayfinder map; each must be resolved before its dependent implementation phase:
 
-1. **Resilience (#1231):** resync mechanism (snapshot vs. command-log replay) and host-loss policy.
-2. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
+1. **Trust (#1232):** accept-risk vs. minimal sender-identity hardening; which extensions are in-PRD vs. deferred.
 
 ## Success Criteria
 
@@ -563,4 +578,4 @@ Tracked as decision tickets on the wayfinder map; each must be resolved before i
 
 ## Summary
 
-The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225), relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged), and matchmaking (#1230 — room codes; "full" = game started; config-driven hub capacity cap) are now resolved. The remaining resilience and trust decisions are tracked on the wayfinder map and resolved before implementation begins.
+The relay-hub model unlocks internet and web multiplayer by **inverting the topology, not rewriting the game**: a dumb cloud WebSocket relay fans commands between parties that all connect outbound, while the authoritative `ServerGame` keeps running on a participant's machine. Research confirms the browser can host with no engine changes (#1228) and that a thin SignalR relay is the pragmatic transport (#1226), hostable within budget (#1227). The hub contract (#1225), relay transport (#1229 — keep SignalR; new `RelayHub`/`RelayClientPublisher` classes in `Sanet.Transport.SignalR`; LAN path retained unchanged), matchmaking (#1230 — room codes; "full" = game started; config-driven hub capacity cap), and connection resilience (#1231 — resync and persistence deliberately deferred pending a resource-consumption test; `IPlayer.Id` used as the hub identity from day one; no host migration, ever) are now resolved. The remaining trust decision is tracked on the wayfinder map and resolved before implementation begins.
