@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Sanet.MakaMek.Hub</AssemblyName>
+    <RootNamespace>Sanet.MakaMek.Hub</RootNamespace>
+    <Description>Cloud relay room-management service for MakaMek.</Description>
+  </PropertyGroup>
+
+</Project>
