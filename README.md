@@ -62,9 +62,10 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - [Network Multiplayer PRD](docs/project/network-prd.md) - Relay-hub architecture for internet play
 
 #### Planned
-- Implement & deploy the thin cloud `RelayHub` (SignalR groups = rooms, WebSockets-only, containerized)
-- Room lifecycle & matchmaking — room-code creation on host, join-by-code, creator-is-server role establishment
-- Client reconnect + full state resync, stable within-game identity, host-loss → `GameEndedCommand`
+- Implement and deploy `MakaMek.Hub`: a containerized ASP.NET Core service with a REST room-management API and a thin, WebSockets-only SignalR relay. The relay carries opaque messages only; game logic remains on the host player device.
+- Add shareable room codes and REST room lifecycle management: create, join, ready, close, and member removal. Session tokens authenticate relay connections; the room creator is the authoritative server.
+- Add separate **Host Online** and **Host LAN** flows. Every supported client head, including browser/WASM, can host online by running `ServerGame` locally and connecting outbound to the relay.
+- Handle host loss gracefully by returning peers to a safe menu state. Host migration is out of scope.
 
 
 ### Future Phases
