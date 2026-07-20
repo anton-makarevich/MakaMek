@@ -87,16 +87,19 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 ```
 MakaMek/
 ├── src/
-│   ├── MakaMek.Core/         # Core game engine and logic
-│   ├── MakaMek.Map/          # Map generation and management
-│   ├── MakaMek.Presentation/ # Presentation layer (ViewModels and UI states)
-│   ├── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
-│   ├── MakaMek.Assets/       # 2D Assets management
-│   ├── MakaMek.Bots/         # Bot framework 
-│   └── MakaMek.Tools/        # Tools and utilities
-├── tests/                    # Unit tests
-├── data/                     # Data files (e.g., unit definitions)
-└── docs/                     # Documentation (also synced to GitHub Wiki)
+│   ├── MakaMek.Core/           # Core game engine and logic
+│   ├── MakaMek.Map/            # Map generation and management
+│   ├── MakaMek.Presentation/   # Presentation layer (ViewModels and UI states)
+│   ├── MakaMek.Avalonia/       # UI implementation with AvaloniaUI
+│   ├── MakaMek.Assets/         # 2D Assets management
+│   ├── MakaMek.Bots/           # Bot framework
+│   ├── MakaMek.Hub/            # Cloud relay service for internet multiplayer
+│   ├── MakaMek.Services/       # Platform-abstraction interfaces
+│   ├── MakaMek.Localization/   # Localized strings
+│   └── MakaMek.Tools/          # Tools and utilities
+├── tests/                      # Unit tests
+├── data/                       # Data files (e.g., unit definitions)
+└── docs/                       # Documentation (also synced to GitHub Wiki)
 ```
 
 ### Project Status
