@@ -107,6 +107,21 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void CreateRoom_WhenAllGeneratedCodesCollide_ThrowsInvalidOperationException()
+    {
+        var alwaysSame = new AlwaysSameCodeGenerator("DUP");
+        var manager = CreateManager(alwaysSame);
+
+        manager.CreateRoom("Ada", Guid.NewGuid());
+
+        var ex = Should.Throw<InvalidOperationException>(
+            () => manager.CreateRoom("Grace", Guid.NewGuid()));
+
+        ex.Message.ShouldBe("Unable to generate a unique room code.");
+        alwaysSame.GeneratedCount.ShouldBe(129);
+    }
+
+    [Fact]
     public void Generate_ReturnsSixUnambiguousCharacters()
     {
         var generator = new CryptographicRoomCodeGenerator();
@@ -153,6 +168,17 @@ public class RoomManagerTests
         {
             GeneratedCount++;
             return _roomCodes.Dequeue();
+        }
+    }
+
+    private sealed class AlwaysSameCodeGenerator(string code) : IRoomCodeGenerator
+    {
+        public int GeneratedCount { get; private set; }
+
+        public string Generate()
+        {
+            GeneratedCount++;
+            return code;
         }
     }
 }

@@ -56,6 +56,48 @@ public class CreateRoomsEndpointTests
         result.Error.ActiveRoomCount.ShouldBe(1);
     }
 
+    [Fact]
+    public async Task RequestToNonApiPath_PassesThroughWithoutAuthentication()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/");
+
+        response.StatusCode.ShouldNotBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CreateRoom_WithInvalidPlayerName_ReturnsValidationError(string? playerName)
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
+        request.Content = JsonContent.Create(new CreateRoomRequest(playerName!, Guid.NewGuid()));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithEmptyPlayerId_ReturnsValidationError()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
+        request.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.Empty));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("not-the-configured-key")]
