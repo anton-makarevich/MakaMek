@@ -67,6 +67,45 @@ public class RoomManagerTests
         result.Session.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void CreateRoom_WithInvalidPlayerName_ThrowsArgumentException(string? playerName)
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        Should.Throw<ArgumentException>(() => manager.CreateRoom(playerName!, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void CreateRoom_WithEmptyPlayerId_ThrowsArgumentException()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        Should.Throw<ArgumentException>(() => manager.CreateRoom("Ada", Guid.Empty));
+    }
+
+    [Fact]
+    public void CreateRoom_AfterExpiredRoomsAreCleanedUp_Succeeds()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
+        var generator = new SequenceRoomCodeGenerator("ABC234", "DEF567");
+        var timeProvider = new FixedTimeProvider(now);
+        var manager = CreateManager(generator, maxConcurrentRooms: 1, timeProvider: timeProvider);
+
+        manager.CreateRoom("Ada", Guid.NewGuid());
+
+        timeProvider.Advance(TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(1)));
+
+        var result = manager.CreateRoom("Grace", Guid.NewGuid());
+
+        result.Outcome.ShouldBe(RoomCreationOutcome.Created);
+        result.Room.ShouldNotBeNull();
+        result.Room!.RoomCode.ShouldBe("DEF567");
+        result.ActiveRoomCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Generate_ReturnsSixUnambiguousCharacters()
     {
@@ -84,10 +123,11 @@ public class RoomManagerTests
     private static RoomManager CreateManager(
         IRoomCodeGenerator roomCodeGenerator,
         int maxConcurrentRooms = 10,
-        DateTimeOffset? now = null) =>
+        DateTimeOffset? now = null,
+        FixedTimeProvider? timeProvider = null) =>
         new(
             roomCodeGenerator,
-            new FixedTimeProvider(now ?? DateTimeOffset.UtcNow),
+            timeProvider ?? new FixedTimeProvider(now ?? DateTimeOffset.UtcNow),
             Options.Create(new HubOptions
             {
                 ApiKey = "test-api-key",
@@ -96,7 +136,11 @@ public class RoomManagerTests
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => now;
+        private DateTimeOffset _now = now;
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan offset) => _now += offset;
     }
 
     private sealed class SequenceRoomCodeGenerator(params string[] roomCodes) : IRoomCodeGenerator

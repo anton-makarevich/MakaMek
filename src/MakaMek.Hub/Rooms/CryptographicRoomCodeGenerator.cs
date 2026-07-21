@@ -14,13 +14,6 @@ public sealed class CryptographicRoomCodeGenerator : IRoomCodeGenerator
 
     public string Generate()
     {
-        var characters = new char[CodeLength];
-
-        for (var index = 0; index < characters.Length; index++)
-        {
-            characters[index] = Alphabet[RandomNumberGenerator.GetInt32(Alphabet.Length)];
-        }
-
-        return new string(characters);
+        return RandomNumberGenerator.GetString(Alphabet, CodeLength);
     }
 }

@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Security;
 using Shouldly;
@@ -30,7 +29,7 @@ public class CreateRoomsEndpointTests
         result.Success.ShouldBeTrue();
         result.HostId.ShouldBe(playerId);
         result.Error.ShouldBeNull();
-        Regex.IsMatch(result.RoomCode!, "^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$").ShouldBeTrue();
+        result.RoomCode!.ShouldMatch("^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$");
         string.IsNullOrWhiteSpace(result.SessionToken).ShouldBeFalse();
         result.ExpiresAt.ShouldNotBeNull();
         (result.ExpiresAt!.Value - DateTimeOffset.UtcNow).TotalMinutes.ShouldBeInRange(119, 121);
