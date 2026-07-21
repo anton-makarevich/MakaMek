@@ -76,10 +76,7 @@ public class CreateRoomsEndpointTests
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest(playerName!, Guid.NewGuid()));
-        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
-        using var response = await client.SendAsync(request);
+        using var response = await CreateRoomAsync(client, playerName!, Guid.NewGuid(), HubApplicationFactory.ApiKey);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
@@ -90,10 +87,7 @@ public class CreateRoomsEndpointTests
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.Empty));
-        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
-        using var response = await client.SendAsync(request);
+        using var response = await CreateRoomAsync(client, "Ada", Guid.Empty, HubApplicationFactory.ApiKey);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
