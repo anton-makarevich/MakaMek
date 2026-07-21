@@ -77,7 +77,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
     foreach (var proxy in trustedProxies)
     {
-        options.KnownProxies.Add(IPAddress.Parse(proxy));
+        if (proxy.Contains('/'))
+        {
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(proxy));
+        }
+        else
+        {
+            options.KnownProxies.Add(IPAddress.Parse(proxy));
+        }
     }
 });
 
@@ -88,8 +95,8 @@ builder.Services.AddSingleton<IRoomManager, RoomManager>();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 app.UseRateLimiter();
+app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 app.MapControllers();
 
 app.Run();

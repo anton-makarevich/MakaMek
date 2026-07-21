@@ -43,13 +43,20 @@ public sealed class Room
 
     internal bool IsExpiredAt(DateTimeOffset now) => ExpiresAt <= now;
 
-    internal void Touch(DateTimeOffset now, TimeSpan ttl)
+    private void Touch(DateTimeOffset now, TimeSpan ttl)
     {
         LastActivityAt = now;
         ExpiresAt = now.Add(ttl);
     }
 
     internal bool IsHost(Guid playerId) => HostPlayerId == playerId;
+
+    internal bool ValidateHostSession(string token, DateTimeOffset now)
+    {
+        return _sessions.TryGetValue(token, out var session)
+               && session.Role == RoomRole.Host
+               && session.ExpiresAt > now;
+    }
 
     internal void MarkReady(DateTimeOffset now, TimeSpan ttl)
     {

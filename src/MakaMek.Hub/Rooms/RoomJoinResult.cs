@@ -16,6 +16,9 @@ public sealed record RoomJoinResult(
 
     public static RoomJoinResult NotReady() =>
         new(RoomJoinOutcome.HostNotReady, null, null);
+
+    public static RoomJoinResult HostPlayerIdConflict() =>
+        new(RoomJoinOutcome.HostPlayerIdConflict, null, null);
 }
 
 public enum RoomJoinOutcome
@@ -23,5 +26,6 @@ public enum RoomJoinOutcome
     Joined,
     RoomNotFound,
     RoomExpired,
-    HostNotReady
+    HostNotReady,
+    HostPlayerIdConflict
 }

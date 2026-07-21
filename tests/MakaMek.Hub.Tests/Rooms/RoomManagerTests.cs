@@ -179,6 +179,23 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void JoinRoom_WithHostPlayerId_ReturnsHostPlayerIdConflict()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            now: now);
+
+        var hostId = Guid.NewGuid();
+        var createResult = manager.CreateRoom("Ada", hostId);
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var result = manager.JoinRoom("ABC234", "Malicious", hostId);
+
+        result.Outcome.ShouldBe(RoomJoinOutcome.HostPlayerIdConflict);
+    }
+
+    [Fact]
     public void JoinRoom_ReadyRoom_AppendsMemberAndIssuesSession()
     {
         var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
@@ -187,8 +204,8 @@ public class RoomManagerTests
             now: now);
 
         var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
-        manager.MarkRoomReady("ABC234", hostId);
+        var createResult = manager.CreateRoom("Ada", hostId);
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var playerId = Guid.NewGuid();
         var result = manager.JoinRoom("ABC234", "Grace", playerId);
@@ -214,8 +231,8 @@ public class RoomManagerTests
             now: now);
 
         var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
-        manager.MarkRoomReady("ABC234", hostId);
+        var createResult = manager.CreateRoom("Ada", hostId);
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var playerId = Guid.NewGuid();
         manager.JoinRoom("ABC234", "Grace", playerId);
@@ -234,8 +251,8 @@ public class RoomManagerTests
             now: now);
 
         var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
-        manager.MarkRoomReady("ABC234", hostId);
+        var createResult = manager.CreateRoom("Ada", hostId);
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var result = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
 
@@ -251,9 +268,9 @@ public class RoomManagerTests
             now: now);
 
         var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom("Ada", hostId);
 
-        var result = manager.MarkRoomReady("ABC234", hostId);
+        var result = manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         result.Outcome.ShouldBe(RoomReadyOutcome.Ready);
     }
@@ -266,7 +283,7 @@ public class RoomManagerTests
         var hostId = Guid.NewGuid();
         manager.CreateRoom("Ada", hostId);
 
-        var result = manager.MarkRoomReady("ABC234", Guid.NewGuid());
+        var result = manager.MarkRoomReady("ABC234", "invalid-token");
 
         result.Outcome.ShouldBe(RoomReadyOutcome.NotHost);
     }
@@ -276,7 +293,7 @@ public class RoomManagerTests
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
 
-        var result = manager.MarkRoomReady("NOEXIST", Guid.NewGuid());
+        var result = manager.MarkRoomReady("NOEXIST", "any-token");
 
         result.Outcome.ShouldBe(RoomReadyOutcome.RoomNotFound);
     }
@@ -291,11 +308,11 @@ public class RoomManagerTests
             timeProvider: timeProvider);
 
         var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom("Ada", hostId);
 
         timeProvider.Advance(TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(1)));
 
-        var result = manager.MarkRoomReady("ABC234", hostId);
+        var result = manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         result.Outcome.ShouldBe(RoomReadyOutcome.RoomExpired);
     }

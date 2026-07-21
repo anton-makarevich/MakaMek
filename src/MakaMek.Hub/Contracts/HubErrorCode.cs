@@ -7,5 +7,6 @@ public enum HubErrorCode
     RoomExpired,
     HostNotReady,
     NotHost,
-    RateLimited
+    RateLimited,
+    HostPlayerIdConflict
 }

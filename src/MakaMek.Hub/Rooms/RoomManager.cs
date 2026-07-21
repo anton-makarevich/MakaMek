@@ -95,6 +95,11 @@ public sealed class RoomManager : IRoomManager
                 return RoomJoinResult.NotReady();
             }
 
+            if (room.IsHost(playerId))
+            {
+                return RoomJoinResult.HostPlayerIdConflict();
+            }
+
             var session = room.AddClientMember(
                 playerName,
                 playerId,
@@ -106,7 +111,7 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-    public RoomReadyResult MarkRoomReady(string roomCode, Guid playerId)
+    public RoomReadyResult MarkRoomReady(string roomCode, string sessionToken)
     {
         lock (_sync)
         {
@@ -122,7 +127,7 @@ public sealed class RoomManager : IRoomManager
                 return RoomReadyResult.Expired();
             }
 
-            if (!room.IsHost(playerId))
+            if (!room.ValidateHostSession(sessionToken, now))
             {
                 return RoomReadyResult.NotHost();
             }

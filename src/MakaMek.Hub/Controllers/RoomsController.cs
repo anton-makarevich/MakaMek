@@ -122,6 +122,13 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
                 HostId: null,
                 SessionToken: null,
                 Error: new HubError(HubErrorCode.HostNotReady, "The room host is not ready to accept joiners."))),
+            RoomJoinOutcome.HostPlayerIdConflict => Conflict(new JoinResponse(
+                Success: false,
+                Role: null,
+                PlayerId: null,
+                HostId: null,
+                SessionToken: null,
+                Error: new HubError(HubErrorCode.HostPlayerIdConflict, "The supplied PlayerId matches the host."))),
             _ => throw new InvalidOperationException($"Unhandled join outcome: {result.Outcome}")
         };
     }
@@ -132,16 +139,16 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
     [ProducesResponseType<ReadyResponse>(StatusCodes.Status409Conflict)]
     public ActionResult<ReadyResponse> MarkRoomReady(string roomCode, [FromBody] ReadyRequest request)
     {
-        if (request.PlayerId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(request.SessionToken))
         {
             return ValidationProblem(new ValidationProblemDetails(
                 new Dictionary<string, string[]>
                 {
-                    [nameof(request.PlayerId)] = ["PlayerId must be a non-empty GUID."]
+                    [nameof(request.SessionToken)] = ["SessionToken is required."]
                 }));
         }
 
-        var result = roomManager.MarkRoomReady(roomCode, request.PlayerId);
+        var result = roomManager.MarkRoomReady(roomCode, request.SessionToken);
 
         return result.Outcome switch
         {
