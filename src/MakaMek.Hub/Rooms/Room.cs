@@ -37,6 +37,8 @@ public sealed class Room
 
     public DateTimeOffset ExpiresAt { get; private set; }
 
+    public RoomState State { get; private set; } = RoomState.Created;
+
     public IReadOnlyCollection<RoomMember> Members => _members.Values;
 
     internal bool IsExpiredAt(DateTimeOffset now) => ExpiresAt <= now;
@@ -45,5 +47,37 @@ public sealed class Room
     {
         LastActivityAt = now;
         ExpiresAt = now.Add(ttl);
+    }
+
+    internal bool IsHost(Guid playerId) => HostPlayerId == playerId;
+
+    internal void MarkReady(DateTimeOffset now, TimeSpan ttl)
+    {
+        State = RoomState.Active;
+        Touch(now, ttl);
+    }
+
+    internal RoomSession AddClientMember(
+        string playerName,
+        Guid playerId,
+        DateTimeOffset now,
+        TimeSpan ttl,
+        Func<string> generateToken)
+    {
+        Touch(now, ttl);
+
+        var member = new RoomMember(playerId, playerName, RoomRole.Client, now);
+        _members[playerId] = member;
+
+        var expiresAt = ExpiresAt;
+        var session = new RoomSession(
+            generateToken(),
+            RoomCode,
+            playerId,
+            RoomRole.Client,
+            expiresAt);
+        _sessions[session.Token] = session;
+
+        return session;
     }
 }
