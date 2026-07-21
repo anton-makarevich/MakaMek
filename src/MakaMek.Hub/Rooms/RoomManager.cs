@@ -13,7 +13,7 @@ public sealed class RoomManager : IRoomManager
     private const int MaximumCodeGenerationAttempts = 128;
     private static readonly TimeSpan RoomTtl = TimeSpan.FromHours(2);
 
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.Ordinal);
     private readonly IRoomCodeGenerator _roomCodeGenerator;
     private readonly TimeProvider _timeProvider;
