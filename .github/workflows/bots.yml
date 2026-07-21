@@ -25,10 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.x
 
@@ -36,7 +36,7 @@ jobs:
         run: dotnet test tests/MakaMek.Bots.Tests/MakaMek.Bots.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Bots]*
 
       - name: Upload Bots tests results
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./tests/MakaMek.Bots.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -49,10 +49,10 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.x
 
