@@ -89,7 +89,7 @@ public class JoinRoomEndpointTests
         var createResult = await createResponse.Content.ReadFromJsonAsync<CreateRoomResponse>(JsonOptions);
         var roomCode = createResult!.RoomCode!;
 
-        await MarkReadyAsync(client, roomCode, createResult!.SessionToken!, HubApplicationFactory.ApiKey);
+        await MarkReadyAsync(client, roomCode, createResult.SessionToken!, HubApplicationFactory.ApiKey);
 
         using var joinResponse = await JoinRoomAsync(client, roomCode, "Malicious", hostId, HubApplicationFactory.ApiKey);
 
