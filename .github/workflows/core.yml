@@ -1,6 +1,5 @@
 name: MakaMek Core Library
 permissions:
-  pull-requests: write
   contents: read
 on:
   push:
@@ -22,6 +21,8 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     env:
       COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
@@ -29,6 +30,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -65,6 +67,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
         
       - name: Set up .NET
         uses: actions/setup-dotnet@v6

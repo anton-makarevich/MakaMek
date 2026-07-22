@@ -1,6 +1,5 @@
 name: MakaMek Avalonia Library
 permissions:
-  pull-requests: write
   contents: read
 on:
   push:
@@ -26,11 +25,14 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -39,20 +41,6 @@ jobs:
 
       - name: Run Avalonia tests
         run: dotnet test tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute "/p:Include=\"[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Converters*,[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Game*\""
-
-      - name: Upload coverage report as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
-          if-no-files-found: error
-
-      - name: Upload Avalonia tests results
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
 
       - name: Diff coverage report
         if: github.event_name == 'pull_request'
@@ -65,6 +53,13 @@ jobs:
           exclude: '**/obj/**,**/bin/**'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Avalonia tests results
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
   
   publish-nuget:
     runs-on: ubuntu-latest
@@ -73,6 +68,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
         
       - name: Set up .NET
         uses: actions/setup-dotnet@v6

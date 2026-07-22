@@ -1,6 +1,5 @@
 name: MakaMek Hub
 permissions:
-  pull-requests: write
   contents: read
 on:
   push:
@@ -17,11 +16,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
