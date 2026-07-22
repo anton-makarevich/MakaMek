@@ -48,7 +48,7 @@ jobs:
 
       - name: Diff coverage report
         if: github.event_name == 'pull_request'
-        uses: sanet/Cocodif@v1
+        uses: anton-makarevich/Cocodif@v0.1.1
         with:
           coverage-files: ./tests/MakaMek.Bots.Tests/coverage.opencover.xml
           title: Bots Coverage
