@@ -45,7 +45,7 @@ jobs:
 
       - name: Diff coverage report
         if: github.event_name == 'pull_request'
-        uses: anton-makarevich/Cocodif@v0.1.1
+        uses: anton-makarevich/Cocodif@main
         with:
           coverage-files: ./tests/MakaMek.Localization.Tests/coverage.opencover.xml
           title: Localization Coverage
