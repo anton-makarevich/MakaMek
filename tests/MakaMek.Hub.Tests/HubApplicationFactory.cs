@@ -4,7 +4,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace Sanet.MakaMek.Hub.Tests;
 
-public sealed class HubApplicationFactory(int maxConcurrentRooms = 10) : WebApplicationFactory<Program>
+public sealed class HubApplicationFactory(
+    int maxConcurrentRooms = 10,
+    int joinRateLimitPerMinute = 100) : WebApplicationFactory<Program>
 {
     public const string ApiKey = "test-api-key";
 
@@ -16,7 +18,8 @@ public sealed class HubApplicationFactory(int maxConcurrentRooms = 10) : WebAppl
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Hub:ApiKey"] = ApiKey,
-                ["Hub:MaxConcurrentRooms"] = maxConcurrentRooms.ToString()
+                ["Hub:MaxConcurrentRooms"] = maxConcurrentRooms.ToString(),
+                ["Hub:JoinRateLimitPerMinute"] = joinRateLimitPerMinute.ToString()
             });
         });
     }

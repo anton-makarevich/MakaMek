@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
 
@@ -63,5 +64,105 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
                 SessionToken: session.Token,
                 ExpiresAt: room.ExpiresAt,
                 Error: null));
+    }
+
+    [HttpPost("{roomCode}/join")]
+    [EnableRateLimiting("JoinRateLimit")]
+    [ProducesResponseType<JoinResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<JoinResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<JoinResponse>(StatusCodes.Status409Conflict)]
+    public ActionResult<JoinResponse> JoinRoom(string roomCode, [FromBody] JoinRequest request)
+    {
+        var validationErrors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.PlayerName))
+        {
+            validationErrors[nameof(request.PlayerName)] = ["PlayerName is required."];
+        }
+
+        if (request.PlayerId == Guid.Empty)
+        {
+            validationErrors[nameof(request.PlayerId)] = ["PlayerId must be a non-empty GUID."];
+        }
+
+        if (validationErrors.Count > 0)
+        {
+            return ValidationProblem(new ValidationProblemDetails(validationErrors));
+        }
+
+        var result = roomManager.JoinRoom(roomCode, request.PlayerName.Trim(), request.PlayerId);
+
+        return result.Outcome switch
+        {
+            RoomJoinOutcome.Joined => Ok(new JoinResponse(
+                Success: true,
+                Role: result.Session!.Role.ToString(),
+                PlayerId: result.Session.PlayerId,
+                HostId: result.Room!.HostPlayerId,
+                SessionToken: result.Session.Token,
+                Error: null)),
+            RoomJoinOutcome.RoomNotFound => NotFound(new JoinResponse(
+                Success: false,
+                Role: null,
+                PlayerId: null,
+                HostId: null,
+                SessionToken: null,
+                Error: new HubError(HubErrorCode.RoomNotFound, "The specified room was not found."))),
+            RoomJoinOutcome.RoomExpired => Conflict(new JoinResponse(
+                Success: false,
+                Role: null,
+                PlayerId: null,
+                HostId: null,
+                SessionToken: null,
+                Error: new HubError(HubErrorCode.RoomExpired, "The specified room has expired."))),
+            RoomJoinOutcome.HostNotReady => Conflict(new JoinResponse(
+                Success: false,
+                Role: null,
+                PlayerId: null,
+                HostId: null,
+                SessionToken: null,
+                Error: new HubError(HubErrorCode.HostNotReady, "The room host is not ready to accept joiners."))),
+            RoomJoinOutcome.HostPlayerIdConflict => Conflict(new JoinResponse(
+                Success: false,
+                Role: null,
+                PlayerId: null,
+                HostId: null,
+                SessionToken: null,
+                Error: new HubError(HubErrorCode.HostPlayerIdConflict, "The supplied PlayerId matches the host."))),
+            _ => throw new InvalidOperationException($"Unhandled join outcome: {result.Outcome}")
+        };
+    }
+
+    [HttpPost("{roomCode}/ready")]
+    [ProducesResponseType<ReadyResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ReadyResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ReadyResponse>(StatusCodes.Status409Conflict)]
+    public ActionResult<ReadyResponse> MarkRoomReady(string roomCode, [FromBody] ReadyRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.SessionToken))
+        {
+            return ValidationProblem(new ValidationProblemDetails(
+                new Dictionary<string, string[]>
+                {
+                    [nameof(request.SessionToken)] = ["SessionToken is required."]
+                }));
+        }
+
+        var result = roomManager.MarkRoomReady(roomCode, request.SessionToken);
+
+        return result.Outcome switch
+        {
+            RoomReadyOutcome.Ready => Ok(new ReadyResponse(Success: true, Error: null)),
+            RoomReadyOutcome.RoomNotFound => NotFound(new ReadyResponse(
+                Success: false,
+                Error: new HubError(HubErrorCode.RoomNotFound, "The specified room was not found."))),
+            RoomReadyOutcome.RoomExpired => Conflict(new ReadyResponse(
+                Success: false,
+                Error: new HubError(HubErrorCode.RoomExpired, "The specified room has expired."))),
+            RoomReadyOutcome.NotHost => Conflict(new ReadyResponse(
+                Success: false,
+                Error: new HubError(HubErrorCode.NotHost, "Only the host can mark a room as ready."))),
+            _ => throw new InvalidOperationException($"Unhandled ready outcome: {result.Outcome}")
+        };
     }
 }

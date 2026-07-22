@@ -16,4 +16,14 @@ public sealed class HubOptions
     /// The maximum number of non-expired rooms the relay accepts at one time.
     /// </summary>
     public int MaxConcurrentRooms { get; init; } = 100;
+
+    /// <summary>
+    /// Maximum number of join attempts per minute per IP address.
+    /// </summary>
+    public int JoinRateLimitPerMinute { get; init; } = 10;
+
+    /// <summary>
+    /// Trusted proxy CIDRs for ForwardedHeaders (comma-separated).
+    /// </summary>
+    public string[] TrustedProxies { get; init; } = [];
 }

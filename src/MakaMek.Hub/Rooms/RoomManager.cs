@@ -67,6 +67,76 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
+    public RoomJoinResult JoinRoom(string roomCode, string playerName, Guid playerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(playerName);
+
+        if (playerId == Guid.Empty)
+        {
+            throw new ArgumentException("PlayerId must be a non-empty GUID.", nameof(playerId));
+        }
+
+        lock (_sync)
+        {
+            var now = _timeProvider.GetUtcNow();
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return RoomJoinResult.NotFound();
+            }
+
+            if (room.IsExpiredAt(now))
+            {
+                return RoomJoinResult.Expired();
+            }
+
+            if (room.State != RoomState.Active)
+            {
+                return RoomJoinResult.NotReady();
+            }
+
+            if (room.IsHost(playerId))
+            {
+                return RoomJoinResult.HostPlayerIdConflict();
+            }
+
+            var session = room.AddClientMember(
+                playerName,
+                playerId,
+                now,
+                RoomTtl,
+                GenerateSessionToken);
+
+            return RoomJoinResult.Joined(room, session);
+        }
+    }
+
+    public RoomReadyResult MarkRoomReady(string roomCode, string sessionToken)
+    {
+        lock (_sync)
+        {
+            var now = _timeProvider.GetUtcNow();
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return RoomReadyResult.NotFound();
+            }
+
+            if (room.IsExpiredAt(now))
+            {
+                return RoomReadyResult.Expired();
+            }
+
+            if (!room.ValidateHostSession(sessionToken, now))
+            {
+                return RoomReadyResult.NotHost();
+            }
+
+            room.MarkReady(now, RoomTtl);
+            return RoomReadyResult.Ready();
+        }
+    }
+
     private string GenerateAvailableRoomCode()
     {
         for (var attempt = 0; attempt < MaximumCodeGenerationAttempts; attempt++)
