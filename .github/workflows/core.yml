@@ -21,11 +21,16 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     env:
       COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -42,6 +47,18 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: core
           fail_ci_if_error: true
+
+      - name: Diff coverage report
+        if: github.event_name == 'pull_request'
+        uses: anton-makarevich/Cocodif@v0.1.2
+        with:
+          coverage-files: ./tests/MakaMek.Core.Tests/coverage.opencover.xml
+          title: Core Coverage
+          comment-marker: '<!-- cocodif-core -->'
+          include: 'src/MakaMek.Core/**'
+          exclude: '**/obj/**,**/bin/**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   publish-nuget:
     runs-on: ubuntu-latest
@@ -50,6 +67,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
         
       - name: Set up .NET
         uses: actions/setup-dotnet@v6

@@ -22,12 +22,12 @@
         <PackageReference Include="Avalonia.Skia" Version="12.1.0" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.6.1210" />
         <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.6.1210" />
         <PackageReference Include="Sanet.MVVM.Views.Avalonia" Version="1.6.1210" />
-        <PackageReference Include="System.Reactive" Version="6.1.0" />
+        <PackageReference Include="System.Reactive" Version="7.0.0" />
     </ItemGroup>
 
     <ItemGroup>

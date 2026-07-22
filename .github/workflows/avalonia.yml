@@ -25,9 +25,14 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -37,12 +42,17 @@ jobs:
       - name: Run Avalonia tests
         run: dotnet test tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute "/p:Include=\"[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Converters*,[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Game*\""
 
-      - name: Upload coverage report as artifact
-        uses: actions/upload-artifact@v4
+      - name: Diff coverage report
+        if: github.event_name == 'pull_request'
+        uses: anton-makarevich/Cocodif@v0.1.2
         with:
-          name: coverage-report
-          path: tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
-          if-no-files-found: error
+          coverage-files: ./tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
+          title: Avalonia Coverage
+          comment-marker: '<!-- cocodif-avalonia -->'
+          include: 'src/MakaMek.Avalonia/**'
+          exclude: '**/obj/**,**/bin/**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Avalonia tests results
         uses: codecov/codecov-action@v7
@@ -58,6 +68,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
         
       - name: Set up .NET
         uses: actions/setup-dotnet@v6

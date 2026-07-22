@@ -19,6 +19,7 @@ MakaMek is a cross-platform, turn-based tactical BattleTech implementation built
     /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]*
   ```
   The coverage filter uses the source assembly name (test assembly name minus `.Tests`). See `skills/coverage-check`.
+- **Diff-coverage (PR pipeline):** [Cocodif](https://github.com/sanet/Cocodif) runs as a composite GitHub Action in each coverage workflow. It parses the coverlet OpenCover XML, computes `git diff --merge-base` against the PR base branch, and posts a per-file diff-coverage report as a sticky PR comment (one per module). The action is informational only — no `fail-under` gate. Each module workflow passes its own `coverage.opencover.xml`, `include` globs scoped to `src/<Module>/**`, and a unique `comment-marker` so reports don't collide. For local diff-coverage, install the CLI: `dotnet tool install --global Sanet.Cocodif`.
 - **Run the desktop app:** `dotnet run --project src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop`
 
 Assembly/root namespaces are prefixed `Sanet.` (e.g. `MakaMek.Core` → `Sanet.MakaMek.Core`), even though project/folder names omit it.
