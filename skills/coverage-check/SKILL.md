@@ -5,7 +5,7 @@ description: Run tests for a project with code coverage and report uncovered sou
 
 # Coverage Check
 
-Run tests with coverlet coverage, parse the opencover XML, and report uncovered lines — mirroring the CI pipeline locally.
+Run tests with coverlet coverage and produce a diff-coverage report — mirroring the CI pipeline locally.
 
 **Input:** test project path relative to the repo root (e.g. `tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj`).
 
@@ -33,25 +33,27 @@ Stop and report if tests fail. Do not proceed to parsing.
 
 **Completion criterion:** tests pass and `coverage.opencover.xml` exists in the test project directory.
 
-## Step 4: Parse the coverage XML
+## Step 4: Diff-coverage report with Cocodif
 
-Locate `{testProjectDir}/coverage.opencover.xml`. Parse the XML:
+[Cocodif](https://github.com/sanet/Cocodif) is a .NET global tool that parses the OpenCover XML, filters changed files via `git diff`, and produces a Markdown diff-coverage report.
 
-1. Build a file map from `<Files>` — each `<File uid="N" fullPath="..." />` maps a numeric ID to a source file path.
-2. For every `<SequencePoint>` with `vc="0"` (zero visits), record the file ID (`fileid` attribute) and start line (`sl` attribute).
-3. Group uncovered lines by source file.
-4. Filter to source files under `src/` only — skip generated files under `obj/`.
+**Install** (if not already available):
 
-**Completion criterion:** a map of source file → sorted list of uncovered line numbers extracted.
+```bash
+dotnet tool install --global Sanet.Cocodif
+```
 
-## Step 5: Report uncovered lines
+**Run** against the module (after Step 3 produces `coverage.opencover.xml`):
 
-For each file with uncovered lines:
+```bash
+Cocodif \
+  -c tests/{TestProjectDir}/coverage.opencover.xml \
+  -o diff-coverage.md \
+  --include 'src/{ModuleName}/**' \
+  --exclude '**/obj/**,**/bin/**' \
+  --title '{ModuleName} Coverage'
+```
 
-1. Show the file path (relative to repo root) and the count of uncovered lines.
-2. List the uncovered line numbers.
-3. Read those lines from the source file to show the actual code.
+If Cocodif cannot be installed, skip this step — the `coverage.opencover.xml` is still available for manual inspection.
 
-End with a summary: total source files checked, files with gaps, total uncovered lines.
-
-**Completion criterion:** every uncovered line presented with its source code, grouped by file.
+**Completion criterion:** `diff-coverage.md` produced with per-file diff-coverage breakdown, or step skipped.

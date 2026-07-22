@@ -1,5 +1,6 @@
 name: MakaMek Avalonia Library
 permissions:
+  pull-requests: write
   contents: read
 on:
   push:
@@ -28,6 +29,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -50,6 +53,18 @@ jobs:
           files: ./tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+
+      - name: Diff coverage report
+        if: github.event_name == 'pull_request'
+        uses: sanet/Cocodif@v1
+        with:
+          coverage-files: ./tests/MakaMek.Avalonia.Tests/coverage.opencover.xml
+          title: Avalonia Coverage
+          comment-marker: '<!-- cocodif-avalonia -->'
+          include: 'src/MakaMek.Avalonia/**'
+          exclude: '**/obj/**,**/bin/**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   publish-nuget:
     runs-on: ubuntu-latest

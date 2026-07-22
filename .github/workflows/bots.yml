@@ -1,5 +1,6 @@
 name: MakaMek Bots Library
 permissions:
+  pull-requests: write
   contents: read
 on:
   push:
@@ -26,6 +27,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -42,6 +45,18 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: bots
           fail_ci_if_error: true
+
+      - name: Diff coverage report
+        if: github.event_name == 'pull_request'
+        uses: sanet/Cocodif@v1
+        with:
+          coverage-files: ./tests/MakaMek.Bots.Tests/coverage.opencover.xml
+          title: Bots Coverage
+          comment-marker: '<!-- cocodif-bots -->'
+          include: 'src/MakaMek.Bots/**'
+          exclude: '**/obj/**,**/bin/**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   publish-nuget:
     runs-on: ubuntu-latest
