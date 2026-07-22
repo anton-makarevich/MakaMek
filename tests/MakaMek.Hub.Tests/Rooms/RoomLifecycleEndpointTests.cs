@@ -262,6 +262,154 @@ public class RoomLifecycleEndpointTests
         result.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
     }
 
+    [Fact]
+    public async Task RemoveMember_RoomNotFound_ReturnsNotFound()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await RemoveMemberAsync(
+            client,
+            "NOEXIST",
+            Guid.NewGuid(),
+            "any-token",
+            HubApplicationFactory.ApiKey);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<RemoveMemberResponse>(JsonOptions);
+        result.ShouldNotBeNull();
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(HubErrorCode.RoomNotFound);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CloseRoom_EmptySessionToken_ReturnsValidationProblem(string? sessionToken)
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms/ABC234/close");
+        request.Content = JsonContent.Create(new CloseRequest(sessionToken!));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("SessionToken");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task MarkRoomReady_EmptySessionToken_ReturnsValidationProblem(string? sessionToken)
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms/ABC234/ready");
+        request.Content = JsonContent.Create(new ReadyRequest(sessionToken!));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("SessionToken");
+    }
+
+    [Fact]
+    public async Task RemoveMember_NonBearerToken_ReturnsOk()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var (roomCode, hostToken) = await CreateReadyRoomAsync(client);
+        var playerId = Guid.NewGuid();
+
+        using var joinResponse = await JoinRoomAsync(client, roomCode, "Grace", playerId, HubApplicationFactory.ApiKey);
+        joinResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/rooms/{roomCode}/members/{playerId}");
+        request.Headers.TryAddWithoutValidation("Authorization", hostToken);
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+
+        using var removeResponse = await client.SendAsync(request);
+
+        removeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var result = await removeResponse.Content.ReadFromJsonAsync<RemoveMemberResponse>(JsonOptions);
+        result.ShouldNotBeNull();
+        result.Success.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task JoinRoom_EmptyPlayerName_ReturnsValidationProblem(string? playerName)
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await JoinRoomAsync(client, "ABC234", playerName!, Guid.NewGuid(), HubApplicationFactory.ApiKey);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("PlayerName");
+    }
+
+    [Fact]
+    public async Task JoinRoom_EmptyPlayerId_ReturnsValidationProblem()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms/ABC234/join");
+        request.Content = JsonContent.Create(new JoinRequest("Grace", Guid.Empty));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("PlayerId");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task CreateRoom_EmptyPlayerName_ReturnsValidationProblem(string? playerName)
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await CreateRoomAsync(client, playerName!, Guid.NewGuid(), HubApplicationFactory.ApiKey);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("PlayerName");
+    }
+
+    [Fact]
+    public async Task CreateRoom_EmptyPlayerId_ReturnsValidationProblem()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
+        request.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.Empty));
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
+
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("PlayerId");
+    }
+
     private static async Task<(string RoomCode, string HostToken)> CreateReadyRoomAsync(HttpClient client)
     {
         using var createResponse = await CreateRoomAsync(client, "Ada", Guid.NewGuid(), HubApplicationFactory.ApiKey);

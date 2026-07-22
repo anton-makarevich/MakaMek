@@ -511,6 +511,38 @@ public class RoomManagerTests
         createResult.Room!.IsMember(playerId).ShouldBeTrue();
     }
 
+    [Fact]
+    public void RemoveMember_RoomNotFound_ReturnsNotFound()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.RemoveMember("NOEXIST", "any-token", Guid.NewGuid());
+
+        result.Outcome.ShouldBe(RoomRemoveMemberOutcome.RoomNotFound);
+    }
+
+    [Fact]
+    public void RemoveMember_ExpiredRoom_ReturnsExpired()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(now);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider);
+
+        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var playerId = Guid.NewGuid();
+        manager.JoinRoom("ABC234", "Grace", playerId);
+
+        timeProvider.Advance(TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(1)));
+
+        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, playerId);
+
+        result.Outcome.ShouldBe(RoomRemoveMemberOutcome.RoomExpired);
+    }
+
     private static RoomManager CreateManager(
         IRoomCodeGenerator roomCodeGenerator,
         int maxConcurrentRooms = 10,
