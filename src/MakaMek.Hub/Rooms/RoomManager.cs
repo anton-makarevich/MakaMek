@@ -90,14 +90,22 @@ public sealed class RoomManager : IRoomManager
                 return RoomJoinResult.Expired();
             }
 
-            if (room.State != RoomState.Active)
+            if (room.IsHost(playerId))
+            {
+                return RoomJoinResult.HostPlayerIdConflict();
+            }
+
+            if (room.State == RoomState.Created)
             {
                 return RoomJoinResult.NotReady();
             }
 
-            if (room.IsHost(playerId))
+            if (room.State == RoomState.Closed)
             {
-                return RoomJoinResult.HostPlayerIdConflict();
+                if (!room.IsMember(playerId))
+                {
+                    return RoomJoinResult.Full();
+                }
             }
 
             var session = room.AddClientMember(
@@ -132,8 +140,78 @@ public sealed class RoomManager : IRoomManager
                 return RoomReadyResult.NotHost();
             }
 
-            room.MarkReady(now, RoomTtl);
+            if (!room.MarkReady(now, RoomTtl))
+            {
+                return RoomReadyResult.InvalidState();
+            }
+
             return RoomReadyResult.Ready();
+        }
+    }
+
+    public RoomCloseResult CloseRoom(string roomCode, string sessionToken)
+    {
+        lock (_sync)
+        {
+            var now = _timeProvider.GetUtcNow();
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return RoomCloseResult.NotFound();
+            }
+
+            if (room.IsExpiredAt(now))
+            {
+                return RoomCloseResult.Expired();
+            }
+
+            if (!room.ValidateHostSession(sessionToken, now))
+            {
+                return RoomCloseResult.NotHost();
+            }
+
+            if (!room.Close(now, RoomTtl))
+            {
+                return RoomCloseResult.InvalidState();
+            }
+
+            return RoomCloseResult.Closed();
+        }
+    }
+
+    public RoomRemoveMemberResult RemoveMember(string roomCode, string sessionToken, Guid targetPlayerId)
+    {
+        lock (_sync)
+        {
+            var now = _timeProvider.GetUtcNow();
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return RoomRemoveMemberResult.NotFound();
+            }
+
+            if (room.IsExpiredAt(now))
+            {
+                return RoomRemoveMemberResult.Expired();
+            }
+
+            if (!room.ValidateHostSession(sessionToken, now))
+            {
+                return RoomRemoveMemberResult.NotHost();
+            }
+
+            if (room.IsHost(targetPlayerId))
+            {
+                return RoomRemoveMemberResult.CannotRemoveHost();
+            }
+
+            if (!room.IsMember(targetPlayerId))
+            {
+                return RoomRemoveMemberResult.MemberNotFound();
+            }
+
+            room.RemoveMember(targetPlayerId);
+            return RoomRemoveMemberResult.Removed();
         }
     }
 

@@ -8,5 +8,9 @@ public enum HubErrorCode
     HostNotReady,
     NotHost,
     RateLimited,
-    HostPlayerIdConflict
+    HostPlayerIdConflict,
+    RoomFull,
+    InvalidRoomState,
+    MemberNotFound,
+    CannotRemoveHost
 }

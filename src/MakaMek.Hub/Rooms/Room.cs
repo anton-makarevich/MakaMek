@@ -58,10 +58,67 @@ public sealed class Room
                && session.ExpiresAt > now;
     }
 
-    internal void MarkReady(DateTimeOffset now, TimeSpan ttl)
+    internal bool HasSession(string token) => _sessions.ContainsKey(token);
+
+    internal bool IsMember(Guid playerId) => _members.ContainsKey(playerId);
+
+    /// <summary>
+    /// Transitions Created → Active. Returns false when the room is not in Created.
+    /// </summary>
+    internal bool MarkReady(DateTimeOffset now, TimeSpan ttl)
     {
+        if (State != RoomState.Created)
+        {
+            return false;
+        }
+
         State = RoomState.Active;
         Touch(now, ttl);
+        return true;
+    }
+
+    /// <summary>
+    /// Transitions Active → Closed. Returns false when the room is not in Active.
+    /// </summary>
+    internal bool Close(DateTimeOffset now, TimeSpan ttl)
+    {
+        if (State != RoomState.Active)
+        {
+            return false;
+        }
+
+        State = RoomState.Closed;
+        Touch(now, ttl);
+        return true;
+    }
+
+    /// <summary>
+    /// Removes a non-host roster entry and revokes all of that player's sessions.
+    /// Returns false when the target is the host or is not a member.
+    /// </summary>
+    internal bool RemoveMember(Guid playerId)
+    {
+        if (IsHost(playerId))
+        {
+            return false;
+        }
+
+        if (!_members.Remove(playerId))
+        {
+            return false;
+        }
+
+        var tokensToRevoke = _sessions
+            .Where(entry => entry.Value.PlayerId == playerId)
+            .Select(entry => entry.Key)
+            .ToArray();
+
+        foreach (var token in tokensToRevoke)
+        {
+            _sessions.Remove(token);
+        }
+
+        return true;
     }
 
     internal RoomSession AddClientMember(
