@@ -48,7 +48,7 @@ jobs:
 
       - name: Diff coverage report
         if: github.event_name == 'pull_request'
-        uses: anton-makarevich/Cocodif@main
+        uses: anton-makarevich/Cocodif@v0.1.2
         with:
           coverage-files: ./tests/MakaMek.Map.Tests/coverage.opencover.xml
           title: Map Coverage
