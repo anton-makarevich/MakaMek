@@ -50,7 +50,7 @@ jobs:
 
       - name: Diff coverage report
         if: github.event_name == 'pull_request'
-        uses: anton-makarevich/Cocodif@v0.2.0
+        uses: anton-makarevich/Cocodif@v0.2.1
         with:
           coverage-files: ./tests/MakaMek.Core.Tests/coverage.opencover.xml
           title: Core Coverage
