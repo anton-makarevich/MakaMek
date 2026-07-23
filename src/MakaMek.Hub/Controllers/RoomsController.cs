@@ -144,18 +144,18 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
     [ProducesResponseType<ReadyResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ReadyResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ReadyResponse>(StatusCodes.Status409Conflict)]
-    public ActionResult<ReadyResponse> MarkRoomReady(string roomCode, [FromBody] ReadyRequest request)
+    public ActionResult<ReadyResponse> MarkRoomReady(string roomCode)
     {
-        if (string.IsNullOrWhiteSpace(request.SessionToken))
+        if (!TryGetSessionToken(out var sessionToken))
         {
             return ValidationProblem(new ValidationProblemDetails(
                 new Dictionary<string, string[]>
                 {
-                    [nameof(request.SessionToken)] = ["SessionToken is required."]
+                    ["Session-Token"] = ["Session-Token header is required."]
                 }));
         }
 
-        var result = roomManager.MarkRoomReady(roomCode, request.SessionToken);
+        var result = roomManager.MarkRoomReady(roomCode, sessionToken);
 
         return result.Outcome switch
         {
@@ -181,18 +181,18 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<CloseResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<CloseResponse>(StatusCodes.Status409Conflict)]
-    public ActionResult<CloseResponse> CloseRoom(string roomCode, [FromBody] CloseRequest request)
+    public ActionResult<CloseResponse> CloseRoom(string roomCode)
     {
-        if (string.IsNullOrWhiteSpace(request.SessionToken))
+        if (!TryGetSessionToken(out var sessionToken))
         {
             return ValidationProblem(new ValidationProblemDetails(
                 new Dictionary<string, string[]>
                 {
-                    [nameof(request.SessionToken)] = ["SessionToken is required."]
+                    ["Session-Token"] = ["Session-Token header is required."]
                 }));
         }
 
-        var result = roomManager.CloseRoom(roomCode, request.SessionToken);
+        var result = roomManager.CloseRoom(roomCode, sessionToken);
 
         return result.Outcome switch
         {
@@ -221,7 +221,7 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
     [ProducesResponseType<RemoveMemberResponse>(StatusCodes.Status409Conflict)]
     public ActionResult<RemoveMemberResponse> RemoveMember(string roomCode, Guid playerId)
     {
-        if (!TryGetSessionTokenFromAuthorizationHeader(out var sessionToken))
+        if (!TryGetSessionToken(out var sessionToken))
         {
             return Unauthorized();
         }
@@ -250,25 +250,15 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
         };
     }
 
-    private bool TryGetSessionTokenFromAuthorizationHeader(out string sessionToken)
+    private bool TryGetSessionToken(out string sessionToken)
     {
         sessionToken = string.Empty;
-        var authorization = Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(authorization))
+        if (!Request.Headers.TryGetValue("Session-Token", out var values))
         {
             return false;
         }
 
-        const string bearerPrefix = "Bearer ";
-        if (authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            sessionToken = authorization[bearerPrefix.Length..].Trim();
-        }
-        else
-        {
-            sessionToken = authorization.Trim();
-        }
-
+        sessionToken = values.ToString().Trim();
         return !string.IsNullOrWhiteSpace(sessionToken);
     }
 }
