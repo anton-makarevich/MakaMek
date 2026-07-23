@@ -16,12 +16,14 @@ public class Program
     {
         var inputOption = new Option<string>("--input", "-i")
         {
-            Description = "Path to the source MTF file or directory containing MTF files"
+            Description = "Path to the source MTF file or directory containing MTF files",
+            Required = true
         };
 
         var outputOption = new Option<string>("--output", "-o")
         {
-            Description = "Directory where the converted JSON files should be saved"
+            Description = "Directory where the converted JSON files should be saved",
+            Required = true
         };
 
         var rootCommand = new RootCommand("MTF to JSON Converter")

@@ -18,17 +18,20 @@ public class Program
     {
         var dataSourceOption = new Option<string>("--data-source", "-d")
         {
-            Description = "Path to folder containing unit JSON files"
+            Description = "Path to folder containing unit JSON files",
+            Required = true
         };
 
         var imageSourceOption = new Option<string>("--image-source", "-i")
         {
-            Description = "Path to folder containing unit PNG images"
+            Description = "Path to folder containing unit PNG images",
+            Required = true
         };
 
         var outputOption = new Option<string>("--output", "-o")
         {
-            Description = "Path to output folder for generated .mmux files"
+            Description = "Path to output folder for generated .mmux files",
+            Required = true
         };
 
         var rootCommand = new RootCommand("MakaMek Unit Packager - Creates .mmux packages from unit data and images")

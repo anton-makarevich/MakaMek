@@ -39,13 +39,15 @@ public class RoomTests
         var hostId = Guid.NewGuid();
         var clientId = Guid.NewGuid();
         var room = CreateRoom(hostId);
-        var clientSession = room.AddClientMember("Grace", clientId, DefaultNow, DefaultTtl, () => "client-token");
+        var clientSession1 = room.AddClientMember("Grace", clientId, DefaultNow, DefaultTtl, () => "client-token-1");
+        var clientSession2 = room.AddClientMember("Grace", clientId, DefaultNow, DefaultTtl, () => "client-token-2");
 
         var result = room.RemoveMember(clientId);
 
         result.ShouldBeTrue();
         room.IsMember(clientId).ShouldBeFalse();
-        room.HasSession(clientSession.Token).ShouldBeFalse();
+        room.HasSession(clientSession1.Token).ShouldBeFalse();
+        room.HasSession(clientSession2.Token).ShouldBeFalse();
         room.Members.Count.ShouldBe(1);
         room.IsMember(hostId).ShouldBeTrue();
     }

@@ -130,6 +130,16 @@ public sealed class Room
     {
         Touch(now, ttl);
 
+        var staleTokens = _sessions
+            .Where(entry => entry.Value.PlayerId == playerId)
+            .Select(entry => entry.Key)
+            .ToArray();
+
+        foreach (var token in staleTokens)
+        {
+            _sessions.Remove(token);
+        }
+
         var member = new RoomMember(playerId, playerName, RoomRole.Client, now);
         _members[playerId] = member;
 

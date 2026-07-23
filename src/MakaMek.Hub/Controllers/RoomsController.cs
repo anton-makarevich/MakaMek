@@ -178,6 +178,7 @@ public sealed class RoomsController(IRoomManager roomManager) : ControllerBase
 
     [HttpPost("{roomCode}/close")]
     [ProducesResponseType<CloseResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<CloseResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<CloseResponse>(StatusCodes.Status409Conflict)]
     public ActionResult<CloseResponse> CloseRoom(string roomCode, [FromBody] CloseRequest request)
