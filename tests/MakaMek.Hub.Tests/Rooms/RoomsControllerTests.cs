@@ -139,11 +139,11 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_ValidRequest_ReturnsOk()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         _roomManager.CloseRoom(RoomCode, SessionToken)
             .Returns(RoomCloseResult.Closed());
 
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(SessionToken));
+        var result = _sut.CloseRoom(RoomCode);
 
         var ok = result.Result.ShouldBeOfType<OkObjectResult>();
         var response = ok.Value.ShouldBeOfType<CloseResponse>();
@@ -153,7 +153,7 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_MissingSessionToken_ReturnsValidationProblem()
     {
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(""));
+        var result = _sut.CloseRoom(RoomCode);
 
         result.Result.ShouldBeOfType<BadRequestObjectResult>();
     }
@@ -161,11 +161,11 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_RoomNotFound_ReturnsNotFound()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         _roomManager.CloseRoom(RoomCode, SessionToken)
             .Returns(RoomCloseResult.NotFound());
 
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(SessionToken));
+        var result = _sut.CloseRoom(RoomCode);
 
         var notFound = result.Result.ShouldBeOfType<NotFoundObjectResult>();
         var response = notFound.Value.ShouldBeOfType<CloseResponse>();
@@ -176,11 +176,11 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_RoomExpired_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         _roomManager.CloseRoom(RoomCode, SessionToken)
             .Returns(RoomCloseResult.Expired());
 
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(SessionToken));
+        var result = _sut.CloseRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<CloseResponse>();
@@ -191,11 +191,11 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_NotHost_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         _roomManager.CloseRoom(RoomCode, SessionToken)
             .Returns(RoomCloseResult.NotHost());
 
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(SessionToken));
+        var result = _sut.CloseRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<CloseResponse>();
@@ -206,11 +206,11 @@ public class RoomsControllerTests
     [Fact]
     public void CloseRoom_InvalidRoomState_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         _roomManager.CloseRoom(RoomCode, SessionToken)
             .Returns(RoomCloseResult.InvalidState());
 
-        var result = _sut.CloseRoom(RoomCode, new CloseRequest(SessionToken));
+        var result = _sut.CloseRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<CloseResponse>();
@@ -235,7 +235,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_ValidRequest_ReturnsOk()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.Removed());
@@ -250,7 +250,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_RoomNotFound_ReturnsNotFound()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.NotFound());
@@ -266,7 +266,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_MemberNotFound_ReturnsNotFound()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.MemberNotFound());
@@ -282,7 +282,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_RoomExpired_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.Expired());
@@ -298,7 +298,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_NotHost_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.NotHost());
@@ -314,7 +314,7 @@ public class RoomsControllerTests
     [Fact]
     public void RemoveMember_CannotRemoveHost_ReturnsConflict()
     {
-        SetAuthorizationHeader(SessionToken);
+        SetSessionTokenHeader(SessionToken);
         var targetId = Guid.NewGuid();
         _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
             .Returns(RoomRemoveMemberResult.CannotRemoveHost());
@@ -329,9 +329,9 @@ public class RoomsControllerTests
 
     #endregion
 
-    private void SetAuthorizationHeader(string token)
+    private void SetSessionTokenHeader(string token)
     {
-        _sut.ControllerContext.HttpContext.Request.Headers.Authorization = $"Bearer {token}";
+        _sut.ControllerContext.HttpContext.Request.Headers["Session-Token"] = token;
     }
 
     private static Room CreateRoom()

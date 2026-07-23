@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -292,14 +291,17 @@ public class RoomLifecycleEndpointTests
         using var client = factory.CreateClient();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms/ABC234/close");
-        request.Content = JsonContent.Create(new CloseRequest(sessionToken!));
+        if (sessionToken is not null)
+        {
+            request.Headers.Add("Session-Token", sessionToken);
+        }
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var response = await client.SendAsync(request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
-        body.ShouldContain("SessionToken");
+        body.ShouldContain("Session-Token");
     }
 
     [Theory]
@@ -312,18 +314,21 @@ public class RoomLifecycleEndpointTests
         using var client = factory.CreateClient();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms/ABC234/ready");
-        request.Content = JsonContent.Create(new ReadyRequest(sessionToken!));
+        if (sessionToken is not null)
+        {
+            request.Headers.Add("Session-Token", sessionToken);
+        }
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var response = await client.SendAsync(request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
-        body.ShouldContain("SessionToken");
+        body.ShouldContain("Session-Token");
     }
 
     [Fact]
-    public async Task RemoveMember_NonBearerToken_ReturnsOk()
+    public async Task RemoveMember_WithSessionToken_ReturnsOk()
     {
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
@@ -335,7 +340,7 @@ public class RoomLifecycleEndpointTests
         joinResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/rooms/{roomCode}/members/{playerId}");
-        request.Headers.TryAddWithoutValidation("Authorization", hostToken);
+        request.Headers.Add("Session-Token", hostToken);
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var removeResponse = await client.SendAsync(request);
@@ -461,7 +466,7 @@ public class RoomLifecycleEndpointTests
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/ready");
-        request.Content = JsonContent.Create(new ReadyRequest(sessionToken));
+        request.Headers.Add("Session-Token", sessionToken);
 
         if (apiKey is not null)
         {
@@ -478,7 +483,7 @@ public class RoomLifecycleEndpointTests
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/close");
-        request.Content = JsonContent.Create(new CloseRequest(sessionToken));
+        request.Headers.Add("Session-Token", sessionToken);
 
         if (apiKey is not null)
         {
@@ -496,7 +501,7 @@ public class RoomLifecycleEndpointTests
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/rooms/{roomCode}/members/{playerId}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        request.Headers.Add("Session-Token", sessionToken);
 
         if (apiKey is not null)
         {

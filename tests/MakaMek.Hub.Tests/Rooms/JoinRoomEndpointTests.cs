@@ -282,7 +282,7 @@ public class JoinRoomEndpointTests
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/ready");
-        request.Content = JsonContent.Create(new ReadyRequest(sessionToken));
+        request.Headers.Add("Session-Token", sessionToken);
 
         if (apiKey is not null)
         {
