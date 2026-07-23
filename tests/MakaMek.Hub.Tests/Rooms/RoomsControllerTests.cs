@@ -220,6 +220,92 @@ public class RoomsControllerTests
 
     #endregion
 
+    #region MarkRoomReady
+
+    [Fact]
+    public void MarkRoomReady_MissingSessionToken_ReturnsValidationProblem()
+    {
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        result.Result.ShouldBeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public void MarkRoomReady_ValidRequest_ReturnsOk()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.Ready());
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var ok = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = ok.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MarkRoomReady_RoomNotFound_ReturnsNotFound()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.NotFound());
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var notFound = result.Result.ShouldBeOfType<NotFoundObjectResult>();
+        var response = notFound.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.RoomNotFound);
+    }
+
+    [Fact]
+    public void MarkRoomReady_RoomExpired_ReturnsConflict()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.Expired());
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.RoomExpired);
+    }
+
+    [Fact]
+    public void MarkRoomReady_NotHost_ReturnsConflict()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.NotHost());
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.NotHost);
+    }
+
+    [Fact]
+    public void MarkRoomReady_InvalidRoomState_ReturnsConflict()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.InvalidState());
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
+    }
+
+    #endregion
+
     #region RemoveMember
 
     [Fact]
