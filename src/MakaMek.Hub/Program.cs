@@ -1,10 +1,12 @@
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 using Sanet.MakaMek.Hub.Contracts;
+using Sanet.MakaMek.Hub.Relay;
 using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
 
@@ -91,13 +93,19 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IRoomCodeGenerator, CryptographicRoomCodeGenerator>();
 builder.Services.AddSingleton<IRoomManager, RoomManager>();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
 app.UseForwardedHeaders();
 app.UseRateLimiter();
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+app.UseMiddleware<RelayAuthenticationMiddleware>();
 app.MapControllers();
+app.MapHub<RelayHub>(RelayAuthenticationDefaults.HubPath, options =>
+{
+    options.Transports = HttpTransportType.WebSockets;
+});
 
 app.Run();
 
