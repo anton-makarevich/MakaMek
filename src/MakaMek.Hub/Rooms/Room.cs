@@ -60,6 +60,9 @@ public sealed class Room
 
     internal bool HasSession(string token) => _sessions.ContainsKey(token);
 
+    internal bool TryGetSession(string token, out RoomSession session) =>
+        _sessions.TryGetValue(token, out session!);
+
     internal bool IsMember(Guid playerId) => _members.ContainsKey(playerId);
 
     /// <summary>

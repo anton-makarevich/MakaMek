@@ -543,6 +543,89 @@ public class RoomManagerTests
         result.Outcome.ShouldBe(RoomRemoveMemberOutcome.RoomExpired);
     }
 
+[Fact]
+    public void AuthenticateSession_WithValidHostToken_ReturnsBoundSession()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+
+        var session = manager.AuthenticateSession(created.Session!.Token);
+
+        session.ShouldNotBeNull();
+        session.RoomCode.ShouldBe("ABC234");
+        session.PlayerId.ShouldBe(created.Session.PlayerId);
+        session.Role.ShouldBe(RoomRole.Host);
+        session.Token.ShouldBe(created.Session.Token);
+    }
+
+    [Fact]
+    public void AuthenticateSession_WithValidClientToken_ReturnsBoundSession()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        var joined = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+
+        var session = manager.AuthenticateSession(joined.Session!.Token);
+
+        session.ShouldNotBeNull();
+        session.Role.ShouldBe(RoomRole.Client);
+        session.RoomCode.ShouldBe("ABC234");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("unknown-token")]
+    public void AuthenticateSession_WithMissingOrUnknownToken_ReturnsNull(string? token)
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        manager.CreateRoom("Ada", Guid.NewGuid());
+
+        manager.AuthenticateSession(token!).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AuthenticateSession_WithExpiredToken_ReturnsNull()
+    {
+        var now = new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(now);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider);
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+
+        timeProvider.Advance(TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(1)));
+
+        manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AuthenticateSession_WithRevokedClientToken_ReturnsNull()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        var playerId = Guid.NewGuid();
+        var joined = manager.JoinRoom("ABC234", "Grace", playerId);
+
+        manager.RemoveMember("ABC234", created.Session!.Token, playerId);
+
+        manager.AuthenticateSession(joined.Session!.Token).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AuthenticateSession_WithClosedRoomToken_ReturnsNull()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        manager.CloseRoom("ABC234", created.Session.Token);
+
+        manager.AuthenticateSession(created.Session.Token).ShouldBeNull();
+    }
+
     private static RoomManager CreateManager(
         IRoomCodeGenerator roomCodeGenerator,
         int maxConcurrentRooms = 10,

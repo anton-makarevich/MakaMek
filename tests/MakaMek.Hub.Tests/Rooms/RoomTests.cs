@@ -9,6 +9,17 @@ public class RoomTests
     private static readonly TimeSpan DefaultTtl = TimeSpan.FromHours(2);
 
     [Fact]
+    public void Constructor_SetsExpiresAtFromProvidedValue()
+    {
+        var hostId = Guid.NewGuid();
+        var expiresAt = DefaultNow.Add(DefaultTtl);
+
+        var room = CreateRoom(hostId);
+
+        room.ExpiresAt.ShouldBe(expiresAt);
+    }
+
+    [Fact]
     public void RemoveMember_HostPlayerId_ReturnsFalse()
     {
         var hostId = Guid.NewGuid();
@@ -50,6 +61,21 @@ public class RoomTests
         room.HasSession(clientSession2.Token).ShouldBeFalse();
         room.Members.Count.ShouldBe(1);
         room.IsMember(hostId).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TryGetSession_WithMismatchedRoomCodeInSession_ReturnsSessionWithDifferentCode()
+    {
+        var hostId = Guid.NewGuid();
+        var hostMember = new RoomMember(hostId, "Ada", RoomRole.Host, DefaultNow);
+        var hostSession = new RoomSession("host-token", "WRONG", hostId, RoomRole.Host, DefaultNow.Add(DefaultTtl));
+        var room = new Room("ABC234", hostMember, hostSession, DefaultNow, DefaultNow.Add(DefaultTtl));
+
+        var found = room.TryGetSession("host-token", out var session);
+
+        found.ShouldBeTrue();
+        session.RoomCode.ShouldBe("WRONG");
+        session.RoomCode.ShouldNotBe(room.RoomCode);
     }
 
     private static Room CreateRoom(Guid hostId)

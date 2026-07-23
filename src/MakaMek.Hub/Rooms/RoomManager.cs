@@ -215,6 +215,43 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
+public RoomSession? AuthenticateSession(string sessionToken)
+    {
+        if (string.IsNullOrWhiteSpace(sessionToken))
+        {
+            return null;
+        }
+
+        lock (_sync)
+        {
+            var now = _timeProvider.GetUtcNow();
+            RemoveExpiredRooms(now);
+
+            foreach (var room in _rooms.Values)
+            {
+                if (!room.TryGetSession(sessionToken, out var session))
+                {
+                    continue;
+                }
+
+                // Defense in depth: token must still be bound to the room that holds it.
+                if (!string.Equals(session.RoomCode, room.RoomCode, StringComparison.Ordinal))
+                {
+                    return null;
+                }
+
+                if (room.State == RoomState.Closed || room.IsExpiredAt(now) || session.ExpiresAt <= now)
+                {
+                    return null;
+                }
+
+                return session;
+            }
+
+            return null;
+        }
+    }
+
     private string GenerateAvailableRoomCode()
     {
         for (var attempt = 0; attempt < MaximumCodeGenerationAttempts; attempt++)

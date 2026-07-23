@@ -10,4 +10,10 @@ public interface IRoomManager
     RoomReadyResult MarkRoomReady(string roomCode, string sessionToken);
     RoomCloseResult CloseRoom(string roomCode, string sessionToken);
     RoomRemoveMemberResult RemoveMember(string roomCode, string sessionToken, Guid targetPlayerId);
+
+    /// <summary>
+    /// Validates a session token for any role and returns the bound session when usable for relay.
+    /// Returns null for missing, unknown, expired, revoked, closed-room, or room-mismatched tokens.
+    /// </summary>
+    RoomSession? AuthenticateSession(string sessionToken);
 }
