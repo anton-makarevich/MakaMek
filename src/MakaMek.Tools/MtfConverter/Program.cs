@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -15,18 +14,16 @@ public class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var inputOption = new Option<string>(
-            aliases: ["-i", "--input"],
-            description: "Path to the source MTF file or directory containing MTF files")
+        var inputOption = new Option<string>("--input", "-i")
         {
-            IsRequired = true
+            Description = "Path to the source MTF file or directory containing MTF files",
+            Required = true
         };
 
-        var outputOption = new Option<string>(
-            aliases: ["-o", "--output"],
-            description: "Directory where the converted JSON files should be saved")
+        var outputOption = new Option<string>("--output", "-o")
         {
-            IsRequired = true
+            Description = "Directory where the converted JSON files should be saved",
+            Required = true
         };
 
         var rootCommand = new RootCommand("MTF to JSON Converter")
@@ -35,8 +32,10 @@ public class Program
             outputOption
         };
 
-        rootCommand.SetHandler(async (inputPath, outputPath) =>
+        rootCommand.SetAction(async (parseResult, _) =>
         {
+            var inputPath = parseResult.GetValue(inputOption)!;
+            var outputPath = parseResult.GetValue(outputOption)!;
             try
             {
                 await ConvertMtfToJson(inputPath, outputPath);
@@ -56,9 +55,10 @@ public class Program
                 await Console.Error.WriteLineAsync($"Error: {ex.Message}");
                 Environment.Exit(1);
             }
-        }, inputOption, outputOption);
+        });
 
-        return await rootCommand.InvokeAsync(args);
+        var parseResult = rootCommand.Parse(args);
+        return await parseResult.InvokeAsync();
     }
 
     static async Task ConvertMtfToJson(string inputPath, string outputPath)

@@ -13,6 +13,9 @@ public sealed record RoomReadyResult(RoomReadyOutcome Outcome)
 
     public static RoomReadyResult NotHost() =>
         new(RoomReadyOutcome.NotHost);
+
+    public static RoomReadyResult InvalidState() =>
+        new(RoomReadyOutcome.InvalidRoomState);
 }
 
 public enum RoomReadyOutcome
@@ -20,5 +23,6 @@ public enum RoomReadyOutcome
     Ready,
     RoomNotFound,
     RoomExpired,
-    NotHost
+    NotHost,
+    InvalidRoomState
 }

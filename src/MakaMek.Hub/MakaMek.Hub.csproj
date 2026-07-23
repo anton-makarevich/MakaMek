@@ -9,4 +9,8 @@
     <Description>Cloud relay room-management service for MakaMek.</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sanet.MakaMek.Hub.Tests" />
+  </ItemGroup>
+
 </Project>

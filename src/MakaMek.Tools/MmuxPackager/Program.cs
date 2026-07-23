@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
 using System.IO.Compression;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 
 namespace MakaMek.Tools.MmuxPackager;
@@ -17,25 +16,22 @@ public class Program
     
     public static async Task<int> Main(string[] args)
     {
-        var dataSourceOption = new Option<string>(
-            aliases: ["-d", "--data-source"],
-            description: "Path to folder containing unit JSON files")
+        var dataSourceOption = new Option<string>("--data-source", "-d")
         {
-            IsRequired = true
+            Description = "Path to folder containing unit JSON files",
+            Required = true
         };
 
-        var imageSourceOption = new Option<string>(
-            aliases: ["-i", "--image-source"],
-            description: "Path to folder containing unit PNG images")
+        var imageSourceOption = new Option<string>("--image-source", "-i")
         {
-            IsRequired = true
+            Description = "Path to folder containing unit PNG images",
+            Required = true
         };
 
-        var outputOption = new Option<string>(
-            aliases: ["-o", "--output"],
-            description: "Path to output folder for generated .mmux files")
+        var outputOption = new Option<string>("--output", "-o")
         {
-            IsRequired = true
+            Description = "Path to output folder for generated .mmux files",
+            Required = true
         };
 
         var rootCommand = new RootCommand("MakaMek Unit Packager - Creates .mmux packages from unit data and images")
@@ -45,8 +41,11 @@ public class Program
             outputOption
         };
 
-        rootCommand.SetHandler(async (dataSourcePath, imageSourcePath, outputPath) =>
+        rootCommand.SetAction(async (parseResult, _) =>
         {
+            var dataSourcePath = parseResult.GetValue(dataSourceOption)!;
+            var imageSourcePath = parseResult.GetValue(imageSourceOption)!;
+            var outputPath = parseResult.GetValue(outputOption)!;
             try
             {
                 await PackageUnits(dataSourcePath, imageSourcePath, outputPath);
@@ -66,9 +65,10 @@ public class Program
                 await Console.Error.WriteLineAsync($"Error: {ex.Message}");
                 Environment.Exit(1);
             }
-        }, dataSourceOption, imageSourceOption, outputOption);
+        });
 
-        return await rootCommand.InvokeAsync(args);
+        var parseResult = rootCommand.Parse(args);
+        return await parseResult.InvokeAsync();
     }
 
     static async Task PackageUnits(string dataSourcePath, string imageSourcePath, string outputPath)
@@ -273,11 +273,11 @@ public class Program
 
         try
         {
-            using (var archive = ZipFile.Open(tempZipPath, ZipArchiveMode.Create))
+            await using (var archive = await ZipFile.OpenAsync(tempZipPath, ZipArchiveMode.Create))
             {
                 // Add unit.json
                 var unitJsonEntry = archive.CreateEntry("unit.json");
-                await using (var entryStream = unitJsonEntry.Open())
+                await using (var entryStream = await unitJsonEntry.OpenAsync())
                 await using (var writer = new StreamWriter(entryStream))
                 {
                     var unitJson = JsonSerializer.Serialize(unitData, jsonOptions);
@@ -286,7 +286,7 @@ public class Program
 
                 // Add unit.png
                 var unitPngEntry = archive.CreateEntry("unit.png");
-                await using (var entryStream = unitPngEntry.Open())
+                await using (var entryStream = await unitPngEntry.OpenAsync())
                 {
                     try
                     {
@@ -307,7 +307,7 @@ public class Program
 
                 // Add manifest.json
                 var manifestEntry = archive.CreateEntry("manifest.json");
-                await using (var entryStream = manifestEntry.Open())
+                await using (var entryStream = await manifestEntry.OpenAsync())
                 await using (var writer = new StreamWriter(entryStream))
                 {
                     var manifestJson = JsonSerializer.Serialize(manifest, jsonOptions);
