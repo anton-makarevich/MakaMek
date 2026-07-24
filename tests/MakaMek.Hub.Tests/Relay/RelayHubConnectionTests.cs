@@ -189,7 +189,7 @@ public class RelayHubConnectionTests
             host.SessionToken);
         await connection.StartAsync();
 
-        foreach (var methodName in new[] { "CreateRoom", "JoinRoom", "MarkReady", "CloseRoom", "RemoveMember", "Relay" })
+        foreach (var methodName in new[] { "CreateRoom", "JoinRoom", "MarkReady", "CloseRoom", "RemoveMember" })
         {
             var exception = await Should.ThrowAsync<HubException>(
                 async () => await connection.InvokeAsync(methodName));

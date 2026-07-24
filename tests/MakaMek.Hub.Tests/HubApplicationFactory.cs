@@ -15,15 +15,21 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
 
     private readonly int _maxConcurrentRooms;
     private readonly int _joinRateLimitPerMinute;
+    private readonly int _relayRateLimitPerMinute;
+    private readonly int _maxRelayPayloadBytes;
     private readonly TimeProvider? _timeProvider;
 
     public HubApplicationFactory(
         int maxConcurrentRooms = 10,
         int joinRateLimitPerMinute = 100,
+        int relayRateLimitPerMinute = 1000,
+        int maxRelayPayloadBytes = 256 * 1024,
         TimeProvider? timeProvider = null)
     {
         _maxConcurrentRooms = maxConcurrentRooms;
         _joinRateLimitPerMinute = joinRateLimitPerMinute;
+        _relayRateLimitPerMinute = relayRateLimitPerMinute;
+        _maxRelayPayloadBytes = maxRelayPayloadBytes;
         _timeProvider = timeProvider;
     }
 
@@ -36,7 +42,9 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
             {
                 ["Hub:ApiKey"] = ApiKey,
                 ["Hub:MaxConcurrentRooms"] = _maxConcurrentRooms.ToString(),
-                ["Hub:JoinRateLimitPerMinute"] = _joinRateLimitPerMinute.ToString()
+                ["Hub:JoinRateLimitPerMinute"] = _joinRateLimitPerMinute.ToString(),
+                ["Hub:RelayRateLimitPerMinute"] = _relayRateLimitPerMinute.ToString(),
+                ["Hub:MaxRelayPayloadBytes"] = _maxRelayPayloadBytes.ToString()
             });
         });
 
