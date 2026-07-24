@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
+using Sanet.MakaMek.Hub.Rooms;
+using Sanet.MakaMek.Hub.Security;
 using Shouldly;
 
 namespace Sanet.MakaMek.Hub.Tests.Relay;
@@ -61,8 +64,34 @@ public class RelayHubTests
     private static RelayHub CreateHub()
     {
         var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        var roomManager = Substitute.For<IRoomManager>();
         var options = Options.Create(new Configuration.HubOptions());
-        return new RelayHub(rateLimiter, options);
+        return new RelayHub(rateLimiter, roomManager, options);
+    }
+
+    [Fact]
+    public async Task Relay_FromSupersededConnection_ThrowsConnectionSuperseded()
+    {
+        var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        rateLimiter.TryConsume(Arg.Any<string>()).Returns(true);
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.GetConnectionId(Arg.Any<string>(), Arg.Any<Guid>()).Returns("other-conn");
+        var options = Options.Create(new Configuration.HubOptions());
+        var hub = new RelayHub(rateLimiter, roomManager, options);
+
+        var roomCode = "ROOM1";
+        var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Client,
+            DateTimeOffset.UtcNow.AddHours(1));
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey] = session;
+        hub.Context = new TestHubCallerContext(httpContext);
+        hub.Clients = Substitute.For<IHubCallerClients<IRelayHub>>();
+
+        var exception = await Should.ThrowAsync<HubException>(
+            async () => await hub.Relay(roomCode, CreateEnvelope()));
+
+        exception.Message.ShouldContain(nameof(HubErrorCode.ConnectionSuperseded));
     }
 
     private static RelayEnvelope CreateEnvelope()

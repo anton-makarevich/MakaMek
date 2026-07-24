@@ -10,10 +10,17 @@ public interface IRoomManager
     RoomReadyResult MarkRoomReady(string roomCode, string sessionToken);
     RoomCloseResult CloseRoom(string roomCode, string sessionToken);
     RoomRemoveMemberResult RemoveMember(string roomCode, string sessionToken, Guid targetPlayerId);
+    string? RegisterConnection(string roomCode, Guid playerId, string connectionId);
+    bool UnregisterConnection(string roomCode, Guid playerId, string connectionId);
+    string? GetHostConnectionId(string roomCode);
+    string? GetConnectionId(string roomCode, Guid playerId);
+    bool TryMarkHostDisconnected(string roomCode, Guid playerId, string connectionId);
+    void MarkRoomForDissolution(string roomCode);
+    void CancelRoomDissolution(string roomCode);
 
     /// <summary>
     /// Validates a session token for any role and returns the bound session when usable for relay.
-    /// Returns null for missing, unknown, expired, revoked, closed-room, or room-mismatched tokens.
+    /// Returns null for missing, unknown, expired, revoked, dissolved, or room-mismatched tokens.
     /// </summary>
     RoomSession? AuthenticateSession(string sessionToken);
 }

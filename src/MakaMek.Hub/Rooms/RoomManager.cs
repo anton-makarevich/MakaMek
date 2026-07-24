@@ -12,6 +12,7 @@ public sealed class RoomManager : IRoomManager
 {
     private const int MaximumCodeGenerationAttempts = 128;
     private static readonly TimeSpan RoomTtl = TimeSpan.FromHours(2);
+    public static readonly TimeSpan DissolutionGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly Lock _sync = new();
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.Ordinal);
@@ -88,6 +89,14 @@ public sealed class RoomManager : IRoomManager
             if (room.IsExpiredAt(now))
             {
                 return RoomJoinResult.Expired();
+            }
+
+            // Terminal dissolution deadline: purge and reject.
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return RoomJoinResult.NotFound();
             }
 
             if (room.IsHost(playerId))
@@ -215,7 +224,118 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-public RoomSession? AuthenticateSession(string sessionToken)
+    public string? RegisterConnection(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room)
+                ? room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl)
+                : null;
+        }
+    }
+
+    public bool UnregisterConnection(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room)
+                   && room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl);
+        }
+    }
+
+    public string? GetHostConnectionId(string roomCode)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room) ? room.GetHostConnectionId() : null;
+        }
+    }
+
+    public string? GetConnectionId(string roomCode, Guid playerId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room) ? room.GetConnectionId(playerId) : null;
+        }
+    }
+
+    /// <summary>
+    /// Atomically removes the connection and, only when no superseding connection
+    /// has taken over, marks the room for host-disconnect dissolution.
+    /// Returns true when dissolution was marked (i.e. the host is truly gone).
+    /// </summary>
+    public bool TryMarkHostDisconnected(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return false;
+
+            var now = _timeProvider.GetUtcNow();
+
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return false;
+            }
+
+            var wasActive = room.RemoveConnection(playerId, connectionId, now, RoomTtl);
+            if (!wasActive)
+                return false;
+
+            // A newer connection has taken over — skip dissolution.
+            if (room.GetConnectionId(playerId) is not null)
+                return false;
+
+            room.MarkForDissolution(now, DissolutionGracePeriod);
+            return true;
+        }
+    }
+
+    public void MarkRoomForDissolution(string roomCode)
+    {
+        lock (_sync)
+        {
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return;
+
+            var now = _timeProvider.GetUtcNow();
+
+            // Terminal deadline: purge instead of mutating a dissolved room.
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return;
+            }
+
+            room.MarkForDissolution(now, DissolutionGracePeriod);
+        }
+    }
+
+    public void CancelRoomDissolution(string roomCode)
+    {
+        lock (_sync)
+        {
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return;
+
+            var now = _timeProvider.GetUtcNow();
+
+            // Terminal deadline: purge instead of mutating a dissolved room.
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return;
+            }
+
+            room.CancelDissolution();
+        }
+    }
+
+    public RoomSession? AuthenticateSession(string sessionToken)
     {
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
@@ -240,7 +360,7 @@ public RoomSession? AuthenticateSession(string sessionToken)
                     return null;
                 }
 
-                if (room.State == RoomState.Closed || room.IsExpiredAt(now) || session.ExpiresAt <= now)
+                if (room.IsExpiredAt(now) || session.ExpiresAt <= now)
                 {
                     return null;
                 }
@@ -270,12 +390,13 @@ public RoomSession? AuthenticateSession(string sessionToken)
     private void RemoveExpiredRooms(DateTimeOffset now)
     {
         var expiredRoomCodes = _rooms
-            .Where(entry => entry.Value.IsExpiredAt(now))
+            .Where(entry => entry.Value.IsExpiredAt(now) || entry.Value.IsDissolvedAt(now))
             .Select(entry => entry.Key)
             .ToArray();
 
         foreach (var roomCode in expiredRoomCodes)
         {
+            _rooms[roomCode].RevokeAllSessions();
             _rooms.Remove(roomCode);
         }
     }

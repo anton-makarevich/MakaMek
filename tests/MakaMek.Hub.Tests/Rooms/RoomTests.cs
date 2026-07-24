@@ -78,6 +78,68 @@ public class RoomTests
         session.RoomCode.ShouldNotBe(room.RoomCode);
     }
 
+    [Fact]
+    public void RegisterConnection_ForConnectedPlayer_ReturnsReplacedConnectionAndTouchesRoom()
+    {
+        var playerId = Guid.NewGuid();
+        var room = CreateRoom(Guid.NewGuid());
+
+        room.RegisterConnection(playerId, "old", DefaultNow, DefaultTtl).ShouldBeNull();
+        var replaced = room.RegisterConnection(playerId, "new", DefaultNow.AddMinutes(5), DefaultTtl);
+
+        replaced.ShouldBe("old");
+        room.GetConnectionId(playerId).ShouldBe("new");
+        room.LiveConnectionCount.ShouldBe(1);
+        room.LastActivityAt.ShouldBe(DefaultNow.AddMinutes(5));
+        room.ExpiresAt.ShouldBe(DefaultNow.AddHours(2).AddMinutes(5));
+    }
+
+    [Fact]
+    public void RemoveConnection_OnlyRemovesActiveConnection()
+    {
+        var playerId = Guid.NewGuid();
+        var room = CreateRoom(Guid.NewGuid());
+        room.RegisterConnection(playerId, "new", DefaultNow, DefaultTtl);
+
+        room.RemoveConnection(playerId, "old", DefaultNow.AddMinutes(1), DefaultTtl).ShouldBeFalse();
+        room.GetConnectionId(playerId).ShouldBe("new");
+        room.RemoveConnection(playerId, "new", DefaultNow.AddMinutes(2), DefaultTtl).ShouldBeTrue();
+
+        room.GetConnectionId(playerId).ShouldBeNull();
+        room.LiveConnectionCount.ShouldBe(0);
+        room.LastActivityAt.ShouldBe(DefaultNow.AddMinutes(2));
+    }
+
+    [Fact]
+    public void Dissolution_CanBeMarkedCancelledAndDetectedAtDeadline()
+    {
+        var room = CreateRoom(Guid.NewGuid());
+        var grace = TimeSpan.FromSeconds(30);
+
+        room.MarkForDissolution(DefaultNow, grace);
+
+        room.IsDissolving.ShouldBeTrue();
+        room.IsDissolvedAt(DefaultNow.AddSeconds(29)).ShouldBeFalse();
+        room.IsDissolvedAt(DefaultNow.AddSeconds(30)).ShouldBeTrue();
+        room.State.ShouldBe(RoomState.Created);
+
+        room.CancelDissolution();
+        room.IsDissolving.ShouldBeFalse();
+        room.IsDissolvedAt(DefaultNow.AddMinutes(1)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RevokeAllSessions_RevokesHostAndClientSessions()
+    {
+        var room = CreateRoom(Guid.NewGuid());
+        var client = room.AddClientMember("Grace", Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
+
+        room.RevokeAllSessions();
+
+        room.HasSession("host-token").ShouldBeFalse();
+        room.HasSession(client.Token).ShouldBeFalse();
+    }
+
     private static Room CreateRoom(Guid hostId)
     {
         var hostMember = new RoomMember(hostId, "Ada", RoomRole.Host, DefaultNow);

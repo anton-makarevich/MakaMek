@@ -22,13 +22,16 @@ public sealed class RelayHub : Hub<IRelayHub>
     public const int ReceiveMessageSizeOverheadBytes = 64 * 1024;
 
     private readonly IRelayRateLimiter _rateLimiter;
+    private readonly IRoomManager _roomManager;
     private readonly IOptions<HubOptions> _options;
 
     public RelayHub(
         IRelayRateLimiter rateLimiter,
+        IRoomManager roomManager,
         IOptions<HubOptions> options)
     {
         _rateLimiter = rateLimiter;
+        _roomManager = roomManager;
         _options = options;
     }
 
@@ -42,7 +45,37 @@ public sealed class RelayHub : Hub<IRelayHub>
             return;
         }
 
+        var replacedConnectionId = _roomManager.RegisterConnection(
+            session.RoomCode,
+            session.PlayerId,
+            Context.ConnectionId);
+
+        if (session.Role == RoomRole.Host)
+        {
+            _roomManager.CancelRoomDissolution(session.RoomCode);
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, session.RoomCode);
+
+        if (replacedConnectionId is not null)
+        {
+            await Groups.RemoveFromGroupAsync(replacedConnectionId, session.RoomCode);
+        }
+
+        if (session.Role == RoomRole.Client)
+        {
+            var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
+            if (hostConnectionId is not null)
+            {
+                if (replacedConnectionId is not null)
+                {
+                    await Clients.Client(hostConnectionId).OnPeerDisconnected(replacedConnectionId);
+                }
+
+                await Clients.Client(hostConnectionId).OnPeerConnected(Context.ConnectionId);
+            }
+        }
+
         await base.OnConnectedAsync();
     }
 
@@ -76,15 +109,59 @@ public sealed class RelayHub : Hub<IRelayHub>
             throw new HubException(nameof(HubErrorCode.RateLimited));
         }
 
+        // Reject calls from a superseded (stale) connection.
+        var activeConnectionId = _roomManager.GetConnectionId(session.RoomCode, session.PlayerId);
+        if (!string.Equals(activeConnectionId, Context.ConnectionId, StringComparison.Ordinal))
+        {
+            throw new HubException(nameof(HubErrorCode.ConnectionSuperseded));
+        }
+
         // Hub-tagged identity: overwrite any client-supplied SenderId.
         var outbound = message with { SenderId = Context.ConnectionId };
 
         await Clients.OthersInGroup(session.RoomCode).OnReceive(outbound);
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         _rateLimiter.RemoveConnection(Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
+
+        var httpContext = Context.GetHttpContext();
+        if (httpContext?.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey]
+            is RoomSession session)
+        {
+            if (session.Role == RoomRole.Host)
+            {
+                // Atomically remove the connection, check for a superseding
+                // connection, and mark dissolution only when the host is truly gone.
+                var hostDisconnected = _roomManager.TryMarkHostDisconnected(
+                    session.RoomCode, session.PlayerId, Context.ConnectionId);
+
+                if (hostDisconnected)
+                {
+                    await Clients.Group(session.RoomCode).OnError(new HubError(
+                        HubErrorCode.HostDisconnected,
+                        "The room host disconnected."));
+                }
+            }
+            else
+            {
+                var wasActive = _roomManager.UnregisterConnection(
+                    session.RoomCode,
+                    session.PlayerId,
+                    Context.ConnectionId);
+
+                if (wasActive)
+                {
+                    var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
+                    if (hostConnectionId is not null)
+                    {
+                        await Clients.Client(hostConnectionId).OnPeerDisconnected(Context.ConnectionId);
+                    }
+                }
+            }
+        }
+
+        await base.OnDisconnectedAsync(exception);
     }
 }
