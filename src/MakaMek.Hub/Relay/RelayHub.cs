@@ -23,16 +23,13 @@ public sealed class RelayHub : Hub<IRelayHub>
 
     private readonly IRelayRateLimiter _rateLimiter;
     private readonly IOptions<HubOptions> _options;
-    private readonly TimeProvider _timeProvider;
 
     public RelayHub(
         IRelayRateLimiter rateLimiter,
-        IOptions<HubOptions> options,
-        TimeProvider timeProvider)
+        IOptions<HubOptions> options)
     {
         _rateLimiter = rateLimiter;
         _options = options;
-        _timeProvider = timeProvider;
     }
 
     public override async Task OnConnectedAsync()
