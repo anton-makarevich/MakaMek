@@ -109,6 +109,13 @@ public sealed class RelayHub : Hub<IRelayHub>
             throw new HubException(nameof(HubErrorCode.RateLimited));
         }
 
+        // Reject calls from a superseded (stale) connection.
+        var activeConnectionId = _roomManager.GetConnectionId(session.RoomCode, session.PlayerId);
+        if (!string.Equals(activeConnectionId, Context.ConnectionId, StringComparison.Ordinal))
+        {
+            throw new HubException(nameof(HubErrorCode.ConnectionSuperseded));
+        }
+
         // Hub-tagged identity: overwrite any client-supplied SenderId.
         var outbound = message with { SenderId = Context.ConnectionId };
 
@@ -123,21 +130,28 @@ public sealed class RelayHub : Hub<IRelayHub>
         if (httpContext?.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey]
             is RoomSession session)
         {
-            var wasActive = _roomManager.UnregisterConnection(
-                session.RoomCode,
-                session.PlayerId,
-                Context.ConnectionId);
-
-            if (wasActive)
+            if (session.Role == RoomRole.Host)
             {
-                if (session.Role == RoomRole.Host)
+                // Atomically remove the connection, check for a superseding
+                // connection, and mark dissolution only when the host is truly gone.
+                var hostDisconnected = _roomManager.TryMarkHostDisconnected(
+                    session.RoomCode, session.PlayerId, Context.ConnectionId);
+
+                if (hostDisconnected)
                 {
-                    _roomManager.MarkRoomForDissolution(session.RoomCode);
                     await Clients.Group(session.RoomCode).OnError(new HubError(
                         HubErrorCode.HostDisconnected,
                         "The room host disconnected."));
                 }
-                else
+            }
+            else
+            {
+                var wasActive = _roomManager.UnregisterConnection(
+                    session.RoomCode,
+                    session.PlayerId,
+                    Context.ConnectionId);
+
+                if (wasActive)
                 {
                     var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
                     if (hostConnectionId is not null)

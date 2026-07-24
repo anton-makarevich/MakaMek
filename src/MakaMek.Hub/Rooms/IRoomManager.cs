@@ -13,6 +13,8 @@ public interface IRoomManager
     string? RegisterConnection(string roomCode, Guid playerId, string connectionId);
     bool UnregisterConnection(string roomCode, Guid playerId, string connectionId);
     string? GetHostConnectionId(string roomCode);
+    string? GetConnectionId(string roomCode, Guid playerId);
+    bool TryMarkHostDisconnected(string roomCode, Guid playerId, string connectionId);
     void MarkRoomForDissolution(string roomCode);
     void CancelRoomDissolution(string roomCode);
 

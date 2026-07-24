@@ -200,9 +200,10 @@ public class RelayRpcTests
         rateLimiter.TryConsume(Arg.Any<string>()).Returns(true);
 
         var options = Options.Create(new Configuration.HubOptions { MaxRelayPayloadBytes = 256 * 1024 });
-        var hub = new RelayHub(rateLimiter, Substitute.For<IRoomManager>(), options);
+        var roomManager = Substitute.For<IRoomManager>();
+        var hub = new RelayHub(rateLimiter, roomManager, options);
 
-        var roomCode = "UTF8TEST";
+        const string roomCode = "UTF8TEST";
         var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Host,
             DateTimeOffset.UtcNow.AddHours(1));
 
@@ -210,6 +211,8 @@ public class RelayRpcTests
         httpContext.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey] = session;
 
         var callerContext = new TestHubCallerContext(httpContext);
+        roomManager.GetConnectionId(roomCode, session.PlayerId)
+            .Returns(callerContext.ConnectionId);
 
         var roomClients = Substitute.For<IRelayHub>();
         var clients = Substitute.For<IHubCallerClients<IRelayHub>>();

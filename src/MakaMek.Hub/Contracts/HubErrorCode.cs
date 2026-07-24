@@ -14,5 +14,6 @@ public enum HubErrorCode
     InvalidRoomState,
     MemberNotFound,
     CannotRemoveHost,
-    HostDisconnected
+    HostDisconnected,
+    ConnectionSuperseded
 }

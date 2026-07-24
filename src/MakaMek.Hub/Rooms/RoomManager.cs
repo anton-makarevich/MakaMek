@@ -91,6 +91,14 @@ public sealed class RoomManager : IRoomManager
                 return RoomJoinResult.Expired();
             }
 
+            // Terminal dissolution deadline: purge and reject.
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return RoomJoinResult.NotFound();
+            }
+
             if (room.IsHost(playerId))
             {
                 return RoomJoinResult.HostPlayerIdConflict();
@@ -243,14 +251,66 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
+    public string? GetConnectionId(string roomCode, Guid playerId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room) ? room.GetConnectionId(playerId) : null;
+        }
+    }
+
+    /// <summary>
+    /// Atomically removes the connection and, only when no superseding connection
+    /// has taken over, marks the room for host-disconnect dissolution.
+    /// Returns true when dissolution was marked (i.e. the host is truly gone).
+    /// </summary>
+    public bool TryMarkHostDisconnected(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return false;
+
+            var now = _timeProvider.GetUtcNow();
+
+            if (room.IsDissolvedAt(now))
+            {
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return false;
+            }
+
+            var wasActive = room.RemoveConnection(playerId, connectionId, now, RoomTtl);
+            if (!wasActive)
+                return false;
+
+            // A newer connection has taken over — skip dissolution.
+            if (room.GetConnectionId(playerId) is not null)
+                return false;
+
+            room.MarkForDissolution(now, DissolutionGracePeriod);
+            return true;
+        }
+    }
+
     public void MarkRoomForDissolution(string roomCode)
     {
         lock (_sync)
         {
-            if (_rooms.TryGetValue(roomCode, out var room))
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return;
+
+            var now = _timeProvider.GetUtcNow();
+
+            // Terminal deadline: purge instead of mutating a dissolved room.
+            if (room.IsDissolvedAt(now))
             {
-                room.MarkForDissolution(_timeProvider.GetUtcNow(), DissolutionGracePeriod);
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return;
             }
+
+            room.MarkForDissolution(now, DissolutionGracePeriod);
         }
     }
 
@@ -258,10 +318,20 @@ public sealed class RoomManager : IRoomManager
     {
         lock (_sync)
         {
-            if (_rooms.TryGetValue(roomCode, out var room))
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return;
+
+            var now = _timeProvider.GetUtcNow();
+
+            // Terminal deadline: purge instead of mutating a dissolved room.
+            if (room.IsDissolvedAt(now))
             {
-                room.CancelDissolution();
+                room.RevokeAllSessions();
+                _rooms.Remove(roomCode);
+                return;
             }
+
+            room.CancelDissolution();
         }
     }
 
