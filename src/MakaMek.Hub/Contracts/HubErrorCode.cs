@@ -8,6 +8,7 @@ public enum HubErrorCode
     HostNotReady,
     NotHost,
     RateLimited,
+    MessageTooLarge,
     HostPlayerIdConflict,
     RoomFull,
     InvalidRoomState,

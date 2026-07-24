@@ -23,6 +23,16 @@ public sealed class HubOptions
     public int JoinRateLimitPerMinute { get; init; } = 10;
 
     /// <summary>
+    /// Maximum number of <c>Relay()</c> calls per minute per SignalR connection.
+    /// </summary>
+    public int RelayRateLimitPerMinute { get; init; } = 120;
+
+    /// <summary>
+    /// Maximum length of <see cref="Relay.RelayEnvelope.Payload"/> accepted by <c>Relay()</c>.
+    /// </summary>
+    public int MaxRelayPayloadBytes { get; init; } = 256 * 1024;
+
+    /// <summary>
     /// Trusted proxy CIDRs for ForwardedHeaders (comma-separated).
     /// </summary>
     public string[] TrustedProxies { get; init; } = [];

@@ -21,6 +21,12 @@ builder.Services
     .Validate(
         options => options.JoinRateLimitPerMinute > 0,
         $"{HubOptions.SectionName}:JoinRateLimitPerMinute must be greater than zero.")
+    .Validate(
+        options => options.RelayRateLimitPerMinute > 0,
+        $"{HubOptions.SectionName}:RelayRateLimitPerMinute must be greater than zero.")
+    .Validate(
+        options => options.MaxRelayPayloadBytes > 0,
+        $"{HubOptions.SectionName}:MaxRelayPayloadBytes must be greater than zero.")
     .ValidateOnStart();
 
 builder.Services
@@ -93,7 +99,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IRoomCodeGenerator, CryptographicRoomCodeGenerator>();
 builder.Services.AddSingleton<IRoomManager, RoomManager>();
-builder.Services.AddSignalR();
+builder.Services.AddSingleton<IRelayRateLimiter, RelayRateLimiter>();
+builder.Services.AddSignalR(options =>
+{
+    var maxPayload = builder.Configuration.GetValue(
+        $"{HubOptions.SectionName}:MaxRelayPayloadBytes",
+        256 * 1024);
+    options.MaximumReceiveMessageSize = maxPayload + RelayHub.ReceiveMessageSizeOverheadBytes;
+});
 
 var app = builder.Build();
 
