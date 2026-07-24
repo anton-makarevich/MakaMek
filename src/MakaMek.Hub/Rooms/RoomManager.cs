@@ -12,6 +12,7 @@ public sealed class RoomManager : IRoomManager
 {
     private const int MaximumCodeGenerationAttempts = 128;
     private static readonly TimeSpan RoomTtl = TimeSpan.FromHours(2);
+    public static readonly TimeSpan DissolutionGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly Lock _sync = new();
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.Ordinal);
@@ -215,7 +216,56 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-public RoomSession? AuthenticateSession(string sessionToken)
+    public string? RegisterConnection(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room)
+                ? room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl)
+                : null;
+        }
+    }
+
+    public bool UnregisterConnection(string roomCode, Guid playerId, string connectionId)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room)
+                   && room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl);
+        }
+    }
+
+    public string? GetHostConnectionId(string roomCode)
+    {
+        lock (_sync)
+        {
+            return _rooms.TryGetValue(roomCode, out var room) ? room.GetHostConnectionId() : null;
+        }
+    }
+
+    public void MarkRoomForDissolution(string roomCode)
+    {
+        lock (_sync)
+        {
+            if (_rooms.TryGetValue(roomCode, out var room))
+            {
+                room.MarkForDissolution(_timeProvider.GetUtcNow(), DissolutionGracePeriod);
+            }
+        }
+    }
+
+    public void CancelRoomDissolution(string roomCode)
+    {
+        lock (_sync)
+        {
+            if (_rooms.TryGetValue(roomCode, out var room))
+            {
+                room.CancelDissolution();
+            }
+        }
+    }
+
+    public RoomSession? AuthenticateSession(string sessionToken)
     {
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
@@ -240,7 +290,7 @@ public RoomSession? AuthenticateSession(string sessionToken)
                     return null;
                 }
 
-                if (room.State == RoomState.Closed || room.IsExpiredAt(now) || session.ExpiresAt <= now)
+                if (room.IsExpiredAt(now) || session.ExpiresAt <= now)
                 {
                     return null;
                 }
@@ -270,12 +320,13 @@ public RoomSession? AuthenticateSession(string sessionToken)
     private void RemoveExpiredRooms(DateTimeOffset now)
     {
         var expiredRoomCodes = _rooms
-            .Where(entry => entry.Value.IsExpiredAt(now))
+            .Where(entry => entry.Value.IsExpiredAt(now) || entry.Value.IsDissolvedAt(now))
             .Select(entry => entry.Key)
             .ToArray();
 
         foreach (var roomCode in expiredRoomCodes)
         {
+            _rooms[roomCode].RevokeAllSessions();
             _rooms.Remove(roomCode);
         }
     }

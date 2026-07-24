@@ -13,5 +13,6 @@ public enum HubErrorCode
     RoomFull,
     InvalidRoomState,
     MemberNotFound,
-    CannotRemoveHost
+    CannotRemoveHost,
+    HostDisconnected
 }

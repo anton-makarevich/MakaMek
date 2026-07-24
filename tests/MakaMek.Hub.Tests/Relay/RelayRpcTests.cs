@@ -200,7 +200,7 @@ public class RelayRpcTests
         rateLimiter.TryConsume(Arg.Any<string>()).Returns(true);
 
         var options = Options.Create(new Configuration.HubOptions { MaxRelayPayloadBytes = 256 * 1024 });
-        var hub = new RelayHub(rateLimiter, options);
+        var hub = new RelayHub(rateLimiter, Substitute.For<IRoomManager>(), options);
 
         var roomCode = "UTF8TEST";
         var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Host,

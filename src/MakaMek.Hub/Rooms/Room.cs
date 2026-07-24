@@ -7,6 +7,7 @@ public sealed class Room
 {
     private readonly Dictionary<Guid, RoomMember> _members;
     private readonly Dictionary<string, RoomSession> _sessions;
+    private readonly Dictionary<Guid, string> _connections = new();
 
     internal Room(
         string roomCode,
@@ -39,9 +40,16 @@ public sealed class Room
 
     public RoomState State { get; private set; } = RoomState.Created;
 
+    public DateTimeOffset? DissolutionDeadline { get; private set; }
+
+    public bool IsDissolving => DissolutionDeadline.HasValue;
+
     public IReadOnlyCollection<RoomMember> Members => _members.Values;
 
     internal bool IsExpiredAt(DateTimeOffset now) => ExpiresAt <= now;
+
+    internal bool IsDissolvedAt(DateTimeOffset now) =>
+        DissolutionDeadline.HasValue && now >= DissolutionDeadline.Value;
 
     private void Touch(DateTimeOffset now, TimeSpan ttl)
     {
@@ -64,6 +72,41 @@ public sealed class Room
         _sessions.TryGetValue(token, out session!);
 
     internal bool IsMember(Guid playerId) => _members.ContainsKey(playerId);
+
+    internal string? RegisterConnection(Guid playerId, string connectionId, DateTimeOffset now, TimeSpan ttl)
+    {
+        _connections.TryGetValue(playerId, out var previousConnectionId);
+        _connections[playerId] = connectionId;
+        Touch(now, ttl);
+        return previousConnectionId;
+    }
+
+    internal bool RemoveConnection(Guid playerId, string connectionId, DateTimeOffset now, TimeSpan ttl)
+    {
+        if (!_connections.TryGetValue(playerId, out var activeConnectionId)
+            || !string.Equals(activeConnectionId, connectionId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _connections.Remove(playerId);
+        Touch(now, ttl);
+        return true;
+    }
+
+    internal string? GetConnectionId(Guid playerId) =>
+        _connections.GetValueOrDefault(playerId);
+
+    internal string? GetHostConnectionId() => GetConnectionId(HostPlayerId);
+
+    internal int LiveConnectionCount => _connections.Count;
+
+    internal void MarkForDissolution(DateTimeOffset now, TimeSpan gracePeriod) =>
+        DissolutionDeadline = now.Add(gracePeriod);
+
+    internal void CancelDissolution() => DissolutionDeadline = null;
+
+    internal void RevokeAllSessions() => _sessions.Clear();
 
     /// <summary>
     /// Transitions Created → Active. Returns false when the room is not in Created.

@@ -154,7 +154,7 @@ public class RelayHubConnectionTests
     }
 
     [Fact]
-    public async Task Connect_WithRoomMismatchedClosedSessionToken_IsRejectedWithoutLeakingToken()
+    public async Task Connect_WithValidClosedRoomSessionToken_IsAccepted()
     {
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
@@ -164,17 +164,13 @@ public class RelayHubConnectionTests
         using var closeResponse = await CloseRoomAsync(client, host.RoomCode, host.SessionToken);
         closeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        using var response = await PostNegotiateAsync(
-            client,
+        await using var connection = factory.CreateRelayHubConnection(
             HubApplicationFactory.ApiKey,
             host.SessionToken);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await connection.StartAsync();
 
-        var body = await response.Content.ReadAsStringAsync();
-        body.ShouldBeEmpty();
-        body.ShouldNotContain(HubApplicationFactory.ApiKey);
-        body.ShouldNotContain(host.SessionToken);
+        connection.State.ShouldBe(HubConnectionState.Connected);
     }
 
     [Fact]

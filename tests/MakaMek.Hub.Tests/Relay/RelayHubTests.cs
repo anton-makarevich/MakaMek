@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Hub.Relay;
+using Sanet.MakaMek.Hub.Rooms;
 using Shouldly;
 
 namespace Sanet.MakaMek.Hub.Tests.Relay;
@@ -61,8 +62,9 @@ public class RelayHubTests
     private static RelayHub CreateHub()
     {
         var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        var roomManager = Substitute.For<IRoomManager>();
         var options = Options.Create(new Configuration.HubOptions());
-        return new RelayHub(rateLimiter, options);
+        return new RelayHub(rateLimiter, roomManager, options);
     }
 
     private static RelayEnvelope CreateEnvelope()
