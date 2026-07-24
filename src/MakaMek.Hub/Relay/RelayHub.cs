@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Contracts;
@@ -62,15 +63,20 @@ public sealed class RelayHub : Hub<IRelayHub>
             throw new HubException("Caller is not a member of the specified room.");
         }
 
-        var payloadLength = message.Payload.Length;
-        if (payloadLength > _options.Value.MaxRelayPayloadBytes)
+        if (message.Payload is null)
         {
-            throw new HubException(HubErrorCode.MessageTooLarge.ToString());
+            throw new HubException("Payload must not be null.");
+        }
+
+        var payloadBytes = Encoding.UTF8.GetByteCount(message.Payload);
+        if (payloadBytes > _options.Value.MaxRelayPayloadBytes)
+        {
+            throw new HubException(nameof(HubErrorCode.MessageTooLarge));
         }
 
         if (!_rateLimiter.TryConsume(Context.ConnectionId))
         {
-            throw new HubException(HubErrorCode.RateLimited.ToString());
+            throw new HubException(nameof(HubErrorCode.RateLimited));
         }
 
         // Hub-tagged identity: overwrite any client-supplied SenderId.

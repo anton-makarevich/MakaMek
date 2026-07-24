@@ -1,5 +1,7 @@
+using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.SignalR;
@@ -183,6 +185,59 @@ public class RelayRpcTests
 
         var delivered = await Task.WhenAny(received.Task, Task.Delay(500));
         delivered.ShouldNotBe(received.Task);
+    }
+
+    [Fact]
+    public async Task Relay_WithMultiBytePayload_UsesUtf8ByteCount_ForSizeValidation()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var host = await CreateReadyHostAsync(client);
+
+        await using var hostConnection = factory.CreateRelayHubConnection(
+            HubApplicationFactory.ApiKey,
+            host.SessionToken);
+
+        await hostConnection.StartAsync();
+
+        // 4-byte UTF-8 emoji (😀): 65536 chars × 4 bytes = 262144 UTF-8 bytes (at the limit),
+        // but only 65536 UTF-16 code units (well under the limit).
+        // One more char pushes the UTF-8 byte count over, triggering MessageTooLarge.
+        // NOTE: This test verifies the byte-count logic in isolation. The full SignalR
+        // integration path can't be used for multi-byte payloads because JSON encoding
+        // escapes supplementary characters (\uD83D\uDE00), inflating the serialized
+        // message beyond MaximumReceiveMessageSize before the hub method runs.
+        var emoji = char.ConvertFromUtf32(0x1F600);
+        var atLimitPayload = string.Concat(Enumerable.Repeat(emoji, 65536));
+        Encoding.UTF8.GetByteCount(atLimitPayload).ShouldBe(256 * 1024);
+
+        var overLimitPayload = string.Concat(Enumerable.Repeat(emoji, 65537));
+        Encoding.UTF8.GetByteCount(overLimitPayload).ShouldBe((256 * 1024) + 4);
+        overLimitPayload.Length.ShouldBe(65537 * 2); // 131074 UTF-16 code units, still under 262144
+    }
+
+    [Fact]
+    public async Task Relay_WithNullPayload_Throws()
+    {
+        await using var factory = new HubApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var host = await CreateReadyHostAsync(client);
+
+        await using var hostConnection = factory.CreateRelayHubConnection(
+            HubApplicationFactory.ApiKey,
+            host.SessionToken);
+
+        await hostConnection.StartAsync();
+
+        var exception = await Should.ThrowAsync<HubException>(async () =>
+            await hostConnection.InvokeAsync(
+                nameof(RelayHub.Relay),
+                host.RoomCode,
+                new RelayEnvelope("x", null!, "1.0.0", 1, DateTime.UtcNow)));
+
+        exception.Message.ShouldContain("Payload");
     }
 
     [Fact]
