@@ -1,13 +1,19 @@
-using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Options;
+using NSubstitute;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
+using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
 using Shouldly;
 
@@ -190,31 +196,47 @@ public class RelayRpcTests
     [Fact]
     public async Task Relay_WithMultiBytePayload_UsesUtf8ByteCount_ForSizeValidation()
     {
-        await using var factory = new HubApplicationFactory();
-        using var client = factory.CreateClient();
+        var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        rateLimiter.TryConsume(Arg.Any<string>()).Returns(true);
 
-        var host = await CreateReadyHostAsync(client);
+        var options = Options.Create(new Configuration.HubOptions { MaxRelayPayloadBytes = 256 * 1024 });
+        var hub = new RelayHub(rateLimiter, options);
 
-        await using var hostConnection = factory.CreateRelayHubConnection(
-            HubApplicationFactory.ApiKey,
-            host.SessionToken);
+        var roomCode = "UTF8TEST";
+        var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Host,
+            DateTimeOffset.UtcNow.AddHours(1));
 
-        await hostConnection.StartAsync();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey] = session;
+
+        var callerContext = new TestHubCallerContext(httpContext);
+
+        var roomClients = Substitute.For<IRelayHub>();
+        var clients = Substitute.For<IHubCallerClients<IRelayHub>>();
+        clients.OthersInGroup(roomCode).Returns(roomClients);
+
+        hub.Context = callerContext;
+        hub.Clients = clients;
 
         // 4-byte UTF-8 emoji (😀): 65536 chars × 4 bytes = 262144 UTF-8 bytes (at the limit),
-        // but only 65536 UTF-16 code units (well under the limit).
-        // One more char pushes the UTF-8 byte count over, triggering MessageTooLarge.
-        // NOTE: This test verifies the byte-count logic in isolation. The full SignalR
-        // integration path can't be used for multi-byte payloads because JSON encoding
-        // escapes supplementary characters (\uD83D\uDE00), inflating the serialized
-        // message beyond MaximumReceiveMessageSize before the hub method runs.
+        // but only 65536 UTF-16 code units (well under the 262144 limit).
         var emoji = char.ConvertFromUtf32(0x1F600);
         var atLimitPayload = string.Concat(Enumerable.Repeat(emoji, 65536));
         Encoding.UTF8.GetByteCount(atLimitPayload).ShouldBe(256 * 1024);
 
+        await hub.Relay(roomCode,
+            new RelayEnvelope("x", atLimitPayload, "1.0.0", 1, DateTime.UtcNow));
+
+        // One more char pushes the UTF-8 byte count over.
         var overLimitPayload = string.Concat(Enumerable.Repeat(emoji, 65537));
         Encoding.UTF8.GetByteCount(overLimitPayload).ShouldBe((256 * 1024) + 4);
         overLimitPayload.Length.ShouldBe(65537 * 2); // 131074 UTF-16 code units, still under 262144
+
+        var exception = await Should.ThrowAsync<HubException>(async () =>
+            await hub.Relay(roomCode,
+                new RelayEnvelope("x", overLimitPayload, "1.0.0", 2, DateTime.UtcNow)));
+
+        exception.Message.ShouldContain(nameof(HubErrorCode.MessageTooLarge));
     }
 
     [Fact]
@@ -349,4 +371,30 @@ public class RelayRpcTests
     }
 
     private sealed record ReadyHost(string RoomCode, string SessionToken);
+
+    private class TestHubCallerContext : HubCallerContext
+    {
+        public TestHubCallerContext(HttpContext? httpContext = null)
+        {
+            if (httpContext is not null)
+            {
+                var feature = new HttpContextFeature { HttpContext = httpContext };
+                Features.Set<IHttpContextFeature>(feature);
+            }
+        }
+
+        public override string ConnectionId { get; } = "test-connection-id";
+        public override ClaimsPrincipal User { get; } = new();
+        public override string? UserIdentifier => null;
+        public override IDictionary<object, object?> Items { get; } = new Dictionary<object, object?>();
+        public override CancellationToken ConnectionAborted => CancellationToken.None;
+        public override IFeatureCollection Features { get; } = new FeatureCollection();
+
+        public override void Abort() { }
+    }
+
+    private sealed class HttpContextFeature : IHttpContextFeature
+    {
+        public HttpContext? HttpContext { get; set; }
+    }
 }
