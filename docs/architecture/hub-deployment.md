@@ -10,19 +10,19 @@ From the repository root:
 docker build -f src/MakaMek.Hub/Dockerfile -t makamek-hub .
 ```
 
-The build context is the repo root so the full solution tree is available for `dotnet restore` and `dotnet publish`. The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:10.0` and exposes **port 8080** over plain HTTP (TLS termination is handled by a reverse proxy — see [TLS & Reverse Proxy](#tls--reverse-proxy) below).
+The build context is the repo root so the full solution tree is available for `dotnet restore`, `dotnet build`, and `dotnet publish`. The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:10.0` and exposes **port 80** over plain HTTP (TLS termination is handled by a reverse proxy — see [TLS & Reverse Proxy](#tls--reverse-proxy) below).
 
 ## Running the Container
 
 ```bash
 docker run -d \
-  -p 8080:8080 \
+  -p 80:80 \
   -e Hub__ApiKey="your-secret-api-key" \
   --name makamek-hub \
   makamek-hub
 ```
 
-The container serves HTTP on port 8080. A health-check endpoint is available at `GET /health` and does not require authentication.
+The container serves HTTP on port 80. A health-check endpoint is available at `GET /health` and does not require authentication.
 
 ## Configurable Settings
 
@@ -43,7 +43,7 @@ All settings live under the `Hub` section and can be overridden via environment 
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `ASPNETCORE_URLS` | `http://+:8080` | Listening URL. |
+| `ASPNETCORE_URLS` | `http://+:80` | Listening URL. |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Runtime environment. |
 
 ### Logging
@@ -65,7 +65,7 @@ The `appsettings.Development.json` ships with an empty `Hub:ApiKey` for local de
 The hub serves plain HTTP. TLS **must** be terminated by a reverse proxy in front of the container. A typical production setup:
 
 ```text
-Internet ──TLS──► Caddy / Nginx / Traefik ──HTTP──► Hub container:8080
+Internet ──TLS──► Caddy / Nginx / Traefik ──HTTP──► Hub container:80
 ```
 
 A lightweight reverse proxy such as [Caddy](https://caddyserver.com/) handles automatic TLS certificate provisioning (Let's Encrypt) and WebSocket upgrades.
@@ -92,7 +92,7 @@ The hub exposes `GET /health` returning:
 }
 ```
 
-This endpoint is **outside** the `/api/*` path and does not require authentication. It is suitable for container orchestrator probes (Kubernetes `livenessProbe`, Docker `HEALTHCHECK`).
+This endpoint is **outside** the `/api/*` path and does not require authentication. It is suitable for container orchestrator probes (Kubernetes `livenessProbe`, Docker `HEALTHCHECK` if added later).
 
 ## Reference
 
