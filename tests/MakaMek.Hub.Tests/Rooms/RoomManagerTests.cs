@@ -797,6 +797,36 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void CancelDissolution_WithinGracePeriod_RoomRemainsAlive()
+    {
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        manager.MarkRoomForDissolution("ABC234");
+
+        manager.CancelRoomDissolution("ABC234");
+
+        manager.AuthenticateSession(created.Session!.Token).ShouldNotBeNull();
+        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.Joined);
+    }
+
+    [Fact]
+    public void CreateRoom_WithCustomTtl_RoomExpiresAfterConfiguredDuration()
+    {
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider,
+            roomTtlSeconds: 600);
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+
+        timeProvider.Advance(TimeSpan.FromSeconds(600));
+
+        manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
+    }
+
+    [Fact]
     public void Dissolution_WithCustomGracePeriod_UsesConfiguredDuration()
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
@@ -815,6 +845,74 @@ public class RoomManagerTests
         // Advance 1 more second — now at the 15-second deadline; room is dissolved.
         timeProvider.Advance(TimeSpan.FromSeconds(1));
         manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+    }
+
+    [Fact]
+    public void TryMarkHostDisconnected_RoomNotFound_ReturnsFalse()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.TryMarkHostDisconnected("NOEXIST", Guid.NewGuid(), "conn-1");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MarkRoomForDissolution_RoomNotFound_DoesNothing()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        // Should not throw
+        manager.MarkRoomForDissolution("NOEXIST");
+    }
+
+    [Fact]
+    public void CancelRoomDissolution_RoomNotFound_DoesNothing()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        // Should not throw
+        manager.CancelRoomDissolution("NOEXIST");
+    }
+
+    [Fact]
+    public void RegisterConnection_RoomNotFound_ReturnsNull()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.RegisterConnection("NOEXIST", Guid.NewGuid(), "conn-1");
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UnregisterConnection_RoomNotFound_ReturnsFalse()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.UnregisterConnection("NOEXIST", Guid.NewGuid(), "conn-1");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void GetHostConnectionId_RoomNotFound_ReturnsNull()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.GetHostConnectionId("NOEXIST");
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetConnectionId_RoomNotFound_ReturnsNull()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        var result = manager.GetConnectionId("NOEXIST", Guid.NewGuid());
+
+        result.ShouldBeNull();
     }
 
     private static RoomManager CreateManager(
