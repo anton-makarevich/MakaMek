@@ -92,7 +92,7 @@ The hub exposes `GET /health` returning:
 }
 ```
 
-This endpoint is **outside** the `/api/*` path and does not require authentication. It is suitable for container orchestrator probes (Kubernetes `livenessProbe`, Docker `HEALTHCHECK` if added later).
+This endpoint is **outside** the `/api/*` path and does not require authentication. It is suitable for container orchestrator probes (Kubernetes `livenessProbe`, Docker `HEALTHCHECK` — the provided Dockerfile configures this automatically).
 
 ## Reference
 

@@ -781,6 +781,42 @@ public class RoomManagerTests
         manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
     }
 
+    [Fact]
+    public void CreateRoom_WithCustomTtl_ExpiresAtConfiguredDuration()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            now: now,
+            roomTtlSeconds: 600);
+
+        var result = manager.CreateRoom("Ada", Guid.NewGuid());
+
+        result.Room!.ExpiresAt.ShouldBe(now.AddSeconds(600));
+        result.Session!.ExpiresAt.ShouldBe(now.AddSeconds(600));
+    }
+
+    [Fact]
+    public void Dissolution_WithCustomGracePeriod_UsesConfiguredDuration()
+    {
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider,
+            dissolutionGracePeriodSeconds: 15);
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        manager.MarkRoomForDissolution("ABC234");
+
+        // Advance 14 seconds — still within the 15-second grace period; room is joinable.
+        timeProvider.Advance(TimeSpan.FromSeconds(14));
+        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.Joined);
+
+        // Advance 1 more second — now at the 15-second deadline; room is dissolved.
+        timeProvider.Advance(TimeSpan.FromSeconds(1));
+        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+    }
+
     private static RoomManager CreateManager(
         IRoomCodeGenerator roomCodeGenerator,
         int maxConcurrentRooms = 10,

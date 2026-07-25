@@ -27,6 +27,14 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Install curl for HEALTHCHECK and create non-root user
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system --gid 1001 appgroup \
+    && adduser --system --uid 1001 --ingroup appgroup appuser \
+    && chown -R appuser:appgroup /app
+
 # Set environment variables for the application
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
@@ -34,4 +42,5 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
+USER appuser
 ENTRYPOINT ["dotnet", "MakaMek.Hub.dll"]

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 using Sanet.MakaMek.Hub.Contracts;
@@ -34,6 +35,10 @@ public class HubConfigurationTests
         result.ShouldNotBeNull();
         result.ExpiresAt.ShouldNotBeNull();
         result.ExpiresAt!.Value.ShouldBe(now.AddSeconds(3600));
+
+        // Verify dissolution grace period is also bound from configuration.
+        var hubOptions = factory.Services.GetRequiredService<IOptions<HubOptions>>().Value;
+        hubOptions.DissolutionGracePeriodSeconds.ShouldBe(60);
     }
 
     [Fact]
