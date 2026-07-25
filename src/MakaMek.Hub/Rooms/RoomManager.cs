@@ -11,8 +11,6 @@ namespace Sanet.MakaMek.Hub.Rooms;
 public sealed class RoomManager : IRoomManager
 {
     private const int MaximumCodeGenerationAttempts = 128;
-    public static readonly TimeSpan DefaultRoomTtl = TimeSpan.FromHours(2);
-    public static readonly TimeSpan DefaultDissolutionGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly Lock _sync = new();
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.Ordinal);
