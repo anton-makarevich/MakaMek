@@ -1,8 +1,7 @@
 # Use the official .NET 10 runtime as a parent image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8080
 
 # Use the SDK image to build the application
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -29,10 +28,10 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Set environment variables for the application
-ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["dotnet", "MakaMek.Hub.dll"]
