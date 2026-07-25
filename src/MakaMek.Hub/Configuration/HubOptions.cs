@@ -33,6 +33,19 @@ public sealed class HubOptions
     public int MaxRelayPayloadBytes { get; init; } = 256 * 1024;
 
     /// <summary>
+    /// Time-to-live in seconds for rooms. A room is garbage-collected after
+    /// this duration of inactivity. Applies to all room states.
+    /// </summary>
+    public int RoomTtlSeconds { get; init; } = 7200;
+
+    /// <summary>
+    /// Grace period in seconds after the host disconnects before the room
+    /// is permanently dissolved. Allows brief transport blips without
+    /// destroying the session.
+    /// </summary>
+    public int DissolutionGracePeriodSeconds { get; init; } = 30;
+
+    /// <summary>
     /// Trusted proxy CIDRs for ForwardedHeaders (comma-separated).
     /// </summary>
     public string[] TrustedProxies { get; init; } = [];

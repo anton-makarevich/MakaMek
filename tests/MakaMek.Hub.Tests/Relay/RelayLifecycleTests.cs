@@ -147,10 +147,60 @@ public class RelayLifecycleTests
         await client.StartAsync();
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        clock.Advance(RoomManager.DissolutionGracePeriod);
+        clock.Advance(TimeSpan.FromSeconds(30));
         await using var reconnect = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
 
         await Should.ThrowAsync<Exception>(async () => await reconnect.StartAsync());
+    }
+
+    [Fact]
+    public async Task HostReconnectAfterNonDefaultGrace_IsRejectedBecauseRoomWasDissolved()
+    {
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 24, 12, 0, 0, TimeSpan.Zero));
+        await using var factory = new HubApplicationFactory(
+            dissolutionGracePeriodSeconds: 60,
+            timeProvider: clock);
+        using var httpClient = factory.CreateClient();
+        var room = await CreateReadyRoomAsync(httpClient);
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        var hostDisconnected = NewCompletionSource<HubError>();
+        client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
+        await host.StartAsync();
+        await client.StartAsync();
+        await host.StopAsync();
+        await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // Advance beyond the non-default 60-second grace period.
+        clock.Advance(TimeSpan.FromSeconds(61));
+        await using var reconnect = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+
+        await Should.ThrowAsync<Exception>(async () => await reconnect.StartAsync());
+    }
+
+    [Fact]
+    public async Task HostReconnectBeforeNonDefaultGrace_SucceedsBeforeDissolution()
+    {
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 24, 12, 0, 0, TimeSpan.Zero));
+        await using var factory = new HubApplicationFactory(
+            dissolutionGracePeriodSeconds: 60,
+            timeProvider: clock);
+        using var httpClient = factory.CreateClient();
+        var room = await CreateReadyRoomAsync(httpClient);
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        var hostDisconnected = NewCompletionSource<HubError>();
+        client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
+        await host.StartAsync();
+        await client.StartAsync();
+        await host.StopAsync();
+        await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // Advance past the default 30-second grace but before the configured 60-second grace.
+        clock.Advance(TimeSpan.FromSeconds(31));
+        await using var reconnect = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+
+        await reconnect.StartAsync();
     }
 
     private static async Task<ReadyRoom> CreateReadyRoomAsync(HttpClient client)

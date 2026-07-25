@@ -1,0 +1,38 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Version control
+.git/
+
+# CI/CD
+.github/
+
+# IDE files
+.idea/
+.vs/
+.vscode/
+*.sln.DotSettings.user
+
+# AI/agent tooling
+.agents/
+.claude/
+.serena/
+
+# Documentation and data (not needed for Hub build)
+docs/
+data/
+skills/
+skills-lock.json
+
+# Test projects
+tests/
+
+# Root files not needed for build
+AGENTS.md
+CLAUDE.md
+README.md
+LICENSE
+mise.toml
+*.user
+*.suo

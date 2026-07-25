@@ -17,6 +17,8 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
     private readonly int _joinRateLimitPerMinute;
     private readonly int _relayRateLimitPerMinute;
     private readonly int _maxRelayPayloadBytes;
+    private readonly int _roomTtlSeconds;
+    private readonly int _dissolutionGracePeriodSeconds;
     private readonly TimeProvider? _timeProvider;
 
     public HubApplicationFactory(
@@ -24,12 +26,16 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
         int joinRateLimitPerMinute = 100,
         int relayRateLimitPerMinute = 1000,
         int maxRelayPayloadBytes = 256 * 1024,
+        int roomTtlSeconds = 7200,
+        int dissolutionGracePeriodSeconds = 30,
         TimeProvider? timeProvider = null)
     {
         _maxConcurrentRooms = maxConcurrentRooms;
         _joinRateLimitPerMinute = joinRateLimitPerMinute;
         _relayRateLimitPerMinute = relayRateLimitPerMinute;
         _maxRelayPayloadBytes = maxRelayPayloadBytes;
+        _roomTtlSeconds = roomTtlSeconds;
+        _dissolutionGracePeriodSeconds = dissolutionGracePeriodSeconds;
         _timeProvider = timeProvider;
     }
 
@@ -44,7 +50,9 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
                 ["Hub:MaxConcurrentRooms"] = _maxConcurrentRooms.ToString(),
                 ["Hub:JoinRateLimitPerMinute"] = _joinRateLimitPerMinute.ToString(),
                 ["Hub:RelayRateLimitPerMinute"] = _relayRateLimitPerMinute.ToString(),
-                ["Hub:MaxRelayPayloadBytes"] = _maxRelayPayloadBytes.ToString()
+                ["Hub:MaxRelayPayloadBytes"] = _maxRelayPayloadBytes.ToString(),
+                ["Hub:RoomTtlSeconds"] = _roomTtlSeconds.ToString(),
+                ["Hub:DissolutionGracePeriodSeconds"] = _dissolutionGracePeriodSeconds.ToString()
             });
         });
 
