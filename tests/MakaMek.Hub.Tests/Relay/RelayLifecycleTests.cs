@@ -147,7 +147,7 @@ public class RelayLifecycleTests
         await client.StartAsync();
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        clock.Advance(RoomManager.DissolutionGracePeriod);
+        clock.Advance(TimeSpan.FromSeconds(30));
         await using var reconnect = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
 
         await Should.ThrowAsync<Exception>(async () => await reconnect.StartAsync());

@@ -27,6 +27,12 @@ builder.Services
     .Validate(
         options => options.MaxRelayPayloadBytes > 0,
         $"{HubOptions.SectionName}:MaxRelayPayloadBytes must be greater than zero.")
+    .Validate(
+        options => options.RoomTtlSeconds > 0,
+        $"{HubOptions.SectionName}:RoomTtlSeconds must be greater than zero.")
+    .Validate(
+        options => options.DissolutionGracePeriodSeconds > 0,
+        $"{HubOptions.SectionName}:DissolutionGracePeriodSeconds must be greater than zero.")
     .ValidateOnStart();
 
 builder.Services
@@ -115,6 +121,17 @@ app.UseRateLimiter();
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 app.UseMiddleware<RelayAuthenticationMiddleware>();
 app.MapControllers();
+app.MapGet("/health", () =>
+{
+    var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+    return Results.Ok(new
+    {
+        status = "healthy",
+        service = "MakaMek.Hub",
+        version
+    });
+});
+
 app.MapHub<RelayHub>(RelayAuthenticationDefaults.HubPath, options =>
 {
     options.Transports = HttpTransportType.WebSockets;

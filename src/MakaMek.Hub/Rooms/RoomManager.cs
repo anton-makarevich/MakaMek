@@ -11,14 +11,16 @@ namespace Sanet.MakaMek.Hub.Rooms;
 public sealed class RoomManager : IRoomManager
 {
     private const int MaximumCodeGenerationAttempts = 128;
-    private static readonly TimeSpan RoomTtl = TimeSpan.FromHours(2);
-    public static readonly TimeSpan DissolutionGracePeriod = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan DefaultRoomTtl = TimeSpan.FromHours(2);
+    public static readonly TimeSpan DefaultDissolutionGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly Lock _sync = new();
     private readonly Dictionary<string, Room> _rooms = new(StringComparer.Ordinal);
     private readonly IRoomCodeGenerator _roomCodeGenerator;
     private readonly TimeProvider _timeProvider;
     private readonly int _maxConcurrentRooms;
+    private readonly TimeSpan _roomTtl;
+    private readonly TimeSpan _dissolutionGracePeriod;
 
     public RoomManager(
         IRoomCodeGenerator roomCodeGenerator,
@@ -30,6 +32,8 @@ public sealed class RoomManager : IRoomManager
         ArgumentNullException.ThrowIfNull(options);
 
         _maxConcurrentRooms = options.Value.MaxConcurrentRooms;
+        _roomTtl = TimeSpan.FromSeconds(options.Value.RoomTtlSeconds);
+        _dissolutionGracePeriod = TimeSpan.FromSeconds(options.Value.DissolutionGracePeriodSeconds);
     }
 
     public RoomCreationResult CreateRoom(string playerName, Guid playerId)
@@ -52,7 +56,7 @@ public sealed class RoomManager : IRoomManager
             }
 
             var roomCode = GenerateAvailableRoomCode();
-            var expiresAt = now.Add(RoomTtl);
+            var expiresAt = now.Add(_roomTtl);
             var host = new RoomMember(playerId, playerName, RoomRole.Host, now);
             var session = new RoomSession(
                 GenerateSessionToken(),
@@ -121,7 +125,7 @@ public sealed class RoomManager : IRoomManager
                 playerName,
                 playerId,
                 now,
-                RoomTtl,
+                _roomTtl,
                 GenerateSessionToken);
 
             return RoomJoinResult.Joined(room, session);
@@ -149,7 +153,7 @@ public sealed class RoomManager : IRoomManager
                 return RoomReadyResult.NotHost();
             }
 
-            if (!room.MarkReady(now, RoomTtl))
+            if (!room.MarkReady(now, _roomTtl))
             {
                 return RoomReadyResult.InvalidState();
             }
@@ -179,7 +183,7 @@ public sealed class RoomManager : IRoomManager
                 return RoomCloseResult.NotHost();
             }
 
-            if (!room.Close(now, RoomTtl))
+            if (!room.Close(now, _roomTtl))
             {
                 return RoomCloseResult.InvalidState();
             }
@@ -229,7 +233,7 @@ public sealed class RoomManager : IRoomManager
         lock (_sync)
         {
             return _rooms.TryGetValue(roomCode, out var room)
-                ? room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl)
+                ? room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl)
                 : null;
         }
     }
@@ -239,7 +243,7 @@ public sealed class RoomManager : IRoomManager
         lock (_sync)
         {
             return _rooms.TryGetValue(roomCode, out var room)
-                   && room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), RoomTtl);
+                   && room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
         }
     }
 
@@ -280,7 +284,7 @@ public sealed class RoomManager : IRoomManager
                 return false;
             }
 
-            var wasActive = room.RemoveConnection(playerId, connectionId, now, RoomTtl);
+            var wasActive = room.RemoveConnection(playerId, connectionId, now, _roomTtl);
             if (!wasActive)
                 return false;
 
@@ -288,7 +292,7 @@ public sealed class RoomManager : IRoomManager
             if (room.GetConnectionId(playerId) is not null)
                 return false;
 
-            room.MarkForDissolution(now, DissolutionGracePeriod);
+            room.MarkForDissolution(now, _dissolutionGracePeriod);
             return true;
         }
     }
@@ -310,7 +314,7 @@ public sealed class RoomManager : IRoomManager
                 return;
             }
 
-            room.MarkForDissolution(now, DissolutionGracePeriod);
+            room.MarkForDissolution(now, _dissolutionGracePeriod);
         }
     }
 

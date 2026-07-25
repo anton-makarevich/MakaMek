@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/.git/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/TestResults/
+**/appsettings.*.local
+**/*.user
+**/*.suo
+**/node_modules/
+**/.DS_Store
+docs/
+README.md
+LICENSE
+.gitignore
