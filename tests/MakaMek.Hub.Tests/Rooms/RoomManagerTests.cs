@@ -805,6 +805,8 @@ public class RoomManagerTests
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
+        timeProvider.Advance(TimeSpan.FromSeconds(DefaultDissolutionGracePeriodSeconds / 2));
+
         manager.CancelRoomDissolution("ABC234");
 
         manager.AuthenticateSession(created.Session!.Token).ShouldNotBeNull();
