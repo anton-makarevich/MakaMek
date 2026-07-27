@@ -1,23 +1,25 @@
-name: BotContainer Docker
+name: Hub Docker
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'src/MakaMek.Tools/BotContainer/**'
-      - 'src/MakaMek.Tools/BotAgent.Models/**'
-      - '.github/workflows/botcontainer-docker.yml'
+      - 'src/MakaMek.Hub/**'
+      - '.github/workflows/hub-docker.yml'
   pull_request:
     paths:
-      - 'src/MakaMek.Tools/BotContainer/**'
-      - 'src/MakaMek.Tools/BotAgent.Models/**'
-      - '.github/workflows/botcontainer-docker.yml'
+      - 'src/MakaMek.Hub/**'
+      - '.github/workflows/hub-docker.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/botcontainer
+  IMAGE_NAME: ${{ github.repository }}/hub
 
 jobs:
   build-and-push:
@@ -56,7 +58,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./src/MakaMek.Tools/BotContainer/Dockerfile
+          file: ./src/MakaMek.Hub/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -89,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./src/MakaMek.Tools/BotContainer/Dockerfile
+          file: ./src/MakaMek.Hub/Dockerfile
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
