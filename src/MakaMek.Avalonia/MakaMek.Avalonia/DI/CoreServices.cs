@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
@@ -128,6 +129,10 @@ public static class CoreServices
         services.AddSingleton<IHashService, HashService>();
         services.AddSingleton<IBotManager, BotManager>();
         services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
+
+        // Relay room client — platforms bind RelayClientOptions (BaseUrl/ApiKey) via their configuration.
+        services.AddOptions<RelayClientOptions>();
+        services.AddHttpClient<IRelayRoomClient, RelayRoomClient>();
     }
 
     public static void RegisterViewModels(this IServiceCollection services)
