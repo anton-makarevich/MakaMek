@@ -37,6 +37,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
+        _jsonOptions.Converters.Add(new TolerantHubErrorCodeConverter());
     }
 
     public async Task<RoomCreateResult> CreateAsync(
@@ -478,4 +479,30 @@ public sealed class RelayRoomClient : IRelayRoomClient
 
     private static RelayClientError DeserializationError() =>
         new(RelayClientErrorCode.DeserializationError, "The relay response could not be read.");
+
+    /// <summary>
+    /// Converts <see cref="HubErrorCode"/> from JSON strings, mapping unrecognized values
+    /// to a sentinel so <see cref="MapHubErrorCode"/>'s <c>_ => Unknown</c> fallback fires.
+    /// </summary>
+    private sealed class TolerantHubErrorCodeConverter : JsonConverter<HubErrorCode>
+    {
+        public override HubErrorCode Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var value = reader.GetString();
+                if (Enum.TryParse<HubErrorCode>(value, ignoreCase: false, out var result))
+                    return result;
+                return (HubErrorCode)int.MaxValue;
+            }
+            if (reader.TokenType == JsonTokenType.Number)
+                return (HubErrorCode)reader.GetInt32();
+            return (HubErrorCode)int.MaxValue;
+        }
+
+        public override void Write(Utf8JsonWriter writer, HubErrorCode value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString());
+        }
+    }
 }

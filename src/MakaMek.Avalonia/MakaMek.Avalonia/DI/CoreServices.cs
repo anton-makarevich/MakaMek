@@ -131,7 +131,8 @@ public static class CoreServices
         services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
 
         // Relay room client — platforms bind RelayClientOptions (BaseUrl/ApiKey) via their configuration.
-        services.AddOptions<RelayClientOptions>();
+        services.AddOptions<RelayClientOptions>()
+            .BindConfiguration(RelayClientOptions.SectionName);
         services.AddHttpClient<IRelayRoomClient, RelayRoomClient>();
     }
 
