@@ -661,6 +661,29 @@ public class RelayRoomClientTests
         AssertNoSecretsLeaked(result.Error.Message);
     }
 
+    [Theory]
+    [InlineData("hubatcapacity", RelayClientErrorCode.HubAtCapacity)]
+    [InlineData("roomnotfound", RelayClientErrorCode.RoomNotFound)]
+    [InlineData("HOSTNOTREADY", RelayClientErrorCode.HostNotReady)]
+    public async Task AnyOperation_HubErrorCode_CasingVariant_MapsCorrectly(
+        string hubCode,
+        RelayClientErrorCode expected)
+    {
+        _handler.StatusCode = HttpStatusCode.Conflict;
+        _handler.ResponseContent = $$"""
+            {
+              "success": false,
+              "error": { "code": "{{hubCode}}", "message": "Hub says {{hubCode}}." }
+            }
+            """;
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(expected);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
     [Fact]
     public async Task CreateAsync_EmptyBody_MapsToDeserializationError()
     {

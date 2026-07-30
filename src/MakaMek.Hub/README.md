@@ -64,6 +64,6 @@ The container listens on `http://localhost:8080` in `Production` mode.
 | GET | `/health` | Health check (returns status, service name, version) |
 | GET | `/api/rooms` | List active rooms (requires API key) |
 | POST | `/api/rooms` | Create a room (requires API key) |
-| POST | `/api/rooms/{roomId}/join` | Join a room by code |
+| POST | `/api/rooms/{roomId}/join` | Join a room by code (requires API key) |
 | DELETE | `/api/rooms/{roomId}` | Close a room (requires API key) |
-| WebSocket | `/relay` | SignalR hub for game relay |
+| WebSocket | `/relay` | SignalR hub for game relay (requires `apiKey` and `sessionToken` query parameters) |

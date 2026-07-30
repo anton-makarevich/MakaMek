@@ -490,12 +490,12 @@ public sealed class RelayRoomClient : IRelayRoomClient
             if (reader.TokenType == JsonTokenType.String)
             {
                 var value = reader.GetString();
-                if (Enum.TryParse<HubErrorCode>(value, ignoreCase: false, out var result))
+                if (Enum.TryParse<HubErrorCode>(value, ignoreCase: true, out var result))
                     return result;
                 return (HubErrorCode)int.MaxValue;
             }
-            if (reader.TokenType == JsonTokenType.Number)
-                return (HubErrorCode)reader.GetInt32();
+            if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var numericValue))
+                return (HubErrorCode)numericValue;
             return (HubErrorCode)int.MaxValue;
         }
 
