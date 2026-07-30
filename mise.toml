@@ -1,6 +1,6 @@
 [tools]
-"gh" = "2.93.0"
-"uv" = "0.6.2"
+"gh" = "2.96.0"
+"uv" = "0.12.0"
 
 [tasks.install-skills]
 description = "Installs all skills (local + third-party) to .agents/skills via the skills.sh CLI"

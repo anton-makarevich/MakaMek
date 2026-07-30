@@ -24,6 +24,7 @@
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.6.1210" />
         <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.6.1210" />
         <PackageReference Include="Sanet.MVVM.Views.Avalonia" Version="1.6.1210" />
