@@ -1,10 +1,12 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport.Relay;
@@ -22,6 +24,7 @@ public class RecordingHttpMessageHandler : HttpMessageHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         LastRequest = request;
         LastRequestBody = request.Content is null
             ? null
@@ -300,6 +303,62 @@ public class RelayRoomClientTests
     }
 
     [Fact]
+    public async Task ReadyAsync_ValidationProblem_NoTitle_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = "{}";
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        result.Error.Message.ShouldBe("The request failed validation.");
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_ValidationProblem_TitleNotString_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = """{ "title": 42 }""";
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        result.Error.Message.ShouldBe("The request failed validation.");
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_ValidationProblem_EmptyBody_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        result.Error.Message.ShouldBe("The request failed validation.");
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_ValidationProblem_NonJsonBody_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = "not-valid-json";
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        result.Error.Message.ShouldBe("The request failed validation.");
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
     public async Task CreateAsync_NetworkFailure_MapsToNetworkError()
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
@@ -352,6 +411,388 @@ public class RelayRoomClientTests
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.RoomNotFound);
         AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_NetworkFailure_MapsToNetworkError()
+    {
+        _handler.ThrowException = new HttpRequestException("connection refused");
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_Timeout_MapsToTimeout()
+    {
+        _handler.ThrowException = new TaskCanceledException("timed out");
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_InvalidJson_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = "{ not-json";
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_EmptyBody_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_HubErrorBody_MapsToClientError()
+    {
+        var memberId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        _handler.StatusCode = HttpStatusCode.NotFound;
+        _handler.ResponseContent = """
+            {
+              "success": false,
+              "error": { "code": "MemberNotFound", "message": "Member not found." }
+            }
+            """;
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, memberId);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.MemberNotFound);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_ValidationProblem_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = """
+            {
+              "title": "One or more validation errors occurred.",
+              "errors": { "Session-Token": ["Session-Token header is required."] }
+            }
+            """;
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_ValidationProblem_EmptyBody_MapsToValidationError()
+    {
+        _handler.StatusCode = HttpStatusCode.BadRequest;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
+        result.Error.Message.ShouldBe("The request failed validation.");
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_NetworkFailure_MapsToNetworkError()
+    {
+        _handler.ThrowException = new HttpRequestException("connection refused");
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_Timeout_MapsToTimeout()
+    {
+        _handler.ThrowException = new TaskCanceledException("timed out");
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_InvalidJson_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = "{ not-json";
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_NetworkFailure_MapsToNetworkError()
+    {
+        _handler.ThrowException = new HttpRequestException("connection refused");
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_Timeout_MapsToTimeout()
+    {
+        _handler.ThrowException = new TaskCanceledException("timed out");
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_InvalidJson_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = "{ not-json";
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CloseAsync_NetworkFailure_MapsToNetworkError()
+    {
+        _handler.ThrowException = new HttpRequestException("connection refused");
+
+        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CloseAsync_Timeout_MapsToTimeout()
+    {
+        _handler.ThrowException = new TaskCanceledException("timed out");
+
+        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CloseAsync_InvalidJson_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = "{ not-json";
+
+        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("MessageTooLarge", RelayClientErrorCode.MessageTooLarge)]
+    [InlineData("HostDisconnected", RelayClientErrorCode.HostDisconnected)]
+    [InlineData("ConnectionSuperseded", RelayClientErrorCode.ConnectionSuperseded)]
+    public async Task AnyOperation_HubErrorCode_RareCodesMapped(
+        string hubCode,
+        RelayClientErrorCode expected)
+    {
+        _handler.StatusCode = HttpStatusCode.Conflict;
+        _handler.ResponseContent = $$"""
+            {
+              "success": false,
+              "error": { "code": "{{hubCode}}", "message": "Hub says {{hubCode}}." }
+            }
+            """;
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(expected);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task AnyOperation_UnknownHubErrorCode_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.Conflict;
+        _handler.ResponseContent = """{ "success": false, "error": { "code": "TotallyUnknown", "message": "?" } }""";
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_EmptyBody_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.Created;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.CreateAsync(Guid.NewGuid(), "Host");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_HubErrorNull_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.InternalServerError;
+        _handler.ResponseContent = """{ "success": false, "roomCode": null, "hostId": null, "sessionToken": null, "expiresAt": null, "error": null }""";
+
+        var result = await _sut.CreateAsync(Guid.NewGuid(), "Host");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task JoinAsync_HubErrorNull_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.InternalServerError;
+        _handler.ResponseContent = """{ "success": false, "role": null, "playerId": null, "hostId": null, "sessionToken": null, "error": null }""";
+
+        var result = await _sut.JoinAsync("ABCDEF", Guid.NewGuid(), "Guest");
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_HubErrorNull_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.InternalServerError;
+        _handler.ResponseContent = """{ "success": false, "error": null }""";
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task RemoveMemberAsync_HubErrorNull_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.InternalServerError;
+        _handler.ResponseContent = """{ "success": false, "error": null }""";
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_CloseAsync_OperationCanceled_Rethrows()
+    {
+        var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            _sut.ReadyAsync("ABCDEF", SessionToken, cts.Token));
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            _sut.CloseAsync("ABCDEF", SessionToken, cts.Token));
+    }
+
+    [Fact]
+    public async Task CreateJoinRemove_OperationCanceled_Rethrows()
+    {
+        var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        var playerId = Guid.NewGuid();
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            _sut.CreateAsync(playerId, "Host", cts.Token));
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            _sut.JoinAsync("ABCDEF", playerId, "Guest", cts.Token));
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            _sut.RemoveMemberAsync("ABCDEF", SessionToken, playerId, cts.Token));
+    }
+
+    [Fact]
+    public void DeserializeCloseResponse_FromJson_ParsesSuccessfully()
+    {
+        const string json = """{ "success": true, "error": null }""";
+        var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
+        var response = JsonSerializer.Deserialize<CloseResponse>(json, opts);
+
+        response.ShouldNotBeNull();
+        response.Success.ShouldBeTrue();
+        response.Error.ShouldBeNull();
+    }
+
+    [Fact]
+    public void DeserializeCloseResponse_WithError_ParsesError()
+    {
+        const string json = """{ "success": false, "error": { "code": "RoomNotFound", "message": "not found" } }""";
+        var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
+        opts.Converters.Add(new JsonStringEnumConverter());
+        var response = JsonSerializer.Deserialize<CloseResponse>(json, opts);
+
+        response.ShouldNotBeNull();
+        response.Success.ShouldBeFalse();
+        response.Error.ShouldNotBeNull();
+        response.Error!.Code.ShouldBe(HubErrorCode.RoomNotFound);
+    }
+
+    [Fact]
+    public void CreateRoomResponse_Deserialization_ParsesExpiresAt()
+    {
+        const string json = """{ "success": true, "roomCode": "ABCDEF", "hostId": "11111111-1111-1111-1111-111111111111", "sessionToken": "tok", "expiresAt": "2026-07-30T22:00:00Z", "error": null }""";
+        var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
+        opts.Converters.Add(new JsonStringEnumConverter());
+        var response = JsonSerializer.Deserialize<CreateRoomResponse>(json, opts);
+
+        response.ShouldNotBeNull();
+        response.ExpiresAt.ShouldNotBeNull();
+        response.ExpiresAt.Value.UtcDateTime.ShouldBe(new DateTime(2026, 7, 30, 22, 0, 0, DateTimeKind.Utc));
     }
 
     private void AssertNoSecretsLeaked(string? errorMessage)

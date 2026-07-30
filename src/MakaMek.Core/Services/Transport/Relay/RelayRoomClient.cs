@@ -36,7 +36,6 @@ public sealed class RelayRoomClient : IRelayRoomClient
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
-        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
         _jsonOptions.Converters.Add(new TolerantHubErrorCodeConverter());
     }
 
