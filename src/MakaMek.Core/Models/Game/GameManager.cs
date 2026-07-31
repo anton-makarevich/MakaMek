@@ -313,5 +313,7 @@ public class GameManager : IGameManager
         _onlineRelayPublisher = null;
 
         _commandLogger?.Dispose();
+        
+        GC.SuppressFinalize(this);
     }
 }
