@@ -113,6 +113,9 @@ public class GameManager : IGameManager
     {
         OnlineError = null;
         RoomCode = null;
+
+        // Remove and dispose any previous relay publisher before re-hosting
+        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
         _onlineRelayPublisher = null;
 
         // Reset before initializing new lobby
@@ -160,7 +163,8 @@ public class GameManager : IGameManager
                 hubUrl,
                 createResult.RoomCode,
                 createResult.SessionToken,
-                createResult.HostId.Value);
+                createResult.HostId.Value,
+                cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
@@ -183,6 +187,7 @@ public class GameManager : IGameManager
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await CleanupOnlineAfterFailureAsync(publisher);
             throw;
         }
         catch (Exception)
@@ -214,28 +219,32 @@ public class GameManager : IGameManager
         _commandPublisher.Subscribe(_logHandler, transportPublisher);
     }
 
+    private async Task RemoveAndDisposeOnlinePublisherAsync(RelayClientPublisher? publisher)
+    {
+        // Remove and dispose the relay publisher if it was created
+        if (publisher == null) return;
+        try
+        {
+            _commandPublisher.Adapter.RemovePublisher(publisher);
+        }
+        catch
+        {
+            // Swallow to avoid masking the original failure
+        }
+        try
+        {
+            await publisher.DisposeAsync();
+        }
+        catch
+        {
+            // Swallow to avoid masking the original failure
+        }
+    }
+
     private async Task CleanupOnlineAfterFailureAsync(RelayClientPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
-        if (publisher != null)
-        {
-            try
-            {
-                _commandPublisher.Adapter.RemovePublisher(publisher);
-            }
-            catch
-            {
-                // Swallow to avoid masking the original failure
-            }
-            try
-            {
-                await publisher.DisposeAsync();
-            }
-            catch
-            {
-                // Swallow to avoid masking the original failure
-            }
-        }
+        await RemoveAndDisposeOnlinePublisherAsync(publisher);
         _onlineRelayPublisher = null;
         RoomCode = null;
 
@@ -289,19 +298,9 @@ public class GameManager : IGameManager
         // Dispose network host
         _networkHostService?.Dispose();
 
-        // Dispose online relay publisher if it exists
-        if (_onlineRelayPublisher != null)
-        {
-            try
-            {
-                _onlineRelayPublisher.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            }
-            catch
-            {
-                // Swallow to avoid breaking disposal
-            }
-            _onlineRelayPublisher = null;
-        }
+        // Remove and dispose online relay publisher if it exists
+        RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher).GetAwaiter().GetResult();
+        _onlineRelayPublisher = null;
 
         _commandLogger?.Dispose();
     }

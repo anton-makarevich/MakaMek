@@ -120,6 +120,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private void SubscribeAndCreateLocalGame()
     {
+        // Avoid double-subscribing if this flow runs more than once (e.g. when restarting hosting)
+        _commandPublisher.Unsubscribe(HandleServerCommand);
         _commandPublisher.Subscribe(HandleServerCommand);
         // Use the factory to create the ClientGame
         _localGame = _gameFactory.CreateClientGame(_commandPublisher);

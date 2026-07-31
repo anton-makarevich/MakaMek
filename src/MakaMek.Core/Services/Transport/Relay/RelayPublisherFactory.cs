@@ -12,8 +12,11 @@ public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelay
         string hubUrl,
         string roomCode,
         string sessionToken,
-        Guid expectedHostId)
+        Guid expectedHostId,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var logger = loggerFactory.CreateLogger<RelayClientPublisher>();
         var publisher = new RelayClientPublisher(
             hubUrl,
@@ -21,7 +24,18 @@ public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelay
             sessionToken,
             logger,
             expectedHostId.ToString());
-        await publisher.StartAsync();
+
+        // StartAsync does not accept a token, so link one to abandon the publisher
+        // promptly if the caller cancels while the connection is being established.
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var startTask = publisher.StartAsync();
+        var completed = await Task.WhenAny(startTask, Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token));
+        if (completed != startTask)
+        {
+            await publisher.DisposeAsync();
+            linkedCts.Token.ThrowIfCancellationRequested();
+        }
+        await startTask;
         return publisher;
     }
 }

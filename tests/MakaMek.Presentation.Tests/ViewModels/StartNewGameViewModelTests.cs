@@ -603,7 +603,7 @@ public class StartNewGameViewModelTests
     {
         _sut.Dispose();
 
-        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _commandPublisher.Received(2).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     [Fact]
@@ -611,7 +611,7 @@ public class StartNewGameViewModelTests
     {
         _sut.DetachHandlers();
 
-        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _commandPublisher.Received(2).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     [Fact]
