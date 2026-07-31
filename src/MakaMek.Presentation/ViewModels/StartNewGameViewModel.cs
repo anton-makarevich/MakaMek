@@ -334,7 +334,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public async Task CancelAndRestartServer()
     {
-        await _initCts?.CancelAsync()!;
+        if (_initCts is not null)
+        {
+            await _initCts.CancelAsync();
+        }
         _initCts?.Dispose();
         IsHosting = false;
         _initCts = new CancellationTokenSource();
