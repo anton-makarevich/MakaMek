@@ -48,6 +48,18 @@ public class RelayPublisherFactoryTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenHubReachable_ReturnsConnectedPublisher()
+    {
+        await using var host = await TestRelayHubHost.StartAsync();
+        var hubUrl = host.Urls.First().TrimEnd('/') + "/hubs/relay";
+
+        var publisher = await _sut.CreateAsync(hubUrl, RoomCode, SessionToken, Guid.NewGuid());
+
+        await using var _ = publisher;
+        publisher.IsConnected.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task CreateAsync_WhenCancelledWhileStarting_ThrowsOperationCanceledException()
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);

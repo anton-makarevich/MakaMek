@@ -481,6 +481,26 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
+    public void DeserializeCommand_WhenPayloadIsJsonNull_ThrowsJsonException()
+    {
+        // Arrange
+        SetupAdapter(); // Adapter needed for its internal command type dictionary
+        var message = new TransportMessage
+        {
+            MessageType = nameof(TurnIncrementedCommand),
+            SourceId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Payload = "null" // Valid JSON literal
+        };
+
+        // Act & Assert
+        // All registered commands are value types, so a JSON null literal cannot
+        // be deserialized to a command and is rejected rather than silently accepted
+        var exception = Should.Throw<JsonException>(() => _sut.DeserializeCommand(message));
+        exception.Message.ShouldContain(nameof(TurnIncrementedCommand));
+    }
+
+    [Fact]
     public void Initialize_WithNoPublishers_DoesNotThrow()
     {
         // Arrange

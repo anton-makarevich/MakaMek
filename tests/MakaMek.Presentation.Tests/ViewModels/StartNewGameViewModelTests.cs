@@ -405,6 +405,25 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_ReturnsWithoutSettingRoomCode()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await sut.InitializeLobbyAndSubscribe(cts.Token);
+
+        sut.RoomCode.ShouldBeNull();
+        sut.HostingError.ShouldBeNull();
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
     public async Task CancelAndRestartServer_WhenOnlineSucceeds_NavigatesToBattleMap()
     {
         var gameManager = Substitute.For<IGameManager>();
@@ -444,6 +463,44 @@ public class StartNewGameViewModelTests
         await sut.CancelAndRestartServer();
 
         sut.HostingError.ShouldBe("No connection");
+        await _navigationService.DidNotReceive().NavigateToViewModelAsync(_battleMapViewModel);
+    }
+
+    [Fact]
+    public async Task CancelAndRestartServer_WhenInitIsCancelled_SilentlyReturns()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobby().ThrowsAsync<OperationCanceledException>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        await sut.CancelAndRestartServer();
+        await sut.CancelAndRestartServer();
+
+        sut.HostingError.ShouldBeNull();
+        sut.RoomCode.ShouldBeNull();
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public async Task CancelAndRestartServer_WhenCancelledDuringInit_ReturnsWithoutStartingGame()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initTcs = new TaskCompletionSource();
+        gameManager.InitializeLobby().Returns(initTcs.Task);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.SetNavigationService(_navigationService);
+
+        var restartTask = sut.CancelAndRestartServer();
+        await Task.Delay(50);
+        sut.DetachHandlers();
+        initTcs.SetResult();
+
+        await restartTask;
+
+        sut.HostingError.ShouldBeNull();
+        sut.RoomCode.ShouldBeNull();
         await _navigationService.DidNotReceive().NavigateToViewModelAsync(_battleMapViewModel);
     }
 
