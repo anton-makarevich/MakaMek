@@ -542,7 +542,7 @@ public class StartNewGameViewModelTests
 
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
-        sut.HostingStatusText.ShouldBe("Room ready, join with code: {0}");
+        sut.HostingStatusText.ShouldBe("Room ready, join with code: ABCDEF");
     }
 
     [Fact]

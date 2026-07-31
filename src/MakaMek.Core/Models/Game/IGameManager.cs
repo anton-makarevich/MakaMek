@@ -3,7 +3,7 @@ using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public interface IGameManager : IDisposable
+public interface IGameManager : IDisposable, IAsyncDisposable
 { 
     /// <summary>
     /// Initializes the lobby asynchronously

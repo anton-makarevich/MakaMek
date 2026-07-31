@@ -62,6 +62,10 @@ public class GameManager : IGameManager
 
     public async Task ResetForNewGame()
     {
+        // Remove and dispose any stale relay publisher before re-hosting
+        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
+        _onlineRelayPublisher = null;
+
         // Dispose current server game if exists
         if (_serverGame != null)
         {
@@ -114,11 +118,7 @@ public class GameManager : IGameManager
         OnlineError = null;
         RoomCode = null;
 
-        // Remove and dispose any previous relay publisher before re-hosting
-        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
-        _onlineRelayPublisher = null;
-
-        // Reset before initializing new lobby
+        // Reset before initializing new lobby (also clears any stale relay publisher)
         await ResetForNewGame();
 
         // Relay hosting requires both the room client and the publisher factory
@@ -146,12 +146,7 @@ public class GameManager : IGameManager
             return;
         }
 
-        // Create the game server instance
-        _serverGame = _gameFactory.CreateServerGame(_commandPublisher);
-        // Start server listening loop in background
-        _ = Task.Run(() => _serverGame?.Start());
-
-        SetupCommandLogging();
+        CreateServerGameAndSetupLogging();
 
         RelayClientPublisher? publisher = null;
         try
@@ -290,16 +285,31 @@ public class GameManager : IGameManager
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        
+
         // Dispose server game if it exists
         _serverGame?.Dispose();
         _serverGame = null;
-        
+
+        // Dispose network host
+        _networkHostService?.Dispose();
+
+        _commandLogger?.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
+        // Dispose server game if it exists
+        _serverGame?.Dispose();
+        _serverGame = null;
+
         // Dispose network host
         _networkHostService?.Dispose();
 
         // Remove and dispose online relay publisher if it exists
-        RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher).GetAwaiter().GetResult();
+        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
         _onlineRelayPublisher = null;
 
         _commandLogger?.Dispose();

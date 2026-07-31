@@ -29,13 +29,27 @@ public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelay
         // promptly if the caller cancels while the connection is being established.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var startTask = publisher.StartAsync();
-        var completed = await Task.WhenAny(startTask, Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token));
-        if (completed != startTask)
+        try
         {
-            await publisher.DisposeAsync();
-            linkedCts.Token.ThrowIfCancellationRequested();
+            var completed = await Task.WhenAny(startTask, Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token));
+            if (completed != startTask)
+            {
+                linkedCts.Token.ThrowIfCancellationRequested();
+            }
+            await startTask;
+            return publisher;
         }
-        await startTask;
-        return publisher;
+        catch
+        {
+            try
+            {
+                await publisher.DisposeAsync();
+            }
+            catch
+            {
+                // Swallow to avoid masking the original failure
+            }
+            throw;
+        }
     }
 }

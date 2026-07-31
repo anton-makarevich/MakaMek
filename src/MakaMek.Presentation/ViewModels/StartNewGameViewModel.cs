@@ -300,7 +300,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             if (HostingError != null)
                 return HostingError;
             if (RoomCode != null)
-                return _localizationService.GetString("Hosting_RoomReady");
+                return string.Format(_localizationService.GetString("Hosting_RoomReady"), RoomCode);
             return string.Empty;
         }
     }
@@ -347,7 +347,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         try
         {
             IsHosting = true;
-            await InitializeLobbyAndSubscribe(_initCts.Token);
+            try
+            {
+                await InitializeLobbyAndSubscribe(_initCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelled by a superseded restart or by detach/dispose; treat as silent return.
+                return;
+            }
             if (_initCts.IsCancellationRequested || _isDisposed)
                 return;
 

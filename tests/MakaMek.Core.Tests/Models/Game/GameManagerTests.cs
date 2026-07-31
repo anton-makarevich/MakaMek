@@ -460,7 +460,7 @@ public class GameManagerTests : IDisposable
         _transportAdapter.TransportPublishers.ShouldContain(publisher);
         await relayRoomClient.Received(1).ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
         await networkHostService.DidNotReceive().Start();
-        sut.Dispose();
+        await sut.DisposeAsync();
     }
 
     [Fact]
@@ -535,7 +535,7 @@ public class GameManagerTests : IDisposable
         await sut.InitializeLobbyOnline(playerId, "Host");
         sut.IsOnlineServerRunning.ShouldBeTrue();
 
-        sut.Dispose();
+        await sut.DisposeAsync();
 
         sut.IsOnlineServerRunning.ShouldBeFalse();
         publisher.State.ShouldBe(HubConnectionState.Disconnected);
@@ -569,7 +569,7 @@ public class GameManagerTests : IDisposable
         _transportAdapter.TransportPublishers.ShouldNotContain(firstPublisher);
         _transportAdapter.TransportPublishers.ShouldContain(secondPublisher);
         firstPublisher.State.ShouldBe(HubConnectionState.Disconnected);
-        sut.Dispose();
+        await sut.DisposeAsync();
     }
 
     [Fact]
@@ -635,7 +635,7 @@ public class GameManagerTests : IDisposable
         sut.RoomCode.ShouldBe(roomCode);
         sut.IsOnlineServerRunning.ShouldBeTrue();
         firstPublisher.State.ShouldBe(HubConnectionState.Disconnected);
-        sut.Dispose();
+        await sut.DisposeAsync();
     }
 
     public void Dispose()
