@@ -324,6 +324,126 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
+    public void PublishCommand_WhenPublisherThrows_LogsErrorAndContinuesToOtherPublishers()
+    {
+        // Arrange
+        SetupAdapter(2);
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(_ => throw new InvalidOperationException("boom"));
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => _sut.PublishCommand(command));
+
+        _mockPublisher2.Received(1).PublishMessage(Arg.Any<TransportMessage>());
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<InvalidOperationException>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+    }
+
+    [Fact]
+    public void Subscribe_WhenUnknownCommandTypeReceived_SwallowsErrorAndDoesNotInvokeCallback()
+    {
+        // Arrange
+        SetupAdapter();
+        Action<TransportMessage>? subscribedCallback = null;
+        _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
+            .Do(x => subscribedCallback = x.Arg<Action<TransportMessage>>());
+        var callbackCalled = false;
+        _sut.Initialize((_, _) => callbackCalled = true);
+        subscribedCallback.ShouldNotBeNull();
+
+        // Act & Assert
+        Should.NotThrow(() => subscribedCallback!(new TransportMessage
+        {
+            MessageType = "ThisCommandDoesNotExist",
+            SourceId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Payload = "{}"
+        }));
+
+        callbackCalled.ShouldBeFalse();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<UnknownCommandTypeException>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+    }
+
+    [Fact]
+    public void Subscribe_WhenInvalidJsonReceived_SwallowsErrorAndDoesNotInvokeCallback()
+    {
+        // Arrange
+        SetupAdapter();
+        Action<TransportMessage>? subscribedCallback = null;
+        _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
+            .Do(x => subscribedCallback = x.Arg<Action<TransportMessage>>());
+        var callbackCalled = false;
+        _sut.Initialize((_, _) => callbackCalled = true);
+        subscribedCallback.ShouldNotBeNull();
+
+        // Act & Assert
+        Should.NotThrow(() => subscribedCallback!(new TransportMessage
+        {
+            MessageType = nameof(TurnIncrementedCommand),
+            SourceId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Payload = "{ invalid json }"
+        }));
+
+        callbackCalled.ShouldBeFalse();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<JsonException>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+    }
+
+    [Fact]
+    public void Subscribe_WhenCallbackThrows_SwallowsErrorAndContinues()
+    {
+        // Arrange
+        SetupAdapter();
+        Action<TransportMessage>? subscribedCallback = null;
+        _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
+            .Do(x => subscribedCallback = x.Arg<Action<TransportMessage>>());
+        _sut.Initialize((_, _) => throw new InvalidOperationException("boom"));
+        subscribedCallback.ShouldNotBeNull();
+
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+        var message = new TransportMessage
+        {
+            MessageType = nameof(TurnIncrementedCommand),
+            SourceId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Payload = JsonSerializer.Serialize(command)
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => subscribedCallback!(message));
+
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<InvalidOperationException>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
+    }
+
+    [Fact]
     public void DeserializeCommand_WithInvalidJson_ThrowsJsonExceptionDirectly()
     {
         // Arrange

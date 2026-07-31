@@ -470,6 +470,132 @@ public class StartNewGameViewModelTests
         sut.HostingError.ShouldBeNull();
     }
 
+    [Fact]
+    public void HandleServerCommand_JoinGameCommand_AddsRemotePlayer_InvokesNoOpActions()
+    {
+        var playerId = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "RemotePlayer",
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#00FF00",
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
+        };
+
+        _sut.HandleServerCommand(joinCommand);
+        var remotePlayerVm = _sut.Players.First(p => p.Player.Id == playerId);
+        remotePlayerVm.IsLocalPlayer.ShouldBeFalse();
+
+        Should.NotThrow(() =>
+        {
+            var joinField = typeof(PlayerViewModel).GetField("_joinGameAction",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var readyField = typeof(PlayerViewModel).GetField("_setReadyAction",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var showUnitsField = typeof(PlayerViewModel).GetField("_showAvailableUnits",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            ((Action<PlayerViewModel>)joinField!.GetValue(remotePlayerVm)!).Invoke(remotePlayerVm);
+            ((Action<PlayerViewModel>)readyField!.GetValue(remotePlayerVm)!).Invoke(remotePlayerVm);
+            ((Func<PlayerViewModel, Task>)showUnitsField!.GetValue(remotePlayerVm)!).Invoke(remotePlayerVm);
+        });
+    }
+
+    [Fact]
+    public void HostingStatusText_WhenNotHostingAndNoState_ReturnsEmpty()
+    {
+        _sut.HostingStatusText.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public async Task HostingStatusText_WhenHostingErrorSet_ReturnsErrorText()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.NetworkError, "No connection"));
+        gameManager.RoomCode.Returns((string?)null);
+        gameManager.IsOnlineServerRunning.Returns(false);
+        var sut = CreateSut(gameManager, _commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.CancelAndRestartServer();
+
+        sut.HostingStatusText.ShouldBe("No connection");
+    }
+
+    [Fact]
+    public async Task HostingStatusText_WhenRoomReady_ReturnsRoomReadyText()
+    {
+        _localizationService.GetString("Hosting_RoomReady").Returns("Room ready, join with code: {0}");
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        sut.HostingStatusText.ShouldBe("Room ready, join with code: {0}");
+    }
+
+    [Fact]
+    public async Task HostingStatusText_WhenHosting_ReturnsStartingText()
+    {
+        _localizationService.GetString("Hosting_Starting").Returns("Starting hosted game...");
+        var gameManager = Substitute.For<IGameManager>();
+        var initTcs = new TaskCompletionSource();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(initTcs.Task);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        sut.SetNavigationService(_navigationService);
+
+        var restartTask = sut.CancelAndRestartServer();
+
+        sut.HostingStatusText.ShouldBe("Starting hosted game...");
+
+        initTcs.SetResult();
+        await restartTask;
+    }
+
+    [Fact]
+    public void RestartLanServerCommand_IsNotNull()
+    {
+        _sut.RestartLanServerCommand.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenRoomCodeAvailable_CanExecuteAndRuns()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        sut.CopyRoomCodeCommand.CanExecute(null).ShouldBeTrue();
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+    }
+
     private StartNewGameViewModel CreateSut(
         IGameManager? gameManager = null,
         ICommandPublisher? commandPublisher = null) => new(
