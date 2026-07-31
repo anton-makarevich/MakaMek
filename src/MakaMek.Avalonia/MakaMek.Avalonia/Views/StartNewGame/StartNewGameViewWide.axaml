@@ -42,7 +42,7 @@
                 <ScrollViewer Grid.Row="1" >
                     <fragments1:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
-                <StackPanel Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10">
+                <StackPanel Grid.Row="2" Margin="10">
                     <Grid>
                         <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <Button Command="{Binding ToggleNetworkSection}"

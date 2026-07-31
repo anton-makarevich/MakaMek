@@ -14,6 +14,12 @@ public interface ICommandTransportAdapter: IDisposable
     void AddPublisher(ITransportPublisher? publisher);
 
     /// <summary>
+    /// Removes a transport publisher from the adapter without disposing it.
+    /// </summary>
+    /// <param name="publisher">The publisher to remove</param>
+    void RemovePublisher(ITransportPublisher publisher);
+
+    /// <summary>
     /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
     /// </summary>
     void ClearPublishers();

@@ -81,6 +81,18 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     }
     
     /// <summary>
+    /// Removes a transport publisher from the adapter without disposing it.
+    /// </summary>
+    /// <param name="publisher">The publisher to remove</param>
+    public void RemovePublisher(ITransportPublisher publisher)
+    {
+        lock (_initLock)
+        {
+            _transportPublishers.Remove(publisher);
+        }
+    }
+
+    /// <summary>
     /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
     /// </summary>
     public void ClearPublishers()

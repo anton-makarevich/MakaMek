@@ -25,5 +25,6 @@ public enum RelayClientErrorCode
     Timeout,
     NetworkError,
     DeserializationError,
+    ConfigurationError,
     Unknown
 }

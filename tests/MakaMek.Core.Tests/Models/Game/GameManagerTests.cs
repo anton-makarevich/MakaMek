@@ -1,5 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.SignalR.Client;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -8,7 +12,9 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Transport;
+using Sanet.Transport.SignalR.Client.Publishers;
 using Shouldly;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Data.Game.Commands;
@@ -82,6 +88,22 @@ public class GameManagerTests : IDisposable
         _gameFactory,
         _localizationService,
         _commandLoggerFactory);
+
+    private GameManager CreateSutWithRelay(
+        IRelayRoomClient relayRoomClient,
+        IRelayPublisherFactory relayPublisherFactory,
+        INetworkHostService? networkHostService = null) => new GameManager(
+        _commandPublisher,
+        _gameFactory,
+        _localizationService,
+        _commandLoggerFactory,
+        networkHostService,
+        relayRoomClient,
+        relayPublisherFactory,
+        Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local" }));
+
+    private static RelayClientPublisher CreateRelayPublisher(string roomCode, string sessionToken, Guid hostId) =>
+        new("http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());
 
     [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNotRunning_StartsNetworkHostAndAddsPublisher()
@@ -375,6 +397,148 @@ public class GameManagerTests : IDisposable
 
         // Assert
         logger.Received(1).Dispose();
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenRelayNotConfigured_SetsConfigurationError()
+    {
+        var sut = CreateSutWithNullHost();
+
+        await sut.InitializeLobbyOnline(Guid.NewGuid(), "Host");
+
+        sut.OnlineError.ShouldNotBeNull();
+        sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenCreateRoomFails_SetsErrorAndDoesNotCreateServerGame()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");
+        relayRoomClient.CreateAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Failed(error));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline(Guid.NewGuid(), "Host");
+
+        sut.OnlineError.ShouldBe(error);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+        await relayRoomClient.DidNotReceive().ReadyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenCreateRoomSucceeds_StartsOnlineServerAndSetsRoomCode()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        var networkHostService = Substitute.For<INetworkHostService>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var playerId = Guid.NewGuid();
+        var hostId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId)
+            .Returns(Task.FromResult(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, networkHostService);
+
+        await sut.InitializeLobbyOnline(playerId, "Host");
+
+        sut.RoomCode.ShouldBe(roomCode);
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        sut.OnlineError.ShouldBeNull();
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+        await relayRoomClient.Received(1).ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
+        await networkHostService.DidNotReceive().Start();
+        sut.Dispose();
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenReadyFails_ClearsStateAndDisposesServerGame()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var playerId = Guid.NewGuid();
+        var hostId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
+        var readyError = new RelayClientError(RelayClientErrorCode.HostNotReady, "Host did not confirm ready");
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Failed(readyError));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId)
+            .Returns(Task.FromResult(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline(playerId, "Host");
+
+        sut.OnlineError.ShouldBe(readyError);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        sut.ServerGameId.ShouldBeNull();
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenPublisherFactoryThrows_SetsErrorAndCleansUp()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var playerId = Guid.NewGuid();
+        var hostId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
+        relayPublisherFactory.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>())
+            .Throws(new InvalidOperationException("boom"));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline(playerId, "Host");
+
+        sut.OnlineError.ShouldNotBeNull();
+        sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        sut.ServerGameId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Dispose_WhenOnlineServerRunning_DisposesRelayPublisher()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var playerId = Guid.NewGuid();
+        var hostId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId)
+            .Returns(Task.FromResult(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline(playerId, "Host");
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+
+        sut.Dispose();
+
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        publisher.State.ShouldBe(HubConnectionState.Disconnected);
     }
 
     public void Dispose()
