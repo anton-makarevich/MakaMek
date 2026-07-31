@@ -12,8 +12,20 @@
         <StackPanel Classes="formGroup">
             <TextBlock Text="{extensions:Localize 'Network_Multiplayer'}" Classes="label"/>
         </StackPanel>
-        
+
         <StackPanel Classes="formGroup">
+            <TextBlock Text="{extensions:Localize 'Network_HostMode'}" Classes="label"/>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
+                             IsChecked="{Binding IsLanMode, Mode=TwoWay}"
+                             GroupName="HostMode"/>
+                <RadioButton Content="{extensions:Localize 'Network_HostModeOnline'}"
+                             IsChecked="{Binding IsOnlineMode, Mode=TwoWay}"
+                             GroupName="HostMode"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
             <TextBlock Text="{extensions:Localize 'Network_ServerAddress'}" Classes="label"/>
             <Border Classes="card" Background="{StaticResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
                 <SelectableTextBlock Text="{Binding ServerIpAddress}"/>
@@ -21,7 +33,27 @@
             <TextBlock Text="{extensions:Localize 'Network_ShareAddress'}"
                        Classes="bodySmall"
                        FontStyle="Italic"/>
+            <Button Command="{Binding RestartLanServerCommand}"
+                    Content="{extensions:Localize 'Network_RestartServer'}"
+                    HorizontalAlignment="Left"
+                    Margin="0,6,0,0"/>
         </StackPanel>
+
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+            <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
+            <Border Classes="card" Background="{StaticResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
+                <SelectableTextBlock Text="{Binding RoomCode}"/>
+            </Border>
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                <Button Command="{Binding RestartLanServerCommand}"
+                        Content="{extensions:Localize 'Network_RestartServer'}"/>
+                <Button Command="{Binding CopyRoomCodeCommand}"
+                        Content="{extensions:Localize 'Network_CopyRoomCode'}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="{Binding HostingStatusText}"
+                   Classes="bodySmall"
+                   FontStyle="Italic"/>
     </StackPanel>
 </UserControl>
-

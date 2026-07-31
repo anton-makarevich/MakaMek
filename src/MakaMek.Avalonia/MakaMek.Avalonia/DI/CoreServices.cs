@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration; 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
@@ -129,6 +131,25 @@ public static class CoreServices
         services.AddSingleton<IHashService, HashService>();
         services.AddSingleton<IBotManager, BotManager>();
         services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
+
+        // Shared in-memory configuration source that populates the RelayClient section for all heads.
+        // Defaults to a locally deployed Hub; override via MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY.
+        services.AddSingleton<IConfiguration>(_ =>
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [RelayClientOptions.SectionName + ":BaseUrl"] =
+                        Environment.GetEnvironmentVariable("MAKAMEK_RELAY_BASE_URL") ?? "http://localhost:8080",
+                    [RelayClientOptions.SectionName + ":ApiKey"] =
+                        Environment.GetEnvironmentVariable("MAKAMEK_RELAY_API_KEY") ?? string.Empty
+                })
+                .Build();
+            return configuration;
+        });
+
+        // Relay publisher factory — shared, creates RelayClientPublisher instances for online hosts.
+        services.AddSingleton<IRelayPublisherFactory, RelayPublisherFactory>();
 
         // Relay room client — platforms bind RelayClientOptions (BaseUrl/ApiKey) via their configuration.
         services.AddOptions<RelayClientOptions>()

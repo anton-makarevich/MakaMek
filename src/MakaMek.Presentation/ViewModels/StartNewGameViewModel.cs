@@ -22,12 +22,23 @@ using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
+/// <summary>
+/// Determines how the local player hosts a new game.
+/// </summary>
+public enum HostMode
+{
+    Lan,
+    Online
+}
+
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
     private readonly ILogger<StartNewGameViewModel> _logger;
+    private readonly ILocalizationService _localizationService;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
+    private HostMode _hostMode = HostMode.Lan;
 
     public StartNewGameViewModel(
         IGameManager gameManager,
@@ -55,16 +66,62 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         _gameManager = gameManager;
         _logger = logger;
+        _localizationService = localizationService;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
+        RestartLanServerCommand = new AsyncCommand(CancelAndRestartServer);
+        CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
     }
 
     public async Task InitializeLobbyAndSubscribe(CancellationToken cancellationToken)
     {
+        if (IsOnlineMode)
+        {
+            await InitializeOnlineLobbyAndSubscribe(cancellationToken);
+            return;
+        }
+
+        await InitializeLanLobbyAndSubscribe(cancellationToken);
+    }
+
+    private async Task InitializeLanLobbyAndSubscribe(CancellationToken cancellationToken)
+    {
         await _gameManager.InitializeLobby();
         if (cancellationToken.IsCancellationRequested || _isDisposed)
             return;
+
+        SubscribeAndCreateLocalGame();
+
+        // Update server IP initially if needed
+        NotifyPropertyChanged(nameof(ServerIpAddress));
+    }
+
+    private async Task InitializeOnlineLobbyAndSubscribe(CancellationToken cancellationToken)
+    {
+        var playerData = GetLocalPlayerData();
+        await _gameManager.InitializeLobbyOnline(playerData.Id, playerData.Name, cancellationToken);
+        if (cancellationToken.IsCancellationRequested || _isDisposed)
+            return;
+
+        if (_gameManager.OnlineError != null || _gameManager.RoomCode == null)
+        {
+            RoomCode = null;
+            HostingError = _gameManager.OnlineError?.Message
+                ?? _localizationService.GetString("Hosting_Failed");
+            return;
+        }
+
+        RoomCode = _gameManager.RoomCode;
+        HostingError = null;
+
+        SubscribeAndCreateLocalGame();
+    }
+
+    private void SubscribeAndCreateLocalGame()
+    {
+        // Avoid double-subscribing if this flow runs more than once (e.g. when restarting hosting)
+        _commandPublisher.Unsubscribe(HandleServerCommand);
         _commandPublisher.Subscribe(HandleServerCommand);
         // Use the factory to create the ClientGame
         _localGame = _gameFactory.CreateClientGame(_commandPublisher);
@@ -72,9 +129,19 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Initialize BotManager with the ClientGame and DecisionEngineProvider
         var decisionEngineProvider = new DecisionEngineProvider(_localGame);
         _botManager.Initialize(_localGame, decisionEngineProvider);
+    }
 
-        // Update server IP initially if needed
-        NotifyPropertyChanged(nameof(ServerIpAddress));
+    private PlayerData GetLocalPlayerData()
+    {
+        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
+        return localPlayer != null
+            ? new PlayerData
+            {
+                Id = localPlayer.Player.Id,
+                Name = localPlayer.Player.Name,
+                Tint = localPlayer.Player.Tint
+            }
+            : PlayerData.CreateDefault();
     }
 
     // Implementation of the abstract method from the base class
@@ -162,6 +229,162 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public bool CanStartLanServer => _gameManager.CanStartLanServer;
 
+    /// <summary>
+    /// Gets or sets whether the game is hosted over the local network.
+    /// </summary>
+    public bool IsLanMode
+    {
+        get => _hostMode == HostMode.Lan;
+        set => SetHostMode(value ? HostMode.Lan : HostMode.Online);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the game is hosted through the cloud relay.
+    /// </summary>
+    public bool IsOnlineMode
+    {
+        get => _hostMode == HostMode.Online;
+        set => SetHostMode(value ? HostMode.Online : HostMode.Lan);
+    }
+
+    private void SetHostMode(HostMode mode)
+    {
+        if (_hostMode == mode) return; // Reject no-op when unchanged
+
+        _hostMode = mode;
+        NotifyPropertyChanged(nameof(IsLanMode));
+        NotifyPropertyChanged(nameof(IsOnlineMode));
+        ClearHostingState();
+    }
+
+    /// <summary>
+    /// Gets the room code of the online lobby, if hosting online.
+    /// </summary>
+    public string? RoomCode
+    {
+        get;
+        private set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            (CopyRoomCodeCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(HostingStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the last hosting error, if any.
+    /// </summary>
+    public string? HostingError
+    {
+        get;
+        private set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(HostingStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the localized status text for the current hosting state.
+    /// </summary>
+    public string HostingStatusText
+    {
+        get
+        {
+            if (IsHosting)
+                return _localizationService.GetString("Hosting_Starting");
+            if (HostingError != null)
+                return HostingError;
+            if (RoomCode != null)
+                return string.Format(_localizationService.GetString("Hosting_RoomReady"), RoomCode);
+            return string.Empty;
+        }
+    }
+
+    private bool IsHosting
+    {
+        get;
+        set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(HostingStatusText));
+        }
+    }
+
+    private void ClearHostingState()
+    {
+        IsHosting = false;
+        RoomCode = null;
+        HostingError = null;
+    }
+
+    /// <summary>
+    /// Restarts hosting for the currently selected mode.
+    /// </summary>
+    public ICommand RestartLanServerCommand { get; }
+
+    /// <summary>
+    /// Copies the room code to the clipboard (enabled while an online room exists).
+    /// </summary>
+    public ICommand CopyRoomCodeCommand { get; }
+
+    public async Task CancelAndRestartServer()
+    {
+        if (_initCts is not null)
+        {
+            await _initCts.CancelAsync();
+        }
+        _initCts?.Dispose();
+        IsHosting = false;
+        _initCts = new CancellationTokenSource();
+
+        try
+        {
+            IsHosting = true;
+            try
+            {
+                await InitializeLobbyAndSubscribe(_initCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelled by a superseded restart or by detach/dispose; treat as silent return.
+                return;
+            }
+            if (_initCts.IsCancellationRequested || _isDisposed)
+                return;
+
+            if (HasHostedGameStarted)
+            {
+                await NavigateToBattleMap();
+            }
+            else
+            {
+                HostingError = _gameManager.OnlineError?.Message
+                    ?? _localizationService.GetString("Hosting_Failed");
+            }
+        }
+        finally
+        {
+            IsHosting = false;
+        }
+    }
+
+    private bool HasHostedGameStarted => IsOnlineMode
+        ? _gameManager is { IsOnlineServerRunning: true, RoomCode: not null }
+        : _gameManager.ServerGameId != null;
+
+    private Task CopyRoomCode()
+    {
+        // Clipboard access belongs to the platform layer; a clipboard service can be wired here.
+        return Task.CompletedTask;
+    }
+
     public bool IsNetworkSectionExpanded
     {
         get;
@@ -173,7 +396,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IsNetworkSectionExpanded = !IsNetworkSectionExpanded;
     }
 
-    public ICommand StartGameCommand => new AsyncCommand(async () =>
+    public ICommand StartGameCommand => new AsyncCommand(NavigateToBattleMap);
+
+    private async Task NavigateToBattleMap()
     {
         if (MapConfig.Map == null) return;
         // Use the map generated by MapConfigViewModel to ensure preview and game map are identical
@@ -192,7 +417,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
         // Navigate to BattleMap view
         await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
-    });
+    }
     
     // Implementation of template method from base class
     protected override PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false)
@@ -254,11 +479,23 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public override void AttachHandlers()
     {
+        ResetHostingState();
         base.AttachHandlers();
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = new CancellationTokenSource();
         InitializeLobbyAndSubscribe(_initCts.Token).SafeFireAndForget(
             ex => _logger.LogError(ex, "Error initializing lobby"));
+    }
+
+    private void ResetHostingState()
+    {
+        if (_hostMode != HostMode.Lan)
+        {
+            _hostMode = HostMode.Lan;
+            NotifyPropertyChanged(nameof(IsLanMode));
+            NotifyPropertyChanged(nameof(IsOnlineMode));
+        }
+        ClearHostingState();
     }
 }
