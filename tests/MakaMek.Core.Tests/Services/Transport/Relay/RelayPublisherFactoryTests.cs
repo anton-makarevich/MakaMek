@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -41,10 +42,24 @@ public class RelayPublisherFactoryTests
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
+        try
+        {
+            var acceptTask = listener.AcceptTcpClientAsync();
 
-        await Should.ThrowAsync<Exception>(
-            () => _sut.CreateAsync($"http://127.0.0.1:{port}/hubs/relay", RoomCode, SessionToken, Guid.NewGuid()));
+            var createTask = _sut.CreateAsync(
+                $"http://127.0.0.1:{port}/hubs/relay", RoomCode, SessionToken, Guid.NewGuid());
+
+            // Keep the listener active until the connection attempt reaches it,
+            // then close the accepted connection so the WebSocket handshake fails deterministically.
+            var connection = await acceptTask;
+            connection.Close();
+
+            await Should.ThrowAsync<WebSocketException>(() => createTask);
+        }
+        finally
+        {
+            listener.Stop();
+        }
     }
 
     [Fact]
@@ -68,6 +83,7 @@ public class RelayPublisherFactoryTests
         try
         {
             using var cts = new CancellationTokenSource();
+            var acceptTask = listener.AcceptTcpClientAsync();
             var createTask = _sut.CreateAsync(
                 $"http://127.0.0.1:{port}/hubs/relay",
                 RoomCode,
@@ -75,7 +91,8 @@ public class RelayPublisherFactoryTests
                 Guid.NewGuid(),
                 cts.Token);
 
-            await Task.Delay(200, cts.Token); // let the connection attempt start
+            // Startup barrier: completes when the listener accepts the connection attempt.
+            using var connection = await acceptTask;
             await cts.CancelAsync();
 
             var exception = await Should.ThrowAsync<OperationCanceledException>(() => createTask);
