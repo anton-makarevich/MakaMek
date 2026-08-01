@@ -117,6 +117,22 @@ public abstract class NewGameViewModel : BaseViewModel
         _localGame.SetPlayerReady(readyCommand);
     }
 
+    /// <summary>
+    /// Resolves the local player's data, falling back to a fresh default player.
+    /// </summary>
+    protected PlayerData GetLocalPlayerData()
+    {
+        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
+        return localPlayer != null
+            ? new PlayerData
+            {
+                Id = localPlayer.Player.Id,
+                Name = localPlayer.Player.Name,
+                Tint = localPlayer.Player.Tint
+            }
+            : PlayerData.CreateDefault();
+    }
+
     // Common properties
     public ObservableCollection<PlayerViewModel> Players => _players;
     

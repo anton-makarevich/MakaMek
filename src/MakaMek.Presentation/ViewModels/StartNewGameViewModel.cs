@@ -131,19 +131,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _botManager.Initialize(_localGame, decisionEngineProvider);
     }
 
-    private PlayerData GetLocalPlayerData()
-    {
-        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
-        return localPlayer != null
-            ? new PlayerData
-            {
-                Id = localPlayer.Player.Id,
-                Name = localPlayer.Player.Name,
-                Tint = localPlayer.Player.Tint
-            }
-            : PlayerData.CreateDefault();
-    }
-
     // Implementation of the abstract method from the base class
     protected override Task HandleCommandInternal(IGameCommand command)
     {

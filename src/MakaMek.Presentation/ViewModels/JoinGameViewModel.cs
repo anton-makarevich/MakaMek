@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
@@ -9,17 +10,33 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
+
+/// <summary>
+/// Determines how the local player joins a game.
+/// </summary>
+public enum JoinMode
+{
+    Lan,
+    Online
+}
 
 public class JoinGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly ITransportFactory _transportFactory;
+    private readonly IRelayRoomClient? _relayRoomClient;
+    private readonly IRelayPublisherFactory? _relayPublisherFactory;
+    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly ILocalizationService _localizationService;
+    private JoinMode _joinMode = JoinMode.Lan;
 
     public JoinGameViewModel(
         IUnitsLoader unitsLoader,
@@ -30,7 +47,11 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         IFileCachingService cachingService,
         IBotManager botManager,
         ILogger<JoinGameViewModel> logger,
-        IMechFactory mechFactory)
+        IMechFactory mechFactory,
+        IRelayRoomClient? relayRoomClient = null,
+        IRelayPublisherFactory? relayPublisherFactory = null,
+        IOptions<RelayClientOptions>? relayOptions = null,
+        ILocalizationService? localizationService = null)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -41,10 +62,15 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             logger)
     {
         _transportFactory = transportFactory;
+        _relayRoomClient = relayRoomClient;
+        _relayPublisherFactory = relayPublisherFactory;
+        _relayOptions = relayOptions;
+        _localizationService = localizationService ?? new FakeLocalizationService();
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
+        JoinRoomCommand = new AsyncCommand(JoinRoom, (_) => CanJoin);
     }
 
     // Implementation of the abstract method from a base class
@@ -133,12 +159,203 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             {
                 player.RefreshStatus();
             }
+            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(CanJoin));
         }
     }
 
     public ICommand ConnectCommand { get; private set; }
 
     public bool CanConnect => !string.IsNullOrWhiteSpace(ServerIp) && !IsConnected;
+
+    /// <summary>
+    /// Gets or sets whether the join uses the local network.
+    /// </summary>
+    public bool IsLanMode
+    {
+        get => _joinMode == JoinMode.Lan;
+        set => SetJoinMode(value ? JoinMode.Lan : JoinMode.Online);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the join uses the cloud relay.
+    /// </summary>
+    public bool IsOnlineMode
+    {
+        get => _joinMode == JoinMode.Online;
+        set => SetJoinMode(value ? JoinMode.Online : JoinMode.Lan);
+    }
+
+    private void SetJoinMode(JoinMode mode)
+    {
+        if (_joinMode == mode) return; // Reject no-op when unchanged
+
+        _joinMode = mode;
+        NotifyPropertyChanged(nameof(IsLanMode));
+        NotifyPropertyChanged(nameof(IsOnlineMode));
+        ClearJoinState();
+    }
+
+    /// <summary>
+    /// Gets or sets the room code used to join an online game.
+    /// </summary>
+    public string RoomCode
+    {
+        get;
+        set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(CanJoin));
+        }
+    } = string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether an online join can be attempted.
+    /// </summary>
+    public bool CanJoin => !string.IsNullOrWhiteSpace(RoomCode) && !IsConnected;
+
+    /// <summary>
+    /// Joins an online game by room code through the cloud relay.
+    /// </summary>
+    public ICommand JoinRoomCommand { get; private set; }
+
+    private bool IsJoining
+    {
+        get;
+        set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(JoinStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the last online join error, if any.
+    /// </summary>
+    public string? JoinError
+    {
+        get;
+        private set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(JoinStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the localized status text for the current online join state.
+    /// </summary>
+    public string JoinStatusText
+    {
+        get
+        {
+            if (IsJoining)
+                return _localizationService.GetString("Join_Connecting");
+            if (JoinError != null)
+                return JoinError;
+            return string.Empty;
+        }
+    }
+
+    private void ClearJoinState()
+    {
+        IsJoining = false;
+        JoinError = null;
+    }
+
+    private async Task JoinRoom()
+    {
+        if (!CanJoin) return;
+
+        IsJoining = true;
+        JoinError = null;
+
+        try
+        {
+            // Online joining requires the relay room client and publisher factory
+            if (_relayRoomClient is null || _relayPublisherFactory is null)
+            {
+                JoinError = _localizationService.GetString("Join_ConfigurationError");
+                return;
+            }
+
+            var playerData = GetLocalPlayerData();
+            var result = await _relayRoomClient.JoinAsync(RoomCode, playerData.Id, playerData.Name);
+            if (!result.Success || result.SessionToken is null || result.HostId is null)
+            {
+                JoinError = GetJoinErrorText(result.Error);
+                return;
+            }
+
+            var baseUrl = _relayOptions?.Value.BaseUrl ?? string.Empty;
+            var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
+            var publisher = await _relayPublisherFactory.CreateAsync(
+                hubUrl,
+                RoomCode,
+                result.SessionToken,
+                result.HostId.Value);
+
+            var adapter = _commandPublisher.Adapter;
+
+            // Clear any existing publishers and prepare for a new connection
+            adapter.ClearPublishers();
+            adapter.AddPublisher(publisher);
+            _commandPublisher.Subscribe(HandleServerCommand);
+
+            if (_localGame != null)
+            {
+                _localGame.Dispose();
+                _localGame = null;
+            }
+            _localGame = _gameFactory.CreateClientGame(_commandPublisher);
+
+            // Initialize BotManager with the ClientGame and DecisionEngineProvider
+            var decisionEngineProvider = new DecisionEngineProvider(_localGame);
+            _botManager.Initialize(_localGame, decisionEngineProvider);
+
+            IsConnected = true;
+            _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            {
+                GameOriginId = _localGame.Id
+            });
+            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable join button
+            NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
+        }
+        catch (Exception ex)
+        {
+            _localGame?.Logger.LogError(ex, "Error joining online game: {Message}", ex.Message);
+            IsConnected = false;
+            JoinError = _localizationService.GetString("Join_ConnectionFailed");
+        }
+        finally
+        {
+            IsJoining = false;
+        }
+    }
+
+    private string GetJoinErrorText(RelayClientError? error)
+    {
+        var key = error?.Code switch
+        {
+            RelayClientErrorCode.RoomNotFound => "Join_InvalidCode",
+            RelayClientErrorCode.RoomExpired => "Join_RoomExpired",
+            RelayClientErrorCode.HostNotReady => "Join_HostNotReady",
+            RelayClientErrorCode.RoomFull => "Join_RoomFull",
+            RelayClientErrorCode.HubAtCapacity => "Join_HubAtCapacity",
+            RelayClientErrorCode.RateLimited => "Join_RateLimited",
+            RelayClientErrorCode.NetworkError or RelayClientErrorCode.Timeout => "Join_ConnectionFailed",
+            RelayClientErrorCode.ConfigurationError => "Join_ConfigurationError",
+            _ => "Join_Failed"
+        };
+        return _localizationService.GetString(key);
+    }
 
     private async Task ConnectToServer()
     {
