@@ -8,18 +8,44 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
              x:DataType="viewModels:JoinGameViewModel">
 
-  <StackPanel Spacing="10">
-    <TextBlock Text="{extensions:Localize 'ConnectFragment_ServerAddress'}" FontWeight="Bold"/>
-    <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
-             PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"/>
-    <Button Content="{extensions:Localize 'ConnectFragment_Connect'}"
-            Command="{Binding ConnectCommand}"
-            IsEnabled="{Binding CanConnect}"
-            HorizontalAlignment="Stretch"/>
-     <!-- Optional: Add a status indicator -->
-     <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
-                IsVisible="{Binding IsConnected}"
-                Foreground="Green"/>
+  <StackPanel Classes="verticalSpaced">
+    <StackPanel Classes="formGroup">
+      <TextBlock Text="{extensions:Localize 'Join_Mode'}" Classes="label"/>
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
+                     IsChecked="{Binding IsLanMode, Mode=TwoWay}"
+                     GroupName="JoinMode"/>
+        <RadioButton Content="{extensions:Localize 'Network_HostModeOnline'}"
+                     IsChecked="{Binding IsOnlineMode, Mode=TwoWay}"
+                     GroupName="JoinMode"/>
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
+      <TextBlock Text="{extensions:Localize 'ConnectFragment_ServerAddress'}" Classes="label"/>
+      <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
+               PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"/>
+      <Button Content="{extensions:Localize 'ConnectFragment_Connect'}"
+              Command="{Binding ConnectCommand}"
+              IsEnabled="{Binding CanConnect}"
+              HorizontalAlignment="Stretch"/>
+      <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
+                 IsVisible="{Binding IsConnected}"
+                 Foreground="Green"/>
+    </StackPanel>
+
+    <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+      <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
+      <TextBox Text="{Binding RoomCode, Mode=TwoWay}"
+               PlaceholderText="{extensions:Localize 'Join_EnterRoomCode'}"/>
+      <Button Content="{extensions:Localize 'Join_JoinButton'}"
+              Command="{Binding JoinRoomCommand}"
+              IsEnabled="{Binding CanJoin}"
+              HorizontalAlignment="Stretch"/>
+      <TextBlock Text="{Binding JoinStatusText}"
+                 Classes="bodySmall"
+                 FontStyle="Italic"/>
+    </StackPanel>
   </StackPanel>
 
 </UserControl>
