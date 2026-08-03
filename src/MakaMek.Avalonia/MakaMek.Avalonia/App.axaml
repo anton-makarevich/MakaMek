@@ -17,6 +17,7 @@
             <converters:AdaptiveOrientationConverter x:Key="AdaptiveOrientationConverter"/>
             <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
+            <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>
