@@ -37,6 +37,7 @@
     <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
       <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
       <TextBox Text="{Binding RoomCode, Mode=TwoWay}"
+               MaxLength="6"
                PlaceholderText="{extensions:Localize 'Join_EnterRoomCode'}"/>
       <Button Content="{extensions:Localize 'Join_JoinButton'}"
               Command="{Binding JoinRoomCommand}"
@@ -44,7 +45,8 @@
               HorizontalAlignment="Stretch"/>
       <TextBlock Text="{Binding JoinStatusText}"
                  Classes="bodySmall"
-                 FontStyle="Italic"/>
+                 FontStyle="Italic"
+                 Foreground="{StaticResource ErrorBrush}"/>
     </StackPanel>
   </StackPanel>
 

@@ -17,6 +17,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
+using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
@@ -37,6 +38,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
     private readonly IOptions<RelayClientOptions>? _relayOptions;
     private readonly ILocalizationService _localizationService;
     private JoinMode _joinMode = JoinMode.Lan;
+    private RelayClientPublisher? _onlineRelayPublisher;
 
     public JoinGameViewModel(
         IUnitsLoader unitsLoader,
@@ -204,8 +206,9 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         get;
         set
         {
-            if (field == value) return; // Reject no-op when unchanged
-            field = value;
+            var normalized = value.Trim().ToUpperInvariant();
+            if (field == normalized) return; // Reject no-op when unchanged
+            field = normalized;
             NotifyPropertyChanged();
             (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(CanJoin));
@@ -215,7 +218,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
     /// <summary>
     /// Gets a value indicating whether an online join can be attempted.
     /// </summary>
-    public bool CanJoin => !string.IsNullOrWhiteSpace(RoomCode) && !IsConnected;
+    public bool CanJoin => !IsJoining && !string.IsNullOrWhiteSpace(RoomCode) && !IsConnected;
 
     /// <summary>
     /// Joins an online game by room code through the cloud relay.
@@ -231,6 +234,8 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             field = value;
             NotifyPropertyChanged();
             NotifyPropertyChanged(nameof(JoinStatusText));
+            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(CanJoin));
         }
     }
 
@@ -301,6 +306,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
                 RoomCode,
                 result.SessionToken,
                 result.HostId.Value);
+            _onlineRelayPublisher = publisher;
 
             var adapter = _commandPublisher.Adapter;
 
@@ -330,7 +336,8 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
         catch (Exception ex)
         {
-            _localGame?.Logger.LogError(ex, "Error joining online game: {Message}", ex.Message);
+            _logger.LogError(ex, "Error joining online game: {Message}", ex.Message);
+            await RemoveAndDisposeOnlinePublisherAsync();
             IsConnected = false;
             JoinError = _localizationService.GetString("Join_ConnectionFailed");
         }
@@ -338,6 +345,28 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         {
             IsJoining = false;
         }
+    }
+
+    private async Task RemoveAndDisposeOnlinePublisherAsync()
+    {
+        if (_onlineRelayPublisher == null) return;
+        try
+        {
+            _commandPublisher.Adapter.RemovePublisher(_onlineRelayPublisher);
+        }
+        catch
+        {
+            // Swallow to avoid masking the original failure
+        }
+        try
+        {
+            await _onlineRelayPublisher.DisposeAsync();
+        }
+        catch
+        {
+            // Swallow to avoid masking the original failure
+        }
+        _onlineRelayPublisher = null;
     }
 
     private string GetJoinErrorText(RelayClientError? error)
@@ -409,6 +438,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             _localGame = null;
         }
         _commandPublisher.Unsubscribe(HandleServerCommand);
+        RemoveAndDisposeOnlinePublisherAsync().GetAwaiter().GetResult();
         _commandPublisher.Adapter.ClearPublishers();
         IsConnected = false;
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();

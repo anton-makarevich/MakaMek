@@ -34,7 +34,6 @@ public enum HostMode
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
-    private readonly ILogger<StartNewGameViewModel> _logger;
     private readonly ILocalizationService _localizationService;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
@@ -65,7 +64,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             logger)
     {
         _gameManager = gameManager;
-        _logger = logger;
         _localizationService = localizationService;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());

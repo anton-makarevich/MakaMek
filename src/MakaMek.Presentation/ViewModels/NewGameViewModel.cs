@@ -33,7 +33,7 @@ public abstract class NewGameViewModel : BaseViewModel
     private readonly IFileCachingService _cachingService;
     protected readonly IBotManager _botManager;
     protected readonly IMechFactory _mechFactory;
-    private readonly ILogger _logger;
+    protected readonly ILogger _logger;
 
     protected ClientGame? _localGame;
 
