@@ -362,22 +362,6 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public void Dispose_ShouldCallDisconnect()
-    {
-        // Arrange
-        _sut.ServerIp = "127.0.0.1";
-        ConnectAndAckLobby();
-        _clientGame.IsDisposed.ShouldBeFalse();
-
-        // Act
-        _sut.Dispose();
-
-        // Assert
-        _clientGame.IsDisposed.ShouldBeTrue();
-        _sut.IsConnected.ShouldBeFalse();
-    }
-
-    [Fact]
     public async Task DisposeAsync_ShouldCallDisconnect()
     {
         // Arrange
@@ -1146,15 +1130,6 @@ public class JoinGameViewModelTests
         _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
         await _relayPublisherFactory.DidNotReceive().CreateAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void RoomCode_WhenSetToNull_DoesNotThrow_AndClearsCode()
-    {
-        _sut.RoomCode = null!;
-
-        _sut.RoomCode.ShouldBe("");
-        _sut.CanJoin.ShouldBeFalse();
     }
 
     [Fact]

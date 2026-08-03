@@ -211,7 +211,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         set
         {
             var normalized = value.Trim().ToUpperInvariant();
-            if (field == normalized) return; // Reject no-op when unchanged
+            if (field == normalized) return;
             field = normalized;
             NotifyPropertyChanged();
             (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
