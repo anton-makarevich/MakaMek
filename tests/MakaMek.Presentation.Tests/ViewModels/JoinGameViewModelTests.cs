@@ -759,6 +759,51 @@ public class JoinGameViewModelTests
         _sut.CanJoin.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task JoinRoom_DisposesPreviousGame_WhenGameAlreadyExists()
+    {
+        // Arrange - create a game via a failed LAN connect, leaving IsConnected=false
+        _sut.ServerIp = "127.0.0.1";
+
+        var initializeCallCount = 0;
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ =>
+            {
+                initializeCallCount++;
+                if (initializeCallCount == 1)
+                    throw new Exception("Simulated initialization failure");
+            });
+
+        _sut.ConnectCommand.Execute(null);
+
+        _clientGame.IsDisposed.ShouldBeFalse();
+        _sut.IsConnected.ShouldBeFalse();
+
+        _gameFactory.ClearReceivedCalls();
+
+        // Arrange a successful online join
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        _sut.CanJoin.ShouldBeTrue();
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData(RelayClientErrorCode.RoomNotFound, "Join_InvalidCode")]
     [InlineData(RelayClientErrorCode.RoomExpired, "Join_RoomExpired")]
@@ -768,6 +813,7 @@ public class JoinGameViewModelTests
     [InlineData(RelayClientErrorCode.RateLimited, "Join_RateLimited")]
     [InlineData(RelayClientErrorCode.NetworkError, "Join_ConnectionFailed")]
     [InlineData(RelayClientErrorCode.Timeout, "Join_ConnectionFailed")]
+    [InlineData(RelayClientErrorCode.ConfigurationError, "Join_ConfigurationError")]
     [InlineData(RelayClientErrorCode.Unknown, "Join_Failed")]
     public async Task JoinRoom_WithJoinError_ShowsLocalizedErrorAndDoesNotConnect(RelayClientErrorCode code, string expectedKey)
     {
