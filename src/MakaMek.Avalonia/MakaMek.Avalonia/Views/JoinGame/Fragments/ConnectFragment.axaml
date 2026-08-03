@@ -30,8 +30,9 @@
               IsEnabled="{Binding CanConnect}"
               HorizontalAlignment="Stretch"/>
       <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
+                 Classes="bodySmall"
                  IsVisible="{Binding IsConnected}"
-                 Foreground="Green"/>
+                 Foreground="{StaticResource SuccessBrush}"/>
     </StackPanel>
 
     <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
@@ -44,8 +45,8 @@
               IsEnabled="{Binding CanJoin}"
               HorizontalAlignment="Stretch"/>
       <TextBlock Text="{Binding JoinStatusText}"
+                 IsVisible="{Binding JoinStatusText, Converter={StaticResource StringNotEmptyToBoolConverter}}"
                  Classes="bodySmall"
-                 FontStyle="Italic"
                  Foreground="{StaticResource ErrorBrush}"/>
     </StackPanel>
   </StackPanel>
