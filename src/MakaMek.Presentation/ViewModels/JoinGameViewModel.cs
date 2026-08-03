@@ -32,7 +32,7 @@ public enum JoinMode
     Online
 }
 
-public class JoinGameViewModel : NewGameViewModel, IDisposable, IAsyncDisposable
+public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 {
     private readonly ITransportFactory _transportFactory;
     private readonly IRelayRoomClient? _relayRoomClient;
@@ -486,12 +486,6 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable, IAsyncDisposable
         IsConnected = false;
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         NotifyPropertyChanged(nameof(CanAddPlayer));
-    }
-
-    public void Dispose()
-    {
-        Task.Run(Disconnect).GetAwaiter().GetResult();
-        GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()
