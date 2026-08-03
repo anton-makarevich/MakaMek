@@ -482,6 +482,8 @@ public class GameManagerTests : IDisposable
         var readyError = new RelayClientError(RelayClientErrorCode.HostNotReady, "Host did not confirm ready");
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Failed(readyError));
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
@@ -494,6 +496,8 @@ public class GameManagerTests : IDisposable
         sut.IsOnlineServerRunning.ShouldBeFalse();
         sut.ServerGameId.ShouldBeNull();
         _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        // Verify CloseAsync was called as best-effort cleanup
+        await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -509,6 +513,8 @@ public class GameManagerTests : IDisposable
             .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
         relayPublisherFactory.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("boom"));
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
         await sut.InitializeLobbyOnline(playerId, "Host");
@@ -518,6 +524,8 @@ public class GameManagerTests : IDisposable
         sut.RoomCode.ShouldBeNull();
         sut.IsOnlineServerRunning.ShouldBeFalse();
         sut.ServerGameId.ShouldBeNull();
+        // Verify CloseAsync was called as best-effort cleanup
+        await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -590,6 +598,8 @@ public class GameManagerTests : IDisposable
             .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Throws<OperationCanceledException>();
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
@@ -605,6 +615,8 @@ public class GameManagerTests : IDisposable
         sut.IsOnlineServerRunning.ShouldBeFalse();
         sut.OnlineError.ShouldBeNull();
         _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        // Verify CloseAsync was called as best-effort cleanup
+        await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -750,7 +762,7 @@ public class GameManagerTests : IDisposable
         // State is not cleared since the close call failed, allowing a retry
         sut.RoomCode.ShouldBe(roomCode);
         logger.Received(1).Log(
-            LogLevel.Information,
+            LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Any<object>(),
             Arg.Any<Exception>(),

@@ -179,7 +179,7 @@ public class GameManager : IGameManager
                     ?? new RelayClientError(
                         RelayClientErrorCode.Unknown,
                         "The relay did not confirm the room as ready.");
-                await CleanupOnlineAfterFailureAsync(publisher);
+                await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
                 return;
             }
 
@@ -188,7 +188,7 @@ public class GameManager : IGameManager
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await CleanupOnlineAfterFailureAsync(publisher);
+            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
             throw;
         }
         catch (Exception)
@@ -196,7 +196,7 @@ public class GameManager : IGameManager
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.Unknown,
                 "Failed to connect the host to the relay.");
-            await CleanupOnlineAfterFailureAsync(publisher);
+            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
         }
     }
 
@@ -264,8 +264,26 @@ public class GameManager : IGameManager
         catch (Exception ex)
         {
             // Swallow to avoid masking the original failure; closing the room is best-effort
-            _logger.LogInformation(ex, "Failed to close relay room {RoomCode}", RoomCode);
+            _logger.LogWarning(ex, "Failed to close relay room {RoomCode}", RoomCode);
         }
+    }
+
+    private async Task CloseRelayRoomAndCleanupAsync(string? roomCode, string? sessionToken, RelayClientPublisher? publisher)
+    {
+        // Best-effort close of the relay room before local cleanup
+        if (roomCode != null && sessionToken != null && _relayRoomClient != null)
+        {
+            try
+            {
+                await _relayRoomClient.CloseAsync(roomCode, sessionToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to close relay room {RoomCode} during failure cleanup", roomCode);
+            }
+        }
+        
+        await CleanupOnlineAfterFailureAsync(publisher);
     }
 
     private async Task CleanupOnlineAfterFailureAsync(RelayClientPublisher? publisher)

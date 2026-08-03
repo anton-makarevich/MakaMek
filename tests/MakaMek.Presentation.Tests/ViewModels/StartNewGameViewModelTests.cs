@@ -170,11 +170,21 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WhenOnlineMode_ClosesOnlineRoomBeforeSettingBattleMap()
     {
+        var closeTcs = new TaskCompletionSource();
+        _gameManager.CloseOnlineRoom(Arg.Any<CancellationToken>()).Returns(closeTcs.Task);
         await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
         _sut.IsOnlineMode = true;
 
-        await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+        var commandTask = ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+        
+        // Assert SetBattleMap has not been called while close task is incomplete
+        await Task.Delay(50);
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+        
+        // Complete the close task
+        closeTcs.SetResult();
+        await commandTask;
 
         await _gameManager.Received(1).CloseOnlineRoom(Arg.Any<CancellationToken>());
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());

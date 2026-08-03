@@ -1379,4 +1379,46 @@ public class JoinGameViewModelTests
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task JoinRoom_WhenCancelledAfterCreateAsync_DisposesPublisherAndDoesNotRestoreConnection()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+
+        // Capture the cancellation token passed to CreateAsync and don't complete immediately
+        var createTcs = new TaskCompletionSource<RelayClientPublisher>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var token = ci.Arg<CancellationToken>();
+                // When the token is cancelled, complete with the publisher
+                token.Register(() => createTcs.TrySetResult(publisher));
+                return createTcs.Task;
+            });
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        // Wait a bit for the join to start
+        await Task.Delay(50);
+        // Simulate Disconnect being called (cancels the active join token)
+        _sut.IsLanMode = true; // This triggers cancellation
+        await joinTask;
+
+        // Assert - publisher should be disposed, not retained, and IsConnected should not be restored
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        publisher.State.ToString().ShouldBe("Disconnected");
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBeNull(); // Cancellation, not error
+    }
 }

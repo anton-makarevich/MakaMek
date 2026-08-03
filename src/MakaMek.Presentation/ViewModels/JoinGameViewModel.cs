@@ -312,8 +312,16 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
                 hubUrl,
                 RoomCode,
                 result.SessionToken,
-                result.HostId.Value);
+                result.HostId.Value,
+                _activeJoinCts.Token);
             _onlineRelayPublisher = publisher;
+            
+            // Check for cancellation immediately after CreateAsync completes
+            if (_activeJoinCts.Token.IsCancellationRequested)
+            {
+                await RemoveAndDisposeOnlinePublisherAsync();
+                if (_joinMode != JoinMode.Online) return;
+            }
 
             var adapter = _commandPublisher.Adapter;
 
