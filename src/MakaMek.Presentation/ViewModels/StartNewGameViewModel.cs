@@ -400,7 +400,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager.SetBattleMap(map);
 
         // Host Client for local player(s)
-        var battleMapViewModel = NavigationService.GetNewViewModel<BattleMapViewModel>();
+        var battleMapViewModel = await NavigationService.GetNewViewModelAsync<BattleMapViewModel>();
         if (battleMapViewModel == null)
         {
             throw new Exception("BattleMapViewModel is not registered");

@@ -77,7 +77,7 @@ public class StartNewGameViewModelTests
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider,
                 Substitute.For<IPlatformService>());
-        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
+        _navigationService.GetNewViewModelAsync<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
 
 
@@ -148,7 +148,7 @@ public class StartNewGameViewModelTests
     public async Task StartGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnBattleMapViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
+        _navigationService.GetNewViewModelAsync<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab so the Map is non-null
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartGameCommand)

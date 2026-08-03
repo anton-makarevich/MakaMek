@@ -222,7 +222,7 @@ public class BattleMapViewModelTests
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
         var endGameViewModel = new EndGameViewModel(_localizationService);
-        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = game;
@@ -233,7 +233,7 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
+        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
     }
 
@@ -2862,7 +2862,7 @@ public class BattleMapViewModelTests
         _sut.Game = game;
         var navigationService = Substitute.For<INavigationService>();
         var endGameViewModel = new EndGameViewModel(_localizationService);
-        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         _sut.SetNavigationService(navigationService);
 
         var gameEndedCommand = new GameEndedCommand

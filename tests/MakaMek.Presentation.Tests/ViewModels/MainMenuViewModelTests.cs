@@ -86,7 +86,7 @@ public class MainMenuViewModelTests
             _localizationService,
             Substitute.For<IMechFactory>()
         );
-        _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
+        _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns(startVm);
 
         // Act
         await command.ExecuteAsync();
@@ -99,7 +99,7 @@ public class MainMenuViewModelTests
     public async Task StartNewGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnStartNewGameViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns((StartNewGameViewModel?)null);
+        _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns((StartNewGameViewModel?)null);
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartNewGameCommand)
             .ExecuteAsync())).Message.ShouldContain("StartNewGameViewModel is not registered");
@@ -122,7 +122,7 @@ public class MainMenuViewModelTests
             Substitute.For<ILogger<JoinGameViewModel>>(),
             Substitute.For<IMechFactory>()
         );
-        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
+        _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);
 
         // Act
         await command.ExecuteAsync();
@@ -135,7 +135,7 @@ public class MainMenuViewModelTests
     public async Task JoinGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnJoinGameViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns((JoinGameViewModel?)null);
+        _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns((JoinGameViewModel?)null);
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.JoinGameCommand)
             .ExecuteAsync())).Message.ShouldContain("JoinGameViewModel is not registered");
@@ -150,7 +150,7 @@ public class MainMenuViewModelTests
         var aboutVm = new AboutViewModel(
             Substitute.For<IExternalNavigationService>(),
             Substitute.For<ILocalizationService>());
-        _navigationService.GetNewViewModel<AboutViewModel>().Returns(aboutVm);
+        _navigationService.GetNewViewModelAsync<AboutViewModel>().Returns(aboutVm);
 
         // Act
         await command.ExecuteAsync();
@@ -163,7 +163,7 @@ public class MainMenuViewModelTests
     public async Task AboutCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnAboutViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<AboutViewModel>().Returns((AboutViewModel?)null);
+        _navigationService.GetNewViewModelAsync<AboutViewModel>().Returns((AboutViewModel?)null);
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.AboutCommand)
             .ExecuteAsync())).Message.ShouldContain("AboutViewModel is not registered");
@@ -183,7 +183,7 @@ public class MainMenuViewModelTests
             _terrainAssetService,
             _localizationService,
             settingsLogger);
-        _navigationService.GetNewViewModel<SettingsViewModel>().Returns(settingsVm);
+        _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 
         // Act
         await command.ExecuteAsync();
@@ -196,7 +196,7 @@ public class MainMenuViewModelTests
     public async Task SettingsCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnSettingsViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<SettingsViewModel>().Returns((SettingsViewModel?)null);
+        _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns((SettingsViewModel?)null);
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.SettingsCommand)
             .ExecuteAsync())).Message.ShouldContain("SettingsViewModel is not registered");
