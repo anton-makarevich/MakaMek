@@ -376,6 +376,22 @@ public class JoinGameViewModelTests
         _clientGame.IsDisposed.ShouldBeTrue();
         _sut.IsConnected.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task DisposeAsync_ShouldCallDisconnect()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        ConnectAndAckLobby();
+        _clientGame.IsDisposed.ShouldBeFalse();
+
+        // Act
+        await _sut.DisposeAsync();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeFalse();
+    }
     
     [Fact]
     public void CanAddPlayer_ReturnsFalse_WhenNotConnected()
