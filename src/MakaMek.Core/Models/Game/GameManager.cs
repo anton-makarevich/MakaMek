@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -21,6 +22,7 @@ public class GameManager : IGameManager
     private bool _isDisposed;
     private readonly ILocalizationService _localizationService;
     private readonly ICommandLoggerFactory _commandLoggerFactory;
+    private readonly ILogger<GameManager> _logger;
     private ICommandLogger? _commandLogger;
     private Action<IGameCommand>? _logHandler;
     private readonly IRelayRoomClient? _relayRoomClient;
@@ -33,6 +35,7 @@ public class GameManager : IGameManager
         IGameFactory gameFactory,
         ILocalizationService localizationService,
         ICommandLoggerFactory commandLoggerFactory,
+        ILogger<GameManager> logger,
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
@@ -42,6 +45,7 @@ public class GameManager : IGameManager
         _gameFactory = gameFactory;
         _localizationService = localizationService;
         _commandLoggerFactory = commandLoggerFactory;
+        _logger = logger;
         _networkHostService = networkHostService;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
@@ -257,9 +261,10 @@ public class GameManager : IGameManager
             _onlineSessionToken = null;
             RoomCode = null;
         }
-        catch
+        catch (Exception ex)
         {
             // Swallow to avoid masking the original failure; closing the room is best-effort
+            _logger.LogInformation(ex, "Failed to close relay room {RoomCode}", RoomCode);
         }
     }
 

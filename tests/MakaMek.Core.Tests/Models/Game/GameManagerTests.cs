@@ -35,6 +35,7 @@ public class GameManagerTests : IDisposable
     private readonly INetworkHostService _networkHostService;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
+    private readonly ILogger<GameManager> _logger = Substitute.For<ILogger<GameManager>>();
 
     public GameManagerTests()
     {
@@ -80,6 +81,7 @@ public class GameManagerTests : IDisposable
             _gameFactory,
             _localizationService,
             _commandLoggerFactory,
+            _logger,
             _networkHostService);
     }
     
@@ -87,16 +89,19 @@ public class GameManagerTests : IDisposable
         _commandPublisher,
         _gameFactory,
         _localizationService,
-        _commandLoggerFactory);
+        _commandLoggerFactory,
+        _logger);
 
     private GameManager CreateSutWithRelay(
         IRelayRoomClient relayRoomClient,
         IRelayPublisherFactory relayPublisherFactory,
-        INetworkHostService? networkHostService = null) => new GameManager(
+        INetworkHostService? networkHostService = null,
+        ILogger<GameManager>? logger = null) => new GameManager(
         _commandPublisher,
         _gameFactory,
         _localizationService,
         _commandLoggerFactory,
+        logger ?? _logger,
         networkHostService,
         relayRoomClient,
         relayPublisherFactory,
@@ -735,7 +740,8 @@ public class GameManagerTests : IDisposable
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
-        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, logger: logger);
         await sut.InitializeLobbyOnline(playerId, "Host");
 
         // Act & Assert - best-effort close should swallow the exception
@@ -743,6 +749,12 @@ public class GameManagerTests : IDisposable
 
         // State is not cleared since the close call failed, allowing a retry
         sut.RoomCode.ShouldBe(roomCode);
+        logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
         await sut.DisposeAsync();
     }
 
