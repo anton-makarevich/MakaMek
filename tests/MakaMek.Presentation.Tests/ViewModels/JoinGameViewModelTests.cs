@@ -903,6 +903,37 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task JoinRoom_WhenCancelled_LogsAtInfoLevelAndDoesNotConnect()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Throws(new OperationCanceledException());
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+        _gameFactory.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - cancellation is expected, so only an info-level log is emitted and no connection is made
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBeNull();
+        _sut.CanJoin.ShouldBeTrue();
+        _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state!.ToString()!.Contains("cancelled")),
+            Arg.Is<Exception?>(e => e == null),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
+    }
+
+    [Fact]
     public async Task JoinRoom_WhenPublisherCreationFails_ShowsConnectionFailedAndStaysRecoverable()
     {
         // Arrange

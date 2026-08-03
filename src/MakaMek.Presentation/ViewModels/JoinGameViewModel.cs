@@ -341,6 +341,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
         catch (OperationCanceledException)
         {
+            _logger.LogInformation("Online game join was cancelled");
         }
         catch (Exception ex)
         {
