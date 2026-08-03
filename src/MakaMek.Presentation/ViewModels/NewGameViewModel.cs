@@ -33,7 +33,7 @@ public abstract class NewGameViewModel : BaseViewModel
     private readonly IFileCachingService _cachingService;
     protected readonly IBotManager _botManager;
     protected readonly IMechFactory _mechFactory;
-    private readonly ILogger _logger;
+    protected readonly ILogger _logger;
 
     protected ClientGame? _localGame;
 
@@ -115,6 +115,22 @@ public abstract class NewGameViewModel : BaseViewModel
             PlayerStatus = PlayerStatus.Ready
         };
         _localGame.SetPlayerReady(readyCommand);
+    }
+
+    /// <summary>
+    /// Resolves the local player's data, falling back to a fresh default player.
+    /// </summary>
+    protected PlayerData GetLocalPlayerData()
+    {
+        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
+        return localPlayer != null
+            ? new PlayerData
+            {
+                Id = localPlayer.Player.Id,
+                Name = localPlayer.Player.Name,
+                Tint = localPlayer.Player.Tint
+            }
+            : PlayerData.CreateDefault();
     }
 
     // Common properties

@@ -34,7 +34,6 @@ public enum HostMode
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
-    private readonly ILogger<StartNewGameViewModel> _logger;
     private readonly ILocalizationService _localizationService;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
@@ -65,7 +64,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             logger)
     {
         _gameManager = gameManager;
-        _logger = logger;
         _localizationService = localizationService;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
@@ -129,19 +127,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Initialize BotManager with the ClientGame and DecisionEngineProvider
         var decisionEngineProvider = new DecisionEngineProvider(_localGame);
         _botManager.Initialize(_localGame, decisionEngineProvider);
-    }
-
-    private PlayerData GetLocalPlayerData()
-    {
-        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
-        return localPlayer != null
-            ? new PlayerData
-            {
-                Id = localPlayer.Player.Id,
-                Name = localPlayer.Player.Name,
-                Tint = localPlayer.Player.Tint
-            }
-            : PlayerData.CreateDefault();
     }
 
     // Implementation of the abstract method from the base class

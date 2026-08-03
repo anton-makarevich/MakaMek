@@ -1,10 +1,14 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Map.Data;
@@ -18,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -25,6 +30,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.Transport;
+using Sanet.Transport.SignalR.Client.Publishers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -50,6 +56,10 @@ public class JoinGameViewModelTests
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<JoinGameViewModel> _logger = Substitute.For<ILogger<JoinGameViewModel>>();
+    private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
+    private readonly IRelayPublisherFactory _relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+    private readonly IOptions<RelayClientOptions> _relayOptions = Substitute.For<IOptions<RelayClientOptions>>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly ClientGame _clientGame;
 
     public JoinGameViewModelTests()
@@ -80,8 +90,49 @@ public class JoinGameViewModelTests
 
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
-        // Create the view model with our mocks
-        _sut = new JoinGameViewModel(
+        _relayOptions.Value.Returns(new RelayClientOptions { BaseUrl = "http://hub.local" });
+
+        _localizationService.GetString("Join_Connecting").Returns("Connecting...");
+        _localizationService.GetString("Join_Failed").Returns("Failed to join");
+        _localizationService.GetString("Join_InvalidCode").Returns("Invalid code");
+        _localizationService.GetString("Join_RoomExpired").Returns("Room expired");
+        _localizationService.GetString("Join_HostNotReady").Returns("Host not ready");
+        _localizationService.GetString("Join_RoomFull").Returns("Room full");
+        _localizationService.GetString("Join_HubAtCapacity").Returns("Hub at capacity");
+        _localizationService.GetString("Join_RateLimited").Returns("Rate limited");
+        _localizationService.GetString("Join_ConnectionFailed").Returns("Connection failed");
+        _localizationService.GetString("Join_ConfigurationError").Returns("Configuration error");
+
+        _sut = CreateSut();
+    }
+
+    private JoinGameViewModel CreateSut(
+        IFileCachingService? cachingService = null,
+        IRelayRoomClient? relayRoomClient = null,
+        IRelayPublisherFactory? relayPublisherFactory = null,
+        IOptions<RelayClientOptions>? relayOptions = null)
+    {
+        var sut = new JoinGameViewModel(
+            _unitsLoader,
+            _commandPublisher,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            cachingService ?? _cachingService,
+            _botManager,
+            _logger,
+            _mechFactory,
+            relayRoomClient ?? _relayRoomClient,
+            relayPublisherFactory ?? _relayPublisherFactory,
+            relayOptions ?? _relayOptions,
+            _localizationService);
+        sut.AttachHandlers();
+        return sut;
+    }
+
+    private JoinGameViewModel CreateThrowingDisposeSut()
+    {
+        var sut = new ThrowingDisposeJoinGameViewModel(
             _unitsLoader,
             _commandPublisher,
             _dispatcherService,
@@ -90,15 +141,73 @@ public class JoinGameViewModelTests
             _cachingService,
             _botManager,
             _logger,
-            _mechFactory);
-        _sut.AttachHandlers();
+            _mechFactory,
+            _relayRoomClient,
+            _relayPublisherFactory,
+            _relayOptions,
+            _localizationService);
+        sut.AttachHandlers();
+        return sut;
     }
+
+    private sealed class ThrowingDisposeJoinGameViewModel : JoinGameViewModel
+    {
+        public ThrowingDisposeJoinGameViewModel(
+            IUnitsLoader unitsLoader,
+            ICommandPublisher commandPublisher,
+            IDispatcherService dispatcherService,
+            IGameFactory gameFactory,
+            ITransportFactory transportFactory,
+            IFileCachingService cachingService,
+            IBotManager botManager,
+            ILogger<JoinGameViewModel> logger,
+            IMechFactory mechFactory,
+            IRelayRoomClient? relayRoomClient = null,
+            IRelayPublisherFactory? relayPublisherFactory = null,
+            IOptions<RelayClientOptions>? relayOptions = null,
+            ILocalizationService? localizationService = null)
+            : base(unitsLoader,
+                commandPublisher,
+                dispatcherService,
+                gameFactory,
+                transportFactory,
+                cachingService,
+                botManager,
+                logger,
+                mechFactory,
+                relayRoomClient,
+                relayPublisherFactory,
+                relayOptions,
+                localizationService)
+        {
+        }
+
+        protected override ValueTask DisposeOnlinePublisherAsync(RelayClientPublisher publisher) =>
+            throw new InvalidOperationException("boom");
+    }
+
+    private static RelayClientPublisher CreateRelayPublisher(string roomCode, string sessionToken, Guid hostId) =>
+        new("http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());
 
     private void ConnectAndAckLobby()
     {
         _sut.ConnectCommand.Execute(null);
         var lobbyCommand = (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+    }
+
+    private void VerifyLogged(LogLevel level, Func<object, bool> statePredicate, Exception? expectedException)
+    {
+        _logger.Received(1).Log(
+            level,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => statePredicate(state!)),
+            expectedException == null
+                ? Arg.Is<Exception?>(e => e == null)
+                : Arg.Is<Exception>(e =>
+                    expectedException.GetType().IsInstanceOfType(e) && e.Message == expectedException.Message),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
     }
 
     [Fact]
@@ -650,5 +759,581 @@ public class JoinGameViewModelTests
 
         // Assert
         _botManager.DidNotReceive().AddBot(Arg.Any<IPlayer>());
+    }
+
+    // ---------- Online (relay) join flow ----------
+
+    [Fact]
+    public void JoinMode_DefaultValue_IsLan()
+    {
+        _sut.IsLanMode.ShouldBeTrue();
+        _sut.IsOnlineMode.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanJoin_ReturnsTrue_WhenRoomCodeIsSetAndNotConnected()
+    {
+        _sut.RoomCode = "ABCDEF";
+
+        _sut.CanJoin.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanJoin_ReturnsFalse_WhenRoomCodeIsEmpty()
+    {
+        _sut.RoomCode = "";
+
+        _sut.CanJoin.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task JoinRoom_Success_CreatesPublisherAndConnects()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        var playerId = player.Player.Id;
+        var playerName = player.Player.Name;
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", playerId, playerName, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", playerId, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+        _relayRoomClient.ClearReceivedCalls();
+        _relayPublisherFactory.ClearReceivedCalls();
+        _gameFactory.ClearReceivedCalls();
+        _botManager.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        await _relayRoomClient.Received(1).JoinAsync("ABCDEF", playerId, playerName, Arg.Any<CancellationToken>());
+        await _relayPublisherFactory.Received(1).CreateAsync(
+            "http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>());
+        _adapter.Received(1).ClearPublishers();
+        _adapter.Received(1).AddPublisher(publisher);
+        _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
+        _botManager.Received(1).Initialize(_clientGame, Arg.Any<DecisionEngineProvider>());
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<RequestGameLobbyStatusCommand>(c => c.GameOriginId == _clientGame.Id));
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
+        _sut.JoinStatusText.ShouldBeEmpty();
+        _sut.CanJoin.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task JoinRoom_DisposesPreviousGame_WhenGameAlreadyExists()
+    {
+        // Arrange - create a game via a failed LAN connect, leaving IsConnected=false
+        _sut.ServerIp = "127.0.0.1";
+
+        var initializeCallCount = 0;
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ =>
+            {
+                initializeCallCount++;
+                if (initializeCallCount == 1)
+                    throw new Exception("Simulated initialization failure");
+            });
+
+        _sut.ConnectCommand.Execute(null);
+
+        _clientGame.IsDisposed.ShouldBeFalse();
+        _sut.IsConnected.ShouldBeFalse();
+
+        _gameFactory.ClearReceivedCalls();
+
+        // Arrange a successful online join
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        _sut.CanJoin.ShouldBeTrue();
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _clientGame.IsDisposed.ShouldBeTrue();
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(RelayClientErrorCode.RoomNotFound, "Join_InvalidCode")]
+    [InlineData(RelayClientErrorCode.RoomExpired, "Join_RoomExpired")]
+    [InlineData(RelayClientErrorCode.HostNotReady, "Join_HostNotReady")]
+    [InlineData(RelayClientErrorCode.RoomFull, "Join_RoomFull")]
+    [InlineData(RelayClientErrorCode.HubAtCapacity, "Join_HubAtCapacity")]
+    [InlineData(RelayClientErrorCode.RateLimited, "Join_RateLimited")]
+    [InlineData(RelayClientErrorCode.NetworkError, "Join_ConnectionFailed")]
+    [InlineData(RelayClientErrorCode.Timeout, "Join_ConnectionFailed")]
+    [InlineData(RelayClientErrorCode.ConfigurationError, "Join_ConfigurationError")]
+    [InlineData(RelayClientErrorCode.Unknown, "Join_Failed")]
+    public async Task JoinRoom_WithJoinError_ShowsLocalizedErrorAndDoesNotConnect(RelayClientErrorCode code, string expectedKey)
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Failed(new RelayClientError(code, "unused")));
+
+        _commandPublisher.ClearReceivedCalls();
+        _relayPublisherFactory.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        var expectedText = _localizationService.GetString(expectedKey);
+        _sut.JoinError.ShouldBe(expectedText);
+        _sut.JoinStatusText.ShouldBe(expectedText);
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.CanJoin.ShouldBeTrue();
+        await _relayPublisherFactory.DidNotReceive().CreateAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        _commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.JoinError!.ShouldNotContain("ABCDEF");
+        _sut.JoinError!.ShouldNotContain(sessionToken);
+        _sut.JoinStatusText.ShouldNotContain("ABCDEF");
+        _sut.JoinStatusText.ShouldNotContain(sessionToken);
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenCancelled_LogsAtInfoLevelAndDoesNotConnect()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Throws(new OperationCanceledException());
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+        _gameFactory.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - cancellation is expected, so only an info-level log is emitted and no connection is made
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBeNull();
+        _sut.CanJoin.ShouldBeTrue();
+        _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        VerifyLogged(
+            LogLevel.Information,
+            state => state.ToString()!.Contains("cancelled"),
+            null);
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenPublisherCreationFails_ShowsConnectionFailedAndStaysRecoverable()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        _relayOptions.Value.Returns(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key-secret" });
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, Guid.NewGuid()));
+        _relayPublisherFactory.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Throws(new InvalidOperationException("boom"));
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.CanJoin.ShouldBeTrue();
+        _adapter.DidNotReceive().ClearPublishers();
+        _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
+        _sut.JoinError!.ShouldNotContain(sessionToken);
+        _sut.JoinError!.ShouldNotContain("api-key-secret");
+        _sut.JoinStatusText.ShouldNotContain(sessionToken);
+        _sut.JoinStatusText.ShouldNotContain("api-key-secret");
+        VerifyLogged(
+            LogLevel.Error,
+            state => state.ToString()!.Contains("Error joining online game") && !state.ToString()!.Contains("boom"),
+            new InvalidOperationException("boom"));
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenRelayNotConfigured_ShowsConfigurationErrorAndDoesNotCallJoin()
+    {
+        // Arrange - no relay dependencies are provided
+        var sut = new JoinGameViewModel(
+            _unitsLoader,
+            _commandPublisher,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _cachingService,
+            _botManager,
+            _logger,
+            _mechFactory,
+            localizationService: _localizationService);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.IsConnected.ShouldBeFalse();
+        sut.CanJoin.ShouldBeTrue();
+        await _relayRoomClient.DidNotReceive().JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenRelayOptionsNotConfigured_ShowsConfigurationErrorAndDoesNotCallJoin()
+    {
+        // Arrange - relay room client and publisher factory provided but options missing
+        var sut = new JoinGameViewModel(
+            _unitsLoader,
+            _commandPublisher,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _cachingService,
+            _botManager,
+            _logger,
+            _mechFactory,
+            relayRoomClient: _relayRoomClient,
+            relayPublisherFactory: _relayPublisherFactory,
+            localizationService: _localizationService);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.IsConnected.ShouldBeFalse();
+        sut.CanJoin.ShouldBeTrue();
+        await _relayRoomClient.DidNotReceive().JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SwitchingJoinMode_DuringJoin_CancelsActiveJoinToken_AndDoesNotConnect()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        var joinTcs = new TaskCompletionSource<RoomJoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken capturedToken = default;
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                capturedToken = ci.Arg<CancellationToken>();
+                return joinTcs.Task;
+            });
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+        _gameFactory.ClearReceivedCalls();
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.IsLanMode = true;
+
+        // Assert - switching modes cancels the in-flight join token
+        capturedToken.IsCancellationRequested.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
+
+        // Complete the in-flight join; it must not proceed to connect
+        joinTcs.SetResult(RoomJoinResult.Succeeded("ABCDEF", "session-token", "Player", player.Player.Id, Guid.NewGuid()));
+        await joinTask;
+
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.CanJoin.ShouldBeTrue();
+        _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        await _relayPublisherFactory.DidNotReceive().CreateAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void RoomCode_WhenSetToNull_DoesNotThrow_AndClearsCode()
+    {
+        _sut.RoomCode = null!;
+
+        _sut.RoomCode.ShouldBe("");
+        _sut.CanJoin.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SwitchingJoinMode_ClearsJoinError_ButPreservesRoomCode()
+    {
+        // Arrange - trigger a failed online join to set JoinError
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Failed(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused")));
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.JoinError.ShouldNotBeNull();
+
+        // Act
+        _sut.IsLanMode = true;
+
+        // Assert
+        _sut.IsLanMode.ShouldBeTrue();
+        _sut.IsOnlineMode.ShouldBeFalse();
+        _sut.JoinError.ShouldBeNull();
+        _sut.RoomCode.ShouldBe("ABCDEF");
+    }
+
+    [Fact]
+    public async Task JoinStatusText_WhileJoining_ReturnsConnectingText()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var joinTcs = new TaskCompletionSource<RoomJoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(joinTcs.Task);
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_Connecting"));
+
+        // Clean up
+        joinTcs.SetResult(RoomJoinResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "unused")));
+        await joinTask;
+    }
+
+    [Fact]
+    public async Task CanJoin_ReturnsFalse_WhileJoining()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var joinTcs = new TaskCompletionSource<RoomJoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(joinTcs.Task);
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _sut.CanJoin.ShouldBeFalse();
+
+        // Clean up
+        joinTcs.SetResult(RoomJoinResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "unused")));
+        await joinTask;
+        _sut.CanJoin.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhileJoining_DoesNotStartSecondJoin()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var joinTcs = new TaskCompletionSource<RoomJoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(joinTcs.Task);
+
+        // Act
+        var firstJoin = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        await _relayRoomClient.Received(1).JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+
+        // Clean up
+        joinTcs.SetResult(RoomJoinResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "unused")));
+        await firstJoin;
+    }
+
+    [Fact]
+    public void RoomCode_NormalizesToTrimmedUppercase()
+    {
+        _sut.RoomCode = "  abcdef  ";
+
+        _sut.RoomCode.ShouldBe("ABCDEF");
+    }
+
+    [Fact]
+    public async Task JoinRoom_UsesNormalizedRoomCode()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "  abcdef  ";
+        var player = _sut.Players.First();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Failed(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused")));
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        await _relayRoomClient.Received(1).JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenPostCreationInitializationFails_RemovesAndDisposesPublisher()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ => throw new Exception("Simulated initialization failure"));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _adapter.Received(1).AddPublisher(publisher);
+        _adapter.Received(1).RemovePublisher(publisher);
+        _commandPublisher.Received(1).Unsubscribe(_sut.HandleServerCommand);
+        publisher.State.ToString().ShouldBe("Disconnected");
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenCleanupRemovePublisherThrows_DisposesPublisherAndCompletes()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ => throw new Exception("Simulated initialization failure"));
+        _adapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("boom"));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - RemovePublisher throwing is swallowed, the publisher is still disposed and the join reported as failed
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _adapter.Received(1).AddPublisher(publisher);
+        _adapter.Received(1).RemovePublisher(publisher);
+        publisher.State.ToString().ShouldBe("Disconnected");
+        VerifyLogged(
+            LogLevel.Warning,
+            _ => true,
+            new InvalidOperationException("boom"));
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenCleanupDisposeThrows_CompletesAndClearsPublisher()
+    {
+        // Arrange
+        var sut = CreateThrowingDisposeSut();
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+        var player = sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ => throw new Exception("Simulated initialization failure"));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - DisposeAsync throwing is swallowed and the join is still reported as failed
+        sut.IsConnected.ShouldBeFalse();
+        sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _adapter.Received(1).RemovePublisher(publisher);
+        VerifyLogged(
+            LogLevel.Warning,
+            _ => true,
+            new InvalidOperationException("boom"));
+
+        // The publisher field is cleared, so a later Disconnect does not re-remove the stale publisher
+        sut.Disconnect();
+        _adapter.Received(1).RemovePublisher(publisher);
+    }
+
+    [Fact]
+    public async Task Disconnect_RemovesAndDisposesOnlinePublisher()
+    {
+        // Arrange - successful online join
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.IsConnected.ShouldBeTrue();
+
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        _sut.Disconnect();
+
+        // Assert
+        _adapter.Received(1).RemovePublisher(publisher);
+        publisher.State.ToString().ShouldBe("Disconnected");
+        _sut.IsConnected.ShouldBeFalse();
     }
 }

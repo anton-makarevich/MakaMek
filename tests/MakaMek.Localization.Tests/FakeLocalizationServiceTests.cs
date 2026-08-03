@@ -923,6 +923,32 @@ public class FakeLocalizationServiceTests
     }
 
     [Theory]
+    [InlineData("Join_Mode", "Join Mode")]
+    [InlineData("Join_EnterRoomCode", "Enter Room Code")]
+    [InlineData("Join_JoinButton", "Join Game")]
+    [InlineData("Join_Connecting", "Connecting to game...")]
+    [InlineData("Join_Failed", "Failed to join the game.")]
+    [InlineData("Join_InvalidCode", "Room code not found. Check the code and try again.")]
+    [InlineData("Join_RoomExpired", "This room has expired.")]
+    [InlineData("Join_HostNotReady", "The host is not ready for players yet.")]
+    [InlineData("Join_RoomFull", "This room is full.")]
+    [InlineData("Join_HubAtCapacity", "The server is at capacity. Please try again later.")]
+    [InlineData("Join_RateLimited", "Too many attempts. Please try again later.")]
+    [InlineData("Join_ConnectionFailed", "Failed to connect. Please check your connection and try again.")]
+    [InlineData("Join_ConfigurationError", "Online joining is not available on this device.")]
+    public void GetString_Join_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("Players_AddPlayer", "Add Player")]
     [InlineData("Players_AddBot", "Add Bot")]
     [InlineData("Players_EditName", "Edit player name")]

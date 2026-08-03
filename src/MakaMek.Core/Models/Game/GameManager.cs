@@ -152,7 +152,7 @@ public class GameManager : IGameManager
         try
         {
             var baseUrl = _relayOptions?.Value.BaseUrl ?? string.Empty;
-            var hubUrl = $"{baseUrl.TrimEnd('/')}{RelayHubDefaults.HubPath}";
+            var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
             publisher = await _relayPublisherFactory.CreateAsync(
                 hubUrl,
