@@ -354,17 +354,19 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         {
             _commandPublisher.Adapter.RemovePublisher(_onlineRelayPublisher);
         }
-        catch
+        catch (Exception ex)
         {
-            // Swallow to avoid masking the original failure
+            // Swallow to avoid masking the original failure, but log the cleanup issue
+            _logger.LogWarning(ex, "Failed to remove online relay publisher during cleanup");
         }
         try
         {
             await DisposeOnlinePublisherAsync(_onlineRelayPublisher);
         }
-        catch
+        catch (Exception ex)
         {
-            // Swallow to avoid masking the original failure
+            // Swallow to avoid masking the original failure, but log the cleanup issue
+            _logger.LogWarning(ex, "Failed to dispose online relay publisher during cleanup");
         }
         _onlineRelayPublisher = null;
     }

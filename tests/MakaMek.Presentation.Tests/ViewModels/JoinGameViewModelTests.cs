@@ -1136,6 +1136,13 @@ public class JoinGameViewModelTests
         _adapter.Received(1).AddPublisher(publisher);
         _adapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<InvalidOperationException>(e => e.Message == "boom"),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
     }
 
     [Fact]
@@ -1166,6 +1173,13 @@ public class JoinGameViewModelTests
         sut.IsConnected.ShouldBeFalse();
         sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
         _adapter.Received(1).RemovePublisher(publisher);
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<InvalidOperationException>(e => e.Message == "boom"),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
 
         // The publisher field is cleared, so a later Disconnect does not re-remove the stale publisher
         sut.Disconnect();
