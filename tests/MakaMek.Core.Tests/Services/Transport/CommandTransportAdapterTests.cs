@@ -522,11 +522,11 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void ClearPublishers_DisposesAndClearsAllPublishers()
+    public async Task ClearPublishers_DisposesAndClearsAllPublishers()
     {
         // Arrange
-        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
-        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
 
@@ -539,12 +539,12 @@ public class CommandTransportAdapterTests
         sut.Initialize(commandCallback);
 
         // Act
-        sut.ClearPublishers();
+        await sut.ClearPublishers();
 
         // Assert
         // Verify Dispose was called on disposable publishers
-        ((IDisposable)disposablePublisher1).Received(1).Dispose();
-        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+        await ((IAsyncDisposable)disposablePublisher1).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)disposablePublisher2).Received(1).DisposeAsync();
 
         // Verify publishers list is empty by publishing a command (should not be received)
         var command = new TurnIncrementedCommand
@@ -573,14 +573,14 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void ClearPublishers_ContinuesDisposingAfterException()
+    public async Task ClearPublishers_ContinuesDisposingAfterException()
     {
         // Arrange
-        var throwingPublisher = Substitute.For<ITransportPublisher, IDisposable>();
-        var normalPublisher = Substitute.For<ITransportPublisher, IDisposable>();
+        var throwingPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var normalPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
 
         // Configure the first publisher to throw an exception when disposed
-        ((IDisposable)throwingPublisher).When(x => x.Dispose())
+        ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
             .Do(_ => throw new InvalidOperationException("Test exception during dispose"));
 
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
@@ -588,12 +588,12 @@ public class CommandTransportAdapterTests
         sut.Initialize((_,_) => {});
 
         // Act - This should not throw despite the exception in Dispose()
-        Should.NotThrow(sut.ClearPublishers);
+        await Should.NotThrowAsync(sut.ClearPublishers);
 
         // Assert
         // Verify that both publishers had Dispose() called, even though the first one threw
-        ((IDisposable)throwingPublisher).Received(1).Dispose();
-        ((IDisposable)normalPublisher).Received(1).Dispose();
+        await ((IAsyncDisposable)throwingPublisher).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)normalPublisher).Received(1).DisposeAsync();
 
         // Verify that the publishers list was cleared
         var command = new TurnIncrementedCommand
@@ -608,11 +608,11 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void Dispose_CallsClearPublishersAndDisposesAllDisposablePublishers()
+    public async Task Dispose_CallsClearPublishersAndDisposesAllDisposablePublishers()
     {
         // Arrange
-        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
-        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
 
@@ -624,11 +624,11 @@ public class CommandTransportAdapterTests
         sut.Initialize((_, _) => { });
 
         // Act
-        sut.Dispose();
+        await sut.DisposeAsync();
 
         // Assert - Dispose was called on disposable publishers
-        ((IDisposable)disposablePublisher1).Received(1).Dispose();
-        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+        await ((IAsyncDisposable)disposablePublisher1).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)disposablePublisher2).Received(1).DisposeAsync();
 
         // Assert - publishers list is cleared (publishing does nothing)
         var command = new TurnIncrementedCommand

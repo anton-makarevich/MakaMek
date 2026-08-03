@@ -211,7 +211,7 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public void ConnectToServer_ClearsExistingPublishers()
+    public async Task ConnectToServer_ClearsExistingPublishers()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
@@ -221,7 +221,7 @@ public class JoinGameViewModelTests
         
         // Assert
         // Verify that ClearPublishers was called on the adapter
-        _adapter.Received(1).ClearPublishers();
+        await _adapter.Received(1).ClearPublishers();
     }
     
     [Fact]
@@ -317,7 +317,7 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public void Disconnect_ShouldDisposeLocalGame()
+    public async Task Disconnect_ShouldDisposeLocalGame()
     {
         // Arrange
         _sut.ServerIp = "127.0.0.1";
@@ -325,14 +325,14 @@ public class JoinGameViewModelTests
         _clientGame.IsDisposed.ShouldBeFalse();
 
         // Act
-        _sut.Disconnect();
+        await _sut.Disconnect();
 
         // Assert
         _clientGame.IsDisposed.ShouldBeTrue();
     }
 
     [Fact]
-    public void Disconnect_ShouldClearPublishers()
+    public async Task Disconnect_ShouldClearPublishers()
     {
         // Arrange
         _sut.ServerIp = "127.0.0.1";
@@ -340,14 +340,14 @@ public class JoinGameViewModelTests
         _adapter.ClearReceivedCalls();
 
         // Act
-        _sut.Disconnect();
+        await _sut.Disconnect();
 
         // Assert
-        _adapter.Received(1).ClearPublishers();
+        await _adapter.Received(1).ClearPublishers();
     }
 
     [Fact]
-    public void Disconnect_ShouldSetIsConnectedToFalse()
+    public async Task Disconnect_ShouldSetIsConnectedToFalse()
     {
         // Arrange
         _sut.ServerIp = "127.0.0.1";
@@ -355,7 +355,7 @@ public class JoinGameViewModelTests
         _sut.IsConnected.ShouldBeTrue();
 
         // Act
-        _sut.Disconnect();
+        await _sut.Disconnect();
 
         // Assert
         _sut.IsConnected.ShouldBeFalse();
@@ -817,7 +817,7 @@ public class JoinGameViewModelTests
         await _relayRoomClient.Received(1).JoinAsync("ABCDEF", playerId, playerName, Arg.Any<CancellationToken>());
         await _relayPublisherFactory.Received(1).CreateAsync(
             "http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>());
-        _adapter.Received(1).ClearPublishers();
+        await _adapter.Received(1).ClearPublishers();
         _adapter.Received(1).AddPublisher(publisher);
         _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         _gameFactory.Received(1).CreateClientGame(_commandPublisher);
@@ -1018,7 +1018,7 @@ public class JoinGameViewModelTests
         _sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
         _sut.IsConnected.ShouldBeFalse();
         _sut.CanJoin.ShouldBeTrue();
-        _adapter.DidNotReceive().ClearPublishers();
+        await _adapter.DidNotReceive().ClearPublishers();
         _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
         _sut.JoinError!.ShouldNotContain(sessionToken);
         _sut.JoinError!.ShouldNotContain("api-key-secret");
@@ -1356,7 +1356,7 @@ public class JoinGameViewModelTests
             new InvalidOperationException("boom"));
 
         // The publisher field is cleared, so a later Disconnect does not re-remove the stale publisher
-        sut.Disconnect();
+        await sut.Disconnect();
         _adapter.Received(1).RemovePublisher(publisher);
     }
 
@@ -1381,7 +1381,7 @@ public class JoinGameViewModelTests
         _adapter.ClearReceivedCalls();
 
         // Act
-        _sut.Disconnect();
+        await _sut.Disconnect();
 
         // Assert
         _adapter.Received(1).RemovePublisher(publisher);

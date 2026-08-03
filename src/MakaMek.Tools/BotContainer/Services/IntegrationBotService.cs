@@ -105,7 +105,7 @@ public class IntegrationBotService : BackgroundService
         _logger.LogInformation("Connecting to server at {ServerUrl}...", _config.ServerUrl);
 
         var adapter = _commandPublisher.Adapter;
-        adapter.ClearPublishers();
+        await adapter.ClearPublishers();
 
         var client = await _transportFactory.CreateAndStartClientPublisher(_config.ServerUrl);
         adapter.AddPublisher(client);
@@ -167,7 +167,7 @@ public class IntegrationBotService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling server command {CommandType}", command.GetType().Name);
+            _logger.LogError(ex, "Error handling server command {CommandType}", command.GetType()?.Name);
         }
     }
 

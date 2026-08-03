@@ -3,7 +3,7 @@ using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
-public interface ICommandTransportAdapter: IDisposable
+public interface ICommandTransportAdapter : IAsyncDisposable
 {
     IReadOnlyList<ITransportPublisher> TransportPublishers { get; }
 
@@ -20,9 +20,9 @@ public interface ICommandTransportAdapter: IDisposable
     void RemovePublisher(ITransportPublisher publisher);
 
     /// <summary>
-    /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
+    /// Clears all transport publishers from the adapter and disposes them if they implement IAsyncDisposable
     /// </summary>
-    void ClearPublishers();
+    Task ClearPublishers();
 
     /// <summary>
     /// Converts an IGameCommand to a TransportMessage and publishes it to all publishers

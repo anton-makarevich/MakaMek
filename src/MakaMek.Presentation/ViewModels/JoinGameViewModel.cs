@@ -318,7 +318,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             var adapter = _commandPublisher.Adapter;
 
             // Clear any existing publishers and prepare for a new connection
-            adapter.ClearPublishers();
+            await adapter.ClearPublishers();
             adapter.AddPublisher(publisher);
             adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
             _commandPublisher.Subscribe(HandleServerCommand);
@@ -435,7 +435,9 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             var adapter = _commandPublisher.Adapter;
             
             // Clear any existing publishers and prepare for a new connection
-            adapter.ClearPublishers();
+            await adapter.ClearPublishers();
+            // Any previously active relay publisher was disposed by the adapter above
+            _onlineRelayPublisher = null;
             
             // Create a network client publisher using the factory and connect
             var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
@@ -469,17 +471,18 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
     }
 
-    public void Disconnect()
+    public async Task Disconnect()
     {
-        _activeJoinCts?.Cancel();
+        if (_activeJoinCts != null)
+            await _activeJoinCts.CancelAsync();
         if (_localGame != null)
         {
             _localGame.Dispose();
             _localGame = null;
         }
         _commandPublisher.Unsubscribe(HandleServerCommand);
-        RemoveAndDisposeOnlinePublisherAsync().GetAwaiter().GetResult();
-        _commandPublisher.Adapter.ClearPublishers();
+        await RemoveAndDisposeOnlinePublisherAsync();
+        await _commandPublisher.Adapter.ClearPublishers();
         IsConnected = false;
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         NotifyPropertyChanged(nameof(CanAddPlayer));
@@ -487,7 +490,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
 
     public void Dispose()
     {
-        Disconnect();
+        Disconnect().GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
 

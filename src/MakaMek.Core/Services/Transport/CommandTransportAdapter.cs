@@ -104,9 +104,9 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     }
 
     /// <summary>
-    /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
+    /// Clears all transport publishers from the adapter and disposes them if they implement IAsyncDisposable
     /// </summary>
-    public void ClearPublishers()
+    public async Task ClearPublishers()
     {
         // Take a stable snapshot and clear the shared state under lock
         ITransportPublisher[] snapshot;
@@ -126,10 +126,10 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         // Dispose publishers outside the lock
         foreach (var publisher in snapshot)
         {
-            if (publisher is not IDisposable disposable) continue;
+            if (publisher is not IAsyncDisposable asyncDisposable) continue;
             try
             {
-                disposable.Dispose();
+                await asyncDisposable.DisposeAsync();
             }
             catch (Exception ex)
             {
@@ -318,8 +318,9 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         }
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        ClearPublishers();
+        GC.SuppressFinalize(this);
+        return new ValueTask(ClearPublishers());
     }
 }

@@ -47,7 +47,7 @@ public class CommandPublisherTests
         // Assert
         // Verify that the underlying mock transport publisher received the message via the adapter
         _transportPublisher.Received(1).PublishMessage(Arg.Is<TransportMessage>(msg => 
-            msg.MessageType == nameof(TurnIncrementedCommand) && 
+            msg!.MessageType == nameof(TurnIncrementedCommand) && 
             msg.SourceId == command.GameOriginId));
     }
 
@@ -192,14 +192,14 @@ public class CommandPublisherTests
     }
     
     [Fact]
-    public void Dispose_ClearsSubscribers()
+    public async Task Dispose_ClearsSubscribers()
     {
         // Arrange
         var received = false;
         _sut.Subscribe(_ => received = true);
 
         // Act
-        _sut.Dispose();
+        await _sut.DisposeAsync();
 
         // Assert - subscriber should not receive commands after dispose
         var commandToSend = new TurnIncrementedCommand
@@ -221,13 +221,10 @@ public class CommandPublisherTests
     }
 
     [Fact]
-    public void Dispose_CanBeCalledMultipleTimes()
+    public async Task Dispose_CanBeCalledMultipleTimes()
     {
-        Should.NotThrow(() =>
-        {
-            _sut.Dispose();
-            _sut.Dispose();
-        });
+        await Should.NotThrowAsync(() => _sut.DisposeAsync().AsTask());
+        await Should.NotThrowAsync(() => _sut.DisposeAsync().AsTask());
     }
 
     [Fact]
