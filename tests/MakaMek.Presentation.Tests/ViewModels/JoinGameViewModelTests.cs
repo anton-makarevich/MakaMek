@@ -196,6 +196,20 @@ public class JoinGameViewModelTests
         _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
     }
 
+    private void VerifyLogged(LogLevel level, Func<object, bool> statePredicate, Exception? expectedException)
+    {
+        _logger.Received(1).Log(
+            level,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => statePredicate(state!)),
+            expectedException == null
+                ? Arg.Is<Exception?>(e => e == null)
+                : Arg.Is<Exception>(e =>
+                    expectedException.GetType().IsInstanceOfType(e) && e.Message == expectedException.Message),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
+    }
+
     [Fact]
     public void ConnectToServer_ClearsExistingPublishers()
     {
@@ -924,13 +938,10 @@ public class JoinGameViewModelTests
         _sut.CanJoin.ShouldBeTrue();
         _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
         _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
-        _logger.Received(1).Log(
+        VerifyLogged(
             LogLevel.Information,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(state => state!.ToString()!.Contains("cancelled")),
-            Arg.Is<Exception?>(e => e == null),
-            Arg.Any<Func<object, Exception?, string>>()
-        );
+            state => state.ToString()!.Contains("cancelled"),
+            null);
     }
 
     [Fact]
@@ -961,13 +972,10 @@ public class JoinGameViewModelTests
         _sut.JoinError!.ShouldNotContain("api-key-secret");
         _sut.JoinStatusText.ShouldNotContain(sessionToken);
         _sut.JoinStatusText.ShouldNotContain("api-key-secret");
-        _logger.Received(1).Log(
+        VerifyLogged(
             LogLevel.Error,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(state => state!.ToString()!.Contains("Error joining online game") && !state.ToString()!.Contains("boom")),
-            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
-            Arg.Any<Func<object, Exception?, string>>()
-        );
+            state => state.ToString()!.Contains("Error joining online game") && !state.ToString()!.Contains("boom"),
+            new InvalidOperationException("boom"));
     }
 
     [Fact]
@@ -1256,13 +1264,10 @@ public class JoinGameViewModelTests
         _adapter.Received(1).AddPublisher(publisher);
         _adapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
-        _logger.Received(1).Log(
+        VerifyLogged(
             LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
-            Arg.Any<Func<object, Exception?, string>>()
-        );
+            _ => true,
+            new InvalidOperationException("boom"));
     }
 
     [Fact]
@@ -1293,13 +1298,10 @@ public class JoinGameViewModelTests
         sut.IsConnected.ShouldBeFalse();
         sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
         _adapter.Received(1).RemovePublisher(publisher);
-        _logger.Received(1).Log(
+        VerifyLogged(
             LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
-            Arg.Any<Func<object, Exception?, string>>()
-        );
+            _ => true,
+            new InvalidOperationException("boom"));
 
         // The publisher field is cleared, so a later Disconnect does not re-remove the stale publisher
         sut.Disconnect();
