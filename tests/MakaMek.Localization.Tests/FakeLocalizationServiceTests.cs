@@ -125,6 +125,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_GameEnded_Unknown", "Game aborted")]
     [InlineData("Command_GameEnded_Victory", "Game ended: Victory")]
     [InlineData("Command_GameEnded_PlayersLeft", "Players left. Game ended")]
+    [InlineData("Command_GameEnded_HostDisconnected", "Host disconnected. Game ended")]
     public void GetString_GameEnded_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -494,6 +495,7 @@ public class FakeLocalizationServiceTests
     [InlineData("EndGame_Victory_Subtitle", "{0} is victorious!")]
     [InlineData("EndGame_Draw_Subtitle", "The battle ended in a draw")]
     [InlineData("EndGame_PlayersLeft_Subtitle", "All players have left the game")]
+    [InlineData("EndGame_HostDisconnected_Subtitle", "The host disconnected from the game")]
     [InlineData("EndGame_ReturnToMenu", "Return to Menu")]
     [InlineData("EndGame_Victor_Badge", "VICTOR")]
     public void GetString_EndGame_ReturnsExpectedString(string key, string expected)

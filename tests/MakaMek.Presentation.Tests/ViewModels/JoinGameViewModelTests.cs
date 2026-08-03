@@ -830,6 +830,58 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task JoinRoom_Success_RegistersDisconnectHandlerOnAdapter()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _adapter.Received(1).RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>());
+    }
+
+    [Fact]
+    public async Task RelayHostDisconnected_SendsGameEndedCommandWithHostDisconnectedReason()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        Action<ITransportPublisher>? disconnectHandler = null;
+        _adapter.When(a => a.RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>()))
+            .Do(ci => disconnectHandler = ci.Arg<Action<ITransportPublisher>>());
+
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        disconnectHandler.ShouldNotBeNull();
+
+        // Act - simulate the relay publisher reporting host loss
+        disconnectHandler.Invoke(publisher);
+
+        // Assert
+        _clientGame.CommandLog.OfType<GameEndedCommand>()
+            .ShouldContain(cmd => cmd.Reason == GameEndReason.HostDisconnected);
+    }
+
+    [Fact]
     public async Task JoinRoom_DisposesPreviousGame_WhenGameAlreadyExists()
     {
         // Arrange - create a game via a failed LAN connect, leaving IsConnected=false

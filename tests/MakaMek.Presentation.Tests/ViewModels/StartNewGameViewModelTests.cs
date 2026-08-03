@@ -168,6 +168,32 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public async Task StartGameCommand_WhenOnlineMode_ClosesOnlineRoomBeforeSettingBattleMap()
+    {
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
+        _sut.IsOnlineMode = true;
+
+        await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+
+        await _gameManager.Received(1).CloseOnlineRoom(Arg.Any<CancellationToken>());
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
+    public async Task StartGameCommand_WhenLanMode_DoesNotCloseOnlineRoom()
+    {
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
+        _sut.IsLanMode = true;
+
+        await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+
+        await _gameManager.DidNotReceive().CloseOnlineRoom(Arg.Any<CancellationToken>());
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenLessThanFourPlayers()
     {
         var initialPlayerCount = _sut.Players.Count;

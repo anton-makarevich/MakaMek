@@ -8,6 +8,7 @@ using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -17,6 +18,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
+using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -208,7 +210,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         get;
         set
         {
-            var normalized = (value ?? string.Empty).Trim().ToUpperInvariant();
+            var normalized = value.Trim().ToUpperInvariant();
             if (field == normalized) return; // Reject no-op when unchanged
             field = normalized;
             NotifyPropertyChanged();
@@ -318,6 +320,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             // Clear any existing publishers and prepare for a new connection
             adapter.ClearPublishers();
             adapter.AddPublisher(publisher);
+            adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
             _commandPublisher.Subscribe(HandleServerCommand);
 
             if (_localGame != null)
@@ -357,6 +360,25 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             _activeJoinCts = null;
             IsJoining = false;
         }
+    }
+
+    /// <summary>
+    /// Invoked when the relay publisher reports that the host has disconnected from the room.
+    /// Synthesizes a local <see cref="GameEndedCommand"/> so the client reacts the same way
+    /// it would if the server had sent the command, without requiring further network traffic.
+    /// </summary>
+    /// <param name="publisher">The publisher that lost its connection to the host.</param>
+    private void OnRelayHostDisconnected(ITransportPublisher publisher)
+    {
+        if (_localGame == null || _localGame.IsDisposed) return;
+
+        var command = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.HostDisconnected,
+            Timestamp = DateTime.UtcNow
+        };
+        _localGame.HandleCommand(command);
     }
 
     private async Task RemoveAndDisposeOnlinePublisherAsync()

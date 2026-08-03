@@ -15,6 +15,7 @@ public class GameEndedCommandTest
     [InlineData(GameEndReason.Unknown)]
     [InlineData(GameEndReason.Victory)]
     [InlineData(GameEndReason.PlayersLeft)]
+    [InlineData(GameEndReason.HostDisconnected)]
     public void Render_ShouldFormatCorrectly(GameEndReason reason)
     {
         // Arrange

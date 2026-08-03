@@ -27,6 +27,7 @@ public class GameManager : IGameManager
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
     private readonly IOptions<RelayClientOptions>? _relayOptions;
     private RelayClientPublisher? _onlineRelayPublisher;
+    private string? _onlineSessionToken;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -179,6 +180,7 @@ public class GameManager : IGameManager
             }
 
             RoomCode = createResult.RoomCode;
+            _onlineSessionToken = createResult.SessionToken;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -236,11 +238,37 @@ public class GameManager : IGameManager
         }
     }
 
+    public async Task CloseOnlineRoom(CancellationToken cancellationToken = default)
+    {
+        // Only attempt to close when an online room is actually active and we have
+        // everything required to authenticate the close call with the relay.
+        if (_onlineRelayPublisher == null
+            || RoomCode == null
+            || _onlineSessionToken == null
+            || _relayRoomClient == null)
+            return;
+
+        try
+        {
+            await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+
+            // Only clear the state once the close call has completed, so a failed
+            // attempt can be retried and the room is not considered closed prematurely.
+            _onlineSessionToken = null;
+            RoomCode = null;
+        }
+        catch
+        {
+            // Swallow to avoid masking the original failure; closing the room is best-effort
+        }
+    }
+
     private async Task CleanupOnlineAfterFailureAsync(RelayClientPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
         await RemoveAndDisposeOnlinePublisherAsync(publisher);
         _onlineRelayPublisher = null;
+        _onlineSessionToken = null;
         RoomCode = null;
 
         // Dispose server game if it was created
@@ -307,6 +335,9 @@ public class GameManager : IGameManager
 
         // Dispose network host
         _networkHostService?.Dispose();
+
+        // Close the online relay room, if any, before tearing down the publisher
+        await CloseOnlineRoom();
 
         // Remove and dispose online relay publisher if it exists
         await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
