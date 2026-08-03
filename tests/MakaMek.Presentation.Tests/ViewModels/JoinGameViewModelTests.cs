@@ -130,6 +130,62 @@ public class JoinGameViewModelTests
         return sut;
     }
 
+    private JoinGameViewModel CreateThrowingDisposeSut()
+    {
+        var sut = new ThrowingDisposeJoinGameViewModel(
+            _unitsLoader,
+            _commandPublisher,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _cachingService,
+            _botManager,
+            _logger,
+            _mechFactory,
+            _relayRoomClient,
+            _relayPublisherFactory,
+            _relayOptions,
+            _localizationService);
+        sut.AttachHandlers();
+        return sut;
+    }
+
+    private sealed class ThrowingDisposeJoinGameViewModel : JoinGameViewModel
+    {
+        public ThrowingDisposeJoinGameViewModel(
+            IUnitsLoader unitsLoader,
+            ICommandPublisher commandPublisher,
+            IDispatcherService dispatcherService,
+            IGameFactory gameFactory,
+            ITransportFactory transportFactory,
+            IFileCachingService cachingService,
+            IBotManager botManager,
+            ILogger<JoinGameViewModel> logger,
+            IMechFactory mechFactory,
+            IRelayRoomClient? relayRoomClient = null,
+            IRelayPublisherFactory? relayPublisherFactory = null,
+            IOptions<RelayClientOptions>? relayOptions = null,
+            ILocalizationService? localizationService = null)
+            : base(unitsLoader,
+                commandPublisher,
+                dispatcherService,
+                gameFactory,
+                transportFactory,
+                cachingService,
+                botManager,
+                logger,
+                mechFactory,
+                relayRoomClient,
+                relayPublisherFactory,
+                relayOptions,
+                localizationService)
+        {
+        }
+
+        protected override ValueTask DisposeOnlinePublisherAsync(RelayClientPublisher publisher) =>
+            throw new InvalidOperationException("boom");
+    }
+
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string sessionToken, Guid hostId) =>
         new("http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());
 
@@ -1047,6 +1103,73 @@ public class JoinGameViewModelTests
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenCleanupRemovePublisherThrows_DisposesPublisherAndCompletes()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ => throw new Exception("Simulated initialization failure"));
+        _adapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("boom"));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - RemovePublisher throwing is swallowed, the publisher is still disposed and the join reported as failed
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _adapter.Received(1).AddPublisher(publisher);
+        _adapter.Received(1).RemovePublisher(publisher);
+        publisher.State.ToString().ShouldBe("Disconnected");
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenCleanupDisposeThrows_CompletesAndClearsPublisher()
+    {
+        // Arrange
+        var sut = CreateThrowingDisposeSut();
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+        var player = sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _botManager.When(b => b.Initialize(Arg.Any<ClientGame>(), Arg.Any<DecisionEngineProvider>()))
+            .Do(_ => throw new Exception("Simulated initialization failure"));
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert - DisposeAsync throwing is swallowed and the join is still reported as failed
+        sut.IsConnected.ShouldBeFalse();
+        sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _adapter.Received(1).RemovePublisher(publisher);
+
+        // The publisher field is cleared, so a later Disconnect does not re-remove the stale publisher
+        sut.Disconnect();
+        _adapter.Received(1).RemovePublisher(publisher);
     }
 
     [Fact]

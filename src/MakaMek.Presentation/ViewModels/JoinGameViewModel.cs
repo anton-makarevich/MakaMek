@@ -360,7 +360,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
         try
         {
-            await _onlineRelayPublisher.DisposeAsync();
+            await DisposeOnlinePublisherAsync(_onlineRelayPublisher);
         }
         catch
         {
@@ -368,6 +368,9 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         }
         _onlineRelayPublisher = null;
     }
+
+    protected virtual ValueTask DisposeOnlinePublisherAsync(RelayClientPublisher publisher) =>
+        publisher.DisposeAsync();
 
     private string GetJoinErrorText(RelayClientError? error)
     {
