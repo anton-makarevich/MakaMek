@@ -930,6 +930,13 @@ public class JoinGameViewModelTests
         _sut.JoinError!.ShouldNotContain("api-key-secret");
         _sut.JoinStatusText.ShouldNotContain(sessionToken);
         _sut.JoinStatusText.ShouldNotContain("api-key-secret");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state!.ToString()!.Contains("Error joining online game") && !state.ToString()!.Contains("boom")),
+            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
     }
 
     [Fact]
@@ -960,6 +967,87 @@ public class JoinGameViewModelTests
         sut.IsConnected.ShouldBeFalse();
         sut.CanJoin.ShouldBeTrue();
         await _relayRoomClient.DidNotReceive().JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenRelayOptionsNotConfigured_ShowsConfigurationErrorAndDoesNotCallJoin()
+    {
+        // Arrange - relay room client and publisher factory provided but options missing
+        var sut = new JoinGameViewModel(
+            _unitsLoader,
+            _commandPublisher,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _cachingService,
+            _botManager,
+            _logger,
+            _mechFactory,
+            relayRoomClient: _relayRoomClient,
+            relayPublisherFactory: _relayPublisherFactory,
+            localizationService: _localizationService);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.JoinStatusText.ShouldBe(_localizationService.GetString("Join_ConfigurationError"));
+        sut.IsConnected.ShouldBeFalse();
+        sut.CanJoin.ShouldBeTrue();
+        await _relayRoomClient.DidNotReceive().JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SwitchingJoinMode_DuringJoin_CancelsActiveJoinToken_AndDoesNotConnect()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        var joinTcs = new TaskCompletionSource<RoomJoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken capturedToken = default;
+        _relayRoomClient.JoinAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                capturedToken = ci.Arg<CancellationToken>();
+                return joinTcs.Task;
+            });
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+        _gameFactory.ClearReceivedCalls();
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.IsLanMode = true;
+
+        // Assert - switching modes cancels the in-flight join token
+        capturedToken.IsCancellationRequested.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
+
+        // Complete the in-flight join; it must not proceed to connect
+        joinTcs.SetResult(RoomJoinResult.Succeeded("ABCDEF", "session-token", "Player", player.Player.Id, Guid.NewGuid()));
+        await joinTask;
+
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.CanJoin.ShouldBeTrue();
+        _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        await _relayPublisherFactory.DidNotReceive().CreateAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void RoomCode_WhenSetToNull_DoesNotThrow_AndClearsCode()
+    {
+        _sut.RoomCode = null!;
+
+        _sut.RoomCode.ShouldBe("");
+        _sut.CanJoin.ShouldBeFalse();
     }
 
     [Fact]
@@ -1100,6 +1188,7 @@ public class JoinGameViewModelTests
         // Assert
         _adapter.Received(1).AddPublisher(publisher);
         _adapter.Received(1).RemovePublisher(publisher);
+        _commandPublisher.Received(1).Unsubscribe(_sut.HandleServerCommand);
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
@@ -1140,7 +1229,7 @@ public class JoinGameViewModelTests
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Any<object>(),
-            Arg.Is<InvalidOperationException>(e => e.Message == "boom"),
+            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
             Arg.Any<Func<object, Exception?, string>>()
         );
     }
@@ -1177,7 +1266,7 @@ public class JoinGameViewModelTests
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Any<object>(),
-            Arg.Is<InvalidOperationException>(e => e.Message == "boom"),
+            Arg.Is<InvalidOperationException>(e => e!.Message == "boom"),
             Arg.Any<Func<object, Exception?, string>>()
         );
 

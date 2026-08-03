@@ -39,6 +39,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
     private readonly ILocalizationService _localizationService;
     private JoinMode _joinMode = JoinMode.Lan;
     private RelayClientPublisher? _onlineRelayPublisher;
+    private CancellationTokenSource? _activeJoinCts;
 
     public JoinGameViewModel(
         IUnitsLoader unitsLoader,
@@ -195,6 +196,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         _joinMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
+        _activeJoinCts?.Cancel();
         ClearJoinState();
     }
 
@@ -206,7 +208,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
         get;
         set
         {
-            var normalized = value.Trim().ToUpperInvariant();
+            var normalized = (value ?? string.Empty).Trim().ToUpperInvariant();
             if (field == normalized) return; // Reject no-op when unchanged
             field = normalized;
             NotifyPropertyChanged();
@@ -284,15 +286,18 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
 
         try
         {
-            // Online joining requires the relay room client and publisher factory
-            if (_relayRoomClient is null || _relayPublisherFactory is null)
+            // Online joining requires the relay room client, publisher factory, and options
+            if (_relayRoomClient is null || _relayPublisherFactory is null || _relayOptions is null)
             {
                 JoinError = _localizationService.GetString("Join_ConfigurationError");
                 return;
             }
 
+            _activeJoinCts = new CancellationTokenSource();
+
             var playerData = GetLocalPlayerData();
-            var result = await _relayRoomClient.JoinAsync(RoomCode, playerData.Id, playerData.Name);
+            var result = await _relayRoomClient.JoinAsync(RoomCode, playerData.Id, playerData.Name, _activeJoinCts.Token);
+            if (_joinMode != JoinMode.Online) return;
             if (!result.Success || result.SessionToken is null || result.HostId is null)
             {
                 JoinError = GetJoinErrorText(result.Error);
@@ -334,15 +339,21 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
             (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable join button
             NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
         }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error joining online game: {Message}", ex.Message);
+            _commandPublisher.Unsubscribe(HandleServerCommand);
+            _logger.LogError(ex, "Error joining online game");
             await RemoveAndDisposeOnlinePublisherAsync();
             IsConnected = false;
             JoinError = _localizationService.GetString("Join_ConnectionFailed");
         }
         finally
         {
+            _activeJoinCts?.Dispose();
+            _activeJoinCts = null;
             IsJoining = false;
         }
     }
@@ -437,6 +448,7 @@ public class JoinGameViewModel : NewGameViewModel, IDisposable
 
     public void Disconnect()
     {
+        _activeJoinCts?.Cancel();
         if (_localGame != null)
         {
             _localGame.Dispose();
