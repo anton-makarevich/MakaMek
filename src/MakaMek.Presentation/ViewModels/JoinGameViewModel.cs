@@ -320,7 +320,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             if (_activeJoinCts.Token.IsCancellationRequested)
             {
                 await RemoveAndDisposeOnlinePublisherAsync();
-                if (_joinMode != JoinMode.Online) return;
+                return;
             }
 
             var adapter = _commandPublisher.Adapter;

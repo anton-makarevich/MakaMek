@@ -28,6 +28,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Publishers;
@@ -505,6 +506,36 @@ public class JoinGameViewModelTests
         remotePlayer.ShouldNotBeNull();
         remotePlayer.IsLocalPlayer.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task HandleCommandInternal_JoinGameCommand_RemotePlayerJoinCallback_IsNoOpAndDoesNotThrow()
+    {
+        // Arrange - add a remote player via join command
+        var remotePlayerId = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remotePlayerId,
+            PlayerName = "Remote Player",
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FFFFFF",
+            PilotAssignments = []
+        };
+        _sut.HandleServerCommand(joinCommand);
+
+        var remotePlayer = _sut.Players.First(p => p.Player.Id == remotePlayerId);
+        remotePlayer.IsLocalPlayer.ShouldBeFalse();
+
+        // The remote player is registered with a no-op join callback (remote players don't publish join).
+        // The callback is not reachable through CanJoin (requires IsLocalPlayer), so invoke it directly.
+        var joinActionField = typeof(PlayerViewModel).GetField("_joinGameAction",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var joinAction = (Action<PlayerViewModel>?)joinActionField!.GetValue(remotePlayer);
+        joinAction.ShouldNotBeNull();
+
+        // Act & Assert - the no-op callback is invoked without throwing
+        Should.NotThrow(() => joinAction.Invoke(remotePlayer));
+    }
     
     [Fact]
     public void HandleCommandInternal_JoinGameCommand_UpdatesExistingLocalPlayer()
@@ -566,6 +597,29 @@ public class JoinGameViewModelTests
         navigationService.Received(1).GetViewModel<BattleMapViewModel>();
         battleMapViewModel.Game.ShouldNotBeNull();
         await navigationService.Received(1).NavigateToViewModelAsync(battleMapViewModel);
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_SetBattleMapCommand_Throws_WhenBattleMapViewModelNotRegistered()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.GetViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
+        _sut.SetNavigationService(navigationService);
+        var command = new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        };
+        var method = typeof(JoinGameViewModel).GetMethod("HandleCommandInternal",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act
+        var task = (Task)method!.Invoke(_sut, [command])!;
+
+        // Assert
+        var exception = await Should.ThrowAsync<Exception>(() => task);
+        exception.Message.ShouldBe("BattleMapViewModel is not registered");
     }
 
     [Fact]
@@ -1417,6 +1471,49 @@ public class JoinGameViewModelTests
 
         // Assert - publisher should be disposed, not retained, and IsConnected should not be restored
         _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        publisher.State.ToString().ShouldBe("Disconnected");
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinError.ShouldBeNull(); // Cancellation, not error
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenDisconnectedDuringCreateAsync_DoesNotRestoreConnection()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var player = _sut.Players.First();
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded("ABCDEF", sessionToken, "Player", player.Player.Id, hostId));
+        var publisher = CreateRelayPublisher("ABCDEF", sessionToken, hostId);
+
+        // Capture the cancellation token passed to CreateAsync and don't complete immediately
+        var createTcs = new TaskCompletionSource<RelayClientPublisher>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var createCalledTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", "ABCDEF", sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var token = ci.Arg<CancellationToken>();
+                // When the token is cancelled, complete with the publisher
+                token.Register(() => createTcs.TrySetResult(publisher));
+                createCalledTcs.TrySetResult();
+                return createTcs.Task;
+            });
+
+        _commandPublisher.ClearReceivedCalls();
+        _adapter.ClearReceivedCalls();
+
+        // Act
+        var joinTask = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        await createCalledTcs.Task; // Ensure CreateAsync is in flight
+        await _sut.Disconnect(); // Cancels the active join token without switching mode
+        await joinTask;
+
+        // Assert - Disconnect aborts the pending join: no publisher is added and connection is not restored
+        _adapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        _adapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinError.ShouldBeNull(); // Cancellation, not error

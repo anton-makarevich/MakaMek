@@ -237,6 +237,26 @@ public class BattleMapViewModelTests
         await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
     }
 
+    [Fact]
+    public async Task NavigateToEndGame_NavigatesToRoot_WhenEndGameViewModelIsNull()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns((EndGameViewModel?)null);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).NavigateToRootAsync();
+    }
+
     [Theory]
     [InlineData(1, "Select Unit",true)]
     [InlineData(0, "", false)]
@@ -419,6 +439,28 @@ public class BattleMapViewModelTests
 
         // Assert
         terrainAssetService.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ImageService_ShouldBeInitialized_FromConstructor()
+    {
+        // Arrange
+        var imageService = Substitute.For<IImageService>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        // Act
+        var viewModel = new BattleMapViewModel(
+            imageService,
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
+
+        // Assert
+        viewModel.ImageService.ShouldBe(imageService);
     }
 
     [Fact]
