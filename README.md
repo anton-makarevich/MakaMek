@@ -58,14 +58,19 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Support of roads and bridges (including bridge collision and skidding)
 </details>
 
-### Phase 3. Internet multiplayer — next 🚧
+### Phase 3. Internet multiplayer — in progress 🚧
 - [Network Multiplayer PRD](docs/project/network-prd.md) - Relay-hub architecture for internet play
 
-#### Planned
-- Implement and deploy `MakaMek.Hub`: a containerized ASP.NET Core service with a REST room-management API and a thin, WebSockets-only SignalR relay. The relay carries opaque messages only; game logic remains on the host player device.
-- Add shareable room codes and REST room lifecycle management: create, join, ready, close, and member removal. Session tokens authenticate relay connections; the room creator is the authoritative server.
-- Add separate **Host Online** and **Host LAN** flows. Every supported client head, including browser/WASM, can host online by running `ServerGame` locally and connecting outbound to the relay.
-- Handle host loss gracefully by returning peers to a safe menu state. Host migration is out of scope.
+#### Implemented
+- `MakaMek.Hub`: a containerized ASP.NET Core service with a REST room-management API and a thin, WebSockets-only SignalR relay. The relay carries opaque messages only; game logic remains on the host player device. A Docker image is built and published to GHCR.
+- Shareable room codes and REST room lifecycle management: create, join, ready, close, and member removal. Session tokens authenticate relay connections; the room creator is the authoritative server.
+- Separate **Host Online** and **Host LAN** flows. Every supported client head, including browser/WASM, can host online by running `ServerGame` locally and connecting outbound to the relay.
+- Host loss handled gracefully by returning peers to a safe menu state. Host migration is out of scope.
+- Comprehensive hub test suite covering REST endpoints, room lifecycle, relay fan-out, and rate limiting.
+
+#### Remaining
+- Public deployment of the hub (clients currently default to a locally deployed hub via `MAKAMEK_RELAY_BASE_URL`).
+- End-to-end verification across desktop ↔ web ↔ mobile through the relay.
 
 
 ### Future Phases
