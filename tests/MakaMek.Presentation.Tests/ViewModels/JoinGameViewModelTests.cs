@@ -533,8 +533,12 @@ public class JoinGameViewModelTests
         var joinAction = (Action<PlayerViewModel>?)joinActionField!.GetValue(remotePlayer);
         joinAction.ShouldNotBeNull();
 
-        // Act & Assert - the no-op callback is invoked without throwing
+        // Clear recorded calls so we only observe the callback's own behavior
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act & Assert - the no-op callback is invoked without throwing and publishes no command
         Should.NotThrow(() => joinAction.Invoke(remotePlayer));
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
     }
     
     [Fact]
