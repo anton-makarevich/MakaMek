@@ -295,7 +295,6 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             {
                 GameOriginId = _localGame.Id
             });
-            RefreshConnectionState();
         }
         catch (OperationCanceledException)
         {
@@ -307,13 +306,13 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             _logger.LogError(ex, "Error joining online game");
             await _gameConnector.Disconnect();
             JoinError = GetJoinErrorText(_gameConnector.OnlineError);
-            RefreshConnectionState();
         }
         finally
         {
             _activeJoinCts?.Dispose();
             _activeJoinCts = null;
             IsJoining = false;
+            RefreshConnectionState();
         }
     }
 
