@@ -17,7 +17,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game;
 public class GameConnectorTests : IDisposable
 {
     private readonly ICommandPublisher _commandPublisher;
-    private readonly CommandTransportAdapter _transportAdapter;
+    private readonly ICommandTransportAdapter _transportAdapter;
     private readonly ITransportFactory _transportFactory;
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly IRelayPublisherFactory _relayPublisherFactory;
@@ -27,10 +27,8 @@ public class GameConnectorTests : IDisposable
     public GameConnectorTests()
     {
         _commandPublisher = Substitute.For<ICommandPublisher>();
-        // Use a real adapter to verify publisher add/remove/clear behavior
-        var loggerFactory = Substitute.For<ILoggerFactory>();
-        loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
-        _transportAdapter = new CommandTransportAdapter(loggerFactory);
+        // Use a substitute for the adapter to allow simulating exceptions in tests
+        _transportAdapter = Substitute.For<ICommandTransportAdapter>();
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _transportFactory = Substitute.For<ITransportFactory>();
@@ -86,7 +84,8 @@ public class GameConnectorTests : IDisposable
 
         // Assert
         await _transportFactory.Received(1).CreateAndStartClientPublisher("http://localhost:2439/makamekhub");
-        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+        await _transportAdapter.Received(1).ClearPublishers();
+        _transportAdapter.Received(1).AddPublisher(publisher);
         _sut.IsConnected.ShouldBeTrue();
         _sut.OnlineError.ShouldBeNull();
     }
@@ -105,8 +104,9 @@ public class GameConnectorTests : IDisposable
         await _sut.ConnectToLan("http://localhost:2439/makamekhub");
 
         // Assert
-        _transportAdapter.TransportPublishers.ShouldNotContain(firstPublisher);
-        _transportAdapter.TransportPublishers.ShouldContain(secondPublisher);
+        await _transportAdapter.Received(2).ClearPublishers();
+        _transportAdapter.Received(1).AddPublisher(firstPublisher);
+        _transportAdapter.Received(1).AddPublisher(secondPublisher);
         _sut.IsConnected.ShouldBeTrue();
     }
 
@@ -122,7 +122,42 @@ public class GameConnectorTests : IDisposable
 
         // Assert
         _sut.IsConnected.ShouldBeFalse();
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Fact]
+    public async Task ConnectToLanAsync_WhenPublisherIsAsyncDisposable_DisposesOnFailure()
+    {
+        // Arrange
+        var asyncDisposablePublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        _transportFactory.CreateAndStartClientPublisher(Arg.Any<string>())
+            .Returns(Task.FromResult(asyncDisposablePublisher));
+        _transportAdapter.When(a => a.AddPublisher(Arg.Any<ITransportPublisher>()))
+            .Throw(new InvalidOperationException("add failed"));
+
+        // Act
+        await _sut.ConnectToLan("http://localhost:2439/makamekhub");
+
+        // Assert - publisher is disposed asynchronously when adding fails
+        await ((IAsyncDisposable)asyncDisposablePublisher).Received(1).DisposeAsync();
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ConnectToLanAsync_WhenDisposeAsyncThrows_SwallowsException()
+    {
+        // Arrange - create a publisher that throws when disposed
+        var throwingPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
+            .Throw(new InvalidOperationException("dispose boom"));
+        _transportFactory.CreateAndStartClientPublisher(Arg.Any<string>())
+            .Returns(Task.FromResult(throwingPublisher));
+        _transportAdapter.When(a => a.AddPublisher(Arg.Any<ITransportPublisher>()))
+            .Throw(new InvalidOperationException("add failed"));
+
+        // Act & Assert - should not throw
+        await Should.NotThrowAsync(() => _sut.ConnectToLan("http://localhost:2439/makamekhub"));
+        _sut.IsConnected.ShouldBeFalse();
     }
 
     // ---------- Online join ----------
@@ -140,7 +175,7 @@ public class GameConnectorTests : IDisposable
         sut.OnlineError.ShouldNotBeNull();
         sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
         sut.IsConnected.ShouldBeFalse();
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
     }
 
     [Fact]
@@ -159,7 +194,7 @@ public class GameConnectorTests : IDisposable
         _sut.IsConnected.ShouldBeFalse();
         await _relayPublisherFactory.DidNotReceive().CreateAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
     }
 
     [Fact]
@@ -199,7 +234,9 @@ public class GameConnectorTests : IDisposable
         // Assert
         await _relayPublisherFactory.Received(1).CreateAsync(
             "http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>());
-        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+        await _transportAdapter.Received(1).ClearPublishers();
+        _transportAdapter.Received(1).AddPublisher(publisher);
+        _transportAdapter.Received(1).RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>());
         _sut.IsConnected.ShouldBeTrue();
         _sut.OnlineError.ShouldBeNull();
     }
@@ -221,7 +258,69 @@ public class GameConnectorTests : IDisposable
         _sut.OnlineError.ShouldNotBeNull();
         _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
         _sut.IsConnected.ShouldBeFalse();
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_WhenCleanupRemovePublisherThrows_SwallowsException()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync(roomCode, playerId, "Player", Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded(roomCode, sessionToken, "Player", playerId, hostId));
+
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        // Make adapter throw when removing publisher, then make CreateAsync fail
+        _transportAdapter.When(a => a.RemovePublisher(publisher))
+            .Throw(new InvalidOperationException("remove boom"));
+        _commandPublisher.Adapter.Returns(_transportAdapter);
+
+        // Re-configure CreateAsync to fail after JoinAsync succeeds
+        _relayPublisherFactory.CreateAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Throws(new InvalidOperationException("create boom"));
+
+        // Act & Assert - should not throw from cleanup
+        await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, playerId, "Player"));
+        _sut.OnlineError.ShouldNotBeNull();
+        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_WhenCleanupDisposeThrows_SwallowsException()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+
+        _relayRoomClient.JoinAsync(roomCode, playerId, "Player", Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded(roomCode, sessionToken, "Player", playerId, hostId));
+
+        // Create a publisher that throws when disposed
+        var throwingPublisher = Substitute.For<RelayClientPublisher>(
+            "http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());
+        throwingPublisher.When(x => x.DisposeAsync())
+            .Throw(new InvalidOperationException("dispose boom"));
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(throwingPublisher));
+
+        // CreateAsync succeeds but then we cancel before adding
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        _relayPublisherFactory.When(f => f.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>()))
+            .Do(_ => cts.Cancel());
+
+        // Act & Assert - dispose exception should be swallowed
+        await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, playerId, "Player", cts.Token));
     }
 
     [Fact]
@@ -239,7 +338,7 @@ public class GameConnectorTests : IDisposable
 
         _sut.OnlineError.ShouldBeNull();
         _sut.IsConnected.ShouldBeFalse();
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
     }
 
     [Fact]
@@ -265,7 +364,34 @@ public class GameConnectorTests : IDisposable
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.OnlineError.ShouldBeNull();
         _sut.IsConnected.ShouldBeFalse();
-        _transportAdapter.TransportPublishers.Count.ShouldBe(0);
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_WhenCancelledAfterCreateAsync_CleansUpAndRethrows()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostId = Guid.NewGuid();
+        _relayRoomClient.JoinAsync(roomCode, playerId, "Player", Arg.Any<CancellationToken>())
+            .Returns(RoomJoinResult.Succeeded(roomCode, sessionToken, "Player", playerId, hostId));
+        using var cts = new CancellationTokenSource();
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+
+        // Cancel after CreateAsync completes
+        _relayPublisherFactory.When(f => f.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>()))
+            .Do(_ => cts.Cancel());
+
+        // Act & Assert
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => _sut.JoinOnline(roomCode, playerId, "Player", cts.Token));
+
+        _sut.IsConnected.ShouldBeFalse();
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
     }
 
     [Fact]
@@ -376,7 +502,7 @@ public class GameConnectorTests : IDisposable
         // Assert
         await _relayRoomClient.Received(1).RemoveMemberAsync(
             "ABCDEF", "session-token", Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        _transportAdapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
     }
@@ -392,7 +518,7 @@ public class GameConnectorTests : IDisposable
         // Act & Assert
         await Should.NotThrowAsync(() => _sut.Disconnect());
 
-        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        _transportAdapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
     }
@@ -411,7 +537,22 @@ public class GameConnectorTests : IDisposable
         await _sut.Disconnect();
 
         // Assert
-        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        await _transportAdapter.Received(2).ClearPublishers();
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_WhenClearPublishersThrows_SwallowsAndCompletes()
+    {
+        // Arrange
+        await JoinOnlineAsync(_sut);
+        var mockAdapter = Substitute.For<ICommandTransportAdapter>();
+        mockAdapter.When(a => a.ClearPublishers())
+            .Throw(new InvalidOperationException("clear failed"));
+        _commandPublisher.Adapter.Returns(mockAdapter);
+
+        // Act & Assert - should not throw
+        await Should.NotThrowAsync(() => _sut.Disconnect());
         _sut.IsConnected.ShouldBeFalse();
     }
 
@@ -445,7 +586,7 @@ public class GameConnectorTests : IDisposable
         // Assert
         await _relayRoomClient.Received(1).RemoveMemberAsync(
             "ABCDEF", "session-token", Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        _transportAdapter.Received(1).RemovePublisher(publisher);
         publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
     }
