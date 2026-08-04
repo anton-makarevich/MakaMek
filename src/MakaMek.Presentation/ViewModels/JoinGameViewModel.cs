@@ -1,10 +1,8 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -18,8 +16,6 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
-using Sanet.Transport;
-using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
@@ -34,13 +30,9 @@ public enum JoinMode
 
 public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 {
-    private readonly ITransportFactory _transportFactory;
-    private readonly IRelayRoomClient? _relayRoomClient;
-    private readonly IRelayPublisherFactory? _relayPublisherFactory;
-    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly IGameConnector _gameConnector;
     private readonly ILocalizationService _localizationService;
     private JoinMode _joinMode = JoinMode.Lan;
-    private RelayClientPublisher? _onlineRelayPublisher;
     private CancellationTokenSource? _activeJoinCts;
 
     public JoinGameViewModel(
@@ -48,14 +40,11 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         ICommandPublisher commandPublisher,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
-        ITransportFactory transportFactory,
+        IGameConnector gameConnector,
         IFileCachingService cachingService,
         IBotManager botManager,
         ILogger<JoinGameViewModel> logger,
         IMechFactory mechFactory,
-        IRelayRoomClient? relayRoomClient = null,
-        IRelayPublisherFactory? relayPublisherFactory = null,
-        IOptions<RelayClientOptions>? relayOptions = null,
         ILocalizationService? localizationService = null)
         : base(unitsLoader,
             commandPublisher,
@@ -66,10 +55,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             mechFactory,
             logger)
     {
-        _transportFactory = transportFactory;
-        _relayRoomClient = relayRoomClient;
-        _relayPublisherFactory = relayPublisherFactory;
-        _relayOptions = relayOptions;
+        _gameConnector = gameConnector;
         _localizationService = localizationService ?? new FakeLocalizationService();
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
@@ -153,21 +139,10 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
     public string ServerAddress => $"http://{ServerIp}:2439/makamekhub";
 
-    public bool IsConnected
-    {
-        get;
-        private set
-        {
-            SetProperty(ref field, value);
-            // Update UI based on connection status
-            foreach (var player in _players)
-            {
-                player.RefreshStatus();
-            }
-            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
-            NotifyPropertyChanged(nameof(CanJoin));
-        }
-    }
+    /// <summary>
+    /// Gets whether the client is currently connected, either over LAN or through the relay.
+    /// </summary>
+    public bool IsConnected => _gameConnector.IsConnected;
 
     public ICommand ConnectCommand { get; private set; }
 
@@ -279,6 +254,20 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         JoinError = null;
     }
 
+    private void RefreshConnectionState()
+    {
+        foreach (var player in _players)
+        {
+            player.RefreshStatus();
+        }
+        (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        NotifyPropertyChanged(nameof(IsConnected));
+        NotifyPropertyChanged(nameof(CanConnect));
+        NotifyPropertyChanged(nameof(CanJoin));
+        NotifyPropertyChanged(nameof(CanAddPlayer));
+    }
+
     private async Task JoinRoom()
     {
         if (!CanJoin) return;
@@ -288,67 +277,25 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
         try
         {
-            // Online joining requires the relay room client, publisher factory, and options
-            if (_relayRoomClient is null || _relayPublisherFactory is null || _relayOptions is null)
-            {
-                JoinError = _localizationService.GetString("Join_ConfigurationError");
-                return;
-            }
-
             _activeJoinCts = new CancellationTokenSource();
 
             var playerData = GetLocalPlayerData();
-            var result = await _relayRoomClient.JoinAsync(RoomCode, playerData.Id, playerData.Name, _activeJoinCts.Token);
+            await _gameConnector.JoinOnline(RoomCode, playerData.Id, playerData.Name, _activeJoinCts.Token);
             if (_joinMode != JoinMode.Online) return;
-            if (!result.Success || result.SessionToken is null || result.HostId is null)
+            if (!_gameConnector.IsConnected)
             {
-                JoinError = GetJoinErrorText(result.Error);
+                JoinError = GetJoinErrorText(_gameConnector.OnlineError);
                 return;
             }
 
-            var baseUrl = _relayOptions?.Value.BaseUrl ?? string.Empty;
-            var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
-            var publisher = await _relayPublisherFactory.CreateAsync(
-                hubUrl,
-                RoomCode,
-                result.SessionToken,
-                result.HostId.Value,
-                _activeJoinCts.Token);
-            _onlineRelayPublisher = publisher;
-            
-            // Check for cancellation immediately after CreateAsync completes
-            if (_activeJoinCts.Token.IsCancellationRequested)
-            {
-                await RemoveAndDisposeOnlinePublisherAsync();
-                return;
-            }
-
-            var adapter = _commandPublisher.Adapter;
-
-            // Clear any existing publishers and prepare for a new connection
-            await adapter.ClearPublishers();
-            adapter.AddPublisher(publisher);
-            adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
             _commandPublisher.Subscribe(HandleServerCommand);
+            CreateAndInitializeLocalGame();
 
-            if (_localGame != null)
-            {
-                _localGame.Dispose();
-                _localGame = null;
-            }
-            _localGame = _gameFactory.CreateClientGame(_commandPublisher);
-
-            // Initialize BotManager with the ClientGame and DecisionEngineProvider
-            var decisionEngineProvider = new DecisionEngineProvider(_localGame);
-            _botManager.Initialize(_localGame, decisionEngineProvider);
-
-            IsConnected = true;
-            _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            _localGame!.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {
                 GameOriginId = _localGame.Id
             });
-            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable join button
-            NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
+            RefreshConnectionState();
         }
         catch (OperationCanceledException)
         {
@@ -358,9 +305,9 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         {
             _commandPublisher.Unsubscribe(HandleServerCommand);
             _logger.LogError(ex, "Error joining online game");
-            await RemoveAndDisposeOnlinePublisherAsync();
-            IsConnected = false;
-            JoinError = _localizationService.GetString("Join_ConnectionFailed");
+            await _gameConnector.Disconnect();
+            JoinError = GetJoinErrorText(_gameConnector.OnlineError);
+            RefreshConnectionState();
         }
         finally
         {
@@ -369,52 +316,6 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             IsJoining = false;
         }
     }
-
-    /// <summary>
-    /// Invoked when the relay publisher reports that the host has disconnected from the room.
-    /// Synthesizes a local <see cref="GameEndedCommand"/> so the client reacts the same way
-    /// it would if the server had sent the command, without requiring further network traffic.
-    /// </summary>
-    /// <param name="publisher">The publisher that lost its connection to the host.</param>
-    private void OnRelayHostDisconnected(ITransportPublisher publisher)
-    {
-        if (_localGame == null || _localGame.IsDisposed) return;
-
-        var command = new GameEndedCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Reason = GameEndReason.HostDisconnected,
-            Timestamp = DateTime.UtcNow
-        };
-        _localGame.HandleCommand(command);
-    }
-
-    private async Task RemoveAndDisposeOnlinePublisherAsync()
-    {
-        if (_onlineRelayPublisher == null) return;
-        try
-        {
-            _commandPublisher.Adapter.RemovePublisher(_onlineRelayPublisher);
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure, but log the cleanup issue
-            _logger.LogWarning(ex, "Failed to remove online relay publisher during cleanup");
-        }
-        try
-        {
-            await DisposeOnlinePublisherAsync(_onlineRelayPublisher);
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure, but log the cleanup issue
-            _logger.LogWarning(ex, "Failed to dispose online relay publisher during cleanup");
-        }
-        _onlineRelayPublisher = null;
-    }
-
-    protected virtual ValueTask DisposeOnlinePublisherAsync(RelayClientPublisher publisher) =>
-        publisher.DisposeAsync();
 
     private string GetJoinErrorText(RelayClientError? error)
     {
@@ -439,43 +340,24 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
         try
         {
-            // Get access to the adapter from the command publisher
-            var adapter = _commandPublisher.Adapter;
-            
-            // Clear any existing publishers and prepare for a new connection
-            await adapter.ClearPublishers();
-            // Any previously active relay publisher was disposed by the adapter above
-            _onlineRelayPublisher = null;
-            
-            // Create a network client publisher using the factory and connect
-            var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
-            adapter.AddPublisher(client);
+            await _gameConnector.ConnectToLan(ServerAddress);
+            if (!_gameConnector.IsConnected) return;
+
             _commandPublisher.Subscribe(HandleServerCommand);
-            if (_localGame != null)
-            {
-                _localGame.Dispose();
-                _localGame = null;
-            }
-            _localGame = _gameFactory.CreateClientGame(_commandPublisher);
+            CreateAndInitializeLocalGame();
 
-            _localGame.Logger.LogAttemptedToConnectToServerIp(ServerIp);
-            
-            // Initialize BotManager with the ClientGame and DecisionEngineProvider
-            var decisionEngineProvider = new DecisionEngineProvider(_localGame);
-            _botManager.Initialize(_localGame, decisionEngineProvider);
-
-            IsConnected = true;
+            _localGame!.Logger.LogAttemptedToConnectToServerIp(ServerIp);
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {
                 GameOriginId = _localGame.Id
             });
-            (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button
-            NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
+            RefreshConnectionState();
         }
         catch (Exception ex)
         {
             _localGame?.Logger.LogError(ex, "Error connecting to server: {Message}", ex.Message);
-            IsConnected = false;
+            await _gameConnector.Disconnect();
+            RefreshConnectionState();
         }
     }
 
@@ -489,16 +371,14 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             _localGame = null;
         }
         _commandPublisher.Unsubscribe(HandleServerCommand);
-        await RemoveAndDisposeOnlinePublisherAsync();
-        await _commandPublisher.Adapter.ClearPublishers();
-        IsConnected = false;
-        (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
-        NotifyPropertyChanged(nameof(CanAddPlayer));
+        await _gameConnector.Disconnect();
+        RefreshConnectionState();
     }
 
     public async ValueTask DisposeAsync()
     {
         await Disconnect();
+        await _gameConnector.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 

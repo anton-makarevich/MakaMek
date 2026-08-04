@@ -6,6 +6,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -75,6 +76,25 @@ public abstract class NewGameViewModel : BaseViewModel
 
     // Template method to be implemented by derived classes
     protected abstract Task HandleCommandInternal(IGameCommand command);
+
+    /// <summary>
+    /// Creates the local <see cref="ClientGame"/> via <see cref="IGameFactory"/>, constructs a
+    /// <see cref="DecisionEngineProvider"/> for it, and initializes the <see cref="IBotManager"/>.
+    /// Any previously created local game is disposed first so the setup is safe to run repeatedly.
+    /// </summary>
+    protected void CreateAndInitializeLocalGame()
+    {
+        if (_localGame != null)
+        {
+            _localGame.Dispose();
+            _localGame = null;
+        }
+
+        _localGame = _gameFactory.CreateClientGame(_commandPublisher);
+
+        var decisionEngineProvider = new DecisionEngineProvider(_localGame);
+        _botManager.Initialize(_localGame, decisionEngineProvider);
+    }
 
     // Common player management
     protected void PublishJoinCommand(PlayerViewModel playerVm)

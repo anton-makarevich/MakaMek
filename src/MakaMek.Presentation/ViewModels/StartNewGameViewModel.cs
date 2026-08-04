@@ -4,7 +4,6 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -121,12 +120,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Avoid double-subscribing if this flow runs more than once (e.g. when restarting hosting)
         _commandPublisher.Unsubscribe(HandleServerCommand);
         _commandPublisher.Subscribe(HandleServerCommand);
-        // Use the factory to create the ClientGame
-        _localGame = _gameFactory.CreateClientGame(_commandPublisher);
 
-        // Initialize BotManager with the ClientGame and DecisionEngineProvider
-        var decisionEngineProvider = new DecisionEngineProvider(_localGame);
-        _botManager.Initialize(_localGame, decisionEngineProvider);
+        // Reuse an existing local game; only create it the first time this flow runs.
+        // Re-creating would dispose a game that an overlapping initialization may still be using.
+        if (_localGame != null)
+            return;
+
+        CreateAndInitializeLocalGame();
     }
 
     // Implementation of the abstract method from the base class

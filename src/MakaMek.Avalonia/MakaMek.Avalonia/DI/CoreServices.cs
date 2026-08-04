@@ -127,6 +127,7 @@ public static class CoreServices
         services.AddSingleton<ITerrainBitmaskService, TerrainBitmaskService>();
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
         services.AddSingleton<IGameManager, GameManager>();
+        services.AddTransient<IGameConnector, GameConnector>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
         services.AddSingleton<IHashService, HashService>();
         services.AddSingleton<IBotManager, BotManager>();

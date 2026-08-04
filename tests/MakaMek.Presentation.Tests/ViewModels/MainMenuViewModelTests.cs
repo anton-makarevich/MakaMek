@@ -116,7 +116,7 @@ public class MainMenuViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IDispatcherService>(),
             Substitute.For<IGameFactory>(),
-            Substitute.For<ITransportFactory>(),
+            Substitute.For<IGameConnector>(),
             Substitute.For<IFileCachingService>(),
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<JoinGameViewModel>>(),
