@@ -275,13 +275,21 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         IsJoining = true;
         JoinError = null;
 
+        CancellationTokenSource? joinCts = null;
         try
         {
-            _activeJoinCts = new CancellationTokenSource();
+            joinCts = new CancellationTokenSource();
+            _activeJoinCts = joinCts;
 
             var playerData = GetLocalPlayerData();
-            await _gameConnector.JoinOnline(RoomCode, playerData.Id, playerData.Name, _activeJoinCts.Token);
-            if (_joinMode != JoinMode.Online) return;
+            await _gameConnector.JoinOnline(RoomCode, playerData.Id, playerData.Name, joinCts.Token);
+            if (_joinMode != JoinMode.Online)
+            {
+                // A newer join superseded this one; clean up any connection it left behind
+                if (!ReferenceEquals(_activeJoinCts, joinCts))
+                    await _gameConnector.Disconnect();
+                return;
+            }
             if (!_gameConnector.IsConnected)
             {
                 JoinError = GetJoinErrorText(_gameConnector.OnlineError);
@@ -309,8 +317,12 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
         finally
         {
-            _activeJoinCts?.Dispose();
-            _activeJoinCts = null;
+            // Only clear the token source we own; a newer join may have replaced it
+            if (ReferenceEquals(_activeJoinCts, joinCts))
+            {
+                _activeJoinCts?.Dispose();
+                _activeJoinCts = null;
+            }
             IsJoining = false;
             RefreshConnectionState();
         }

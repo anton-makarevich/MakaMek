@@ -276,15 +276,12 @@ public class GameConnectorTests : IDisposable
         _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
 
-        // Make adapter throw when removing publisher, then make CreateAsync fail
+        // Make the adapter throw when adding the publisher to trigger the failure
+        // path, then throw again when removing it during cleanup
+        _transportAdapter.When(a => a.AddPublisher(publisher))
+            .Throw(new InvalidOperationException("add boom"));
         _transportAdapter.When(a => a.RemovePublisher(publisher))
             .Throw(new InvalidOperationException("remove boom"));
-        _commandPublisher.Adapter.Returns(_transportAdapter);
-
-        // Re-configure CreateAsync to fail after JoinAsync succeeds
-        _relayPublisherFactory.CreateAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Throws(new InvalidOperationException("create boom"));
 
         // Act & Assert - should not throw from cleanup
         await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, playerId, "Player"));
@@ -313,14 +310,15 @@ public class GameConnectorTests : IDisposable
         _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(throwingPublisher));
 
-        // CreateAsync succeeds but then we cancel before adding
-        using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
-        _relayPublisherFactory.When(f => f.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>()))
-            .Do(_ => cts.Cancel());
+        // Make the adapter throw when adding the publisher to trigger the failure path
+        _transportAdapter.When(a => a.AddPublisher(throwingPublisher))
+            .Throw(new InvalidOperationException("add boom"));
 
         // Act & Assert - dispose exception should be swallowed
-        await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, playerId, "Player", cts.Token));
+        await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, playerId, "Player"));
+        _sut.OnlineError.ShouldNotBeNull();
+        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        _sut.IsConnected.ShouldBeFalse();
     }
 
     [Fact]
