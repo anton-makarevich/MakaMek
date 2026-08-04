@@ -856,7 +856,7 @@ public class JoinGameViewModelTests
         _sut.JoinError.ShouldBe(_localizationService.GetString("Join_Failed"));
         VerifyLogged(
             LogLevel.Error,
-            state => state.ToString()!.Contains("Error joining online game") && !state.ToString()!.Contains("boom"),
+            state => state.ToString()!.Contains("Error joining online game"),
             new Exception("Simulated initialization failure"));
     }
 

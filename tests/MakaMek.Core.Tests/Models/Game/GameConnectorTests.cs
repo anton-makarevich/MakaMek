@@ -353,9 +353,10 @@ public class GameConnectorTests : IDisposable
             .Returns(RoomJoinResult.Succeeded(roomCode, sessionToken, "Player", playerId, hostId));
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
-        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, cts.Token)
-            .ThrowsAsync(new OperationCanceledException());
+        _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        _relayPublisherFactory.When(f => f.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>()))
+            .Do(_ => cts.Cancel());
 
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(
@@ -365,6 +366,7 @@ public class GameConnectorTests : IDisposable
         _sut.OnlineError.ShouldBeNull();
         _sut.IsConnected.ShouldBeFalse();
         _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        await _relayRoomClient.Received(1).RemoveMemberAsync(roomCode, sessionToken, playerId);
     }
 
     [Fact]

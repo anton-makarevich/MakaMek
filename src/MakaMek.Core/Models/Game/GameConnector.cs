@@ -97,6 +97,8 @@ public class GameConnector : IGameConnector
         }
 
         RelayClientPublisher? publisher = null;
+        string? successfulSessionToken = null;
+        Guid? successfulPlayerId = null;
         try
         {
             var joinResult = await _relayRoomClient.JoinAsync(roomCode, playerId, playerName, cancellationToken);
@@ -108,6 +110,9 @@ public class GameConnector : IGameConnector
                         "The relay did not return the values required to join.");
                 return;
             }
+            
+            successfulSessionToken = joinResult.SessionToken;
+            successfulPlayerId = playerId;
 
             var baseUrl = _relayOptions.Value.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
@@ -122,6 +127,7 @@ public class GameConnector : IGameConnector
             // Check for cancellation immediately after CreateAsync completes
             if (cancellationToken.IsCancellationRequested)
             {
+                await RemoveRelayMembership(roomCode, successfulSessionToken!, successfulPlayerId.Value);
                 await RemoveAndDisposeOnlinePublisher(publisher);
                 throw new OperationCanceledException(cancellationToken);
             }
@@ -141,6 +147,8 @@ public class GameConnector : IGameConnector
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             await RemoveAndDisposeOnlinePublisher(publisher);
+            if (successfulSessionToken != null && successfulPlayerId != null)
+                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulPlayerId.Value);
             throw;
         }
         catch (Exception)
@@ -149,6 +157,8 @@ public class GameConnector : IGameConnector
                 RelayClientErrorCode.NetworkError,
                 "Failed to connect the client to the relay.");
             await RemoveAndDisposeOnlinePublisher(publisher);
+            if (successfulSessionToken != null && successfulPlayerId != null)
+                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulPlayerId.Value);
         }
     }
 
@@ -162,7 +172,10 @@ public class GameConnector : IGameConnector
     private void OnRelayHostDisconnected(ITransportPublisher publisher)
     {
         if (publisher != _relayPublisher) return;
+        if (!IsConnected) return;
 
+        IsConnected = false;
+        
         var command = new GameEndedCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -197,22 +210,27 @@ public class GameConnector : IGameConnector
     }
 
     public Task Disconnect(CancellationToken cancellationToken = default) =>
-        Teardown(cancellationToken);
+        Teardown();
 
-    private async Task Teardown(CancellationToken cancellationToken = default)
+    private async Task RemoveRelayMembership(string roomCode, string sessionToken, Guid playerId)
+    {
+        if (_relayRoomClient == null) return;
+        try
+        {
+            await _relayRoomClient.RemoveMemberAsync(roomCode, sessionToken, playerId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove member from relay room {RoomCode}", roomCode);
+        }
+    }
+
+    private async Task Teardown()
     {
         // Best-effort guest leave of the online room, if one is active
         if (_relayRoomClient != null && _roomCode != null && _sessionToken != null && _playerId != null)
         {
-            try
-            {
-                await _relayRoomClient.RemoveMemberAsync(_roomCode, _sessionToken, _playerId.Value, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                // Swallow to avoid masking the original failure; leaving the room is best-effort
-                _logger.LogWarning(ex, "Failed to remove member from relay room {RoomCode}", _roomCode);
-            }
+            await RemoveRelayMembership(_roomCode, _sessionToken, _playerId.Value);
         }
 
         // Remove and dispose the relay publisher if it was created
@@ -238,6 +256,13 @@ public class GameConnector : IGameConnector
     public void Dispose()
     {
         if (_isDisposed) return;
+        
+        IsConnected = false;
+        _relayPublisher = null;
+        _roomCode = null;
+        _sessionToken = null;
+        _playerId = null;
+        
         _isDisposed = true;
         GC.SuppressFinalize(this);
     }

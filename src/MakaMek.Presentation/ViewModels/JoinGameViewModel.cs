@@ -354,6 +354,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
         catch (Exception ex)
         {
+            _commandPublisher.Unsubscribe(HandleServerCommand);
             _localGame?.Logger.LogError(ex, "Error connecting to server: {Message}", ex.Message);
             await _gameConnector.Disconnect();
             RefreshConnectionState();
