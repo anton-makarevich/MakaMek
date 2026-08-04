@@ -127,7 +127,9 @@ public class GameConnector : IGameConnector
             // Check for cancellation immediately after CreateAsync completes
             if (cancellationToken.IsCancellationRequested)
             {
-                await RemoveRelayMembership(roomCode, successfulSessionToken!, successfulPlayerId.Value);
+                await RemoveRelayMembership(roomCode, successfulSessionToken!, successfulPlayerId!.Value);
+                successfulSessionToken = null;
+                successfulPlayerId = null;
                 await RemoveAndDisposeOnlinePublisher(publisher);
                 throw new OperationCanceledException(cancellationToken);
             }
