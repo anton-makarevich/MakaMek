@@ -544,7 +544,7 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
-    public async Task DisconnectAsync_WhenClearPublishersThrows_SwallowsAndCompletes()
+    public async Task DisconnectAsync_WhenClearPublishersThrows_SwallsAndCompletes()
     {
         // Arrange
         await JoinOnlineAsync(_sut);
@@ -555,6 +555,22 @@ public class GameConnectorTests : IDisposable
 
         // Act & Assert - should not throw
         await Should.NotThrowAsync(() => _sut.Disconnect());
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_WhenRemovePublisherThrows_LogsWarningAndCompletes()
+    {
+        // Arrange
+        var publisher = await JoinOnlineAsync(_sut);
+        _transportAdapter.When(a => a.RemovePublisher(publisher))
+            .Throw(new InvalidOperationException("remove failed"));
+
+        // Act & Assert - should not throw
+        await Should.NotThrowAsync(() => _sut.Disconnect());
+        _logger.Received(1).LogWarning(
+            Arg.Any<InvalidOperationException>(),
+            "Failed to remove relay publisher during cleanup");
         _sut.IsConnected.ShouldBeFalse();
     }
 
