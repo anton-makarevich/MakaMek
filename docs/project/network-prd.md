@@ -1,7 +1,7 @@
 # Network Multiplayer (Relay Hub) - Product Requirements Document
 
 **Date:** 2026-07-17
-**Status:** Draft — all decision tickets resolved (#1225, #1229, #1230, #1231, #1232); ready for implementation planning
+**Status:** Implementation in progress — all decision tickets resolved (#1225, #1229, #1230, #1231, #1232). Hub, REST room API, relay transport, and client integration are implemented; see README Phase 3 for the implemented/remaining breakdown.
 **Wayfinder map:** [Network PRD: relay-hub multiplayer #1224](https://github.com/anton-makarevich/MakaMek/issues/1224)
 
 ## Executive Summary
