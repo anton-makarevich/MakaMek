@@ -529,6 +529,37 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task InitializeLobbyOnline_WhenCloseThrowsDuringFailureCleanup_SwallowsAndCleansUp()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var playerId = Guid.NewGuid();
+        var hostId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
+        var readyError = new RelayClientError(RelayClientErrorCode.HostNotReady, "Host did not confirm ready");
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Failed(readyError));
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("relay unreachable"));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline(playerId, "Host");
+
+        sut.OnlineError.ShouldBe(readyError);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        sut.ServerGameId.ShouldBeNull();
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Dispose_WhenOnlineServerRunning_DisposesRelayPublisher()
     {
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
