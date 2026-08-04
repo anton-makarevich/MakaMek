@@ -1,0 +1,48 @@
+using Sanet.MakaMek.Core.Services.Transport.Relay;
+
+namespace Sanet.MakaMek.Core.Models.Game;
+
+/// <summary>
+/// Owns all client-side connection networking: connecting to a LAN server, joining an
+/// online room through the cloud relay, and tearing the connection down. Presentation
+/// layers drive networking exclusively through this interface.
+/// </summary>
+public interface IGameConnector : IDisposable, IAsyncDisposable
+{
+    /// <summary>
+    /// Connects to a LAN server as a client using the given server address.
+    /// </summary>
+    /// <param name="serverAddress">Address of the LAN hub to connect to.</param>
+    Task ConnectToLan(string serverAddress);
+
+    /// <summary>
+    /// Joins an online game room hosted through the cloud relay.
+    /// </summary>
+    /// <param name="roomCode">Room code of the lobby to join.</param>
+    /// <param name="playerId">Id of the local player joining the room.</param>
+    /// <param name="playerName">Name of the local player joining the room.</param>
+    /// <param name="cancellationToken">Cancellation token for the join lifecycle calls.</param>
+    Task JoinOnline(
+        string roomCode,
+        Guid playerId,
+        string playerName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Leaves the current game connection, removing the client from an online room when
+    /// joined through the relay. Best-effort and idempotent: failures are swallowed and
+    /// calling this when nothing is connected is a no-op.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the leave calls.</param>
+    Task Disconnect(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a value indicating whether the client is connected to a game server.
+    /// </summary>
+    bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets the last error reported by the online join flow, if any.
+    /// </summary>
+    RelayClientError? OnlineError { get; }
+}
