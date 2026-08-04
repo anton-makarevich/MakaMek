@@ -3,7 +3,7 @@ using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
-public interface ICommandTransportAdapter: IDisposable
+public interface ICommandTransportAdapter : IAsyncDisposable
 {
     IReadOnlyList<ITransportPublisher> TransportPublishers { get; }
 
@@ -20,9 +20,9 @@ public interface ICommandTransportAdapter: IDisposable
     void RemovePublisher(ITransportPublisher publisher);
 
     /// <summary>
-    /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
+    /// Clears all transport publishers from the adapter and disposes them if they implement IAsyncDisposable
     /// </summary>
-    void ClearPublishers();
+    Task ClearPublishers();
 
     /// <summary>
     /// Converts an IGameCommand to a TransportMessage and publishes it to all publishers
@@ -35,4 +35,13 @@ public interface ICommandTransportAdapter: IDisposable
     /// </summary>
     /// <param name="onCommandReceived">Callback for received commands</param>
     void Initialize(Action<IGameCommand, ITransportPublisher> onCommandReceived);
+
+    /// <summary>
+    /// Registers a callback invoked when a transport publisher reports that its underlying
+    /// connection was lost because the remote host disconnected (e.g. relay host loss).
+    /// Only publishers that support disconnect notifications will trigger this callback;
+    /// publishers that do not are silently ignored.
+    /// </summary>
+    /// <param name="onPublisherDisconnected">Callback invoked with the publisher that lost its connection.</param>
+    void RegisterDisconnectHandler(Action<ITransportPublisher> onPublisherDisconnected);
 }

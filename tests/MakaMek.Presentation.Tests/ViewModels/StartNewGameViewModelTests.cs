@@ -77,7 +77,7 @@ public class StartNewGameViewModelTests
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider,
                 Substitute.For<IPlatformService>());
-        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
+        _navigationService.GetNewViewModelAsync<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
 
 
@@ -148,7 +148,7 @@ public class StartNewGameViewModelTests
     public async Task StartGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnBattleMapViewModel()
     {
         // Arrange
-        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
+        _navigationService.GetNewViewModelAsync<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab so the Map is non-null
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartGameCommand)
@@ -164,6 +164,42 @@ public class StartNewGameViewModelTests
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
+    public async Task StartGameCommand_WhenOnlineMode_ClosesOnlineRoomBeforeSettingBattleMap()
+    {
+        var closeTcs = new TaskCompletionSource();
+        _gameManager.CloseOnlineRoom(Arg.Any<CancellationToken>()).Returns(closeTcs.Task);
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
+        _sut.IsOnlineMode = true;
+
+        var commandTask = ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+        
+        // Assert SetBattleMap has not been called while close task is incomplete
+        await Task.Delay(50);
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+        
+        // Complete the close task
+        closeTcs.SetResult();
+        await commandTask;
+
+        await _gameManager.Received(1).CloseOnlineRoom(Arg.Any<CancellationToken>());
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
+    public async Task StartGameCommand_WhenLanMode_DoesNotCloseOnlineRoom()
+    {
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
+        _sut.IsLanMode = true;
+
+        await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+
+        await _gameManager.DidNotReceive().CloseOnlineRoom(Arg.Any<CancellationToken>());
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
     }
 

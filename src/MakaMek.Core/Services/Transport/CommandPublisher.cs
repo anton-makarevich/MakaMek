@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// Implementation of ICommandPublisher that uses a CommandTransportAdapter
 /// for serialization and transport
 /// </summary>
-public class CommandPublisher : ICommandPublisher, IDisposable
+public class CommandPublisher : ICommandPublisher, IAsyncDisposable
 {
     private readonly List<Action<IGameCommand>> _subscribers = [];
     private readonly Dictionary<Action<IGameCommand>, ITransportPublisher> _subscriberTransports = new();
@@ -103,13 +103,14 @@ public class CommandPublisher : ICommandPublisher, IDisposable
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         lock (_syncLock)
         {
             _subscribers.Clear();
             _subscriberTransports.Clear();
         }
-        Adapter.Dispose();
+        await Adapter.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 }

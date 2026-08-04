@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
+using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
@@ -20,6 +21,10 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
 {
     private readonly List<ITransportPublisher> _transportPublishers = [];
     private Action<IGameCommand, ITransportPublisher>? _onCommandReceived;
+    private Action<ITransportPublisher>? _onPublisherDisconnected;
+    // Tracks the delegate registered on each publisher's HostDisconnected event so it can be
+    // unsubscribed later (Action has no equality semantics beyond delegate reference).
+    private readonly Dictionary<ITransportPublisher, Action> _disconnectHandlers = new();
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -77,9 +82,14 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             {
                 SubscribePublisher(publisher, _onCommandReceived);
             }
+
+            if (_onPublisherDisconnected != null)
+            {
+                SubscribeDisconnectHandler(publisher, _onPublisherDisconnected);
+            }
         }
     }
-    
+
     /// <summary>
     /// Removes a transport publisher from the adapter without disposing it.
     /// </summary>
@@ -89,20 +99,26 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         lock (_initLock)
         {
             _transportPublishers.Remove(publisher);
+            UnsubscribeDisconnectHandler(publisher);
         }
     }
 
     /// <summary>
-    /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
+    /// Clears all transport publishers from the adapter and disposes them if they implement IAsyncDisposable
     /// </summary>
-    public void ClearPublishers()
+    public async Task ClearPublishers()
     {
         // Take a stable snapshot and clear the shared state under lock
         ITransportPublisher[] snapshot;
         lock (_initLock)
         {
             snapshot = _transportPublishers.ToArray();
+            foreach (var publisher in snapshot)
+            {
+                UnsubscribeDisconnectHandler(publisher);
+            }
             _onCommandReceived = null;
+            _onPublisherDisconnected = null;
             _isInitialized = false;
             _transportPublishers.Clear();
         }
@@ -110,10 +126,10 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         // Dispose publishers outside the lock
         foreach (var publisher in snapshot)
         {
-            if (publisher is not IDisposable disposable) continue;
+            if (publisher is not IAsyncDisposable asyncDisposable) continue;
             try
             {
-                disposable.Dispose();
+                await asyncDisposable.DisposeAsync();
             }
             catch (Exception ex)
             {
@@ -179,7 +195,34 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             SubscribePublisher(publisher, onCommandReceived);
         }
     }
-    
+
+    /// <summary>
+    /// Registers a callback invoked when a transport publisher reports that its underlying
+    /// connection was lost because the remote host disconnected (e.g. relay host loss).
+    /// Only publishers that support disconnect notifications will trigger this callback;
+    /// publishers that do not are silently ignored. Only the first registration takes effect,
+    /// mirroring the behavior of <see cref="Initialize"/>.
+    /// </summary>
+    /// <param name="onPublisherDisconnected">Callback invoked with the publisher that lost its connection.</param>
+    public void RegisterDisconnectHandler(Action<ITransportPublisher> onPublisherDisconnected)
+    {
+        ITransportPublisher[] publishersSnapshot;
+        lock (_initLock)
+        {
+            if (_onPublisherDisconnected != null)
+                return; // Already registered, do nothing
+
+            _onPublisherDisconnected = onPublisherDisconnected;
+            publishersSnapshot = [.. _transportPublishers]; // Stable snapshot
+        }
+
+        // Subscribe outside the lock to minimize lock hold time
+        foreach (var publisher in publishersSnapshot)
+        {
+            SubscribeDisconnectHandler(publisher, onPublisherDisconnected);
+        }
+    }
+
     /// <summary>
     /// Serializes an IGameCommand to a JSON string
     /// </summary>
@@ -247,8 +290,37 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         });
     }
 
-    public void Dispose()
+    // Helper method to encapsulate disconnect-notification subscription logic.
+    // Only publishers that expose a HostDisconnected notification (currently RelayClientPublisher)
+    // are supported; other publisher types are silently ignored.
+    private void SubscribeDisconnectHandler(ITransportPublisher publisher, Action<ITransportPublisher> onPublisherDisconnected)
     {
-        ClearPublishers();
+        if (publisher is not RelayClientPublisher relayPublisher) return;
+
+        lock (_initLock)
+        {
+            if (_disconnectHandlers.ContainsKey(publisher)) return;
+
+            void Handler() => onPublisherDisconnected(publisher);
+            relayPublisher.HostDisconnected += Handler;
+            _disconnectHandlers[publisher] = Handler;
+        }
+    }
+
+    // Helper method to remove a previously registered disconnect-notification subscription.
+    private void UnsubscribeDisconnectHandler(ITransportPublisher publisher)
+    {
+        if (publisher is not RelayClientPublisher relayPublisher) return;
+
+        if (_disconnectHandlers.Remove(publisher, out var handler))
+        {
+            relayPublisher.HostDisconnected -= handler;
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return new ValueTask(ClearPublishers());
     }
 }

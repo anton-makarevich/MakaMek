@@ -222,7 +222,7 @@ public class BattleMapViewModelTests
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
         var endGameViewModel = new EndGameViewModel(_localizationService);
-        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = game;
@@ -233,8 +233,28 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModel<EndGameViewModel>();
+        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
+    }
+
+    [Fact]
+    public async Task NavigateToEndGame_NavigatesToRoot_WhenEndGameViewModelIsNull()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns((EndGameViewModel?)null);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.Victory });
+
+        // Act
+        await _sut.NavigateToEndGame();
+
+        // Assert
+        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).NavigateToRootAsync();
     }
 
     [Theory]
@@ -419,6 +439,28 @@ public class BattleMapViewModelTests
 
         // Assert
         terrainAssetService.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ImageService_ShouldBeInitialized_FromConstructor()
+    {
+        // Arrange
+        var imageService = Substitute.For<IImageService>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        // Act
+        var viewModel = new BattleMapViewModel(
+            imageService,
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
+
+        // Assert
+        viewModel.ImageService.ShouldBe(imageService);
     }
 
     [Fact]
@@ -2862,7 +2904,7 @@ public class BattleMapViewModelTests
         _sut.Game = game;
         var navigationService = Substitute.For<INavigationService>();
         var endGameViewModel = new EndGameViewModel(_localizationService);
-        navigationService.GetNewViewModel<EndGameViewModel>().Returns(endGameViewModel);
+        navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         _sut.SetNavigationService(navigationService);
 
         var gameEndedCommand = new GameEndedCommand

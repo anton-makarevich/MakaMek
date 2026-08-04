@@ -5,6 +5,7 @@ using Sanet.Transport;
 using Shouldly;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -17,6 +18,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Map.Models;
+using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
@@ -520,11 +522,11 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void ClearPublishers_DisposesAndClearsAllPublishers()
+    public async Task ClearPublishers_DisposesAndClearsAllPublishers()
     {
         // Arrange
-        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
-        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
 
@@ -537,12 +539,12 @@ public class CommandTransportAdapterTests
         sut.Initialize(commandCallback);
 
         // Act
-        sut.ClearPublishers();
+        await sut.ClearPublishers();
 
         // Assert
         // Verify Dispose was called on disposable publishers
-        ((IDisposable)disposablePublisher1).Received(1).Dispose();
-        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+        await ((IAsyncDisposable)disposablePublisher1).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)disposablePublisher2).Received(1).DisposeAsync();
 
         // Verify publishers list is empty by publishing a command (should not be received)
         var command = new TurnIncrementedCommand
@@ -571,14 +573,14 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void ClearPublishers_ContinuesDisposingAfterException()
+    public async Task ClearPublishers_ContinuesDisposingAfterException()
     {
         // Arrange
-        var throwingPublisher = Substitute.For<ITransportPublisher, IDisposable>();
-        var normalPublisher = Substitute.For<ITransportPublisher, IDisposable>();
+        var throwingPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var normalPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
 
         // Configure the first publisher to throw an exception when disposed
-        ((IDisposable)throwingPublisher).When(x => x.Dispose())
+        ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
             .Do(_ => throw new InvalidOperationException("Test exception during dispose"));
 
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
@@ -586,12 +588,12 @@ public class CommandTransportAdapterTests
         sut.Initialize((_,_) => {});
 
         // Act - This should not throw despite the exception in Dispose()
-        Should.NotThrow(() => sut.ClearPublishers());
+        await Should.NotThrowAsync(sut.ClearPublishers);
 
         // Assert
         // Verify that both publishers had Dispose() called, even though the first one threw
-        ((IDisposable)throwingPublisher).Received(1).Dispose();
-        ((IDisposable)normalPublisher).Received(1).Dispose();
+        await ((IAsyncDisposable)throwingPublisher).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)normalPublisher).Received(1).DisposeAsync();
 
         // Verify that the publishers list was cleared
         var command = new TurnIncrementedCommand
@@ -606,11 +608,11 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void Dispose_CallsClearPublishersAndDisposesAllDisposablePublishers()
+    public async Task Dispose_CallsClearPublishersAndDisposesAllDisposablePublishers()
     {
         // Arrange
-        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
-        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
         _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
 
@@ -622,11 +624,11 @@ public class CommandTransportAdapterTests
         sut.Initialize((_, _) => { });
 
         // Act
-        sut.Dispose();
+        await sut.DisposeAsync();
 
         // Assert - Dispose was called on disposable publishers
-        ((IDisposable)disposablePublisher1).Received(1).Dispose();
-        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+        await ((IAsyncDisposable)disposablePublisher1).Received(1).DisposeAsync();
+        await ((IAsyncDisposable)disposablePublisher2).Received(1).DisposeAsync();
 
         // Assert - publishers list is cleared (publishing does nothing)
         var command = new TurnIncrementedCommand
@@ -891,5 +893,99 @@ public class CommandTransportAdapterTests
         roundTripped.PilotingSkillRoll.IsSuccessful.ShouldBe(standUpCommand.PilotingSkillRoll.IsSuccessful);
         roundTripped.PilotingSkillRoll.PsrBreakdown.BasePilotingSkill.ShouldBe(4);
         roundTripped.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7); // 4 + 2 + 1
+    }
+
+    private static RelayClientPublisher CreateRelayPublisher() =>
+        new("http://hub.local/hubs/relay", "ABC123", "session-token", NullLogger<RelayClientPublisher>.Instance);
+
+    [Fact]
+    public void RegisterDisconnectHandler_InvokedWhenRelayPublisherHostDisconnects()
+    {
+        // Arrange
+        SetupAdapter();
+        var relayPublisher = CreateRelayPublisher();
+        _sut.AddPublisher(relayPublisher);
+
+        ITransportPublisher? disconnectedPublisher = null;
+
+        // Act
+        _sut.RegisterDisconnectHandler(p => disconnectedPublisher = p);
+        // Trigger the event via reflection since RelayClientPublisher does not expose a public raise method
+        var eventField = typeof(RelayClientPublisher).GetField("HostDisconnected",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var handler = eventField?.GetValue(relayPublisher) as Action;
+        handler?.Invoke();
+
+        // Assert
+        disconnectedPublisher.ShouldBe(relayPublisher);
+    }
+
+    [Fact]
+    public void RegisterDisconnectHandler_IgnoresNonRelayPublishers()
+    {
+        // Arrange
+        SetupAdapter(); // Uses a plain ITransportPublisher substitute
+        var called = false;
+
+        // Act
+        Should.NotThrow(() => _sut.RegisterDisconnectHandler(_ => called = true));
+
+        // Assert
+        called.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RegisterDisconnectHandler_CalledMultipleTimes_RegistersOnlyOnce()
+    {
+        // Arrange
+        SetupAdapter();
+        var relayPublisher = CreateRelayPublisher();
+        _sut.AddPublisher(relayPublisher);
+        var callCount = 0;
+
+        // Act
+        _sut.RegisterDisconnectHandler(_ => callCount++);
+        _sut.RegisterDisconnectHandler(_ => callCount++); // Should be ignored
+
+        var eventField = typeof(RelayClientPublisher).GetField("HostDisconnected",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var handler = eventField?.GetValue(relayPublisher) as Action;
+        handler?.Invoke();
+
+        // Assert
+        callCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void RemovePublisher_UnsubscribesDisconnectHandler()
+    {
+        // Arrange
+        SetupAdapter();
+        var relayPublisher = CreateRelayPublisher();
+        _sut.AddPublisher(relayPublisher);
+        var called = false;
+        _sut.RegisterDisconnectHandler(_ => called = true);
+
+        // Act
+        _sut.RemovePublisher(relayPublisher);
+        var eventField = typeof(RelayClientPublisher).GetField("HostDisconnected",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var handler = eventField?.GetValue(relayPublisher) as Action;
+        handler?.Invoke();
+
+        // Assert
+        called.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AddPublisher_SubscribesDisconnectHandlerWhenAlreadyRegistered()
+    {
+        // Arrange
+        SetupAdapter();
+        _sut.RegisterDisconnectHandler(_ => { });
+        var relayPublisher = CreateRelayPublisher();
+
+        // Act & Assert - should not throw when adding after registration
+        Should.NotThrow(() => _sut.AddPublisher(relayPublisher));
     }
 }

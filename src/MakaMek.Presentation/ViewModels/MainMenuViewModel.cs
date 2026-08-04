@@ -88,7 +88,7 @@ public class MainMenuViewModel : BaseViewModel
 
     private async Task NavigateToViewModel<TViewModel>() where TViewModel : BaseViewModel
     {
-        var viewModel = NavigationService.GetNewViewModel<TViewModel>();
+        var viewModel = await NavigationService.GetNewViewModelAsync<TViewModel>();
         if (viewModel == null)
         {
             throw new InvalidOperationException($"{typeof(TViewModel).Name} is not registered");

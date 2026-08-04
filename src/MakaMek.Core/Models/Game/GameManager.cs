@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -21,17 +22,20 @@ public class GameManager : IGameManager
     private bool _isDisposed;
     private readonly ILocalizationService _localizationService;
     private readonly ICommandLoggerFactory _commandLoggerFactory;
+    private readonly ILogger<GameManager> _logger;
     private ICommandLogger? _commandLogger;
     private Action<IGameCommand>? _logHandler;
     private readonly IRelayRoomClient? _relayRoomClient;
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
     private readonly IOptions<RelayClientOptions>? _relayOptions;
     private RelayClientPublisher? _onlineRelayPublisher;
+    private string? _onlineSessionToken;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
         ILocalizationService localizationService,
         ICommandLoggerFactory commandLoggerFactory,
+        ILogger<GameManager> logger,
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
@@ -41,6 +45,7 @@ public class GameManager : IGameManager
         _gameFactory = gameFactory;
         _localizationService = localizationService;
         _commandLoggerFactory = commandLoggerFactory;
+        _logger = logger;
         _networkHostService = networkHostService;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
@@ -174,15 +179,16 @@ public class GameManager : IGameManager
                     ?? new RelayClientError(
                         RelayClientErrorCode.Unknown,
                         "The relay did not confirm the room as ready.");
-                await CleanupOnlineAfterFailureAsync(publisher);
+                await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
                 return;
             }
 
             RoomCode = createResult.RoomCode;
+            _onlineSessionToken = createResult.SessionToken;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await CleanupOnlineAfterFailureAsync(publisher);
+            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
             throw;
         }
         catch (Exception)
@@ -190,7 +196,7 @@ public class GameManager : IGameManager
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.Unknown,
                 "Failed to connect the host to the relay.");
-            await CleanupOnlineAfterFailureAsync(publisher);
+            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
         }
     }
 
@@ -236,11 +242,56 @@ public class GameManager : IGameManager
         }
     }
 
+    public async Task CloseOnlineRoom(CancellationToken cancellationToken = default)
+    {
+        // Only attempt to close when an online room is actually active and we have
+        // everything required to authenticate the close call with the relay.
+        if (_onlineRelayPublisher == null
+            || RoomCode == null
+            || _onlineSessionToken == null
+            || _relayRoomClient == null)
+            return;
+
+        try
+        {
+            await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+
+            // Only clear the state once the close call has completed, so a failed
+            // attempt can be retried and the room is not considered closed prematurely.
+            _onlineSessionToken = null;
+            RoomCode = null;
+        }
+        catch (Exception ex)
+        {
+            // Swallow to avoid masking the original failure; closing the room is best-effort
+            _logger.LogWarning(ex, "Failed to close relay room {RoomCode}", RoomCode);
+        }
+    }
+
+    private async Task CloseRelayRoomAndCleanupAsync(string? roomCode, string? sessionToken, RelayClientPublisher? publisher)
+    {
+        // Best-effort close of the relay room before local cleanup
+        if (roomCode != null && sessionToken != null && _relayRoomClient != null)
+        {
+            try
+            {
+                await _relayRoomClient.CloseAsync(roomCode, sessionToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to close relay room {RoomCode} during failure cleanup", roomCode);
+            }
+        }
+        
+        await CleanupOnlineAfterFailureAsync(publisher);
+    }
+
     private async Task CleanupOnlineAfterFailureAsync(RelayClientPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
         await RemoveAndDisposeOnlinePublisherAsync(publisher);
         _onlineRelayPublisher = null;
+        _onlineSessionToken = null;
         RoomCode = null;
 
         // Dispose server game if it was created
@@ -307,6 +358,9 @@ public class GameManager : IGameManager
 
         // Dispose network host
         _networkHostService?.Dispose();
+
+        // Close the online relay room, if any, before tearing down the publisher
+        await CloseOnlineRoom();
 
         // Remove and dispose online relay publisher if it exists
         await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);

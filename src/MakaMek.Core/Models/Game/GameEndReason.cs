@@ -4,5 +4,6 @@ public enum GameEndReason
 {
     Unknown,
     Victory,
-    PlayersLeft
+    PlayersLeft,
+    HostDisconnected
 }

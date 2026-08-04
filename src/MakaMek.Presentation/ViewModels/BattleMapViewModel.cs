@@ -928,16 +928,24 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         return Task.CompletedTask;
     }
 
-    public Task NavigateToEndGame()
+    public async Task NavigateToEndGame()
     {
         // If the game ended with victory, navigate to the end game screen
         // For other reasons navigate back to a menu
-        if (GameEndReason != GameEndReason.Victory || _game == null) return GoToMainMenu();
-        var endGameViewModel = NavigationService.GetNewViewModel<EndGameViewModel>();
-        if (endGameViewModel == null) return GoToMainMenu();
+        if (GameEndReason != GameEndReason.Victory || _game == null)
+        {
+            await GoToMainMenu();
+            return;
+        }
+        var endGameViewModel = await NavigationService.GetNewViewModelAsync<EndGameViewModel>();
+        if (endGameViewModel == null)
+        {
+            await GoToMainMenu();
+            return;
+        }
         // Initialize the end game view model with the game and reason
         endGameViewModel.Initialize(_game, GameEndReason);
-        return NavigationService.NavigateToViewModelAsync(endGameViewModel);
+        await NavigationService.NavigateToViewModelAsync(endGameViewModel);
     }
     
     public void Dispose()
