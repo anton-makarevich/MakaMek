@@ -394,7 +394,7 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public async Task InitializeLobbyAndSubscribe_WhenOnlineModeSucceeds_SetsRoomCodeAndCreatesLocalGame()
+    public async Task SettingOnlineMode_AutoStartsOnlineHosting_SetsRoomCodeAndCreatesLocalGame()
     {
         var gameManager = Substitute.For<IGameManager>();
         gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -405,9 +405,8 @@ public class StartNewGameViewModelTests
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
-        sut.IsOnlineMode = true;
 
-        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        sut.IsOnlineMode = true;
 
         sut.RoomCode.ShouldBe("ABCDEF");
         sut.HostingError.ShouldBeNull();
@@ -441,26 +440,29 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_ReturnsWithoutSettingRoomCode()
+    public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_DoesNotChangeState()
     {
         var gameManager = Substitute.For<IGameManager>();
         gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
         sut.IsOnlineMode = true;
+        sut.RoomCode.ShouldBe("ABCDEF");
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         await sut.InitializeLobbyAndSubscribe(cts.Token);
 
-        sut.RoomCode.ShouldBeNull();
+        sut.RoomCode.ShouldBe("ABCDEF");
         sut.HostingError.ShouldBeNull();
-        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     [Fact]
-    public async Task CancelAndRestartServer_WhenOnlineSucceeds_NavigatesToBattleMap()
+    public async Task CancelAndRestartServer_WhenOnlineSucceeds_SetsRoomCodeAndDoesNotNavigate()
     {
         var gameManager = Substitute.For<IGameManager>();
         gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -477,7 +479,9 @@ public class StartNewGameViewModelTests
 
         await sut.CancelAndRestartServer();
 
-        await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.HostingError.ShouldBeNull();
+        await _navigationService.DidNotReceive().NavigateToViewModelAsync(_battleMapViewModel);
     }
 
     [Fact]
@@ -664,9 +668,79 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void RestartLanServerCommand_IsNotNull()
+    public void CanChangeHostMode_WhenNoPlayersJoined_IsTrue()
     {
-        _sut.RestartLanServerCommand.ShouldNotBeNull();
+        _sut.CanChangeHostMode.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanChangeHostMode_WhenPlayerJoined_IsFalse()
+    {
+        _sut.Players.First().Player.Status = PlayerStatus.Joined;
+
+        _sut.CanChangeHostMode.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SetHostMode_WhenPlayerJoined_DoesNotChangeMode()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.AddPlayerCommand!.Execute(null);
+        sut.Players.First().Player.Status = PlayerStatus.Joined;
+
+        sut.IsOnlineMode = true;
+
+        sut.IsOnlineMode.ShouldBeFalse();
+        sut.IsLanMode.ShouldBeTrue();
+        sut.CanChangeHostMode.ShouldBeFalse();
+        await gameManager.DidNotReceive().InitializeLobbyOnline(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CancelAndRestartServer_WhenPlayerJoined_DoesNotRestart()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.AddPlayerCommand!.Execute(null);
+        sut.Players.First().Player.Status = PlayerStatus.Ready;
+
+        await sut.CancelAndRestartServer();
+
+        await gameManager.DidNotReceive().InitializeLobby();
+        await gameManager.DidNotReceive().InitializeLobbyOnline(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleServerCommand_RemotePlayerJoin_DisablesHostModeChange()
+    {
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        var playerId = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "RemotePlayer",
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#00FF00",
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
+        };
+
+        _sut.HandleServerCommand(joinCommand);
+        _sut.HandleServerCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerId,
+            PlayerStatus = PlayerStatus.Joined,
+            GameOriginId = _serverGameId
+        });
+
+        _sut.CanChangeHostMode.ShouldBeFalse();
     }
 
     [Fact]
