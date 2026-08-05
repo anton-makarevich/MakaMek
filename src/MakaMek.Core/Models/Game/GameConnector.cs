@@ -122,6 +122,7 @@ public class GameConnector : IGameConnector
                 roomCode,
                 joinResult.SessionToken,
                 joinResult.HostId.Value,
+                _relayOptions.Value.ApiKey,
                 cancellationToken);
 
             // Throw if cancelled; the cancellation catch block below is the single

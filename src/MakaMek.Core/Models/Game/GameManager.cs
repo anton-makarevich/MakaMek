@@ -164,6 +164,7 @@ public class GameManager : IGameManager
                 createResult.RoomCode,
                 createResult.SessionToken,
                 createResult.HostId.Value,
+                _relayOptions?.Value.ApiKey ?? string.Empty,
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);

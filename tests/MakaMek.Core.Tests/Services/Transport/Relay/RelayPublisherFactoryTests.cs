@@ -12,6 +12,7 @@ public class RelayPublisherFactoryTests
 {
     private const string RoomCode = "ABCDEF";
     private const string SessionToken = "session-token";
+    private const string ApiKey = "api-key";
 
     private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(10);
 
@@ -32,7 +33,7 @@ public class RelayPublisherFactoryTests
         await cts.CancelAsync();
 
         var exception = await Should.ThrowAsync<OperationCanceledException>(
-            () => _sut.CreateAsync("http://127.0.0.1:1/hubs/relay", RoomCode, SessionToken, Guid.NewGuid(), cts.Token));
+            () => _sut.CreateAsync("http://127.0.0.1:1/hubs/relay", RoomCode, SessionToken, Guid.NewGuid(), ApiKey, cts.Token));
 
         exception.CancellationToken.ShouldBe(cts.Token);
     }
@@ -47,7 +48,7 @@ public class RelayPublisherFactoryTests
 
         await WithTimeout(
             Should.ThrowAsync<Exception>(
-                () => _sut.CreateAsync($"http://127.0.0.1:{port}/hubs/relay", RoomCode, SessionToken, Guid.NewGuid())));
+                () => _sut.CreateAsync($"http://127.0.0.1:{port}/hubs/relay", RoomCode, SessionToken, Guid.NewGuid(), ApiKey)));
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public class RelayPublisherFactoryTests
         var hubUrl = host.Urls.First().TrimEnd('/') + "/hubs/relay";
 
         var publisher = await WithTimeout(
-            _sut.CreateAsync(hubUrl, RoomCode, SessionToken, Guid.NewGuid()));
+            _sut.CreateAsync(hubUrl, RoomCode, SessionToken, Guid.NewGuid(), ApiKey));
 
         await using var _ = publisher;
         publisher.IsConnected.ShouldBeTrue();
