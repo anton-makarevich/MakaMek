@@ -37,6 +37,11 @@ dotnet run --project src/MakaMek.Hub/MakaMek.Hub.csproj
 
 The service starts on `http://localhost:5000` (ASP.NET default) with the `Development` environment profile.
 
+Set environment to Development:
+```bash
+$env:ASPNETCORE_ENVIRONMENT="Development"
+```
+
 Set the API key via environment variable or `appsettings.Development.json`:
 
 ```bash
@@ -68,3 +73,13 @@ The container listens on `http://localhost:8080` in `Production` mode.
 | POST | `/api/rooms/{roomCode}/close` | Close a room (requires `X-Api-Key` + `Session-Token` header, host only) |
 | DELETE | `/api/rooms/{roomCode}/members/{playerId}` | Remove a member (requires `X-Api-Key` + `Session-Token` header, host only) |
 | WebSocket | `/hubs/relay` | SignalR hub for game relay (requires `apiKey` and `sessionToken` query parameters) |
+
+
+## Connecting Clients
+
+Once Hub is running and the API key is set, open 2 terminals (one for host, another one for client) and run MakaMek.Desktop app in every terminal, setting ApiKey and Hub uri:
+```bash
+$env:MAKAMEK_RELAY_API_KEY = "dev-key"
+$env:MAKAMEK_RELAY_BASE_URL = "http://localhost:5000"
+dotnet run --project src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/MakaMek.Avalonia.Desktop.csproj 
+```

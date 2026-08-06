@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
@@ -130,15 +129,6 @@ public sealed class RelayHub : Hub<IRelayHub>
                 roomCode,
                 session.RoomCode);
             throw new HubException("Caller is not a member of the specified room.");
-        }
-
-        if (message.Payload is null)
-        {
-            _logger.LogWarning(
-                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: payload must not be null",
-                Context.ConnectionId,
-                session.RoomCode);
-            throw new HubException("Payload must not be null.");
         }
 
         var payloadBytes = Encoding.UTF8.GetByteCount(message.Payload);
