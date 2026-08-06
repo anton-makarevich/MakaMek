@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Sanet.MakaMek.Hub.Controllers;
 using Sanet.MakaMek.Hub.Contracts;
@@ -19,7 +20,7 @@ public class RoomsControllerTests
 
     public RoomsControllerTests()
     {
-        _sut = new RoomsController(_roomManager)
+        _sut = new RoomsController(_roomManager, NullLogger<RoomsController>.Instance)
         {
             ControllerContext = new ControllerContext
             {

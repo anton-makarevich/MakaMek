@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 using Sanet.MakaMek.Hub.Rooms;
@@ -933,7 +934,8 @@ public class RoomManagerTests
                 MaxConcurrentRooms = maxConcurrentRooms,
                 RoomTtlSeconds = roomTtlSeconds,
                 DissolutionGracePeriodSeconds = dissolutionGracePeriodSeconds
-            }));
+            }),
+            NullLogger<RoomManager>.Instance);
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

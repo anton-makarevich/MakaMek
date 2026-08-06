@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Hub.Contracts;
@@ -66,7 +67,7 @@ public class RelayHubTests
         var rateLimiter = Substitute.For<IRelayRateLimiter>();
         var roomManager = Substitute.For<IRoomManager>();
         var options = Options.Create(new Configuration.HubOptions());
-        return new RelayHub(rateLimiter, roomManager, options);
+        return new RelayHub(rateLimiter, roomManager, options, NullLogger<RelayHub>.Instance);
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class RelayHubTests
         var roomManager = Substitute.For<IRoomManager>();
         roomManager.GetConnectionId(Arg.Any<string>(), Arg.Any<Guid>()).Returns("other-conn");
         var options = Options.Create(new Configuration.HubOptions());
-        var hub = new RelayHub(rateLimiter, roomManager, options);
+        var hub = new RelayHub(rateLimiter, roomManager, options, NullLogger<RelayHub>.Instance);
 
         var roomCode = "ROOM1";
         var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Client,

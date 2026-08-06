@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Hub.Contracts;
@@ -201,7 +202,7 @@ public class RelayRpcTests
 
         var options = Options.Create(new Configuration.HubOptions { MaxRelayPayloadBytes = 256 * 1024 });
         var roomManager = Substitute.For<IRoomManager>();
-        var hub = new RelayHub(rateLimiter, roomManager, options);
+        var hub = new RelayHub(rateLimiter, roomManager, options, NullLogger<RelayHub>.Instance);
 
         const string roomCode = "UTF8TEST";
         var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Host,

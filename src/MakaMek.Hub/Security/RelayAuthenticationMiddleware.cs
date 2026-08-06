@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Sanet.MakaMek.Hub.Configuration;
@@ -9,14 +10,16 @@ namespace Sanet.MakaMek.Hub.Security;
 
 /// <summary>
 /// Validates query-string API key and session token for the SignalR relay hub path
-/// before the WebSocket upgrade completes.
+/// before the WebSocket upgrade completes. Never logs credentials; only the rejection
+/// reason and (for successful auth) the non-secret session identity.
 /// </summary>
 public sealed class RelayAuthenticationMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(
         HttpContext context,
         IOptions<HubOptions> options,
-        IRoomManager roomManager)
+        IRoomManager roomManager,
+        ILogger<RelayAuthenticationMiddleware> logger)
     {
         if (!context.Request.Path.StartsWithSegments(RelayAuthenticationDefaults.HubPath))
         {
@@ -29,6 +32,9 @@ public sealed class RelayAuthenticationMiddleware(RequestDelegate next)
 
         if (string.IsNullOrWhiteSpace(configuredApiKey) || !IsMatch(configuredApiKey, suppliedApiKey))
         {
+            logger.LogWarning(
+                "Relay hub connection from {RemoteIp} rejected: API key missing or invalid",
+                context.Connection.RemoteIpAddress);
             RejectUnauthorized(context);
             return;
         }
@@ -38,6 +44,9 @@ public sealed class RelayAuthenticationMiddleware(RequestDelegate next)
 
         if (suppliedSessionToken.Count != 1 || string.IsNullOrWhiteSpace(suppliedSessionToken[0]))
         {
+            logger.LogWarning(
+                "Relay hub connection from {RemoteIp} rejected: session token missing or invalid",
+                context.Connection.RemoteIpAddress);
             RejectUnauthorized(context);
             return;
         }
@@ -45,9 +54,19 @@ public sealed class RelayAuthenticationMiddleware(RequestDelegate next)
         var session = roomManager.AuthenticateSession(suppliedSessionToken[0]!);
         if (session is null)
         {
+            logger.LogWarning(
+                "Relay hub connection from {RemoteIp} rejected: session token not recognized",
+                context.Connection.RemoteIpAddress);
             RejectUnauthorized(context);
             return;
         }
+
+        logger.LogInformation(
+            "Relay hub connection from {RemoteIp} authenticated for player {PlayerId} in room {RoomCode} as {Role}",
+            context.Connection.RemoteIpAddress,
+            session.PlayerId,
+            session.RoomCode,
+            session.Role);
 
         context.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey] = session;
         await next(context);

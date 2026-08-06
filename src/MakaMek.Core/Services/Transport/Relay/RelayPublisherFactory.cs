@@ -27,6 +27,12 @@ public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelay
             expectedHostId.ToString(),
             apiKey);
 
+        logger.LogDebug(
+            "Creating RelayClientPublisher for room {RoomCode} at {HubUrl}; expected host {ExpectedHostId}",
+            roomCode,
+            hubUrl,
+            expectedHostId);
+
         // StartAsync does not accept a token, so link one to abandon the publisher
         // promptly if the caller cancels while the connection is being established.
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
