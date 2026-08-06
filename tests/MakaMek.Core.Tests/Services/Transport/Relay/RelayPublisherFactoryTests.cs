@@ -39,6 +39,28 @@ public class RelayPublisherFactoryTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenCancelledDuringConnection_ThrowsOperationCanceledException()
+    {
+        // A listener that accepts TCP connections but never completes the HTTP
+        // handshake keeps the publisher's StartAsync pending while we cancel.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+
+            await Should.ThrowAsync<OperationCanceledException>(
+                () => _sut.CreateAsync($"http://127.0.0.1:{port}/hubs/relay", RoomCode, SessionToken, Guid.NewGuid(), ApiKey, cts.Token));
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
     public async Task CreateAsync_WhenHubUnreachable_Throws()
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);

@@ -621,6 +621,28 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void AuthenticateSession_WhenSessionExpiredButRoomExtended_ReturnsNull()
+    {
+        var now = new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(now);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider);
+        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+        var clientA = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+
+        // Almost a full TTL later, a second member joins, extending the room's
+        // expiry past the point where client A's session has already lapsed.
+        timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds - 1));
+        manager.JoinRoom("ABC234", "Grace v2", Guid.NewGuid());
+
+        timeProvider.Advance(TimeSpan.FromSeconds(2));
+
+        manager.AuthenticateSession(clientA.Session!.Token).ShouldBeNull();
+    }
+
+    [Fact]
     public void AuthenticateSession_WithClosedRoomToken_ReturnsBoundSession()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));

@@ -156,6 +156,109 @@ public class RelayHubTests
             message => message.Contains("exceeds the", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Relay_WithWhitespacePayload_StillRelays()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var hub = CreateHubWithConnectedRelay(logger, out var session, out var roomClients);
+
+        await hub.Relay(session.RoomCode, CreateEnvelope("   "));
+
+        await roomClients.Received(1).OnReceive(Arg.Any<RelayEnvelope>());
+    }
+
+    [Fact]
+    public async Task Relay_WithInvalidJsonPayload_StillRelays()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var hub = CreateHubWithConnectedRelay(logger, out var session, out var roomClients);
+
+        await hub.Relay(session.RoomCode, CreateEnvelope("not-json"));
+
+        await roomClients.Received(1).OnReceive(Arg.Any<RelayEnvelope>());
+    }
+
+    [Fact]
+    public async Task Relay_WithPayloadWithoutMessageType_StillRelays()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var hub = CreateHubWithConnectedRelay(logger, out var session, out var roomClients);
+
+        await hub.Relay(session.RoomCode, CreateEnvelope("{\"other\":1}"));
+
+        await roomClients.Received(1).OnReceive(Arg.Any<RelayEnvelope>());
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_HostConnectionSuperseded_LogsInformation()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.TryMarkHostDisconnected(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>())
+            .Returns(false);
+        var hub = CreateHub(logger, rateLimiter, roomManager);
+
+        var session = new RoomSession(
+            "tok", "ROOM1", Guid.NewGuid(), RoomRole.Host, DateTimeOffset.UtcNow.AddHours(1));
+        hub.Context = ContextForSession(session);
+
+        await hub.OnDisconnectedAsync(null);
+
+        logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("superseded connection remains active", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_WithoutAuthenticatedSession_LogsDebug()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var hub = CreateHub(logger);
+        hub.Context = new TestHubCallerContext(new DefaultHttpContext());
+
+        await hub.OnDisconnectedAsync(null);
+
+        logger.GetMessages(LogLevel.Debug).ShouldContain(
+            message => message.Contains("closed without an authenticated session", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_WithException_LogsWarning()
+    {
+        var logger = new CapturingLogger<RelayHub>();
+        var hub = CreateHub(logger);
+        hub.Context = new TestHubCallerContext(new DefaultHttpContext());
+
+        await hub.OnDisconnectedAsync(new Exception("boom"));
+
+        logger.GetMessages(LogLevel.Warning).ShouldContain(
+            message => message.Contains("closed with error", StringComparison.Ordinal));
+    }
+
+    private static RelayHub CreateHubWithConnectedRelay(
+        ILogger<RelayHub> logger,
+        out RoomSession session,
+        out IRelayHub roomClients)
+    {
+        var rateLimiter = Substitute.For<IRelayRateLimiter>();
+        rateLimiter.TryConsume(Arg.Any<string>()).Returns(true);
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.GetConnectionId(Arg.Any<string>(), Arg.Any<Guid>())
+            .Returns("test-connection-id");
+        var hub = CreateHub(logger, rateLimiter, roomManager);
+
+        session = new RoomSession(
+            "tok", "ROOM1", Guid.NewGuid(), RoomRole.Client, DateTimeOffset.UtcNow.AddHours(1));
+        hub.Context = ContextForSession(session);
+
+        roomClients = Substitute.For<IRelayHub>();
+        var clients = Substitute.For<IHubCallerClients<IRelayHub>>();
+        clients.OthersInGroup(session.RoomCode).Returns(roomClients);
+        hub.Clients = clients;
+
+        return hub;
+    }
+
     private static RelayHub CreateHub(
         ILogger<RelayHub>? logger = null,
         IRelayRateLimiter? rateLimiter = null,

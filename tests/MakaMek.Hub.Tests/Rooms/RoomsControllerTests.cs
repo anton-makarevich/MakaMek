@@ -418,6 +418,68 @@ public class RoomsControllerTests
 
     #endregion
 
+    #region Unhandled outcomes
+
+    [Fact]
+    public void JoinRoom_UnhandledOutcome_ThrowsInvalidOperationException()
+    {
+        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+            .Returns(new RoomJoinResult((RoomJoinOutcome)999, null, null));
+
+        var exception = Should.Throw<InvalidOperationException>(
+            () => _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId)));
+
+        exception.Message.ShouldContain("Unhandled join outcome", Case.Sensitive);
+    }
+
+    [Fact]
+    public void MarkRoomReady_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(new RoomReadyResult((RoomReadyOutcome)999));
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
+    }
+
+    [Fact]
+    public void CloseRoom_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.CloseRoom(RoomCode, SessionToken)
+            .Returns(new RoomCloseResult((RoomCloseOutcome)999));
+
+        var result = _sut.CloseRoom(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<CloseResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
+    }
+
+    [Fact]
+    public void RemoveMember_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        var targetId = Guid.NewGuid();
+        _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
+            .Returns(new RoomRemoveMemberResult((RoomRemoveMemberOutcome)999));
+
+        var result = _sut.RemoveMember(RoomCode, targetId);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<RemoveMemberResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.MemberNotFound);
+    }
+
+    #endregion
+
     #region Logging
 
     [Fact]

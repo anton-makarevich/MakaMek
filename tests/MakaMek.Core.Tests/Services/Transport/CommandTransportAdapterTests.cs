@@ -503,6 +503,26 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
+    public void DeserializeCommand_WhenJsonNullForReferenceTypeCommand_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        SetupAdapter(); // Adapter needed for its internal command type dictionary
+        var message = new TransportMessage
+        {
+            MessageType = nameof(HullBreachCommand),
+            SourceId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            Payload = "null" // Valid JSON literal
+        };
+
+        // Act & Assert
+        // HullBreachCommand is a reference-type record, so a JSON null literal
+        // deserializes to null rather than throwing; the adapter must reject it
+        var exception = Should.Throw<InvalidOperationException>(() => _sut.DeserializeCommand(message));
+        exception.Message.ShouldContain(nameof(HullBreachCommand));
+    }
+
+    [Fact]
     public void Initialize_WithNoPublishers_DoesNotThrow()
     {
         // Arrange
