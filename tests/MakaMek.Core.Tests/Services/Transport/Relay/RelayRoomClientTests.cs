@@ -142,7 +142,7 @@ public class RelayRoomClientTests
         _handler.LastRequestBody.ShouldNotBeNull();
         using (var doc = JsonDocument.Parse(_handler.LastRequestBody!))
         {
-            doc.RootElement.GetProperty("sessionToken").ValueKind.ShouldBe(JsonValueKind.Null);
+            doc.RootElement.TryGetProperty("sessionToken", out _).ShouldBeFalse();
         }
 
         AssertNoSecretsLeaked(result.Error?.Message);

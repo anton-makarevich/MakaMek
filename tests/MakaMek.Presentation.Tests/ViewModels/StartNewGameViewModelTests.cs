@@ -390,7 +390,7 @@ public class StartNewGameViewModelTests
 
         await gameManager.Received(1).InitializeLobby();
         await gameManager.DidNotReceive().InitializeLobbyOnline(
-            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -411,7 +411,7 @@ public class StartNewGameViewModelTests
         sut.RoomCode.ShouldBe("ABCDEF");
         sut.HostingError.ShouldBeNull();
         await gameManager.Received(1).InitializeLobbyOnline(
-            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
         await gameManager.DidNotReceive().InitializeLobby();
         commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         sut.LocalGame.ShouldBe(_clientGame);
@@ -725,7 +725,7 @@ public class StartNewGameViewModelTests
         sut.IsLanMode.ShouldBeTrue();
         sut.CanChangeHostMode.ShouldBeFalse();
         await gameManager.DidNotReceive().InitializeLobbyOnline(
-            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -741,7 +741,7 @@ public class StartNewGameViewModelTests
 
         await gameManager.DidNotReceive().InitializeLobby();
         await gameManager.DidNotReceive().InitializeLobbyOnline(
-            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -796,7 +796,7 @@ public class StartNewGameViewModelTests
         sut.HostingError.ShouldBeNull();
         sut.CanChangeHostMode.ShouldBeFalse();
         await gameManager.Received(2).InitializeLobbyOnline(
-            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
