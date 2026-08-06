@@ -54,7 +54,7 @@ public class RelayPublisherFactoryTests
     [Fact]
     public async Task CreateAsync_WhenHubReachable_ReturnsConnectedPublisher()
     {
-        await using var host = await TestRelayHubHost.StartAsync();
+        await using var host = await TestRelayHubHost.StartAsync(ApiKey);
         var hubUrl = host.Urls.First().TrimEnd('/') + "/hubs/relay";
 
         var publisher = await WithTimeout(
@@ -62,6 +62,28 @@ public class RelayPublisherFactoryTests
 
         await using var _ = publisher;
         publisher.IsConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenHubRejectsWrongApiKey_Throws()
+    {
+        await using var host = await TestRelayHubHost.StartAsync(ApiKey);
+        var hubUrl = host.Urls.First().TrimEnd('/') + "/hubs/relay";
+
+        await WithTimeout(
+            Should.ThrowAsync<Exception>(
+                () => _sut.CreateAsync(hubUrl, RoomCode, SessionToken, Guid.NewGuid(), "wrong-key")));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenHubRequiresApiKey_AndNoneSupplied_Throws()
+    {
+        await using var host = await TestRelayHubHost.StartAsync(ApiKey);
+        var hubUrl = host.Urls.First().TrimEnd('/') + "/hubs/relay";
+
+        await WithTimeout(
+            Should.ThrowAsync<Exception>(
+                () => _sut.CreateAsync(hubUrl, RoomCode, SessionToken, Guid.NewGuid(), string.Empty)));
     }
 
     private static async Task<T> WithTimeout<T>(Task<T> task)
