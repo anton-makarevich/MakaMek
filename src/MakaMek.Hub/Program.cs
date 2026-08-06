@@ -12,6 +12,14 @@ using Sanet.MakaMek.Hub.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Single-line console output with timestamps so room lifecycle, connections and relay
+// traffic are easy to follow while debugging the relay locally.
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff ";
+    options.SingleLine = true;
+});
+
 builder.Services
     .AddOptions<HubOptions>()
     .Bind(builder.Configuration.GetSection(HubOptions.SectionName))

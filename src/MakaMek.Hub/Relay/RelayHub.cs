@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
@@ -24,15 +26,18 @@ public sealed class RelayHub : Hub<IRelayHub>
     private readonly IRelayRateLimiter _rateLimiter;
     private readonly IRoomManager _roomManager;
     private readonly IOptions<HubOptions> _options;
+    private readonly ILogger<RelayHub> _logger;
 
     public RelayHub(
         IRelayRateLimiter rateLimiter,
         IRoomManager roomManager,
-        IOptions<HubOptions> options)
+        IOptions<HubOptions> options,
+        ILogger<RelayHub> logger)
     {
         _rateLimiter = rateLimiter;
         _roomManager = roomManager;
         _options = options;
+        _logger = logger;
     }
 
     public override async Task OnConnectedAsync()
@@ -41,9 +46,19 @@ public sealed class RelayHub : Hub<IRelayHub>
         if (httpContext?.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey]
             is not RoomSession session)
         {
+            _logger.LogWarning(
+                "Relay connection {ConnectionId} rejected: no authenticated session",
+                Context.ConnectionId);
             Context.Abort();
             return;
         }
+
+        _logger.LogInformation(
+            "Relay connection {ConnectionId} connected for player {PlayerId} in room {RoomCode} as {Role}",
+            Context.ConnectionId,
+            session.PlayerId,
+            session.RoomCode,
+            session.Role);
 
         var replacedConnectionId = _roomManager.RegisterConnection(
             session.RoomCode,
@@ -59,6 +74,13 @@ public sealed class RelayHub : Hub<IRelayHub>
 
         if (replacedConnectionId is not null)
         {
+            _logger.LogInformation(
+                "Relay connection {ConnectionId} replaced superseded connection {OldConnectionId} for player {PlayerId} in room {RoomCode}",
+                Context.ConnectionId,
+                replacedConnectionId,
+                session.PlayerId,
+                session.RoomCode);
+
             await Groups.RemoveFromGroupAsync(replacedConnectionId, session.RoomCode);
         }
 
@@ -74,6 +96,14 @@ public sealed class RelayHub : Hub<IRelayHub>
 
                 await Clients.Client(hostConnectionId).OnPeerConnected(Context.ConnectionId);
             }
+            else
+            {
+                _logger.LogWarning(
+                    "Relay connection {ConnectionId} for player {PlayerId} found no host connection in room {RoomCode}",
+                    Context.ConnectionId,
+                    session.PlayerId,
+                    session.RoomCode);
+            }
         }
 
         await base.OnConnectedAsync();
@@ -85,27 +115,49 @@ public sealed class RelayHub : Hub<IRelayHub>
         if (httpContext?.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey]
             is not RoomSession session)
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} rejected: authenticated session is missing",
+                Context.ConnectionId);
             throw new HubException("Authenticated session is missing.");
         }
 
         if (!string.Equals(roomCode, session.RoomCode, StringComparison.Ordinal))
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} rejected: room {RoomCode} does not match the caller's room {SessionRoomCode}",
+                Context.ConnectionId,
+                roomCode,
+                session.RoomCode);
             throw new HubException("Caller is not a member of the specified room.");
         }
 
         if (message.Payload is null)
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: payload must not be null",
+                Context.ConnectionId,
+                session.RoomCode);
             throw new HubException("Payload must not be null.");
         }
 
         var payloadBytes = Encoding.UTF8.GetByteCount(message.Payload);
         if (payloadBytes > _options.Value.MaxRelayPayloadBytes)
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: payload of {PayloadBytes} bytes exceeds the {MaxPayloadBytes} byte limit",
+                Context.ConnectionId,
+                session.RoomCode,
+                payloadBytes,
+                _options.Value.MaxRelayPayloadBytes);
             throw new HubException(nameof(HubErrorCode.MessageTooLarge));
         }
 
         if (!_rateLimiter.TryConsume(Context.ConnectionId))
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: per-connection rate limit exceeded",
+                Context.ConnectionId,
+                session.RoomCode);
             throw new HubException(nameof(HubErrorCode.RateLimited));
         }
 
@@ -113,11 +165,27 @@ public sealed class RelayHub : Hub<IRelayHub>
         var activeConnectionId = _roomManager.GetConnectionId(session.RoomCode, session.PlayerId);
         if (!string.Equals(activeConnectionId, Context.ConnectionId, StringComparison.Ordinal))
         {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: connection was superseded by {ActiveConnectionId}",
+                Context.ConnectionId,
+                session.RoomCode,
+                activeConnectionId);
             throw new HubException(nameof(HubErrorCode.ConnectionSuperseded));
         }
 
         // Hub-tagged identity: overwrite any client-supplied SenderId.
         var outbound = message with { SenderId = Context.ConnectionId };
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug(
+                "Relaying {MessageType} message ({PayloadBytes} bytes) from connection {ConnectionId} to room {RoomCode} (seq {SequenceNumber})",
+                TryGetMessageType(message.Payload),
+                payloadBytes,
+                Context.ConnectionId,
+                session.RoomCode,
+                message.SequenceNumber);
+        }
 
         await Clients.OthersInGroup(session.RoomCode).OnReceive(outbound);
     }
@@ -139,9 +207,23 @@ public sealed class RelayHub : Hub<IRelayHub>
 
                 if (hostDisconnected)
                 {
+                    _logger.LogWarning(
+                        "Host {PlayerId} disconnected from room {RoomCode} (connection {ConnectionId}); notifying clients",
+                        session.PlayerId,
+                        session.RoomCode,
+                        Context.ConnectionId);
+
                     await Clients.Group(session.RoomCode).OnError(new HubError(
                         HubErrorCode.HostDisconnected,
                         "The room host disconnected."));
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Host {PlayerId} connection {ConnectionId} closed in room {RoomCode}; superseded connection remains active",
+                        session.PlayerId,
+                        Context.ConnectionId,
+                        session.RoomCode);
                 }
             }
             else
@@ -153,6 +235,12 @@ public sealed class RelayHub : Hub<IRelayHub>
 
                 if (wasActive)
                 {
+                    _logger.LogInformation(
+                        "Client {PlayerId} disconnected from room {RoomCode} (connection {ConnectionId})",
+                        session.PlayerId,
+                        session.RoomCode,
+                        Context.ConnectionId);
+
                     var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
                     if (hostConnectionId is not null)
                     {
@@ -161,7 +249,51 @@ public sealed class RelayHub : Hub<IRelayHub>
                 }
             }
         }
+        else
+        {
+            _logger.LogDebug(
+                "Relay connection {ConnectionId} closed without an authenticated session",
+                Context.ConnectionId);
+        }
+
+        if (exception is not null)
+        {
+            _logger.LogWarning(
+                exception,
+                "Relay connection {ConnectionId} closed with error",
+                Context.ConnectionId);
+        }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>
+    /// Best-effort extraction of the message type from the opaque envelope payload for logging
+    /// only. The payload is a serialized <see cref="Sanet.Transport.TransportMessage"/> whose
+    /// <c>MessageType</c> identifies the game command. Never throws and never affects relay.
+    /// </summary>
+    private static string? TryGetMessageType(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("MessageType", out var messageType)
+                && messageType.ValueKind == JsonValueKind.String)
+            {
+                return messageType.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            // Non-JSON payloads are relayed untouched; nothing to log.
+        }
+
+        return null;
     }
 }

@@ -61,9 +61,11 @@ public class GameConnector : IGameConnector
             adapter.AddPublisher(publisher);
 
             IsConnected = true;
+            _logger.LogInformation("Connected to LAN server at {ServerAddress}", serverAddress);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to connect to LAN server at {ServerAddress}", serverAddress);
             if (publisher is IAsyncDisposable asyncDisposable)
             {
                 try
@@ -140,6 +142,11 @@ public class GameConnector : IGameConnector
             _playerId = playerId;
 
             IsConnected = true;
+            _logger.LogInformation(
+                "Joined relay room {RoomCode} as player {PlayerId} connected to host {HostId}",
+                roomCode,
+                playerId,
+                joinResult.HostId.Value);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

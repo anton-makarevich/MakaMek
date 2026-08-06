@@ -148,6 +148,12 @@ public class GameManager : IGameManager
                 ?? new RelayClientError(
                     RelayClientErrorCode.Unknown,
                     "The relay did not return the values required to host.");
+            _logger.LogWarning(
+                "Failed to create relay room for player {PlayerId} ({PlayerName}): {ErrorCode} {ErrorMessage}",
+                playerId,
+                playerName,
+                OnlineError?.Code,
+                OnlineError?.Message);
             return;
         }
 
@@ -186,6 +192,11 @@ public class GameManager : IGameManager
 
             RoomCode = createResult.RoomCode;
             _onlineSessionToken = createResult.SessionToken;
+            _logger.LogInformation(
+                "Hosted relay room {RoomCode} for player {PlayerId} ({PlayerName}); relay publisher connected",
+                createResult.RoomCode,
+                playerId,
+                playerName);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

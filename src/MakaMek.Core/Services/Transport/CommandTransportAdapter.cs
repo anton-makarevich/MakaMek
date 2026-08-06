@@ -159,6 +159,12 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             publishersSnapshot = _transportPublishers.ToArray();
         }
 
+        _logger.LogDebug(
+            "Publishing command {MessageType} (origin {GameOriginId}) to {PublisherCount} publisher(s)",
+            message.MessageType,
+            message.SourceId,
+            publishersSnapshot.Length);
+
         foreach (var publisher in publishersSnapshot)
         {
             try
@@ -269,6 +275,10 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
         publisher.Subscribe(message => {
+            _logger.LogDebug(
+                "Received transport message {MessageType} from publisher {PublisherType}",
+                message.MessageType,
+                publisher.GetType().Name);
             try
             {
                 var command = DeserializeCommand(message);

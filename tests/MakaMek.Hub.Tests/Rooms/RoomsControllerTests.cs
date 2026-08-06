@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Hub.Controllers;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
+using Sanet.MakaMek.Hub.Tests.TestLoggers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Hub.Tests.Rooms;
@@ -11,6 +13,7 @@ namespace Sanet.MakaMek.Hub.Tests.Rooms;
 public class RoomsControllerTests
 {
     private readonly IRoomManager _roomManager = Substitute.For<IRoomManager>();
+    private readonly CapturingLogger<RoomsController> _logger = new();
     private readonly RoomsController _sut;
 
     private static readonly Guid PlayerId = Guid.NewGuid();
@@ -19,7 +22,7 @@ public class RoomsControllerTests
 
     public RoomsControllerTests()
     {
-        _sut = new RoomsController(_roomManager)
+        _sut = new RoomsController(_roomManager, _logger)
         {
             ControllerContext = new ControllerContext
             {
@@ -411,6 +414,138 @@ public class RoomsControllerTests
         var response = conflict.Value.ShouldBeOfType<RemoveMemberResponse>();
         response.Success.ShouldBeFalse();
         response.Error!.Code.ShouldBe(HubErrorCode.CannotRemoveHost);
+    }
+
+    #endregion
+
+    #region Unhandled outcomes
+
+    [Fact]
+    public void JoinRoom_UnhandledOutcome_ThrowsInvalidOperationException()
+    {
+        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+            .Returns(new RoomJoinResult((RoomJoinOutcome)999, null, null));
+
+        var exception = Should.Throw<InvalidOperationException>(
+            () => _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId)));
+
+        exception.Message.ShouldContain("Unhandled join outcome", Case.Sensitive);
+    }
+
+    [Fact]
+    public void MarkRoomReady_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(new RoomReadyResult((RoomReadyOutcome)999));
+
+        var result = _sut.MarkRoomReady(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<ReadyResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
+    }
+
+    [Fact]
+    public void CloseRoom_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.CloseRoom(RoomCode, SessionToken)
+            .Returns(new RoomCloseResult((RoomCloseOutcome)999));
+
+        var result = _sut.CloseRoom(RoomCode);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<CloseResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.InvalidRoomState);
+    }
+
+    [Fact]
+    public void RemoveMember_UnhandledOutcome_ReturnsConflictWithDefaultError()
+    {
+        SetSessionTokenHeader(SessionToken);
+        var targetId = Guid.NewGuid();
+        _roomManager.RemoveMember(RoomCode, SessionToken, targetId)
+            .Returns(new RoomRemoveMemberResult((RoomRemoveMemberOutcome)999));
+
+        var result = _sut.RemoveMember(RoomCode, targetId);
+
+        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
+        var response = conflict.Value.ShouldBeOfType<RemoveMemberResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.MemberNotFound);
+    }
+
+    #endregion
+
+    #region Logging
+
+    [Fact]
+    public void JoinRoom_ValidRequest_LogsInformation()
+    {
+        var room = CreateRoom();
+        var session = new RoomSession(SessionToken, RoomCode, PlayerId, RoomRole.Client, DateTimeOffset.UtcNow);
+        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+            .Returns(RoomJoinResult.Joined(room, session));
+
+        _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+
+        _logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("succeeded with role", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void JoinRoom_RoomNotFound_LogsWarning()
+    {
+        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+            .Returns(RoomJoinResult.NotFound());
+
+        _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+
+        _logger.GetMessages(LogLevel.Warning).ShouldContain(
+            message => message.Contains("failed: RoomNotFound", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MarkRoomReady_ValidRequest_LogsInformation()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.MarkRoomReady(RoomCode, SessionToken)
+            .Returns(RoomReadyResult.Ready());
+
+        _sut.MarkRoomReady(RoomCode);
+
+        _logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("marked ready", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CloseRoom_NotHost_LogsWarning()
+    {
+        SetSessionTokenHeader(SessionToken);
+        _roomManager.CloseRoom(RoomCode, SessionToken)
+            .Returns(RoomCloseResult.NotHost());
+
+        _sut.CloseRoom(RoomCode);
+
+        _logger.GetMessages(LogLevel.Warning).ShouldContain(
+            message => message.Contains("failed: NotHost", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CreateRoom_ValidRequest_LogsInformation()
+    {
+        var room = CreateRoom();
+        var session = new RoomSession(SessionToken, RoomCode, PlayerId, RoomRole.Host, DateTimeOffset.UtcNow.AddHours(2));
+        _roomManager.CreateRoom("Ada", PlayerId)
+            .Returns(RoomCreationResult.Created(room, session, 1));
+
+        _sut.CreateRoom(new CreateRoomRequest("Ada", PlayerId));
+
+        _logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("succeeded: room", StringComparison.Ordinal));
     }
 
     #endregion

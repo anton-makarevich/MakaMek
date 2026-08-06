@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 
@@ -19,11 +20,13 @@ public sealed class RoomManager : IRoomManager
     private readonly int _maxConcurrentRooms;
     private readonly TimeSpan _roomTtl;
     private readonly TimeSpan _dissolutionGracePeriod;
+    private readonly ILogger<RoomManager> _logger;
 
     public RoomManager(
         IRoomCodeGenerator roomCodeGenerator,
         TimeProvider timeProvider,
-        IOptions<HubOptions> options)
+        IOptions<HubOptions> options,
+        ILogger<RoomManager> logger)
     {
         _roomCodeGenerator = roomCodeGenerator ?? throw new ArgumentNullException(nameof(roomCodeGenerator));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
@@ -32,6 +35,7 @@ public sealed class RoomManager : IRoomManager
         _maxConcurrentRooms = options.Value.MaxConcurrentRooms;
         _roomTtl = TimeSpan.FromSeconds(options.Value.RoomTtlSeconds);
         _dissolutionGracePeriod = TimeSpan.FromSeconds(options.Value.DissolutionGracePeriodSeconds);
+        _logger = logger;
     }
 
     public RoomCreationResult CreateRoom(string playerName, Guid playerId)
@@ -50,6 +54,12 @@ public sealed class RoomManager : IRoomManager
 
             if (_rooms.Count >= _maxConcurrentRooms)
             {
+                _logger.LogWarning(
+                    "Room creation rejected for player {PlayerId} ({PlayerName}): relay capacity reached ({ActiveRooms}/{MaxRooms})",
+                    playerId,
+                    playerName,
+                    _rooms.Count,
+                    _maxConcurrentRooms);
                 return RoomCreationResult.AtCapacity(_rooms.Count);
             }
 
@@ -65,6 +75,14 @@ public sealed class RoomManager : IRoomManager
             var room = new Room(roomCode, host, session, now, expiresAt);
 
             _rooms.Add(roomCode, room);
+
+            _logger.LogInformation(
+                "Room {RoomCode} created for host {PlayerId} ({PlayerName}); expires {ExpiresAt}; {ActiveRooms} active room(s)",
+                roomCode,
+                playerId,
+                playerName,
+                expiresAt,
+                _rooms.Count);
 
             return RoomCreationResult.Created(room, session, _rooms.Count);
         }
@@ -85,17 +103,32 @@ public sealed class RoomManager : IRoomManager
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room not found",
+                    roomCode,
+                    playerId,
+                    playerName);
                 return RoomJoinResult.NotFound();
             }
 
             if (room.IsExpiredAt(now))
             {
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room expired",
+                    roomCode,
+                    playerId,
+                    playerName);
                 return RoomJoinResult.Expired();
             }
 
             // Terminal dissolution deadline: purge and reject.
             if (room.IsDissolvedAt(now))
             {
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room dissolved",
+                    roomCode,
+                    playerId,
+                    playerName);
                 room.RevokeAllSessions();
                 _rooms.Remove(roomCode);
                 return RoomJoinResult.NotFound();
@@ -103,11 +136,20 @@ public sealed class RoomManager : IRoomManager
 
             if (room.IsHost(playerId))
             {
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode} by player {PlayerId}: player is the room host",
+                    roomCode,
+                    playerId);
                 return RoomJoinResult.HostPlayerIdConflict();
             }
 
             if (room.State == RoomState.Created)
             {
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): host is not ready to accept joiners",
+                    roomCode,
+                    playerId,
+                    playerName);
                 return RoomJoinResult.NotReady();
             }
 
@@ -115,6 +157,11 @@ public sealed class RoomManager : IRoomManager
             {
                 if (!room.IsMember(playerId))
                 {
+                    _logger.LogWarning(
+                        "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room is closed and full",
+                        roomCode,
+                        playerId,
+                        playerName);
                     return RoomJoinResult.Full();
                 }
             }
@@ -125,6 +172,13 @@ public sealed class RoomManager : IRoomManager
                 now,
                 _roomTtl,
                 GenerateSessionToken);
+
+            _logger.LogInformation(
+                "Player {PlayerId} ({PlayerName}) joined room {RoomCode}; {MemberCount} member(s) now in the room",
+                playerId,
+                playerName,
+                roomCode,
+                room.Members.Count);
 
             return RoomJoinResult.Joined(room, session);
         }
@@ -138,24 +192,32 @@ public sealed class RoomManager : IRoomManager
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
+                _logger.LogWarning("Mark-ready failed for room {RoomCode}: room not found", roomCode);
                 return RoomReadyResult.NotFound();
             }
 
             if (room.IsExpiredAt(now))
             {
+                _logger.LogWarning("Mark-ready failed for room {RoomCode}: room expired", roomCode);
                 return RoomReadyResult.Expired();
             }
 
             if (!room.ValidateHostSession(sessionToken, now))
             {
+                _logger.LogWarning("Mark-ready failed for room {RoomCode}: caller is not the host", roomCode);
                 return RoomReadyResult.NotHost();
             }
 
             if (!room.MarkReady(now, _roomTtl))
             {
+                _logger.LogWarning(
+                    "Mark-ready failed for room {RoomCode}: room is in state {RoomState}",
+                    roomCode,
+                    room.State);
                 return RoomReadyResult.InvalidState();
             }
 
+            _logger.LogInformation("Room {RoomCode} marked ready to accept joiners", roomCode);
             return RoomReadyResult.Ready();
         }
     }
@@ -168,24 +230,32 @@ public sealed class RoomManager : IRoomManager
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
+                _logger.LogWarning("Close failed for room {RoomCode}: room not found", roomCode);
                 return RoomCloseResult.NotFound();
             }
 
             if (room.IsExpiredAt(now))
             {
+                _logger.LogWarning("Close failed for room {RoomCode}: room expired", roomCode);
                 return RoomCloseResult.Expired();
             }
 
             if (!room.ValidateHostSession(sessionToken, now))
             {
+                _logger.LogWarning("Close failed for room {RoomCode}: caller is not the host", roomCode);
                 return RoomCloseResult.NotHost();
             }
 
             if (!room.Close(now, _roomTtl))
             {
+                _logger.LogWarning(
+                    "Close failed for room {RoomCode}: room is in state {RoomState}",
+                    roomCode,
+                    room.State);
                 return RoomCloseResult.InvalidState();
             }
 
+            _logger.LogInformation("Room {RoomCode} closed", roomCode);
             return RoomCloseResult.Closed();
         }
     }
@@ -198,30 +268,51 @@ public sealed class RoomManager : IRoomManager
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
+                _logger.LogWarning(
+                    "Remove-member failed for room {RoomCode}: room not found",
+                    roomCode);
                 return RoomRemoveMemberResult.NotFound();
             }
 
             if (room.IsExpiredAt(now))
             {
+                _logger.LogWarning(
+                    "Remove-member failed for room {RoomCode}: room expired",
+                    roomCode);
                 return RoomRemoveMemberResult.Expired();
             }
 
             if (!room.ValidateHostSession(sessionToken, now))
             {
+                _logger.LogWarning(
+                    "Remove-member failed for room {RoomCode}: caller is not the host",
+                    roomCode);
                 return RoomRemoveMemberResult.NotHost();
             }
 
             if (room.IsHost(targetPlayerId))
             {
+                _logger.LogWarning(
+                    "Remove-member failed for room {RoomCode}: target {PlayerId} is the host",
+                    roomCode,
+                    targetPlayerId);
                 return RoomRemoveMemberResult.CannotRemoveHost();
             }
 
             if (!room.IsMember(targetPlayerId))
             {
+                _logger.LogWarning(
+                    "Remove-member failed for room {RoomCode}: target {PlayerId} is not a member",
+                    roomCode,
+                    targetPlayerId);
                 return RoomRemoveMemberResult.MemberNotFound();
             }
 
             room.RemoveMember(targetPlayerId);
+            _logger.LogInformation(
+                "Member {PlayerId} removed from room {RoomCode}",
+                targetPlayerId,
+                roomCode);
             return RoomRemoveMemberResult.Removed();
         }
     }
@@ -230,9 +321,24 @@ public sealed class RoomManager : IRoomManager
     {
         lock (_sync)
         {
-            return _rooms.TryGetValue(roomCode, out var room)
-                ? room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl)
-                : null;
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                _logger.LogWarning(
+                    "Connection {ConnectionId} not registered for player {PlayerId}: room {RoomCode} not found",
+                    connectionId,
+                    playerId,
+                    roomCode);
+                return null;
+            }
+
+            var replaced = room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
+            _logger.LogDebug(
+                "Connection {ConnectionId} registered for player {PlayerId} in room {RoomCode}; previous: {PreviousConnectionId}",
+                connectionId,
+                playerId,
+                roomCode,
+                replaced ?? "none");
+            return replaced;
         }
     }
 
@@ -240,8 +346,12 @@ public sealed class RoomManager : IRoomManager
     {
         lock (_sync)
         {
-            return _rooms.TryGetValue(roomCode, out var room)
-                   && room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return false;
+            }
+
+            return room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
         }
     }
 
@@ -284,13 +394,31 @@ public sealed class RoomManager : IRoomManager
 
             var wasActive = room.RemoveConnection(playerId, connectionId, now, _roomTtl);
             if (!wasActive)
+            {
+                _logger.LogDebug(
+                    "Host connection {ConnectionId} for player {PlayerId} in room {RoomCode} was not the active connection",
+                    connectionId,
+                    playerId,
+                    roomCode);
                 return false;
+            }
 
             // A newer connection has taken over — skip dissolution.
             if (room.GetConnectionId(playerId) is not null)
+            {
+                _logger.LogDebug(
+                    "Host connection {ConnectionId} for player {PlayerId} in room {RoomCode} superseded by a newer connection",
+                    connectionId,
+                    playerId,
+                    roomCode);
                 return false;
+            }
 
             room.MarkForDissolution(now, _dissolutionGracePeriod);
+            _logger.LogWarning(
+                "Host {PlayerId} is gone from room {RoomCode}; room marked for dissolution",
+                playerId,
+                roomCode);
             return true;
         }
     }
@@ -300,7 +428,9 @@ public sealed class RoomManager : IRoomManager
         lock (_sync)
         {
             if (!_rooms.TryGetValue(roomCode, out var room))
+            {
                 return;
+            }
 
             var now = _timeProvider.GetUtcNow();
 
@@ -309,10 +439,17 @@ public sealed class RoomManager : IRoomManager
             {
                 room.RevokeAllSessions();
                 _rooms.Remove(roomCode);
+                _logger.LogInformation(
+                    "Room {RoomCode} purged after dissolution deadline passed",
+                    roomCode);
                 return;
             }
 
             room.MarkForDissolution(now, _dissolutionGracePeriod);
+            _logger.LogWarning(
+                "Room {RoomCode} marked for dissolution (grace period {GracePeriodSeconds} seconds)",
+                roomCode,
+                _dissolutionGracePeriod.TotalSeconds);
         }
     }
 
@@ -321,7 +458,9 @@ public sealed class RoomManager : IRoomManager
         lock (_sync)
         {
             if (!_rooms.TryGetValue(roomCode, out var room))
+            {
                 return;
+            }
 
             var now = _timeProvider.GetUtcNow();
 
@@ -330,7 +469,17 @@ public sealed class RoomManager : IRoomManager
             {
                 room.RevokeAllSessions();
                 _rooms.Remove(roomCode);
+                _logger.LogInformation(
+                    "Room {RoomCode} purged after dissolution deadline passed",
+                    roomCode);
                 return;
+            }
+
+            if (room.IsDissolving)
+            {
+                _logger.LogInformation(
+                    "Dissolution of room {RoomCode} cancelled (host reconnected)",
+                    roomCode);
             }
 
             room.CancelDissolution();
@@ -359,17 +508,33 @@ public sealed class RoomManager : IRoomManager
                 // Defense in depth: token must still be bound to the room that holds it.
                 if (!string.Equals(session.RoomCode, room.RoomCode, StringComparison.Ordinal))
                 {
+                    _logger.LogWarning(
+                        "Session token for player {PlayerId} rejected: token is not bound to room {RoomCode}",
+                        session.PlayerId,
+                        room.RoomCode);
                     return null;
                 }
 
                 if (room.IsExpiredAt(now) || session.ExpiresAt <= now)
                 {
+                    _logger.LogWarning(
+                        "Session token for player {PlayerId} rejected: room {RoomCode} expired",
+                        session.PlayerId,
+                        room.RoomCode);
                     return null;
                 }
+
+                _logger.LogDebug(
+                    "Session authenticated for player {PlayerId} in room {RoomCode} as {Role}",
+                    session.PlayerId,
+                    room.RoomCode,
+                    session.Role);
 
                 return session;
             }
 
+            _logger.LogWarning(
+                "Session token rejected: no matching session found in any room");
             return null;
         }
     }
@@ -400,6 +565,7 @@ public sealed class RoomManager : IRoomManager
         {
             _rooms[roomCode].RevokeAllSessions();
             _rooms.Remove(roomCode);
+            _logger.LogInformation("Room {RoomCode} garbage-collected (expired or dissolved)", roomCode);
         }
     }
 
