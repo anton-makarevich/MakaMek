@@ -404,6 +404,18 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void JoinRoom_HostToken_RejectsWithForbidden()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var createResult = manager.CreateRoom(Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var result = manager.JoinRoom("ABC234", sessionToken: createResult.Session!.Token);
+
+        result.Outcome.ShouldBe(RoomJoinOutcome.Forbidden);
+    }
+
+    [Fact]
     public void RemoveMember_RemovesRosterEntryAndRevokesSessions()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
@@ -1014,17 +1026,17 @@ public class RoomManagerTests
         room.GetConnectionId(joinerDeviceSessionId).ShouldBe("conn-joiner");
 
         // Assert Hub state exposes device sessions and connections only - no player identity
-        var memberTypes = typeof(RoomMember).GetProperties().Select(p => p.Name).ToList();
-        memberTypes.ShouldNotContain("PlayerId");
-        memberTypes.ShouldNotContain("PlayerName");
+        var memberPropertyNames = typeof(RoomMember).GetProperties().Select(p => p.Name).ToList();
+        memberPropertyNames.ShouldNotContain("PlayerId");
+        memberPropertyNames.ShouldNotContain("PlayerName");
 
-        var sessionTypes = typeof(RoomSession).GetProperties().Select(p => p.Name).ToList();
-        sessionTypes.ShouldNotContain("PlayerId");
-        sessionTypes.ShouldNotContain("PlayerName");
+        var sessionPropertyNames = typeof(RoomSession).GetProperties().Select(p => p.Name).ToList();
+        sessionPropertyNames.ShouldNotContain("PlayerId");
+        sessionPropertyNames.ShouldNotContain("PlayerName");
 
-        var roomTypes = typeof(Room).GetProperties().Select(p => p.Name).ToList();
-        roomTypes.ShouldNotContain("HostPlayerId");
-        roomTypes.ShouldNotContain("PlayerCount");
+        var roomPropertyNames = typeof(Room).GetProperties().Select(p => p.Name).ToList();
+        roomPropertyNames.ShouldNotContain("HostPlayerId");
+        roomPropertyNames.ShouldNotContain("PlayerCount");
 
         // Exactly two device channels exist for the room session
         manager.GetConnectionId("ABC234", hostDeviceSessionId).ShouldBe("conn-host");

@@ -94,6 +94,7 @@ public sealed class RoomsController(
             RoomJoinOutcome.RoomExpired => Conflict(LogJoinFailure(result.Outcome, roomCode)),
             RoomJoinOutcome.HostNotReady => Conflict(LogJoinFailure(result.Outcome, roomCode)),
             RoomJoinOutcome.RoomFull => Conflict(LogJoinFailure(result.Outcome, roomCode)),
+            RoomJoinOutcome.Forbidden => StatusCode(StatusCodes.Status403Forbidden, LogJoinFailure(result.Outcome, roomCode)),
             _ => throw new InvalidOperationException($"Unhandled join outcome: {result.Outcome}")
         };
     }
@@ -126,6 +127,7 @@ public sealed class RoomsController(
             RoomJoinOutcome.RoomExpired => (HubErrorCode.RoomExpired, "The specified room has expired."),
             RoomJoinOutcome.HostNotReady => (HubErrorCode.HostNotReady, "The room host is not ready to accept joiners."),
             RoomJoinOutcome.RoomFull => (HubErrorCode.RoomFull, "The room is closed and is not accepting new devices."),
+            RoomJoinOutcome.Forbidden => (HubErrorCode.NotHost, "The session token does not authorize this operation."),
             _ => (HubErrorCode.RoomNotFound, "The specified room was not found.")
         };
         return new JoinResponse(

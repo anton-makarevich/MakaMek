@@ -30,7 +30,6 @@ public class GameManager : IGameManager
     private readonly IOptions<RelayClientOptions>? _relayOptions;
     private RelayClientPublisher? _onlineRelayPublisher;
     private string? _onlineSessionToken;
-    private Guid? _deviceSessionId;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -119,6 +118,10 @@ public class GameManager : IGameManager
     public async Task InitializeLobbyOnline(CancellationToken cancellationToken = default)
     {
         OnlineError = null;
+
+        // Close the currently active relay room before resetting state
+        await CloseOnlineRoom(cancellationToken);
+
         RoomCode = null;
 
         // Reset before initializing new lobby (also clears any stale relay publisher)
@@ -161,8 +164,6 @@ public class GameManager : IGameManager
             await CleanupOnlineAfterFailureAsync(publisher: null);
             return;
         }
-
-        _deviceSessionId = createResult.DeviceSessionId;
 
         RelayClientPublisher? publisher = null;
         try
@@ -308,7 +309,6 @@ public class GameManager : IGameManager
         await RemoveAndDisposeOnlinePublisherAsync(publisher);
         _onlineRelayPublisher = null;
         _onlineSessionToken = null;
-        _deviceSessionId = null;
         RoomCode = null;
 
         // Dispose server game if it was created

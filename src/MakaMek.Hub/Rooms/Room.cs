@@ -181,7 +181,7 @@ public sealed class Room
     /// <summary>
     /// Adds or refreshes a client device session. When the device session already exists
     /// (a rejoin), stale tokens are revoked and a fresh token is minted for the same
-    /// <see cref="DeviceSessionId"/>.
+    /// <see cref="deviceSessionId"/>.
     /// </summary>
     internal RoomSession AddClientMember(
         Guid deviceSessionId,
@@ -189,6 +189,12 @@ public sealed class Room
         TimeSpan ttl,
         Func<string> generateToken)
     {
+        if (IsHost(deviceSessionId))
+        {
+            throw new InvalidOperationException(
+                "Cannot add the host device session as a client member.");
+        }
+
         Touch(now, ttl);
 
         var staleTokens = _sessions

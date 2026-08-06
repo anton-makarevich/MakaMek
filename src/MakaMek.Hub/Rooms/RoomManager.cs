@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 
@@ -124,6 +123,15 @@ public sealed class RoomManager : IRoomManager
                 && room.TryGetSession(sessionToken, out var existingSession)
                 && existingSession.ExpiresAt > now)
             {
+                // Reject host tokens - hosts cannot convert to client sessions
+                if (existingSession.Role == RoomRole.Host)
+                {
+                    _logger.LogWarning(
+                        "Join rejected for room {RoomCode}: host token cannot be used for rejoin",
+                        roomCode);
+                    return RoomJoinResult.Forbidden();
+                }
+
                 existingDeviceSessionId = existingSession.DeviceSessionId;
             }
 

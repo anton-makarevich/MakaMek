@@ -19,13 +19,7 @@ public sealed record RoomJoinResult(
 
     public static RoomJoinResult Full() =>
         new(RoomJoinOutcome.RoomFull, null, null);
-}
 
-public enum RoomJoinOutcome
-{
-    Joined,
-    RoomNotFound,
-    RoomExpired,
-    HostNotReady,
-    RoomFull
+    public static RoomJoinResult Forbidden()=>
+        new(RoomJoinOutcome.Forbidden, null, null);
 }

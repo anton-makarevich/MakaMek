@@ -169,6 +169,20 @@ public class RoomTests
         room.HasSession(client.Token).ShouldBeFalse();
     }
 
+    [Fact]
+    public void AddClientMember_HostDeviceSession_ThrowsAndLeavesHostValid()
+    {
+        var hostDeviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(hostDeviceSessionId, Guid.NewGuid());
+
+        var ex = Should.Throw<InvalidOperationException>(() =>
+            room.AddClientMember(hostDeviceSessionId, DefaultNow, DefaultTtl, () => "client-token"));
+        ex.Message.ShouldContain("host device session");
+
+        room.Members.Count.ShouldBe(1);
+        room.HasSession("host-token").ShouldBeTrue();
+    }
+
     private static Room CreateRoom(Guid hostDeviceSessionId, Guid hostGameId)
     {
         var hostMember = new RoomMember(hostDeviceSessionId, RoomRole.Host, DefaultNow);

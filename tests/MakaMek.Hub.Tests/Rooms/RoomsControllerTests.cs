@@ -108,6 +108,22 @@ public class RoomsControllerTests
         response.Error!.Code.ShouldBe(HubErrorCode.RoomFull);
     }
 
+    [Fact]
+    public void JoinRoom_WithSessionToken_ForwardsTokenToRoomManager()
+    {
+        var room = CreateRoom();
+        var session = new RoomSession(SessionToken, RoomCode, DeviceSessionId, RoomRole.Client, DateTimeOffset.UtcNow);
+        _roomManager.JoinRoom(RoomCode, SessionToken)
+            .Returns(RoomJoinResult.Joined(room, session));
+
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(SessionToken));
+
+        _roomManager.Received(1).JoinRoom(RoomCode, SessionToken);
+        var ok = result.Result.ShouldBeOfType<OkObjectResult>();
+        var response = ok.Value.ShouldBeOfType<JoinResponse>();
+        response.Success.ShouldBeTrue();
+    }
+
     #endregion
 
     #region CloseRoom
