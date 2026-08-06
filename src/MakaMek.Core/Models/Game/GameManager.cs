@@ -120,7 +120,14 @@ public class GameManager : IGameManager
         OnlineError = null;
 
         // Close the currently active relay room before resetting state
-        await CloseOnlineRoom(cancellationToken);
+        var closeSucceeded = await CloseOnlineRoom(cancellationToken);
+        if (!closeSucceeded)
+        {
+            OnlineError = new RelayClientError(
+                RelayClientErrorCode.Unknown,
+                "Failed to close the currently active relay room.");
+            return;
+        }
 
         RoomCode = null;
 
@@ -259,7 +266,7 @@ public class GameManager : IGameManager
         }
     }
 
-    public async Task CloseOnlineRoom(CancellationToken cancellationToken = default)
+    public async Task<bool> CloseOnlineRoom(CancellationToken cancellationToken = default)
     {
         // Only attempt to close when an online room is actually active and we have
         // everything required to authenticate the close call with the relay.
@@ -267,7 +274,7 @@ public class GameManager : IGameManager
             || RoomCode == null
             || _onlineSessionToken == null
             || _relayRoomClient == null)
-            return;
+            return true;
 
         try
         {
@@ -277,11 +284,19 @@ public class GameManager : IGameManager
             // attempt can be retried and the room is not considered closed prematurely.
             _onlineSessionToken = null;
             RoomCode = null;
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Close relay room {RoomCode} was cancelled", RoomCode);
+            return false;
         }
         catch (Exception ex)
         {
-            // Swallow to avoid masking the original failure; closing the room is best-effort
+            // Do not clear state; allow caller to retry
             _logger.LogWarning(ex, "Failed to close relay room {RoomCode}", RoomCode);
+            return false;
         }
     }
 

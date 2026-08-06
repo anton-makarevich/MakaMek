@@ -688,7 +688,7 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task CloseOnlineRoomAsync_WhenNoOnlineRoomActive_DoesNotCallRelayRoomClient()
+    public async Task CloseOnlineRoomAsync_WhenNoOnlineRoomActive_ReturnsTrue()
     {
         // Arrange
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -696,14 +696,15 @@ public class GameManagerTests : IDisposable
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
         // Act
-        await sut.CloseOnlineRoom();
+        var result = await sut.CloseOnlineRoom();
 
         // Assert
+        result.ShouldBeTrue();
         await relayRoomClient.DidNotReceive().CloseAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task CloseOnlineRoomAsync_WhenOnlineRoomActive_ClosesRoomAndClearsState()
+    public async Task CloseOnlineRoomAsync_WhenOnlineRoomActive_ClosesRoomAndClearsStateAndReturnsTrue()
     {
         // Arrange
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -726,9 +727,10 @@ public class GameManagerTests : IDisposable
         sut.RoomCode.ShouldBe(roomCode);
 
         // Act
-        await sut.CloseOnlineRoom();
+        var result = await sut.CloseOnlineRoom();
 
         // Assert
+        result.ShouldBeTrue();
         await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
         sut.RoomCode.ShouldBeNull();
         await sut.DisposeAsync();
@@ -757,16 +759,51 @@ public class GameManagerTests : IDisposable
         await sut.InitializeLobbyOnline();
 
         // Act - close twice; second call should be a no-op (room already closed / state cleared)
-        await sut.CloseOnlineRoom();
-        await sut.CloseOnlineRoom();
+        var result1 = await sut.CloseOnlineRoom();
+        var result2 = await sut.CloseOnlineRoom();
 
         // Assert
+        result1.ShouldBeTrue();
+        result2.ShouldBeTrue();
         await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
         await sut.DisposeAsync();
     }
 
     [Fact]
-    public async Task CloseOnlineRoomAsync_WhenCloseThrows_SwallowsException()
+    public async Task InitializeLobbyOnline_WhenCloseOnlineRoomFails_AbortsAndSetsError()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(_serverGame.Id, Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline();
+        sut.RoomCode.ShouldBe(roomCode);
+
+        // Act - try to initialize again, which should try to close the existing room and fail
+        await sut.InitializeLobbyOnline();
+
+        // Assert - should have set an error and not cleared the room code
+        sut.OnlineError.ShouldNotBeNull();
+        sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        sut.RoomCode.ShouldBe(roomCode);
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task CloseOnlineRoomAsync_WhenCloseThrows_ReturnsFalseAndDoesNotClearState()
     {
         // Arrange
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -788,8 +825,9 @@ public class GameManagerTests : IDisposable
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, logger: logger);
         await sut.InitializeLobbyOnline();
 
-        // Act & Assert - best-effort close should swallow the exception
-        await Should.NotThrowAsync(() => sut.CloseOnlineRoom());
+        // Act & Assert - close should return false and not throw
+        var result = await sut.CloseOnlineRoom();
+        result.ShouldBeFalse();
 
         // State is not cleared since the close call failed, allowing a retry
         sut.RoomCode.ShouldBe(roomCode);

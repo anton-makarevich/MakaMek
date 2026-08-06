@@ -58,9 +58,11 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     RelayClientError? OnlineError { get; }
 
     /// <summary>
-    /// Closes the online relay room, if one is currently active. Best-effort and idempotent:
-    /// failures are swallowed and calling this when no online room is active is a no-op.
+    /// Closes the online relay room, if one is currently active. Returns true if close
+    /// succeeded or no room was active; false if close failed or was cancelled. When false,
+    /// state is not cleared allowing the caller to retry.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the close call.</param>
-    Task CloseOnlineRoom(CancellationToken cancellationToken = default);
+    /// <returns>True if close succeeded or no room was active; false if close failed or was cancelled.</returns>
+    Task<bool> CloseOnlineRoom(CancellationToken cancellationToken = default);
 }

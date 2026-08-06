@@ -170,7 +170,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WhenOnlineMode_ClosesOnlineRoomBeforeSettingBattleMap()
     {
-        var closeTcs = new TaskCompletionSource();
+        var closeTcs = new TaskCompletionSource<bool>();
         _gameManager.CloseOnlineRoom(Arg.Any<CancellationToken>()).Returns(closeTcs.Task);
         await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
@@ -183,7 +183,7 @@ public class StartNewGameViewModelTests
         _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
         
         // Complete the close task
-        closeTcs.SetResult();
+        closeTcs.SetResult(true);
         await commandTask;
 
         await _gameManager.Received(1).CloseOnlineRoom(Arg.Any<CancellationToken>());

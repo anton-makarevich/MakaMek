@@ -109,6 +109,21 @@ public class RoomsControllerTests
     }
 
     [Fact]
+    public void JoinRoom_Forbidden_ReturnsForbidden()
+    {
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
+            .Returns(RoomJoinResult.Forbidden());
+
+        var result = _sut.JoinRoom(RoomCode);
+
+        var forbidden = result.Result.ShouldBeOfType<ObjectResult>();
+        forbidden.StatusCode.ShouldBe(StatusCodes.Status403Forbidden);
+        var response = forbidden.Value.ShouldBeOfType<JoinResponse>();
+        response.Success.ShouldBeFalse();
+        response.Error!.Code.ShouldBe(HubErrorCode.NotHost);
+    }
+
+    [Fact]
     public void JoinRoom_WithSessionToken_ForwardsTokenToRoomManager()
     {
         var room = CreateRoom();
