@@ -336,6 +336,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         if (_initCts is not null)
         {
             await _initCts.CancelAsync();
+            if (HasJoinedPlayers) return; // A player joined while cancellation was pending; keep the live lobby
         }
         _initCts?.Dispose();
         _initCts = new CancellationTokenSource();
@@ -468,9 +469,14 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public override void AttachHandlers()
     {
+        if (HasJoinedPlayers)
+        {
+            base.AttachHandlers();
+            return; // Don't reset hosting state or restart hosting while players are connected
+        }
+
         ResetHostingState();
         base.AttachHandlers();
-        if (HasJoinedPlayers) return; // Don't restart hosting while players are connected
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = new CancellationTokenSource();

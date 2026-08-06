@@ -568,6 +568,33 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public async Task AttachHandlers_WhenPlayerJoinedOnlineRoom_KeepsHostingStateAndRoomCode()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        sut.RoomCode.ShouldBe("ABCDEF");
+
+        sut.AddPlayerCommand!.Execute(null);
+        sut.Players.Last().Player.Status = PlayerStatus.Joined;
+
+        sut.AttachHandlers();
+
+        sut.IsOnlineMode.ShouldBeTrue();
+        sut.IsLanMode.ShouldBeFalse();
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.HostingError.ShouldBeNull();
+    }
+
+    [Fact]
     public void HandleServerCommand_JoinGameCommand_AddsRemotePlayer_InvokesNoOpActions()
     {
         var playerId = Guid.NewGuid();
@@ -714,6 +741,61 @@ public class StartNewGameViewModelTests
 
         await gameManager.DidNotReceive().InitializeLobby();
         await gameManager.DidNotReceive().InitializeLobbyOnline(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CancelAndRestartServer_WhenPlayerJoinsDuringCancellation_DoesNotRestartLobby()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.ServerGameId.Returns(_serverGameId);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        var playerId = Guid.NewGuid();
+        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var ct = callInfo.ArgAt<CancellationToken>(2);
+                if (ct.CanBeCanceled)
+                {
+                    // Simulate a remote player joining while the in-flight init is being cancelled.
+                    ct.Register(() =>
+                    {
+                        sut.HandleServerCommand(new JoinGameCommand
+                        {
+                            PlayerId = playerId,
+                            PlayerName = "RemotePlayer",
+                            Units = [MechFactoryTests.CreateDummyMechData()],
+                            Tint = "#00FF00",
+                            GameOriginId = _serverGameId,
+                            PilotAssignments = []
+                        });
+                        sut.HandleServerCommand(new UpdatePlayerStatusCommand
+                        {
+                            PlayerId = playerId,
+                            PlayerStatus = PlayerStatus.Joined,
+                            GameOriginId = _serverGameId
+                        });
+                    });
+                }
+                return Task.CompletedTask;
+            });
+
+        sut.IsOnlineMode = true;
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        sut.RoomCode.ShouldBe("ABCDEF");
+
+        await sut.CancelAndRestartServer();
+
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.HostingError.ShouldBeNull();
+        sut.CanChangeHostMode.ShouldBeFalse();
+        await gameManager.Received(2).InitializeLobbyOnline(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
