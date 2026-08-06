@@ -16,11 +16,13 @@ public interface IRelayPublisherFactory
     /// <param name="roomCode">Room code the host has created.</param>
     /// <param name="sessionToken">Host session token returned when the room was created.</param>
     /// <param name="expectedHostId">Id of the host this publisher is expected to act for.</param>
+    /// <param name="apiKey">API key required by the MakaMek Hub, if any.</param>
     /// <param name="cancellationToken">Token that cancels publisher creation and connection.</param>
     Task<RelayClientPublisher> CreateAsync(
         string hubUrl,
         string roomCode,
         string sessionToken,
         Guid expectedHostId,
+        string apiKey,
         CancellationToken cancellationToken = default);
 }

@@ -67,7 +67,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
-        RestartLanServerCommand = new AsyncCommand(CancelAndRestartServer);
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
     }
 
@@ -143,6 +142,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                     playerWithStatusUpdate.Player.Status = statusCmd.PlayerStatus;
                     playerWithStatusUpdate.RefreshStatus();
                     NotifyPropertyChanged(nameof(CanStartGame));
+                    NotifyPropertyChanged(nameof(CanChangeHostMode));
                 }
                 break;
             
@@ -157,6 +157,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                         existingPlayerVm.Player.Status = PlayerStatus.Joined;
                         existingPlayerVm.RefreshStatus();
                         NotifyPropertyChanged(nameof(CanStartGame));
+                        NotifyPropertyChanged(nameof(CanChangeHostMode));
                     }
                     // Else: Remote player sending join again? Ignore.
                 }
@@ -235,12 +236,23 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private void SetHostMode(HostMode mode)
     {
         if (_hostMode == mode) return; // Reject no-op when unchanged
+        if (HasJoinedPlayers) return; // Reject mode change while players are connected
 
         _hostMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
         ClearHostingState();
+        CancelAndRestartServer().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error restarting server after host mode change"));
     }
+
+    /// <summary>
+    /// Gets whether the host mode can still be changed. Once any player has joined,
+    /// the lobby must not be re-created because it would disconnect the joined players.
+    /// </summary>
+    public bool CanChangeHostMode => !HasJoinedPlayers;
+
+    private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
 
     /// <summary>
     /// Gets the room code of the online lobby, if hosting online.
@@ -310,23 +322,23 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     }
 
     /// <summary>
-    /// Restarts hosting for the currently selected mode.
-    /// </summary>
-    public ICommand RestartLanServerCommand { get; }
-
-    /// <summary>
     /// Copies the room code to the clipboard (enabled while an online room exists).
     /// </summary>
     public ICommand CopyRoomCodeCommand { get; }
 
+    /// <summary>
+    /// Restarts hosting for the currently selected mode. No-op while any player has joined.
+    /// </summary>
     public async Task CancelAndRestartServer()
     {
+        if (HasJoinedPlayers) return;
+
         if (_initCts is not null)
         {
             await _initCts.CancelAsync();
+            if (HasJoinedPlayers) return; // A player joined while cancellation was pending; keep the live lobby
         }
         _initCts?.Dispose();
-        IsHosting = false;
         _initCts = new CancellationTokenSource();
 
         try
@@ -343,26 +355,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             }
             if (_initCts.IsCancellationRequested || _isDisposed)
                 return;
-
-            if (HasHostedGameStarted)
-            {
-                await NavigateToBattleMap();
-            }
-            else
-            {
-                HostingError = _gameManager.OnlineError?.Message
-                    ?? _localizationService.GetString("Hosting_Failed");
-            }
         }
         finally
         {
             IsHosting = false;
         }
     }
-
-    private bool HasHostedGameStarted => IsOnlineMode
-        ? _gameManager is { IsOnlineServerRunning: true, RoomCode: not null }
-        : _gameManager.ServerGameId != null;
 
     private Task CopyRoomCode()
     {
@@ -471,6 +469,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public override void AttachHandlers()
     {
+        if (HasJoinedPlayers)
+        {
+            base.AttachHandlers();
+            return; // Don't reset hosting state or restart hosting while players are connected
+        }
+
         ResetHostingState();
         base.AttachHandlers();
         _initCts?.Cancel();

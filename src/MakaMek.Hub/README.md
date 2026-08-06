@@ -62,8 +62,9 @@ The container listens on `http://localhost:8080` in `Production` mode.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check (returns status, service name, version) |
-| GET | `/api/rooms` | List active rooms (requires API key) |
-| POST | `/api/rooms` | Create a room (requires API key) |
-| POST | `/api/rooms/{roomId}/join` | Join a room by code (requires API key) |
-| DELETE | `/api/rooms/{roomId}` | Close a room (requires API key) |
-| WebSocket | `/relay` | SignalR hub for game relay (requires `apiKey` and `sessionToken` query parameters) |
+| POST | `/api/rooms` | Create a room (requires `X-Api-Key` header) |
+| POST | `/api/rooms/{roomCode}/join` | Join a room by code (requires `X-Api-Key` header, rate-limited per IP) |
+| POST | `/api/rooms/{roomCode}/ready` | Mark a room ready to accept joiners (requires `X-Api-Key` + `Session-Token` header, host only) |
+| POST | `/api/rooms/{roomCode}/close` | Close a room (requires `X-Api-Key` + `Session-Token` header, host only) |
+| DELETE | `/api/rooms/{roomCode}/members/{playerId}` | Remove a member (requires `X-Api-Key` + `Session-Token` header, host only) |
+| WebSocket | `/hubs/relay` | SignalR hub for game relay (requires `apiKey` and `sessionToken` query parameters) |

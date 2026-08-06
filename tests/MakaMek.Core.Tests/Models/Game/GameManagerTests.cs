@@ -105,7 +105,7 @@ public class GameManagerTests : IDisposable
         networkHostService,
         relayRoomClient,
         relayPublisherFactory,
-        Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local" }));
+        Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key" }));
 
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string sessionToken, Guid hostId) =>
         new("http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());
@@ -452,7 +452,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, networkHostService);
 
@@ -485,7 +485,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
@@ -511,7 +511,7 @@ public class GameManagerTests : IDisposable
         var hostId = Guid.NewGuid();
         relayRoomClient.CreateAsync(playerId, "Host", Arg.Any<CancellationToken>())
             .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", playerId, hostId));
-        relayPublisherFactory.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("boom"));
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
@@ -545,7 +545,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("relay unreachable"));
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
@@ -573,7 +573,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline(playerId, "Host");
@@ -601,7 +601,7 @@ public class GameManagerTests : IDisposable
             .Returns(RoomOperationResult.Succeeded());
         var firstPublisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         var secondPublisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(firstPublisher), Task.FromResult(secondPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
@@ -632,7 +632,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         using var cts = new CancellationTokenSource();
@@ -665,7 +665,7 @@ public class GameManagerTests : IDisposable
             .Returns(RoomOperationResult.Succeeded());
         var firstPublisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
         var secondPublisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(firstPublisher), Task.FromResult(secondPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
@@ -718,7 +718,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline(playerId, "Host");
@@ -750,7 +750,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline(playerId, "Host");
@@ -781,7 +781,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("boom"));
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var logger = Substitute.For<ILogger<GameManager>>();
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, logger: logger);
@@ -818,7 +818,7 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var publisher = CreateRelayPublisher(roomCode, sessionToken, hostId);
-        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, Arg.Any<CancellationToken>())
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostId, "api-key", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(publisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline(playerId, "Host");
