@@ -278,10 +278,17 @@ public class GameManager : IGameManager
 
         try
         {
-            await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+            var closeResult = await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
 
-            // Only clear the state once the close call has completed, so a failed
+            // Only clear the state when the close operation succeeded, so a failed
             // attempt can be retried and the room is not considered closed prematurely.
+            if (!closeResult.Success)
+            {
+                _logger.LogWarning("Close relay room {RoomCode} failed: {ErrorCode} {ErrorMessage}",
+                    RoomCode, closeResult.Error?.Code, closeResult.Error?.Message);
+                return false;
+            }
+
             _onlineSessionToken = null;
             RoomCode = null;
 

@@ -600,6 +600,8 @@ public class GameManagerTests : IDisposable
             .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
         var firstPublisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
         var secondPublisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
         relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())
@@ -663,6 +665,8 @@ public class GameManagerTests : IDisposable
         relayRoomClient.CreateAsync(_serverGame.Id, Arg.Any<CancellationToken>())
             .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
         relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
             .Returns(RoomOperationResult.Succeeded());
         var firstPublisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
         var secondPublisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
@@ -836,6 +840,45 @@ public class GameManagerTests : IDisposable
             Arg.Any<EventId>(),
             Arg.Any<object>(),
             Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task CloseOnlineRoomAsync_WhenCloseReturnsFailed_ReturnsFalseAndDoesNotClearState()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(_serverGame.Id, Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        var closeError = new RelayClientError(RelayClientErrorCode.Unknown, "Close failed");
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Failed(closeError));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, logger: logger);
+        await sut.InitializeLobbyOnline();
+
+        // Act
+        var result = await sut.CloseOnlineRoom();
+
+        // Assert - close should return false without clearing state
+        result.ShouldBeFalse();
+        sut.RoomCode.ShouldBe(roomCode);
+        logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception?>(ex => ex == null),
             Arg.Any<Func<object, Exception?, string>>());
         await sut.DisposeAsync();
     }
