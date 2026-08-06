@@ -89,8 +89,8 @@ public class RelayHubTests
         exception.Message.ShouldContain(nameof(HubErrorCode.ConnectionSuperseded));
     }
 
-    private static RelayEnvelope CreateEnvelope()
-        => new("sender", "payload", "1.0.0", 1, DateTime.UtcNow);
+    private static RelayEnvelope CreateEnvelope(string? payload = null)
+        => new("sender", payload ?? "payload", "1.0.0", 1, DateTime.UtcNow);
 
     [Fact]
     public async Task Relay_WrongRoom_LogsWarning()
@@ -128,10 +128,10 @@ public class RelayHubTests
         clients.OthersInGroup(session.RoomCode).Returns(roomClients);
         hub.Clients = clients;
 
-        await hub.Relay(session.RoomCode, CreateEnvelope());
+        await hub.Relay(session.RoomCode, CreateEnvelope("{\"MessageType\":\"DeployUnitCommand\"}"));
 
         logger.GetMessages(LogLevel.Debug).ShouldContain(
-            message => message.Contains("Relaying", StringComparison.Ordinal));
+            message => message.Contains("DeployUnitCommand", StringComparison.Ordinal));
     }
 
     [Fact]

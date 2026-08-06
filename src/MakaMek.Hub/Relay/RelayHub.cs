@@ -176,13 +176,16 @@ public sealed class RelayHub : Hub<IRelayHub>
         // Hub-tagged identity: overwrite any client-supplied SenderId.
         var outbound = message with { SenderId = Context.ConnectionId };
 
-        _logger.LogDebug(
-            "Relaying {MessageType} message ({PayloadBytes} bytes) from connection {ConnectionId} to room {RoomCode} (seq {SequenceNumber})",
-            TryGetMessageType(message.Payload),
-            payloadBytes,
-            Context.ConnectionId,
-            session.RoomCode,
-            message.SequenceNumber);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug(
+                "Relaying {MessageType} message ({PayloadBytes} bytes) from connection {ConnectionId} to room {RoomCode} (seq {SequenceNumber})",
+                TryGetMessageType(message.Payload),
+                payloadBytes,
+                Context.ConnectionId,
+                session.RoomCode,
+                message.SequenceNumber);
+        }
 
         await Clients.OthersInGroup(session.RoomCode).OnReceive(outbound);
     }
