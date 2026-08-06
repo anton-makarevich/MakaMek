@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Configuration;
 using Sanet.MakaMek.Hub.Rooms;
+using Sanet.MakaMek.Hub.Tests.TestLoggers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Hub.Tests.Rooms;
@@ -918,13 +920,69 @@ public class RoomManagerTests
         result.ShouldBeNull();
     }
 
+    #region Logging
+
+    [Fact]
+    public void CreateRoom_LogsInformation_WithRoomCode()
+    {
+        var logger = new CapturingLogger<RoomManager>();
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
+
+        manager.CreateRoom("Ada", Guid.NewGuid());
+
+        logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("Room ABC234 created", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CreateRoom_AtCapacity_LogsWarning()
+    {
+        var logger = new CapturingLogger<RoomManager>();
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), maxConcurrentRooms: 0, logger: logger);
+
+        manager.CreateRoom("Ada", Guid.NewGuid());
+
+        logger.GetMessages(LogLevel.Warning).ShouldContain(
+            message => message.Contains("relay capacity reached", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void JoinRoom_RoomNotFound_LogsWarning()
+    {
+        var logger = new CapturingLogger<RoomManager>();
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
+
+        manager.JoinRoom("NOEXIST", "Grace", Guid.NewGuid());
+
+        logger.GetMessages(LogLevel.Warning).ShouldContain(
+            message => message.Contains("room not found", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void JoinRoom_Joined_LogsInformation_WithMemberCount()
+    {
+        var logger = new CapturingLogger<RoomManager>();
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
+
+        var creation = manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", creation.Session!.Token);
+        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+
+        logger.GetMessages(LogLevel.Information).ShouldContain(
+            message => message.Contains("joined room ABC234", StringComparison.Ordinal)
+                && message.Contains("2 member(s)", StringComparison.Ordinal));
+    }
+
+    #endregion
+
     private static RoomManager CreateManager(
         IRoomCodeGenerator roomCodeGenerator,
         int maxConcurrentRooms = 10,
         DateTimeOffset? now = null,
         FixedTimeProvider? timeProvider = null,
         int roomTtlSeconds = DefaultRoomTtlSeconds,
-        int dissolutionGracePeriodSeconds = DefaultDissolutionGracePeriodSeconds) =>
+        int dissolutionGracePeriodSeconds = DefaultDissolutionGracePeriodSeconds,
+        ILogger<RoomManager>? logger = null) =>
         new(
             roomCodeGenerator,
             timeProvider ?? new FixedTimeProvider(now ?? DateTimeOffset.UtcNow),
@@ -935,7 +993,7 @@ public class RoomManagerTests
                 RoomTtlSeconds = roomTtlSeconds,
                 DissolutionGracePeriodSeconds = dissolutionGracePeriodSeconds
             }),
-            NullLogger<RoomManager>.Instance);
+            logger ?? NullLogger<RoomManager>.Instance);
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
