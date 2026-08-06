@@ -21,7 +21,7 @@ public class RelayLifecycleTests
         await using var factory = new HubApplicationFactory();
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var connected = NewCompletionSource<string>();
@@ -44,7 +44,7 @@ public class RelayLifecycleTests
         await using var factory = new HubApplicationFactory();
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var first = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         await using var second = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
@@ -89,7 +89,7 @@ public class RelayLifecycleTests
         await using var factory = new HubApplicationFactory();
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var error = NewCompletionSource<HubError>();
@@ -109,7 +109,7 @@ public class RelayLifecycleTests
         await using var factory = new HubApplicationFactory(timeProvider: clock);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var hostDisconnected = NewCompletionSource<HubError>();
@@ -138,7 +138,7 @@ public class RelayLifecycleTests
         await using var factory = new HubApplicationFactory(timeProvider: clock);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var hostDisconnected = NewCompletionSource<HubError>();
@@ -162,7 +162,7 @@ public class RelayLifecycleTests
             timeProvider: clock);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var hostDisconnected = NewCompletionSource<HubError>();
@@ -187,7 +187,7 @@ public class RelayLifecycleTests
             timeProvider: clock);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
-        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, Guid.NewGuid());
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
         var hostDisconnected = NewCompletionSource<HubError>();
@@ -206,7 +206,7 @@ public class RelayLifecycleTests
     private static async Task<ReadyRoom> CreateReadyRoomAsync(HttpClient client)
     {
         using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        createRequest.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.NewGuid()));
+        createRequest.Content = JsonContent.Create(new CreateRoomRequest(Guid.NewGuid()));
         createRequest.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
         using var createResponse = await client.SendAsync(createRequest);
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -221,10 +221,10 @@ public class RelayLifecycleTests
         return new ReadyRoom(created.RoomCode!, created.SessionToken!);
     }
 
-    private static async Task<string> JoinRoomAsync(HttpClient client, string roomCode, Guid playerId)
+    private static async Task<string> JoinRoomAsync(HttpClient client, string roomCode, string? sessionToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/join");
-        request.Content = JsonContent.Create(new JoinRequest("Grace", playerId));
+        request.Content = JsonContent.Create(new JoinRequest(sessionToken));
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
         using var response = await client.SendAsync(request);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);

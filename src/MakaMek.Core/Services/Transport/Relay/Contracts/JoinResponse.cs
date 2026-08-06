@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
 public sealed record JoinResponse(
     bool Success,
     string? Role,
-    Guid? PlayerId,
-    Guid? HostId,
+    Guid? DeviceSessionId,
+    Guid? HostGameId,
     string? SessionToken,
     HubError? Error);

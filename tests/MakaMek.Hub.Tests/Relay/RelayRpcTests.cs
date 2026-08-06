@@ -35,7 +35,7 @@ public class RelayRpcTests
         using var client = factory.CreateClient();
 
         var roomA = await CreateReadyHostAsync(client);
-        var joinerA = await JoinRoomAsync(client, roomA.RoomCode, "Grace", Guid.NewGuid());
+        var joinerA = await JoinRoomAsync(client, roomA.RoomCode, sessionToken: null);
         var roomB = await CreateReadyHostAsync(client);
 
         await using var hostA = factory.CreateRelayHubConnection(
@@ -86,7 +86,7 @@ public class RelayRpcTests
         using var client = factory.CreateClient();
 
         var host = await CreateReadyHostAsync(client);
-        var joiner = await JoinRoomAsync(client, host.RoomCode, "Grace", Guid.NewGuid());
+        var joiner = await JoinRoomAsync(client, host.RoomCode, sessionToken: null);
 
         await using var hostConnection = factory.CreateRelayHubConnection(
             HubApplicationFactory.ApiKey,
@@ -124,7 +124,7 @@ public class RelayRpcTests
         using var client = factory.CreateClient();
 
         var roomA = await CreateReadyHostAsync(client);
-        var joinerA = await JoinRoomAsync(client, roomA.RoomCode, "Grace", Guid.NewGuid());
+        var joinerA = await JoinRoomAsync(client, roomA.RoomCode, sessionToken: null);
         var roomB = await CreateReadyHostAsync(client);
 
         await using var hostA = factory.CreateRelayHubConnection(
@@ -163,7 +163,7 @@ public class RelayRpcTests
         using var client = factory.CreateClient();
 
         var host = await CreateReadyHostAsync(client);
-        var joiner = await JoinRoomAsync(client, host.RoomCode, "Grace", Guid.NewGuid());
+        var joiner = await JoinRoomAsync(client, host.RoomCode, sessionToken: null);
 
         await using var hostConnection = factory.CreateRelayHubConnection(
             HubApplicationFactory.ApiKey,
@@ -212,7 +212,7 @@ public class RelayRpcTests
         httpContext.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey] = session;
 
         var callerContext = new TestHubCallerContext(httpContext);
-        roomManager.GetConnectionId(roomCode, session.PlayerId)
+        roomManager.GetConnectionId(roomCode, session.DeviceSessionId)
             .Returns(callerContext.ConnectionId);
 
         var roomClients = Substitute.For<IRelayHub>();
@@ -273,7 +273,7 @@ public class RelayRpcTests
         using var client = factory.CreateClient();
 
         var host = await CreateReadyHostAsync(client);
-        var joiner = await JoinRoomAsync(client, host.RoomCode, "Grace", Guid.NewGuid());
+        var joiner = await JoinRoomAsync(client, host.RoomCode, sessionToken: null);
 
         await using var hostConnection = factory.CreateRelayHubConnection(
             HubApplicationFactory.ApiKey,
@@ -321,7 +321,7 @@ public class RelayRpcTests
 
     private static async Task<ReadyHost> CreateReadyHostAsync(HttpClient client)
     {
-        using var createResponse = await CreateRoomAsync(client, "Ada", Guid.NewGuid());
+        using var createResponse = await CreateRoomAsync(client, Guid.NewGuid());
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         var created = await createResponse.Content.ReadFromJsonAsync<CreateRoomResponse>(JsonOptions);
         created.ShouldNotBeNull();
@@ -338,11 +338,10 @@ public class RelayRpcTests
     private static async Task<JoinResponse> JoinRoomAsync(
         HttpClient client,
         string roomCode,
-        string playerName,
-        Guid playerId)
+        string? sessionToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/join");
-        request.Content = JsonContent.Create(new JoinRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new JoinRequest(sessionToken));
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var response = await client.SendAsync(request);
@@ -354,11 +353,10 @@ public class RelayRpcTests
 
     private static async Task<HttpResponseMessage> CreateRoomAsync(
         HttpClient client,
-        string playerName,
-        Guid playerId)
+        Guid gameId)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new CreateRoomRequest(gameId));
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
         return await client.SendAsync(request);
     }

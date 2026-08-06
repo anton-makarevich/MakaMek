@@ -100,7 +100,7 @@ public class JoinGameViewModelTests
             .Do(_ => _connectorConnected = true);
 
     private void EnableOnlineJoin() =>
-        _gameConnector.When(c => c.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()))
+        _gameConnector.When(c => c.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
             .Do(_ => _connectorConnected = true);
 
     private JoinGameViewModel CreateSut(ILocalizationService? localizationService = null)
@@ -757,7 +757,7 @@ public class JoinGameViewModelTests
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
 
         // Assert
-        await _gameConnector.Received(1).JoinOnline("ABCDEF", playerId, playerName, Arg.Any<CancellationToken>());
+        await _gameConnector.Received(1).JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>());
         _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         _gameFactory.Received(1).CreateClientGame(_commandPublisher);
         _botManager.Received(1).Initialize(_clientGame, Arg.Any<DecisionEngineProvider>());
@@ -785,7 +785,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var player = _sut.Players.First();
-        _gameConnector.JoinOnline("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(code, "unused"));
 
@@ -813,7 +813,7 @@ public class JoinGameViewModelTests
         // Arrange
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException());
 
         _commandPublisher.ClearReceivedCalls();
@@ -867,7 +867,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "  abcdef  ";
         var player = _sut.Players.First();
-        _gameConnector.JoinOnline("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused"));
 
@@ -875,7 +875,7 @@ public class JoinGameViewModelTests
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
 
         // Assert
-        await _gameConnector.Received(1).JoinOnline("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>());
+        await _gameConnector.Received(1).JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -887,7 +887,7 @@ public class JoinGameViewModelTests
         var player = _sut.Players.First();
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken capturedToken = default;
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
                 capturedToken = ci.Arg<CancellationToken>();
@@ -922,7 +922,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var player = _sut.Players.First();
-        _gameConnector.JoinOnline("ABCDEF", player.Player.Id, player.Player.Name, Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused"));
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
@@ -945,7 +945,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(joinTcs.Task);
 
         // Act
@@ -966,7 +966,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(joinTcs.Task);
 
         // Act
@@ -988,7 +988,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(joinTcs.Task);
 
         // Act
@@ -996,7 +996,7 @@ public class JoinGameViewModelTests
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
 
         // Assert
-        await _gameConnector.Received(1).JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _gameConnector.Received(1).JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
 
         // Clean up
         joinTcs.SetResult();
@@ -1057,7 +1057,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
                 var token = ci.Arg<CancellationToken>();

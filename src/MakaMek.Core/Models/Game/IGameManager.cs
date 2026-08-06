@@ -12,13 +12,10 @@ public interface IGameManager : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Initializes the lobby hosted through the cloud relay asynchronously.
+    /// The server game is created first so its id can be reported to the Hub.
     /// </summary>
-    /// <param name="playerId">Id of the player hosting the lobby.</param>
-    /// <param name="playerName">Name of the player hosting the lobby.</param>
     /// <param name="cancellationToken">Cancellation token for the room lifecycle calls.</param>
     Task InitializeLobbyOnline(
-        Guid playerId,
-        string playerName,
         CancellationToken cancellationToken = default);
     
     /// <summary>

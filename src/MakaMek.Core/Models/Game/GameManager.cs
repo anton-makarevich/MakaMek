@@ -30,6 +30,7 @@ public class GameManager : IGameManager
     private readonly IOptions<RelayClientOptions>? _relayOptions;
     private RelayClientPublisher? _onlineRelayPublisher;
     private string? _onlineSessionToken;
+    private Guid? _deviceSessionId;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -115,10 +116,7 @@ public class GameManager : IGameManager
         CreateServerGameAndSetupLogging();
     }
 
-    public async Task InitializeLobbyOnline(
-        Guid playerId,
-        string playerName,
-        CancellationToken cancellationToken = default)
+    public async Task InitializeLobbyOnline(CancellationToken cancellationToken = default)
     {
         OnlineError = null;
         RoomCode = null;
@@ -135,29 +133,36 @@ public class GameManager : IGameManager
             return;
         }
 
+        // The server game must exist before the relay room is created so the host
+        // game id can be reported to the Hub and shared with joiners.
+        CreateServerGameAndSetupLogging();
+        var gameId = _serverGame!.Id;
+
         var createResult = await _relayRoomClient.CreateAsync(
-            playerId,
-            playerName,
+            gameId,
             cancellationToken);
         if (!createResult.Success
             || createResult.RoomCode is null
             || createResult.SessionToken is null
-            || createResult.HostId is null)
+            || createResult.HostGameId is null)
         {
             OnlineError = createResult.Error
                 ?? new RelayClientError(
                     RelayClientErrorCode.Unknown,
                     "The relay did not return the values required to host.");
             _logger.LogWarning(
-                "Failed to create relay room for player {PlayerId} ({PlayerName}): {ErrorCode} {ErrorMessage}",
-                playerId,
-                playerName,
+                "Failed to create relay room for game {GameId}: {ErrorCode} {ErrorMessage}",
+                gameId,
                 OnlineError?.Code,
                 OnlineError?.Message);
+
+            // The server game was created above; dispose it the same way the failure
+            // path does after a publisher/ready failure.
+            await CleanupOnlineAfterFailureAsync(publisher: null);
             return;
         }
 
-        CreateServerGameAndSetupLogging();
+        _deviceSessionId = createResult.DeviceSessionId;
 
         RelayClientPublisher? publisher = null;
         try
@@ -169,7 +174,7 @@ public class GameManager : IGameManager
                 hubUrl,
                 createResult.RoomCode,
                 createResult.SessionToken,
-                createResult.HostId.Value,
+                createResult.HostGameId.Value,
                 _relayOptions?.Value.ApiKey ?? string.Empty,
                 cancellationToken);
 
@@ -193,10 +198,9 @@ public class GameManager : IGameManager
             RoomCode = createResult.RoomCode;
             _onlineSessionToken = createResult.SessionToken;
             _logger.LogInformation(
-                "Hosted relay room {RoomCode} for player {PlayerId} ({PlayerName}); relay publisher connected",
+                "Hosted relay room {RoomCode} for game {GameId}; relay publisher connected",
                 createResult.RoomCode,
-                playerId,
-                playerName);
+                gameId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -304,6 +308,7 @@ public class GameManager : IGameManager
         await RemoveAndDisposeOnlinePublisherAsync(publisher);
         _onlineRelayPublisher = null;
         _onlineSessionToken = null;
+        _deviceSessionId = null;
         RoomCode = null;
 
         // Dispose server game if it was created

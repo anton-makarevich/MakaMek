@@ -357,7 +357,7 @@ public class StartNewGameViewModelTests
     public async Task SwitchingHostMode_ClearsHostingState()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -397,7 +397,7 @@ public class StartNewGameViewModelTests
     public async Task SettingOnlineMode_AutoStartsOnlineHosting_SetsRoomCodeAndCreatesLocalGame()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -422,7 +422,7 @@ public class StartNewGameViewModelTests
     {
         var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.OnlineError.Returns(error);
         gameManager.RoomCode.Returns((string?)null);
@@ -443,7 +443,7 @@ public class StartNewGameViewModelTests
     public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_DoesNotChangeState()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -465,7 +465,7 @@ public class StartNewGameViewModelTests
     public async Task CancelAndRestartServer_WhenOnlineSucceeds_SetsRoomCodeAndDoesNotNavigate()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -489,7 +489,7 @@ public class StartNewGameViewModelTests
     {
         var error = new RelayClientError(RelayClientErrorCode.NetworkError, "No connection");
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.OnlineError.Returns(error);
         gameManager.RoomCode.Returns((string?)null);
@@ -548,7 +548,7 @@ public class StartNewGameViewModelTests
     public async Task AttachHandlers_ResetsHostModeToLan_AndClearsHostingState()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -571,7 +571,7 @@ public class StartNewGameViewModelTests
     public async Task AttachHandlers_WhenPlayerJoinedOnlineRoom_KeepsHostingStateAndRoomCode()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -636,7 +636,7 @@ public class StartNewGameViewModelTests
     public async Task HostingStatusText_WhenHostingErrorSet_ReturnsErrorText()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.NetworkError, "No connection"));
         gameManager.RoomCode.Returns((string?)null);
@@ -654,7 +654,7 @@ public class StartNewGameViewModelTests
     {
         _localizationService.GetString("Hosting_RoomReady").Returns("Room ready, join with code: {0}");
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -675,7 +675,7 @@ public class StartNewGameViewModelTests
         _localizationService.GetString("Hosting_Starting").Returns("Starting hosted game...");
         var gameManager = Substitute.For<IGameManager>();
         var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(initTcs.Task);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);
@@ -712,7 +712,7 @@ public class StartNewGameViewModelTests
     public async Task SetHostMode_WhenPlayerJoined_DoesNotChangeMode()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
@@ -757,10 +757,10 @@ public class StartNewGameViewModelTests
         var sut = CreateSut(gameManager, commandPublisher);
 
         var playerId = Guid.NewGuid();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
-                var ct = callInfo.ArgAt<CancellationToken>(2);
+                var ct = callInfo.ArgAt<CancellationToken>(0);
                 if (ct.CanBeCanceled)
                 {
                     // Simulate a remote player joining while the in-flight init is being cancelled.
@@ -829,7 +829,7 @@ public class StartNewGameViewModelTests
     public async Task CopyRoomCodeCommand_WhenRoomCodeAvailable_CanExecuteAndRuns()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         gameManager.RoomCode.Returns("ABCDEF");
         gameManager.OnlineError.Returns((RelayClientError?)null);

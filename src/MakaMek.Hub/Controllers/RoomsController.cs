@@ -8,6 +8,7 @@ namespace Sanet.MakaMek.Hub.Controllers;
 
 /// <summary>
 /// Owns the REST room lifecycle. The relay transport is deliberately not involved here.
+/// Members are Hub-minted device sessions; no player identity crosses this boundary.
 /// </summary>
 [ApiController]
 [Route("api/rooms")]
@@ -22,14 +23,9 @@ public sealed class RoomsController(
     {
         var validationErrors = new Dictionary<string, string[]>();
 
-        if (string.IsNullOrWhiteSpace(request.PlayerName))
+        if (request.GameId == Guid.Empty)
         {
-            validationErrors[nameof(request.PlayerName)] = ["PlayerName is required."];
-        }
-
-        if (request.PlayerId == Guid.Empty)
-        {
-            validationErrors[nameof(request.PlayerId)] = ["PlayerId must be a non-empty GUID."];
+            validationErrors[nameof(request.GameId)] = ["GameId must be a non-empty GUID."];
         }
 
         if (validationErrors.Count > 0)
@@ -40,19 +36,20 @@ public sealed class RoomsController(
             return ValidationProblem(new ValidationProblemDetails(validationErrors));
         }
 
-        var creation = roomManager.CreateRoom(request.PlayerName.Trim(), request.PlayerId);
+        var creation = roomManager.CreateRoom(request.GameId);
 
         if (creation.Outcome == RoomCreationOutcome.HubAtCapacity)
         {
             logger.LogWarning(
-                "Create-room request by player {PlayerId} rejected: relay at capacity",
-                request.PlayerId);
+                "Create-room request for game {GameId} rejected: relay at capacity",
+                request.GameId);
             return StatusCode(
                 StatusCodes.Status503ServiceUnavailable,
                 new CreateRoomResponse(
                     Success: false,
                     RoomCode: null,
-                    HostId: null,
+                    DeviceSessionId: null,
+                    HostGameId: null,
                     SessionToken: null,
                     ExpiresAt: null,
                     Error: new HubError(
@@ -65,8 +62,8 @@ public sealed class RoomsController(
         var session = creation.Session!;
 
         logger.LogInformation(
-            "Create-room request by player {PlayerId} succeeded: room {RoomCode}",
-            request.PlayerId,
+            "Create-room request for game {GameId} succeeded: room {RoomCode}",
+            request.GameId,
             room.RoomCode);
 
         return Created(
@@ -74,7 +71,8 @@ public sealed class RoomsController(
             new CreateRoomResponse(
                 Success: true,
                 RoomCode: room.RoomCode,
-                HostId: room.HostPlayerId,
+                DeviceSessionId: session.DeviceSessionId,
+                HostGameId: room.HostGameId,
                 SessionToken: session.Token,
                 ExpiresAt: room.ExpiresAt,
                 Error: null));
@@ -87,80 +85,54 @@ public sealed class RoomsController(
     [ProducesResponseType<JoinResponse>(StatusCodes.Status409Conflict)]
     public ActionResult<JoinResponse> JoinRoom(string roomCode, [FromBody] JoinRequest request)
     {
-        var validationErrors = new Dictionary<string, string[]>();
-
-        if (string.IsNullOrWhiteSpace(request.PlayerName))
-        {
-            validationErrors[nameof(request.PlayerName)] = ["PlayerName is required."];
-        }
-
-        if (request.PlayerId == Guid.Empty)
-        {
-            validationErrors[nameof(request.PlayerId)] = ["PlayerId must be a non-empty GUID."];
-        }
-
-        if (validationErrors.Count > 0)
-        {
-            logger.LogWarning(
-                "Join request for room {RoomCode} rejected: validation failed ({FieldCount} field(s))",
-                roomCode,
-                validationErrors.Count);
-            return ValidationProblem(new ValidationProblemDetails(validationErrors));
-        }
-
-        var result = roomManager.JoinRoom(roomCode, request.PlayerName.Trim(), request.PlayerId);
+        var result = roomManager.JoinRoom(roomCode, request.SessionToken);
 
         return result.Outcome switch
         {
-            RoomJoinOutcome.Joined => Ok(LogJoinSuccess(result, roomCode, request)),
-            RoomJoinOutcome.RoomNotFound => NotFound(LogJoinFailure(result.Outcome, roomCode, request)),
-            RoomJoinOutcome.RoomExpired => Conflict(LogJoinFailure(result.Outcome, roomCode, request)),
-            RoomJoinOutcome.HostNotReady => Conflict(LogJoinFailure(result.Outcome, roomCode, request)),
-            RoomJoinOutcome.HostPlayerIdConflict => Conflict(LogJoinFailure(result.Outcome, roomCode, request)),
-            RoomJoinOutcome.RoomFull => Conflict(LogJoinFailure(result.Outcome, roomCode, request)),
+            RoomJoinOutcome.Joined => Ok(LogJoinSuccess(result, roomCode)),
+            RoomJoinOutcome.RoomNotFound => NotFound(LogJoinFailure(result.Outcome, roomCode)),
+            RoomJoinOutcome.RoomExpired => Conflict(LogJoinFailure(result.Outcome, roomCode)),
+            RoomJoinOutcome.HostNotReady => Conflict(LogJoinFailure(result.Outcome, roomCode)),
+            RoomJoinOutcome.RoomFull => Conflict(LogJoinFailure(result.Outcome, roomCode)),
             _ => throw new InvalidOperationException($"Unhandled join outcome: {result.Outcome}")
         };
     }
 
-    private JoinResponse LogJoinSuccess(RoomJoinResult result, string roomCode, JoinRequest request)
+    private JoinResponse LogJoinSuccess(RoomJoinResult result, string roomCode)
     {
         logger.LogInformation(
-            "Join request for room {RoomCode} by player {PlayerId} ({PlayerName}) succeeded with role {Role}",
+            "Join request for room {RoomCode} by device session {DeviceSessionId} succeeded with role {Role}",
             roomCode,
-            request.PlayerId,
-            request.PlayerName,
-            result.Session!.Role);
+            result.Session!.DeviceSessionId,
+            result.Session.Role);
         return new JoinResponse(
             Success: true,
             Role: result.Session!.Role.ToString(),
-            PlayerId: result.Session.PlayerId,
-            HostId: result.Room!.HostPlayerId,
+            DeviceSessionId: result.Session.DeviceSessionId,
+            HostGameId: result.Room!.HostGameId,
             SessionToken: result.Session.Token,
             Error: null);
     }
 
-    private JoinResponse LogJoinFailure(RoomJoinOutcome outcome, string roomCode, JoinRequest request)
+    private JoinResponse LogJoinFailure(RoomJoinOutcome outcome, string roomCode)
     {
         logger.LogWarning(
-            "Join request for room {RoomCode} by player {PlayerId} ({PlayerName}) failed: {Outcome}",
+            "Join request for room {RoomCode} failed: {Outcome}",
             roomCode,
-            request.PlayerId,
-            request.PlayerName,
             outcome);
         var (errorCode, message) = outcome switch
         {
             RoomJoinOutcome.RoomNotFound => (HubErrorCode.RoomNotFound, "The specified room was not found."),
             RoomJoinOutcome.RoomExpired => (HubErrorCode.RoomExpired, "The specified room has expired."),
             RoomJoinOutcome.HostNotReady => (HubErrorCode.HostNotReady, "The room host is not ready to accept joiners."),
-            RoomJoinOutcome.HostPlayerIdConflict => (HubErrorCode.HostPlayerIdConflict, "The supplied PlayerId matches the host."),
-            RoomJoinOutcome.RoomFull => (HubErrorCode.RoomFull, "The room is closed and is not accepting new players."),
+            RoomJoinOutcome.RoomFull => (HubErrorCode.RoomFull, "The room is closed and is not accepting new devices."),
             _ => (HubErrorCode.RoomNotFound, "The specified room was not found.")
         };
         return new JoinResponse(
             Success: false,
             Role: null,
-            PlayerId: null,
-            HostId: null,
+            DeviceSessionId: null,
+            HostGameId: null,
             SessionToken: null,
             Error: new HubError(errorCode, message));
     }
@@ -262,13 +234,13 @@ public sealed class RoomsController(
         return new CloseResponse(Success: false, Error: new HubError(errorCode, message));
     }
 
-    [HttpDelete("{roomCode}/members/{playerId:guid}")]
+    [HttpDelete("{roomCode}/members/{deviceSessionId:guid}")]
     [ProducesResponseType<RemoveMemberResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<RemoveMemberResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<RemoveMemberResponse>(StatusCodes.Status409Conflict)]
-    public ActionResult<RemoveMemberResponse> RemoveMember(string roomCode, Guid playerId)
+    public ActionResult<RemoveMemberResponse> RemoveMember(string roomCode, Guid deviceSessionId)
     {
         if (!TryGetSessionToken(out var sessionToken))
         {
@@ -278,29 +250,29 @@ public sealed class RoomsController(
             return Unauthorized();
         }
 
-        var result = roomManager.RemoveMember(roomCode, sessionToken, playerId);
+        var result = roomManager.RemoveMember(roomCode, sessionToken, deviceSessionId);
 
         return result.Outcome switch
         {
-            RoomRemoveMemberOutcome.Removed => Ok(LogRemoveSuccess(roomCode, playerId)),
-            RoomRemoveMemberOutcome.RoomNotFound => NotFound(LogRemoveFailure(result.Outcome, roomCode, playerId)),
-            RoomRemoveMemberOutcome.MemberNotFound => NotFound(LogRemoveFailure(result.Outcome, roomCode, playerId)),
-            _ => Conflict(LogRemoveFailure(result.Outcome, roomCode, playerId))
+            RoomRemoveMemberOutcome.Removed => Ok(LogRemoveSuccess(roomCode, deviceSessionId)),
+            RoomRemoveMemberOutcome.RoomNotFound => NotFound(LogRemoveFailure(result.Outcome, roomCode, deviceSessionId)),
+            RoomRemoveMemberOutcome.MemberNotFound => NotFound(LogRemoveFailure(result.Outcome, roomCode, deviceSessionId)),
+            _ => Conflict(LogRemoveFailure(result.Outcome, roomCode, deviceSessionId))
         };
     }
 
-    private RemoveMemberResponse LogRemoveSuccess(string roomCode, Guid playerId)
+    private RemoveMemberResponse LogRemoveSuccess(string roomCode, Guid deviceSessionId)
     {
-        logger.LogInformation("Member {PlayerId} removed from room {RoomCode}", playerId, roomCode);
+        logger.LogInformation("Device session {DeviceSessionId} removed from room {RoomCode}", deviceSessionId, roomCode);
         return new RemoveMemberResponse(Success: true, Error: null);
     }
 
-    private RemoveMemberResponse LogRemoveFailure(RoomRemoveMemberOutcome outcome, string roomCode, Guid playerId)
+    private RemoveMemberResponse LogRemoveFailure(RoomRemoveMemberOutcome outcome, string roomCode, Guid deviceSessionId)
     {
         logger.LogWarning(
-            "Remove-member request for room {RoomCode} (player {PlayerId}) failed: {Outcome}",
+            "Remove-member request for room {RoomCode} (device session {DeviceSessionId}) failed: {Outcome}",
             roomCode,
-            playerId,
+            deviceSessionId,
             outcome);
         var (errorCode, message) = outcome switch
         {

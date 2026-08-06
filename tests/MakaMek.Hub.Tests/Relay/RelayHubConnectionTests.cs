@@ -133,11 +133,10 @@ public class RelayHubConnectionTests
         using var client = factory.CreateClient();
 
         var host = await CreateReadyHostAsync(client);
-        var playerId = Guid.NewGuid();
-        var join = await JoinRoomAsync(client, host.RoomCode, "Grace", playerId);
+        var join = await JoinRoomAsync(client, host.RoomCode, sessionToken: null);
         join.SessionToken.ShouldNotBeNull();
 
-        using var removeResponse = await RemoveMemberAsync(client, host.RoomCode, host.SessionToken, playerId);
+        using var removeResponse = await RemoveMemberAsync(client, host.RoomCode, host.SessionToken, join.DeviceSessionId!.Value);
         removeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var response = await PostNegotiateAsync(
@@ -196,7 +195,7 @@ public class RelayHubConnectionTests
 
     private static async Task<ReadyHost> CreateReadyHostAsync(HttpClient client)
     {
-        using var createResponse = await CreateRoomAsync(client, "Ada", Guid.NewGuid());
+        using var createResponse = await CreateRoomAsync(client, Guid.NewGuid());
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         var created = await createResponse.Content.ReadFromJsonAsync<CreateRoomResponse>(JsonOptions);
         created.ShouldNotBeNull();
@@ -213,11 +212,10 @@ public class RelayHubConnectionTests
     private static async Task<JoinResponse> JoinRoomAsync(
         HttpClient client,
         string roomCode,
-        string playerName,
-        Guid playerId)
+        string? sessionToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/join");
-        request.Content = JsonContent.Create(new JoinRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new JoinRequest(sessionToken));
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var response = await client.SendAsync(request);
@@ -229,11 +227,10 @@ public class RelayHubConnectionTests
 
     private static async Task<HttpResponseMessage> CreateRoomAsync(
         HttpClient client,
-        string playerName,
-        Guid playerId)
+        Guid gameId)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new CreateRoomRequest(gameId));
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
         return await client.SendAsync(request);
     }
@@ -264,11 +261,11 @@ public class RelayHubConnectionTests
         HttpClient client,
         string roomCode,
         string sessionToken,
-        Guid playerId)
+        Guid deviceSessionId)
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Delete,
-            $"/api/rooms/{roomCode}/members/{playerId}");
+            $"/api/rooms/{roomCode}/members/{deviceSessionId}");
         request.Headers.Add("Session-Token", sessionToken);
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
         return await client.SendAsync(request);

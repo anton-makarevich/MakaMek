@@ -281,8 +281,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             joinCts = new CancellationTokenSource();
             _activeJoinCts = joinCts;
 
-            var playerData = GetLocalPlayerData();
-            await _gameConnector.JoinOnline(RoomCode, playerData.Id, playerData.Name, joinCts.Token);
+            // A new device joins without a session token; the Hub mints a device session.
+            await _gameConnector.JoinOnline(RoomCode, sessionToken: null, joinCts.Token);
             if (_joinMode != JoinMode.Online)
             {
                 // A newer join superseded this one; clean up any connection it left behind

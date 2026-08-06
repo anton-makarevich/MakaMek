@@ -62,9 +62,9 @@ public sealed class RelayAuthenticationMiddleware(RequestDelegate next)
         }
 
         logger.LogInformation(
-            "Relay hub connection from {RemoteIp} authenticated for player {PlayerId} in room {RoomCode} as {Role}",
+            "Relay hub connection from {RemoteIp} authenticated for device session {DeviceSessionId} in room {RoomCode} as {Role}",
             context.Connection.RemoteIpAddress,
-            session.PlayerId,
+            session.DeviceSessionId,
             session.RoomCode,
             session.Role);
 

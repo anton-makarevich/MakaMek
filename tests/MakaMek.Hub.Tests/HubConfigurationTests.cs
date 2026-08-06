@@ -28,7 +28,7 @@ public class HubConfigurationTests
             timeProvider: fakeTimeProvider);
         using var client = factory.CreateClient();
 
-        using var createResponse = await CreateRoomAsync(client, "Ada", Guid.NewGuid(), HubApplicationFactory.ApiKey);
+        using var createResponse = await CreateRoomAsync(client, Guid.NewGuid(), HubApplicationFactory.ApiKey);
         createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         var result = await createResponse.Content.ReadFromJsonAsync<CreateRoomResponse>(JsonOptions);
@@ -164,7 +164,7 @@ public class HubConfigurationTests
         using var client = factory.CreateClient();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.NewGuid()));
+        request.Content = JsonContent.Create(new CreateRoomRequest(Guid.NewGuid()));
         if (apiKey is not null)
         {
             request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, apiKey);
@@ -221,7 +221,7 @@ public class HubConfigurationTests
 
         // Send request without API key to trigger 401
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest("Ada", Guid.NewGuid()));
+        request.Content = JsonContent.Create(new CreateRoomRequest(Guid.NewGuid()));
 
         using var response = await client.SendAsync(request);
 
@@ -255,12 +255,11 @@ public class HubConfigurationTests
 
     private static async Task<HttpResponseMessage> CreateRoomAsync(
         HttpClient client,
-        string playerName,
-        Guid playerId,
+        Guid gameId,
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new CreateRoomRequest(gameId));
 
         if (apiKey is not null)
         {

@@ -17,9 +17,9 @@ public class CreateRoomsEndpointTests
     {
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
-        var playerId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
 
-        using var response = await CreateRoomAsync(client, "Ada", playerId, HubApplicationFactory.ApiKey);
+        using var response = await CreateRoomAsync(client, hostGameId, HubApplicationFactory.ApiKey);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
@@ -27,7 +27,9 @@ public class CreateRoomsEndpointTests
 
         result.ShouldNotBeNull();
         result.Success.ShouldBeTrue();
-        result.HostId.ShouldBe(playerId);
+        result.HostGameId.ShouldBe(hostGameId);
+        result.DeviceSessionId.ShouldNotBeNull();
+        result.DeviceSessionId.ShouldNotBe(Guid.Empty);
         result.Error.ShouldBeNull();
         result.RoomCode!.ShouldMatch("^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$");
         string.IsNullOrWhiteSpace(result.SessionToken).ShouldBeFalse();
@@ -41,8 +43,8 @@ public class CreateRoomsEndpointTests
         await using var factory = new HubApplicationFactory(maxConcurrentRooms: 1);
         using var client = factory.CreateClient();
 
-        using var firstResponse = await CreateRoomAsync(client, "Ada", Guid.NewGuid(), HubApplicationFactory.ApiKey);
-        using var secondResponse = await CreateRoomAsync(client, "Grace", Guid.NewGuid(), HubApplicationFactory.ApiKey);
+        using var firstResponse = await CreateRoomAsync(client, Guid.NewGuid(), HubApplicationFactory.ApiKey);
+        using var secondResponse = await CreateRoomAsync(client, Guid.NewGuid(), HubApplicationFactory.ApiKey);
 
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         secondResponse.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
@@ -67,29 +69,17 @@ public class CreateRoomsEndpointTests
         response.StatusCode.ShouldNotBe(HttpStatusCode.Unauthorized);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task CreateRoom_WithInvalidPlayerName_ReturnsValidationError(string? playerName)
-    {
-        await using var factory = new HubApplicationFactory();
-        using var client = factory.CreateClient();
-
-        using var response = await CreateRoomAsync(client, playerName!, Guid.NewGuid(), HubApplicationFactory.ApiKey);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-    }
-
     [Fact]
-    public async Task CreateRoom_WithEmptyPlayerId_ReturnsValidationError()
+    public async Task CreateRoom_WithEmptyGameId_ReturnsValidationError()
     {
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
 
-        using var response = await CreateRoomAsync(client, "Ada", Guid.Empty, HubApplicationFactory.ApiKey);
+        using var response = await CreateRoomAsync(client, Guid.Empty, HubApplicationFactory.ApiKey);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("GameId");
     }
 
     [Theory]
@@ -100,7 +90,7 @@ public class CreateRoomsEndpointTests
         await using var factory = new HubApplicationFactory();
         using var client = factory.CreateClient();
 
-        using var response = await CreateRoomAsync(client, "Ada", Guid.NewGuid(), apiKey);
+        using var response = await CreateRoomAsync(client, Guid.NewGuid(), apiKey);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var body = await response.Content.ReadAsStringAsync();
@@ -109,12 +99,11 @@ public class CreateRoomsEndpointTests
 
     private static async Task<HttpResponseMessage> CreateRoomAsync(
         HttpClient client,
-        string playerName,
-        Guid playerId,
+        Guid gameId,
         string? apiKey)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/rooms");
-        request.Content = JsonContent.Create(new CreateRoomRequest(playerName, playerId));
+        request.Content = JsonContent.Create(new CreateRoomRequest(gameId));
 
         if (apiKey is not null)
         {

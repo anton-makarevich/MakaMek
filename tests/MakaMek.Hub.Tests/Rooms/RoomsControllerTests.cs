@@ -16,7 +16,8 @@ public class RoomsControllerTests
     private readonly CapturingLogger<RoomsController> _logger = new();
     private readonly RoomsController _sut;
 
-    private static readonly Guid PlayerId = Guid.NewGuid();
+    private static readonly Guid HostGameId = Guid.NewGuid();
+    private static readonly Guid DeviceSessionId = Guid.NewGuid();
     private const string SessionToken = "test-session-token";
     private const string RoomCode = "ABC123";
 
@@ -37,25 +38,27 @@ public class RoomsControllerTests
     public void JoinRoom_ValidRequest_ReturnsOk()
     {
         var room = CreateRoom();
-        var session = new RoomSession(SessionToken, RoomCode, PlayerId, RoomRole.Client, DateTimeOffset.UtcNow);
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        var session = new RoomSession(SessionToken, RoomCode, DeviceSessionId, RoomRole.Client, DateTimeOffset.UtcNow);
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Joined(room, session));
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         var ok = result.Result.ShouldBeOfType<OkObjectResult>();
         var response = ok.Value.ShouldBeOfType<JoinResponse>();
         response.Success.ShouldBeTrue();
         response.SessionToken.ShouldBe(SessionToken);
+        response.DeviceSessionId.ShouldBe(DeviceSessionId);
+        response.HostGameId.ShouldBe(HostGameId);
     }
 
     [Fact]
     public void JoinRoom_RoomNotFound_ReturnsNotFound()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotFound());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         var notFound = result.Result.ShouldBeOfType<NotFoundObjectResult>();
         var response = notFound.Value.ShouldBeOfType<JoinResponse>();
@@ -66,10 +69,10 @@ public class RoomsControllerTests
     [Fact]
     public void JoinRoom_RoomExpired_ReturnsConflict()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Expired());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
@@ -80,10 +83,10 @@ public class RoomsControllerTests
     [Fact]
     public void JoinRoom_HostNotReady_ReturnsConflict()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotReady());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
@@ -92,47 +95,17 @@ public class RoomsControllerTests
     }
 
     [Fact]
-    public void JoinRoom_HostPlayerIdConflict_ReturnsConflict()
-    {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
-            .Returns(RoomJoinResult.HostPlayerIdConflict());
-
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
-
-        var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
-        var response = conflict.Value.ShouldBeOfType<JoinResponse>();
-        response.Success.ShouldBeFalse();
-        response.Error!.Code.ShouldBe(HubErrorCode.HostPlayerIdConflict);
-    }
-
-    [Fact]
     public void JoinRoom_RoomFull_ReturnsConflict()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Full());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
         response.Success.ShouldBeFalse();
         response.Error!.Code.ShouldBe(HubErrorCode.RoomFull);
-    }
-
-    [Fact]
-    public void JoinRoom_EmptyPlayerName_ReturnsValidationProblem()
-    {
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("", PlayerId));
-
-        result.Result.ShouldBeOfType<BadRequestObjectResult>();
-    }
-
-    [Fact]
-    public void JoinRoom_EmptyPlayerId_ReturnsValidationProblem()
-    {
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest("Grace", Guid.Empty));
-
-        result.Result.ShouldBeOfType<BadRequestObjectResult>();
     }
 
     #endregion
@@ -423,11 +396,11 @@ public class RoomsControllerTests
     [Fact]
     public void JoinRoom_UnhandledOutcome_ThrowsInvalidOperationException()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(new RoomJoinResult((RoomJoinOutcome)999, null, null));
 
         var exception = Should.Throw<InvalidOperationException>(
-            () => _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId)));
+            () => _sut.JoinRoom(RoomCode, new JoinRequest(null)));
 
         exception.Message.ShouldContain("Unhandled join outcome", Case.Sensitive);
     }
@@ -486,11 +459,11 @@ public class RoomsControllerTests
     public void JoinRoom_ValidRequest_LogsInformation()
     {
         var room = CreateRoom();
-        var session = new RoomSession(SessionToken, RoomCode, PlayerId, RoomRole.Client, DateTimeOffset.UtcNow);
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        var session = new RoomSession(SessionToken, RoomCode, DeviceSessionId, RoomRole.Client, DateTimeOffset.UtcNow);
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Joined(room, session));
 
-        _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         _logger.GetMessages(LogLevel.Information).ShouldContain(
             message => message.Contains("succeeded with role", StringComparison.Ordinal));
@@ -499,10 +472,10 @@ public class RoomsControllerTests
     [Fact]
     public void JoinRoom_RoomNotFound_LogsWarning()
     {
-        _roomManager.JoinRoom(RoomCode, "Grace", PlayerId)
+        _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotFound());
 
-        _sut.JoinRoom(RoomCode, new JoinRequest("Grace", PlayerId));
+        _sut.JoinRoom(RoomCode, new JoinRequest(null));
 
         _logger.GetMessages(LogLevel.Warning).ShouldContain(
             message => message.Contains("failed: RoomNotFound", StringComparison.Ordinal));
@@ -538,11 +511,11 @@ public class RoomsControllerTests
     public void CreateRoom_ValidRequest_LogsInformation()
     {
         var room = CreateRoom();
-        var session = new RoomSession(SessionToken, RoomCode, PlayerId, RoomRole.Host, DateTimeOffset.UtcNow.AddHours(2));
-        _roomManager.CreateRoom("Ada", PlayerId)
+        var session = new RoomSession(SessionToken, RoomCode, DeviceSessionId, RoomRole.Host, DateTimeOffset.UtcNow.AddHours(2));
+        _roomManager.CreateRoom(HostGameId)
             .Returns(RoomCreationResult.Created(room, session, 1));
 
-        _sut.CreateRoom(new CreateRoomRequest("Ada", PlayerId));
+        _sut.CreateRoom(new CreateRoomRequest(HostGameId));
 
         _logger.GetMessages(LogLevel.Information).ShouldContain(
             message => message.Contains("succeeded: room", StringComparison.Ordinal));
@@ -557,9 +530,9 @@ public class RoomsControllerTests
 
     private static Room CreateRoom()
     {
-        var hostId = Guid.NewGuid();
-        var hostMember = new RoomMember(hostId, "Host", RoomRole.Host, DateTimeOffset.UtcNow);
-        var hostSession = new RoomSession("host-token", RoomCode, hostId, RoomRole.Host, DateTimeOffset.UtcNow.AddHours(2));
-        return new Room(RoomCode, hostMember, hostSession, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(2));
+        var hostDeviceSessionId = Guid.NewGuid();
+        var hostMember = new RoomMember(hostDeviceSessionId, RoomRole.Host, DateTimeOffset.UtcNow);
+        var hostSession = new RoomSession("host-token", RoomCode, hostDeviceSessionId, RoomRole.Host, DateTimeOffset.UtcNow.AddHours(2));
+        return new Room(RoomCode, HostGameId, hostMember, hostSession, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(2));
     }
 }

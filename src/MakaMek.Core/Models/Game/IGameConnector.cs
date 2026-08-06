@@ -19,13 +19,12 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
     /// Joins an online game room hosted through the cloud relay.
     /// </summary>
     /// <param name="roomCode">Room code of the lobby to join.</param>
-    /// <param name="playerId">Id of the local player joining the room.</param>
-    /// <param name="playerName">Name of the local player joining the room.</param>
+    /// <param name="sessionToken">Session token of the device's existing session, when rejoining.
+    /// Null for a new device, which the Hub registers under a freshly minted device session.</param>
     /// <param name="cancellationToken">Cancellation token for the join lifecycle calls.</param>
     Task JoinOnline(
         string roomCode,
-        Guid playerId,
-        string playerName,
+        string? sessionToken,
         CancellationToken cancellationToken = default);
 
     /// <summary>

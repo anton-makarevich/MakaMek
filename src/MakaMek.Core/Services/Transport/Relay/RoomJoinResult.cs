@@ -8,17 +8,17 @@ public sealed record RoomJoinResult(
     string? RoomCode,
     string? SessionToken,
     string? Role,
-    Guid? PlayerId,
-    Guid? HostId,
+    Guid? DeviceSessionId,
+    Guid? HostGameId,
     RelayClientError? Error)
 {
     public static RoomJoinResult Succeeded(
         string roomCode,
         string sessionToken,
         string role,
-        Guid playerId,
-        Guid hostId) =>
-        new(true, roomCode, sessionToken, role, playerId, hostId, null);
+        Guid deviceSessionId,
+        Guid hostGameId) =>
+        new(true, roomCode, sessionToken, role, deviceSessionId, hostGameId, null);
 
     public static RoomJoinResult Failed(RelayClientError error) =>
         new(false, null, null, null, null, null, error);

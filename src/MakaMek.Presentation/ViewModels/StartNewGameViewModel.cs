@@ -95,8 +95,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private async Task InitializeOnlineLobbyAndSubscribe(CancellationToken cancellationToken)
     {
-        var playerData = GetLocalPlayerData();
-        await _gameManager.InitializeLobbyOnline(playerData.Id, playerData.Name, cancellationToken);
+        await _gameManager.InitializeLobbyOnline(cancellationToken);
         if (cancellationToken.IsCancellationRequested || _isDisposed)
             return;
 

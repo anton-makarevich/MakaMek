@@ -11,32 +11,44 @@ public class RoomTests
     [Fact]
     public void Constructor_SetsExpiresAtFromProvidedValue()
     {
-        var hostId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
         var expiresAt = DefaultNow.Add(DefaultTtl);
 
-        var room = CreateRoom(hostId);
+        var room = CreateRoom(Guid.NewGuid(), hostGameId);
 
         room.ExpiresAt.ShouldBe(expiresAt);
     }
 
     [Fact]
-    public void RemoveMember_HostPlayerId_ReturnsFalse()
+    public void Constructor_SetsHostGameIdFromCreateRequest()
     {
-        var hostId = Guid.NewGuid();
-        var room = CreateRoom(hostId);
+        var hostGameId = Guid.NewGuid();
 
-        var result = room.RemoveMember(hostId);
+        var room = CreateRoom(Guid.NewGuid(), hostGameId);
+
+        room.HostGameId.ShouldBe(hostGameId);
+        // HostGameId is game identity, not a membership or connection key.
+        room.Members.Single().DeviceSessionId.ShouldNotBe(hostGameId);
+        room.LiveConnectionCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void RemoveMember_HostDeviceSession_ReturnsFalse()
+    {
+        var hostDeviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(hostDeviceSessionId, Guid.NewGuid());
+
+        var result = room.RemoveMember(hostDeviceSessionId);
 
         result.ShouldBeFalse();
-        room.IsMember(hostId).ShouldBeTrue();
+        room.IsMember(hostDeviceSessionId).ShouldBeTrue();
         room.Members.Count.ShouldBe(1);
     }
 
     [Fact]
     public void RemoveMember_NonMember_ReturnsFalse()
     {
-        var hostId = Guid.NewGuid();
-        var room = CreateRoom(hostId);
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
 
         var result = room.RemoveMember(Guid.NewGuid());
 
@@ -47,29 +59,29 @@ public class RoomTests
     [Fact]
     public void RemoveMember_ClientMember_RemovesMemberAndRevokesSessions()
     {
-        var hostId = Guid.NewGuid();
-        var clientId = Guid.NewGuid();
-        var room = CreateRoom(hostId);
-        var clientSession1 = room.AddClientMember("Grace", clientId, DefaultNow, DefaultTtl, () => "client-token-1");
-        var clientSession2 = room.AddClientMember("Grace", clientId, DefaultNow, DefaultTtl, () => "client-token-2");
+        var hostDeviceSessionId = Guid.NewGuid();
+        var clientDeviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(hostDeviceSessionId, Guid.NewGuid());
+        var clientSession1 = room.AddClientMember(clientDeviceSessionId, DefaultNow, DefaultTtl, () => "client-token-1");
+        var clientSession2 = room.AddClientMember(clientDeviceSessionId, DefaultNow, DefaultTtl, () => "client-token-2");
 
-        var result = room.RemoveMember(clientId);
+        var result = room.RemoveMember(clientDeviceSessionId);
 
         result.ShouldBeTrue();
-        room.IsMember(clientId).ShouldBeFalse();
+        room.IsMember(clientDeviceSessionId).ShouldBeFalse();
         room.HasSession(clientSession1.Token).ShouldBeFalse();
         room.HasSession(clientSession2.Token).ShouldBeFalse();
         room.Members.Count.ShouldBe(1);
-        room.IsMember(hostId).ShouldBeTrue();
+        room.IsMember(hostDeviceSessionId).ShouldBeTrue();
     }
 
     [Fact]
     public void TryGetSession_WithMismatchedRoomCodeInSession_ReturnsSessionWithDifferentCode()
     {
-        var hostId = Guid.NewGuid();
-        var hostMember = new RoomMember(hostId, "Ada", RoomRole.Host, DefaultNow);
-        var hostSession = new RoomSession("host-token", "WRONG", hostId, RoomRole.Host, DefaultNow.Add(DefaultTtl));
-        var room = new Room("ABC234", hostMember, hostSession, DefaultNow, DefaultNow.Add(DefaultTtl));
+        var hostDeviceSessionId = Guid.NewGuid();
+        var hostMember = new RoomMember(hostDeviceSessionId, RoomRole.Host, DefaultNow);
+        var hostSession = new RoomSession("host-token", "WRONG", hostDeviceSessionId, RoomRole.Host, DefaultNow.Add(DefaultTtl));
+        var room = new Room("ABC234", Guid.NewGuid(), hostMember, hostSession, DefaultNow, DefaultNow.Add(DefaultTtl));
 
         var found = room.TryGetSession("host-token", out var session);
 
@@ -79,16 +91,16 @@ public class RoomTests
     }
 
     [Fact]
-    public void RegisterConnection_ForConnectedPlayer_ReturnsReplacedConnectionAndTouchesRoom()
+    public void RegisterConnection_ForDeviceSession_ReturnsReplacedConnectionAndTouchesRoom()
     {
-        var playerId = Guid.NewGuid();
-        var room = CreateRoom(Guid.NewGuid());
+        var deviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
 
-        room.RegisterConnection(playerId, "old", DefaultNow, DefaultTtl).ShouldBeNull();
-        var replaced = room.RegisterConnection(playerId, "new", DefaultNow.AddMinutes(5), DefaultTtl);
+        room.RegisterConnection(deviceSessionId, "old", DefaultNow, DefaultTtl).ShouldBeNull();
+        var replaced = room.RegisterConnection(deviceSessionId, "new", DefaultNow.AddMinutes(5), DefaultTtl);
 
         replaced.ShouldBe("old");
-        room.GetConnectionId(playerId).ShouldBe("new");
+        room.GetConnectionId(deviceSessionId).ShouldBe("new");
         room.LiveConnectionCount.ShouldBe(1);
         room.LastActivityAt.ShouldBe(DefaultNow.AddMinutes(5));
         room.ExpiresAt.ShouldBe(DefaultNow.AddHours(2).AddMinutes(5));
@@ -97,23 +109,40 @@ public class RoomTests
     [Fact]
     public void RemoveConnection_OnlyRemovesActiveConnection()
     {
-        var playerId = Guid.NewGuid();
-        var room = CreateRoom(Guid.NewGuid());
-        room.RegisterConnection(playerId, "new", DefaultNow, DefaultTtl);
+        var deviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+        room.RegisterConnection(deviceSessionId, "new", DefaultNow, DefaultTtl);
 
-        room.RemoveConnection(playerId, "old", DefaultNow.AddMinutes(1), DefaultTtl).ShouldBeFalse();
-        room.GetConnectionId(playerId).ShouldBe("new");
-        room.RemoveConnection(playerId, "new", DefaultNow.AddMinutes(2), DefaultTtl).ShouldBeTrue();
+        room.RemoveConnection(deviceSessionId, "old", DefaultNow.AddMinutes(1), DefaultTtl).ShouldBeFalse();
+        room.GetConnectionId(deviceSessionId).ShouldBe("new");
+        room.RemoveConnection(deviceSessionId, "new", DefaultNow.AddMinutes(2), DefaultTtl).ShouldBeTrue();
 
-        room.GetConnectionId(playerId).ShouldBeNull();
+        room.GetConnectionId(deviceSessionId).ShouldBeNull();
         room.LiveConnectionCount.ShouldBe(0);
         room.LastActivityAt.ShouldBe(DefaultNow.AddMinutes(2));
     }
 
     [Fact]
+    public void Reconnect_ReusesDeviceSessionAndRemapsConnection()
+    {
+        var hostDeviceSessionId = Guid.NewGuid();
+        var room = CreateRoom(hostDeviceSessionId, Guid.NewGuid());
+
+        // First connection for the host device, then a reconnect: same device
+        // session identity, superseded ConnectionId, new active ConnectionId.
+        room.RegisterConnection(hostDeviceSessionId, "host-old", DefaultNow, DefaultTtl);
+        var replaced = room.RegisterConnection(hostDeviceSessionId, "host-new", DefaultNow.AddMinutes(1), DefaultTtl);
+
+        replaced.ShouldBe("host-old");
+        room.GetConnectionId(hostDeviceSessionId).ShouldBe("host-new");
+        room.GetHostConnectionId().ShouldBe("host-new");
+        room.LiveConnectionCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void Dissolution_CanBeMarkedCancelledAndDetectedAtDeadline()
     {
-        var room = CreateRoom(Guid.NewGuid());
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
         var grace = TimeSpan.FromSeconds(30);
 
         room.MarkForDissolution(DefaultNow, grace);
@@ -131,8 +160,8 @@ public class RoomTests
     [Fact]
     public void RevokeAllSessions_RevokesHostAndClientSessions()
     {
-        var room = CreateRoom(Guid.NewGuid());
-        var client = room.AddClientMember("Grace", Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+        var client = room.AddClientMember(Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
 
         room.RevokeAllSessions();
 
@@ -140,10 +169,10 @@ public class RoomTests
         room.HasSession(client.Token).ShouldBeFalse();
     }
 
-    private static Room CreateRoom(Guid hostId)
+    private static Room CreateRoom(Guid hostDeviceSessionId, Guid hostGameId)
     {
-        var hostMember = new RoomMember(hostId, "Ada", RoomRole.Host, DefaultNow);
-        var hostSession = new RoomSession("host-token", "ABC234", hostId, RoomRole.Host, DefaultNow.Add(DefaultTtl));
-        return new Room("ABC234", hostMember, hostSession, DefaultNow, DefaultNow.Add(DefaultTtl));
+        var hostMember = new RoomMember(hostDeviceSessionId, RoomRole.Host, DefaultNow);
+        var hostSession = new RoomSession("host-token", "ABC234", hostDeviceSessionId, RoomRole.Host, DefaultNow.Add(DefaultTtl));
+        return new Room("ABC234", hostGameId, hostMember, hostSession, DefaultNow, DefaultNow.Add(DefaultTtl));
     }
 }

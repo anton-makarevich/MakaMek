@@ -8,6 +8,7 @@ namespace Sanet.MakaMek.Hub.Rooms;
 
 /// <summary>
 /// Thread-safe in-memory implementation of room management for a single relay instance.
+/// Members are device sessions minted by the Hub; the Hub never sees player identity.
 /// </summary>
 public sealed class RoomManager : IRoomManager
 {
@@ -38,13 +39,11 @@ public sealed class RoomManager : IRoomManager
         _logger = logger;
     }
 
-    public RoomCreationResult CreateRoom(string playerName, Guid playerId)
+    public RoomCreationResult CreateRoom(Guid hostGameId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(playerName);
-
-        if (playerId == Guid.Empty)
+        if (hostGameId == Guid.Empty)
         {
-            throw new ArgumentException("PlayerId must be a non-empty GUID.", nameof(playerId));
+            throw new ArgumentException("GameId must be a non-empty GUID.", nameof(hostGameId));
         }
 
         lock (_sync)
@@ -55,9 +54,7 @@ public sealed class RoomManager : IRoomManager
             if (_rooms.Count >= _maxConcurrentRooms)
             {
                 _logger.LogWarning(
-                    "Room creation rejected for player {PlayerId} ({PlayerName}): relay capacity reached ({ActiveRooms}/{MaxRooms})",
-                    playerId,
-                    playerName,
+                    "Room creation rejected: relay capacity reached ({ActiveRooms}/{MaxRooms})",
                     _rooms.Count,
                     _maxConcurrentRooms);
                 return RoomCreationResult.AtCapacity(_rooms.Count);
@@ -65,22 +62,22 @@ public sealed class RoomManager : IRoomManager
 
             var roomCode = GenerateAvailableRoomCode();
             var expiresAt = now.Add(_roomTtl);
-            var host = new RoomMember(playerId, playerName, RoomRole.Host, now);
+            var hostDeviceSessionId = Guid.NewGuid();
+            var host = new RoomMember(hostDeviceSessionId, RoomRole.Host, now);
             var session = new RoomSession(
                 GenerateSessionToken(),
                 roomCode,
-                playerId,
+                hostDeviceSessionId,
                 RoomRole.Host,
                 expiresAt);
-            var room = new Room(roomCode, host, session, now, expiresAt);
+            var room = new Room(roomCode, hostGameId, host, session, now, expiresAt);
 
             _rooms.Add(roomCode, room);
 
             _logger.LogInformation(
-                "Room {RoomCode} created for host {PlayerId} ({PlayerName}); expires {ExpiresAt}; {ActiveRooms} active room(s)",
+                "Room {RoomCode} created for device session {DeviceSessionId}; expires {ExpiresAt}; {ActiveRooms} active room(s)",
                 roomCode,
-                playerId,
-                playerName,
+                hostDeviceSessionId,
                 expiresAt,
                 _rooms.Count);
 
@@ -88,15 +85,8 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-    public RoomJoinResult JoinRoom(string roomCode, string playerName, Guid playerId)
+    public RoomJoinResult JoinRoom(string roomCode, string? sessionToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(playerName);
-
-        if (playerId == Guid.Empty)
-        {
-            throw new ArgumentException("PlayerId must be a non-empty GUID.", nameof(playerId));
-        }
-
         lock (_sync)
         {
             var now = _timeProvider.GetUtcNow();
@@ -104,20 +94,16 @@ public sealed class RoomManager : IRoomManager
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
                 _logger.LogWarning(
-                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room not found",
-                    roomCode,
-                    playerId,
-                    playerName);
+                    "Join rejected for room {RoomCode}: room not found",
+                    roomCode);
                 return RoomJoinResult.NotFound();
             }
 
             if (room.IsExpiredAt(now))
             {
                 _logger.LogWarning(
-                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room expired",
-                    roomCode,
-                    playerId,
-                    playerName);
+                    "Join rejected for room {RoomCode}: room expired",
+                    roomCode);
                 return RoomJoinResult.Expired();
             }
 
@@ -125,62 +111,70 @@ public sealed class RoomManager : IRoomManager
             if (room.IsDissolvedAt(now))
             {
                 _logger.LogWarning(
-                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room dissolved",
-                    roomCode,
-                    playerId,
-                    playerName);
+                    "Join rejected for room {RoomCode}: room dissolved",
+                    roomCode);
                 room.RevokeAllSessions();
                 _rooms.Remove(roomCode);
                 return RoomJoinResult.NotFound();
             }
 
-            if (room.IsHost(playerId))
+            // A rejoin presents a valid session token that resolves the existing device session.
+            Guid? existingDeviceSessionId = null;
+            if (!string.IsNullOrWhiteSpace(sessionToken)
+                && room.TryGetSession(sessionToken, out var existingSession)
+                && existingSession.ExpiresAt > now)
             {
-                _logger.LogWarning(
-                    "Join rejected for room {RoomCode} by player {PlayerId}: player is the room host",
+                existingDeviceSessionId = existingSession.DeviceSessionId;
+            }
+
+            if (existingDeviceSessionId is not null)
+            {
+                var session = room.AddClientMember(
+                    existingDeviceSessionId.Value,
+                    now,
+                    _roomTtl,
+                    GenerateSessionToken);
+
+                _logger.LogInformation(
+                    "Device session {DeviceSessionId} rejoined room {RoomCode}; {MemberCount} member(s) now in the room",
+                    existingDeviceSessionId.Value,
                     roomCode,
-                    playerId);
-                return RoomJoinResult.HostPlayerIdConflict();
+                    room.Members.Count);
+
+                return RoomJoinResult.Joined(room, session);
             }
 
             if (room.State == RoomState.Created)
             {
                 _logger.LogWarning(
-                    "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): host is not ready to accept joiners",
-                    roomCode,
-                    playerId,
-                    playerName);
+                    "Join rejected for room {RoomCode}: host is not ready to accept joiners",
+                    roomCode);
                 return RoomJoinResult.NotReady();
             }
 
             if (room.State == RoomState.Closed)
             {
-                if (!room.IsMember(playerId))
-                {
-                    _logger.LogWarning(
-                        "Join rejected for room {RoomCode} by player {PlayerId} ({PlayerName}): room is closed and full",
-                        roomCode,
-                        playerId,
-                        playerName);
-                    return RoomJoinResult.Full();
-                }
+                _logger.LogWarning(
+                    "Join rejected for room {RoomCode}: room is closed and is not accepting new devices",
+                    roomCode);
+                return RoomJoinResult.Full();
             }
 
-            var session = room.AddClientMember(
-                playerName,
-                playerId,
+            // New device: mint a fresh device session identity.
+            var deviceSessionId = Guid.NewGuid();
+            var joinedSession = room.AddClientMember(
+                deviceSessionId,
                 now,
                 _roomTtl,
                 GenerateSessionToken);
 
             _logger.LogInformation(
-                "Player {PlayerId} ({PlayerName}) joined room {RoomCode}; {MemberCount} member(s) now in the room",
-                playerId,
-                playerName,
+                "Device session {DeviceSessionId} joined room {RoomCode}; {MemberCount} member(s) now in the room",
+                deviceSessionId,
                 roomCode,
                 room.Members.Count);
 
-            return RoomJoinResult.Joined(room, session);
+            return RoomJoinResult.Joined(room, joinedSession);
         }
     }
 
@@ -260,7 +254,7 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-    public RoomRemoveMemberResult RemoveMember(string roomCode, string sessionToken, Guid targetPlayerId)
+    public RoomRemoveMemberResult RemoveMember(string roomCode, string sessionToken, Guid targetDeviceSessionId)
     {
         lock (_sync)
         {
@@ -290,59 +284,59 @@ public sealed class RoomManager : IRoomManager
                 return RoomRemoveMemberResult.NotHost();
             }
 
-            if (room.IsHost(targetPlayerId))
+            if (room.IsHost(targetDeviceSessionId))
             {
                 _logger.LogWarning(
-                    "Remove-member failed for room {RoomCode}: target {PlayerId} is the host",
+                    "Remove-member failed for room {RoomCode}: target device session {DeviceSessionId} is the host",
                     roomCode,
-                    targetPlayerId);
+                    targetDeviceSessionId);
                 return RoomRemoveMemberResult.CannotRemoveHost();
             }
 
-            if (!room.IsMember(targetPlayerId))
+            if (!room.IsMember(targetDeviceSessionId))
             {
                 _logger.LogWarning(
-                    "Remove-member failed for room {RoomCode}: target {PlayerId} is not a member",
+                    "Remove-member failed for room {RoomCode}: target device session {DeviceSessionId} is not a member",
                     roomCode,
-                    targetPlayerId);
+                    targetDeviceSessionId);
                 return RoomRemoveMemberResult.MemberNotFound();
             }
 
-            room.RemoveMember(targetPlayerId);
+            room.RemoveMember(targetDeviceSessionId);
             _logger.LogInformation(
-                "Member {PlayerId} removed from room {RoomCode}",
-                targetPlayerId,
+                "Device session {DeviceSessionId} removed from room {RoomCode}",
+                targetDeviceSessionId,
                 roomCode);
             return RoomRemoveMemberResult.Removed();
         }
     }
 
-    public string? RegisterConnection(string roomCode, Guid playerId, string connectionId)
+    public string? RegisterConnection(string roomCode, Guid deviceSessionId, string connectionId)
     {
         lock (_sync)
         {
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
                 _logger.LogWarning(
-                    "Connection {ConnectionId} not registered for player {PlayerId}: room {RoomCode} not found",
+                    "Connection {ConnectionId} not registered for device session {DeviceSessionId}: room {RoomCode} not found",
                     connectionId,
-                    playerId,
+                    deviceSessionId,
                     roomCode);
                 return null;
             }
 
-            var replaced = room.RegisterConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
+            var replaced = room.RegisterConnection(deviceSessionId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
             _logger.LogDebug(
-                "Connection {ConnectionId} registered for player {PlayerId} in room {RoomCode}; previous: {PreviousConnectionId}",
+                "Connection {ConnectionId} registered for device session {DeviceSessionId} in room {RoomCode}; previous: {PreviousConnectionId}",
                 connectionId,
-                playerId,
+                deviceSessionId,
                 roomCode,
                 replaced ?? "none");
             return replaced;
         }
     }
 
-    public bool UnregisterConnection(string roomCode, Guid playerId, string connectionId)
+    public bool UnregisterConnection(string roomCode, Guid deviceSessionId, string connectionId)
     {
         lock (_sync)
         {
@@ -351,7 +345,7 @@ public sealed class RoomManager : IRoomManager
                 return false;
             }
 
-            return room.RemoveConnection(playerId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
+            return room.RemoveConnection(deviceSessionId, connectionId, _timeProvider.GetUtcNow(), _roomTtl);
         }
     }
 
@@ -363,11 +357,11 @@ public sealed class RoomManager : IRoomManager
         }
     }
 
-    public string? GetConnectionId(string roomCode, Guid playerId)
+    public string? GetConnectionId(string roomCode, Guid deviceSessionId)
     {
         lock (_sync)
         {
-            return _rooms.TryGetValue(roomCode, out var room) ? room.GetConnectionId(playerId) : null;
+            return _rooms.TryGetValue(roomCode, out var room) ? room.GetConnectionId(deviceSessionId) : null;
         }
     }
 
@@ -376,7 +370,7 @@ public sealed class RoomManager : IRoomManager
     /// has taken over, marks the room for host-disconnect dissolution.
     /// Returns true when dissolution was marked (i.e. the host is truly gone).
     /// </summary>
-    public bool TryMarkHostDisconnected(string roomCode, Guid playerId, string connectionId)
+    public bool TryMarkHostDisconnected(string roomCode, Guid deviceSessionId, string connectionId)
     {
         lock (_sync)
         {
@@ -392,32 +386,32 @@ public sealed class RoomManager : IRoomManager
                 return false;
             }
 
-            var wasActive = room.RemoveConnection(playerId, connectionId, now, _roomTtl);
+            var wasActive = room.RemoveConnection(deviceSessionId, connectionId, now, _roomTtl);
             if (!wasActive)
             {
                 _logger.LogDebug(
-                    "Host connection {ConnectionId} for player {PlayerId} in room {RoomCode} was not the active connection",
+                    "Host connection {ConnectionId} for device session {DeviceSessionId} in room {RoomCode} was not the active connection",
                     connectionId,
-                    playerId,
+                    deviceSessionId,
                     roomCode);
                 return false;
             }
 
             // A newer connection has taken over — skip dissolution.
-            if (room.GetConnectionId(playerId) is not null)
+            if (room.GetConnectionId(deviceSessionId) is not null)
             {
                 _logger.LogDebug(
-                    "Host connection {ConnectionId} for player {PlayerId} in room {RoomCode} superseded by a newer connection",
+                    "Host connection {ConnectionId} for device session {DeviceSessionId} in room {RoomCode} superseded by a newer connection",
                     connectionId,
-                    playerId,
+                    deviceSessionId,
                     roomCode);
                 return false;
             }
 
             room.MarkForDissolution(now, _dissolutionGracePeriod);
             _logger.LogWarning(
-                "Host {PlayerId} is gone from room {RoomCode}; room marked for dissolution",
-                playerId,
+                "Host device session {DeviceSessionId} is gone from room {RoomCode}; room marked for dissolution",
+                deviceSessionId,
                 roomCode);
             return true;
         }
@@ -509,8 +503,8 @@ public sealed class RoomManager : IRoomManager
                 if (!string.Equals(session.RoomCode, room.RoomCode, StringComparison.Ordinal))
                 {
                     _logger.LogWarning(
-                        "Session token for player {PlayerId} rejected: token is not bound to room {RoomCode}",
-                        session.PlayerId,
+                        "Session token for device session {DeviceSessionId} rejected: token is not bound to room {RoomCode}",
+                        session.DeviceSessionId,
                         room.RoomCode);
                     return null;
                 }
@@ -518,15 +512,15 @@ public sealed class RoomManager : IRoomManager
                 if (room.IsExpiredAt(now) || session.ExpiresAt <= now)
                 {
                     _logger.LogWarning(
-                        "Session token for player {PlayerId} rejected: room {RoomCode} expired",
-                        session.PlayerId,
+                        "Session token for device session {DeviceSessionId} rejected: room {RoomCode} expired",
+                        session.DeviceSessionId,
                         room.RoomCode);
                     return null;
                 }
 
                 _logger.LogDebug(
-                    "Session authenticated for player {PlayerId} in room {RoomCode} as {Role}",
-                    session.PlayerId,
+                    "Session authenticated for device session {DeviceSessionId} in room {RoomCode} as {Role}",
+                    session.DeviceSessionId,
                     room.RoomCode,
                     session.Role);
 

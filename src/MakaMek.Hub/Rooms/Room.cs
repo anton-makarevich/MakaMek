@@ -1,7 +1,8 @@
 namespace Sanet.MakaMek.Hub.Rooms;
 
 /// <summary>
-/// Transient relay-room state. It contains membership and session metadata only, never game state.
+/// Transient relay-room state. It contains device-session membership, session metadata,
+/// and connection routing only, never game state and never player identity.
 /// </summary>
 public sealed class Room
 {
@@ -11,17 +12,19 @@ public sealed class Room
 
     internal Room(
         string roomCode,
+        Guid hostGameId,
         RoomMember host,
         RoomSession hostSession,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt)
     {
         RoomCode = roomCode;
-        HostPlayerId = host.PlayerId;
+        HostGameId = hostGameId;
+        HostDeviceSessionId = host.DeviceSessionId;
         CreatedAt = createdAt;
         LastActivityAt = createdAt;
         ExpiresAt = expiresAt;
-        _members = new Dictionary<Guid, RoomMember> { [host.PlayerId] = host };
+        _members = new Dictionary<Guid, RoomMember> { [host.DeviceSessionId] = host };
         _sessions = new Dictionary<string, RoomSession>(StringComparer.Ordinal)
         {
             [hostSession.Token] = hostSession
@@ -30,7 +33,15 @@ public sealed class Room
 
     public string RoomCode { get; }
 
-    public Guid HostPlayerId { get; }
+    /// <summary>
+    /// Id of the host's ServerGame, reported by the host when the room was created.
+    /// This identifies the game, not a device; it is deliberately separate from
+    /// <see cref="HostDeviceSessionId"/>, <see cref="_members"/>, <see cref="_sessions"/>,
+    /// and <see cref="_connections"/>.
+    /// </summary>
+    public Guid HostGameId { get; }
+
+    public Guid HostDeviceSessionId { get; }
 
     public DateTimeOffset CreatedAt { get; }
 
@@ -57,7 +68,7 @@ public sealed class Room
         ExpiresAt = now.Add(ttl);
     }
 
-    internal bool IsHost(Guid playerId) => HostPlayerId == playerId;
+    internal bool IsHost(Guid deviceSessionId) => HostDeviceSessionId == deviceSessionId;
 
     internal bool ValidateHostSession(string token, DateTimeOffset now)
     {
@@ -71,33 +82,33 @@ public sealed class Room
     internal bool TryGetSession(string token, out RoomSession session) =>
         _sessions.TryGetValue(token, out session!);
 
-    internal bool IsMember(Guid playerId) => _members.ContainsKey(playerId);
+    internal bool IsMember(Guid deviceSessionId) => _members.ContainsKey(deviceSessionId);
 
-    internal string? RegisterConnection(Guid playerId, string connectionId, DateTimeOffset now, TimeSpan ttl)
+    internal string? RegisterConnection(Guid deviceSessionId, string connectionId, DateTimeOffset now, TimeSpan ttl)
     {
-        _connections.TryGetValue(playerId, out var previousConnectionId);
-        _connections[playerId] = connectionId;
+        _connections.TryGetValue(deviceSessionId, out var previousConnectionId);
+        _connections[deviceSessionId] = connectionId;
         Touch(now, ttl);
         return previousConnectionId;
     }
 
-    internal bool RemoveConnection(Guid playerId, string connectionId, DateTimeOffset now, TimeSpan ttl)
+    internal bool RemoveConnection(Guid deviceSessionId, string connectionId, DateTimeOffset now, TimeSpan ttl)
     {
-        if (!_connections.TryGetValue(playerId, out var activeConnectionId)
+        if (!_connections.TryGetValue(deviceSessionId, out var activeConnectionId)
             || !string.Equals(activeConnectionId, connectionId, StringComparison.Ordinal))
         {
             return false;
         }
 
-        _connections.Remove(playerId);
+        _connections.Remove(deviceSessionId);
         Touch(now, ttl);
         return true;
     }
 
-    internal string? GetConnectionId(Guid playerId) =>
-        _connections.GetValueOrDefault(playerId);
+    internal string? GetConnectionId(Guid deviceSessionId) =>
+        _connections.GetValueOrDefault(deviceSessionId);
 
-    internal string? GetHostConnectionId() => GetConnectionId(HostPlayerId);
+    internal string? GetHostConnectionId() => GetConnectionId(HostDeviceSessionId);
 
     internal int LiveConnectionCount => _connections.Count;
 
@@ -139,23 +150,23 @@ public sealed class Room
     }
 
     /// <summary>
-    /// Removes a non-host roster entry and revokes all of that player's sessions.
-    /// Returns false when the target is the host or is not a member.
+    /// Removes a non-host device-session roster entry and revokes all of that device's sessions.
+    /// Returns false when the target is the host device or is not a member.
     /// </summary>
-    internal bool RemoveMember(Guid playerId)
+    internal bool RemoveMember(Guid deviceSessionId)
     {
-        if (IsHost(playerId))
+        if (IsHost(deviceSessionId))
         {
             return false;
         }
 
-        if (!_members.Remove(playerId))
+        if (!_members.Remove(deviceSessionId))
         {
             return false;
         }
 
         var tokensToRevoke = _sessions
-            .Where(entry => entry.Value.PlayerId == playerId)
+            .Where(entry => entry.Value.DeviceSessionId == deviceSessionId)
             .Select(entry => entry.Key)
             .ToArray();
 
@@ -167,9 +178,13 @@ public sealed class Room
         return true;
     }
 
+    /// <summary>
+    /// Adds or refreshes a client device session. When the device session already exists
+    /// (a rejoin), stale tokens are revoked and a fresh token is minted for the same
+    /// <see cref="DeviceSessionId"/>.
+    /// </summary>
     internal RoomSession AddClientMember(
-        string playerName,
-        Guid playerId,
+        Guid deviceSessionId,
         DateTimeOffset now,
         TimeSpan ttl,
         Func<string> generateToken)
@@ -177,7 +192,7 @@ public sealed class Room
         Touch(now, ttl);
 
         var staleTokens = _sessions
-            .Where(entry => entry.Value.PlayerId == playerId)
+            .Where(entry => entry.Value.DeviceSessionId == deviceSessionId)
             .Select(entry => entry.Key)
             .ToArray();
 
@@ -186,14 +201,14 @@ public sealed class Room
             _sessions.Remove(token);
         }
 
-        var member = new RoomMember(playerId, playerName, RoomRole.Client, now);
-        _members[playerId] = member;
+        var member = new RoomMember(deviceSessionId, RoomRole.Client, now);
+        _members[deviceSessionId] = member;
 
         var expiresAt = ExpiresAt;
         var session = new RoomSession(
             generateToken(),
             RoomCode,
-            playerId,
+            deviceSessionId,
             RoomRole.Client,
             expiresAt);
         _sessions[session.Token] = session;
