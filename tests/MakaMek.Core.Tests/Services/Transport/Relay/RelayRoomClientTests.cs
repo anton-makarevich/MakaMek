@@ -139,11 +139,7 @@ public class RelayRoomClientTests
         _handler.LastRequest!.Method.ShouldBe(HttpMethod.Post);
         _handler.LastRequest.RequestUri!.ToString().ShouldBe($"{BaseUrl}/api/rooms/ABCDEF/join");
         _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe(ApiKey);
-        _handler.LastRequestBody.ShouldNotBeNull();
-        using (var doc = JsonDocument.Parse(_handler.LastRequestBody!))
-        {
-            doc.RootElement.TryGetProperty("sessionToken", out _).ShouldBeFalse();
-        }
+        _handler.LastRequestBody.ShouldBeNull();
 
         AssertNoSecretsLeaked(result.Error?.Message);
     }

@@ -215,7 +215,10 @@ public class RelayHubConnectionTests
         string? sessionToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/join");
-        request.Content = JsonContent.Create(new JoinRequest(sessionToken));
+        if (sessionToken is not null)
+        {
+            request.Headers.Add("Session-Token", sessionToken);
+        }
         request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, HubApplicationFactory.ApiKey);
 
         using var response = await client.SendAsync(request);

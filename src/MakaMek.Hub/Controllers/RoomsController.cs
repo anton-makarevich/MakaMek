@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
 
@@ -83,9 +82,10 @@ public sealed class RoomsController(
     [ProducesResponseType<JoinResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<JoinResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<JoinResponse>(StatusCodes.Status409Conflict)]
-    public ActionResult<JoinResponse> JoinRoom(string roomCode, [FromBody] JoinRequest request)
+    public ActionResult<JoinResponse> JoinRoom(string roomCode)
     {
-        var result = roomManager.JoinRoom(roomCode, request.SessionToken);
+        _ = TryGetSessionToken(out var sessionToken);
+        var result = roomManager.JoinRoom(roomCode, sessionToken);
 
         return result.Outcome switch
         {
@@ -181,7 +181,6 @@ public sealed class RoomsController(
             RoomReadyOutcome.RoomNotFound => (HubErrorCode.RoomNotFound, "The specified room was not found."),
             RoomReadyOutcome.RoomExpired => (HubErrorCode.RoomExpired, "The specified room has expired."),
             RoomReadyOutcome.NotHost => (HubErrorCode.NotHost, "Only the host can mark a room as ready."),
-            RoomReadyOutcome.InvalidRoomState => (HubErrorCode.InvalidRoomState, "The room is not in a state that can be marked ready."),
             _ => (HubErrorCode.InvalidRoomState, "The room is not in a state that can be marked ready.")
         };
         return new ReadyResponse(Success: false, Error: new HubError(errorCode, message));
@@ -230,7 +229,6 @@ public sealed class RoomsController(
             RoomCloseOutcome.RoomNotFound => (HubErrorCode.RoomNotFound, "The specified room was not found."),
             RoomCloseOutcome.RoomExpired => (HubErrorCode.RoomExpired, "The specified room has expired."),
             RoomCloseOutcome.NotHost => (HubErrorCode.NotHost, "Only the host can close a room."),
-            RoomCloseOutcome.InvalidRoomState => (HubErrorCode.InvalidRoomState, "The room is not in a state that can be closed."),
             _ => (HubErrorCode.InvalidRoomState, "The room is not in a state that can be closed.")
         };
         return new CloseResponse(Success: false, Error: new HubError(errorCode, message));

@@ -127,10 +127,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
             using var request = CreateRequest(
                 HttpMethod.Post,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/join",
-                sessionToken: null);
-            request.Content = JsonContent.Create(
-                new JoinRequest(sessionToken),
-                options: _jsonOptions);
+                sessionToken: sessionToken);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -147,10 +144,9 @@ public sealed class RelayRoomClient : IRelayRoomClient
             }
 
             if (response.IsSuccessStatusCode && payload.Success
-                && !string.IsNullOrEmpty(payload.SessionToken)
-                && !string.IsNullOrEmpty(payload.Role)
-                && payload.DeviceSessionId is { } deviceSessionId
-                && payload.HostGameId is { } hostGameId)
+                                             && !string.IsNullOrEmpty(payload.SessionToken)
+                                             && !string.IsNullOrEmpty(payload.Role)
+                                             && payload is { DeviceSessionId: { } deviceSessionId, HostGameId: { } hostGameId })
             {
                 _logger.LogInformation(
                     "Joined relay room {RoomCode} with role {Role}",

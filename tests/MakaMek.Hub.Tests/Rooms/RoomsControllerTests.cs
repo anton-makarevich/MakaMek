@@ -42,7 +42,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Joined(room, session));
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        var result = _sut.JoinRoom(RoomCode);
 
         var ok = result.Result.ShouldBeOfType<OkObjectResult>();
         var response = ok.Value.ShouldBeOfType<JoinResponse>();
@@ -58,7 +58,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotFound());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        var result = _sut.JoinRoom(RoomCode);
 
         var notFound = result.Result.ShouldBeOfType<NotFoundObjectResult>();
         var response = notFound.Value.ShouldBeOfType<JoinResponse>();
@@ -72,7 +72,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Expired());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        var result = _sut.JoinRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
@@ -86,7 +86,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotReady());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        var result = _sut.JoinRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
@@ -100,7 +100,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Full());
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        var result = _sut.JoinRoom(RoomCode);
 
         var conflict = result.Result.ShouldBeOfType<ConflictObjectResult>();
         var response = conflict.Value.ShouldBeOfType<JoinResponse>();
@@ -115,8 +115,9 @@ public class RoomsControllerTests
         var session = new RoomSession(SessionToken, RoomCode, DeviceSessionId, RoomRole.Client, DateTimeOffset.UtcNow);
         _roomManager.JoinRoom(RoomCode, SessionToken)
             .Returns(RoomJoinResult.Joined(room, session));
+        SetSessionTokenHeader(SessionToken);
 
-        var result = _sut.JoinRoom(RoomCode, new JoinRequest(SessionToken));
+        var result = _sut.JoinRoom(RoomCode);
 
         _roomManager.Received(1).JoinRoom(RoomCode, SessionToken);
         var ok = result.Result.ShouldBeOfType<OkObjectResult>();
@@ -416,7 +417,7 @@ public class RoomsControllerTests
             .Returns(new RoomJoinResult((RoomJoinOutcome)999, null, null));
 
         var exception = Should.Throw<InvalidOperationException>(
-            () => _sut.JoinRoom(RoomCode, new JoinRequest(null)));
+            () => _sut.JoinRoom(RoomCode));
 
         exception.Message.ShouldContain("Unhandled join outcome", Case.Sensitive);
     }
@@ -479,7 +480,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.Joined(room, session));
 
-        _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        _sut.JoinRoom(RoomCode);
 
         _logger.GetMessages(LogLevel.Information).ShouldContain(
             message => message.Contains("succeeded with role", StringComparison.Ordinal));
@@ -491,7 +492,7 @@ public class RoomsControllerTests
         _roomManager.JoinRoom(RoomCode, Arg.Any<string?>())
             .Returns(RoomJoinResult.NotFound());
 
-        _sut.JoinRoom(RoomCode, new JoinRequest(null));
+        _sut.JoinRoom(RoomCode);
 
         _logger.GetMessages(LogLevel.Warning).ShouldContain(
             message => message.Contains("failed: RoomNotFound", StringComparison.Ordinal));
