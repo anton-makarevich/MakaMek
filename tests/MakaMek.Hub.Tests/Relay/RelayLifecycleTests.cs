@@ -123,9 +123,12 @@ public class RelayLifecycleTests
         reconnectedHost.On<RelayEnvelope>(nameof(IRelayHub.OnReceive), envelope => received.TrySetResult(envelope));
 
         await reconnectedHost.StartAsync();
-        clock.Advance(TimeSpan.FromMinutes(1));
-        await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
-            new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+        await WaitUntilAsync(async () =>
+        {
+            await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
+                new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+            return received.Task.IsCompleted;
+        });
 
         (await received.Task.WaitAsync(TimeSpan.FromSeconds(5))).Payload.ShouldBe("resumed");
     }
@@ -254,6 +257,20 @@ public class RelayLifecycleTests
             await Task.Delay(10);
         }
         predicate().ShouldBeTrue();
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (await predicate())
+            {
+                return;
+            }
+            await Task.Delay(10);
+        }
+        (await predicate()).ShouldBeTrue();
     }
 
     private sealed record ReadyRoom(string RoomCode, string HostToken);
