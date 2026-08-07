@@ -304,7 +304,7 @@ public class GameConnectorTests : IDisposable
 
         // Create a publisher that throws when disposed
         var throwingPublisher = Substitute.For<RelayClientPublisher>(
-            "http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostGameId.ToString(), "api-key");
+            "http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, "api-key");
         throwingPublisher.When(x => x.DisposeAsync())
             .Throw(new InvalidOperationException("dispose boom"));
         _relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())

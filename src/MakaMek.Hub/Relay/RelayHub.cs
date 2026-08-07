@@ -131,6 +131,15 @@ public sealed class RelayHub : Hub<IRelayHub>
             throw new HubException("Caller is not a member of the specified room.");
         }
 
+        if (message.Payload is null)
+        {
+            _logger.LogWarning(
+                "Relay call from connection {ConnectionId} in room {RoomCode} rejected: payload must not be null",
+                Context.ConnectionId,
+                session.RoomCode);
+            throw new HubException("Payload must not be null.");
+        }
+
         var payloadBytes = Encoding.UTF8.GetByteCount(message.Payload);
         if (payloadBytes > _options.Value.MaxRelayPayloadBytes)
         {
