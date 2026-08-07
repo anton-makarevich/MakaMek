@@ -115,12 +115,20 @@ public class GameManager : IGameManager
         CreateServerGameAndSetupLogging();
     }
 
-    public async Task InitializeLobbyOnline(
-        Guid playerId,
-        string playerName,
-        CancellationToken cancellationToken = default)
+    public async Task InitializeLobbyOnline(CancellationToken cancellationToken = default)
     {
         OnlineError = null;
+
+        // Close the currently active relay room before resetting state
+        var closeSucceeded = await CloseOnlineRoom(cancellationToken);
+        if (!closeSucceeded)
+        {
+            OnlineError = new RelayClientError(
+                RelayClientErrorCode.Unknown,
+                "Failed to close the currently active relay room.");
+            return;
+        }
+
         RoomCode = null;
 
         // Reset before initializing new lobby (also clears any stale relay publisher)
@@ -135,29 +143,34 @@ public class GameManager : IGameManager
             return;
         }
 
+        // The server game must exist before the relay room is created so the host
+        // game id can be reported to the Hub and shared with joiners.
+        CreateServerGameAndSetupLogging();
+        var gameId = _serverGame!.Id;
+
         var createResult = await _relayRoomClient.CreateAsync(
-            playerId,
-            playerName,
+            gameId,
             cancellationToken);
         if (!createResult.Success
             || createResult.RoomCode is null
             || createResult.SessionToken is null
-            || createResult.HostId is null)
+            || createResult.HostGameId is null)
         {
             OnlineError = createResult.Error
                 ?? new RelayClientError(
                     RelayClientErrorCode.Unknown,
                     "The relay did not return the values required to host.");
             _logger.LogWarning(
-                "Failed to create relay room for player {PlayerId} ({PlayerName}): {ErrorCode} {ErrorMessage}",
-                playerId,
-                playerName,
+                "Failed to create relay room for game {GameId}: {ErrorCode} {ErrorMessage}",
+                gameId,
                 OnlineError?.Code,
                 OnlineError?.Message);
+
+            // The server game was created above; dispose it the same way the failure
+            // path does after a publisher/ready failure.
+            await CleanupOnlineAfterFailureAsync(publisher: null);
             return;
         }
-
-        CreateServerGameAndSetupLogging();
 
         RelayClientPublisher? publisher = null;
         try
@@ -169,7 +182,7 @@ public class GameManager : IGameManager
                 hubUrl,
                 createResult.RoomCode,
                 createResult.SessionToken,
-                createResult.HostId.Value,
+                createResult.HostGameId.Value,
                 _relayOptions?.Value.ApiKey ?? string.Empty,
                 cancellationToken);
 
@@ -193,10 +206,9 @@ public class GameManager : IGameManager
             RoomCode = createResult.RoomCode;
             _onlineSessionToken = createResult.SessionToken;
             _logger.LogInformation(
-                "Hosted relay room {RoomCode} for player {PlayerId} ({PlayerName}); relay publisher connected",
+                "Hosted relay room {RoomCode} for game {GameId}; relay publisher connected",
                 createResult.RoomCode,
-                playerId,
-                playerName);
+                gameId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -254,7 +266,7 @@ public class GameManager : IGameManager
         }
     }
 
-    public async Task CloseOnlineRoom(CancellationToken cancellationToken = default)
+    public async Task<bool> CloseOnlineRoom(CancellationToken cancellationToken = default)
     {
         // Only attempt to close when an online room is actually active and we have
         // everything required to authenticate the close call with the relay.
@@ -262,21 +274,36 @@ public class GameManager : IGameManager
             || RoomCode == null
             || _onlineSessionToken == null
             || _relayRoomClient == null)
-            return;
+            return true;
 
         try
         {
-            await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+            var closeResult = await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
 
-            // Only clear the state once the close call has completed, so a failed
+            // Only clear the state when the close operation succeeded, so a failed
             // attempt can be retried and the room is not considered closed prematurely.
+            if (!closeResult.Success)
+            {
+                _logger.LogWarning("Close relay room {RoomCode} failed: {ErrorCode} {ErrorMessage}",
+                    RoomCode, closeResult.Error?.Code, closeResult.Error?.Message);
+                return false;
+            }
+
             _onlineSessionToken = null;
             RoomCode = null;
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Close relay room {RoomCode} was cancelled", RoomCode);
+            return false;
         }
         catch (Exception ex)
         {
-            // Swallow to avoid masking the original failure; closing the room is best-effort
+            // Do not clear state; allow caller to retry
             _logger.LogWarning(ex, "Failed to close relay room {RoomCode}", RoomCode);
+            return false;
         }
     }
 

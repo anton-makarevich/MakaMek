@@ -40,22 +40,21 @@ public sealed class RelayRoomClient : IRelayRoomClient
     }
 
     public async Task<RoomCreateResult> CreateAsync(
-        Guid playerId,
-        string playerName,
+        Guid gameId,
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation(
-                "Creating relay room for player {PlayerId}",
-                playerId);
+                "Creating relay room for game {GameId}",
+                gameId);
 
             using var request = CreateRequest(
                 HttpMethod.Post,
                 "api/rooms",
                 sessionToken: null);
             request.Content = JsonContent.Create(
-                new CreateRoomRequest(playerName, playerId),
+                new CreateRoomRequest(gameId),
                 options: _jsonOptions);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -75,19 +74,20 @@ public sealed class RelayRoomClient : IRelayRoomClient
             if (response.IsSuccessStatusCode && payload.Success
                 && !string.IsNullOrEmpty(payload.RoomCode)
                 && !string.IsNullOrEmpty(payload.SessionToken)
-                && payload.HostId is { } hostId)
+                && payload.DeviceSessionId is { } deviceSessionId
+                && payload.HostGameId is { } hostGameId)
             {
                 _logger.LogInformation(
-                    "Created relay room {RoomCode} for player {PlayerId}",
+                    "Created relay room {RoomCode} for game {GameId}",
                     payload.RoomCode,
-                    playerId);
+                    gameId);
 
                 return RoomCreateResult.Succeeded(
                     payload.RoomCode,
                     payload.SessionToken,
                     HostRole,
-                    playerId,
-                    hostId);
+                    deviceSessionId,
+                    hostGameId);
             }
 
             return RoomCreateResult.Failed(MapHubError(payload.Error, response.StatusCode));
@@ -98,41 +98,36 @@ public sealed class RelayRoomClient : IRelayRoomClient
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogError(ex, "Relay create room request timed out for player {PlayerId}", playerId);
+            _logger.LogError(ex, "Relay create room request timed out for game {GameId}", gameId);
             return RoomCreateResult.Failed(TimeoutError());
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Relay create room network error for player {PlayerId}", playerId);
+            _logger.LogError(ex, "Relay create room network error for game {GameId}", gameId);
             return RoomCreateResult.Failed(NetworkError());
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Relay create room deserialization error for player {PlayerId}", playerId);
+            _logger.LogError(ex, "Relay create room deserialization error for game {GameId}", gameId);
             return RoomCreateResult.Failed(DeserializationError());
         }
     }
 
     public async Task<RoomJoinResult> JoinAsync(
         string roomCode,
-        Guid playerId,
-        string playerName,
+        string? sessionToken,
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation(
-                "Joining relay room {RoomCode} as player {PlayerId}",
-                roomCode,
-                playerId);
+                "Joining relay room {RoomCode}",
+                roomCode);
 
             using var request = CreateRequest(
                 HttpMethod.Post,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/join",
-                sessionToken: null);
-            request.Content = JsonContent.Create(
-                new JoinRequest(playerName, playerId),
-                options: _jsonOptions);
+                sessionToken: sessionToken);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -149,23 +144,21 @@ public sealed class RelayRoomClient : IRelayRoomClient
             }
 
             if (response.IsSuccessStatusCode && payload.Success
-                && !string.IsNullOrEmpty(payload.SessionToken)
-                && !string.IsNullOrEmpty(payload.Role)
-                && payload.PlayerId is { } joinedPlayerId
-                && payload.HostId is { } hostId)
+                                             && !string.IsNullOrEmpty(payload.SessionToken)
+                                             && !string.IsNullOrEmpty(payload.Role)
+                                             && payload is { DeviceSessionId: { } deviceSessionId, HostGameId: { } hostGameId })
             {
                 _logger.LogInformation(
-                    "Joined relay room {RoomCode} as player {PlayerId} with role {Role}",
+                    "Joined relay room {RoomCode} with role {Role}",
                     roomCode,
-                    joinedPlayerId,
                     payload.Role);
 
                 return RoomJoinResult.Succeeded(
                     roomCode,
                     payload.SessionToken,
                     payload.Role,
-                    joinedPlayerId,
-                    hostId);
+                    deviceSessionId,
+                    hostGameId);
             }
 
             return RoomJoinResult.Failed(MapHubError(payload.Error, response.StatusCode));
@@ -216,19 +209,19 @@ public sealed class RelayRoomClient : IRelayRoomClient
     public async Task<RoomOperationResult> RemoveMemberAsync(
         string roomCode,
         string sessionToken,
-        Guid playerId,
+        Guid deviceSessionId,
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation(
-                "Removing member {PlayerId} from relay room {RoomCode}",
-                playerId,
+                "Removing device session {DeviceSessionId} from relay room {RoomCode}",
+                deviceSessionId,
                 roomCode);
 
             using var request = CreateRequest(
                 HttpMethod.Delete,
-                $"api/rooms/{Uri.EscapeDataString(roomCode)}/members/{playerId:D}",
+                $"api/rooms/{Uri.EscapeDataString(roomCode)}/members/{deviceSessionId:D}",
                 sessionToken);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -254,8 +247,8 @@ public sealed class RelayRoomClient : IRelayRoomClient
             if (response.IsSuccessStatusCode && payload.Success)
             {
                 _logger.LogInformation(
-                    "Removed member {PlayerId} from relay room {RoomCode}",
-                    playerId,
+                    "Removed device session {DeviceSessionId} from relay room {RoomCode}",
+                    deviceSessionId,
                     roomCode);
                 return RoomOperationResult.Succeeded();
             }
@@ -457,7 +450,6 @@ public sealed class RelayRoomClient : IRelayRoomClient
             HubErrorCode.NotHost => RelayClientErrorCode.NotHost,
             HubErrorCode.RateLimited => RelayClientErrorCode.RateLimited,
             HubErrorCode.MessageTooLarge => RelayClientErrorCode.MessageTooLarge,
-            HubErrorCode.HostPlayerIdConflict => RelayClientErrorCode.HostPlayerIdConflict,
             HubErrorCode.RoomFull => RelayClientErrorCode.RoomFull,
             HubErrorCode.InvalidRoomState => RelayClientErrorCode.InvalidRoomState,
             HubErrorCode.MemberNotFound => RelayClientErrorCode.MemberNotFound,

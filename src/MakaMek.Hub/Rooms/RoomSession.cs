@@ -1,11 +1,11 @@
 namespace Sanet.MakaMek.Hub.Rooms;
 
 /// <summary>
-/// Opaque session credentials bound to one room member.
+/// Opaque session credentials bound to one device session.
 /// </summary>
 public sealed record RoomSession(
     string Token,
     string RoomCode,
-    Guid PlayerId,
+    Guid DeviceSessionId,
     RoomRole Role,
     DateTimeOffset ExpiresAt);

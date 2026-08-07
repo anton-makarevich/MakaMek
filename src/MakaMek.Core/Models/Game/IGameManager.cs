@@ -12,13 +12,10 @@ public interface IGameManager : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Initializes the lobby hosted through the cloud relay asynchronously.
+    /// The server game is created first so its id can be reported to the Hub.
     /// </summary>
-    /// <param name="playerId">Id of the player hosting the lobby.</param>
-    /// <param name="playerName">Name of the player hosting the lobby.</param>
     /// <param name="cancellationToken">Cancellation token for the room lifecycle calls.</param>
     Task InitializeLobbyOnline(
-        Guid playerId,
-        string playerName,
         CancellationToken cancellationToken = default);
     
     /// <summary>
@@ -61,9 +58,11 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     RelayClientError? OnlineError { get; }
 
     /// <summary>
-    /// Closes the online relay room, if one is currently active. Best-effort and idempotent:
-    /// failures are swallowed and calling this when no online room is active is a no-op.
+    /// Closes the online relay room, if one is currently active. Returns true if close
+    /// succeeded or no room was active; false if close failed or was cancelled. When false,
+    /// state is not cleared allowing the caller to retry.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the close call.</param>
-    Task CloseOnlineRoom(CancellationToken cancellationToken = default);
+    /// <returns>True if close succeeded or no room was active; false if close failed or was cancelled.</returns>
+    Task<bool> CloseOnlineRoom(CancellationToken cancellationToken = default);
 }

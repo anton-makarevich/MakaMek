@@ -24,7 +24,6 @@ public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelay
             roomCode,
             sessionToken,
             logger,
-            expectedHostId.ToString(),
             apiKey);
 
         logger.LogDebug(

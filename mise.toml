@@ -17,3 +17,7 @@ run = """
 uv tool install -p 3.13 serena-agent
 serena --version
 """
+
+[tasks.update-serena]
+description = "Updates the Serena MCP server to the latest version"
+run = "uv tool upgrade -p 3.13 serena-agent"

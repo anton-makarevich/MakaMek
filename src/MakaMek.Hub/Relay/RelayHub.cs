@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
@@ -12,7 +11,8 @@ namespace Sanet.MakaMek.Hub.Relay;
 
 /// <summary>
 /// Transport-only SignalR hub. Connection auth and room binding happen in middleware;
-/// this hub attaches the connection to its room group and fans out opaque envelopes.
+/// this hub attaches the connection to its room group for the authenticated device
+/// session and fans out opaque envelopes.
 /// </summary>
 public sealed class RelayHub : Hub<IRelayHub>
 {
@@ -54,15 +54,15 @@ public sealed class RelayHub : Hub<IRelayHub>
         }
 
         _logger.LogInformation(
-            "Relay connection {ConnectionId} connected for player {PlayerId} in room {RoomCode} as {Role}",
+            "Relay connection {ConnectionId} connected for device session {DeviceSessionId} in room {RoomCode} as {Role}",
             Context.ConnectionId,
-            session.PlayerId,
+            session.DeviceSessionId,
             session.RoomCode,
             session.Role);
 
         var replacedConnectionId = _roomManager.RegisterConnection(
             session.RoomCode,
-            session.PlayerId,
+            session.DeviceSessionId,
             Context.ConnectionId);
 
         if (session.Role == RoomRole.Host)
@@ -75,10 +75,10 @@ public sealed class RelayHub : Hub<IRelayHub>
         if (replacedConnectionId is not null)
         {
             _logger.LogInformation(
-                "Relay connection {ConnectionId} replaced superseded connection {OldConnectionId} for player {PlayerId} in room {RoomCode}",
+                "Relay connection {ConnectionId} replaced superseded connection {OldConnectionId} for device session {DeviceSessionId} in room {RoomCode}",
                 Context.ConnectionId,
                 replacedConnectionId,
-                session.PlayerId,
+                session.DeviceSessionId,
                 session.RoomCode);
 
             await Groups.RemoveFromGroupAsync(replacedConnectionId, session.RoomCode);
@@ -99,9 +99,9 @@ public sealed class RelayHub : Hub<IRelayHub>
             else
             {
                 _logger.LogWarning(
-                    "Relay connection {ConnectionId} for player {PlayerId} found no host connection in room {RoomCode}",
+                    "Relay connection {ConnectionId} for device session {DeviceSessionId} found no host connection in room {RoomCode}",
                     Context.ConnectionId,
-                    session.PlayerId,
+                    session.DeviceSessionId,
                     session.RoomCode);
             }
         }
@@ -162,7 +162,7 @@ public sealed class RelayHub : Hub<IRelayHub>
         }
 
         // Reject calls from a superseded (stale) connection.
-        var activeConnectionId = _roomManager.GetConnectionId(session.RoomCode, session.PlayerId);
+        var activeConnectionId = _roomManager.GetConnectionId(session.RoomCode, session.DeviceSessionId);
         if (!string.Equals(activeConnectionId, Context.ConnectionId, StringComparison.Ordinal))
         {
             _logger.LogWarning(
@@ -203,13 +203,13 @@ public sealed class RelayHub : Hub<IRelayHub>
                 // Atomically remove the connection, check for a superseding
                 // connection, and mark dissolution only when the host is truly gone.
                 var hostDisconnected = _roomManager.TryMarkHostDisconnected(
-                    session.RoomCode, session.PlayerId, Context.ConnectionId);
+                    session.RoomCode, session.DeviceSessionId, Context.ConnectionId);
 
                 if (hostDisconnected)
                 {
                     _logger.LogWarning(
-                        "Host {PlayerId} disconnected from room {RoomCode} (connection {ConnectionId}); notifying clients",
-                        session.PlayerId,
+                        "Host device session {DeviceSessionId} disconnected from room {RoomCode} (connection {ConnectionId}); notifying clients",
+                        session.DeviceSessionId,
                         session.RoomCode,
                         Context.ConnectionId);
 
@@ -220,8 +220,8 @@ public sealed class RelayHub : Hub<IRelayHub>
                 else
                 {
                     _logger.LogInformation(
-                        "Host {PlayerId} connection {ConnectionId} closed in room {RoomCode}; superseded connection remains active",
-                        session.PlayerId,
+                        "Host device session {DeviceSessionId} connection {ConnectionId} closed in room {RoomCode}; superseded connection remains active",
+                        session.DeviceSessionId,
                         Context.ConnectionId,
                         session.RoomCode);
                 }
@@ -230,14 +230,14 @@ public sealed class RelayHub : Hub<IRelayHub>
             {
                 var wasActive = _roomManager.UnregisterConnection(
                     session.RoomCode,
-                    session.PlayerId,
+                    session.DeviceSessionId,
                     Context.ConnectionId);
 
                 if (wasActive)
                 {
                     _logger.LogInformation(
-                        "Client {PlayerId} disconnected from room {RoomCode} (connection {ConnectionId})",
-                        session.PlayerId,
+                        "Client device session {DeviceSessionId} disconnected from room {RoomCode} (connection {ConnectionId})",
+                        session.DeviceSessionId,
                         session.RoomCode,
                         Context.ConnectionId);
 

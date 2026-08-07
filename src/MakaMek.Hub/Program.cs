@@ -81,8 +81,8 @@ builder.Services.AddRateLimiter(options =>
             new JoinResponse(
                 Success: false,
                 Role: null,
-                PlayerId: null,
-                HostId: null,
+                DeviceSessionId: null,
+                HostGameId: null,
                 SessionToken: null,
                 Error: new HubError(HubErrorCode.RateLimited, "Too many join attempts. Please try again later.")),
             cancellationToken);

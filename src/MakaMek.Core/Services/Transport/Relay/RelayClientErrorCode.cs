@@ -13,7 +13,6 @@ public enum RelayClientErrorCode
     NotHost,
     RateLimited,
     MessageTooLarge,
-    HostPlayerIdConflict,
     RoomFull,
     InvalidRoomState,
     MemberNotFound,

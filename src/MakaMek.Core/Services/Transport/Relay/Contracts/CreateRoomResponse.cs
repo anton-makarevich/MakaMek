@@ -6,7 +6,8 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
 public sealed record CreateRoomResponse(
     bool Success,
     string? RoomCode,
-    Guid? HostId,
+    Guid? DeviceSessionId,
+    Guid? HostGameId,
     string? SessionToken,
     DateTimeOffset? ExpiresAt,
     HubError? Error);

@@ -1,6 +1,7 @@
 namespace Sanet.MakaMek.Hub.Contracts;
 
 /// <summary>
-/// Identifies the anonymous player creating a relay room.
+/// Identifies the host's ServerGame for which a relay room is created.
+/// No player identity is accepted at the Hub boundary.
 /// </summary>
-public sealed record CreateRoomRequest(string PlayerName, Guid PlayerId);
+public sealed record CreateRoomRequest(Guid GameId);

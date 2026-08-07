@@ -13,7 +13,6 @@ public enum HubErrorCode
     NotHost,
     RateLimited,
     MessageTooLarge,
-    HostPlayerIdConflict,
     RoomFull,
     InvalidRoomState,
     MemberNotFound,

@@ -2,18 +2,18 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 
 /// <summary>
 /// Typed client for the Hub REST room lifecycle (create, join, ready, close, remove member).
+/// The Hub boundary deals in Hub-minted device session identities and the host game id;
+/// no player identity is sent or received.
 /// </summary>
 public interface IRelayRoomClient
 {
     Task<RoomCreateResult> CreateAsync(
-        Guid playerId,
-        string playerName,
+        Guid gameId,
         CancellationToken cancellationToken = default);
 
     Task<RoomJoinResult> JoinAsync(
         string roomCode,
-        Guid playerId,
-        string playerName,
+        string? sessionToken,
         CancellationToken cancellationToken = default);
 
     Task<RoomOperationResult> ReadyAsync(
@@ -29,6 +29,6 @@ public interface IRelayRoomClient
     Task<RoomOperationResult> RemoveMemberAsync(
         string roomCode,
         string sessionToken,
-        Guid playerId,
+        Guid deviceSessionId,
         CancellationToken cancellationToken = default);
 }

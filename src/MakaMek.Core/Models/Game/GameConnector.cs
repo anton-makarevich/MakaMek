@@ -24,7 +24,7 @@ public class GameConnector : IGameConnector
     private RelayClientPublisher? _relayPublisher;
     private string? _roomCode;
     private string? _sessionToken;
-    private Guid? _playerId;
+    private Guid? _deviceSessionId;
     private bool _isDisposed;
 
     public GameConnector(
@@ -83,8 +83,7 @@ public class GameConnector : IGameConnector
 
     public async Task JoinOnline(
         string roomCode,
-        Guid playerId,
-        string playerName,
+        string? sessionToken,
         CancellationToken cancellationToken = default)
     {
         OnlineError = null;
@@ -100,11 +99,11 @@ public class GameConnector : IGameConnector
 
         RelayClientPublisher? publisher = null;
         string? successfulSessionToken = null;
-        Guid? successfulPlayerId = null;
+        Guid? successfulDeviceSessionId = null;
         try
         {
-            var joinResult = await _relayRoomClient.JoinAsync(roomCode, playerId, playerName, cancellationToken);
-            if (!joinResult.Success || joinResult.SessionToken is null || joinResult.HostId is null)
+            var joinResult = await _relayRoomClient.JoinAsync(roomCode, sessionToken, cancellationToken);
+            if (!joinResult.Success || joinResult.SessionToken is null || joinResult.HostGameId is null)
             {
                 OnlineError = joinResult.Error
                     ?? new RelayClientError(
@@ -114,7 +113,7 @@ public class GameConnector : IGameConnector
             }
             
             successfulSessionToken = joinResult.SessionToken;
-            successfulPlayerId = playerId;
+            successfulDeviceSessionId = joinResult.DeviceSessionId;
 
             var baseUrl = _relayOptions.Value.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
@@ -123,7 +122,7 @@ public class GameConnector : IGameConnector
                 hubUrl,
                 roomCode,
                 joinResult.SessionToken,
-                joinResult.HostId.Value,
+                joinResult.HostGameId.Value,
                 _relayOptions.Value.ApiKey,
                 cancellationToken);
 
@@ -139,20 +138,19 @@ public class GameConnector : IGameConnector
             _relayPublisher = publisher;
             _roomCode = roomCode;
             _sessionToken = joinResult.SessionToken;
-            _playerId = playerId;
+            _deviceSessionId = joinResult.DeviceSessionId;
 
             IsConnected = true;
             _logger.LogInformation(
-                "Joined relay room {RoomCode} as player {PlayerId} connected to host {HostId}",
+                "Joined relay room {RoomCode} connected to host game {HostGameId}",
                 roomCode,
-                playerId,
-                joinResult.HostId.Value);
+                joinResult.HostGameId.Value);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             await RemoveAndDisposeOnlinePublisher(publisher);
-            if (successfulSessionToken != null && successfulPlayerId != null)
-                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulPlayerId.Value);
+            if (successfulSessionToken != null && successfulDeviceSessionId != null)
+                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
             throw;
         }
         catch (Exception)
@@ -161,8 +159,8 @@ public class GameConnector : IGameConnector
                 RelayClientErrorCode.NetworkError,
                 "Failed to connect the client to the relay.");
             await RemoveAndDisposeOnlinePublisher(publisher);
-            if (successfulSessionToken != null && successfulPlayerId != null)
-                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulPlayerId.Value);
+            if (successfulSessionToken != null && successfulDeviceSessionId != null)
+                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
         }
     }
 
@@ -216,25 +214,25 @@ public class GameConnector : IGameConnector
     public Task Disconnect(CancellationToken cancellationToken = default) =>
         Teardown();
 
-    private async Task RemoveRelayMembership(string roomCode, string sessionToken, Guid playerId)
+    private async Task RemoveRelayMembership(string roomCode, string sessionToken, Guid deviceSessionId)
     {
         if (_relayRoomClient == null) return;
         try
         {
-            await _relayRoomClient.RemoveMemberAsync(roomCode, sessionToken, playerId);
+            await _relayRoomClient.RemoveMemberAsync(roomCode, sessionToken, deviceSessionId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to remove member from relay room {RoomCode}", roomCode);
+            _logger.LogWarning(ex, "Failed to remove device session from relay room {RoomCode}", roomCode);
         }
     }
 
     private async Task Teardown()
     {
         // Best-effort guest leave of the online room, if one is active
-        if (_relayRoomClient != null && _roomCode != null && _sessionToken != null && _playerId != null)
+        if (_relayRoomClient != null && _roomCode != null && _sessionToken != null && _deviceSessionId != null)
         {
-            await RemoveRelayMembership(_roomCode, _sessionToken, _playerId.Value);
+            await RemoveRelayMembership(_roomCode, _sessionToken, _deviceSessionId.Value);
         }
 
         // Remove and dispose the relay publisher if it was created
@@ -242,7 +240,7 @@ public class GameConnector : IGameConnector
         _relayPublisher = null;
         _roomCode = null;
         _sessionToken = null;
-        _playerId = null;
+        _deviceSessionId = null;
 
         try
         {
@@ -265,7 +263,7 @@ public class GameConnector : IGameConnector
         _relayPublisher = null;
         _roomCode = null;
         _sessionToken = null;
-        _playerId = null;
+        _deviceSessionId = null;
         
         _isDisposed = true;
         GC.SuppressFinalize(this);

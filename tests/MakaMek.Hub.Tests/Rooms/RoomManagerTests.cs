@@ -13,29 +13,29 @@ public class RoomManagerTests
     private const int DefaultRoomTtlSeconds = 7200;
     private const int DefaultDissolutionGracePeriodSeconds = 30;
     [Fact]
-    public void CreateRoom_CreatesHostRosterEntrySessionAndTwoHourExpiry()
+    public void CreateRoom_CreatesHostDeviceSessionAndTwoHourExpiry()
     {
         var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
-        var playerId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
         var manager = CreateManager(
             new SequenceRoomCodeGenerator("ABC234"),
             now: now);
 
-        var result = manager.CreateRoom("Ada", playerId);
+        var result = manager.CreateRoom(hostGameId);
 
         result.Outcome.ShouldBe(RoomCreationOutcome.Created);
         result.ActiveRoomCount.ShouldBe(1);
         result.Room.ShouldNotBeNull();
         result.Session.ShouldNotBeNull();
         result.Room!.RoomCode.ShouldBe("ABC234");
-        result.Room.HostPlayerId.ShouldBe(playerId);
+        result.Room.HostGameId.ShouldBe(hostGameId);
+        result.Room.HostDeviceSessionId.ShouldBe(result.Session!.DeviceSessionId);
         result.Room.ExpiresAt.ShouldBe(now.AddSeconds(DefaultRoomTtlSeconds));
         result.Room.Members.Count.ShouldBe(1);
         var host = result.Room.Members.Single();
-        host.PlayerId.ShouldBe(playerId);
-        host.PlayerName.ShouldBe("Ada");
+        host.DeviceSessionId.ShouldBe(result.Session.DeviceSessionId);
         host.Role.ShouldBe(RoomRole.Host);
-        result.Session!.PlayerId.ShouldBe(playerId);
+        result.Session.DeviceSessionId.ShouldNotBe(Guid.Empty);
         result.Session.Role.ShouldBe(RoomRole.Host);
         result.Session.RoomCode.ShouldBe("ABC234");
         result.Session.ExpiresAt.ShouldBe(now.AddSeconds(DefaultRoomTtlSeconds));
@@ -48,8 +48,8 @@ public class RoomManagerTests
         var generator = new SequenceRoomCodeGenerator("ABC234", "ABC234", "DEF567");
         var manager = CreateManager(generator);
 
-        var first = manager.CreateRoom("Ada", Guid.NewGuid());
-        var second = manager.CreateRoom("Grace", Guid.NewGuid());
+        var first = manager.CreateRoom(Guid.NewGuid());
+        var second = manager.CreateRoom(Guid.NewGuid());
 
         first.Room!.RoomCode.ShouldBe("ABC234");
         second.Room!.RoomCode.ShouldBe("DEF567");
@@ -63,8 +63,8 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234", "DEF567"),
             maxConcurrentRooms: 1);
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
-        var result = manager.CreateRoom("Grace", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
+        var result = manager.CreateRoom(Guid.NewGuid());
 
         result.Outcome.ShouldBe(RoomCreationOutcome.HubAtCapacity);
         result.ActiveRoomCount.ShouldBe(1);
@@ -72,23 +72,12 @@ public class RoomManagerTests
         result.Session.ShouldBeNull();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void CreateRoom_WithInvalidPlayerName_ThrowsArgumentException(string? playerName)
-    {
-        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-
-        Should.Throw<ArgumentException>(() => manager.CreateRoom(playerName!, Guid.NewGuid()));
-    }
-
     [Fact]
-    public void CreateRoom_WithEmptyPlayerId_ThrowsArgumentException()
+    public void CreateRoom_WithEmptyGameId_ThrowsArgumentException()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
 
-        Should.Throw<ArgumentException>(() => manager.CreateRoom("Ada", Guid.Empty));
+        Should.Throw<ArgumentException>(() => manager.CreateRoom(Guid.Empty));
     }
 
     [Fact]
@@ -99,11 +88,11 @@ public class RoomManagerTests
         var timeProvider = new FixedTimeProvider(now);
         var manager = CreateManager(generator, maxConcurrentRooms: 1, timeProvider: timeProvider);
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
 
-        var result = manager.CreateRoom("Grace", Guid.NewGuid());
+        var result = manager.CreateRoom(Guid.NewGuid());
 
         result.Outcome.ShouldBe(RoomCreationOutcome.Created);
         result.Room.ShouldNotBeNull();
@@ -117,10 +106,10 @@ public class RoomManagerTests
         var alwaysSame = new AlwaysSameCodeGenerator("DUP");
         var manager = CreateManager(alwaysSame);
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
         var ex = Should.Throw<InvalidOperationException>(
-            () => manager.CreateRoom("Grace", Guid.NewGuid()));
+            () => manager.CreateRoom(Guid.NewGuid()));
 
         ex.Message.ShouldBe("Unable to generate a unique room code.");
         alwaysSame.GeneratedCount.ShouldBe(129);
@@ -145,7 +134,7 @@ public class RoomManagerTests
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
 
-        var result = manager.JoinRoom("NOEXIST", "Grace", Guid.NewGuid());
+        var result = manager.JoinRoom("NOEXIST", sessionToken: null);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
         result.Room.ShouldBeNull();
@@ -161,12 +150,11 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
 
-        var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
+        manager.CreateRoom(Guid.NewGuid());
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
 
-        var result = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var result = manager.JoinRoom("ABC234", sessionToken: null);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.RoomExpired);
     }
@@ -176,51 +164,33 @@ public class RoomManagerTests
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
-        var result = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var result = manager.JoinRoom("ABC234", sessionToken: null);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.HostNotReady);
     }
 
     [Fact]
-    public void JoinRoom_WithHostPlayerId_ReturnsHostPlayerIdConflict()
+    public void JoinRoom_ReadyRoom_MintsDeviceSessionAndIssuesSession()
     {
         var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
         var manager = CreateManager(
             new SequenceRoomCodeGenerator("ABC234"),
             now: now);
 
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var result = manager.JoinRoom("ABC234", "Malicious", hostId);
-
-        result.Outcome.ShouldBe(RoomJoinOutcome.HostPlayerIdConflict);
-    }
-
-    [Fact]
-    public void JoinRoom_ReadyRoom_AppendsMemberAndIssuesSession()
-    {
-        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
-        var manager = CreateManager(
-            new SequenceRoomCodeGenerator("ABC234"),
-            now: now);
-
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
-        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
-
-        var playerId = Guid.NewGuid();
-        var result = manager.JoinRoom("ABC234", "Grace", playerId);
+        var result = manager.JoinRoom("ABC234", sessionToken: null);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.Joined);
         result.Room.ShouldNotBeNull();
         result.Session.ShouldNotBeNull();
         result.Room!.RoomCode.ShouldBe("ABC234");
         result.Room.Members.Count.ShouldBe(2);
-        result.Session!.PlayerId.ShouldBe(playerId);
+        result.Session!.DeviceSessionId.ShouldNotBe(Guid.Empty);
+        result.Session.DeviceSessionId.ShouldNotBe(createResult.Session.DeviceSessionId);
         result.Session.Role.ShouldBe(RoomRole.Client);
         result.Session.RoomCode.ShouldBe("ABC234");
         result.Session.ExpiresAt.ShouldBe(now.AddSeconds(DefaultRoomTtlSeconds));
@@ -228,23 +198,25 @@ public class RoomManagerTests
     }
 
     [Fact]
-    public void JoinRoom_DuplicatePlayerId_ReplacesExistingEntry()
+    public void JoinRoom_RejoinWithValidSessionToken_ReusesSameDeviceSession()
     {
         var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
         var manager = CreateManager(
             new SequenceRoomCodeGenerator("ABC234"),
             now: now);
 
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var playerId = Guid.NewGuid();
-        manager.JoinRoom("ABC234", "Grace", playerId);
-        var result = manager.JoinRoom("ABC234", "Grace v2", playerId);
+        var first = manager.JoinRoom("ABC234", sessionToken: null);
+        var firstDeviceSessionId = first.Session!.DeviceSessionId;
+
+        var result = manager.JoinRoom("ABC234", sessionToken: first.Session.Token);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.Joined);
         result.Room!.Members.Count.ShouldBe(2);
+        result.Session!.DeviceSessionId.ShouldBe(firstDeviceSessionId);
+        result.Session.Token.ShouldNotBe(first.Session.Token);
     }
 
     [Fact]
@@ -255,11 +227,10 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             now: now);
 
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var result = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var result = manager.JoinRoom("ABC234", sessionToken: null);
 
         result.Session!.ExpiresAt.ShouldBe(result.Room!.ExpiresAt);
     }
@@ -272,8 +243,7 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             now: now);
 
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
 
         var result = manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
@@ -285,8 +255,7 @@ public class RoomManagerTests
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
 
-        var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
 
         var result = manager.MarkRoomReady("ABC234", "invalid-token");
 
@@ -312,8 +281,7 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
 
-        var hostId = Guid.NewGuid();
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
 
@@ -323,26 +291,10 @@ public class RoomManagerTests
     }
 
     [Fact]
-    public void JoinRoom_WithInvalidPlayerName_ThrowsArgumentException()
-    {
-        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-
-        Should.Throw<ArgumentException>(() => manager.JoinRoom("ABC234", "", Guid.NewGuid()));
-    }
-
-    [Fact]
-    public void JoinRoom_WithEmptyPlayerId_ThrowsArgumentException()
-    {
-        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-
-        Should.Throw<ArgumentException>(() => manager.JoinRoom("ABC234", "Grace", Guid.Empty));
-    }
-
-    [Fact]
     public void MarkRoomReady_WhenRoomAlreadyActive_ReturnsInvalidRoomState()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var result = manager.MarkRoomReady("ABC234", createResult.Session.Token);
@@ -355,7 +307,7 @@ public class RoomManagerTests
     public void CloseRoom_ActiveRoom_TransitionsToClosed()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var result = manager.CloseRoom("ABC234", createResult.Session.Token);
@@ -383,7 +335,7 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
 
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
@@ -397,7 +349,7 @@ public class RoomManagerTests
     public void CloseRoom_NonHost_ReturnsNotHost()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var result = manager.CloseRoom("ABC234", "not-the-host-token");
@@ -410,7 +362,7 @@ public class RoomManagerTests
     public void CloseRoom_WhenRoomNotActive_ReturnsInvalidRoomState()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
 
         var result = manager.CloseRoom("ABC234", createResult.Session!.Token);
 
@@ -419,14 +371,14 @@ public class RoomManagerTests
     }
 
     [Fact]
-    public void JoinRoom_ClosedRoom_UnknownPlayer_ReturnsRoomFull()
+    public void JoinRoom_ClosedRoom_NewDevice_ReturnsRoomFull()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
         manager.CloseRoom("ABC234", createResult.Session.Token);
 
-        var result = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var result = manager.JoinRoom("ABC234", sessionToken: null);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.RoomFull);
         createResult.Room!.State.ShouldBe(RoomState.Closed);
@@ -434,50 +386,61 @@ public class RoomManagerTests
     }
 
     [Fact]
-    public void JoinRoom_ClosedRoom_RosteredPlayer_ReturnsJoined()
+    public void JoinRoom_ClosedRoom_ExistingDeviceSession_ReturnsJoined()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var playerId = Guid.NewGuid();
-        manager.JoinRoom("ABC234", "Grace", playerId);
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
         manager.CloseRoom("ABC234", createResult.Session!.Token);
 
-        var result = manager.JoinRoom("ABC234", "Grace", playerId);
+        var result = manager.JoinRoom("ABC234", sessionToken: joined.Session!.Token);
 
         result.Outcome.ShouldBe(RoomJoinOutcome.Joined);
         result.Session.ShouldNotBeNull();
-        result.Session!.PlayerId.ShouldBe(playerId);
+        result.Session!.DeviceSessionId.ShouldBe(joined.Session.DeviceSessionId);
         createResult.Room!.State.ShouldBe(RoomState.Closed);
+    }
+
+    [Fact]
+    public void JoinRoom_HostToken_RejectsWithForbidden()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var createResult = manager.CreateRoom(Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var result = manager.JoinRoom("ABC234", sessionToken: createResult.Session!.Token);
+
+        result.Outcome.ShouldBe(RoomJoinOutcome.Forbidden);
     }
 
     [Fact]
     public void RemoveMember_RemovesRosterEntryAndRevokesSessions()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var playerId = Guid.NewGuid();
-        var joinResult = manager.JoinRoom("ABC234", "Grace", playerId);
-        var clientToken = joinResult.Session!.Token;
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
+        var clientDeviceSessionId = joined.Session!.DeviceSessionId;
+        var clientToken = joined.Session.Token;
 
         createResult.Room!.HasSession(clientToken).ShouldBeTrue();
 
-        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, playerId);
+        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, clientDeviceSessionId);
 
         result.Outcome.ShouldBe(RoomRemoveMemberOutcome.Removed);
-        createResult.Room.IsMember(playerId).ShouldBeFalse();
+        createResult.Room.IsMember(clientDeviceSessionId).ShouldBeFalse();
         createResult.Room.HasSession(clientToken).ShouldBeFalse();
         createResult.Room.Members.Count.ShouldBe(1);
     }
 
     [Fact]
-    public void RemoveMember_UnknownPlayer_ReturnsMemberNotFound()
+    public void RemoveMember_UnknownDeviceSession_ReturnsMemberNotFound()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
         var result = manager.RemoveMember("ABC234", createResult.Session!.Token, Guid.NewGuid());
@@ -487,33 +450,33 @@ public class RoomManagerTests
     }
 
     [Fact]
-    public void RemoveMember_HostPlayerId_ReturnsCannotRemoveHost()
+    public void RemoveMember_HostDeviceSession_ReturnsCannotRemoveHost()
     {
-        var hostId = Guid.NewGuid();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", hostId);
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+        var hostDeviceSessionId = createResult.Session!.DeviceSessionId;
 
-        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, hostId);
+        var result = manager.RemoveMember("ABC234", createResult.Session.Token, hostDeviceSessionId);
 
         result.Outcome.ShouldBe(RoomRemoveMemberOutcome.CannotRemoveHost);
-        createResult.Room!.IsMember(hostId).ShouldBeTrue();
+        createResult.Room!.IsMember(hostDeviceSessionId).ShouldBeTrue();
     }
 
     [Fact]
     public void RemoveMember_NonHost_ReturnsNotHost()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var playerId = Guid.NewGuid();
-        manager.JoinRoom("ABC234", "Grace", playerId);
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
+        var clientDeviceSessionId = joined.Session!.DeviceSessionId;
 
-        var result = manager.RemoveMember("ABC234", "not-the-host-token", playerId);
+        var result = manager.RemoveMember("ABC234", "not-the-host-token", clientDeviceSessionId);
 
         result.Outcome.ShouldBe(RoomRemoveMemberOutcome.NotHost);
-        createResult.Room!.IsMember(playerId).ShouldBeTrue();
+        createResult.Room!.IsMember(clientDeviceSessionId).ShouldBeTrue();
     }
 
     [Fact]
@@ -535,30 +498,29 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
 
-        var createResult = manager.CreateRoom("Ada", Guid.NewGuid());
+        var createResult = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", createResult.Session!.Token);
 
-        var playerId = Guid.NewGuid();
-        manager.JoinRoom("ABC234", "Grace", playerId);
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
 
-        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, playerId);
+        var result = manager.RemoveMember("ABC234", createResult.Session!.Token, joined.Session!.DeviceSessionId);
 
         result.Outcome.ShouldBe(RoomRemoveMemberOutcome.RoomExpired);
     }
 
-[Fact]
+    [Fact]
     public void AuthenticateSession_WithValidHostToken_ReturnsBoundSession()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
 
         var session = manager.AuthenticateSession(created.Session!.Token);
 
         session.ShouldNotBeNull();
         session.RoomCode.ShouldBe("ABC234");
-        session.PlayerId.ShouldBe(created.Session.PlayerId);
+        session.DeviceSessionId.ShouldBe(created.Session.DeviceSessionId);
         session.Role.ShouldBe(RoomRole.Host);
         session.Token.ShouldBe(created.Session.Token);
     }
@@ -567,15 +529,16 @@ public class RoomManagerTests
     public void AuthenticateSession_WithValidClientToken_ReturnsBoundSession()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
-        var joined = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
 
         var session = manager.AuthenticateSession(joined.Session!.Token);
 
         session.ShouldNotBeNull();
         session.Role.ShouldBe(RoomRole.Client);
         session.RoomCode.ShouldBe("ABC234");
+        session.DeviceSessionId.ShouldBe(joined.Session.DeviceSessionId);
     }
 
     [Theory]
@@ -586,7 +549,7 @@ public class RoomManagerTests
     public void AuthenticateSession_WithMissingOrUnknownToken_ReturnsNull(string? token)
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
         manager.AuthenticateSession(token!).ShouldBeNull();
     }
@@ -599,7 +562,7 @@ public class RoomManagerTests
         var manager = CreateManager(
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
 
@@ -610,14 +573,13 @@ public class RoomManagerTests
     public void AuthenticateSession_WithRevokedClientToken_ReturnsNull()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
-        var playerId = Guid.NewGuid();
-        var joined = manager.JoinRoom("ABC234", "Grace", playerId);
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
 
-        manager.RemoveMember("ABC234", created.Session!.Token, playerId);
+        manager.RemoveMember("ABC234", created.Session!.Token, joined.Session!.DeviceSessionId);
 
-        manager.AuthenticateSession(joined.Session!.Token).ShouldBeNull();
+        manager.AuthenticateSession(joined.Session.Token).ShouldBeNull();
     }
 
     [Fact]
@@ -628,14 +590,14 @@ public class RoomManagerTests
         var manager = CreateManager(
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
-        var clientA = manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        var clientA = manager.JoinRoom("ABC234", sessionToken: null);
 
         // Almost a full TTL later, a second member joins, extending the room's
         // expiry past the point where client A's session has already lapsed.
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds - 1));
-        manager.JoinRoom("ABC234", "Grace v2", Guid.NewGuid());
+        manager.JoinRoom("ABC234", sessionToken: null);
 
         timeProvider.Advance(TimeSpan.FromSeconds(2));
 
@@ -646,7 +608,7 @@ public class RoomManagerTests
     public void AuthenticateSession_WithClosedRoomToken_ReturnsBoundSession()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.CloseRoom("ABC234", created.Session.Token);
 
@@ -656,16 +618,51 @@ public class RoomManagerTests
     [Fact]
     public void Connections_RegisterReplaceUnregisterAndFindHost()
     {
-        var hostId = Guid.NewGuid();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
-        manager.CreateRoom("Ada", hostId);
+        var created = manager.CreateRoom(Guid.NewGuid());
+        var hostDeviceSessionId = created.Session!.DeviceSessionId;
 
-        manager.RegisterConnection("ABC234", hostId, "host-old").ShouldBeNull();
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-old").ShouldBeNull();
         manager.GetHostConnectionId("ABC234").ShouldBe("host-old");
-        manager.RegisterConnection("ABC234", hostId, "host-new").ShouldBe("host-old");
-        manager.UnregisterConnection("ABC234", hostId, "host-old").ShouldBeFalse();
-        manager.UnregisterConnection("ABC234", hostId, "host-new").ShouldBeTrue();
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-new").ShouldBe("host-old");
+        manager.UnregisterConnection("ABC234", hostDeviceSessionId, "host-old").ShouldBeFalse();
+        manager.UnregisterConnection("ABC234", hostDeviceSessionId, "host-new").ShouldBeTrue();
         manager.GetHostConnectionId("ABC234").ShouldBeNull();
+    }
+
+    [Fact]
+    public void HostAndJoiningDevice_RegisterExactlyTwoDeviceSessionsAndConnections()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var hostGameId = Guid.NewGuid();
+
+        var created = manager.CreateRoom(hostGameId);
+        var hostDeviceSessionId = created.Session!.DeviceSessionId;
+        manager.MarkRoomReady("ABC234", created.Session!.Token);
+
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
+        var clientDeviceSessionId = joined.Session!.DeviceSessionId;
+
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-conn");
+        manager.RegisterConnection("ABC234", clientDeviceSessionId, "client-conn");
+
+        var room = created.Room!;
+        // Exactly two device sessions: two members, two sessions, two connections.
+        room.Members.Count.ShouldBe(2);
+        room.Members.Select(m => m.DeviceSessionId).ShouldBe(
+            new[] { hostDeviceSessionId, clientDeviceSessionId }, ignoreOrder: true);
+        room.Members.Select(m => m.DeviceSessionId).Distinct().Count().ShouldBe(2);
+        room.HasSession(created.Session.Token).ShouldBeTrue();
+        room.HasSession(joined.Session!.Token).ShouldBeTrue();
+        room.LiveConnectionCount.ShouldBe(2);
+
+        // Hub state exposes device sessions and connections only. Membership carries
+        // no player identity, and the two protected relay channels are the only
+        // connections for the whole session regardless of how many players participate;
+        // player participation flows only through the game command stream over these
+        // two device channels and produces no additional Hub device sessions.
+        room.Members.All(m => m.Role is RoomRole.Host or RoomRole.Client).ShouldBeTrue();
+        room.Members.All(m => m.DeviceSessionId != Guid.Empty).ShouldBeTrue();
     }
 
     [Fact]
@@ -674,13 +671,13 @@ public class RoomManagerTests
         var now = new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero);
         var timeProvider = new FixedTimeProvider(now);
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultDissolutionGracePeriodSeconds));
 
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
         manager.AuthenticateSession(created.Session.Token).ShouldBeNull();
     }
 
@@ -689,7 +686,7 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
@@ -698,7 +695,7 @@ public class RoomManagerTests
         manager.CancelRoomDissolution("ABC234");
 
         manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
     }
 
     [Fact]
@@ -706,7 +703,7 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
@@ -716,7 +713,7 @@ public class RoomManagerTests
         manager.MarkRoomForDissolution("ABC234");
 
         manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
     }
 
     [Fact]
@@ -724,13 +721,13 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultDissolutionGracePeriodSeconds));
 
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
     }
 
     [Fact]
@@ -738,13 +735,13 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
-        manager.RegisterConnection("ABC234", hostId, "host-old");
-        manager.RegisterConnection("ABC234", hostId, "host-new");
+        var created = manager.CreateRoom(Guid.NewGuid());
+        var hostDeviceSessionId = created.Session!.DeviceSessionId;
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-old");
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-new");
 
         // Old disconnect is superseded — should not mark dissolution.
-        var marked = manager.TryMarkHostDisconnected("ABC234", hostId, "host-old");
+        var marked = manager.TryMarkHostDisconnected("ABC234", hostDeviceSessionId, "host-old");
 
         marked.ShouldBeFalse();
         manager.GetHostConnectionId("ABC234").ShouldBe("host-new");
@@ -755,11 +752,11 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var hostId = Guid.NewGuid();
-        manager.CreateRoom("Ada", hostId);
-        manager.RegisterConnection("ABC234", hostId, "host-only");
+        var created = manager.CreateRoom(Guid.NewGuid());
+        var hostDeviceSessionId = created.Session!.DeviceSessionId;
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "host-only");
 
-        var marked = manager.TryMarkHostDisconnected("ABC234", hostId, "host-only");
+        var marked = manager.TryMarkHostDisconnected("ABC234", hostDeviceSessionId, "host-only");
 
         marked.ShouldBeTrue();
         manager.GetHostConnectionId("ABC234").ShouldBeNull();
@@ -770,14 +767,13 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var hostId = Guid.NewGuid();
-        var created = manager.CreateRoom("Ada", hostId);
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
         timeProvider.Advance(TimeSpan.FromSeconds(DefaultDissolutionGracePeriodSeconds));
 
-        var marked = manager.TryMarkHostDisconnected("ABC234", hostId, "stale");
+        var marked = manager.TryMarkHostDisconnected("ABC234", created.Session!.DeviceSessionId, "stale");
 
         marked.ShouldBeFalse();
         manager.AuthenticateSession(created.Session!.Token).ShouldBeNull();
@@ -791,7 +787,7 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         if (state is RoomState.Active or RoomState.Closed)
         {
             manager.MarkRoomReady("ABC234", created.Session!.Token);
@@ -815,7 +811,7 @@ public class RoomManagerTests
             now: now,
             roomTtlSeconds: 600);
 
-        var result = manager.CreateRoom("Ada", Guid.NewGuid());
+        var result = manager.CreateRoom(Guid.NewGuid());
 
         result.Room!.ExpiresAt.ShouldBe(now.AddSeconds(600));
         result.Session!.ExpiresAt.ShouldBe(now.AddSeconds(600));
@@ -826,7 +822,7 @@ public class RoomManagerTests
     {
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero));
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), timeProvider: timeProvider);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
@@ -835,7 +831,7 @@ public class RoomManagerTests
         manager.CancelRoomDissolution("ABC234");
 
         manager.AuthenticateSession(created.Session!.Token).ShouldNotBeNull();
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.Joined);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.Joined);
     }
 
     [Fact]
@@ -846,7 +842,7 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider,
             roomTtlSeconds: 600);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
 
         timeProvider.Advance(TimeSpan.FromSeconds(600));
 
@@ -861,17 +857,17 @@ public class RoomManagerTests
             new SequenceRoomCodeGenerator("ABC234"),
             timeProvider: timeProvider,
             dissolutionGracePeriodSeconds: 15);
-        var created = manager.CreateRoom("Ada", Guid.NewGuid());
+        var created = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", created.Session!.Token);
         manager.MarkRoomForDissolution("ABC234");
 
         // Advance 14 seconds — still within the 15-second grace period; room is joinable.
         timeProvider.Advance(TimeSpan.FromSeconds(14));
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.Joined);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.Joined);
 
         // Advance 1 more second — now at the 15-second deadline; room is dissolved.
         timeProvider.Advance(TimeSpan.FromSeconds(1));
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid()).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
+        manager.JoinRoom("ABC234", sessionToken: null).Outcome.ShouldBe(RoomJoinOutcome.RoomNotFound);
     }
 
     [Fact]
@@ -950,7 +946,7 @@ public class RoomManagerTests
         var logger = new CapturingLogger<RoomManager>();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
         logger.GetMessages(LogLevel.Information).ShouldContain(
             message => message.Contains("Room ABC234 created", StringComparison.Ordinal));
@@ -962,7 +958,7 @@ public class RoomManagerTests
         var logger = new CapturingLogger<RoomManager>();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), maxConcurrentRooms: 0, logger: logger);
 
-        manager.CreateRoom("Ada", Guid.NewGuid());
+        manager.CreateRoom(Guid.NewGuid());
 
         logger.GetMessages(LogLevel.Warning).ShouldContain(
             message => message.Contains("relay capacity reached", StringComparison.Ordinal));
@@ -974,7 +970,7 @@ public class RoomManagerTests
         var logger = new CapturingLogger<RoomManager>();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
 
-        manager.JoinRoom("NOEXIST", "Grace", Guid.NewGuid());
+        manager.JoinRoom("NOEXIST", sessionToken: null);
 
         logger.GetMessages(LogLevel.Warning).ShouldContain(
             message => message.Contains("room not found", StringComparison.Ordinal));
@@ -986,13 +982,65 @@ public class RoomManagerTests
         var logger = new CapturingLogger<RoomManager>();
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"), logger: logger);
 
-        var creation = manager.CreateRoom("Ada", Guid.NewGuid());
+        var creation = manager.CreateRoom(Guid.NewGuid());
         manager.MarkRoomReady("ABC234", creation.Session!.Token);
-        manager.JoinRoom("ABC234", "Grace", Guid.NewGuid());
+        manager.JoinRoom("ABC234", sessionToken: null);
 
         logger.GetMessages(LogLevel.Information).ShouldContain(
             message => message.Contains("joined room ABC234", StringComparison.Ordinal)
                 && message.Contains("2 member(s)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TwoDevices_HostAndJoiner_HaveDistinctDeviceSessions_AndNoPlayerIdentityInHubState()
+    {
+        var hostGameId = Guid.NewGuid();
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+
+        // Host creates room
+        var createResult = manager.CreateRoom(hostGameId);
+        createResult.Outcome.ShouldBe(RoomCreationOutcome.Created);
+        var room = createResult.Room!;
+        var hostSession = createResult.Session!;
+        var hostDeviceSessionId = hostSession.DeviceSessionId;
+
+        manager.RegisterConnection("ABC234", hostDeviceSessionId, "conn-host");
+        manager.MarkRoomReady("ABC234", hostSession.Token);
+
+        // Joiner device joins room
+        var joinResult = manager.JoinRoom("ABC234", sessionToken: null);
+        joinResult.Outcome.ShouldBe(RoomJoinOutcome.Joined);
+        var joinerSession = joinResult.Session!;
+        var joinerDeviceSessionId = joinerSession.DeviceSessionId;
+
+        manager.RegisterConnection("ABC234", joinerDeviceSessionId, "conn-joiner");
+
+        // Assert room has exactly 2 distinct device sessions and 2 connections
+        room.Members.Count.ShouldBe(2);
+        hostDeviceSessionId.ShouldNotBe(joinerDeviceSessionId);
+        hostDeviceSessionId.ShouldNotBe(Guid.Empty);
+        joinerDeviceSessionId.ShouldNotBe(Guid.Empty);
+        room.LiveConnectionCount.ShouldBe(2);
+
+        room.GetConnectionId(hostDeviceSessionId).ShouldBe("conn-host");
+        room.GetConnectionId(joinerDeviceSessionId).ShouldBe("conn-joiner");
+
+        // Assert Hub state exposes device sessions and connections only - no player identity
+        var memberPropertyNames = typeof(RoomMember).GetProperties().Select(p => p.Name).ToList();
+        memberPropertyNames.ShouldNotContain("PlayerId");
+        memberPropertyNames.ShouldNotContain("PlayerName");
+
+        var sessionPropertyNames = typeof(RoomSession).GetProperties().Select(p => p.Name).ToList();
+        sessionPropertyNames.ShouldNotContain("PlayerId");
+        sessionPropertyNames.ShouldNotContain("PlayerName");
+
+        var roomPropertyNames = typeof(Room).GetProperties().Select(p => p.Name).ToList();
+        roomPropertyNames.ShouldNotContain("HostPlayerId");
+        roomPropertyNames.ShouldNotContain("PlayerCount");
+
+        // Exactly two device channels exist for the room session
+        manager.GetConnectionId("ABC234", hostDeviceSessionId).ShouldBe("conn-host");
+        manager.GetConnectionId("ABC234", joinerDeviceSessionId).ShouldBe("conn-joiner");
     }
 
     #endregion
