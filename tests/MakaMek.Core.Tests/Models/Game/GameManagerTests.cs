@@ -844,6 +844,41 @@ public class GameManagerTests : IDisposable
         await sut.DisposeAsync();
     }
 
+[Fact]
+    public async Task CloseOnlineRoomAsync_WhenCancelled_ReturnsFalseAndDoesNotClearState()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.CreateAsync(_serverGame.Id, Arg.Any<CancellationToken>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.ReadyAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+        var publisher = CreateRelayPublisher(roomCode, sessionToken, hostGameId);
+        relayPublisherFactory.CreateAsync("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(publisher));
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, logger: logger);
+        await sut.InitializeLobbyOnline();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        // Act & Assert - a cancelled close should return false without throwing
+        var result = await sut.CloseOnlineRoom(cts.Token);
+        result.ShouldBeFalse();
+
+        // State is preserved so the close can be retried once the token is usable again
+        sut.RoomCode.ShouldBe(roomCode);
+        await relayRoomClient.Received(1).CloseAsync(roomCode, sessionToken, Arg.Any<CancellationToken>());
+        await sut.DisposeAsync();
+    }
+
     [Fact]
     public async Task CloseOnlineRoomAsync_WhenCloseReturnsFailed_ReturnsFalseAndDoesNotClearState()
     {

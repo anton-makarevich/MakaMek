@@ -16,6 +16,7 @@ public class RoomTests
 
         var room = CreateRoom(Guid.NewGuid(), hostGameId);
 
+        room.CreatedAt.ShouldBe(DefaultNow);
         room.ExpiresAt.ShouldBe(expiresAt);
     }
 

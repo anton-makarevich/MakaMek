@@ -546,6 +546,32 @@ public class RelayRoomClientTests
         AssertNoSecretsLeaked(result.Error.Message);
     }
 
+[Fact]
+    public async Task RemoveMemberAsync_EmptyBody_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task ReadyAsync_EmptyBody_MapsToDeserializationError()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
     [Fact]
     public async Task ReadyAsync_NetworkFailure_MapsToNetworkError()
     {
@@ -640,6 +666,42 @@ public class RelayRoomClientTests
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(expected);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+[Fact]
+    public async Task AnyOperation_HubErrorCode_NumericCode_MapsCorrectly()
+    {
+        _handler.StatusCode = HttpStatusCode.Conflict;
+        _handler.ResponseContent = """
+            {
+              "success": false,
+              "error": { "code": 7, "message": "Hub says 7." }
+            }
+            """;
+
+        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.RoomFull);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task AnyOperation_HubErrorCode_NonStringNonNumber_MapsToUnknown()
+    {
+        _handler.StatusCode = HttpStatusCode.Conflict;
+        _handler.ResponseContent = """
+            {
+              "success": false,
+              "error": { "code": true, "message": "Hub says true." }
+            }
+            """;
+
+        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+
+        result.Success.ShouldBeFalse();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
         AssertNoSecretsLeaked(result.Error.Message);
     }
 
