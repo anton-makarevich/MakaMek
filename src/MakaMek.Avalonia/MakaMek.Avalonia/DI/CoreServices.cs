@@ -100,15 +100,19 @@ public static class CoreServices
         services.AddSingleton<RxTransportPublisher>();
 
         // Register CommandTransportAdapter with just the RxTransportPublisher initially
-        // The network publisher will be added dynamically when needed
-        services.AddTransient<CommandTransportAdapter>(sp =>
+        // The network publisher will be added dynamically when needed. Both the adapter and the
+        // command publisher are singletons so GameManager, GameConnector, ViewModels and the
+        // local games all share ONE command pipeline: publishers added by GameConnector (LAN /
+        // relay) must be visible to the adapter that games publish through and subscribe to.
+        // Transient lifetimes silently split the pipeline — commands never reach the network.
+        services.AddSingleton<CommandTransportAdapter>(sp =>
         {
             var rxPublisher = sp.GetRequiredService<RxTransportPublisher>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             return new CommandTransportAdapter(loggerFactory, rxPublisher);
         });
 
-        services.AddTransient<ICommandPublisher, CommandPublisher>();
+        services.AddSingleton<ICommandPublisher, CommandPublisher>();
         services.AddSingleton<IRulesProvider, TotalWarfareRulesProvider>();
         services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
         services.AddSingleton<IMechFactory, MechFactory>();
