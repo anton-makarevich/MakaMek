@@ -31,16 +31,17 @@ Full option list in `Configuration/HubOptions.cs`.
 
 ### With .NET SDK
 
+Set environment to Development:
+```bash
+$env:ASPNETCORE_ENVIRONMENT="Development"   # PowerShell
+export ASPNETCORE_ENVIRONMENT="Development" # bash
+```
+
 ```bash
 dotnet run --project src/MakaMek.Hub/MakaMek.Hub.csproj
 ```
 
 The service starts on `http://localhost:5000` (ASP.NET default) with the `Development` environment profile.
-
-Set environment to Development:
-```bash
-$env:ASPNETCORE_ENVIRONMENT="Development"
-```
 
 Set the API key via environment variable or `appsettings.Development.json`:
 
