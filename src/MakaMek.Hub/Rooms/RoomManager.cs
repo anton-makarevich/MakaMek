@@ -466,6 +466,13 @@ public sealed class RoomManager : IRoomManager
 
             var now = _timeProvider.GetUtcNow();
 
+            _logger.LogWarning(
+                "TMPDIAG CancelRoomDissolution room {RoomCode}: now {Now}, deadline {Deadline}, dissolving {IsDissolving}",
+                roomCode,
+                now,
+                room.DissolutionDeadline,
+                room.IsDissolving);
+
             // Terminal deadline: purge instead of mutating a dissolved room.
             if (room.IsDissolvedAt(now))
             {

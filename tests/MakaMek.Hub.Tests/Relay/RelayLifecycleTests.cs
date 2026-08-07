@@ -5,7 +5,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
-using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
 using Shouldly;
 
@@ -95,7 +94,7 @@ public class RelayLifecycleTests
         var error = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), value => error.TrySetResult(value));
         await host.StartAsync();
-        await client.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
 
         await host.StopAsync();
 
@@ -115,7 +114,7 @@ public class RelayLifecycleTests
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
-        await client.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
         clock.Advance(TimeSpan.FromSeconds(29));
@@ -144,7 +143,7 @@ public class RelayLifecycleTests
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
-        await client.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
         clock.Advance(TimeSpan.FromSeconds(30));
@@ -168,7 +167,7 @@ public class RelayLifecycleTests
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
-        await client.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
         // Advance beyond the non-default 60-second grace period.
@@ -193,7 +192,7 @@ public class RelayLifecycleTests
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
-        await client.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
         await host.StopAsync();
         await hostDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
         // Advance past the default 30-second grace but before the configured 60-second grace.
@@ -234,6 +233,14 @@ public class RelayLifecycleTests
         var joined = await response.Content.ReadFromJsonAsync<JoinResponse>(JsonOptions);
         joined.ShouldNotBeNull();
         return joined.SessionToken!;
+    }
+
+    private static async Task WaitForPeerConnectedAsync(HubConnection host, HubConnection client)
+    {
+        var connected = NewCompletionSource<string>();
+        host.On<string>(nameof(IRelayHub.OnPeerConnected), id => connected.TrySetResult(id));
+        await client.StartAsync();
+        await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     private static TaskCompletionSource<T> NewCompletionSource<T>() =>
