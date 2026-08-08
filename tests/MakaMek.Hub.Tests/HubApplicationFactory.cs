@@ -63,7 +63,7 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
             services.PostConfigure<HubOptions>(options =>
             {
                 options.KeepAliveInterval = TimeSpan.FromDays(1);
-                options.ClientTimeoutInterval = TimeSpan.FromDays(1);
+                options.ClientTimeoutInterval = TimeSpan.FromDays(2);
             });
 
             if (_timeProvider is not null)
@@ -94,6 +94,8 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
                     return await webSocketClient.ConnectAsync(context.Uri, cancellationToken);
                 };
             })
+            .WithKeepAliveInterval(TimeSpan.FromDays(1))
+            .WithServerTimeout(TimeSpan.FromDays(2))
             .Build();
     }
 

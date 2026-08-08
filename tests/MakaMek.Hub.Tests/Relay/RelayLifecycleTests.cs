@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
@@ -125,8 +126,15 @@ public class RelayLifecycleTests
         await reconnectedHost.StartAsync();
         await WaitUntilAsync(async () =>
         {
-            await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
-                new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+            try
+            {
+                await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
+                    new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+            }
+            catch (HubException exception) when (exception.Message.Contains(nameof(HubErrorCode.ConnectionSuperseded)))
+            {
+                return false;
+            }
             return received.Task.IsCompleted;
         });
 
@@ -262,15 +270,17 @@ public class RelayLifecycleTests
     private static async Task WaitUntilAsync(Func<Task<bool>> predicate)
     {
         var deadline = DateTime.UtcNow.AddSeconds(5);
+        var succeeded = false;
         while (DateTime.UtcNow < deadline)
         {
-            if (await predicate())
+            succeeded = await predicate();
+            if (succeeded)
             {
                 return;
             }
             await Task.Delay(10);
         }
-        (await predicate()).ShouldBeTrue();
+        succeeded.ShouldBeTrue();
     }
 
     private sealed record ReadyRoom(string RoomCode, string HostToken);
