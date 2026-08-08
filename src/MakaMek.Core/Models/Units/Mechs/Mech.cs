@@ -492,18 +492,7 @@ public class Mech : Unit
     }
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
-
-    public override bool IsMinimumMovement
-    {
-        get
-        {
-            if (IsProne 
-                && GetMovementPoints(MovementType.Walk) == 1 
-                && StandupAttempts == 0) return true;
-            return false;
-        }
-    }
-
+    
     public bool CanJump
     {
         get
@@ -515,9 +504,7 @@ public class Mech : Unit
             if (StandupAttempts > 0) return false;
 
             // Cannot jump if no functional jump jets are available
-            if (GetMovementPoints(MovementType.Jump) < 1) return false;
-
-            return true;
+            return GetMovementPoints(MovementType.Jump) >= 1;
         }
     }
     
@@ -618,12 +605,14 @@ public class Mech : Unit
 
     public void RegisterStandupAttempt(MovementType? movementType = null)
     {
+        var standupCost = IsMinimumMovement && StandupAttempts == 0
+            ? 1 
+            : StandupCost;
         StandupAttempts++;
         movementType ??= MovementTaken?.MovementType;
         if (Position == null || movementType == null) return; 
         MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
-        var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
-        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = pointsToSpend });
+        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = standupCost });
     }
 
     public void ApplyFall(MechFallCommand fallCommand)

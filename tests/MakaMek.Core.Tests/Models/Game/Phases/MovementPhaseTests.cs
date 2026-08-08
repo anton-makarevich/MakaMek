@@ -1317,6 +1317,117 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void ProcessMoveCommand_WhenRunIntoWaterFallAndStandup_RemainingRunMpReducedByFullStandupCost()
+    {
+        // Reproduces the ticket scenario: the mech runs into depth-1 water, falls, and then stands up.
+        // After a 4 MP run, only 1 walk MP remains, but 4 run MP are still available. The standup cost
+        // (2 MP) must still be fully deducted so that remaining run MP = runMp - preFallCost - standupCost.
+        // Arrange
+        SetMap();
+        _sut.Enter();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(Arg.Any<IPilot>()).Returns([]);
+
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top), null);
+
+        var runMp = unit.GetMovementPoints(MovementType.Run);
+
+        var waterHex = Game.BattleMap!.GetHex(new HexCoordinates(3, 2));
+        waterHex!.AddTerrain(new WaterTerrain(-1));
+
+        // Setup water fall
+        var waterFallData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new EnteringDeepWaterRollContext(1),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(
+                unit,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
+                Game,
+                MovementType.Run)
+            .Returns(waterFallData);
+
+        // Setup successful standup
+        var successfulPsrData = new PilotingSkillRollData
+        {
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+            DiceResults = [5, 5],
+            IsSuccessful = true,
+            PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+        };
+        var successfulStandupData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            PilotingSkillRoll = successfulPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+        MockFallProcessor.ProcessMovementAttempt(
+                unit,
+                Arg.Is<PilotingSkillRollContext>(c => c.RollType == PilotingSkillRollType.StandupAttempt),
+                Game,
+                MovementType.StandingStill)
+            .Returns(successfulStandupData);
+
+        // Act - Step 1: Run into water (triggers fall + truncation after 2 hexes, cost 4)
+        _sut.HandleCommand(new MoveUnitCommand
+        {
+            MovementType = MovementType.Run,
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(3, 2, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]).ToData(),
+                new PathSegment(new HexPosition(3, 2, HexDirection.Top), new HexPosition(4, 2, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ]
+        });
+
+        unit.MovementPointsSpent.ShouldBe(4, "Expected cost: 4 (two hexes run into the water)");
+        unit.GetMovementPoints(MovementType.Walk).ShouldBe(1,
+            "Only 1 walk MP remains after running, so the standup cost must not be capped by walk MP");
+        unit.IsProne.ShouldBeTrue("Unit should be prone after falling into the water");
+
+        // Act - Step 2: Successful standup, then continue with Run
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Run
+        };
+        _sut.HandleCommand(standupCommand);
+
+        // Assert - remaining run MP is reduced by both the pre-fall move cost and the full standup cost
+        unit.IsProne.ShouldBeFalse("Standup should succeed");
+        unit.MovementPointsSpent.ShouldBe(6, "Combined cost: 4 (run into water) + 2 (standup)");
+        unit.MovementTaken!.TotalCost.ShouldBe(6, "MovementTaken should include both the run cost and the standup cost");
+        unit.GetMovementPoints(MovementType.Run).ShouldBe(
+            runMp - 4 - 2, "Remaining run MP must equal runMp - preFallCost - standupCost");
+    }
+
+    [Fact]
     public void ProcessMoveCommand_ShouldProcessJumpWaterEntry()
     {
         // Arrange

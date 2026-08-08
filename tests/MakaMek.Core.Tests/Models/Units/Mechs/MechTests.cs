@@ -1920,7 +1920,73 @@ public class MechTests
         // Assert
         canStandup.ShouldBeTrue("Mech should be able to stand up when it has minimum movement");
     }
-        
+
+    [Fact]
+    public void RegisterStandupAttempt_AfterRealMultiHexMove_AddsStandupCostOnTopOfMoveCost()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(350)); // walk 7 / run 11
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        // Real multi-hex move with non-zero segment costs (unlike a same-hex zero-cost segment)
+        mech.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]),
+                new PathSegment(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(2, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
+            ], MovementType.Run), null);
+
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Remaining walk MP after the move");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(7, "Remaining run MP after the move");
+
+        // Act
+        mech.RegisterStandupAttempt(MovementType.Run);
+
+        // Assert — standup cost (2) is added on top of the move cost (4)
+        mech.MovementPointsSpent.ShouldBe(6, "Combined cost: 4 move + 2 standup");
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(1, "7 - 4 - 2");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(5, "11 - 4 - 2");
+        mech.MovementTaken!.TotalCost.ShouldBe(6);
+        mech.MovementTaken.Segments[^1].Costs.OfType<StandUpAttemptMovementCost>()
+            .Single().Value.ShouldBe(2, "Standup should always cost its full 2 MP");
+    }
+
+    [Fact]
+    public void RegisterStandupAttempt_AfterRunMove_WithLowRemainingWalkMp_ChargesFullStandupCost()
+    {
+        // Reproduces the ticket scenario: mech runs into water (cost 6), leaving only 1 walk MP
+        // but still 5 run MP. The standup cost must not be capped by the low remaining walk MP.
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(350)); // walk 7 / run 11
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        mech.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]),
+                new PathSegment(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(2, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }])
+            ], MovementType.Run), null);
+
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Low remaining walk MP after running into water");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(5, "Run MP remaining is still high");
+
+        // Act
+        mech.RegisterStandupAttempt(MovementType.Run);
+
+        // Assert — the full 2 MP standup cost must be deducted from the run pool
+        mech.MovementPointsSpent.ShouldBe(8, "Combined cost: 6 move + 2 standup");
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(0, "7 - 6 - 2");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(3, "11 - 6 - 2");
+        mech.MovementTaken!.TotalCost.ShouldBe(8);
+        mech.MovementTaken.Segments[^1].Costs.OfType<StandUpAttemptMovementCost>()
+            .Single().Value.ShouldBe(2, "Standup should always cost its full 2 MP");
+    }
 
     [Fact]
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
@@ -2776,6 +2842,33 @@ public class MechTests
         
         // Assert
         result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenOneMpRemainsAfterMoving()
+    {
+        // The minimum movement exception applies only to a mech with 1 MP available
+        // at the BEGINNING of its turn. A mech that had more MP but spent most of them
+        // (e.g. ran into water and fell) must not qualify for it.
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(100)); // walk 2
+        sut.SetProne();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        var start = sut.Position!;
+        sut.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            ], MovementType.Walk), null);
+
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Only 1 MP remains after the move");
+
+        // Act
+        var result = sut.IsMinimumMovement;
+
+        // Assert
+        result.ShouldBeFalse(
+            "Minimum movement must not apply to a mech that merely has 1 MP left after spending its movement");
     }
 
     [Fact]
