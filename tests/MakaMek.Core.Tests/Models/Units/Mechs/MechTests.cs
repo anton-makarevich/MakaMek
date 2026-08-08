@@ -520,7 +520,7 @@ public class MechTests
     }
 
     [Fact]
-    public void ApplyWeaponConfiguration_WhenArmsFlip_ShouldNotThrow()
+    public void ApplyWeaponConfiguration_WhenArmsFlipIsNoop_ShouldLeaveStateUnchanged()
     {
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
@@ -532,8 +532,11 @@ public class MechTests
             Value = (int)HexDirection.Top
         };
 
-        // Act & Assert
-        Should.NotThrow(() => sut.ApplyWeaponConfiguration(configuration));
+        // Act
+        sut.ApplyWeaponConfiguration(configuration);
+
+        // Assert
+        sut.Position!.Facing.ShouldBe(HexDirection.Top);
     }
 
     [Fact]
@@ -1948,6 +1951,11 @@ public class MechTests
         // Arrange
         var parts = isMinimumMovement ? CreateBasicPartsData(50) : CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.SetProne();
+
+        sut.IsMinimumMovement.ShouldBe(isMinimumMovement);
+
         for (var i = 0; i < standupAttempts; i++)
         {
             sut.RegisterStandupAttempt(MovementType.Walk);
@@ -1958,7 +1966,6 @@ public class MechTests
 
         // Assert
         cost.ShouldBe(expectedCost);
-        sut.IsMinimumMovement.ShouldBe(isMinimumMovement);
     }
 
     [Fact]
