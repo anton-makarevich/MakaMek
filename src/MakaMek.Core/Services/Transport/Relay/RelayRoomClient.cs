@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
 
 namespace Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -18,17 +17,17 @@ public sealed class RelayRoomClient : IRelayRoomClient
     private const string HostRole = "Host";
 
     private readonly HttpClient _httpClient;
-    private readonly RelayClientOptions _options;
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly ILogger<RelayRoomClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RelayRoomClient(
         HttpClient httpClient,
-        IOptions<RelayClientOptions> options,
+        IRelayHubConfigurationProvider hubConfigurationProvider,
         ILogger<RelayRoomClient> logger)
     {
         _httpClient = httpClient;
-        _options = options.Value;
+        _hubConfigurationProvider = hubConfigurationProvider;
         _logger = logger;
         _jsonOptions = new JsonSerializerOptions
         {
@@ -340,13 +339,13 @@ public sealed class RelayRoomClient : IRelayRoomClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath, string? sessionToken)
     {
-        var baseUrl = _options.BaseUrl.TrimEnd('/');
+        var baseUrl = _hubConfigurationProvider.ActiveBaseUrl.TrimEnd('/');
         var uri = string.IsNullOrEmpty(baseUrl)
             ? new Uri(relativePath, UriKind.Relative)
             : new Uri($"{baseUrl}/{relativePath}", UriKind.Absolute);
 
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, _options.ApiKey);
+        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, _hubConfigurationProvider.ActiveApiKey);
 
         if (!string.IsNullOrEmpty(sessionToken))
         {

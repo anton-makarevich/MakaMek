@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Data.Game.Commands;
@@ -42,7 +41,15 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key" }));
+            CreateHubConfigurationProvider());
+    }
+
+    private static IRelayHubConfigurationProvider CreateHubConfigurationProvider(string baseUrl = "http://hub.local", string apiKey = "api-key")
+    {
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.ActiveBaseUrl.Returns(baseUrl);
+        provider.ActiveApiKey.Returns(apiKey);
+        return provider;
     }
 
     private GameConnector CreateSutWithoutRelay() => new(
@@ -407,7 +414,7 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key" }));
+            CreateHubConfigurationProvider());
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";
@@ -449,7 +456,7 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key" }));
+            CreateHubConfigurationProvider());
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";

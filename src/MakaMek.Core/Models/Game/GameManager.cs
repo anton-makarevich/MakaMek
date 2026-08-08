@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services.Logging;
@@ -27,7 +26,7 @@ public class GameManager : IGameManager
     private Action<IGameCommand>? _logHandler;
     private readonly IRelayRoomClient? _relayRoomClient;
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
-    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
     private RelayClientPublisher? _onlineRelayPublisher;
     private string? _onlineSessionToken;
 
@@ -39,7 +38,7 @@ public class GameManager : IGameManager
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
-        IOptions<RelayClientOptions>? relayOptions = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
     {
         _commandPublisher = commandPublisher;
         _gameFactory = gameFactory;
@@ -49,7 +48,7 @@ public class GameManager : IGameManager
         _networkHostService = networkHostService;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
-        _relayOptions = relayOptions;
+        _relayHubConfigurationProvider = relayHubConfigurationProvider;
     }
     
     private static Action<IGameCommand> SafeLog(ICommandLogger logger) =>
@@ -134,8 +133,11 @@ public class GameManager : IGameManager
         // Reset before initializing new lobby (also clears any stale relay publisher)
         await ResetForNewGame();
 
-        // Relay hosting requires both the room client and the publisher factory
-        if (_relayRoomClient is null || _relayPublisherFactory is null)
+        // Relay hosting requires the room client, the publisher factory, and an active hub configuration
+        if (_relayRoomClient is null
+            || _relayPublisherFactory is null
+            || _relayHubConfigurationProvider is null
+            || string.IsNullOrWhiteSpace(_relayHubConfigurationProvider.ActiveBaseUrl))
         {
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
@@ -175,7 +177,7 @@ public class GameManager : IGameManager
         RelayClientPublisher? publisher = null;
         try
         {
-            var baseUrl = _relayOptions?.Value.BaseUrl ?? string.Empty;
+            var baseUrl = _relayHubConfigurationProvider.ActiveBaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
             publisher = await _relayPublisherFactory.CreateAsync(
@@ -183,7 +185,7 @@ public class GameManager : IGameManager
                 createResult.RoomCode,
                 createResult.SessionToken,
                 createResult.HostGameId.Value,
-                _relayOptions?.Value.ApiKey ?? string.Empty,
+                _relayHubConfigurationProvider.ActiveApiKey,
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);

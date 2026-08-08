@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
@@ -60,12 +59,10 @@ public class RelayRoomClientTests
     public RelayRoomClientTests()
     {
         var httpClient = new HttpClient(_handler);
-        var options = Options.Create(new RelayClientOptions
-        {
-            BaseUrl = BaseUrl,
-            ApiKey = ApiKey
-        });
-        _sut = new RelayRoomClient(httpClient, options, _logger);
+        var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        hubConfigurationProvider.ActiveBaseUrl.Returns(BaseUrl);
+        hubConfigurationProvider.ActiveApiKey.Returns(ApiKey);
+        _sut = new RelayRoomClient(httpClient, hubConfigurationProvider, _logger);
     }
 
     [Fact]

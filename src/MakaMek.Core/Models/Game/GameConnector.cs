@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -18,7 +17,7 @@ public class GameConnector : IGameConnector
     private readonly ITransportFactory _transportFactory;
     private readonly IRelayRoomClient? _relayRoomClient;
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
-    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
     private readonly ILogger<GameConnector> _logger;
 
     private RelayClientPublisher? _relayPublisher;
@@ -33,14 +32,14 @@ public class GameConnector : IGameConnector
         ILogger<GameConnector> logger,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
-        IOptions<RelayClientOptions>? relayOptions = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
     {
         _commandPublisher = commandPublisher;
         _transportFactory = transportFactory;
         _logger = logger;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
-        _relayOptions = relayOptions;
+        _relayHubConfigurationProvider = relayHubConfigurationProvider;
     }
 
     public bool IsConnected { get; private set; }
@@ -88,8 +87,11 @@ public class GameConnector : IGameConnector
     {
         OnlineError = null;
 
-        // Online joining requires the relay room client, publisher factory, and options
-        if (_relayRoomClient is null || _relayPublisherFactory is null || _relayOptions is null)
+        // Online joining requires the relay room client, publisher factory, and an active hub configuration
+        if (_relayRoomClient is null
+            || _relayPublisherFactory is null
+            || _relayHubConfigurationProvider is null
+            || string.IsNullOrWhiteSpace(_relayHubConfigurationProvider.ActiveBaseUrl))
         {
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
@@ -115,7 +117,7 @@ public class GameConnector : IGameConnector
             successfulSessionToken = joinResult.SessionToken;
             successfulDeviceSessionId = joinResult.DeviceSessionId;
 
-            var baseUrl = _relayOptions.Value.BaseUrl;
+            var baseUrl = _relayHubConfigurationProvider.ActiveBaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
             publisher = await _relayPublisherFactory.CreateAsync(
@@ -123,7 +125,7 @@ public class GameConnector : IGameConnector
                 roomCode,
                 joinResult.SessionToken,
                 joinResult.HostGameId.Value,
-                _relayOptions.Value.ApiKey,
+                _relayHubConfigurationProvider.ActiveApiKey,
                 cancellationToken);
 
             // Throw if cancelled; the cancellation catch block below is the single

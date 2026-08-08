@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.SignalR.Client;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -96,16 +95,22 @@ public class GameManagerTests : IDisposable
         IRelayRoomClient relayRoomClient,
         IRelayPublisherFactory relayPublisherFactory,
         INetworkHostService? networkHostService = null,
-        ILogger<GameManager>? logger = null) => new GameManager(
-        _commandPublisher,
-        _gameFactory,
-        _localizationService,
-        _commandLoggerFactory,
-        logger ?? _logger,
-        networkHostService,
-        relayRoomClient,
-        relayPublisherFactory,
-        Options.Create(new RelayClientOptions { BaseUrl = "http://hub.local", ApiKey = "api-key" }));
+        ILogger<GameManager>? logger = null)
+    {
+        var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        hubConfigurationProvider.ActiveBaseUrl.Returns("http://hub.local");
+        hubConfigurationProvider.ActiveApiKey.Returns("api-key");
+        return new GameManager(
+            _commandPublisher,
+            _gameFactory,
+            _localizationService,
+            _commandLoggerFactory,
+            logger ?? _logger,
+            networkHostService,
+            relayRoomClient,
+            relayPublisherFactory,
+            hubConfigurationProvider);
+    }
 
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string sessionToken, Guid hostId) =>
         new("http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, hostId.ToString());

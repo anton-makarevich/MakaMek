@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
@@ -177,11 +178,13 @@ public class MainMenuViewModelTests
         command.ShouldNotBeNull();
         var fileCachingService = Substitute.For<IFileCachingService>();
         var settingsLogger = Substitute.For<ILogger<SettingsViewModel>>();
+        var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
         var settingsVm = new SettingsViewModel(
             fileCachingService,
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
+            hubConfigurationProvider,
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 

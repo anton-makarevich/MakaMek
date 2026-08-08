@@ -1,0 +1,126 @@
+using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.MVVM.Core.ViewModels;
+
+namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+
+/// <summary>
+/// Row/edit view model for a single relay hub entry in the Settings screen.
+/// Built-in (Demo) hubs cannot be edited or removed.
+/// </summary>
+public class HubEntryViewModel : BindableBase
+{
+    private readonly Func<HubEntryViewModel, Task>? _onSaved;
+    private readonly Action<HubEntryViewModel>? _onCancelled;
+    private HubConfigData _hub;
+    private string _editableName;
+    private string _editableBaseUrl;
+    private string _editableApiKey;
+
+    public HubEntryViewModel(
+        HubConfigData hub,
+        bool isNew = false,
+        Func<HubEntryViewModel, Task>? onSaved = null,
+        Action<HubEntryViewModel>? onCancelled = null)
+    {
+        _hub = hub;
+        IsNew = isNew;
+        _onSaved = onSaved;
+        _onCancelled = onCancelled;
+        _editableName = hub.Name;
+        _editableBaseUrl = hub.BaseUrl;
+        _editableApiKey = hub.ApiKey;
+
+        StartEditingCommand = new AsyncCommand(StartEditing);
+        SaveCommand = new AsyncCommand(Save);
+        CancelCommand = new AsyncCommand(Cancel);
+    }
+
+    public HubConfigData Hub => _hub;
+
+    /// <summary>
+    /// Marks an entry that has not yet been persisted to the provider.
+    /// </summary>
+    public bool IsNew { get; }
+
+    public string Id => _hub.Id;
+    public string Name => _hub.Name;
+    public string BaseUrl => _hub.BaseUrl;
+    public string ApiKey => _hub.ApiKey;
+    public bool IsBuiltIn => _hub.IsBuiltIn;
+
+    public bool CanEdit => !IsBuiltIn;
+    public bool CanRemove => !IsBuiltIn;
+
+    public bool IsEditing
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public string EditableName
+    {
+        get => _editableName;
+        set => SetProperty(ref _editableName, value);
+    }
+
+    public string EditableBaseUrl
+    {
+        get => _editableBaseUrl;
+        set => SetProperty(ref _editableBaseUrl, value);
+    }
+
+    public string EditableApiKey
+    {
+        get => _editableApiKey;
+        set => SetProperty(ref _editableApiKey, value);
+    }
+
+    public ICommand StartEditingCommand { get; }
+    public ICommand SaveCommand { get; }
+    public ICommand CancelCommand { get; }
+
+    public Task StartEditing()
+    {
+        if (!CanEdit) return Task.CompletedTask;
+
+        EditableName = Name;
+        EditableBaseUrl = BaseUrl;
+        EditableApiKey = _hub.ApiKey;
+        IsEditing = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(EditableBaseUrl)) return;
+
+        _hub = _hub with
+        {
+            Name = string.IsNullOrWhiteSpace(EditableName) ? Name : EditableName.Trim(),
+            BaseUrl = EditableBaseUrl.Trim(),
+            ApiKey = EditableApiKey
+        };
+        IsEditing = false;
+
+        NotifyPropertyChanged(nameof(Hub));
+        NotifyPropertyChanged(nameof(Name));
+        NotifyPropertyChanged(nameof(BaseUrl));
+
+        if (_onSaved != null)
+        {
+            await _onSaved(this);
+        }
+    }
+
+    private Task Cancel()
+    {
+        EditableName = Name;
+        EditableBaseUrl = BaseUrl;
+        EditableApiKey = _hub.ApiKey;
+        IsEditing = false;
+        _onCancelled?.Invoke(this);
+        return Task.CompletedTask;
+    }
+}
