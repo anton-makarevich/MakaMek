@@ -2563,6 +2563,81 @@ public class UnitTests
     }
 
     [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenUnitHasExactlyOneMovementPointAndNoMovementTaken()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 1);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenUnitHasZeroMovementPoints()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 0);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("Minimum movement requires exactly 1 MP at the beginning of the turn");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenUnitHasMultipleMovementPoints()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 2);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("Minimum movement applies only to a unit with 1 MP at the beginning of the turn");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenMovementPointsWereSpent()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 1);
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        sut.Move(new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk), null);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("A unit that spent movement points has moved and cannot claim minimum movement");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenUnitHasOneMovementPointAndTookZeroCostMovement()
+    {
+        // Arrange - a zero-cost path (e.g. standing still marker) does not count as movement spent
+        var sut = CreateTestUnit(walkMp: 1);
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        sut.Move(MovementPath.CreateSingleSegmentPath(deployPosition), null);
+        sut.MovementPointsSpent.ShouldBe(0);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
     public void BaseMovement_ShouldBeZero_WhenNoEngine()
     {
         // Arrange
