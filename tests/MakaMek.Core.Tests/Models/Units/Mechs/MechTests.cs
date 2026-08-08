@@ -1921,6 +1921,43 @@ public class MechTests
         canStandup.ShouldBeTrue("Mech should be able to stand up when it has minimum movement");
     }
 
+    [Theory]
+    [InlineData(false, 0, 2)] // Not minimum movement, no standup attempts yet
+    [InlineData(false, 1, 2)] // Not minimum movement, standup already attempted
+    [InlineData(true, 0, 1)]  // Minimum movement, first standup gets the 1 MP exception
+    [InlineData(true, 1, 2)]  // Minimum movement, but exception applies only to the first attempt
+    public void EffectiveStandupCost_ReturnsExpectedCost(bool isMinimumMovement, int standupAttempts, int expectedCost)
+    {
+        // Arrange
+        var parts = isMinimumMovement ? CreateBasicPartsData(50) : CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        for (var i = 0; i < standupAttempts; i++)
+        {
+            sut.RegisterStandupAttempt(MovementType.Walk);
+        }
+
+        // Act
+        var cost = sut.EffectiveStandupCost;
+
+        // Assert
+        cost.ShouldBe(expectedCost);
+        sut.IsMinimumMovement.ShouldBe(isMinimumMovement);
+    }
+
+    [Fact]
+    public void EffectiveStandupCost_AppliesOneMpExceptionOnlyOnFirstAttempt()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50)); // walk 1 MP
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.SetProne();
+
+        // Act & Assert
+        sut.EffectiveStandupCost.ShouldBe(1, "first standup attempt with minimum movement costs 1 MP");
+        sut.RegisterStandupAttempt(MovementType.Walk);
+        sut.EffectiveStandupCost.ShouldBe(2, "subsequent standup attempts cost the full 2 MP even with minimum movement");
+    }
+
     [Fact]
     public void RegisterStandupAttempt_AfterRealMultiHexMove_AddsStandupCostOnTopOfMoveCost()
     {
