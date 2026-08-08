@@ -535,7 +535,8 @@ public class Mech : Unit
         if (destroyedLegs >= 2) return false;
 
         // Check if the Mech has at least one movement point available
-        if (GetMovementPoints(MovementType.Walk) < StandupCost && !IsMinimumMovement) return false;
+        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < StandupCost && !IsMinimumMovement) 
+            return false;
 
         if (Pilot?.IsConscious == false) return false;
 
