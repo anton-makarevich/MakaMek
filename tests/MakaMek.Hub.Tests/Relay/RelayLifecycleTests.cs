@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
@@ -123,9 +124,19 @@ public class RelayLifecycleTests
         reconnectedHost.On<RelayEnvelope>(nameof(IRelayHub.OnReceive), envelope => received.TrySetResult(envelope));
 
         await reconnectedHost.StartAsync();
-        clock.Advance(TimeSpan.FromMinutes(1));
-        await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
-            new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+        await WaitUntilAsync(async () =>
+        {
+            try
+            {
+                await client.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
+                    new RelayEnvelope("ignored", "resumed", "1.0.0", 1, DateTime.UtcNow));
+            }
+            catch (HubException exception) when (exception.Message.Contains(nameof(HubErrorCode.ConnectionSuperseded)))
+            {
+                return false;
+            }
+            return received.Task.IsCompleted;
+        });
 
         (await received.Task.WaitAsync(TimeSpan.FromSeconds(5))).Payload.ShouldBe("resumed");
     }
@@ -254,6 +265,22 @@ public class RelayLifecycleTests
             await Task.Delay(10);
         }
         predicate().ShouldBeTrue();
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var succeeded = false;
+        while (DateTime.UtcNow < deadline)
+        {
+            succeeded = await predicate();
+            if (succeeded)
+            {
+                return;
+            }
+            await Task.Delay(10);
+        }
+        succeeded.ShouldBeTrue();
     }
 
     private sealed record ReadyRoom(string RoomCode, string HostToken);

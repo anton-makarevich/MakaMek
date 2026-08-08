@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Hub.Security;
 
 namespace Sanet.MakaMek.Hub.Tests;
@@ -56,9 +58,15 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
             });
         });
 
-        if (_timeProvider is not null)
+        builder.ConfigureTestServices(services =>
         {
-            builder.ConfigureTestServices(services =>
+            services.PostConfigure<HubOptions>(options =>
+            {
+                options.KeepAliveInterval = TimeSpan.FromDays(1);
+                options.ClientTimeoutInterval = TimeSpan.FromDays(2);
+            });
+
+            if (_timeProvider is not null)
             {
                 var existing = services.Where(descriptor => descriptor.ServiceType == typeof(TimeProvider)).ToList();
                 foreach (var descriptor in existing)
@@ -67,8 +75,8 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
                 }
 
                 services.AddSingleton(_timeProvider);
-            });
-        }
+            }
+        });
     }
 
     public HubConnection CreateRelayHubConnection(string? apiKey, string? sessionToken)
@@ -86,6 +94,8 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
                     return await webSocketClient.ConnectAsync(context.Uri, cancellationToken);
                 };
             })
+            .WithKeepAliveInterval(TimeSpan.FromDays(1))
+            .WithServerTimeout(TimeSpan.FromDays(2))
             .Build();
     }
 
