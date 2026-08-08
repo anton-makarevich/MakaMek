@@ -24,6 +24,15 @@ public class Mech : Unit
     private const int StandupCost = 2;
 
     public int StandupAttempts { private set; get; }
+
+    /// <summary>
+    /// The actual cost of the next standup attempt, accounting for the minimum movement exception
+    /// </summary>
+    public int EffectiveStandupCost =>
+        IsMinimumMovement 
+        && StandupAttempts == 0 
+            ? 1 
+            : StandupCost;
     public int PossibleTorsoRotation { get; }
     public bool CanFlipArms { get; }
 
@@ -534,8 +543,8 @@ public class Mech : Unit
         var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
         if (destroyedLegs >= 2) return false;
 
-        // Check if the Mech has at least one movement point available
-        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < StandupCost && !IsMinimumMovement) 
+        // Check if the Mech has at least the effective standup cost worth of movement points
+        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < EffectiveStandupCost) 
             return false;
 
         if (Pilot?.IsConscious == false) return false;
@@ -606,9 +615,8 @@ public class Mech : Unit
 
     public void RegisterStandupAttempt(MovementType? movementType = null)
     {
-        var standupCost = IsMinimumMovement && StandupAttempts == 0
-            ? 1 
-            : StandupCost;
+        // Must be read before StandupAttempts is incremented
+        var standupCost = EffectiveStandupCost;
         StandupAttempts++;
         movementType ??= MovementTaken?.MovementType;
         if (Position == null || movementType == null) return; 
