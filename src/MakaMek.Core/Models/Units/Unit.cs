@@ -33,7 +33,7 @@ public abstract class Unit : IUnit
     {
         Chassis = chassis;
         Model = model;
-        Name = name;
+        Name = name ?? "";
         Tonnage = tonnage;
         _parts = parts.ToDictionary(p => p.Location, p => p);
         // Set the Unit reference for each part
