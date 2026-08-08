@@ -520,6 +520,23 @@ public class MechTests
     }
 
     [Fact]
+    public void ApplyWeaponConfiguration_WhenArmsFlip_ShouldNotThrow()
+    {
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        var configuration = new WeaponConfiguration
+        {
+            Type = WeaponConfigurationType.ArmsFlip,
+            Value = (int)HexDirection.Top
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => sut.ApplyWeaponConfiguration(configuration));
+    }
+
+    [Fact]
     public void HasUsedTorsoTwist_WhenTorsosAlignedWithUnit_ShouldBeFalse()
     {
         // Arrange
@@ -2597,18 +2614,21 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Destroy both arms
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
-        rightArm.ApplyDamage(100, HitDirection.Front);
+        rightArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeTrue("A mech with both legs and both arms destroyed should be immobile");
@@ -2625,13 +2645,13 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(20, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(20, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Destroy one arm
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(20, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with both legs but only one arm destroyed should not be immobile");
@@ -2648,9 +2668,9 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(20, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(20, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only legs destroyed should not be immobile");
@@ -2667,9 +2687,9 @@ public class MechTests
 
         // Destroy both arms
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(20, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
-        rightArm.ApplyDamage(20, HitDirection.Front);
+        rightArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only arms destroyed should not be immobile");
@@ -2680,16 +2700,19 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy one leg, blow off another
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.BlowOff();
 
         // Destroy one arm, blow off another
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.BlowOff();
 

@@ -354,6 +354,19 @@ public class UnitTests
         // Assert
         result.ShouldBeNull();
     }
+
+    [Fact]
+    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenLocationIsNull()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Act
+        var result = unit.GetMountedComponentAtLocation<Weapon>(null, 0);
+
+        // Assert
+        result.ShouldBeNull();
+    }
     
     [Fact]
     public void DeclareWeaponAttack_ShouldThrowException_WhenNotDeployed()
@@ -1413,6 +1426,37 @@ public class UnitTests
         ammo1.RemainingShots.ShouldBe(3); // Unchanged
         ammo2.RemainingShots.ShouldBe(7); // Reduced by 1
         ammo3.RemainingShots.ShouldBe(5); // Unchanged
+    }
+
+    [Fact]
+    public void FireWeapon_ShouldNotThrow_WhenNoAmmoAvailable()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
+
+        var weaponData = new ComponentData
+        {
+            Name = ballisticWeapon.Name,
+            Type = MakaMekComponent.AC5,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => unit.FireWeapon(weaponData));
+    }
+
+    [Fact]
+    public void Deploy_WhenAlreadyDeployed_ShouldThrowException()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(position, null);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => unit.Deploy(position, null));
     }
     
     [Fact]
