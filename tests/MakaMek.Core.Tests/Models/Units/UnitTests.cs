@@ -354,6 +354,19 @@ public class UnitTests
         // Assert
         result.ShouldBeNull();
     }
+
+    [Fact]
+    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenLocationIsNull()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Act
+        var result = unit.GetMountedComponentAtLocation<Weapon>(null, 0);
+
+        // Assert
+        result.ShouldBeNull();
+    }
     
     [Fact]
     public void DeclareWeaponAttack_ShouldThrowException_WhenNotDeployed()
@@ -1413,6 +1426,37 @@ public class UnitTests
         ammo1.RemainingShots.ShouldBe(3); // Unchanged
         ammo2.RemainingShots.ShouldBe(7); // Reduced by 1
         ammo3.RemainingShots.ShouldBe(5); // Unchanged
+    }
+
+    [Fact]
+    public void FireWeapon_ShouldNotThrow_WhenNoAmmoAvailable()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
+
+        var weaponData = new ComponentData
+        {
+            Name = ballisticWeapon.Name,
+            Type = MakaMekComponent.AC5,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => unit.FireWeapon(weaponData));
+    }
+
+    [Fact]
+    public void Deploy_WhenAlreadyDeployed_ShouldThrowException()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(position, null);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => unit.Deploy(position, null));
     }
     
     [Fact]
@@ -2560,6 +2604,81 @@ public class UnitTests
         
         // Assert
         result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenUnitHasExactlyOneMovementPointAndNoMovementTaken()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 1);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenUnitHasZeroMovementPoints()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 0);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("Minimum movement requires exactly 1 MP at the beginning of the turn");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenUnitHasMultipleMovementPoints()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 2);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("Minimum movement applies only to a unit with 1 MP at the beginning of the turn");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenMovementPointsWereSpent()
+    {
+        // Arrange
+        var sut = CreateTestUnit(walkMp: 1);
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        sut.Move(new MovementPath([
+            new PathSegment(deployPosition, new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk), null);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse("A unit that spent movement points has moved and cannot claim minimum movement");
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenUnitHasOneMovementPointAndTookZeroCostMovement()
+    {
+        // Arrange - a zero-cost path (e.g. standing still marker) does not count as movement spent
+        var sut = CreateTestUnit(walkMp: 1);
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        sut.Move(MovementPath.CreateSingleSegmentPath(deployPosition), null);
+        sut.MovementPointsSpent.ShouldBe(0);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
     }
 
     [Fact]

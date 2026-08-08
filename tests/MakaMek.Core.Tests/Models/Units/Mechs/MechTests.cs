@@ -520,6 +520,26 @@ public class MechTests
     }
 
     [Fact]
+    public void ApplyWeaponConfiguration_WhenArmsFlipIsNoop_ShouldLeaveStateUnchanged()
+    {
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        var configuration = new WeaponConfiguration
+        {
+            Type = WeaponConfigurationType.ArmsFlip,
+            Value = (int)HexDirection.Top
+        };
+
+        // Act
+        sut.ApplyWeaponConfiguration(configuration);
+
+        // Assert
+        sut.Position!.Facing.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
     public void HasUsedTorsoTwist_WhenTorsosAlignedWithUnit_ShouldBeFalse()
     {
         // Arrange
@@ -1920,7 +1940,114 @@ public class MechTests
         // Assert
         canStandup.ShouldBeTrue("Mech should be able to stand up when it has minimum movement");
     }
-        
+
+    [Theory]
+    [InlineData(false, 0, 2)] // Not minimum movement, no standup attempts yet
+    [InlineData(false, 1, 2)] // Not minimum movement, standup already attempted
+    [InlineData(true, 0, 1)]  // Minimum movement, first standup gets the 1 MP exception
+    [InlineData(true, 1, 2)]  // Minimum movement, but exception applies only to the first attempt
+    public void EffectiveStandupCost_ReturnsExpectedCost(bool isMinimumMovement, int standupAttempts, int expectedCost)
+    {
+        // Arrange
+        var parts = isMinimumMovement ? CreateBasicPartsData(50) : CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.SetProne();
+
+        sut.IsMinimumMovement.ShouldBe(isMinimumMovement);
+
+        for (var i = 0; i < standupAttempts; i++)
+        {
+            sut.RegisterStandupAttempt(MovementType.Walk);
+        }
+
+        // Act
+        var cost = sut.EffectiveStandupCost;
+
+        // Assert
+        cost.ShouldBe(expectedCost);
+    }
+
+    [Fact]
+    public void EffectiveStandupCost_AppliesOneMpExceptionOnlyOnFirstAttempt()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50)); // walk 1 MP
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.SetProne();
+
+        // Act & Assert
+        sut.EffectiveStandupCost.ShouldBe(1, "first standup attempt with minimum movement costs 1 MP");
+        sut.RegisterStandupAttempt(MovementType.Walk);
+        sut.EffectiveStandupCost.ShouldBe(2, "subsequent standup attempts cost the full 2 MP even with minimum movement");
+    }
+
+    [Fact]
+    public void RegisterStandupAttempt_AfterRealMultiHexMove_AddsStandupCostOnTopOfMoveCost()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(350)); // walk 7 / run 11
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        // Real multi-hex move with non-zero segment costs (unlike a same-hex zero-cost segment)
+        mech.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]),
+                new PathSegment(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(2, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }])
+            ], MovementType.Run), null);
+
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Remaining walk MP after the move");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(7, "Remaining run MP after the move");
+
+        // Act
+        mech.RegisterStandupAttempt(MovementType.Run);
+
+        // Assert — standup cost (2) is added on top of the move cost (4)
+        mech.MovementPointsSpent.ShouldBe(6, "Combined cost: 4 move + 2 standup");
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(1, "7 - 4 - 2");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(5, "11 - 4 - 2");
+        mech.MovementTaken!.TotalCost.ShouldBe(6);
+        mech.MovementTaken.Segments[^1].Costs.OfType<StandUpAttemptMovementCost>()
+            .Single().Value.ShouldBe(2, "Standup should always cost its full 2 MP");
+    }
+
+    [Fact]
+    public void RegisterStandupAttempt_AfterRunMove_WithLowRemainingWalkMp_ChargesFullStandupCost()
+    {
+        // Reproduces the ticket scenario: mech runs into water (cost 6), leaving only 1 walk MP
+        // but still 5 run MP. The standup cost must not be capped by the low remaining walk MP.
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(350)); // walk 7 / run 11
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        var start = mech.Position!;
+
+        mech.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]),
+                new PathSegment(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(2, 0), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }])
+            ], MovementType.Run), null);
+
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Low remaining walk MP after running into water");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(5, "Run MP remaining is still high");
+
+        // Act
+        mech.RegisterStandupAttempt(MovementType.Run);
+
+        // Assert — the full 2 MP standup cost must be deducted from the run pool
+        mech.MovementPointsSpent.ShouldBe(8, "Combined cost: 6 move + 2 standup");
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(0, "7 - 6 - 2");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(3, "11 - 6 - 2");
+        mech.MovementTaken!.TotalCost.ShouldBe(8);
+        mech.MovementTaken.Segments[^1].Costs.OfType<StandUpAttemptMovementCost>()
+            .Single().Value.ShouldBe(2, "Standup should always cost its full 2 MP");
+    }
 
     [Fact]
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
@@ -2494,18 +2621,21 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Destroy both arms
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
-        rightArm.ApplyDamage(100, HitDirection.Front);
+        rightArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeTrue("A mech with both legs and both arms destroyed should be immobile");
@@ -2522,13 +2652,13 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(20, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(20, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Destroy one arm
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(20, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with both legs but only one arm destroyed should not be immobile");
@@ -2545,9 +2675,9 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(20, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
-        rightLeg.ApplyDamage(20, HitDirection.Front);
+        rightLeg.ApplyDamage(33, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only legs destroyed should not be immobile");
@@ -2564,9 +2694,9 @@ public class MechTests
 
         // Destroy both arms
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(20, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
-        rightArm.ApplyDamage(20, HitDirection.Front);
+        rightArm.ApplyDamage(23, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only arms destroyed should not be immobile");
@@ -2577,16 +2707,19 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy one leg, blow off another
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(33, HitDirection.Front);
         var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.BlowOff();
 
         // Destroy one arm, blow off another
         var leftArm = sut.Parts[PartLocation.LeftArm];
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(23, HitDirection.Front);
         var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.BlowOff();
 
@@ -2776,6 +2909,33 @@ public class MechTests
         
         // Assert
         result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_WhenOneMpRemainsAfterMoving()
+    {
+        // The minimum movement exception applies only to a mech with 1 MP available
+        // at the BEGINNING of its turn. A mech that had more MP but spent most of them
+        // (e.g. ran into water and fell) must not qualify for it.
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(100)); // walk 2
+        sut.SetProne();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        var start = sut.Position!;
+        sut.Move(new MovementPath(
+            [
+                new PathSegment(start, new HexPosition(new HexCoordinates(2, 1), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            ], MovementType.Walk), null);
+
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Only 1 MP remains after the move");
+
+        // Act
+        var result = sut.IsMinimumMovement;
+
+        // Assert
+        result.ShouldBeFalse(
+            "Minimum movement must not apply to a mech that merely has 1 MP left after spending its movement");
     }
 
     [Fact]

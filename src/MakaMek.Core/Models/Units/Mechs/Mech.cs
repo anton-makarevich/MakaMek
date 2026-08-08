@@ -24,6 +24,15 @@ public class Mech : Unit
     private const int StandupCost = 2;
 
     public int StandupAttempts { private set; get; }
+
+    /// <summary>
+    /// The actual cost of the next standup attempt, accounting for the minimum movement exception
+    /// </summary>
+    public int EffectiveStandupCost =>
+        IsMinimumMovement 
+        && StandupAttempts == 0 
+            ? 1 
+            : StandupCost;
     public int PossibleTorsoRotation { get; }
     public bool CanFlipArms { get; }
 
@@ -492,18 +501,7 @@ public class Mech : Unit
     }
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
-
-    public override bool IsMinimumMovement
-    {
-        get
-        {
-            if (IsProne 
-                && GetMovementPoints(MovementType.Walk) == 1 
-                && StandupAttempts == 0) return true;
-            return false;
-        }
-    }
-
+    
     public bool CanJump
     {
         get
@@ -515,9 +513,7 @@ public class Mech : Unit
             if (StandupAttempts > 0) return false;
 
             // Cannot jump if no functional jump jets are available
-            if (GetMovementPoints(MovementType.Jump) < 1) return false;
-
-            return true;
+            return GetMovementPoints(MovementType.Jump) >= 1;
         }
     }
     
@@ -547,8 +543,9 @@ public class Mech : Unit
         var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
         if (destroyedLegs >= 2) return false;
 
-        // Check if the Mech has at least one movement point available
-        if (GetMovementPoints(MovementType.Walk) < StandupCost && !IsMinimumMovement) return false;
+        // Check if the Mech has at least the effective standup cost worth of movement points
+        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < EffectiveStandupCost) 
+            return false;
 
         if (Pilot?.IsConscious == false) return false;
 
@@ -618,12 +615,13 @@ public class Mech : Unit
 
     public void RegisterStandupAttempt(MovementType? movementType = null)
     {
+        // Must be read before StandupAttempts is incremented
+        var standupCost = EffectiveStandupCost;
         StandupAttempts++;
         movementType ??= MovementTaken?.MovementType;
         if (Position == null || movementType == null) return; 
         MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
-        var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
-        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = pointsToSpend });
+        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = standupCost });
     }
 
     public void ApplyFall(MechFallCommand fallCommand)

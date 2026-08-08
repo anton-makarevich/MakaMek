@@ -23,7 +23,6 @@ public abstract class Unit : IUnit
     protected readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
-    private string? _customName;
 
     public Hex? Hex { get; private set; }
 
@@ -34,7 +33,7 @@ public abstract class Unit : IUnit
     {
         Chassis = chassis;
         Model = model;
-        _customName = name;
+        Name = name ?? "";
         Tonnage = tonnage;
         _parts = parts.ToDictionary(p => p.Location, p => p);
         // Set the Unit reference for each part
@@ -53,11 +52,13 @@ public abstract class Unit : IUnit
 
     public string Chassis { get; }
     public string Model { get; }
+
     public string Name
     {
-        get => !string.IsNullOrWhiteSpace(_customName) ? _customName : $"{Chassis} {Model}";
-        set => _customName = value;
+        get => !string.IsNullOrWhiteSpace(field) ? field : $"{Chassis} {Model}";
+        set;
     }
+
     public int Tonnage { get; }
 
     public IPlayer? Owner { get; internal set; }
@@ -239,10 +240,12 @@ public abstract class Unit : IUnit
     public abstract bool CanMoveBackward(MovementType type);
 
     /// <summary>
-    /// Determines if the unit is in a minimum movement situation (1 MP available)
+    /// Determines if the unit is in a minimum movement situation (1 MP available at the beginning  of the turn)
     /// </summary>
-    public virtual bool IsMinimumMovement => false;
-
+    public virtual bool IsMinimumMovement =>
+        ModifiedMovement == 1
+        && (MovementTaken == null || MovementTaken.TotalCost == 0);
+    
     // Location and facing
     public virtual HexPosition? Position { get; protected set; }
     public virtual HexDirection? Facing => Position?.Facing;
