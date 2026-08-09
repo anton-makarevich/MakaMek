@@ -60,6 +60,7 @@ public class StartNewGameViewModelTests
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
     private readonly IFileService _fileService = Substitute.For<IFileService>();
+    private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
@@ -120,7 +121,8 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -843,6 +845,7 @@ public class StartNewGameViewModelTests
 
         sut.CopyRoomCodeCommand.CanExecute(null).ShouldBeTrue();
         Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+        await _clipboardService.Received(1).SetTextAsync("ABCDEF");
     }
 
     private StartNewGameViewModel CreateSut(
@@ -861,7 +864,8 @@ public class StartNewGameViewModelTests
         _botManager,
         _vmLogger,
         _localizationService,
-        _mechFactory);
+        _mechFactory,
+        _clipboardService);
 
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
@@ -1308,7 +1312,8 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         sut.AttachHandlers();
 
         // Assert
@@ -1344,7 +1349,8 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         sut.AttachHandlers();
 
         // Act
@@ -1375,7 +1381,8 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -1404,7 +1411,8 @@ public class StartNewGameViewModelTests
             _botManager,
             _vmLogger,
             _localizationService,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -1560,7 +1568,8 @@ public class StartNewGameViewModelTests
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
-            _vmLogger, _localizationService, _mechFactory);
+            _vmLogger, _localizationService, _mechFactory,
+            _clipboardService);
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -1585,7 +1594,8 @@ public class StartNewGameViewModelTests
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
-            _vmLogger, _localizationService, _mechFactory);
+            _vmLogger, _localizationService, _mechFactory,
+            _clipboardService);
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -1610,7 +1620,8 @@ public class StartNewGameViewModelTests
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
-            _vmLogger, _localizationService, _mechFactory);
+            _vmLogger, _localizationService, _mechFactory,
+            _clipboardService);
 
         sut.AttachHandlers();
         sut.AttachHandlers();

@@ -88,6 +88,7 @@ public static class CoreServices
                 sp.GetRequiredService<ILogger<EmbeddedMapResourceProvider>>(),
                 new AssemblyResourceStreamProvider("json", typeof(App).Assembly)));
         services.AddSingleton<IFileService, AvaloniaFileService>();
+        services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
 
         services.AddSingleton<IPdfExportService, PdfExportService>();
 
