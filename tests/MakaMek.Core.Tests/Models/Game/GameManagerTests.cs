@@ -95,11 +95,14 @@ public class GameManagerTests : IDisposable
         IRelayRoomClient relayRoomClient,
         IRelayPublisherFactory relayPublisherFactory,
         INetworkHostService? networkHostService = null,
-        ILogger<GameManager>? logger = null)
+        ILogger<GameManager>? logger = null,
+        string baseUrl = "http://hub.local",
+        string apiKey = "api-key")
     {
         var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
-        hubConfigurationProvider.ActiveBaseUrl.Returns("http://hub.local");
-        hubConfigurationProvider.ActiveApiKey.Returns("api-key");
+        hubConfigurationProvider.EnsureLoadedAsync().Returns(Task.CompletedTask);
+        hubConfigurationProvider.ActiveBaseUrl.Returns(baseUrl);
+        hubConfigurationProvider.ActiveApiKey.Returns(apiKey);
         return new GameManager(
             _commandPublisher,
             _gameFactory,
@@ -421,6 +424,22 @@ public class GameManagerTests : IDisposable
         sut.RoomCode.ShouldBeNull();
         sut.IsOnlineServerRunning.ShouldBeFalse();
         _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_WhenActiveBaseUrlIsBlank_SetsConfigurationError()
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IRelayPublisherFactory>();
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, baseUrl: "   ");
+
+        await sut.InitializeLobbyOnline();
+
+        sut.OnlineError.ShouldNotBeNull();
+        sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        sut.RoomCode.ShouldBeNull();
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        await relayRoomClient.DidNotReceive().CreateAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

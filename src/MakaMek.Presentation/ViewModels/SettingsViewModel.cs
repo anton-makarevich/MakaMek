@@ -4,7 +4,6 @@ using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -22,6 +21,7 @@ public class SettingsViewModel : BaseViewModel
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly ILogger<SettingsViewModel> _logger;
     private HubEntryViewModel? _selectedHub;
+    private Task? _selectHubTask;
 
     public SettingsViewModel(
         IFileCachingService fileCachingService,
@@ -65,10 +65,35 @@ public class SettingsViewModel : BaseViewModel
         {
             if (_selectedHub == value) return;
             _selectedHub = value;
-            NotifyPropertyChanged(nameof(SelectedHub));
+            NotifyPropertyChanged();
             if (value is null) return;
-            _hubConfigurationProvider.SelectHubAsync(value.Id).SafeFireAndForget();
+            EnqueueSelect(value.Id);
         }
+    }
+
+    private void EnqueueSelect(string id)
+    {
+        var previous = _selectHubTask;
+        var task = SelectHubChainedAsync(previous, id);
+        _selectHubTask = task;
+        task.SafeFireAndForget();
+    }
+
+    private async Task SelectHubChainedAsync(Task? previous, string id)
+    {
+        if (previous != null)
+        {
+            try
+            {
+                await previous;
+            }
+            catch
+            {
+                // A failed earlier selection must not block or poison later selections.
+            }
+        }
+
+        await _hubConfigurationProvider.SelectHubAsync(id);
     }
 
     // Localized string properties
@@ -110,13 +135,14 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task OnHubSaved(HubEntryViewModel entry)
     {
+        var pending = entry.PendingHub;
         if (entry.IsNew)
         {
-            await _hubConfigurationProvider.AddHubAsync(entry.Hub);
+            await _hubConfigurationProvider.AddHubAsync(pending);
         }
         else
         {
-            await _hubConfigurationProvider.UpdateHubAsync(entry.Id, entry.Name, entry.BaseUrl, entry.ApiKey);
+            await _hubConfigurationProvider.UpdateHubAsync(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
         }
 
         await LoadHubsAsync();

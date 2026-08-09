@@ -80,6 +80,50 @@ public class RelayHubConfigurationProviderTests
         await _cachingService.Received(1).SaveToCache(CacheKey, Arg.Any<byte[]>());
     }
 
+    [Fact]
+    public async Task AddHub_WithReservedDemoId_ThrowsAndKeepsDemoHubUnchanged()
+    {
+        var sut = CreateSut();
+        var demoId = sut.Hubs.Single(h => h.IsBuiltIn).Id;
+
+        await Should.ThrowAsync<ArgumentException>(
+            () => sut.AddHubAsync(new HubConfigData(demoId, "Hacked", "http://evil.example", "evil-key", IsBuiltIn: false)));
+
+        var demo = sut.Hubs.Single(h => h.IsBuiltIn);
+        demo.Id.ShouldBe(demoId);
+        demo.BaseUrl.ShouldBe("http://demo.local");
+        demo.Name.ShouldBe("Demo Hub");
+        demo.IsBuiltIn.ShouldBeTrue();
+        await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public async Task AddHub_WithBlankId_Throws()
+    {
+        var sut = CreateSut();
+
+        await Should.ThrowAsync<ArgumentException>(
+            () => sut.AddHubAsync(new HubConfigData("", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)));
+
+        sut.Hubs.ShouldHaveSingleItem();
+        await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public async Task AddHub_WithDuplicateUserId_ThrowsAndKeepsExistingEntry()
+    {
+        var sut = CreateSut();
+        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+
+        await Should.ThrowAsync<ArgumentException>(
+            () => sut.AddHubAsync(new HubConfigData("custom-1", "Other Hub", "http://other.example", "other-key", IsBuiltIn: false)));
+
+        var existing = sut.Hubs.Single(h => h.Id == "custom-1");
+        existing.Name.ShouldBe("My Hub");
+        existing.BaseUrl.ShouldBe("http://my-hub.example");
+        existing.ApiKey.ShouldBe("my-key");
+    }
+
     // ---------- Select ----------
 
     [Fact]

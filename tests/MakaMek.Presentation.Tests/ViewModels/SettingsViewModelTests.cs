@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -392,6 +393,42 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SelectedHub_ConsecutiveSelections_PersistInSelectionOrder_EvenIfFirstCompletesLate()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        var firstSelection = new TaskCompletionSource();
+        _hubConfigurationProvider.SelectHubAsync("custom-1").Returns(firstSelection.Task);
+        _hubConfigurationProvider.SelectHubAsync("demo").Returns(Task.CompletedTask);
+
+        // Act - select custom-1 first, then demo while the first write is still in flight
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHubAsync)));
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
+
+        // Assert - the second selection must wait for the first one to finish
+        await _hubConfigurationProvider.Received(1).SelectHubAsync("custom-1");
+        await _hubConfigurationProvider.DidNotReceive().SelectHubAsync("demo");
+
+        // Complete the first selection; only then is the second issued
+        firstSelection.SetResult();
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls().Any(c =>
+            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHubAsync)
+            && c.GetArguments()[0] as string == "demo"));
+
+        Received.InOrder(() =>
+        {
+            _hubConfigurationProvider.SelectHubAsync("custom-1");
+            _hubConfigurationProvider.SelectHubAsync("demo");
+        });
+    }
+
+    [Fact]
     public async Task AddHubCommand_WhenExecuted_ShouldAddNewEditingEntry()
     {
         // Arrange
@@ -500,6 +537,62 @@ public class SettingsViewModelTests
         entry.EditableName.ShouldBe("My Hub");
         entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
         await _hubConfigurationProvider.DidNotReceive().UpdateHubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AddHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
+    {
+        // Arrange
+        _hubConfigurationProvider.AddHubAsync(Arg.Any<HubConfigData>())
+            .ThrowsAsync(new Exception("persist failed"));
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+        entry.EditableName = "My Hub";
+        entry.EditableBaseUrl = "http://my-hub.example";
+        entry.EditableApiKey = "secret";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The editor stays open with the edited values so the save can be retried
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableName.ShouldBe("My Hub");
+        entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
+        entry.EditableApiKey.ShouldBe("secret");
+        // The hub itself is not committed
+        entry.Hub.Name.ShouldBeEmpty();
+        entry.Hub.BaseUrl.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task EditExistingHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        _hubConfigurationProvider.UpdateHubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .ThrowsAsync(new Exception("persist failed"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        var entry = _sut.Hubs.First(h => h.Id == "custom-1");
+        await ((IAsyncCommand)entry.StartEditingCommand).ExecuteAsync();
+        entry.EditableName = "Renamed";
+        entry.EditableBaseUrl = "http://new.example";
+        entry.EditableApiKey = "new-key";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The editor stays open with the edited values so the save can be retried
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableName.ShouldBe("Renamed");
+        entry.EditableBaseUrl.ShouldBe("http://new.example");
+        entry.EditableApiKey.ShouldBe("new-key");
+        // The committed hub still holds the previous values
+        entry.Name.ShouldBe("My Hub");
+        entry.BaseUrl.ShouldBe("http://my-hub.example");
+        entry.ApiKey.ShouldBe("secret");
     }
 
     [Fact]

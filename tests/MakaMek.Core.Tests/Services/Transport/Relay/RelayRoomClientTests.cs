@@ -165,6 +165,39 @@ public class RelayRoomClientTests
     }
 
     [Fact]
+    public async Task ReadyAsync_UsesConfigurationValueActiveAtCallTime()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.ActiveBaseUrl.Returns("https://first.example");
+        provider.ActiveApiKey.Returns("first-key");
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = """{ "success": true, "error": null }""";
+
+        // Act - first call uses the initial configuration
+        var firstResult = await client.ReadyAsync("ABCDEF", SessionToken);
+
+        // Assert
+        firstResult.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://first.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("first-key");
+
+        // Update the configuration to different successive values
+        provider.ActiveBaseUrl.Returns("https://second.example");
+        provider.ActiveApiKey.Returns("second-key");
+
+        // Act - second call must use the updated configuration
+        var secondResult = await client.ReadyAsync("ABCDEF", SessionToken);
+
+        // Assert
+        secondResult.Success.ShouldBeTrue();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://second.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("second-key");
+    }
+
+    [Fact]
     public async Task RemoveMemberAsync_Success_SendsDeleteWithHeadersAndDeviceSessionId()
     {
         var deviceSessionId = Guid.Parse("33333333-3333-3333-3333-333333333333");

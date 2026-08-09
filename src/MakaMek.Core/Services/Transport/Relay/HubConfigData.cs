@@ -13,4 +13,11 @@ public sealed record HubConfigData(
     string Name,
     string BaseUrl,
     string ApiKey,
-    bool IsBuiltIn);
+    bool IsBuiltIn)
+{
+    /// <summary>
+    /// Textual representation that never exposes the <see cref="ApiKey"/> value.
+    /// </summary>
+    public override string ToString() =>
+        $"HubConfigData {{ Id = {Id}, Name = {Name}, BaseUrl = {BaseUrl}, ApiKey = ********, IsBuiltIn = {IsBuiltIn} }}";
+}

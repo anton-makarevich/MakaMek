@@ -40,6 +40,16 @@ public class HubEntryViewModel : BindableBase
     public HubConfigData Hub => _hub;
 
     /// <summary>
+    /// The hub configuration produced by the current edits, before it is committed.
+    /// </summary>
+    public HubConfigData PendingHub => _hub with
+    {
+        Name = string.IsNullOrWhiteSpace(EditableName) ? Name : EditableName.Trim(),
+        BaseUrl = EditableBaseUrl.Trim(),
+        ApiKey = EditableApiKey
+    };
+
+    /// <summary>
     /// Marks an entry that has not yet been persisted to the provider.
     /// </summary>
     public bool IsNew { get; }
@@ -96,22 +106,19 @@ public class HubEntryViewModel : BindableBase
     {
         if (string.IsNullOrWhiteSpace(EditableBaseUrl)) return;
 
-        _hub = _hub with
+        // Persist first; only commit the saved state and close the editor on success,
+        // so a failed write keeps the edited values available for retry.
+        if (_onSaved != null)
         {
-            Name = string.IsNullOrWhiteSpace(EditableName) ? Name : EditableName.Trim(),
-            BaseUrl = EditableBaseUrl.Trim(),
-            ApiKey = EditableApiKey
-        };
+            await _onSaved(this);
+        }
+
+        _hub = PendingHub;
         IsEditing = false;
 
         NotifyPropertyChanged(nameof(Hub));
         NotifyPropertyChanged(nameof(Name));
         NotifyPropertyChanged(nameof(BaseUrl));
-
-        if (_onSaved != null)
-        {
-            await _onSaved(this);
-        }
     }
 
     private Task Cancel()

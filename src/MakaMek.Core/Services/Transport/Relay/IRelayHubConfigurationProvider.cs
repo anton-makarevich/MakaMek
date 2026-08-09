@@ -5,6 +5,11 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 /// Seeds a built-in Demo hub from <see cref="RelayClientOptions"/> and persists
 /// user-defined hubs together with the active selection.
 /// </summary>
+/// <remarks>
+/// Consumers must await <see cref="EnsureLoadedAsync"/> before reading
+/// <see cref="ActiveHubId"/>, <see cref="ActiveBaseUrl"/>, <see cref="ActiveApiKey"/>,
+/// or <see cref="Hubs"/> so persisted configuration is reflected in those values.
+/// </remarks>
 public interface IRelayHubConfigurationProvider
 {
     /// <summary>
@@ -35,6 +40,7 @@ public interface IRelayHubConfigurationProvider
     /// <summary>
     /// Adds a user-defined hub. The Demo hub is always seeded separately.
     /// </summary>
+    /// <exception cref="ArgumentException">When <paramref name="hub"/>.Id is blank or already in use.</exception>
     Task AddHubAsync(HubConfigData hub);
 
     /// <summary>

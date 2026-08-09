@@ -101,9 +101,27 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         await EnsureLoadedAsync();
         lock (_gate)
         {
+            if (hub.Id == DemoHubId || _hubs.ContainsKey(hub.Id))
+            {
+                throw new ArgumentException($"Hub '{hub.Id}' already exists.", nameof(hub));
+            }
+
             _hubs[hub.Id] = hub with { IsBuiltIn = false };
         }
-        await PersistAsync();
+
+        try
+        {
+            await PersistAsync();
+        }
+        catch
+        {
+            // Roll back the in-memory add so a failed save can be retried by the caller.
+            lock (_gate)
+            {
+                _hubs.Remove(hub.Id);
+            }
+            throw;
+        }
     }
 
     public async Task UpdateHubAsync(string id, string name, string baseUrl, string apiKey)
@@ -230,6 +248,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to save relay hub configurations to cache");
+            throw;
         }
     }
 

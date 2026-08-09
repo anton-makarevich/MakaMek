@@ -47,6 +47,7 @@ public class GameConnectorTests : IDisposable
     private static IRelayHubConfigurationProvider CreateHubConfigurationProvider(string baseUrl = "http://hub.local", string apiKey = "api-key")
     {
         var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.EnsureLoadedAsync().Returns(Task.CompletedTask);
         provider.ActiveBaseUrl.Returns(baseUrl);
         provider.ActiveApiKey.Returns(apiKey);
         return provider;
@@ -183,6 +184,28 @@ public class GameConnectorTests : IDisposable
         sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
         sut.IsConnected.ShouldBeFalse();
         _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_WhenActiveBaseUrlIsBlank_SetsConfigurationError()
+    {
+        // Arrange
+        var sut = new GameConnector(
+            _commandPublisher,
+            _transportFactory,
+            _logger,
+            _relayRoomClient,
+            _relayPublisherFactory,
+            CreateHubConfigurationProvider(baseUrl: "   "));
+
+        // Act
+        await sut.JoinOnline("ABCDEF", sessionToken: null);
+
+        // Assert
+        sut.OnlineError.ShouldNotBeNull();
+        sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        sut.IsConnected.ShouldBeFalse();
+        await _relayRoomClient.DidNotReceive().JoinAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
