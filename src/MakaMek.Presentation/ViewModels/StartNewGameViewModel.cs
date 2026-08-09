@@ -316,11 +316,43 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets or sets whether the last room-code copy attempt succeeded. Null before the first attempt.
+    /// </summary>
+    public bool? RoomCodeCopySucceeded
+    {
+        get;
+        private set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(CopyRoomCodeStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the localized status text for the last room-code copy attempt. Empty before the first attempt.
+    /// </summary>
+    public string CopyRoomCodeStatusText
+    {
+        get
+        {
+            return RoomCodeCopySucceeded switch
+            {
+                true => _localizationService.GetString("Network_CopyRoomCode_Success"),
+                false => _localizationService.GetString("Network_CopyRoomCode_Failed"),
+                _ => string.Empty
+            };
+        }
+    }
+
     private void ClearHostingState()
     {
         IsHosting = false;
         RoomCode = null;
         HostingError = null;
+        RoomCodeCopySucceeded = null;
     }
 
     /// <summary>
@@ -367,7 +399,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private async Task CopyRoomCode()
     {
         if (RoomCode == null) return;
-        await _clipboardService.SetTextAsync(RoomCode);
+        RoomCodeCopySucceeded = await _clipboardService.SetText(RoomCode);
     }
 
     public bool IsNetworkSectionExpanded

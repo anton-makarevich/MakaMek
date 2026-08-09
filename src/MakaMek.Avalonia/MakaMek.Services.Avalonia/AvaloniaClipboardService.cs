@@ -1,12 +1,20 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Input.Platform;
+using Avalonia.Input;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Services.Avalonia;
 
 public class AvaloniaClipboardService : IClipboardService
 {
+    private readonly ILogger<AvaloniaClipboardService> _logger;
+
+    public AvaloniaClipboardService(ILogger<AvaloniaClipboardService> logger)
+    {
+        _logger = logger;
+    }
+
     private TopLevel? GetTopLevel()
     {
         return Application.Current?.ApplicationLifetime switch
@@ -17,18 +25,22 @@ public class AvaloniaClipboardService : IClipboardService
         };
     }
 
-    public async Task SetTextAsync(string text)
+    public async Task<bool> SetText(string text)
     {
         var topLevel = GetTopLevel();
-        if (topLevel?.Clipboard is null) return;
+        if (topLevel?.Clipboard is null) return false;
 
         try
         {
-            await topLevel.Clipboard.SetTextAsync(text);
+            using var transfer = new DataTransfer();
+            transfer.Add(DataTransferItem.CreateText(text));
+            await topLevel.Clipboard.SetDataAsync(transfer);
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore clipboard failures (unsupported platform, permission denied).
+            _logger.LogWarning(ex, "Failed to copy text to the clipboard");
+            return false;
         }
     }
 }

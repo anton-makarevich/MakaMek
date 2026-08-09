@@ -845,7 +845,128 @@ public class StartNewGameViewModelTests
 
         sut.CopyRoomCodeCommand.CanExecute(null).ShouldBeTrue();
         Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
-        await _clipboardService.Received(1).SetTextAsync("ABCDEF");
+        await _clipboardService.Received(1).SetText("ABCDEF");
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenCopySucceeds_SetsRoomCodeCopySucceeded()
+    {
+        _clipboardService.SetText("ABCDEF").Returns(true);
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+
+        sut.RoomCodeCopySucceeded.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenCopyFails_SetsRoomCodeCopySucceeded()
+    {
+        _clipboardService.SetText("ABCDEF").Returns(false);
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+
+        sut.RoomCodeCopySucceeded.ShouldBe(false);
+    }
+
+    [Fact]
+    public void RoomCodeCopySucceeded_WhenNoCopyAttempted_IsNullAndStatusTextEmpty()
+    {
+        _sut.RoomCodeCopySucceeded.ShouldBeNull();
+        _sut.CopyRoomCodeStatusText.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenCopySucceeds_StatusTextShowsSuccess()
+    {
+        _localizationService.GetString("Network_CopyRoomCode_Success").Returns("Copied to clipboard");
+        _clipboardService.SetText("ABCDEF").Returns(true);
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+
+        sut.CopyRoomCodeStatusText.ShouldBe("Copied to clipboard");
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenCopyFails_StatusTextShowsFailure()
+    {
+        _localizationService.GetString("Network_CopyRoomCode_Failed").Returns("Copy failed");
+        _clipboardService.SetText("ABCDEF").Returns(false);
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+
+        sut.CopyRoomCodeStatusText.ShouldBe("Copy failed");
+    }
+
+    [Fact]
+    public async Task SwitchingHostMode_ResetsRoomCodeCopySucceeded()
+    {
+        _clipboardService.SetText("ABCDEF").Returns(true);
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+        sut.RoomCodeCopySucceeded.ShouldBe(true);
+
+        sut.IsLanMode = true;
+
+        sut.RoomCodeCopySucceeded.ShouldBeNull();
+        sut.CopyRoomCodeStatusText.ShouldBeEmpty();
     }
 
     private StartNewGameViewModel CreateSut(
