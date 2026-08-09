@@ -298,9 +298,8 @@ public class SettingsViewModelTests
 
     private void SetupProviderHubs(IReadOnlyList<HubConfigData> hubs, string activeHubId)
     {
-        _hubConfigurationProvider.EnsureLoadedAsync().Returns(Task.CompletedTask);
-        _hubConfigurationProvider.Hubs.Returns(hubs);
-        _hubConfigurationProvider.ActiveHubId.Returns(activeHubId);
+        _hubConfigurationProvider.GetHubsAsync().Returns(Task.FromResult(hubs));
+        _hubConfigurationProvider.GetActiveHubIdAsync().Returns(Task.FromResult(activeHubId));
     }
 
     [Fact]

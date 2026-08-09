@@ -158,10 +158,11 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task LoadHubsAsync()
     {
-        await _hubConfigurationProvider.EnsureLoadedAsync();
+        var hubs = await _hubConfigurationProvider.GetHubsAsync();
+        var activeHubId = await _hubConfigurationProvider.GetActiveHubIdAsync();
 
         Hubs.Clear();
-        foreach (var hub in _hubConfigurationProvider.Hubs)
+        foreach (var hub in hubs)
         {
             Hubs.Add(new HubEntryViewModel(
                 hub,
@@ -170,7 +171,7 @@ public class SettingsViewModel : BaseViewModel
                 onCancelled: OnHubEditCancelled));
         }
 
-        _selectedHub = Hubs.FirstOrDefault(h => h.Id == _hubConfigurationProvider.ActiveHubId);
+        _selectedHub = Hubs.FirstOrDefault(h => h.Id == activeHubId);
         NotifyPropertyChanged(nameof(SelectedHub));
     }
 

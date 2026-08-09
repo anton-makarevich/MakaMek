@@ -105,6 +105,27 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
+    public async Task<string> GetActiveHubIdAsync()
+    {
+        await EnsureLoadedAsync();
+        lock (_gate)
+        {
+            return _activeHubId;
+        }
+    }
+
+    public async Task<IReadOnlyList<HubConfigData>> GetHubsAsync()
+    {
+        await EnsureLoadedAsync();
+        lock (_gate)
+        {
+            return _hubs.Values
+                .OrderByDescending(h => h.IsBuiltIn)
+                .ThenBy(h => h.Name, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
+
     public async Task AddHubAsync(HubConfigData hub)
     {
         if (string.IsNullOrWhiteSpace(hub.Id))
