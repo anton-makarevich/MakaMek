@@ -1,15 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
-             x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
-             x:DataType="viewModels:JoinGameViewModel">
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
+              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
+              x:DataType="viewModels:JoinGameViewModel">
 
   <StackPanel Classes="verticalSpaced">
-    <StackPanel Classes="formGroup">
+    <StackPanel Classes="formGroup" IsVisible="{Binding !IsConnected}">
       <TextBlock Text="{extensions:Localize 'Join_Mode'}" Classes="label"/>
       <StackPanel Orientation="Horizontal" Spacing="12">
         <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
@@ -24,11 +24,13 @@
     <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
       <TextBlock Text="{extensions:Localize 'ConnectFragment_ServerAddress'}" Classes="label"/>
       <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
-               PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"/>
+               PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"
+               IsVisible="{Binding !IsConnected}"/>
       <Button Content="{extensions:Localize 'ConnectFragment_Connect'}"
               Command="{Binding ConnectCommand}"
               IsEnabled="{Binding CanConnect}"
-              HorizontalAlignment="Stretch"/>
+              HorizontalAlignment="Stretch"
+              IsVisible="{Binding !IsConnected}"/>
       <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
                  Classes="bodySmall"
                  IsVisible="{Binding IsConnected}"
@@ -39,17 +41,23 @@
       <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
       <TextBox Text="{Binding RoomCode, Mode=TwoWay}"
                MaxLength="6"
-               PlaceholderText="{extensions:Localize 'Join_EnterRoomCode'}"/>
+               PlaceholderText="{extensions:Localize 'Join_EnterRoomCode'}"
+               IsVisible="{Binding !IsConnected}"/>
       <Button Content="{extensions:Localize 'Join_JoinButton'}"
               Command="{Binding JoinRoomCommand}"
               IsEnabled="{Binding CanJoin}"
-              HorizontalAlignment="Stretch"/>
+              HorizontalAlignment="Stretch"
+              IsVisible="{Binding !IsConnected}"/>
       <TextBlock Text="{Binding JoinStatusText}"
                  IsVisible="{Binding JoinStatusText, Converter={StaticResource StringNotEmptyToBoolConverter}}"
                  Classes="bodySmall"
                  Foreground="{StaticResource ErrorBrush}"/>
     </StackPanel>
+
+    <Border Classes="card" IsVisible="{Binding IsConnected}">
+      <SelectableTextBlock Text="{Binding JoinedRoomInfoText}"
+                          Classes="body"/>
+    </Border>
   </StackPanel>
 
 </UserControl>
-

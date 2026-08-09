@@ -91,6 +91,8 @@ public class JoinGameViewModelTests
         _localizationService.GetString("Join_RateLimited").Returns("Rate limited");
         _localizationService.GetString("Join_ConnectionFailed").Returns("Connection failed");
         _localizationService.GetString("Join_ConfigurationError").Returns("Configuration error");
+        _localizationService.GetString("Join_RoomJoinedInfo").Returns("Room: {0}");
+        _localizationService.GetString("Join_ServerConnectedInfo").Returns("Server: {0}");
 
         _sut = CreateSut();
     }
@@ -744,9 +746,6 @@ public class JoinGameViewModelTests
         // Arrange
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
-        var player = _sut.Players.First();
-        var playerId = player.Player.Id;
-        var playerName = player.Player.Name;
         EnableOnlineJoin();
 
         _commandPublisher.ClearReceivedCalls();
@@ -784,7 +783,6 @@ public class JoinGameViewModelTests
         // Arrange - the connector reports a failed join without connecting
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
-        var player = _sut.Players.First();
         _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(code, "unused"));
@@ -866,7 +864,6 @@ public class JoinGameViewModelTests
         // Arrange
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "  abcdef  ";
-        var player = _sut.Players.First();
         _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused"));
@@ -884,7 +881,6 @@ public class JoinGameViewModelTests
         // Arrange
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
-        var player = _sut.Players.First();
         var joinTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken capturedToken = default;
         _gameConnector.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
@@ -921,7 +917,6 @@ public class JoinGameViewModelTests
         // Arrange - trigger a failed online join to set JoinError
         _sut.IsOnlineMode = true;
         _sut.RoomCode = "ABCDEF";
-        var player = _sut.Players.First();
         _gameConnector.JoinOnline("ABCDEF", null, Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         _gameConnector.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.RoomNotFound, "unused"));
@@ -1079,5 +1074,47 @@ public class JoinGameViewModelTests
         _commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinError.ShouldBeNull(); // Cancellation, not error
+    }
+
+    [Fact]
+    public void JoinedRoomInfoText_ReturnsEmpty_WhenNotConnected()
+    {
+        // Arrange
+        _sut.IsConnected.ShouldBeFalse();
+
+        // Assert
+        _sut.JoinedRoomInfoText.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void JoinedRoomInfoText_ReturnsLocalizedServerInfo_AfterLanConnect()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        var expectedText = string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), _sut.ServerAddress);
+
+        // Act
+        ConnectAndAckLobby();
+
+        // Assert
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinedRoomInfoText.ShouldBe(expectedText);
+    }
+
+    [Fact]
+    public async Task JoinedRoomInfoText_ReturnsLocalizedRoomInfo_AfterOnlineJoin()
+    {
+        // Arrange
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "ABCDEF";
+        var expectedText = string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), "ABCDEF");
+        EnableOnlineJoin();
+
+        // Act
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinedRoomInfoText.ShouldBe(expectedText);
     }
 }

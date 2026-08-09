@@ -248,6 +248,22 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the localized room info text when connected.
+    /// </summary>
+    public string JoinedRoomInfoText
+    {
+        get
+        {
+            if (!IsConnected)
+                return string.Empty;
+
+            return IsOnlineMode 
+                ? string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), RoomCode) 
+                : string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), ServerAddress);
+        }
+    }
+
     private void ClearJoinState()
     {
         IsJoining = false;
@@ -266,6 +282,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         NotifyPropertyChanged(nameof(CanConnect));
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanAddPlayer));
+        NotifyPropertyChanged(nameof(JoinedRoomInfoText));
     }
 
     private async Task JoinRoom()
