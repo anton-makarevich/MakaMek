@@ -918,6 +918,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Network_HostModeOnline", "Online")]
     [InlineData("Network_RoomCode", "Room Code")]
     [InlineData("Network_CopyRoomCode", "Copy")]
+    [InlineData("Network_CopyRoomCode_Success", "Copied to clipboard")]
+    [InlineData("Network_CopyRoomCode_Failed", "Copy failed")]
     [InlineData("Hosting_Starting", "Starting hosted game...")]
     [InlineData("Hosting_RoomReady", "Game is running — share the room code above")]
     [InlineData("Hosting_Failed", "Failed to start the hosted game.")]

@@ -85,7 +85,8 @@ public class MainMenuViewModelTests
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<StartNewGameViewModel>>(),
             _localizationService,
-            Substitute.For<IMechFactory>()
+            Substitute.For<IMechFactory>(),
+            Substitute.For<IClipboardService>()
         );
         _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns(startVm);
 

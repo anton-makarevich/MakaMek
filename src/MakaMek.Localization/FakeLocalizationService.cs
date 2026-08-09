@@ -466,6 +466,8 @@ public class FakeLocalizationService : ILocalizationService
         ["Network_HostModeOnline"] = "Online",
         ["Network_RoomCode"] = "Room Code",
         ["Network_CopyRoomCode"] = "Copy",
+        ["Network_CopyRoomCode_Success"] = "Copied to clipboard",
+        ["Network_CopyRoomCode_Failed"] = "Copy failed",
         ["Hosting_Starting"] = "Starting hosted game...",
         ["Hosting_RoomReady"] = "Game is running — share the room code above",
         ["Hosting_Failed"] = "Failed to start the hosted game.",

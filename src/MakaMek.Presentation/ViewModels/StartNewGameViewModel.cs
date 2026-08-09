@@ -34,6 +34,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
     private readonly ILocalizationService _localizationService;
+    private readonly IClipboardService _clipboardService;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
@@ -52,7 +53,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IBotManager botManager,
         ILogger<StartNewGameViewModel> logger,
         ILocalizationService localizationService,
-        IMechFactory mechFactory)
+        IMechFactory mechFactory,
+        IClipboardService clipboardService)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -64,6 +66,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         _gameManager = gameManager;
         _localizationService = localizationService;
+        _clipboardService = clipboardService;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
@@ -313,11 +316,43 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets or sets whether the last room-code copy attempt succeeded. Null before the first attempt.
+    /// </summary>
+    public bool? RoomCodeCopySucceeded
+    {
+        get;
+        private set
+        {
+            if (field == value) return; // Reject no-op when unchanged
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(CopyRoomCodeStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Gets the localized status text for the last room-code copy attempt. Empty before the first attempt.
+    /// </summary>
+    public string CopyRoomCodeStatusText
+    {
+        get
+        {
+            return RoomCodeCopySucceeded switch
+            {
+                true => _localizationService.GetString("Network_CopyRoomCode_Success"),
+                false => _localizationService.GetString("Network_CopyRoomCode_Failed"),
+                _ => string.Empty
+            };
+        }
+    }
+
     private void ClearHostingState()
     {
         IsHosting = false;
         RoomCode = null;
         HostingError = null;
+        RoomCodeCopySucceeded = null;
     }
 
     /// <summary>
@@ -361,10 +396,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         }
     }
 
-    private Task CopyRoomCode()
+    private async Task CopyRoomCode()
     {
-        // Clipboard access belongs to the platform layer; a clipboard service can be wired here.
-        return Task.CompletedTask;
+        if (RoomCode == null) return;
+        RoomCodeCopySucceeded = await _clipboardService.SetText(RoomCode);
     }
 
     public bool IsNetworkSectionExpanded
