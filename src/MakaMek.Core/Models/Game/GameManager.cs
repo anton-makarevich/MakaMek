@@ -185,7 +185,7 @@ public class GameManager : IGameManager
             var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
-            publisher = await _relayPublisherFactory.CreateAsync(
+            publisher = await _relayPublisherFactory.Create(
                 hubUrl,
                 createResult.RoomCode,
                 createResult.SessionToken,

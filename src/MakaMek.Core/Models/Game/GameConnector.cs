@@ -125,7 +125,7 @@ public class GameConnector : IGameConnector
             var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
-            publisher = await _relayPublisherFactory.CreateAsync(
+            publisher = await _relayPublisherFactory.Create(
                 hubUrl,
                 roomCode,
                 joinResult.SessionToken,

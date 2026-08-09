@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 /// </summary>
 public sealed class RelayPublisherFactory(ILoggerFactory loggerFactory) : IRelayPublisherFactory
 {
-    public async Task<RelayClientPublisher> CreateAsync(
+    public async Task<RelayClientPublisher> Create(
         string hubUrl,
         string roomCode,
         string sessionToken,
