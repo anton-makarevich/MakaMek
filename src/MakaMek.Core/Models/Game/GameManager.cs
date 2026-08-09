@@ -134,16 +134,15 @@ public class GameManager : IGameManager
         await ResetForNewGame();
 
         // Wait for persisted hub configuration before reading the active values below
-        if (_relayHubConfigurationProvider != null)
-        {
-            await _relayHubConfigurationProvider.EnsureLoadedAsync();
-        }
+        var relayOptions = _relayHubConfigurationProvider is null
+            ? null
+            : await _relayHubConfigurationProvider.GetActiveOptionsAsync();
 
         // Relay hosting requires the room client, the publisher factory, and an active hub configuration
         if (_relayRoomClient is null
             || _relayPublisherFactory is null
-            || _relayHubConfigurationProvider is null
-            || string.IsNullOrWhiteSpace(_relayHubConfigurationProvider.ActiveBaseUrl))
+            || relayOptions is null
+            || string.IsNullOrWhiteSpace(relayOptions.BaseUrl))
         {
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
@@ -183,7 +182,7 @@ public class GameManager : IGameManager
         RelayClientPublisher? publisher = null;
         try
         {
-            var baseUrl = _relayHubConfigurationProvider.ActiveBaseUrl;
+            var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
             publisher = await _relayPublisherFactory.CreateAsync(
@@ -191,7 +190,7 @@ public class GameManager : IGameManager
                 createResult.RoomCode,
                 createResult.SessionToken,
                 createResult.HostGameId.Value,
-                _relayHubConfigurationProvider.ActiveApiKey,
+                relayOptions.ApiKey,
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);

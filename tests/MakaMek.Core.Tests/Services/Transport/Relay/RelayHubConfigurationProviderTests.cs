@@ -55,6 +55,35 @@ public class RelayHubConfigurationProviderTests
     }
 
     [Fact]
+    public async Task GetActiveOptionsAsync_ReturnsActiveHubBaseUrlAndApiKey()
+    {
+        var sut = CreateSut(baseUrl: "http://env-hub.example", apiKey: "env-key");
+
+        var options = await sut.GetActiveOptionsAsync();
+
+        options.ShouldNotBeNull();
+        options.BaseUrl.ShouldBe("http://env-hub.example");
+        options.ApiKey.ShouldBe("env-key");
+    }
+
+    [Fact]
+    public async Task GetActiveOptionsAsync_ReflectsLoadedPersistenceAndSelection()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns(
+            SerializeState(
+                [new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)],
+                "custom-1"));
+
+        var sut = CreateSut();
+
+        var options = await sut.GetActiveOptionsAsync();
+
+        options.ShouldNotBeNull();
+        options.BaseUrl.ShouldBe("http://my-hub.example");
+        options.ApiKey.ShouldBe("my-key");
+    }
+
+    [Fact]
     public async Task AddHub_AddsUserHub_ButActiveConfigurationStaysOnDemo()
     {
         var sut = CreateSut();

@@ -60,8 +60,11 @@ public class RelayRoomClientTests
     {
         var httpClient = new HttpClient(_handler);
         var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
-        hubConfigurationProvider.ActiveBaseUrl.Returns(BaseUrl);
-        hubConfigurationProvider.ActiveApiKey.Returns(ApiKey);
+        hubConfigurationProvider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = BaseUrl,
+            ApiKey = ApiKey
+        }));
         _sut = new RelayRoomClient(httpClient, hubConfigurationProvider, _logger);
     }
 
@@ -169,8 +172,11 @@ public class RelayRoomClientTests
     {
         // Arrange
         var provider = Substitute.For<IRelayHubConfigurationProvider>();
-        provider.ActiveBaseUrl.Returns("https://first.example");
-        provider.ActiveApiKey.Returns("first-key");
+        provider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "https://first.example",
+            ApiKey = "first-key"
+        }));
         var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = """{ "success": true, "error": null }""";
@@ -185,8 +191,11 @@ public class RelayRoomClientTests
         _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("first-key");
 
         // Update the configuration to different successive values
-        provider.ActiveBaseUrl.Returns("https://second.example");
-        provider.ActiveApiKey.Returns("second-key");
+        provider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "https://second.example",
+            ApiKey = "second-key"
+        }));
 
         // Act - second call must use the updated configuration
         var secondResult = await client.ReadyAsync("ABCDEF", SessionToken);

@@ -48,7 +48,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 "Creating relay room for game {GameId}",
                 gameId);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Post,
                 "api/rooms",
                 sessionToken: null);
@@ -123,7 +123,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 "Joining relay room {RoomCode}",
                 roomCode);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Post,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/join",
                 sessionToken: sessionToken);
@@ -218,7 +218,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 deviceSessionId,
                 roomCode);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Delete,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/members/{deviceSessionId:D}",
                 sessionToken);
@@ -289,7 +289,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 method.Method,
                 roomCode);
 
-            using var request = CreateRequest(method, relativePath, sessionToken);
+            using var request = await CreateRequest(method, relativePath, sessionToken);
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -337,15 +337,16 @@ public sealed class RelayRoomClient : IRelayRoomClient
         }
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath, string? sessionToken)
+    private async Task<HttpRequestMessage> CreateRequest(HttpMethod method, string relativePath, string? sessionToken)
     {
-        var baseUrl = _hubConfigurationProvider.ActiveBaseUrl.TrimEnd('/');
+        var options = await _hubConfigurationProvider.GetActiveOptionsAsync();
+        var baseUrl = options.BaseUrl.TrimEnd('/');
         var uri = string.IsNullOrEmpty(baseUrl)
             ? new Uri(relativePath, UriKind.Relative)
             : new Uri($"{baseUrl}/{relativePath}", UriKind.Absolute);
 
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, _hubConfigurationProvider.ActiveApiKey);
+        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, options.ApiKey);
 
         if (!string.IsNullOrEmpty(sessionToken))
         {

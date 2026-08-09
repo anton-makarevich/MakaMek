@@ -91,6 +91,20 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
 
     public Task EnsureLoadedAsync() => _loadTask;
 
+    public async Task<RelayClientOptions> GetActiveOptionsAsync()
+    {
+        await EnsureLoadedAsync();
+        lock (_gate)
+        {
+            var active = _hubs[_activeHubId];
+            return new RelayClientOptions
+            {
+                BaseUrl = active.BaseUrl,
+                ApiKey = active.ApiKey
+            };
+        }
+    }
+
     public async Task AddHubAsync(HubConfigData hub)
     {
         if (string.IsNullOrWhiteSpace(hub.Id))

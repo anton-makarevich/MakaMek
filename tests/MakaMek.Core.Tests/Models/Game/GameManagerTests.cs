@@ -100,9 +100,11 @@ public class GameManagerTests : IDisposable
         string apiKey = "api-key")
     {
         var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
-        hubConfigurationProvider.EnsureLoadedAsync().Returns(Task.CompletedTask);
-        hubConfigurationProvider.ActiveBaseUrl.Returns(baseUrl);
-        hubConfigurationProvider.ActiveApiKey.Returns(apiKey);
+        hubConfigurationProvider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = apiKey
+        }));
         return new GameManager(
             _commandPublisher,
             _gameFactory,

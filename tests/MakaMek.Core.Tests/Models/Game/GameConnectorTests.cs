@@ -47,9 +47,11 @@ public class GameConnectorTests : IDisposable
     private static IRelayHubConfigurationProvider CreateHubConfigurationProvider(string baseUrl = "http://hub.local", string apiKey = "api-key")
     {
         var provider = Substitute.For<IRelayHubConfigurationProvider>();
-        provider.EnsureLoadedAsync().Returns(Task.CompletedTask);
-        provider.ActiveBaseUrl.Returns(baseUrl);
-        provider.ActiveApiKey.Returns(apiKey);
+        provider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = apiKey
+        }));
         return provider;
     }
 

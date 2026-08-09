@@ -6,9 +6,10 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 /// user-defined hubs together with the active selection.
 /// </summary>
 /// <remarks>
-/// Consumers must await <see cref="EnsureLoadedAsync"/> before reading
-/// <see cref="ActiveHubId"/>, <see cref="ActiveBaseUrl"/>, <see cref="ActiveApiKey"/>,
-/// or <see cref="Hubs"/> so persisted configuration is reflected in those values.
+/// Use <see cref="GetActiveOptionsAsync"/> to obtain the active hub's connection
+/// options without manually waiting for the persisted configuration to load.
+/// Consumers that read <see cref="ActiveHubId"/> or <see cref="Hubs"/> must await
+/// <see cref="EnsureLoadedAsync"/> first so persisted configuration is reflected.
 /// </remarks>
 public interface IRelayHubConfigurationProvider
 {
@@ -16,16 +17,6 @@ public interface IRelayHubConfigurationProvider
     /// Identifier of the currently selected hub.
     /// </summary>
     string ActiveHubId { get; }
-
-    /// <summary>
-    /// Base URL of the currently selected hub.
-    /// </summary>
-    string ActiveBaseUrl { get; }
-
-    /// <summary>
-    /// API key of the currently selected hub.
-    /// </summary>
-    string ActiveApiKey { get; }
 
     /// <summary>
     /// All known hubs, including the built-in Demo hub.
@@ -36,6 +27,13 @@ public interface IRelayHubConfigurationProvider
     /// Waits until any persisted hub configuration has been loaded.
     /// </summary>
     Task EnsureLoadedAsync();
+
+    /// <summary>
+    /// Returns the connection options of the currently selected hub, waiting for
+    /// any persisted hub configuration to load first. Never returns null; the base
+    /// URL may be blank when no hub has been configured on this platform.
+    /// </summary>
+    Task<RelayClientOptions> GetActiveOptionsAsync();
 
     /// <summary>
     /// Adds a user-defined hub. The Demo hub is always seeded separately.
