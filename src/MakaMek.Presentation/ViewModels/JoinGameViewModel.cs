@@ -173,9 +173,15 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         _joinMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
+        NotifyPropertyChanged(nameof(IsLanFormVisible));
+        NotifyPropertyChanged(nameof(IsOnlineFormVisible));
         _activeJoinCts?.Cancel();
         ClearJoinState();
     }
+
+    public bool IsLanFormVisible => IsLanMode && !IsConnected;
+
+    public bool IsOnlineFormVisible => IsOnlineMode && !IsConnected;
 
     /// <summary>
     /// Gets or sets the room code used to join an online game.
@@ -279,6 +285,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         NotifyPropertyChanged(nameof(IsConnected));
+        NotifyPropertyChanged(nameof(IsLanFormVisible));
+        NotifyPropertyChanged(nameof(IsOnlineFormVisible));
         NotifyPropertyChanged(nameof(CanConnect));
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanAddPlayer));

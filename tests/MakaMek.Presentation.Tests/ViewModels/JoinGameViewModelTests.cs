@@ -1087,11 +1087,13 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public void JoinedRoomInfoText_ReturnsLocalizedServerInfo_AfterLanConnect()
+    public async Task JoinedRoomInfoText_ReturnsLocalizedServerInfo_AfterLanConnect()
     {
         // Arrange
         _sut.ServerIp = "127.0.0.1";
         var expectedText = string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), _sut.ServerAddress);
+        var raisedEvents = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raisedEvents.Add(e.PropertyName);
 
         // Act
         ConnectAndAckLobby();
@@ -1099,6 +1101,16 @@ public class JoinGameViewModelTests
         // Assert
         _sut.IsConnected.ShouldBeTrue();
         _sut.JoinedRoomInfoText.ShouldBe(expectedText);
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+
+        // Act
+        raisedEvents.Clear();
+        await _sut.Disconnect();
+
+        // Assert
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinedRoomInfoText.ShouldBeEmpty();
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
     }
 
     [Fact]
@@ -1109,6 +1121,8 @@ public class JoinGameViewModelTests
         _sut.RoomCode = "ABCDEF";
         var expectedText = string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), "ABCDEF");
         EnableOnlineJoin();
+        var raisedEvents = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raisedEvents.Add(e.PropertyName);
 
         // Act
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
@@ -1116,5 +1130,15 @@ public class JoinGameViewModelTests
         // Assert
         _sut.IsConnected.ShouldBeTrue();
         _sut.JoinedRoomInfoText.ShouldBe(expectedText);
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+
+        // Act
+        raisedEvents.Clear();
+        await _sut.Disconnect();
+
+        // Assert
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.JoinedRoomInfoText.ShouldBeEmpty();
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
     }
 }

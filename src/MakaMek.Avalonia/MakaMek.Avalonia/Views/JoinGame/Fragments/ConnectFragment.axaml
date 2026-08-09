@@ -21,7 +21,7 @@
       </StackPanel>
     </StackPanel>
 
-    <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
+    <StackPanel Classes="formGroup" IsVisible="{Binding IsLanFormVisible}">
       <TextBlock Text="{extensions:Localize 'ConnectFragment_ServerAddress'}" Classes="label"/>
       <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
                PlaceholderText="{extensions:Localize 'ConnectFragment_EnterServerIP'}"
@@ -31,13 +31,9 @@
               IsEnabled="{Binding CanConnect}"
               HorizontalAlignment="Stretch"
               IsVisible="{Binding !IsConnected}"/>
-      <TextBlock Text="{extensions:Localize 'ConnectFragment_Connected'}"
-                 Classes="bodySmall"
-                 IsVisible="{Binding IsConnected}"
-                 Foreground="{StaticResource SuccessBrush}"/>
     </StackPanel>
 
-    <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+    <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineFormVisible}">
       <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
       <TextBox Text="{Binding RoomCode, Mode=TwoWay}"
                MaxLength="6"
