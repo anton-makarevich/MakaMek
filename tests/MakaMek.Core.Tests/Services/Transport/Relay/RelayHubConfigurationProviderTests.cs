@@ -442,4 +442,94 @@ public class RelayHubConfigurationProviderTests
         second.ActiveHubId.ShouldBe("custom-1");
         second.ActiveBaseUrl.ShouldBe("http://my-hub.example");
     }
+
+    // ---------- Async accessors ----------
+
+    [Fact]
+    public async Task GetActiveHubId_ReturnsActiveHubId()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns(
+            SerializeState(
+                [new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)],
+                "custom-1"));
+
+        var sut = CreateSut();
+        await sut.EnsureLoadedAsync();
+
+        var result = await sut.GetActiveHubId();
+
+        result.ShouldBe("custom-1");
+    }
+
+    [Fact]
+    public async Task GetHubs_ReturnsBuiltInHubFirstThenUserHubsInNameOrder()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns(
+            SerializeState(
+                [
+                    new HubConfigData("custom-z", "Zulu Hub", "http://zulu.example", "z-key", IsBuiltIn: false),
+                    new HubConfigData("custom-a", "Alpha Hub", "http://alpha.example", "a-key", IsBuiltIn: false)
+                ],
+                "custom-a"));
+
+        var sut = CreateSut();
+        await sut.EnsureLoadedAsync();
+
+        var result = await sut.GetHubs();
+
+        result.Count.ShouldBe(3);
+        result[0].IsBuiltIn.ShouldBeTrue();
+        result.Select(h => h.Name).ShouldBe(["Demo Hub", "Alpha Hub", "Zulu Hub"]);
+    }
+
+    // ---------- Load fallbacks ----------
+
+    [Fact]
+    public async Task Load_WithNullCachedData_DefaultsToDemoHub()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns((byte[]?)null);
+
+        var sut = CreateSut();
+        await sut.EnsureLoadedAsync();
+
+        sut.Hubs.ShouldHaveSingleItem();
+        sut.Hubs.Single().IsBuiltIn.ShouldBeTrue();
+        sut.ActiveHubId.ShouldBe(sut.Hubs.Single().Id);
+        sut.ActiveBaseUrl.ShouldBe("http://demo.local");
+    }
+
+    [Fact]
+    public async Task Load_WithStateWithoutHubs_DefaultsToDemoHub()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns(SerializeState(null!, null));
+
+        var sut = CreateSut();
+        await sut.EnsureLoadedAsync();
+
+        sut.Hubs.ShouldHaveSingleItem();
+        sut.Hubs.Single().IsBuiltIn.ShouldBeTrue();
+        sut.ActiveHubId.ShouldBe(sut.Hubs.Single().Id);
+    }
+
+    [Fact]
+    public async Task Load_SkipsBlankAndDuplicateHubIds_KeepsValidEntries()
+    {
+        _cachingService.TryGetCachedFile(CacheKey).Returns(
+            SerializeState(
+                [
+                    new HubConfigData("", "Blank Id Hub", "http://blank.example", "blank-key", IsBuiltIn: false),
+                    new HubConfigData("demo", "Demo Impersonator", "http://evil.example", "evil-key", IsBuiltIn: false),
+                    new HubConfigData("custom-1", "Valid Hub", "http://valid.example", "valid-key", IsBuiltIn: false)
+                ],
+                "custom-1"));
+
+        var sut = CreateSut();
+        await sut.EnsureLoadedAsync();
+
+        sut.Hubs.Count.ShouldBe(2);
+        sut.Hubs.Single(h => h.Id == "custom-1").Name.ShouldBe("Valid Hub");
+        sut.Hubs.ShouldNotContain(h => h.Id == "");
+        sut.Hubs.ShouldNotContain(h => h.Id == "demo" && !h.IsBuiltIn);
+        sut.ActiveHubId.ShouldBe("custom-1");
+    }
 }

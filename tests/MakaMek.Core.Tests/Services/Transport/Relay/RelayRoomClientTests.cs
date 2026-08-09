@@ -478,6 +478,81 @@ public class RelayRoomClientTests
         AssertNoSecretsLeaked(result.Error.Message);
     }
 
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task JoinAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Join("ABCDEF", sessionToken: null);
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task RemoveMemberAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task ReadyAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Ready("ABCDEF", SessionToken);
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
     [Fact]
     public async Task CreateAsync_BlankBaseUrl_FallsBackToRelativeRequest()
     {
