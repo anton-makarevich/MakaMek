@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -270,6 +271,92 @@ public class RelayHubConfigurationProviderTests
 
         sut.Hubs.ShouldHaveSingleItem();
         await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
+    }
+
+    // ---------- Persist failure rollback ----------
+
+    [Fact]
+    public async Task AddHub_WhenPersistFails_RollsBackAndRethrows()
+    {
+        var sut = CreateSut();
+        _cachingService.SaveToCache(CacheKey, Arg.Any<byte[]>())
+            .Returns(Task.FromException(new IOException("disk full")));
+
+        await Should.ThrowAsync<IOException>(() =>
+            sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)));
+
+        sut.Hubs.ShouldHaveSingleItem();
+        sut.Hubs.Single().Id.ShouldBe("demo");
+    }
+
+    [Fact]
+    public async Task UpdateHub_WhenPersistFails_RollsBackAndRethrows()
+    {
+        var sut = CreateSut();
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        _cachingService.SaveToCache(CacheKey, Arg.Any<byte[]>())
+            .Returns(Task.FromException(new IOException("disk full")));
+
+        await Should.ThrowAsync<IOException>(() =>
+            sut.UpdateHub("custom-1", "Renamed Hub", "http://renamed.example", "renamed-key"));
+
+        var unchanged = sut.Hubs.Single(h => h.Id == "custom-1");
+        unchanged.Name.ShouldBe("My Hub");
+        unchanged.BaseUrl.ShouldBe("http://my-hub.example");
+        unchanged.ApiKey.ShouldBe("my-key");
+    }
+
+    [Fact]
+    public async Task SelectHub_WhenPersistFails_RollsBackAndRethrows()
+    {
+        var sut = CreateSut();
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        _cachingService.SaveToCache(CacheKey, Arg.Any<byte[]>())
+            .Returns(Task.FromException(new IOException("disk full")));
+
+        await Should.ThrowAsync<IOException>(() => sut.SelectHub("custom-1"));
+
+        sut.ActiveHubId.ShouldBe(sut.Hubs.Single(h => h.IsBuiltIn).Id);
+        sut.ActiveBaseUrl.ShouldBe("http://demo.local");
+    }
+
+    [Fact]
+    public async Task RemoveHub_WhenPersistFails_RollsBackAndRethrows()
+    {
+        var sut = CreateSut();
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.SelectHub("custom-1");
+        _cachingService.SaveToCache(CacheKey, Arg.Any<byte[]>())
+            .Returns(Task.FromException(new IOException("disk full")));
+
+        await Should.ThrowAsync<IOException>(() => sut.RemoveHub("custom-1"));
+
+        sut.ActiveHubId.ShouldBe("custom-1");
+        sut.ActiveBaseUrl.ShouldBe("http://my-hub.example");
+        sut.Hubs.Single(h => h.Id == "custom-1").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Mutations_AreSerializedThroughSharedGate()
+    {
+        var sut = CreateSut();
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        var persistGate = new TaskCompletionSource();
+        _cachingService.SaveToCache(CacheKey, Arg.Any<byte[]>())
+            .Returns(persistGate.Task, Task.CompletedTask);
+
+        var first = sut.SelectHub("custom-1");
+        var second = sut.RemoveHub("custom-1");
+
+        // The first mutation is blocked in PersistAsync; the second must wait for it
+        second.IsCompleted.ShouldBeFalse();
+
+        persistGate.SetResult();
+        await first;
+        await second;
+
+        sut.Hubs.ShouldHaveSingleItem();
+        sut.ActiveHubId.ShouldBe(sut.Hubs.Single(h => h.IsBuiltIn).Id);
     }
 
     // ---------- Persistence load ----------

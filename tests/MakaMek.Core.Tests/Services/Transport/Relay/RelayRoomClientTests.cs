@@ -207,6 +207,30 @@ public class RelayRoomClientTests
     }
 
     [Fact]
+    public async Task ReadyAsync_WhenOptionsProvided_UsesPinnedOptionsWithoutConsultingProvider()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = """{ "success": true, "error": null }""";
+
+        // Act
+        var result = await client.Ready("ABCDEF", SessionToken, options: new RelayClientOptions
+        {
+            BaseUrl = "https://pinned.example",
+            ApiKey = "pinned-key"
+        });
+
+        // Assert
+        result.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://pinned.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("pinned-key");
+        await provider.DidNotReceive().GetActiveOptions();
+    }
+
+    [Fact]
     public async Task RemoveMemberAsync_Success_SendsDeleteWithHeadersAndDeviceSessionId()
     {
         var deviceSessionId = Guid.Parse("33333333-3333-3333-3333-333333333333");
@@ -427,6 +451,65 @@ public class RelayRoomClientTests
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
         AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task CreateAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Create(Guid.NewGuid());
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_BlankBaseUrl_FallsBackToRelativeRequest()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "   ",
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler) { BaseAddress = new Uri("http://base.example") }, provider, _logger);
+        _handler.StatusCode = HttpStatusCode.Created;
+        _handler.ResponseContent = """
+            {
+              "success": true,
+              "roomCode": "ABCDEF",
+              "deviceSessionId": "99999999-9999-9999-9999-999999999999",
+              "hostGameId": "11111111-1111-1111-1111-111111111111",
+              "sessionToken": "test-session-token-secret-value",
+              "expiresAt": "2026-07-30T22:00:00Z",
+              "error": null
+            }
+            """;
+
+        // Act
+        var result = await client.Create(Guid.NewGuid());
+
+        // Assert - a blank base URL is not a configuration error; the relative request resolves against the HttpClient base address
+        result.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.IsAbsoluteUri.ShouldBeTrue();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("http://base.example/api/rooms");
     }
 
     [Fact]

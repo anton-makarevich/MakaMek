@@ -20,6 +20,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
     private readonly ILogger<RelayHubConfigurationProvider> _logger;
     private readonly Dictionary<string, HubConfigData> _hubs = new(StringComparer.Ordinal);
     private readonly object _gate = new();
+    private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly Task _loadTask;
     private string _activeHubId = DemoHubId;
 
@@ -128,94 +129,177 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
 
     public async Task AddHub(HubConfigData hub)
     {
-        if (string.IsNullOrWhiteSpace(hub.Id))
-        {
-            throw new ArgumentException("Hub id is required.", nameof(hub));
-        }
-
-        await EnsureLoadedAsync();
-        lock (_gate)
-        {
-            if (hub.Id == DemoHubId || _hubs.ContainsKey(hub.Id))
-            {
-                throw new ArgumentException($"Hub '{hub.Id}' already exists.", nameof(hub));
-            }
-
-            _hubs[hub.Id] = hub with { IsBuiltIn = false };
-        }
-
+        await _operationGate.WaitAsync();
         try
         {
-            await PersistAsync();
-        }
-        catch
-        {
-            // Roll back the in-memory add so a failed save can be retried by the caller.
+            if (string.IsNullOrWhiteSpace(hub.Id))
+            {
+                throw new ArgumentException("Hub id is required.", nameof(hub));
+            }
+
+            await EnsureLoadedAsync();
             lock (_gate)
             {
-                _hubs.Remove(hub.Id);
+                if (hub.Id == DemoHubId || _hubs.ContainsKey(hub.Id))
+                {
+                    throw new ArgumentException($"Hub '{hub.Id}' already exists.", nameof(hub));
+                }
+
+                _hubs[hub.Id] = hub with { IsBuiltIn = false };
             }
-            throw;
+
+            try
+            {
+                await PersistAsync();
+            }
+            catch
+            {
+                // Roll back the in-memory add so a failed save can be retried by the caller.
+                lock (_gate)
+                {
+                    _hubs.Remove(hub.Id);
+                }
+                throw;
+            }
+        }
+        finally
+        {
+            _operationGate.Release();
         }
     }
 
     public async Task UpdateHub(string id, string name, string baseUrl, string apiKey)
     {
-        await EnsureLoadedAsync();
-        lock (_gate)
+        await _operationGate.WaitAsync();
+        try
         {
-            if (!_hubs.TryGetValue(id, out var existing))
+            await EnsureLoadedAsync();
+            HubConfigData previous;
+            lock (_gate)
             {
-                throw new ArgumentException($"Hub '{id}' does not exist.", nameof(id));
+                if (!_hubs.TryGetValue(id, out var existing))
+                {
+                    throw new ArgumentException($"Hub '{id}' does not exist.", nameof(id));
+                }
+
+                if (existing.IsBuiltIn)
+                {
+                    throw new InvalidOperationException("The built-in Demo hub cannot be edited.");
+                }
+
+                previous = existing;
+                _hubs[id] = existing with { Name = name, BaseUrl = baseUrl, ApiKey = apiKey };
             }
 
-            if (existing.IsBuiltIn)
+            try
             {
-                throw new InvalidOperationException("The built-in Demo hub cannot be edited.");
+                await PersistAsync();
             }
-
-            _hubs[id] = existing with { Name = name, BaseUrl = baseUrl, ApiKey = apiKey };
+            catch
+            {
+                // Restore the previous entry so a failed save leaves the cache unchanged.
+                lock (_gate)
+                {
+                    _hubs[id] = previous;
+                }
+                throw;
+            }
         }
-        await PersistAsync();
+        finally
+        {
+            _operationGate.Release();
+        }
     }
 
     public async Task RemoveHub(string id)
     {
-        await EnsureLoadedAsync();
-        lock (_gate)
+        await _operationGate.WaitAsync();
+        try
         {
-            if (!_hubs.TryGetValue(id, out var existing))
+            await EnsureLoadedAsync();
+            HubConfigData? previous = null;
+            var wasActive = false;
+            lock (_gate)
             {
-                return;
+                if (!_hubs.TryGetValue(id, out var existing))
+                {
+                    return;
+                }
+
+                if (existing.IsBuiltIn)
+                {
+                    throw new InvalidOperationException("The built-in Demo hub cannot be removed.");
+                }
+
+                previous = existing;
+                wasActive = _activeHubId == id;
+                _hubs.Remove(id);
+                if (wasActive)
+                {
+                    _activeHubId = DemoHubId;
+                }
             }
 
-            if (existing.IsBuiltIn)
+            try
             {
-                throw new InvalidOperationException("The built-in Demo hub cannot be removed.");
+                await PersistAsync();
             }
-
-            _hubs.Remove(id);
-            if (_activeHubId == id)
+            catch
             {
-                _activeHubId = DemoHubId;
+                // Restore the removed entry and any active-selection fallback.
+                lock (_gate)
+                {
+                    _hubs[id] = previous;
+                    if (wasActive)
+                    {
+                        _activeHubId = id;
+                    }
+                }
+                throw;
             }
         }
-        await PersistAsync();
+        finally
+        {
+            _operationGate.Release();
+        }
     }
 
     public async Task SelectHub(string id)
     {
-        await EnsureLoadedAsync();
-        lock (_gate)
+        await _operationGate.WaitAsync();
+        try
         {
-            if (!_hubs.ContainsKey(id))
+            await EnsureLoadedAsync();
+            string previousActiveHubId;
+            lock (_gate)
             {
-                throw new ArgumentException($"Hub '{id}' does not exist.", nameof(id));
+                if (!_hubs.ContainsKey(id))
+                {
+                    throw new ArgumentException($"Hub '{id}' does not exist.", nameof(id));
+                }
+
+                previousActiveHubId = _activeHubId;
+                _activeHubId = id;
             }
 
-            _activeHubId = id;
+            try
+            {
+                await PersistAsync();
+            }
+            catch
+            {
+                // Restore the previous active selection so a failed save leaves the cache unchanged.
+                lock (_gate)
+                {
+                    _activeHubId = previousActiveHubId;
+                }
+                throw;
+            }
         }
-        await PersistAsync();
+        finally
+        {
+            _operationGate.Release();
+        }
     }
 
     private async Task LoadAsync()

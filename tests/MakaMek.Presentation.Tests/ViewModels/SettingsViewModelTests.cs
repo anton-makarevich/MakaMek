@@ -411,8 +411,8 @@ public class SettingsViewModelTests
         _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
 
         // Assert - the second selection must wait for the first one to finish
-        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
-        await _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
 
         // Complete the first selection; only then is the second issued
         firstSelection.SetResult();
