@@ -428,6 +428,38 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SelectedHub_WhenEarlierSelectionFails_LaterSelectionStillPersists()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        var firstSelection = new TaskCompletionSource();
+        _hubConfigurationProvider.SelectHub("custom-1").Returns(firstSelection.Task);
+        _hubConfigurationProvider.SelectHub("demo").Returns(Task.CompletedTask);
+
+        // Act - select custom-1 first, then demo while the first write is still in flight
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
+
+        // The second selection must wait for the first one to finish
+        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+
+        // Fail the first selection; the later selection must still go through
+        firstSelection.SetException(new Exception("selection failed"));
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls().Any(c =>
+            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)
+            && c.GetArguments()[0] as string == "demo"));
+
+        _hubConfigurationProvider.Received(1).SelectHub("demo");
+    }
+
+    [Fact]
     public async Task AddHubCommand_WhenExecuted_ShouldAddNewEditingEntry()
     {
         // Arrange
