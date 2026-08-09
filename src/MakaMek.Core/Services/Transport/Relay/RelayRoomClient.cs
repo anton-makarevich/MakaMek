@@ -339,7 +339,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
 
     private async Task<HttpRequestMessage> CreateRequest(HttpMethod method, string relativePath, string? sessionToken)
     {
-        var options = await _hubConfigurationProvider.GetActiveOptionsAsync();
+        var options = await _hubConfigurationProvider.GetActiveOptions();
         var baseUrl = options.BaseUrl.TrimEnd('/');
         var uri = string.IsNullOrEmpty(baseUrl)
             ? new Uri(relativePath, UriKind.Relative)

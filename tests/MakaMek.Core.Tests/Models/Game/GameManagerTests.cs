@@ -100,7 +100,7 @@ public class GameManagerTests : IDisposable
         string apiKey = "api-key")
     {
         var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
-        hubConfigurationProvider.GetActiveOptionsAsync().Returns(Task.FromResult(new RelayClientOptions
+        hubConfigurationProvider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
         {
             BaseUrl = baseUrl,
             ApiKey = apiKey

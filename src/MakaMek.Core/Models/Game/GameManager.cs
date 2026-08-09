@@ -136,7 +136,7 @@ public class GameManager : IGameManager
         // Wait for persisted hub configuration before reading the active values below
         var relayOptions = _relayHubConfigurationProvider is null
             ? null
-            : await _relayHubConfigurationProvider.GetActiveOptionsAsync();
+            : await _relayHubConfigurationProvider.GetActiveOptions();
 
         // Relay hosting requires the room client, the publisher factory, and an active hub configuration
         if (_relayRoomClient is null

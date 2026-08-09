@@ -90,7 +90,7 @@ public class GameConnector : IGameConnector
         // Wait for persisted hub configuration before reading the active values below
         var relayOptions = _relayHubConfigurationProvider is null
             ? null
-            : await _relayHubConfigurationProvider.GetActiveOptionsAsync();
+            : await _relayHubConfigurationProvider.GetActiveOptions();
 
         // Online joining requires the relay room client, publisher factory, and an active hub configuration
         if (_relayRoomClient is null

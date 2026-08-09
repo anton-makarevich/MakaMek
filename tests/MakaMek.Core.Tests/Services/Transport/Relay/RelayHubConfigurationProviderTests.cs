@@ -59,7 +59,7 @@ public class RelayHubConfigurationProviderTests
     {
         var sut = CreateSut(baseUrl: "http://env-hub.example", apiKey: "env-key");
 
-        var options = await sut.GetActiveOptionsAsync();
+        var options = await sut.GetActiveOptions();
 
         options.ShouldNotBeNull();
         options.BaseUrl.ShouldBe("http://env-hub.example");
@@ -76,7 +76,7 @@ public class RelayHubConfigurationProviderTests
 
         var sut = CreateSut();
 
-        var options = await sut.GetActiveOptionsAsync();
+        var options = await sut.GetActiveOptions();
 
         options.ShouldNotBeNull();
         options.BaseUrl.ShouldBe("http://my-hub.example");
@@ -88,7 +88,7 @@ public class RelayHubConfigurationProviderTests
     {
         var sut = CreateSut();
 
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
 
         sut.Hubs.Count.ShouldBe(2);
         var added = sut.Hubs.Single(h => h.Id == "custom-1");
@@ -104,7 +104,7 @@ public class RelayHubConfigurationProviderTests
     {
         var sut = CreateSut();
 
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
 
         await _cachingService.Received(1).SaveToCache(CacheKey, Arg.Any<byte[]>());
     }
@@ -116,7 +116,7 @@ public class RelayHubConfigurationProviderTests
         var demoId = sut.Hubs.Single(h => h.IsBuiltIn).Id;
 
         await Should.ThrowAsync<ArgumentException>(
-            () => sut.AddHubAsync(new HubConfigData(demoId, "Hacked", "http://evil.example", "evil-key", IsBuiltIn: false)));
+            () => sut.AddHub(new HubConfigData(demoId, "Hacked", "http://evil.example", "evil-key", IsBuiltIn: false)));
 
         var demo = sut.Hubs.Single(h => h.IsBuiltIn);
         demo.Id.ShouldBe(demoId);
@@ -132,7 +132,7 @@ public class RelayHubConfigurationProviderTests
         var sut = CreateSut();
 
         await Should.ThrowAsync<ArgumentException>(
-            () => sut.AddHubAsync(new HubConfigData("", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)));
+            () => sut.AddHub(new HubConfigData("", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false)));
 
         sut.Hubs.ShouldHaveSingleItem();
         await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
@@ -142,10 +142,10 @@ public class RelayHubConfigurationProviderTests
     public async Task AddHub_WithDuplicateUserId_ThrowsAndKeepsExistingEntry()
     {
         var sut = CreateSut();
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
 
         await Should.ThrowAsync<ArgumentException>(
-            () => sut.AddHubAsync(new HubConfigData("custom-1", "Other Hub", "http://other.example", "other-key", IsBuiltIn: false)));
+            () => sut.AddHub(new HubConfigData("custom-1", "Other Hub", "http://other.example", "other-key", IsBuiltIn: false)));
 
         var existing = sut.Hubs.Single(h => h.Id == "custom-1");
         existing.Name.ShouldBe("My Hub");
@@ -159,9 +159,9 @@ public class RelayHubConfigurationProviderTests
     public async Task SelectHub_ActivatesUserHubConfiguration()
     {
         var sut = CreateSut();
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
 
-        await sut.SelectHubAsync("custom-1");
+        await sut.SelectHub("custom-1");
 
         sut.ActiveHubId.ShouldBe("custom-1");
         sut.ActiveBaseUrl.ShouldBe("http://my-hub.example");
@@ -174,18 +174,18 @@ public class RelayHubConfigurationProviderTests
     {
         var sut = CreateSut();
 
-        await Should.ThrowAsync<ArgumentException>(() => sut.SelectHubAsync("unknown"));
+        await Should.ThrowAsync<ArgumentException>(() => sut.SelectHub("unknown"));
     }
 
     [Fact]
     public async Task SelectHub_DemoHubIsSelectable()
     {
         var sut = CreateSut();
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
         var demoId = sut.Hubs.Single(h => h.IsBuiltIn).Id;
 
-        await sut.SelectHubAsync("custom-1");
-        await sut.SelectHubAsync(demoId);
+        await sut.SelectHub("custom-1");
+        await sut.SelectHub(demoId);
 
         sut.ActiveHubId.ShouldBe(demoId);
         sut.ActiveBaseUrl.ShouldBe("http://demo.local");
@@ -197,9 +197,9 @@ public class RelayHubConfigurationProviderTests
     public async Task UpdateHub_UpdatesUserHubValues()
     {
         var sut = CreateSut();
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
 
-        await sut.UpdateHubAsync("custom-1", "Renamed Hub", "http://renamed.example", "renamed-key");
+        await sut.UpdateHub("custom-1", "Renamed Hub", "http://renamed.example", "renamed-key");
 
         var updated = sut.Hubs.Single(h => h.Id == "custom-1");
         updated.Name.ShouldBe("Renamed Hub");
@@ -215,7 +215,7 @@ public class RelayHubConfigurationProviderTests
         var sut = CreateSut();
 
         await Should.ThrowAsync<ArgumentException>(
-            () => sut.UpdateHubAsync("unknown", "name", "http://hub.example", "key"));
+            () => sut.UpdateHub("unknown", "name", "http://hub.example", "key"));
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class RelayHubConfigurationProviderTests
         var demoId = sut.Hubs.Single(h => h.IsBuiltIn).Id;
 
         await Should.ThrowAsync<InvalidOperationException>(
-            () => sut.UpdateHubAsync(demoId, "Hacked", "http://evil.example", "evil-key"));
+            () => sut.UpdateHub(demoId, "Hacked", "http://evil.example", "evil-key"));
 
         sut.Hubs.Single(h => h.IsBuiltIn).BaseUrl.ShouldBe("http://demo.local");
         await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
@@ -237,10 +237,10 @@ public class RelayHubConfigurationProviderTests
     public async Task RemoveHub_RemovesUserHub_AndFallsBackToDemoWhenActive()
     {
         var sut = CreateSut();
-        await sut.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
-        await sut.SelectHubAsync("custom-1");
+        await sut.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await sut.SelectHub("custom-1");
 
-        await sut.RemoveHubAsync("custom-1");
+        await sut.RemoveHub("custom-1");
 
         sut.Hubs.ShouldHaveSingleItem();
         sut.Hubs.Single().IsBuiltIn.ShouldBeTrue();
@@ -255,7 +255,7 @@ public class RelayHubConfigurationProviderTests
         var sut = CreateSut();
         var demoId = sut.Hubs.Single(h => h.IsBuiltIn).Id;
 
-        await Should.ThrowAsync<InvalidOperationException>(() => sut.RemoveHubAsync(demoId));
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.RemoveHub(demoId));
 
         sut.Hubs.ShouldHaveSingleItem();
         await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
@@ -266,7 +266,7 @@ public class RelayHubConfigurationProviderTests
     {
         var sut = CreateSut();
 
-        await sut.RemoveHubAsync("unknown");
+        await sut.RemoveHub("unknown");
 
         sut.Hubs.ShouldHaveSingleItem();
         await _cachingService.DidNotReceive().SaveToCache(CacheKey, Arg.Any<byte[]>());
@@ -337,8 +337,8 @@ public class RelayHubConfigurationProviderTests
     {
         // First instance: add + select a custom hub.
         var first = CreateSut();
-        await first.AddHubAsync(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
-        await first.SelectHubAsync("custom-1");
+        await first.AddHub(new HubConfigData("custom-1", "My Hub", "http://my-hub.example", "my-key", IsBuiltIn: false));
+        await first.SelectHub("custom-1");
 
         await _cachingService.Received(2).SaveToCache(CacheKey, Arg.Any<byte[]>());
 

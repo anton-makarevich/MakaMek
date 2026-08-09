@@ -93,7 +93,7 @@ public class SettingsViewModel : BaseViewModel
             }
         }
 
-        await _hubConfigurationProvider.SelectHubAsync(id);
+        await _hubConfigurationProvider.SelectHub(id);
     }
 
     // Localized string properties
@@ -129,7 +129,7 @@ public class SettingsViewModel : BaseViewModel
     {
         if (entry.IsBuiltIn) return;
 
-        await _hubConfigurationProvider.RemoveHubAsync(entry.Id);
+        await _hubConfigurationProvider.RemoveHub(entry.Id);
         await LoadHubsAsync();
     }
 
@@ -138,11 +138,11 @@ public class SettingsViewModel : BaseViewModel
         var pending = entry.PendingHub;
         if (entry.IsNew)
         {
-            await _hubConfigurationProvider.AddHubAsync(pending);
+            await _hubConfigurationProvider.AddHub(pending);
         }
         else
         {
-            await _hubConfigurationProvider.UpdateHubAsync(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
+            await _hubConfigurationProvider.UpdateHub(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
         }
 
         await LoadHubsAsync();
@@ -158,8 +158,8 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task LoadHubsAsync()
     {
-        var hubs = await _hubConfigurationProvider.GetHubsAsync();
-        var activeHubId = await _hubConfigurationProvider.GetActiveHubIdAsync();
+        var hubs = await _hubConfigurationProvider.GetHubs();
+        var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
 
         Hubs.Clear();
         foreach (var hub in hubs)

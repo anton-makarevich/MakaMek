@@ -298,8 +298,8 @@ public class SettingsViewModelTests
 
     private void SetupProviderHubs(IReadOnlyList<HubConfigData> hubs, string activeHubId)
     {
-        _hubConfigurationProvider.GetHubsAsync().Returns(Task.FromResult(hubs));
-        _hubConfigurationProvider.GetActiveHubIdAsync().Returns(Task.FromResult(activeHubId));
+        _hubConfigurationProvider.GetHubs().Returns(Task.FromResult(hubs));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult(activeHubId));
     }
 
     [Fact]
@@ -387,8 +387,8 @@ public class SettingsViewModelTests
 
         // Assert
         await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
-            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHubAsync)));
-        await _hubConfigurationProvider.Received(1).SelectHubAsync("custom-1");
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
+        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
     }
 
     [Fact]
@@ -401,29 +401,29 @@ public class SettingsViewModelTests
         await WaitFor(() => _sut.Hubs.Count == 2);
 
         var firstSelection = new TaskCompletionSource();
-        _hubConfigurationProvider.SelectHubAsync("custom-1").Returns(firstSelection.Task);
-        _hubConfigurationProvider.SelectHubAsync("demo").Returns(Task.CompletedTask);
+        _hubConfigurationProvider.SelectHub("custom-1").Returns(firstSelection.Task);
+        _hubConfigurationProvider.SelectHub("demo").Returns(Task.CompletedTask);
 
         // Act - select custom-1 first, then demo while the first write is still in flight
         _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
         await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
-            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHubAsync)));
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
         _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
 
         // Assert - the second selection must wait for the first one to finish
-        await _hubConfigurationProvider.Received(1).SelectHubAsync("custom-1");
-        await _hubConfigurationProvider.DidNotReceive().SelectHubAsync("demo");
+        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        await _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
 
         // Complete the first selection; only then is the second issued
         firstSelection.SetResult();
         await WaitFor(() => _hubConfigurationProvider.ReceivedCalls().Any(c =>
-            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHubAsync)
+            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)
             && c.GetArguments()[0] as string == "demo"));
 
         Received.InOrder(() =>
         {
-            _hubConfigurationProvider.SelectHubAsync("custom-1");
-            _hubConfigurationProvider.SelectHubAsync("demo");
+            _hubConfigurationProvider.SelectHub("custom-1");
+            _hubConfigurationProvider.SelectHub("demo");
         });
     }
 
@@ -475,7 +475,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
-        await _hubConfigurationProvider.Received(1).AddHubAsync(Arg.Is<HubConfigData>(h =>
+        await _hubConfigurationProvider.Received(1).AddHub(Arg.Is<HubConfigData>(h =>
             h.Id == entry.Id && h.Name == "My Hub" && h.BaseUrl == "http://my-hub.example" && h.ApiKey == "secret" && !h.IsBuiltIn));
     }
 
@@ -492,7 +492,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
-        await _hubConfigurationProvider.DidNotReceive().AddHubAsync(Arg.Any<HubConfigData>());
+        await _hubConfigurationProvider.DidNotReceive().AddHub(Arg.Any<HubConfigData>());
     }
 
     [Fact]
@@ -513,7 +513,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
-        await _hubConfigurationProvider.Received(1).UpdateHubAsync("custom-1", "Renamed", "http://new.example", "new-key");
+        await _hubConfigurationProvider.Received(1).UpdateHub("custom-1", "Renamed", "http://new.example", "new-key");
     }
 
     [Fact]
@@ -535,14 +535,14 @@ public class SettingsViewModelTests
         entry.IsEditing.ShouldBeFalse();
         entry.EditableName.ShouldBe("My Hub");
         entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
-        await _hubConfigurationProvider.DidNotReceive().UpdateHubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+        await _hubConfigurationProvider.DidNotReceive().UpdateHub(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
     public async Task AddHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
     {
         // Arrange
-        _hubConfigurationProvider.AddHubAsync(Arg.Any<HubConfigData>())
+        _hubConfigurationProvider.AddHub(Arg.Any<HubConfigData>())
             .ThrowsAsync(new Exception("persist failed"));
         CreateSut();
         await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
@@ -569,7 +569,7 @@ public class SettingsViewModelTests
     {
         // Arrange
         SetupProviderHubs([DemoHub, CustomHub], "demo");
-        _hubConfigurationProvider.UpdateHubAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+        _hubConfigurationProvider.UpdateHub(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .ThrowsAsync(new Exception("persist failed"));
         CreateSut();
         _sut.AttachHandlers();
@@ -608,7 +608,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand<HubEntryViewModel>)_sut.RemoveHubCommand).ExecuteAsync(entry);
 
         // Assert
-        await _hubConfigurationProvider.Received(1).RemoveHubAsync("custom-1");
+        await _hubConfigurationProvider.Received(1).RemoveHub("custom-1");
     }
 
     [Fact]
@@ -625,7 +625,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand<HubEntryViewModel>)_sut.RemoveHubCommand).ExecuteAsync(entry);
 
         // Assert
-        await _hubConfigurationProvider.DidNotReceive().RemoveHubAsync(Arg.Any<string>());
+        await _hubConfigurationProvider.DidNotReceive().RemoveHub(Arg.Any<string>());
     }
 
     [Fact]

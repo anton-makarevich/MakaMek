@@ -91,7 +91,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
 
     public Task EnsureLoadedAsync() => _loadTask;
 
-    public async Task<RelayClientOptions> GetActiveOptionsAsync()
+    public async Task<RelayClientOptions> GetActiveOptions()
     {
         await EnsureLoadedAsync();
         lock (_gate)
@@ -105,7 +105,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
-    public async Task<string> GetActiveHubIdAsync()
+    public async Task<string> GetActiveHubId()
     {
         await EnsureLoadedAsync();
         lock (_gate)
@@ -114,7 +114,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
-    public async Task<IReadOnlyList<HubConfigData>> GetHubsAsync()
+    public async Task<IReadOnlyList<HubConfigData>> GetHubs()
     {
         await EnsureLoadedAsync();
         lock (_gate)
@@ -126,7 +126,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
-    public async Task AddHubAsync(HubConfigData hub)
+    public async Task AddHub(HubConfigData hub)
     {
         if (string.IsNullOrWhiteSpace(hub.Id))
         {
@@ -159,7 +159,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
-    public async Task UpdateHubAsync(string id, string name, string baseUrl, string apiKey)
+    public async Task UpdateHub(string id, string name, string baseUrl, string apiKey)
     {
         await EnsureLoadedAsync();
         lock (_gate)
@@ -179,7 +179,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         await PersistAsync();
     }
 
-    public async Task RemoveHubAsync(string id)
+    public async Task RemoveHub(string id)
     {
         await EnsureLoadedAsync();
         lock (_gate)
@@ -203,7 +203,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         await PersistAsync();
     }
 
-    public async Task SelectHubAsync(string id)
+    public async Task SelectHub(string id)
     {
         await EnsureLoadedAsync();
         lock (_gate)
