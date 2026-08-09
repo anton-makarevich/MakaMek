@@ -19,7 +19,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
     private readonly IFileCachingService _cachingService;
     private readonly ILogger<RelayHubConfigurationProvider> _logger;
     private readonly Dictionary<string, HubConfigData> _hubs = new(StringComparer.Ordinal);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly Task _loadTask;
     private string _activeHubId = DemoHubId;
@@ -40,7 +40,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
             IsBuiltIn: true);
         _hubs[DemoHubId] = demoHub;
 
-        _loadTask = LoadAsync();
+        _loadTask = Load();
     }
 
     public string ActiveHubId
@@ -217,8 +217,8 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         try
         {
             await EnsureLoadedAsync();
-            HubConfigData? previous = null;
-            var wasActive = false;
+            HubConfigData? previous;
+            bool wasActive;
             lock (_gate)
             {
                 if (!_hubs.TryGetValue(id, out var existing))
@@ -302,7 +302,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
     }
 
-    private async Task LoadAsync()
+    private async Task Load()
     {
         try
         {
@@ -376,7 +376,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
     /// </summary>
     private sealed class HubConfigurationsState
     {
-        public List<HubConfigData> Hubs { get; set; } = [];
-        public string? ActiveHubId { get; set; }
+        public List<HubConfigData> Hubs { get; init; } = [];
+        public string? ActiveHubId { get; init; }
     }
 }
