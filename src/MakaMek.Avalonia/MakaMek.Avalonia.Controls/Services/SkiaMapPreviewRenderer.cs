@@ -35,7 +35,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         _bitmaskService = bitmaskService;
     }
 
-    public async Task<object?> GeneratePreviewAsync(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
+    public async Task<object?> GeneratePreview(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
     {
         if (previewWidth <= 0) throw new ArgumentOutOfRangeException(nameof(previewWidth));
 

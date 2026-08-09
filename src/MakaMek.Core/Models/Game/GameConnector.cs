@@ -109,7 +109,7 @@ public class GameConnector : IGameConnector
         Guid? successfulDeviceSessionId = null;
         try
         {
-            var joinResult = await _relayRoomClient.JoinAsync(roomCode, sessionToken, cancellationToken);
+            var joinResult = await _relayRoomClient.Join(roomCode, sessionToken, cancellationToken);
             if (!joinResult.Success || joinResult.SessionToken is null || joinResult.HostGameId is null)
             {
                 OnlineError = joinResult.Error
@@ -226,7 +226,7 @@ public class GameConnector : IGameConnector
         if (_relayRoomClient == null) return;
         try
         {
-            await _relayRoomClient.RemoveMemberAsync(roomCode, sessionToken, deviceSessionId);
+            await _relayRoomClient.RemoveMember(roomCode, sessionToken, deviceSessionId);
         }
         catch (Exception ex)
         {

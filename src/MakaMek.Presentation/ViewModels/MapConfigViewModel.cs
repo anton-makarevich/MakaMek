@@ -354,7 +354,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             {
                 Name = mapName,
                 Map = battleMap,
-                PreviewImage = await _previewRenderer.GeneratePreviewAsync(battleMap)
+                PreviewImage = await _previewRenderer.GeneratePreview(battleMap)
             };
 
             var placeholder = AvailableMaps.OfType<LoadMapPlaceholder>().FirstOrDefault();
@@ -434,7 +434,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     {
         try
         {
-            var preview = await _previewRenderer.GeneratePreviewAsync(battleMap);
+            var preview = await _previewRenderer.GeneratePreview(battleMap);
             _dispatcherService.RunOnUIThread(() => item.PreviewImage = preview);
         }
         catch (Exception ex)
@@ -488,7 +488,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             var oldPreview = _previewImage as IDisposable;
             if (GeneratedMap != null)
             {
-                var newPreview = await _previewRenderer.GeneratePreviewAsync(GeneratedMap, cancellationToken: token);
+                var newPreview = await _previewRenderer.GeneratePreview(GeneratedMap, cancellationToken: token);
 
                 // Only update if not canceled and preview was generated
                 if (!token.IsCancellationRequested && newPreview != null)

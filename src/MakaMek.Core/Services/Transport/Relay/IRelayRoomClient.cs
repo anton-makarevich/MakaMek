@@ -7,26 +7,26 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 /// </summary>
 public interface IRelayRoomClient
 {
-    Task<RoomCreateResult> CreateAsync(
+    Task<RoomCreateResult> Create(
         Guid gameId,
         CancellationToken cancellationToken = default);
 
-    Task<RoomJoinResult> JoinAsync(
+    Task<RoomJoinResult> Join(
         string roomCode,
         string? sessionToken,
         CancellationToken cancellationToken = default);
 
-    Task<RoomOperationResult> ReadyAsync(
+    Task<RoomOperationResult> Ready(
         string roomCode,
         string sessionToken,
         CancellationToken cancellationToken = default);
 
-    Task<RoomOperationResult> CloseAsync(
+    Task<RoomOperationResult> Close(
         string roomCode,
         string sessionToken,
         CancellationToken cancellationToken = default);
 
-    Task<RoomOperationResult> RemoveMemberAsync(
+    Task<RoomOperationResult> RemoveMember(
         string roomCode,
         string sessionToken,
         Guid deviceSessionId,

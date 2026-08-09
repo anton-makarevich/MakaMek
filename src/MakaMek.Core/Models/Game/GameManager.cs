@@ -155,7 +155,7 @@ public class GameManager : IGameManager
         CreateServerGameAndSetupLogging();
         var gameId = _serverGame!.Id;
 
-        var createResult = await _relayRoomClient.CreateAsync(
+        var createResult = await _relayRoomClient.Create(
             gameId,
             cancellationToken);
         if (!createResult.Success
@@ -196,7 +196,7 @@ public class GameManager : IGameManager
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
 
-            var readyResult = await _relayRoomClient.ReadyAsync(
+            var readyResult = await _relayRoomClient.Ready(
                 createResult.RoomCode,
                 createResult.SessionToken,
                 cancellationToken);
@@ -285,7 +285,7 @@ public class GameManager : IGameManager
 
         try
         {
-            var closeResult = await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+            var closeResult = await _relayRoomClient.Close(RoomCode, _onlineSessionToken, cancellationToken);
 
             // Only clear the state when the close operation succeeded, so a failed
             // attempt can be retried and the room is not considered closed prematurely.
@@ -321,7 +321,7 @@ public class GameManager : IGameManager
         {
             try
             {
-                await _relayRoomClient.CloseAsync(roomCode, sessionToken);
+                await _relayRoomClient.Close(roomCode, sessionToken);
             }
             catch (Exception ex)
             {

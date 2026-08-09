@@ -38,7 +38,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
         _jsonOptions.Converters.Add(new TolerantHubErrorCodeConverter());
     }
 
-    public async Task<RoomCreateResult> CreateAsync(
+    public async Task<RoomCreateResult> Create(
         Guid gameId,
         CancellationToken cancellationToken = default)
     {
@@ -112,7 +112,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
         }
     }
 
-    public async Task<RoomJoinResult> JoinAsync(
+    public async Task<RoomJoinResult> Join(
         string roomCode,
         string? sessionToken,
         CancellationToken cancellationToken = default)
@@ -183,7 +183,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
         }
     }
 
-    public Task<RoomOperationResult> ReadyAsync(
+    public Task<RoomOperationResult> Ready(
         string roomCode,
         string sessionToken,
         CancellationToken cancellationToken = default) =>
@@ -194,7 +194,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
             sessionToken,
             cancellationToken);
 
-    public Task<RoomOperationResult> CloseAsync(
+    public Task<RoomOperationResult> Close(
         string roomCode,
         string sessionToken,
         CancellationToken cancellationToken = default) =>
@@ -205,7 +205,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
             sessionToken,
             cancellationToken);
 
-    public async Task<RoomOperationResult> RemoveMemberAsync(
+    public async Task<RoomOperationResult> RemoveMember(
         string roomCode,
         string sessionToken,
         Guid deviceSessionId,

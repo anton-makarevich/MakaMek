@@ -16,7 +16,7 @@ public interface IMapPreviewRenderer
     /// <param name="previewWidth">Width of the preview image in pixels</param>
     /// <param name="cancellationToken">Cancellation token to stop rendering</param>
     /// <returns>Preview image as a platform-specific object (e.g., Bitmap for Avalonia)</returns>
-    Task<object?> GeneratePreviewAsync(
+    Task<object?> GeneratePreview(
         BattleMap map,
         int previewWidth = 300, 
         CancellationToken cancellationToken = default);
