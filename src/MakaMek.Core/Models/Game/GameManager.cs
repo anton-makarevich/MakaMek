@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services.Logging;
@@ -27,9 +26,10 @@ public class GameManager : IGameManager
     private Action<IGameCommand>? _logHandler;
     private readonly IRelayRoomClient? _relayRoomClient;
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
-    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
     private RelayClientPublisher? _onlineRelayPublisher;
     private string? _onlineSessionToken;
+    private RelayClientOptions? _onlineRelayOptions;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -39,7 +39,7 @@ public class GameManager : IGameManager
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
-        IOptions<RelayClientOptions>? relayOptions = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
     {
         _commandPublisher = commandPublisher;
         _gameFactory = gameFactory;
@@ -49,7 +49,7 @@ public class GameManager : IGameManager
         _networkHostService = networkHostService;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
-        _relayOptions = relayOptions;
+        _relayHubConfigurationProvider = relayHubConfigurationProvider;
     }
     
     private static Action<IGameCommand> SafeLog(ICommandLogger logger) =>
@@ -68,7 +68,7 @@ public class GameManager : IGameManager
     public async Task ResetForNewGame()
     {
         // Remove and dispose any stale relay publisher before re-hosting
-        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
+        await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
         _onlineRelayPublisher = null;
 
         // Dispose current server game if exists
@@ -134,8 +134,18 @@ public class GameManager : IGameManager
         // Reset before initializing new lobby (also clears any stale relay publisher)
         await ResetForNewGame();
 
-        // Relay hosting requires both the room client and the publisher factory
-        if (_relayRoomClient is null || _relayPublisherFactory is null)
+        // Wait for persisted hub configuration before reading the active values below.
+        // This configuration is pinned for the whole room lifecycle below so Create, Ready,
+        // Close and the publisher all target the hub that was selected when hosting began.
+        var relayOptions = _relayHubConfigurationProvider is null
+            ? null
+            : await _relayHubConfigurationProvider.GetActiveOptions();
+
+        // Relay hosting requires the room client, the publisher factory, and an active hub configuration
+        if (_relayRoomClient is null
+            || _relayPublisherFactory is null
+            || relayOptions is null
+            || string.IsNullOrWhiteSpace(relayOptions.BaseUrl))
         {
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
@@ -148,9 +158,10 @@ public class GameManager : IGameManager
         CreateServerGameAndSetupLogging();
         var gameId = _serverGame!.Id;
 
-        var createResult = await _relayRoomClient.CreateAsync(
+        var createResult = await _relayRoomClient.Create(
             gameId,
-            cancellationToken);
+            cancellationToken,
+            relayOptions);
         if (!createResult.Success
             || createResult.RoomCode is null
             || createResult.SessionToken is null
@@ -168,43 +179,45 @@ public class GameManager : IGameManager
 
             // The server game was created above; dispose it the same way the failure
             // path does after a publisher/ready failure.
-            await CleanupOnlineAfterFailureAsync(publisher: null);
+            await CleanupOnlineAfterFailure(publisher: null);
             return;
         }
 
         RelayClientPublisher? publisher = null;
         try
         {
-            var baseUrl = _relayOptions?.Value.BaseUrl ?? string.Empty;
+            var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
-            publisher = await _relayPublisherFactory.CreateAsync(
+            publisher = await _relayPublisherFactory.Create(
                 hubUrl,
                 createResult.RoomCode,
                 createResult.SessionToken,
                 createResult.HostGameId.Value,
-                _relayOptions?.Value.ApiKey ?? string.Empty,
+                relayOptions.ApiKey,
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
 
-            var readyResult = await _relayRoomClient.ReadyAsync(
+            var readyResult = await _relayRoomClient.Ready(
                 createResult.RoomCode,
                 createResult.SessionToken,
-                cancellationToken);
+                cancellationToken,
+                relayOptions);
             if (!readyResult.Success)
             {
                 OnlineError = readyResult.Error
                     ?? new RelayClientError(
                         RelayClientErrorCode.Unknown,
                         "The relay did not confirm the room as ready.");
-                await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
+                await CloseRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
                 return;
             }
 
             RoomCode = createResult.RoomCode;
             _onlineSessionToken = createResult.SessionToken;
+            _onlineRelayOptions = relayOptions;
             _logger.LogInformation(
                 "Hosted relay room {RoomCode} for game {GameId}; relay publisher connected",
                 createResult.RoomCode,
@@ -212,7 +225,7 @@ public class GameManager : IGameManager
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
+            await CloseRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
             throw;
         }
         catch (Exception)
@@ -220,7 +233,7 @@ public class GameManager : IGameManager
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.Unknown,
                 "Failed to connect the host to the relay.");
-            await CloseRelayRoomAndCleanupAsync(createResult.RoomCode, createResult.SessionToken, publisher);
+            await CloseRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
         }
     }
 
@@ -244,7 +257,7 @@ public class GameManager : IGameManager
         _commandPublisher.Subscribe(_logHandler, transportPublisher);
     }
 
-    private async Task RemoveAndDisposeOnlinePublisherAsync(RelayClientPublisher? publisher)
+    private async Task RemoveAndDisposeOnlinePublisher(RelayClientPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
         if (publisher == null) return;
@@ -278,7 +291,7 @@ public class GameManager : IGameManager
 
         try
         {
-            var closeResult = await _relayRoomClient.CloseAsync(RoomCode, _onlineSessionToken, cancellationToken);
+            var closeResult = await _relayRoomClient.Close(RoomCode, _onlineSessionToken, cancellationToken, _onlineRelayOptions);
 
             // Only clear the state when the close operation succeeded, so a failed
             // attempt can be retried and the room is not considered closed prematurely.
@@ -291,6 +304,7 @@ public class GameManager : IGameManager
 
             _onlineSessionToken = null;
             RoomCode = null;
+            _onlineRelayOptions = null;
 
             return true;
         }
@@ -307,14 +321,18 @@ public class GameManager : IGameManager
         }
     }
 
-    private async Task CloseRelayRoomAndCleanupAsync(string? roomCode, string? sessionToken, RelayClientPublisher? publisher)
+    private async Task CloseRelayRoomAndCleanup(
+        string? roomCode,
+        string? sessionToken,
+        RelayClientPublisher? publisher,
+        RelayClientOptions options)
     {
         // Best-effort close of the relay room before local cleanup
         if (roomCode != null && sessionToken != null && _relayRoomClient != null)
         {
             try
             {
-                await _relayRoomClient.CloseAsync(roomCode, sessionToken);
+                await _relayRoomClient.Close(roomCode, sessionToken, options: options);
             }
             catch (Exception ex)
             {
@@ -322,15 +340,16 @@ public class GameManager : IGameManager
             }
         }
         
-        await CleanupOnlineAfterFailureAsync(publisher);
+        await CleanupOnlineAfterFailure(publisher);
     }
 
-    private async Task CleanupOnlineAfterFailureAsync(RelayClientPublisher? publisher)
+    private async Task CleanupOnlineAfterFailure(RelayClientPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
-        await RemoveAndDisposeOnlinePublisherAsync(publisher);
+        await RemoveAndDisposeOnlinePublisher(publisher);
         _onlineRelayPublisher = null;
         _onlineSessionToken = null;
+        _onlineRelayOptions = null;
         RoomCode = null;
 
         // Dispose server game if it was created
@@ -402,7 +421,7 @@ public class GameManager : IGameManager
         await CloseOnlineRoom();
 
         // Remove and dispose online relay publisher if it exists
-        await RemoveAndDisposeOnlinePublisherAsync(_onlineRelayPublisher);
+        await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
         _onlineRelayPublisher = null;
 
         _commandLogger?.Dispose();

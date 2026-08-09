@@ -156,7 +156,12 @@ public static class CoreServices
         // Relay publisher factory — shared, creates RelayClientPublisher instances for online hosts.
         services.AddSingleton<IRelayPublisherFactory, RelayPublisherFactory>();
 
-        // Relay room client — platforms bind RelayClientOptions (BaseUrl/ApiKey) via their configuration.
+        // Relay hub configuration — seeds the built-in Demo hub from RelayClientOptions
+        // (MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY) and persists user-defined hubs.
+        services.AddSingleton<IRelayHubConfigurationProvider, RelayHubConfigurationProvider>();
+
+        // Relay room client — reads the active hub configuration from IRelayHubConfigurationProvider
+        // on every request instead of a frozen options snapshot.
         services.AddOptions<RelayClientOptions>()
             .BindConfiguration(RelayClientOptions.SectionName);
         services.AddHttpClient<IRelayRoomClient, RelayRoomClient>();

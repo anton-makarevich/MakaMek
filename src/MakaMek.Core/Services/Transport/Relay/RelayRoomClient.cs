@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
 
 namespace Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -18,17 +17,17 @@ public sealed class RelayRoomClient : IRelayRoomClient
     private const string HostRole = "Host";
 
     private readonly HttpClient _httpClient;
-    private readonly RelayClientOptions _options;
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly ILogger<RelayRoomClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RelayRoomClient(
         HttpClient httpClient,
-        IOptions<RelayClientOptions> options,
+        IRelayHubConfigurationProvider hubConfigurationProvider,
         ILogger<RelayRoomClient> logger)
     {
         _httpClient = httpClient;
-        _options = options.Value;
+        _hubConfigurationProvider = hubConfigurationProvider;
         _logger = logger;
         _jsonOptions = new JsonSerializerOptions
         {
@@ -39,9 +38,10 @@ public sealed class RelayRoomClient : IRelayRoomClient
         _jsonOptions.Converters.Add(new TolerantHubErrorCodeConverter());
     }
 
-    public async Task<RoomCreateResult> CreateAsync(
+    public async Task<RoomCreateResult> Create(
         Guid gameId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        RelayClientOptions? options = null)
     {
         try
         {
@@ -49,10 +49,11 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 "Creating relay room for game {GameId}",
                 gameId);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Post,
                 "api/rooms",
-                sessionToken: null);
+                sessionToken: null,
+                options);
             request.Content = JsonContent.Create(
                 new CreateRoomRequest(gameId),
                 options: _jsonOptions);
@@ -111,9 +112,14 @@ public sealed class RelayRoomClient : IRelayRoomClient
             _logger.LogError(ex, "Relay create room deserialization error for game {GameId}", gameId);
             return RoomCreateResult.Failed(DeserializationError());
         }
+        catch (RelayConfigurationException ex)
+        {
+            _logger.LogError(ex, "Relay create room configuration error for game {GameId}", gameId);
+            return RoomCreateResult.Failed(ConfigurationError());
+        }
     }
 
-    public async Task<RoomJoinResult> JoinAsync(
+    public async Task<RoomJoinResult> Join(
         string roomCode,
         string? sessionToken,
         CancellationToken cancellationToken = default)
@@ -124,7 +130,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 "Joining relay room {RoomCode}",
                 roomCode);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Post,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/join",
                 sessionToken: sessionToken);
@@ -182,31 +188,40 @@ public sealed class RelayRoomClient : IRelayRoomClient
             _logger.LogError(ex, "Relay join room deserialization error for room {RoomCode}", roomCode);
             return RoomJoinResult.Failed(DeserializationError());
         }
+        catch (RelayConfigurationException ex)
+        {
+            _logger.LogError(ex, "Relay join room configuration error for room {RoomCode}", roomCode);
+            return RoomJoinResult.Failed(ConfigurationError());
+        }
     }
 
-    public Task<RoomOperationResult> ReadyAsync(
+    public Task<RoomOperationResult> Ready(
         string roomCode,
         string sessionToken,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        RelayClientOptions? options = null) =>
         SendAckAsync(
             HttpMethod.Post,
             $"api/rooms/{Uri.EscapeDataString(roomCode)}/ready",
             roomCode,
             sessionToken,
-            cancellationToken);
+            cancellationToken,
+            options);
 
-    public Task<RoomOperationResult> CloseAsync(
+    public Task<RoomOperationResult> Close(
         string roomCode,
         string sessionToken,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        RelayClientOptions? options = null) =>
         SendAckAsync(
             HttpMethod.Post,
             $"api/rooms/{Uri.EscapeDataString(roomCode)}/close",
             roomCode,
             sessionToken,
-            cancellationToken);
+            cancellationToken,
+            options);
 
-    public async Task<RoomOperationResult> RemoveMemberAsync(
+    public async Task<RoomOperationResult> RemoveMember(
         string roomCode,
         string sessionToken,
         Guid deviceSessionId,
@@ -219,7 +234,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 deviceSessionId,
                 roomCode);
 
-            using var request = CreateRequest(
+            using var request = await CreateRequest(
                 HttpMethod.Delete,
                 $"api/rooms/{Uri.EscapeDataString(roomCode)}/members/{deviceSessionId:D}",
                 sessionToken);
@@ -274,6 +289,11 @@ public sealed class RelayRoomClient : IRelayRoomClient
             _logger.LogError(ex, "Relay remove-member deserialization error for room {RoomCode}", roomCode);
             return RoomOperationResult.Failed(DeserializationError());
         }
+        catch (RelayConfigurationException ex)
+        {
+            _logger.LogError(ex, "Relay remove-member configuration error for room {RoomCode}", roomCode);
+            return RoomOperationResult.Failed(ConfigurationError());
+        }
     }
 
     private async Task<RoomOperationResult> SendAckAsync(
@@ -281,7 +301,8 @@ public sealed class RelayRoomClient : IRelayRoomClient
         string relativePath,
         string roomCode,
         string sessionToken,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        RelayClientOptions? options)
     {
         try
         {
@@ -290,7 +311,7 @@ public sealed class RelayRoomClient : IRelayRoomClient
                 method.Method,
                 roomCode);
 
-            using var request = CreateRequest(method, relativePath, sessionToken);
+            using var request = await CreateRequest(method, relativePath, sessionToken, options);
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -336,17 +357,28 @@ public sealed class RelayRoomClient : IRelayRoomClient
             _logger.LogError(ex, "Relay {Method} deserialization error for room {RoomCode}", method.Method, roomCode);
             return RoomOperationResult.Failed(DeserializationError());
         }
+        catch (RelayConfigurationException ex)
+        {
+            _logger.LogError(ex, "Relay {Method} configuration error for room {RoomCode}", method.Method, roomCode);
+            return RoomOperationResult.Failed(ConfigurationError());
+        }
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath, string? sessionToken)
+    private async Task<HttpRequestMessage> CreateRequest(HttpMethod method, string relativePath, string? sessionToken, RelayClientOptions? options = null)
     {
-        var baseUrl = _options.BaseUrl.TrimEnd('/');
+        var activeOptions = options ?? await _hubConfigurationProvider.GetActiveOptions();
+        var baseUrl = activeOptions.BaseUrl.Trim().TrimEnd('/');
+        if (!string.IsNullOrEmpty(baseUrl) && !IsValidHttpHubUrl(baseUrl))
+        {
+            throw new RelayConfigurationException(baseUrl);
+        }
+
         var uri = string.IsNullOrEmpty(baseUrl)
             ? new Uri(relativePath, UriKind.Relative)
             : new Uri($"{baseUrl}/{relativePath}", UriKind.Absolute);
 
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, _options.ApiKey);
+        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, activeOptions.ApiKey);
 
         if (!string.IsNullOrEmpty(sessionToken))
         {
@@ -470,6 +502,20 @@ public sealed class RelayRoomClient : IRelayRoomClient
 
     private static RelayClientError DeserializationError() =>
         new(RelayClientErrorCode.DeserializationError, "The relay response could not be read.");
+
+    private static RelayClientError ConfigurationError() =>
+        new(RelayClientErrorCode.ConfigurationError, "The relay hub base URL is not a well-formed HTTP or HTTPS URL.");
+
+    private static bool IsValidHttpHubUrl(string baseUrl) =>
+        Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    /// <summary>
+    /// Thrown when the active hub configuration cannot produce a valid request URL.
+    /// Mapped by the public room operations to <see cref="RelayClientErrorCode.ConfigurationError"/>.
+    /// </summary>
+    private sealed class RelayConfigurationException(string baseUrl)
+        : Exception($"The relay hub base URL '{baseUrl}' is not a well-formed absolute HTTP or HTTPS URL.");
 
     /// <summary>
     /// Converts <see cref="HubErrorCode"/> from JSON strings, mapping unrecognized values

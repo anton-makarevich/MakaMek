@@ -765,6 +765,16 @@ public class FakeLocalizationServiceTests
     [InlineData("Settings_Data_ClearCacheDescription", "Note: An app restart is required after clearing the cache.")]
     [InlineData("Settings_Data_Clearing", "Clearing cache...")]
     [InlineData("Settings_Data_Cleared", "Cache cleared successfully")]
+    [InlineData("Settings_Hub_SectionTitle", "Relay Hub")]
+    [InlineData("Settings_Hub_Select", "Active hub")]
+    [InlineData("Settings_Hub_AddHub", "Add Hub")]
+    [InlineData("Settings_Hub_Name", "Name")]
+    [InlineData("Settings_Hub_Url", "Hub URL")]
+    [InlineData("Settings_Hub_ApiKey", "API Key")]
+    [InlineData("Settings_Hub_Edit", "Edit")]
+    [InlineData("Settings_Hub_Save", "Save")]
+    [InlineData("Settings_Hub_Cancel", "Cancel")]
+    [InlineData("Settings_Hub_Remove", "Remove")]
     public void GetString_SettingsView_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

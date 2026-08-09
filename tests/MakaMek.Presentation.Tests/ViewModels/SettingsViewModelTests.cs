@@ -1,11 +1,14 @@
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -15,6 +18,7 @@ public class SettingsViewModelTests
     private readonly IFileCachingService _fileCachingService = Substitute.For<IFileCachingService>();
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private ILogger<SettingsViewModel> _logger = null!;
     private SettingsViewModel _sut = null!;
@@ -38,6 +42,7 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
+            _hubConfigurationProvider,
             _logger);
     }
 
@@ -219,6 +224,7 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
+            _hubConfigurationProvider,
             logger);
 
         // Assert - Poll for SafeFireAndForget completion
@@ -245,6 +251,7 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
+            _hubConfigurationProvider,
             logger);
 
         // Assert - Poll for async initialization
@@ -272,6 +279,7 @@ public class SettingsViewModelTests
             _unitCachingService,
             _terrainAssetService,
             _localizationService,
+            _hubConfigurationProvider,
             logger);
 
         // Assert - Poll for async initialization
@@ -283,5 +291,386 @@ public class SettingsViewModelTests
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
         viewModel.CacheStatus.ShouldBe("Loaded units: {0}, Loaded biomes: {1}");
+    }
+
+    private static HubConfigData DemoHub => new("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+    private static HubConfigData CustomHub => new("custom-1", "My Hub", "http://my-hub.example", "secret", false);
+
+    private void SetupProviderHubs(IReadOnlyList<HubConfigData> hubs, string activeHubId)
+    {
+        _hubConfigurationProvider.GetHubs().Returns(Task.FromResult(hubs));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult(activeHubId));
+    }
+
+    [Fact]
+    public void Constructor_ShouldInitializeHubCommands()
+    {
+        // Arrange
+        CreateSut();
+
+        // Assert
+        _sut.AddHubCommand.ShouldNotBeNull();
+        _sut.RemoveHubCommand.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void HubSectionTitle_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.HubSectionTitle;
+
+        // Assert
+        result.ShouldBe("Relay Hub");
+    }
+
+    [Fact]
+    public void HubSelectLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.HubSelectLabel;
+
+        // Assert
+        result.ShouldBe("Active hub");
+    }
+
+    [Fact]
+    public void HubAddHubLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.HubAddHubLabel;
+
+        // Assert
+        result.ShouldBe("Add Hub");
+    }
+
+    [Fact]
+    public async Task AttachHandlers_ShouldLoadHubsAndSelectActiveHub()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        // Assert
+        _sut.Hubs.Count.ShouldBe(2);
+        _sut.SelectedHub.ShouldNotBeNull();
+        _sut.SelectedHub!.Id.ShouldBe("demo");
+        _sut.Hubs[0].IsBuiltIn.ShouldBeTrue();
+        _sut.Hubs[1].IsNew.ShouldBeFalse();
+        _sut.Hubs[1].CanEdit.ShouldBeTrue();
+        _sut.Hubs[1].CanRemove.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SelectedHub_WhenChanged_ShouldPersistSelection()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        // Act
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
+
+        // Assert
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
+        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+    }
+
+    [Fact]
+    public async Task SelectedHub_ConsecutiveSelections_PersistInSelectionOrder_EvenIfFirstCompletesLate()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        var firstSelection = new TaskCompletionSource();
+        _hubConfigurationProvider.SelectHub("custom-1").Returns(firstSelection.Task);
+        _hubConfigurationProvider.SelectHub("demo").Returns(Task.CompletedTask);
+
+        // Act - select custom-1 first, then demo while the first write is still in flight
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
+
+        // Assert - the second selection must wait for the first one to finish
+        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+
+        // Complete the first selection; only then is the second issued
+        firstSelection.SetResult();
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls().Any(c =>
+            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)
+            && c.GetArguments()[0] as string == "demo"));
+
+        Received.InOrder(() =>
+        {
+            _hubConfigurationProvider.SelectHub("custom-1");
+            _hubConfigurationProvider.SelectHub("demo");
+        });
+    }
+
+    [Fact]
+    public async Task SelectedHub_WhenEarlierSelectionFails_LaterSelectionStillPersists()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+
+        var firstSelection = new TaskCompletionSource();
+        _hubConfigurationProvider.SelectHub("custom-1").Returns(firstSelection.Task);
+        _hubConfigurationProvider.SelectHub("demo").Returns(Task.CompletedTask);
+
+        // Act - select custom-1 first, then demo while the first write is still in flight
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "custom-1");
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)));
+        _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
+
+        // The second selection must wait for the first one to finish
+        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+
+        // Fail the first selection; the later selection must still go through
+        firstSelection.SetException(new Exception("selection failed"));
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls().Any(c =>
+            c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)
+            && c.GetArguments()[0] as string == "demo"));
+
+        _hubConfigurationProvider.Received(1).SelectHub("demo");
+    }
+
+    [Fact]
+    public async Task AddHubCommand_WhenExecuted_ShouldAddNewEditingEntry()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+
+        // Assert
+        _sut.Hubs.Count.ShouldBe(1);
+        var entry = _sut.Hubs[0];
+        entry.IsNew.ShouldBeTrue();
+        entry.IsEditing.ShouldBeTrue();
+        entry.IsBuiltIn.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AddHub_WhenCancelled_ShouldRemoveEntry()
+    {
+        // Arrange
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+
+        // Act
+        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
+
+        // Assert
+        _sut.Hubs.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddHub_WhenSaved_ShouldAddHubToProvider()
+    {
+        // Arrange
+        SetupProviderHubs([], "demo");
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+        entry.EditableName = "My Hub";
+        entry.EditableBaseUrl = "http://my-hub.example";
+        entry.EditableApiKey = "secret";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+
+        // Assert
+        await _hubConfigurationProvider.Received(1).AddHub(Arg.Is<HubConfigData>(h =>
+            h.Id == entry.Id && h.Name == "My Hub" && h.BaseUrl == "http://my-hub.example" && h.ApiKey == "secret" && !h.IsBuiltIn));
+    }
+
+    [Fact]
+    public async Task AddHub_WhenSavedWithoutBaseUrl_ShouldNotCommit()
+    {
+        // Arrange
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+        entry.EditableBaseUrl = "   ";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+
+        // Assert
+        await _hubConfigurationProvider.DidNotReceive().AddHub(Arg.Any<HubConfigData>());
+    }
+
+    [Fact]
+    public async Task EditExistingHub_WhenSaved_ShouldUpdateHubInProvider()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        var entry = _sut.Hubs.First(h => h.Id == "custom-1");
+
+        // Act
+        await ((IAsyncCommand)entry.StartEditingCommand).ExecuteAsync();
+        entry.EditableName = "Renamed";
+        entry.EditableBaseUrl = "http://new.example";
+        entry.EditableApiKey = "new-key";
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+
+        // Assert
+        await _hubConfigurationProvider.Received(1).UpdateHub("custom-1", "Renamed", "http://new.example", "new-key");
+    }
+
+    [Fact]
+    public async Task EditExistingHub_WhenCancelled_ShouldRestoreEditableValues()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        var entry = _sut.Hubs.First(h => h.Id == "custom-1");
+        await ((IAsyncCommand)entry.StartEditingCommand).ExecuteAsync();
+        entry.EditableName = "Renamed";
+
+        // Act
+        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
+
+        // Assert
+        entry.IsEditing.ShouldBeFalse();
+        entry.EditableName.ShouldBe("My Hub");
+        entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
+        await _hubConfigurationProvider.DidNotReceive().UpdateHub(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AddHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
+    {
+        // Arrange
+        _hubConfigurationProvider.AddHub(Arg.Any<HubConfigData>())
+            .ThrowsAsync(new Exception("persist failed"));
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+        entry.EditableName = "My Hub";
+        entry.EditableBaseUrl = "http://my-hub.example";
+        entry.EditableApiKey = "secret";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The editor stays open with the edited values so the save can be retried
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableName.ShouldBe("My Hub");
+        entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
+        entry.EditableApiKey.ShouldBe("secret");
+        // The hub itself is not committed
+        entry.Hub.Name.ShouldBeEmpty();
+        entry.Hub.BaseUrl.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task EditExistingHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        _hubConfigurationProvider.UpdateHub(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .ThrowsAsync(new Exception("persist failed"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        var entry = _sut.Hubs.First(h => h.Id == "custom-1");
+        await ((IAsyncCommand)entry.StartEditingCommand).ExecuteAsync();
+        entry.EditableName = "Renamed";
+        entry.EditableBaseUrl = "http://new.example";
+        entry.EditableApiKey = "new-key";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The editor stays open with the edited values so the save can be retried
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableName.ShouldBe("Renamed");
+        entry.EditableBaseUrl.ShouldBe("http://new.example");
+        entry.EditableApiKey.ShouldBe("new-key");
+        // The committed hub still holds the previous values
+        entry.Name.ShouldBe("My Hub");
+        entry.BaseUrl.ShouldBe("http://my-hub.example");
+        entry.ApiKey.ShouldBe("secret");
+    }
+
+    [Fact]
+    public async Task RemoveHubCommand_WhenExecuted_ShouldRemoveHubFromProvider()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        var entry = _sut.Hubs.First(h => h.Id == "custom-1");
+
+        // Act
+        await ((IAsyncCommand<HubEntryViewModel>)_sut.RemoveHubCommand).ExecuteAsync(entry);
+
+        // Assert
+        await _hubConfigurationProvider.Received(1).RemoveHub("custom-1");
+    }
+
+    [Fact]
+    public async Task RemoveHubCommand_WhenBuiltIn_ShouldNotRemove()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub], "demo");
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 1);
+        var entry = _sut.Hubs.Single();
+
+        // Act
+        await ((IAsyncCommand<HubEntryViewModel>)_sut.RemoveHubCommand).ExecuteAsync(entry);
+
+        // Assert
+        await _hubConfigurationProvider.DidNotReceive().RemoveHub(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task BuiltInHub_ShouldNotAllowEditing()
+    {
+        // Arrange
+        CreateSut();
+        var entry = new HubEntryViewModel(DemoHub);
+
+        // Act
+        await ((IAsyncCommand)entry.StartEditingCommand).ExecuteAsync();
+
+        // Assert
+        entry.IsEditing.ShouldBeFalse();
     }
 }

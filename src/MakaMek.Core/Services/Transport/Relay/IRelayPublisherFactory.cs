@@ -18,7 +18,7 @@ public interface IRelayPublisherFactory
     /// <param name="expectedHostId">Id of the host ServerGame (GameOriginId) this publisher is expected to act for.</param>
     /// <param name="apiKey">API key required by the MakaMek Hub, if any.</param>
     /// <param name="cancellationToken">Token that cancels publisher creation and connection.</param>
-    Task<RelayClientPublisher> CreateAsync(
+    Task<RelayClientPublisher> Create(
         string hubUrl,
         string roomCode,
         string sessionToken,

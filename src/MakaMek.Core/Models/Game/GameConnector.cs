@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -18,7 +17,7 @@ public class GameConnector : IGameConnector
     private readonly ITransportFactory _transportFactory;
     private readonly IRelayRoomClient? _relayRoomClient;
     private readonly IRelayPublisherFactory? _relayPublisherFactory;
-    private readonly IOptions<RelayClientOptions>? _relayOptions;
+    private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
     private readonly ILogger<GameConnector> _logger;
 
     private RelayClientPublisher? _relayPublisher;
@@ -33,14 +32,14 @@ public class GameConnector : IGameConnector
         ILogger<GameConnector> logger,
         IRelayRoomClient? relayRoomClient = null,
         IRelayPublisherFactory? relayPublisherFactory = null,
-        IOptions<RelayClientOptions>? relayOptions = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
     {
         _commandPublisher = commandPublisher;
         _transportFactory = transportFactory;
         _logger = logger;
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
-        _relayOptions = relayOptions;
+        _relayHubConfigurationProvider = relayHubConfigurationProvider;
     }
 
     public bool IsConnected { get; private set; }
@@ -88,8 +87,16 @@ public class GameConnector : IGameConnector
     {
         OnlineError = null;
 
-        // Online joining requires the relay room client, publisher factory, and options
-        if (_relayRoomClient is null || _relayPublisherFactory is null || _relayOptions is null)
+        // Wait for persisted hub configuration before reading the active values below
+        var relayOptions = _relayHubConfigurationProvider is null
+            ? null
+            : await _relayHubConfigurationProvider.GetActiveOptions();
+
+        // Online joining requires the relay room client, publisher factory, and an active hub configuration
+        if (_relayRoomClient is null
+            || _relayPublisherFactory is null
+            || relayOptions is null
+            || string.IsNullOrWhiteSpace(relayOptions.BaseUrl))
         {
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
@@ -102,7 +109,7 @@ public class GameConnector : IGameConnector
         Guid? successfulDeviceSessionId = null;
         try
         {
-            var joinResult = await _relayRoomClient.JoinAsync(roomCode, sessionToken, cancellationToken);
+            var joinResult = await _relayRoomClient.Join(roomCode, sessionToken, cancellationToken);
             if (!joinResult.Success || joinResult.SessionToken is null || joinResult.HostGameId is null)
             {
                 OnlineError = joinResult.Error
@@ -115,15 +122,15 @@ public class GameConnector : IGameConnector
             successfulSessionToken = joinResult.SessionToken;
             successfulDeviceSessionId = joinResult.DeviceSessionId;
 
-            var baseUrl = _relayOptions.Value.BaseUrl;
+            var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
-            publisher = await _relayPublisherFactory.CreateAsync(
+            publisher = await _relayPublisherFactory.Create(
                 hubUrl,
                 roomCode,
                 joinResult.SessionToken,
                 joinResult.HostGameId.Value,
-                _relayOptions.Value.ApiKey,
+                relayOptions.ApiKey,
                 cancellationToken);
 
             // Throw if cancelled; the cancellation catch block below is the single
@@ -219,7 +226,7 @@ public class GameConnector : IGameConnector
         if (_relayRoomClient == null) return;
         try
         {
-            await _relayRoomClient.RemoveMemberAsync(roomCode, sessionToken, deviceSessionId);
+            await _relayRoomClient.RemoveMember(roomCode, sessionToken, deviceSessionId);
         }
         catch (Exception ex)
         {

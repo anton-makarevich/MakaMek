@@ -479,7 +479,7 @@ public class MapConfigViewModelTests
     {
         // Arrange - setup mock to return a completed task
         var objectImage = new object();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(objectImage));
@@ -497,7 +497,7 @@ public class MapConfigViewModelTests
         }
 
         // Assert - initial preview should be generated
-        await _previewRenderer.Received().GeneratePreviewAsync(
+        await _previewRenderer.Received().GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>());
@@ -511,7 +511,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         var mockImage = new object();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
@@ -532,7 +532,7 @@ public class MapConfigViewModelTests
         // Arrange
         var mockImage1 = Substitute.For<IDisposable>();
         var mockImage2 = Substitute.For<IDisposable>();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(
@@ -572,7 +572,7 @@ public class MapConfigViewModelTests
     public async Task PreviewImage_RemainsNull_WhenGeneratePreviewReturnsNull()
     {
         // Arrange
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
@@ -609,7 +609,7 @@ public class MapConfigViewModelTests
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
         
         var previewImage = new object();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(previewImage));
@@ -752,7 +752,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         var mockDisposable = Substitute.For<IDisposable>();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockDisposable));
@@ -924,7 +924,7 @@ public class MapConfigViewModelTests
         var previewImage = new object();
         var previewGenerationTasks = new List<Task<object?>>();
 
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
                 Arg.Any<BattleMap>(),
                 Arg.Any<int>(),
                 Arg.Any<CancellationToken>())
@@ -1000,13 +1000,13 @@ public class MapConfigViewModelTests
         _mapFactory.CreateFromData(mapData1).Returns(map1);
         _mapFactory.CreateFromData(mapData2).Returns(map2);
         
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Is<BattleMap>(x => x.Width == 5 && x.Height == 5),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>())
             .Returns(Task.FromException<object?>(new InvalidOperationException("Preview failed")));
         
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Is<BattleMap>(x => x.Width == 6 && x.Height == 6),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>())
@@ -1082,7 +1082,7 @@ public class MapConfigViewModelTests
             });
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(map);
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
@@ -1120,7 +1120,7 @@ public class MapConfigViewModelTests
             });
         var existingMap = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Is<BattleMapData>(d => d == mapData)).Returns(existingMap);
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
@@ -1151,7 +1151,7 @@ public class MapConfigViewModelTests
                                """;
         _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>(("NewMap.json", mapJson)));
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(new BattleMap(2, 2));
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
@@ -1175,7 +1175,7 @@ public class MapConfigViewModelTests
         var callCount = 0;
         var firstCallTcs = new TaskCompletionSource<object?>();
 
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
                 Arg.Any<BattleMap>(),
                 Arg.Any<int>(),
                 Arg.Any<CancellationToken>())
@@ -1216,7 +1216,7 @@ public class MapConfigViewModelTests
         // Arrange
         var previewTask = new TaskCompletionSource<object?>();
         CancellationToken capturedToken = CancellationToken.None;
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
                 Arg.Any<BattleMap>(),
                 Arg.Any<int>(),
                 Arg.Any<CancellationToken>())
@@ -1250,7 +1250,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         var mockImage = new object();
-        _previewRenderer.GeneratePreviewAsync(
+        _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));

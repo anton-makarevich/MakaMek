@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Services.Transport.Relay.Contracts;
@@ -60,12 +59,13 @@ public class RelayRoomClientTests
     public RelayRoomClientTests()
     {
         var httpClient = new HttpClient(_handler);
-        var options = Options.Create(new RelayClientOptions
+        var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        hubConfigurationProvider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
         {
             BaseUrl = BaseUrl,
             ApiKey = ApiKey
-        });
-        _sut = new RelayRoomClient(httpClient, options, _logger);
+        }));
+        _sut = new RelayRoomClient(httpClient, hubConfigurationProvider, _logger);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.CreateAsync(hostGameId);
+        var result = await _sut.Create(hostGameId);
 
         result.Success.ShouldBeTrue();
         result.RoomCode.ShouldBe("ABCDEF");
@@ -125,7 +125,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeTrue();
         result.RoomCode.ShouldBe("ABCDEF");
@@ -153,8 +153,8 @@ public class RelayRoomClientTests
         _handler.ResponseContent = """{ "success": true, "error": null }""";
 
         var result = operation == "ready"
-            ? await _sut.ReadyAsync("ABCDEF", SessionToken)
-            : await _sut.CloseAsync("ABCDEF", SessionToken);
+            ? await _sut.Ready("ABCDEF", SessionToken)
+            : await _sut.Close("ABCDEF", SessionToken);
 
         result.Success.ShouldBeTrue();
         result.Error.ShouldBeNull();
@@ -168,13 +168,76 @@ public class RelayRoomClientTests
     }
 
     [Fact]
+    public async Task ReadyAsync_UsesConfigurationValueActiveAtCallTime()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "https://first.example",
+            ApiKey = "first-key"
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = """{ "success": true, "error": null }""";
+
+        // Act - first call uses the initial configuration
+        var firstResult = await client.Ready("ABCDEF", SessionToken);
+
+        // Assert
+        firstResult.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://first.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("first-key");
+
+        // Update the configuration to different successive values
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "https://second.example",
+            ApiKey = "second-key"
+        }));
+
+        // Act - second call must use the updated configuration
+        var secondResult = await client.Ready("ABCDEF", SessionToken);
+
+        // Assert
+        secondResult.Success.ShouldBeTrue();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://second.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("second-key");
+    }
+
+    [Fact]
+    public async Task ReadyAsync_WhenOptionsProvided_UsesPinnedOptionsWithoutConsultingProvider()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = """{ "success": true, "error": null }""";
+
+        // Act
+        var result = await client.Ready("ABCDEF", SessionToken, options: new RelayClientOptions
+        {
+            BaseUrl = "https://pinned.example",
+            ApiKey = "pinned-key"
+        });
+
+        // Assert
+        result.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://pinned.example/api/rooms/ABCDEF/ready");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("pinned-key");
+        await provider.DidNotReceive().GetActiveOptions();
+    }
+
+    [Fact]
     public async Task RemoveMemberAsync_Success_SendsDeleteWithHeadersAndDeviceSessionId()
     {
         var deviceSessionId = Guid.Parse("33333333-3333-3333-3333-333333333333");
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = """{ "success": true, "error": null }""";
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, deviceSessionId);
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, deviceSessionId);
 
         result.Success.ShouldBeTrue();
         _handler.LastRequest.ShouldNotBeNull();
@@ -214,7 +277,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error.ShouldNotBeNull();
@@ -243,7 +306,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.HubAtCapacity);
@@ -257,7 +320,7 @@ public class RelayRoomClientTests
         _handler.ResponseContent = string.Empty;
         _handler.ContentType = "text/plain";
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unauthorized);
@@ -271,7 +334,7 @@ public class RelayRoomClientTests
         _handler.ResponseContent = string.Empty;
         _handler.ContentType = "text/plain";
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unauthorized);
@@ -289,7 +352,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -303,7 +366,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.BadRequest;
         _handler.ResponseContent = "{}";
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -317,7 +380,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.BadRequest;
         _handler.ResponseContent = """{ "title": 42 }""";
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -331,7 +394,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.BadRequest;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -345,7 +408,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.BadRequest;
         _handler.ResponseContent = "not-valid-json";
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -358,7 +421,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
@@ -370,7 +433,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new TaskCanceledException("timed out");
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
@@ -383,11 +446,145 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.Created;
         _handler.ResponseContent = "{ not-json";
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
         AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task CreateAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Create(Guid.NewGuid());
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task JoinAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Join("ABCDEF", sessionToken: null);
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task RemoveMemberAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task ReadyAsync_MalformedBaseUrl_MapsToConfigurationError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Ready("ABCDEF", SessionToken);
+
+        // Assert
+        result.Success.ShouldBeFalse();
+        result.Error.ShouldNotBeNull();
+        result.Error!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Error.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_BlankBaseUrl_FallsBackToRelativeRequest()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = "   ",
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler) { BaseAddress = new Uri("http://base.example") }, provider, _logger);
+        _handler.StatusCode = HttpStatusCode.Created;
+        _handler.ResponseContent = """
+            {
+              "success": true,
+              "roomCode": "ABCDEF",
+              "deviceSessionId": "99999999-9999-9999-9999-999999999999",
+              "hostGameId": "11111111-1111-1111-1111-111111111111",
+              "sessionToken": "test-session-token-secret-value",
+              "expiresAt": "2026-07-30T22:00:00Z",
+              "error": null
+            }
+            """;
+
+        // Act
+        var result = await client.Create(Guid.NewGuid());
+
+        // Assert - a blank base URL is not a configuration error; the relative request resolves against the HttpClient base address
+        result.Success.ShouldBeTrue();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.IsAbsoluteUri.ShouldBeTrue();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("http://base.example/api/rooms");
     }
 
     [Fact]
@@ -401,7 +598,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.RoomNotFound);
@@ -413,7 +610,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
@@ -425,7 +622,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new TaskCanceledException("timed out");
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
@@ -438,7 +635,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = "{ not-json";
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -451,7 +648,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -470,7 +667,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, memberId);
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, memberId);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.MemberNotFound);
@@ -488,7 +685,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -501,7 +698,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.BadRequest;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.ValidationError);
@@ -514,7 +711,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
@@ -526,7 +723,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new TaskCanceledException("timed out");
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
@@ -539,7 +736,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = "{ not-json";
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -552,7 +749,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -565,7 +762,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -577,7 +774,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
@@ -589,7 +786,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new TaskCanceledException("timed out");
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
@@ -602,7 +799,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = "{ not-json";
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -614,7 +811,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new HttpRequestException("connection refused");
 
-        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+        var result = await _sut.Close("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
@@ -626,7 +823,7 @@ public class RelayRoomClientTests
     {
         _handler.ThrowException = new TaskCanceledException("timed out");
 
-        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+        var result = await _sut.Close("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Timeout);
@@ -639,7 +836,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.OK;
         _handler.ResponseContent = "{ not-json";
 
-        var result = await _sut.CloseAsync("ABCDEF", SessionToken);
+        var result = await _sut.Close("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -662,7 +859,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(expected);
@@ -680,7 +877,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.RoomFull);
@@ -698,7 +895,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -711,7 +908,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.Conflict;
         _handler.ResponseContent = """{ "success": false, "error": { "code": "TotallyUnknown", "message": "?" } }""";
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -734,7 +931,7 @@ public class RelayRoomClientTests
             }
             """;
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(expected);
@@ -747,7 +944,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.Created;
         _handler.ResponseContent = string.Empty;
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.DeserializationError);
@@ -760,7 +957,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.InternalServerError;
         _handler.ResponseContent = """{ "success": false, "roomCode": null, "hostId": null, "sessionToken": null, "expiresAt": null, "error": null }""";
 
-        var result = await _sut.CreateAsync(Guid.NewGuid());
+        var result = await _sut.Create(Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -773,7 +970,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.InternalServerError;
         _handler.ResponseContent = """{ "success": false, "role": null, "playerId": null, "hostId": null, "sessionToken": null, "error": null }""";
 
-        var result = await _sut.JoinAsync("ABCDEF", sessionToken: null);
+        var result = await _sut.Join("ABCDEF", sessionToken: null);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -786,7 +983,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.InternalServerError;
         _handler.ResponseContent = """{ "success": false, "error": null }""";
 
-        var result = await _sut.ReadyAsync("ABCDEF", SessionToken);
+        var result = await _sut.Ready("ABCDEF", SessionToken);
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -799,7 +996,7 @@ public class RelayRoomClientTests
         _handler.StatusCode = HttpStatusCode.InternalServerError;
         _handler.ResponseContent = """{ "success": false, "error": null }""";
 
-        var result = await _sut.RemoveMemberAsync("ABCDEF", SessionToken, Guid.NewGuid());
+        var result = await _sut.RemoveMember("ABCDEF", SessionToken, Guid.NewGuid());
 
         result.Success.ShouldBeFalse();
         result.Error!.Code.ShouldBe(RelayClientErrorCode.Unknown);
@@ -813,10 +1010,10 @@ public class RelayRoomClientTests
         await cts.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            _sut.ReadyAsync("ABCDEF", SessionToken, cts.Token));
+            _sut.Ready("ABCDEF", SessionToken, cts.Token));
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            _sut.CloseAsync("ABCDEF", SessionToken, cts.Token));
+            _sut.Close("ABCDEF", SessionToken, cts.Token));
     }
 
     [Fact]
@@ -827,13 +1024,13 @@ public class RelayRoomClientTests
         var deviceSessionId = Guid.NewGuid();
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            _sut.CreateAsync(deviceSessionId, cts.Token));
+            _sut.Create(deviceSessionId, cts.Token));
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            _sut.JoinAsync("ABCDEF", sessionToken: null, cts.Token));
+            _sut.Join("ABCDEF", sessionToken: null, cts.Token));
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            _sut.RemoveMemberAsync("ABCDEF", SessionToken, deviceSessionId, cts.Token));
+            _sut.RemoveMember("ABCDEF", SessionToken, deviceSessionId, cts.Token));
     }
 
     [Fact]
