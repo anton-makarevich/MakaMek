@@ -175,7 +175,8 @@ public class GameConnector : IGameConnector
     /// Invoked when the relay publisher reports that the host has disconnected from the room.
     /// Synthesizes a local <see cref="GameEndedCommand"/> delivered through the shared command
     /// pipeline so the client reacts the same way it would if the server had sent the command,
-    /// without requiring further network traffic.
+    /// without requiring further network traffic. The command is dispatched through the local
+    /// receive path rather than published to the (now disconnected) relay publisher.
     /// </summary>
     /// <param name="publisher">The publisher that lost its connection to the host.</param>
     private void OnRelayHostDisconnected(ITransportPublisher publisher)
@@ -191,7 +192,7 @@ public class GameConnector : IGameConnector
             Reason = GameEndReason.HostDisconnected,
             Timestamp = DateTime.UtcNow
         };
-        _commandPublisher.PublishCommand(command);
+        _commandPublisher.Adapter.DispatchLocalCommand(command, publisher);
     }
 
     private async Task RemoveAndDisposeOnlinePublisher(RelayClientPublisher? publisher)

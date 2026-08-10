@@ -462,9 +462,10 @@ public class GameConnectorTests : IDisposable
         disconnectHandler.ShouldNotBeNull();
         disconnectHandler.Invoke(publisher);
 
-        // A GameEndedCommand with HostDisconnected reason is published through the shared pipeline
-        commandPublisher.Received(1).PublishCommand(
-            Arg.Is<GameEndedCommand>(c => c.Reason == GameEndReason.HostDisconnected));
+        // A GameEndedCommand with HostDisconnected reason is dispatched through the local receive path
+        mockAdapter.Received(1).DispatchLocalCommand(
+            Arg.Is<GameEndedCommand>(c => c.Reason == GameEndReason.HostDisconnected),
+            publisher);
         await sut.DisposeAsync();
     }
 
@@ -502,8 +503,8 @@ public class GameConnectorTests : IDisposable
         // Act - a publisher that is not the active relay publisher reports a disconnect
         disconnectHandler.Invoke(Substitute.For<ITransportPublisher>());
 
-        // Assert - no command is published for unrelated publishers
-        commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
+        // Assert - no command is dispatched for unrelated publishers
+        mockAdapter.DidNotReceive().DispatchLocalCommand(Arg.Any<IGameCommand>(), Arg.Any<ITransportPublisher>());
         await sut.DisposeAsync();
     }
 
