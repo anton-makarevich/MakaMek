@@ -41,6 +41,18 @@ builder.Services
     .Validate(
         options => options.DissolutionGracePeriodSeconds > 0,
         $"{HubOptions.SectionName}:DissolutionGracePeriodSeconds must be greater than zero.")
+    .Validate(
+        options => options.PeerDisconnectNotificationDelaySeconds >= 0,
+        $"{HubOptions.SectionName}:PeerDisconnectNotificationDelaySeconds must be greater than or equal to zero.")
+    .Validate(
+        options => options.SignalR.KeepAliveIntervalSeconds > 0,
+        $"{HubOptions.SectionName}:SignalR:KeepAliveIntervalSeconds must be greater than zero.")
+    .Validate(
+        options => options.SignalR.ClientTimeoutIntervalSeconds > 0,
+        $"{HubOptions.SectionName}:SignalR:ClientTimeoutIntervalSeconds must be greater than zero.")
+    .Validate(
+        options => options.SignalR.ClientTimeoutIntervalSeconds >= 2 * options.SignalR.KeepAliveIntervalSeconds,
+        $"{HubOptions.SectionName}:SignalR:ClientTimeoutIntervalSeconds must be at least twice KeepAliveIntervalSeconds.")
     .ValidateOnStart();
 
 builder.Services
@@ -114,12 +126,23 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IRoomCodeGenerator, CryptographicRoomCodeGenerator>();
 builder.Services.AddSingleton<IRoomManager, RoomManager>();
 builder.Services.AddSingleton<IRelayRateLimiter, RelayRateLimiter>();
+builder.Services.AddSingleton<IPeerNotificationScheduler, PeerNotificationScheduler>();
 builder.Services.AddSignalR(options =>
 {
     var maxPayload = builder.Configuration.GetValue(
         $"{HubOptions.SectionName}:MaxRelayPayloadBytes",
         256 * 1024);
     options.MaximumReceiveMessageSize = maxPayload + RelayHub.ReceiveMessageSizeOverheadBytes;
+
+    var keepAliveSeconds = builder.Configuration.GetValue(
+        $"{HubOptions.SectionName}:SignalR:KeepAliveIntervalSeconds",
+        SignalROptions.DefaultKeepAliveIntervalSeconds);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(keepAliveSeconds);
+
+    var clientTimeoutSeconds = builder.Configuration.GetValue(
+        $"{HubOptions.SectionName}:SignalR:ClientTimeoutIntervalSeconds",
+        SignalROptions.DefaultClientTimeoutIntervalSeconds);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(clientTimeoutSeconds);
 });
 
 var app = builder.Build();

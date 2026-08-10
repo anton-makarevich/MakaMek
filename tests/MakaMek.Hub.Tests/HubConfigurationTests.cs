@@ -52,6 +52,86 @@ public class HubConfigurationTests
         options.JoinRateLimitPerMinute.ShouldBe(10);
         options.RelayRateLimitPerMinute.ShouldBe(120);
         options.MaxRelayPayloadBytes.ShouldBe(256 * 1024);
+        options.PeerDisconnectNotificationDelaySeconds.ShouldBe(5);
+        options.SignalR.KeepAliveIntervalSeconds.ShouldBe(15);
+        options.SignalR.ClientTimeoutIntervalSeconds.ShouldBe(30);
+    }
+
+    [Fact]
+    public async Task SignalROptions_BindFromConfiguration()
+    {
+        await using var factory = new HubApplicationFactory(
+            signalRKeepAliveIntervalSeconds: 10,
+            signalRClientTimeoutIntervalSeconds: 40);
+        using var client = factory.CreateClient();
+
+        var options = factory.Services.GetRequiredService<IOptions<HubOptions>>().Value;
+        options.SignalR.KeepAliveIntervalSeconds.ShouldBe(10);
+        options.SignalR.ClientTimeoutIntervalSeconds.ShouldBe(40);
+    }
+
+    [Fact]
+    public void InvalidPeerDisconnectNotificationDelaySeconds_Negative_FailsStartupValidation()
+    {
+        var factory = new HubApplicationFactory(peerDisconnectNotificationDelaySeconds: -1);
+
+        var ex = Should.Throw<OptionsValidationException>(() =>
+        {
+            factory.CreateClient();
+        });
+
+        ex.Message.ShouldContain("PeerDisconnectNotificationDelaySeconds");
+    }
+
+    [Fact]
+    public async Task ZeroPeerDisconnectNotificationDelay_IsAcceptedByValidation()
+    {
+        await using var factory = new HubApplicationFactory(peerDisconnectNotificationDelaySeconds: 0);
+        using var client = factory.CreateClient();
+
+        var options = factory.Services.GetRequiredService<IOptions<HubOptions>>().Value;
+        options.PeerDisconnectNotificationDelaySeconds.ShouldBe(0);
+    }
+
+    [Fact]
+    public void InvalidKeepAliveInterval_Zero_FailsStartupValidation()
+    {
+        var factory = new HubApplicationFactory(signalRKeepAliveIntervalSeconds: 0);
+
+        var ex = Should.Throw<OptionsValidationException>(() =>
+        {
+            factory.CreateClient();
+        });
+
+        ex.Message.ShouldContain("KeepAliveIntervalSeconds");
+    }
+
+    [Fact]
+    public void InvalidClientTimeoutInterval_Negative_FailsStartupValidation()
+    {
+        var factory = new HubApplicationFactory(signalRClientTimeoutIntervalSeconds: -1);
+
+        var ex = Should.Throw<OptionsValidationException>(() =>
+        {
+            factory.CreateClient();
+        });
+
+        ex.Message.ShouldContain("ClientTimeoutIntervalSeconds");
+    }
+
+    [Fact]
+    public void InvalidClientTimeoutInterval_LessThanTwiceKeepAlive_FailsStartupValidation()
+    {
+        var factory = new HubApplicationFactory(
+            signalRKeepAliveIntervalSeconds: 15,
+            signalRClientTimeoutIntervalSeconds: 20);
+
+        var ex = Should.Throw<OptionsValidationException>(() =>
+        {
+            factory.CreateClient();
+        });
+
+        ex.Message.ShouldContain("at least twice");
     }
 
     [Fact]

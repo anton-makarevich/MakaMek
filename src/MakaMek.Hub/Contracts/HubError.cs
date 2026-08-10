@@ -6,4 +6,5 @@ namespace Sanet.MakaMek.Hub.Contracts;
 public sealed record HubError(
     HubErrorCode Code,
     string Message,
-    int? ActiveRoomCount = null);
+    int? ActiveRoomCount = null,
+    Guid? DeviceSessionId = null);
