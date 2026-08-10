@@ -51,7 +51,7 @@ builder.Services
         options => options.SignalR.ClientTimeoutIntervalSeconds > 0,
         $"{HubOptions.SectionName}:SignalR:ClientTimeoutIntervalSeconds must be greater than zero.")
     .Validate(
-        options => options.SignalR.ClientTimeoutIntervalSeconds >= 2 * options.SignalR.KeepAliveIntervalSeconds,
+        options => (long)options.SignalR.ClientTimeoutIntervalSeconds >= 2L * options.SignalR.KeepAliveIntervalSeconds,
         $"{HubOptions.SectionName}:SignalR:ClientTimeoutIntervalSeconds must be at least twice KeepAliveIntervalSeconds.")
     .ValidateOnStart();
 

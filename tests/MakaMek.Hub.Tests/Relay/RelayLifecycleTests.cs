@@ -53,8 +53,8 @@ public class RelayLifecycleTests
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
         await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
-        var disconnectReceived = false;
-        host.On<string>(nameof(IRelayHub.OnPeerDisconnected), _ => disconnectReceived = true);
+        var disconnected = NewCompletionSource<string>();
+        host.On<string>(nameof(IRelayHub.OnPeerDisconnected), id => disconnected.TrySetResult(id));
         await host.StartAsync();
         await WaitForPeerConnectedAsync(host, client);
 
@@ -72,8 +72,7 @@ public class RelayLifecycleTests
 
         // Even past the original delay, the cancelled notification must not arrive.
         clock.Advance(TimeSpan.FromSeconds(60));
-        await Task.Delay(200);
-        disconnectReceived.ShouldBeFalse();
+        disconnected.Task.IsCompleted.ShouldBeFalse();
     }
 
     [Fact]
