@@ -31,11 +31,9 @@
       
 
       <!-- Players Fragment (Reused) -->
-      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <Border Classes="card">
-          <fragments2:PlayersFragment DataContext="{Binding}"/>
-        </Border>
-      </ScrollViewer>
+      <Border Grid.Row="1" Classes="card">
+        <fragments2:PlayersFragment DataContext="{Binding}"/>
+      </Border>
     </Grid>
   </DockPanel>
   </Grid>

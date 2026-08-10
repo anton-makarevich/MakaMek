@@ -29,9 +29,7 @@
                 </Border>
 
                 <!-- Players Fragment (Reused) -->
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <fragments2:PlayersFragment Grid.Row="1" DataContext="{Binding}"/>
-                </ScrollViewer>
+                <fragments2:PlayersFragment Grid.Row="1" DataContext="{Binding}"/>
             </Grid>
         </Grid>
     </Grid>
