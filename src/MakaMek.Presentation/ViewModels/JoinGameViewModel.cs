@@ -134,6 +134,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             NotifyPropertyChanged(nameof(CanConnect));
             NotifyPropertyChanged(nameof(ServerAddress));
             NotifyPropertyChanged(nameof(CanAddPlayer));
+            NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         }
     } = string.Empty;
 
@@ -173,9 +174,16 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         _joinMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
+        NotifyPropertyChanged(nameof(IsLanFormVisible));
+        NotifyPropertyChanged(nameof(IsOnlineFormVisible));
+        NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         _activeJoinCts?.Cancel();
         ClearJoinState();
     }
+
+    public bool IsLanFormVisible => IsLanMode && !IsConnected;
+
+    public bool IsOnlineFormVisible => IsOnlineMode && !IsConnected;
 
     /// <summary>
     /// Gets or sets the room code used to join an online game.
@@ -191,6 +199,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             NotifyPropertyChanged();
             (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(CanJoin));
+            NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         }
     } = string.Empty;
 
@@ -248,6 +257,22 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the localized room info text when connected.
+    /// </summary>
+    public string JoinedRoomInfoText
+    {
+        get
+        {
+            if (!IsConnected)
+                return string.Empty;
+
+            return IsOnlineMode 
+                ? string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), RoomCode) 
+                : string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), ServerAddress);
+        }
+    }
+
     private void ClearJoinState()
     {
         IsJoining = false;
@@ -263,9 +288,12 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         NotifyPropertyChanged(nameof(IsConnected));
+        NotifyPropertyChanged(nameof(IsLanFormVisible));
+        NotifyPropertyChanged(nameof(IsOnlineFormVisible));
         NotifyPropertyChanged(nameof(CanConnect));
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanAddPlayer));
+        NotifyPropertyChanged(nameof(JoinedRoomInfoText));
     }
 
     private async Task JoinRoom()

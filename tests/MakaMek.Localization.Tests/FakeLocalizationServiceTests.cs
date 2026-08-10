@@ -949,6 +949,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Join_RateLimited", "Too many attempts. Please try again later.")]
     [InlineData("Join_ConnectionFailed", "Failed to connect. Please check your connection and try again.")]
     [InlineData("Join_ConfigurationError", "Online joining is not available on this device.")]
+    [InlineData("Join_ConnectedHeading", "Connected")]
+    [InlineData("Join_RoomJoinedInfo", "Room: {0}")]
+    [InlineData("Join_ServerConnectedInfo", "Server: {0}")]
     public void GetString_Join_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
