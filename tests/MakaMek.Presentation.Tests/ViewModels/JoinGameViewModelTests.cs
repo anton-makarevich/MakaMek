@@ -1103,6 +1103,15 @@ public class JoinGameViewModelTests
         _sut.JoinedRoomInfoText.ShouldBe(expectedText);
         raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
 
+        // Act - changing the server address while connected updates the info text
+        raisedEvents.Clear();
+        _sut.ServerIp = "192.168.1.10";
+
+        // Assert
+        var updatedText = string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), _sut.ServerAddress);
+        _sut.JoinedRoomInfoText.ShouldBe(updatedText);
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+
         // Act
         raisedEvents.Clear();
         await _sut.Disconnect();
@@ -1130,6 +1139,25 @@ public class JoinGameViewModelTests
         // Assert
         _sut.IsConnected.ShouldBeTrue();
         _sut.JoinedRoomInfoText.ShouldBe(expectedText);
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+
+        // Act - changing the room code while connected updates the info text
+        raisedEvents.Clear();
+        _sut.RoomCode = "GHIJKL";
+
+        // Assert
+        var updatedRoomText = string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), _sut.RoomCode);
+        _sut.JoinedRoomInfoText.ShouldBe(updatedRoomText);
+        raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+
+        // Act - switching to LAN mode while connected updates the info text
+        raisedEvents.Clear();
+        _sut.ServerIp = "127.0.0.1";
+        _sut.IsLanMode = true;
+
+        // Assert
+        var lanModeText = string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), _sut.ServerAddress);
+        _sut.JoinedRoomInfoText.ShouldBe(lanModeText);
         raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
 
         // Act
@@ -1262,19 +1290,29 @@ public class JoinGameViewModelTests
         _sut.IsLanMode = true;
         var secondJoin = ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
 
-        // Complete the superseded join; it must clean up the connection it left behind
+        // Complete the superseded join; it must clean up the connection it left behind.
+        // The join completed having connected (connector reports connected) before it was superseded.
+        _connectorConnected = true;
         firstJoinTcs.SetResult();
         await firstJoin;
 
-        // Assert
+        // Assert - the superseded first join cleaned up its orphaned connection
         await _gameConnector.Received(1).Disconnect(Arg.Any<CancellationToken>());
         _gameFactory.DidNotReceive().CreateClientGame(_commandPublisher);
         _commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinError.ShouldBeNull();
 
-        // Clean up - complete the newer join
+        // Switch back to online mode so the newer join completes as a successful connection
+        _sut.IsOnlineMode = true;
+        _connectorConnected = true;
         secondJoinTcs.SetResult();
         await secondJoin;
+
+        // Assert - the newer join connected successfully
+        _gameFactory.Received(1).CreateClientGame(_commandPublisher);
+        _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.JoinError.ShouldBeNull();
     }
 }
