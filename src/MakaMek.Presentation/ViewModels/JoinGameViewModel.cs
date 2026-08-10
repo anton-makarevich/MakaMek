@@ -134,6 +134,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             NotifyPropertyChanged(nameof(CanConnect));
             NotifyPropertyChanged(nameof(ServerAddress));
             NotifyPropertyChanged(nameof(CanAddPlayer));
+            NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         }
     } = string.Empty;
 
@@ -175,6 +176,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         NotifyPropertyChanged(nameof(IsOnlineMode));
         NotifyPropertyChanged(nameof(IsLanFormVisible));
         NotifyPropertyChanged(nameof(IsOnlineFormVisible));
+        NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         _activeJoinCts?.Cancel();
         ClearJoinState();
     }
@@ -197,6 +199,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             NotifyPropertyChanged();
             (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(CanJoin));
+            NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         }
     } = string.Empty;
 
