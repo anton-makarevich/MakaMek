@@ -25,17 +25,20 @@ public sealed class RelayHub : Hub<IRelayHub>
 
     private readonly IRelayRateLimiter _rateLimiter;
     private readonly IRoomManager _roomManager;
+    private readonly IPeerNotificationScheduler _notificationScheduler;
     private readonly IOptions<HubOptions> _options;
     private readonly ILogger<RelayHub> _logger;
 
     public RelayHub(
         IRelayRateLimiter rateLimiter,
         IRoomManager roomManager,
+        IPeerNotificationScheduler notificationScheduler,
         IOptions<HubOptions> options,
         ILogger<RelayHub> logger)
     {
         _rateLimiter = rateLimiter;
         _roomManager = roomManager;
+        _notificationScheduler = notificationScheduler;
         _options = options;
         _logger = logger;
     }
@@ -89,12 +92,13 @@ public sealed class RelayHub : Hub<IRelayHub>
             var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
             if (hostConnectionId is not null)
             {
-                if (replacedConnectionId is not null)
-                {
-                    await Clients.Client(hostConnectionId).OnPeerDisconnected(replacedConnectionId);
-                }
+                // A reconnect cancels any pending disconnect notification for the same
+                // device session, then announces the peer under its stable identity.
+                _notificationScheduler.CancelDisconnectNotification(
+                    session.RoomCode, session.DeviceSessionId);
 
-                await Clients.Client(hostConnectionId).OnPeerConnected(Context.ConnectionId);
+                await Clients.Client(hostConnectionId)
+                    .OnPeerConnected(session.DeviceSessionId.ToString());
             }
             else
             {
@@ -215,7 +219,8 @@ public sealed class RelayHub : Hub<IRelayHub>
 
                     await Clients.Group(session.RoomCode).OnError(new HubError(
                         HubErrorCode.HostDisconnected,
-                        "The room host disconnected."));
+                        "The room host disconnected.",
+                        DeviceSessionId: session.DeviceSessionId));
                 }
                 else
                 {
@@ -241,11 +246,10 @@ public sealed class RelayHub : Hub<IRelayHub>
                         session.RoomCode,
                         Context.ConnectionId);
 
-                    var hostConnectionId = _roomManager.GetHostConnectionId(session.RoomCode);
-                    if (hostConnectionId is not null)
-                    {
-                        await Clients.Client(hostConnectionId).OnPeerDisconnected(Context.ConnectionId);
-                    }
+                    // Defer the host notification so a quick reconnect of the same
+                    // device session can cancel it (see PeerNotificationScheduler).
+                    _notificationScheduler.ScheduleDisconnectNotification(
+                        session.RoomCode, session.DeviceSessionId);
                 }
             }
         }

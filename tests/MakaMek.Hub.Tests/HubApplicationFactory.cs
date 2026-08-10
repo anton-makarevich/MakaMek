@@ -21,6 +21,9 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
     private readonly int _maxRelayPayloadBytes;
     private readonly int _roomTtlSeconds;
     private readonly int _dissolutionGracePeriodSeconds;
+    private readonly int _peerDisconnectNotificationDelaySeconds;
+    private readonly int _signalRKeepAliveIntervalSeconds;
+    private readonly int _signalRClientTimeoutIntervalSeconds;
     private readonly TimeProvider? _timeProvider;
 
     public HubApplicationFactory(
@@ -30,6 +33,9 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
         int maxRelayPayloadBytes = 256 * 1024,
         int roomTtlSeconds = 7200,
         int dissolutionGracePeriodSeconds = 30,
+        int peerDisconnectNotificationDelaySeconds = 5,
+        int signalRKeepAliveIntervalSeconds = 15,
+        int signalRClientTimeoutIntervalSeconds = 30,
         TimeProvider? timeProvider = null)
     {
         _maxConcurrentRooms = maxConcurrentRooms;
@@ -38,6 +44,9 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
         _maxRelayPayloadBytes = maxRelayPayloadBytes;
         _roomTtlSeconds = roomTtlSeconds;
         _dissolutionGracePeriodSeconds = dissolutionGracePeriodSeconds;
+        _peerDisconnectNotificationDelaySeconds = peerDisconnectNotificationDelaySeconds;
+        _signalRKeepAliveIntervalSeconds = signalRKeepAliveIntervalSeconds;
+        _signalRClientTimeoutIntervalSeconds = signalRClientTimeoutIntervalSeconds;
         _timeProvider = timeProvider;
     }
 
@@ -54,7 +63,10 @@ public sealed class HubApplicationFactory : WebApplicationFactory<Program>
                 ["Hub:RelayRateLimitPerMinute"] = _relayRateLimitPerMinute.ToString(),
                 ["Hub:MaxRelayPayloadBytes"] = _maxRelayPayloadBytes.ToString(),
                 ["Hub:RoomTtlSeconds"] = _roomTtlSeconds.ToString(),
-                ["Hub:DissolutionGracePeriodSeconds"] = _dissolutionGracePeriodSeconds.ToString()
+                ["Hub:DissolutionGracePeriodSeconds"] = _dissolutionGracePeriodSeconds.ToString(),
+                ["Hub:PeerDisconnectNotificationDelaySeconds"] = _peerDisconnectNotificationDelaySeconds.ToString(),
+                ["Hub:SignalR:KeepAliveIntervalSeconds"] = _signalRKeepAliveIntervalSeconds.ToString(),
+                ["Hub:SignalR:ClientTimeoutIntervalSeconds"] = _signalRClientTimeoutIntervalSeconds.ToString()
             });
         });
 

@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
 using Sanet.MakaMek.Hub.Security;
@@ -16,14 +18,14 @@ public class RelayLifecycleTests
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public async Task ClientLifecycle_NotifiesHostWithActualConnectionId()
+    public async Task ClientLifecycle_NotifiesHostWithDeviceSessionId()
     {
-        await using var factory = new HubApplicationFactory();
+        await using var factory = new HubApplicationFactory(peerDisconnectNotificationDelaySeconds: 0);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var connected = NewCompletionSource<string>();
         var disconnected = NewCompletionSource<string>();
         host.On<string>(nameof(IRelayHub.OnPeerConnected), id => connected.TrySetResult(id));
@@ -32,22 +34,98 @@ public class RelayLifecycleTests
         await host.StartAsync();
         await client.StartAsync();
 
-        (await connected.Task.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBe(client.ConnectionId);
-        var clientConnectionId = client.ConnectionId;
+        (await connected.Task.WaitAsync(TimeSpan.FromSeconds(5)))
+            .ShouldBe(clientSession.DeviceSessionId!.Value.ToString());
         await client.StopAsync();
-        (await disconnected.Task.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBe(clientConnectionId);
+        (await disconnected.Task.WaitAsync(TimeSpan.FromSeconds(5)))
+            .ShouldBe(clientSession.DeviceSessionId!.Value.ToString());
     }
 
     [Fact]
-    public async Task SecondClientConnection_ReplacesFirstAndReportsDisconnectThenConnect()
+    public async Task ClientReconnectWithinDelay_DoesNotNotifyHostOfDisconnect()
     {
-        await using var factory = new HubApplicationFactory();
+        var clock = new FakeTimeProvider();
+        await using var factory = new HubApplicationFactory(
+            peerDisconnectNotificationDelaySeconds: 30,
+            timeProvider: clock);
         using var httpClient = factory.CreateClient();
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var first = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
-        await using var second = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
+        var disconnected = NewCompletionSource<string>();
+        host.On<string>(nameof(IRelayHub.OnPeerDisconnected), id => disconnected.TrySetResult(id));
+        await host.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
+
+        var scheduler = (PeerNotificationScheduler)factory.Services
+            .GetRequiredService<IPeerNotificationScheduler>();
+
+        await client.StopAsync();
+        await WaitUntilAsync(() => scheduler.HasPendingNotification(
+            room.RoomCode, clientSession.DeviceSessionId!.Value));
+
+        await using var reconnected = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
+        await reconnected.StartAsync();
+        await WaitUntilAsync(() => !scheduler.HasPendingNotification(
+            room.RoomCode, clientSession.DeviceSessionId!.Value));
+
+        // Even past the original delay, the cancelled notification must not arrive.
+        clock.Advance(TimeSpan.FromSeconds(60));
+        disconnected.Task.IsCompleted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ClientStaysDisconnectedPastDelay_NotifiesHostExactlyOnceWithDeviceSessionId()
+    {
+        var clock = new FakeTimeProvider();
+        await using var factory = new HubApplicationFactory(
+            peerDisconnectNotificationDelaySeconds: 5,
+            timeProvider: clock);
+        using var httpClient = factory.CreateClient();
+        var room = await CreateReadyRoomAsync(httpClient);
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
+        await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
+        var disconnectCount = 0;
+        string? disconnectedId = null;
+        host.On<string>(nameof(IRelayHub.OnPeerDisconnected), id =>
+        {
+            disconnectedId = id;
+            Interlocked.Increment(ref disconnectCount);
+        });
+        await host.StartAsync();
+        await WaitForPeerConnectedAsync(host, client);
+
+        var scheduler = (PeerNotificationScheduler)factory.Services
+            .GetRequiredService<IPeerNotificationScheduler>();
+
+        await client.StopAsync();
+        await WaitUntilAsync(() => scheduler.HasPendingNotification(
+            room.RoomCode, clientSession.DeviceSessionId!.Value));
+
+        clock.Advance(TimeSpan.FromSeconds(5));
+
+        await WaitUntilAsync(() => disconnectCount >= 1);
+        disconnectCount.ShouldBe(1);
+        disconnectedId.ShouldBe(clientSession.DeviceSessionId!.Value.ToString());
+
+        // No repeat notifications while the device stays gone.
+        clock.Advance(TimeSpan.FromSeconds(60));
+        await Task.Delay(200);
+        disconnectCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task SecondClientConnection_ReplacesFirst_WithoutSpuriousDisconnectNotification()
+    {
+        await using var factory = new HubApplicationFactory(peerDisconnectNotificationDelaySeconds: 0);
+        using var httpClient = factory.CreateClient();
+        var room = await CreateReadyRoomAsync(httpClient);
+        var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
+        await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
+        await using var first = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
+        await using var second = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var events = new ConcurrentQueue<(string Kind, string Id)>();
         var transition = NewCompletionSource<bool>();
         var firstReceived = NewCompletionSource<RelayEnvelope>();
@@ -57,12 +135,12 @@ public class RelayLifecycleTests
         host.On<string>(nameof(IRelayHub.OnPeerConnected), id =>
         {
             events.Enqueue(("connected", id));
-            if (events.Count == 3) transition.TrySetResult(true);
+            if (events.Count == 2) transition.TrySetResult(true);
         });
         host.On<string>(nameof(IRelayHub.OnPeerDisconnected), id =>
         {
             events.Enqueue(("disconnected", id));
-            if (events.Count == 3) transition.TrySetResult(true);
+            if (events.Count == 2) transition.TrySetResult(true);
         });
 
         await host.StartAsync();
@@ -72,9 +150,8 @@ public class RelayLifecycleTests
         await transition.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         events.ToArray().ShouldBe([
-            ("connected", first.ConnectionId!),
-            ("disconnected", first.ConnectionId!),
-            ("connected", second.ConnectionId!)
+            ("connected", clientSession.DeviceSessionId!.Value.ToString()),
+            ("connected", clientSession.DeviceSessionId!.Value.ToString())
         ]);
 
         await host.InvokeAsync(nameof(RelayHub.Relay), room.RoomCode,
@@ -91,7 +168,7 @@ public class RelayLifecycleTests
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var error = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), value => error.TrySetResult(value));
         await host.StartAsync();
@@ -99,7 +176,9 @@ public class RelayLifecycleTests
 
         await host.StopAsync();
 
-        (await error.Task.WaitAsync(TimeSpan.FromSeconds(5))).Code.ShouldBe(HubErrorCode.HostDisconnected);
+        var received = await error.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        received.Code.ShouldBe(HubErrorCode.HostDisconnected);
+        received.DeviceSessionId.ShouldBe(room.HostDeviceSessionId);
     }
 
     [Fact]
@@ -111,7 +190,7 @@ public class RelayLifecycleTests
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
@@ -150,7 +229,7 @@ public class RelayLifecycleTests
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
@@ -174,7 +253,7 @@ public class RelayLifecycleTests
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
@@ -199,7 +278,7 @@ public class RelayLifecycleTests
         var room = await CreateReadyRoomAsync(httpClient);
         var clientSession = await JoinRoomAsync(httpClient, room.RoomCode, sessionToken: null);
         await using var host = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, room.HostToken);
-        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession);
+        await using var client = factory.CreateRelayHubConnection(HubApplicationFactory.ApiKey, clientSession.SessionToken!);
         var hostDisconnected = NewCompletionSource<HubError>();
         client.On<HubError>(nameof(IRelayHub.OnError), error => hostDisconnected.TrySetResult(error));
         await host.StartAsync();
@@ -228,10 +307,11 @@ public class RelayLifecycleTests
         readyRequest.Headers.Add("Session-Token", created.SessionToken);
         using var readyResponse = await client.SendAsync(readyRequest);
         readyResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        return new ReadyRoom(created.RoomCode!, created.SessionToken!);
+        return new ReadyRoom(
+            created.RoomCode!, created.SessionToken!, created.DeviceSessionId!.Value);
     }
 
-    private static async Task<string> JoinRoomAsync(HttpClient client, string roomCode, string? sessionToken)
+    private static async Task<JoinResponse> JoinRoomAsync(HttpClient client, string roomCode, string? sessionToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/rooms/{roomCode}/join");
         if (sessionToken is not null)
@@ -243,7 +323,7 @@ public class RelayLifecycleTests
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var joined = await response.Content.ReadFromJsonAsync<JoinResponse>(JsonOptions);
         joined.ShouldNotBeNull();
-        return joined.SessionToken!;
+        return joined;
     }
 
     private static async Task WaitForPeerConnectedAsync(HubConnection host, HubConnection client)
@@ -283,7 +363,7 @@ public class RelayLifecycleTests
         succeeded.ShouldBeTrue();
     }
 
-    private sealed record ReadyRoom(string RoomCode, string HostToken);
+    private sealed record ReadyRoom(string RoomCode, string HostToken, Guid HostDeviceSessionId);
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

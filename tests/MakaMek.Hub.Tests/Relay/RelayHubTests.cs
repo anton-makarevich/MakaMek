@@ -94,7 +94,9 @@ public class RelayHubTests
         var roomManager = Substitute.For<IRoomManager>();
         roomManager.GetConnectionId(Arg.Any<string>(), Arg.Any<Guid>()).Returns("other-conn");
         var options = Options.Create(new Configuration.HubOptions());
-        var hub = new RelayHub(rateLimiter, roomManager, options, NullLogger<RelayHub>.Instance);
+        var hub = new RelayHub(
+            rateLimiter, roomManager, Substitute.For<IPeerNotificationScheduler>(), options,
+            NullLogger<RelayHub>.Instance);
 
         var roomCode = "ROOM1";
         var session = new RoomSession("tok", roomCode, Guid.NewGuid(), RoomRole.Client,
@@ -166,7 +168,8 @@ public class RelayHubTests
         roomManager.GetConnectionId(Arg.Any<string>(), Arg.Any<Guid>())
             .Returns("test-connection-id");
         var options = Options.Create(new Configuration.HubOptions { MaxRelayPayloadBytes = 4 });
-        var hub = new RelayHub(rateLimiter, roomManager, options, logger);
+        var hub = new RelayHub(
+            rateLimiter, roomManager, Substitute.For<IPeerNotificationScheduler>(), options, logger);
         hub.Context = ContextForSession(new RoomSession(
             "tok", "ROOM1", Guid.NewGuid(), RoomRole.Client, DateTimeOffset.UtcNow.AddHours(1)));
         hub.Clients = Substitute.For<IHubCallerClients<IRelayHub>>();
@@ -209,6 +212,68 @@ public class RelayHubTests
         await hub.Relay(session.RoomCode, CreateEnvelope("{\"other\":1}"));
 
         await roomClients.Received(1).OnReceive(Arg.Any<RelayEnvelope>());
+    }
+
+    [Fact]
+    public async Task OnConnectedAsync_ActiveClientConnection_CancelsPendingNotification_AndNotifiesHostWithDeviceSessionId()
+    {
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.GetHostConnectionId("ROOM1").Returns("host-conn");
+        var scheduler = Substitute.For<IPeerNotificationScheduler>();
+        var hub = CreateHub(roomManager: roomManager, scheduler: scheduler);
+        var groups = Substitute.For<IGroupManager>();
+        groups.AddToGroupAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(Task.CompletedTask);
+        hub.Groups = groups;
+
+        var hostClients = Substitute.For<IRelayHub>();
+        var clients = Substitute.For<IHubCallerClients<IRelayHub>>();
+        clients.Client("host-conn").Returns(hostClients);
+        hub.Clients = clients;
+
+        var session = new RoomSession(
+            "tok", "ROOM1", Guid.NewGuid(), RoomRole.Client, DateTimeOffset.UtcNow.AddHours(1));
+        hub.Context = ContextForSession(session);
+
+        await hub.OnConnectedAsync();
+
+        scheduler.Received(1).CancelDisconnectNotification("ROOM1", session.DeviceSessionId);
+        await hostClients.Received(1).OnPeerConnected(session.DeviceSessionId.ToString());
+        await hostClients.DidNotReceive().OnPeerDisconnected(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_ActiveClientConnection_SchedulesDisconnectNotification()
+    {
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.UnregisterConnection(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>()).Returns(true);
+        var scheduler = Substitute.For<IPeerNotificationScheduler>();
+        var hub = CreateHub(roomManager: roomManager, scheduler: scheduler);
+
+        var session = new RoomSession(
+            "tok", "ROOM1", Guid.NewGuid(), RoomRole.Client, DateTimeOffset.UtcNow.AddHours(1));
+        hub.Context = ContextForSession(session);
+
+        await hub.OnDisconnectedAsync(null);
+
+        scheduler.Received(1).ScheduleDisconnectNotification("ROOM1", session.DeviceSessionId);
+        scheduler.DidNotReceive().CancelDisconnectNotification(Arg.Any<string>(), Arg.Any<Guid>());
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_ClientConnectionNotActive_DoesNotScheduleNotification()
+    {
+        var roomManager = Substitute.For<IRoomManager>();
+        roomManager.UnregisterConnection(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<string>()).Returns(false);
+        var scheduler = Substitute.For<IPeerNotificationScheduler>();
+        var hub = CreateHub(roomManager: roomManager, scheduler: scheduler);
+
+        var session = new RoomSession(
+            "tok", "ROOM1", Guid.NewGuid(), RoomRole.Client, DateTimeOffset.UtcNow.AddHours(1));
+        hub.Context = ContextForSession(session);
+
+        await hub.OnDisconnectedAsync(null);
+
+        scheduler.DidNotReceive().ScheduleDisconnectNotification(Arg.Any<string>(), Arg.Any<Guid>());
     }
 
     [Fact]
@@ -284,12 +349,18 @@ public class RelayHubTests
     private static RelayHub CreateHub(
         ILogger<RelayHub>? logger = null,
         IRelayRateLimiter? rateLimiter = null,
-        IRoomManager? roomManager = null)
+        IRoomManager? roomManager = null,
+        IPeerNotificationScheduler? scheduler = null)
     {
         rateLimiter ??= Substitute.For<IRelayRateLimiter>();
         roomManager ??= Substitute.For<IRoomManager>();
         var options = Options.Create(new Configuration.HubOptions());
-        return new RelayHub(rateLimiter, roomManager, options, logger ?? NullLogger<RelayHub>.Instance);
+        return new RelayHub(
+            rateLimiter,
+            roomManager,
+            scheduler ?? Substitute.For<IPeerNotificationScheduler>(),
+            options,
+            logger ?? NullLogger<RelayHub>.Instance);
     }
 
     private static TestHubCallerContext ContextForSession(RoomSession session)

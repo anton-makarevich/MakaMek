@@ -46,7 +46,41 @@ public sealed class HubOptions
     public int DissolutionGracePeriodSeconds { get; init; } = 30;
 
     /// <summary>
+    /// Delay in seconds before the host is notified that a peer disconnected.
+    /// A reconnect of the same device session within the delay cancels the
+    /// notification. Zero reproduces immediate-notification behavior.
+    /// </summary>
+    public int PeerDisconnectNotificationDelaySeconds { get; init; } = 5;
+
+    /// <summary>
+    /// SignalR transport tuning that controls how fast an ungraceful disconnect
+    /// is detected by the server.
+    /// </summary>
+    public SignalROptions SignalR { get; init; } = new();
+
+    /// <summary>
     /// Trusted proxy CIDRs for ForwardedHeaders (comma-separated).
     /// </summary>
     public string[] TrustedProxies { get; init; } = [];
+}
+
+/// <summary>
+/// SignalR keep-alive and client-timeout settings for the relay hub transport.
+/// </summary>
+public sealed class SignalROptions
+{
+    public const int DefaultKeepAliveIntervalSeconds = 15;
+    public const int DefaultClientTimeoutIntervalSeconds = 30;
+
+    /// <summary>
+    /// Interval between server keep-alive pings sent to clients. A shorter interval
+    /// makes dead connections detectable sooner at the cost of more traffic.
+    /// </summary>
+    public int KeepAliveIntervalSeconds { get; init; } = DefaultKeepAliveIntervalSeconds;
+
+    /// <summary>
+    /// Maximum time a client may stay silent before the server considers the connection
+    /// dead. Per SignalR guidance this should be at least twice the keep-alive interval.
+    /// </summary>
+    public int ClientTimeoutIntervalSeconds { get; init; } = DefaultClientTimeoutIntervalSeconds;
 }
