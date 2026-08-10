@@ -109,14 +109,68 @@ public class PeerNotificationSchedulerTests
         scheduler.HasPendingNotification(RoomCode, DeviceSessionId).ShouldBeFalse();
     }
 
+    [Fact]
+    public void TimerFires_AfterCancellation_SkipsNotification()
+    {
+        var clock = new ManualTimerProvider();
+        var hostClients = CreateHostClients(out var scheduler, clock, delaySeconds: 5);
+
+        scheduler.ScheduleDisconnectNotification(RoomCode, DeviceSessionId);
+        scheduler.CancelDisconnectNotification(RoomCode, DeviceSessionId);
+
+        clock.Timer!.Fire();
+
+        hostClients.DidNotReceive().OnPeerDisconnected(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void TimerFires_FromStaleSchedule_SkipsNotification()
+    {
+        var clock = new ManualTimerProvider();
+        var hostClients = CreateHostClients(out var scheduler, clock, delaySeconds: 5);
+
+        scheduler.ScheduleDisconnectNotification(RoomCode, DeviceSessionId);
+        var firstTimer = clock.Timer!;
+        scheduler.ScheduleDisconnectNotification(RoomCode, DeviceSessionId);
+
+        firstTimer.Fire();
+
+        hostClients.DidNotReceive().OnPeerDisconnected(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void Schedule_WithDelay_NoHostConnection_SkipsNotification()
+    {
+        var clock = new FakeTimeProvider();
+        var hostClients = CreateHostClients(out var scheduler, clock, delaySeconds: 5, hostConnectionId: null);
+
+        scheduler.ScheduleDisconnectNotification(RoomCode, DeviceSessionId);
+        clock.Advance(TimeSpan.FromSeconds(5));
+
+        hostClients.DidNotReceive().OnPeerDisconnected(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void TimerFires_HubCallThrows_DoesNotThrow()
+    {
+        var clock = new FakeTimeProvider();
+        var hostClients = CreateHostClients(out var scheduler, clock, delaySeconds: 5);
+        hostClients.When(h => h.OnPeerDisconnected(Arg.Any<string>()))
+            .Do(_ => throw new InvalidOperationException("notify failed"));
+
+        scheduler.ScheduleDisconnectNotification(RoomCode, DeviceSessionId);
+        clock.Advance(TimeSpan.FromSeconds(5));
+    }
+
     private static IRelayHub CreateHostClients(
         out PeerNotificationScheduler scheduler,
         TimeProvider clock,
         int delaySeconds,
-        IRoomManager? roomManager = null)
+        IRoomManager? roomManager = null,
+        string? hostConnectionId = HostConnectionId)
     {
         roomManager ??= Substitute.For<IRoomManager>();
-        roomManager.GetHostConnectionId(RoomCode).Returns(HostConnectionId);
+        roomManager.GetHostConnectionId(RoomCode).Returns(hostConnectionId);
         roomManager.GetConnectionId(RoomCode, DeviceSessionId).Returns((string?)null);
 
         var hostClients = Substitute.For<IRelayHub>();
@@ -127,5 +181,46 @@ public class PeerNotificationSchedulerTests
         scheduler = new PeerNotificationScheduler(
             hubContext, roomManager, clock, options, NullLogger<PeerNotificationScheduler>.Instance);
         return hostClients;
+    }
+
+    private sealed class ManualTimerProvider : TimeProvider
+    {
+        public ManualTimer? Timer { get; private set; }
+
+        public override long GetTimestamp() => 0;
+
+        public override DateTimeOffset GetUtcNow() => DateTimeOffset.UtcNow;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            Timer = new ManualTimer(callback, state);
+            return Timer;
+        }
+    }
+
+    private sealed class ManualTimer : ITimer
+    {
+        private readonly TimerCallback _callback;
+        private readonly object? _state;
+
+        public ManualTimer(TimerCallback callback, object? state)
+        {
+            _callback = callback;
+            _state = state;
+        }
+
+        public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+        public void Dispose()
+        {
+        }
+
+        public void Fire() => _callback(_state);
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
     }
 }
