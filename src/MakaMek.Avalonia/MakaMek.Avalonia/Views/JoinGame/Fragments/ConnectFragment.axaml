@@ -49,11 +49,8 @@
                  Classes="bodySmall"
                  Foreground="{StaticResource ErrorBrush}"/>
     </StackPanel>
-
-    <Border Classes="card" IsVisible="{Binding IsConnected}">
-      <SelectableTextBlock Text="{Binding JoinedRoomInfoText}"
-                          Classes="body"/>
-    </Border>
+    <SelectableTextBlock IsVisible="{Binding IsConnected}" Text="{Binding JoinedRoomInfoText}"
+                         Classes="body"/>
   </StackPanel>
 
 </UserControl>
