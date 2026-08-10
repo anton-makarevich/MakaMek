@@ -21,19 +21,22 @@
       LeftIcon="{StaticResource BackArrowIcon}"
       DockPanel.Dock="Top"
       Margin="0,0,0,10"/>
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="15" Margin="10">
-        <!-- Connect Fragment -->
-        <Border Classes="card">
+    <Grid RowDefinitions="Auto,*"
+          Margin="10"
+          RowSpacing="15">
+      <!-- Connect Fragment -->
+     <Border Classes="card">
           <fragments:ConnectFragment DataContext="{Binding}"/>
         </Border>
+      
 
-        <!-- Players Fragment (Reused) -->
+      <!-- Players Fragment (Reused) -->
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Border Classes="card">
-            <fragments2:PlayersFragment DataContext="{Binding}"/>
+          <fragments2:PlayersFragment DataContext="{Binding}"/>
         </Border>
-      </StackPanel>
-    </ScrollViewer>
+      </ScrollViewer>
+    </Grid>
   </DockPanel>
   </Grid>
 </UserControl>

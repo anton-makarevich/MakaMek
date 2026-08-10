@@ -21,19 +21,18 @@
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"
             Margin="0,0,0,10"/>
-        <StackPanel Grid.Row="1"
-            VerticalAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Orientation="Vertical"
-            >
-            <!-- Connect Fragment -->
-            <Border Classes="card">
-                <fragments:ConnectFragment DataContext="{Binding}"/>
-            </Border>
+            <Grid Grid.Row="1"
+                RowDefinitions="Auto,*">
+                <!-- Connect Fragment -->
+                <Border Classes="card">
+                    <fragments:ConnectFragment DataContext="{Binding}"/>
+                </Border>
 
-            <!-- Players Fragment (Reused) -->
-            <fragments2:PlayersFragment DataContext="{Binding}"/>
-        </StackPanel>
+                <!-- Players Fragment (Reused) -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <fragments2:PlayersFragment Grid.Row="1" DataContext="{Binding}"/>
+                </ScrollViewer>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>
