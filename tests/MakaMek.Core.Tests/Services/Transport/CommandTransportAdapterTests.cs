@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
@@ -1007,5 +1008,76 @@ public class CommandTransportAdapterTests
 
         // Act & Assert - should not throw when adding after registration
         Should.NotThrow(() => _sut.AddPublisher(relayPublisher));
+    }
+
+    [Fact]
+    public void DispatchLocalCommand_WhenInitialized_InvokesReceiveCallbackWithCommandAndPublisher()
+    {
+        // Arrange
+        SetupAdapter();
+        IGameCommand? receivedCommand = null;
+        ITransportPublisher? receivedPublisher = null;
+        _sut.Initialize((command, publisher) =>
+        {
+            receivedCommand = command;
+            receivedPublisher = publisher;
+        });
+
+        var command = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            BreachedLocations = []
+        };
+        var sourcePublisher = Substitute.For<ITransportPublisher>();
+
+        // Act
+        _sut.DispatchLocalCommand(command, sourcePublisher);
+
+        // Assert
+        receivedCommand.ShouldBeSameAs(command);
+        receivedPublisher.ShouldBeSameAs(sourcePublisher);
+    }
+
+    [Fact]
+    public void DispatchLocalCommand_WhenNotInitialized_DoesNotThrow()
+    {
+        // Arrange
+        SetupAdapter();
+        var command = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.HostDisconnected,
+            Timestamp = DateTime.UtcNow
+        };
+        var sourcePublisher = Substitute.For<ITransportPublisher>();
+
+        // Act & Assert
+        Should.NotThrow(() => _sut.DispatchLocalCommand(command, sourcePublisher));
+    }
+
+    [Fact]
+    public void DispatchLocalCommand_WhenCallbackThrows_LogsErrorAndDoesNotThrow()
+    {
+        // Arrange
+        SetupAdapter();
+        _sut.Initialize((_, _) => throw new InvalidOperationException("boom"));
+        var command = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.HostDisconnected,
+            Timestamp = DateTime.UtcNow
+        };
+        var sourcePublisher = Substitute.For<ITransportPublisher>();
+
+        // Act & Assert
+        Should.NotThrow(() => _sut.DispatchLocalCommand(command, sourcePublisher));
+
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<InvalidOperationException>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
 }

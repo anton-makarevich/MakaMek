@@ -511,6 +511,67 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void RemoveMember_MemberWithOwnToken_LeavesRoom()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var createResult = manager.CreateRoom(Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
+        var clientDeviceSessionId = joined.Session!.DeviceSessionId;
+        var clientToken = joined.Session.Token;
+
+        var result = manager.RemoveMember("ABC234", clientToken, clientDeviceSessionId);
+
+        result.Outcome.ShouldBe(RoomRemoveMemberOutcome.Removed);
+        createResult.Room!.IsMember(clientDeviceSessionId).ShouldBeFalse();
+        createResult.Room.HasSession(clientToken).ShouldBeFalse();
+        createResult.Room.Members.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void RemoveMember_MemberWithAnotherMembersToken_ReturnsNotHost()
+    {
+        var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));
+        var createResult = manager.CreateRoom(Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var firstJoined = manager.JoinRoom("ABC234", sessionToken: null);
+        var secondJoined = manager.JoinRoom("ABC234", sessionToken: null);
+
+        var result = manager.RemoveMember(
+            "ABC234",
+            firstJoined.Session!.Token,
+            secondJoined.Session!.DeviceSessionId);
+
+        result.Outcome.ShouldBe(RoomRemoveMemberOutcome.NotHost);
+        createResult.Room!.IsMember(secondJoined.Session!.DeviceSessionId).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RemoveMember_ExpiredMemberSession_ReturnsNotHost()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(now);
+        var manager = CreateManager(
+            new SequenceRoomCodeGenerator("ABC234"),
+            timeProvider: timeProvider);
+
+        var createResult = manager.CreateRoom(Guid.NewGuid());
+        manager.MarkRoomReady("ABC234", createResult.Session!.Token);
+
+        var joined = manager.JoinRoom("ABC234", sessionToken: null);
+        var clientDeviceSessionId = joined.Session!.DeviceSessionId;
+        var clientToken = joined.Session.Token;
+
+        timeProvider.Advance(TimeSpan.FromSeconds(DefaultRoomTtlSeconds).Add(TimeSpan.FromMinutes(1)));
+
+        var result = manager.RemoveMember("ABC234", clientToken, clientDeviceSessionId);
+
+        result.Outcome.ShouldBe(RoomRemoveMemberOutcome.RoomExpired);
+    }
+
+    [Fact]
     public void AuthenticateSession_WithValidHostToken_ReturnsBoundSession()
     {
         var manager = CreateManager(new SequenceRoomCodeGenerator("ABC234"));

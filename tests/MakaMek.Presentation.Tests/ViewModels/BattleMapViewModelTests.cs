@@ -257,6 +257,51 @@ public class BattleMapViewModelTests
         await navigationService.Received(1).NavigateToRootAsync();
     }
 
+    [Fact]
+    public async Task ProcessGameEnded_NonVictoryReason_ShowsDialogAndNavigatesToRootWhenOkSelected()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.HostDisconnected });
+        await WaitForAsync(() => navigationService.ReceivedCalls().Any(
+            c => c.GetMethodInfo().Name == nameof(INavigationService.NavigateToRootAsync)));
+
+        // Assert
+        await navigationService.Received(1).NavigateToRootAsync();
+        navigationService.ReceivedCalls().ShouldContain(
+            c => c.GetMethodInfo().Name == nameof(INavigationService.AskForActionAsync));
+    }
+
+    [Fact]
+    public async Task ProcessGameEnded_NonVictoryReason_DoesNotNavigateWhenDialogDismissed()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(new UiAction { Title = "Cancel" });
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.PlayersLeft });
+        await WaitForAsync(() => navigationService.ReceivedCalls().Any(
+            c => c.GetMethodInfo().Name == nameof(INavigationService.AskForActionAsync)));
+        await Task.Delay(50);
+
+        // Assert
+        navigationService.DidNotReceive().NavigateToRootAsync();
+    }
+
     [Theory]
     [InlineData(1, "Select Unit",true)]
     [InlineData(0, "", false)]
@@ -3066,5 +3111,19 @@ public class BattleMapViewModelTests
         _game.Logger.Received(1).LogError(
             Arg.Is<Exception>(ex => ex.Message == "capture failed"),
             "PDF map export failed");
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition())
+        {
+            if (DateTime.UtcNow >= deadline)
+            {
+                throw new TimeoutException("Condition was not met in time");
+            }
+
+            await Task.Delay(10);
+        }
     }
 }

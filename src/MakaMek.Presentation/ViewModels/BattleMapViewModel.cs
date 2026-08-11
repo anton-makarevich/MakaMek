@@ -920,12 +920,36 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public IScheduler Scheduler => _dispatcherService.Scheduler;
 
-    private Task ProcessGameEnded(GameEndedCommand command)
+    private async Task ProcessGameEnded(GameEndedCommand command)
     {
         IsGameOver = true;
         GameEndReason = command.Reason;
         NotifyStateChanged();
-        return Task.CompletedTask;
+
+        if (GameEndReason == GameEndReason.Victory)
+        {
+            // The victory flow is handled by the End phase / EndGameViewModel
+            return;
+        }
+
+        // The game ended because of an interruption (e.g. the host disconnected).
+        // Inform the player with a single-button dialog and return to the main menu.
+        var okAction = new UiAction
+        {
+            Title = _localizationService.GetString("Dialog_Ok")
+        };
+
+        var (title, message) = GameEndReason == GameEndReason.HostDisconnected
+            ? (_localizationService.GetString("Dialog_HostDisconnected_Title"),
+                _localizationService.GetString("Dialog_HostDisconnected_Message"))
+            : (_localizationService.GetString("Dialog_GameInterrupted_Title"),
+                _localizationService.GetString("Dialog_GameInterrupted_Message"));
+
+        var selectedAction = await NavigationService.AskForActionAsync(title, message, okAction);
+
+        if (selectedAction != okAction) return;
+
+        await GoToMainMenu();
     }
 
     public async Task NavigateToEndGame()

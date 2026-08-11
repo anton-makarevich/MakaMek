@@ -44,4 +44,15 @@ public interface ICommandTransportAdapter : IAsyncDisposable
     /// </summary>
     /// <param name="onPublisherDisconnected">Callback invoked with the publisher that lost its connection.</param>
     void RegisterDisconnectHandler(Action<ITransportPublisher> onPublisherDisconnected);
+
+    /// <summary>
+    /// Dispatches a locally-originated command through the same receive path used for
+    /// inbound transport messages. This lets locally synthesized commands (e.g. a
+    /// game-ended command raised when the relay host disconnects) reach local subscribers
+    /// even when no transport publisher is connected, without relying on an outbound
+    /// publish being echoed back.
+    /// </summary>
+    /// <param name="command">The command to dispatch to local subscribers.</param>
+    /// <param name="sourcePublisher">The publisher the command is attributed to.</param>
+    void DispatchLocalCommand(IGameCommand command, ITransportPublisher sourcePublisher);
 }

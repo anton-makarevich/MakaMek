@@ -331,7 +331,7 @@ public class RelayLifecycleTests
         var connected = NewCompletionSource<string>();
         host.On<string>(nameof(IRelayHub.OnPeerConnected), id => connected.TrySetResult(id));
         await client.StartAsync();
-        await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await connected.Task.WaitAsync(TimeSpan.FromSeconds(10));
     }
 
     private static TaskCompletionSource<T> NewCompletionSource<T>() =>

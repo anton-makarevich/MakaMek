@@ -230,6 +230,39 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     }
 
     /// <summary>
+    /// Dispatches a locally-originated command through the same receive path used for
+    /// inbound transport messages, so it reaches local subscribers even when no transport
+    /// publisher is connected (e.g. after the relay host has disconnected).
+    /// </summary>
+    /// <param name="command">The command to dispatch to local subscribers.</param>
+    /// <param name="sourcePublisher">The publisher the command is attributed to.</param>
+    public void DispatchLocalCommand(IGameCommand command, ITransportPublisher sourcePublisher)
+    {
+        Action<IGameCommand, ITransportPublisher>? onCommandReceived;
+        lock (_initLock)
+        {
+            onCommandReceived = _onCommandReceived;
+        }
+
+        if (onCommandReceived == null)
+        {
+            _logger.LogDebug(
+                "No command receive callback registered; local command {MessageType} not dispatched",
+                command.GetType().Name);
+            return;
+        }
+
+        try
+        {
+            onCommandReceived(command, sourcePublisher);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error dispatching local command {MessageType}", command.GetType().Name);
+        }
+    }
+
+    /// <summary>
     /// Serializes an IGameCommand to a JSON string
     /// </summary>
     /// <param name="command">The command to serialize</param>

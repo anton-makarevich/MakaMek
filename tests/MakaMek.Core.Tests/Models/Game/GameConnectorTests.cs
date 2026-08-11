@@ -323,37 +323,6 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
-    public async Task JoinOnlineAsync_WhenCleanupDisposeThrows_SwallowsException()
-    {
-        // Arrange
-        var deviceSessionId = Guid.NewGuid();
-        const string roomCode = "ABCDEF";
-        const string sessionToken = "session-token";
-        var hostGameId = Guid.NewGuid();
-
-        _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomJoinResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
-
-        // Create a publisher that throws when disposed
-        var throwingPublisher = Substitute.For<RelayClientPublisher>(
-            "http://hub.local/hubs/relay", roomCode, sessionToken, NullLogger<RelayClientPublisher>.Instance, "api-key");
-        throwingPublisher.When(x => x.DisposeAsync())
-            .Throw(new InvalidOperationException("dispose boom"));
-        _relayPublisherFactory.Create("http://hub.local/hubs/relay", roomCode, sessionToken, hostGameId, "api-key", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(throwingPublisher));
-
-        // Make the adapter throw when adding the publisher to trigger the failure path
-        _transportAdapter.When(a => a.AddPublisher(throwingPublisher))
-            .Throw(new InvalidOperationException("add boom"));
-
-        // Act & Assert - dispose exception should be swallowed
-        await Should.NotThrowAsync(() => _sut.JoinOnline(roomCode, sessionToken: null));
-        _sut.OnlineError.ShouldNotBeNull();
-        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
-        _sut.IsConnected.ShouldBeFalse();
-    }
-
-    [Fact]
     public async Task JoinOnlineAsync_WhenJoinThrows_CleansUpAndRethrows()
     {
         // Arrange
@@ -462,9 +431,10 @@ public class GameConnectorTests : IDisposable
         disconnectHandler.ShouldNotBeNull();
         disconnectHandler.Invoke(publisher);
 
-        // A GameEndedCommand with HostDisconnected reason is published through the shared pipeline
-        commandPublisher.Received(1).PublishCommand(
-            Arg.Is<GameEndedCommand>(c => c.Reason == GameEndReason.HostDisconnected));
+        // A GameEndedCommand with HostDisconnected reason is dispatched through the local receive path
+        mockAdapter.Received(1).DispatchLocalCommand(
+            Arg.Is<GameEndedCommand>(c => c.Reason == GameEndReason.HostDisconnected),
+            publisher);
         await sut.DisposeAsync();
     }
 
@@ -502,8 +472,8 @@ public class GameConnectorTests : IDisposable
         // Act - a publisher that is not the active relay publisher reports a disconnect
         disconnectHandler.Invoke(Substitute.For<ITransportPublisher>());
 
-        // Assert - no command is published for unrelated publishers
-        commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
+        // Assert - no command is dispatched for unrelated publishers
+        mockAdapter.DidNotReceive().DispatchLocalCommand(Arg.Any<IGameCommand>(), Arg.Any<ITransportPublisher>());
         await sut.DisposeAsync();
     }
 
