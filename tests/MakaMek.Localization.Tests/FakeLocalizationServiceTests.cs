@@ -533,8 +533,13 @@ public class FakeLocalizationServiceTests
     [Theory]
     [InlineData("Dialog_Yes", "Yes")]
     [InlineData("Dialog_No", "No")]
+    [InlineData("Dialog_Ok", "OK")]
     [InlineData("Dialog_LeaveGame_Title", "Leave Game")]
     [InlineData("Dialog_LeaveGame_Message", "WARNING: This action ends the game for all players")]
+    [InlineData("Dialog_HostDisconnected_Title", "Host Disconnected")]
+    [InlineData("Dialog_HostDisconnected_Message", "The host disconnected from the game and the game was interrupted.")]
+    [InlineData("Dialog_GameInterrupted_Title", "Game Interrupted")]
+    [InlineData("Dialog_GameInterrupted_Message", "The game was interrupted and can no longer continue.")]
     public void GetString_Dialogs_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

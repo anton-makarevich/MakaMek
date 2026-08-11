@@ -284,10 +284,11 @@ public sealed class RoomManager : IRoomManager
                 return RoomRemoveMemberResult.Expired();
             }
 
-            if (!room.ValidateHostSession(sessionToken, now))
+            if (!room.ValidateHostSession(sessionToken, now)
+                && !room.ValidateMemberSession(sessionToken, targetDeviceSessionId, now))
             {
                 _logger.LogWarning(
-                    "Remove-member failed for room {RoomCode}: caller is not the host",
+                    "Remove-member failed for room {RoomCode}: caller is neither the host nor the target member",
                     roomCode);
                 return RoomRemoveMemberResult.NotHost();
             }

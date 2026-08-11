@@ -77,6 +77,18 @@ public sealed class Room
                && session.ExpiresAt > now;
     }
 
+    /// <summary>
+    /// Validates that <paramref name="token"/> is a live client session bound to
+    /// <paramref name="deviceSessionId"/>. Used to allow a member to remove themselves.
+    /// </summary>
+    internal bool ValidateMemberSession(string token, Guid deviceSessionId, DateTimeOffset now)
+    {
+        return _sessions.TryGetValue(token, out var session)
+               && session.Role == RoomRole.Client
+               && session.DeviceSessionId == deviceSessionId
+               && session.ExpiresAt > now;
+    }
+
     internal bool HasSession(string token) => _sessions.ContainsKey(token);
 
     internal bool TryGetSession(string token, out RoomSession session) =>

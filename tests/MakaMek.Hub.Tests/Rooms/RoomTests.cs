@@ -184,6 +184,44 @@ public class RoomTests
         room.HasSession("host-token").ShouldBeTrue();
     }
 
+    [Fact]
+    public void ValidateMemberSession_ClientTokenForOwnDevice_ReturnsTrue()
+    {
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+        var client = room.AddClientMember(Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
+
+        room.ValidateMemberSession(client.Token, client.DeviceSessionId, DefaultNow).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateMemberSession_ClientTokenForOtherDevice_ReturnsFalse()
+    {
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+        var client = room.AddClientMember(Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
+        var otherDevice = Guid.NewGuid();
+
+        room.ValidateMemberSession(client.Token, otherDevice, DefaultNow).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ValidateMemberSession_HostToken_ReturnsFalse()
+    {
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+
+        room.ValidateMemberSession("host-token", room.HostDeviceSessionId, DefaultNow).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ValidateMemberSession_ExpiredClientToken_ReturnsFalse()
+    {
+        var room = CreateRoom(Guid.NewGuid(), Guid.NewGuid());
+        var client = room.AddClientMember(Guid.NewGuid(), DefaultNow, DefaultTtl, () => "client-token");
+
+        var expiredAt = DefaultNow.Add(DefaultTtl).Add(TimeSpan.FromMinutes(1));
+
+        room.ValidateMemberSession(client.Token, client.DeviceSessionId, expiredAt).ShouldBeFalse();
+    }
+
     private static Room CreateRoom(Guid hostDeviceSessionId, Guid hostGameId)
     {
         var hostMember = new RoomMember(hostDeviceSessionId, RoomRole.Host, DefaultNow);
