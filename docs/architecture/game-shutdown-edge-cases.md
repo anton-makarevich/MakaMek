@@ -179,39 +179,33 @@ private void HandlePlayerLeft(PlayerLeftCommand command)
 
 **Problem**: No `GameEndedCommand` sent to clients.
 
-**Solution**: Combine heartbeat detection (Edge Case #1) with connection state monitoring
+**Solution**: The relay notifies clients when the host's connection is lost. The client's `RelayClientPublisher` raises `HostDisconnected`, the adapter forwards it via `RegisterDisconnectHandler`, and `GameConnector` synthesizes a local `GameEndedCommand` delivered through the shared receive path — no network traffic:
 
 ```csharp
-// CommandTransportAdapter.cs - Add connection state events
-public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
+// RelayClientPublisher - raises HostDisconnected when the relay reports host loss
 
-private void OnPublisherDisconnected(ITransportPublisher publisher)
-{
-    ConnectionStateChanged?.Invoke(this, 
-        new ConnectionStateChangedEventArgs(publisher, false));
-}
+// CommandTransportAdapter.cs - forward relay host-loss notifications to a single handler
+public void RegisterDisconnectHandler(Action<ITransportPublisher> onPublisherDisconnected) { ... }
 
-// ClientGame.cs - Subscribe to connection events
-public ClientGame(/* ... */)
+// GameConnector.cs - synthesize a local GameEndedCommand, no network round-trip
+private void OnRelayHostDisconnected(ITransportPublisher publisher)
 {
-    CommandPublisher.Adapter.ConnectionStateChanged += OnConnectionStateChanged;
-}
+    if (publisher != _relayPublisher) return;
+    if (!IsConnected) return;
 
-private void OnConnectionStateChanged(object? sender, ConnectionStateChangedEventArgs e)
-{
-    if (!e.IsConnected)
+    IsConnected = false;
+
+    var command = new GameEndedCommand
     {
-        // Server disconnected - trigger cleanup
-        var disconnectCommand = new GameEndedCommand
-        {
-            GameOriginId = Id,
-            Reason = GameEndReason.HostDisconnected,
-            Timestamp = DateTime.UtcNow
-        };
-        HandleCommand(disconnectCommand);
-    }
+        GameOriginId = Guid.NewGuid(),
+        Reason = GameEndReason.HostDisconnected,
+        Timestamp = DateTime.UtcNow
+    };
+    _commandPublisher.Adapter.DispatchLocalCommand(command, publisher);
 }
 ```
+
+`DispatchLocalCommand` invokes the same `_onCommandReceived` callback used for inbound transport messages, so the command reaches local subscribers without a serialization round-trip and without attempting to publish to the disconnected relay. `BattleMapViewModel` handles the `GameEndedCommand` and navigates the player back to the main menu with a host-disconnected dialog.
 
 ### 6. Starting New Game While Previous Game Shutting Down
 

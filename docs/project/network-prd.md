@@ -590,6 +590,10 @@ Sequence numbers are assigned by the sender but not validated, deduplicated, or 
    ClientGame) — deliberately out of scope, always.
 ```
 
+**Client-side reaction (implementation):** The client's `RelayClientPublisher` raises `HostDisconnected` when the relay tears down the room; `GameConnector.OnRelayHostDisconnected` synthesizes a local `GameEndedCommand` (`Reason = HostDisconnected`) and dispatches it through the same receive path used for inbound transport messages (`CommandTransportAdapter.DispatchLocalCommand`) — no network traffic, which is correct since the relay publisher is dead. This is what makes step 3 ("clients gracefully exit to main menu") work in `BattleMapViewModel`.
+
+`DispatchLocalCommand` is preferred over `PublishCommand` for this locally-synthesized command even when a local `RxTransportPublisher` loopback is present: it attributes the command to the relay publisher (so publisher-bound subscribers still see it), skips the serialize/deserialize round-trip (preserving `GameOriginId`/`Timestamp`, no `UnknownCommandType` risk), never attempts to publish to the disconnected relay, and delivers synchronously. The client-side pipeline lifecycle cleanup (connect/`Teardown` calling `ClearPublishers`, which also drops the shared `RxTransportPublisher` loopback) is tracked separately in issue #1289; the host-disconnect path does not depend on that behavior.
+
 **Browser lifecycle:** Tab close, page refresh, and mobile browser tab suspension all result in WebSocket closure, which triggers the standard host disconnect flow above. There is no browser-specific host-loss path.
 
 When the future resync effort is scoped, it should cover: command-log replay vs. snapshot (informed by the resource-consumption test), and optionally host-side log/state persistence so the *same* host can recover after a crash or restart — entirely host-local, no relay/hub changes required for that part.
