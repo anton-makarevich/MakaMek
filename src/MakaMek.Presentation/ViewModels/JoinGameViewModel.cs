@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
@@ -32,8 +34,11 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 {
     private readonly IGameConnector _gameConnector;
     private readonly ILocalizationService _localizationService;
+    private readonly IClipboardService _clipboardService;
     private JoinMode _joinMode = JoinMode.Lan;
     private CancellationTokenSource? _activeJoinCts;
+
+    private const string RoomCodeFormat = "^[A-HJ-NP-Z2-9]{6}$";
 
     public JoinGameViewModel(
         IUnitsLoader unitsLoader,
@@ -45,6 +50,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         IBotManager botManager,
         ILogger<JoinGameViewModel> logger,
         IMechFactory mechFactory,
+        IClipboardService clipboardService,
         ILocalizationService? localizationService = null)
         : base(unitsLoader,
             commandPublisher,
@@ -57,11 +63,31 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     {
         _gameConnector = gameConnector;
         _localizationService = localizationService ?? new FakeLocalizationService();
+        _clipboardService = clipboardService;
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
         JoinRoomCommand = new AsyncCommand(JoinRoom, (_) => CanJoin);
+    }
+
+    public override void AttachHandlers()
+    {
+        base.AttachHandlers();
+        TryAutoFillRoomCodeFromClipboard().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error reading room code from clipboard"));
+    }
+
+    private async Task TryAutoFillRoomCodeFromClipboard()
+    {
+        var clipboardText = await _clipboardService.GetText();
+        if (string.IsNullOrEmpty(clipboardText)) return;
+
+        var candidate = clipboardText.Trim().ToUpperInvariant();
+        if (!Regex.IsMatch(candidate, RoomCodeFormat)) return;
+
+        IsOnlineMode = true;
+        RoomCode = candidate;
     }
 
     // Implementation of the abstract method from a base class
