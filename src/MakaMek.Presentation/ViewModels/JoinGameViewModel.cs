@@ -37,6 +37,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     private readonly IClipboardService _clipboardService;
     private JoinMode _joinMode = JoinMode.Lan;
     private CancellationTokenSource? _activeJoinCts;
+    private int _clipboardReadGeneration;
 
     private const string RoomCodeFormat = "^[A-HJ-NP-Z2-9]{6}$";
 
@@ -80,8 +81,10 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
     private async Task TryAutoFillRoomCodeFromClipboard()
     {
+        var generation = _clipboardReadGeneration;
         var initialOnlineMode = IsOnlineMode;
         var initialRoomCode = RoomCode;
+        var initialConnected = IsConnected;
 
         var clipboardText = await _clipboardService.GetText();
         if (string.IsNullOrEmpty(clipboardText)) return;
@@ -89,10 +92,18 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         var candidate = clipboardText.Trim().ToUpperInvariant();
         if (!Regex.IsMatch(candidate, RoomCodeFormat)) return;
 
-        if (IsOnlineMode != initialOnlineMode || RoomCode != initialRoomCode) return;
+        if (generation != _clipboardReadGeneration ||
+            IsConnected != initialConnected ||
+            IsOnlineMode != initialOnlineMode ||
+            RoomCode != initialRoomCode) return;
 
         IsOnlineMode = true;
         RoomCode = candidate;
+    }
+
+    private void InvalidatePendingClipboardRead()
+    {
+        _clipboardReadGeneration++;
     }
 
     // Implementation of the abstract method from a base class
@@ -331,6 +342,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     {
         if (!CanJoin) return;
 
+        InvalidatePendingClipboardRead();
+
         IsJoining = true;
         JoinError = null;
 
@@ -407,6 +420,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     private async Task ConnectToServer()
     {
         if (!CanConnect) return;
+
+        InvalidatePendingClipboardRead();
 
         try
         {

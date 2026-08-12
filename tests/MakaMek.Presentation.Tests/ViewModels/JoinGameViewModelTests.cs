@@ -608,6 +608,29 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_WhenClipboardReadIsDelayed_AfterSuccessfulLanConnection_DoesNotApplyRoomCode()
+    {
+        // Arrange
+        EnableLanConnect();
+        var clipboardTcs = new TaskCompletionSource<string?>();
+        _clipboardService.GetText().Returns(clipboardTcs.Task);
+
+        // Act - start the async clipboard read, then connect to a LAN server before it completes
+        _sut.AttachHandlers();
+        _sut.ServerIp = "127.0.0.1";
+        _sut.ConnectCommand.Execute(null);
+
+        // Assert - the LAN connection succeeded while the read was still pending
+        _sut.IsConnected.ShouldBeTrue();
+
+        clipboardTcs.SetResult("abcdef");
+
+        // Assert - the stale clipboard result must not be applied to the active session
+        _sut.IsOnlineMode.ShouldBeFalse();
+        _sut.RoomCode.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void AddDefaultPlayer_ShouldSavePlayerToCache()
     {
         // Assert - cache should be called when default player is added
