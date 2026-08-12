@@ -52,6 +52,7 @@ public class JoinGameViewModelTests
     private readonly ILogger<JoinGameViewModel> _logger = Substitute.For<ILogger<JoinGameViewModel>>();
     private readonly IGameConnector _gameConnector = Substitute.For<IGameConnector>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
     private readonly ClientGame _clientGame;
     private bool _connectorConnected;
 
@@ -94,6 +95,8 @@ public class JoinGameViewModelTests
         _localizationService.GetString("Join_RoomJoinedInfo").Returns("Room: {0}");
         _localizationService.GetString("Join_ServerConnectedInfo").Returns("Server: {0}");
 
+        _clipboardService.GetText().Returns(Task.FromResult<string?>(null));
+
         _sut = CreateSut();
     }
 
@@ -117,6 +120,7 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _clipboardService,
             localizationService ?? _localizationService);
         sut.AttachHandlers();
         return sut;
@@ -544,6 +548,103 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_WhenClipboardContainsValidRoomCode_AutoFillsRoomCode()
+    {
+        // Arrange
+        _clipboardService.GetText().Returns("abcdef");
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert
+        _sut.RoomCode.ShouldBe("ABCDEF");
+        _sut.IsOnlineMode.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AttachHandlers_WhenRoomCodeAlreadySet_DoesNotOverwriteWithClipboardCandidate()
+    {
+        // Arrange
+        _clipboardService.GetText().Returns("abcdef");
+        _sut.RoomCode = "GHIJKL";
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert - the pre-filled room code must be preserved
+        _sut.RoomCode.ShouldBe("GHIJKL");
+    }
+
+    [Fact]
+    public void AttachHandlers_WhenClipboardContainsInvalidText_DoesNotAutoFillRoomCode()
+    {
+        // Arrange
+        _clipboardService.GetText().Returns("not a room code");
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert
+        _sut.RoomCode.ShouldBeEmpty();
+        _sut.IsOnlineMode.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AttachHandlers_WhenClipboardContainsNoText_DoesNotAutoFillRoomCode()
+    {
+        // Arrange
+        _clipboardService.GetText().Returns(Task.FromResult<string?>(null));
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert
+        _sut.RoomCode.ShouldBeEmpty();
+        _sut.IsOnlineMode.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AttachHandlers_WhenClipboardReadIsDelayed_DoesNotOverwriteUserState()
+    {
+        // Arrange
+        var clipboardTcs = new TaskCompletionSource<string?>();
+        _clipboardService.GetText().Returns(clipboardTcs.Task);
+
+        // Act - start the async clipboard read, then change join state before it completes
+        _sut.AttachHandlers();
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "GHIJKL";
+        clipboardTcs.SetResult("abcdef");
+
+        // Assert - the stale clipboard result must not overwrite the user's state
+        _sut.RoomCode.ShouldBe("GHIJKL");
+        _sut.IsOnlineMode.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AttachHandlers_WhenClipboardReadIsDelayed_AfterSuccessfulLanConnection_DoesNotApplyRoomCode()
+    {
+        // Arrange
+        EnableLanConnect();
+        var clipboardTcs = new TaskCompletionSource<string?>();
+        _clipboardService.GetText().Returns(clipboardTcs.Task);
+
+        // Act - start the async clipboard read, then connect to a LAN server before it completes
+        _sut.AttachHandlers();
+        _sut.ServerIp = "127.0.0.1";
+        _sut.ConnectCommand.Execute(null);
+
+        // Assert - the LAN connection succeeded while the read was still pending
+        _sut.IsConnected.ShouldBeTrue();
+
+        clipboardTcs.SetResult("abcdef");
+
+        // Assert - the stale clipboard result must not be applied to the active session
+        _sut.IsOnlineMode.ShouldBeFalse();
+        _sut.RoomCode.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void AddDefaultPlayer_ShouldSavePlayerToCache()
     {
         // Assert - cache should be called when default player is added
@@ -568,7 +669,8 @@ public class JoinGameViewModelTests
             cachingService,
             _botManager,
             _logger,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
         sut.AttachHandlers();
 
         // Act
@@ -595,7 +697,8 @@ public class JoinGameViewModelTests
             cachingService,
             _botManager,
             _logger,
-            _mechFactory);
+            _mechFactory,
+            _clipboardService);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();

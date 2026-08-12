@@ -122,7 +122,8 @@ public class MainMenuViewModelTests
             Substitute.For<IFileCachingService>(),
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<JoinGameViewModel>>(),
-            Substitute.For<IMechFactory>()
+            Substitute.For<IMechFactory>(),
+            Substitute.For<IClipboardService>()
         );
         _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);
 

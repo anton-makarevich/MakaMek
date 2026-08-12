@@ -43,4 +43,22 @@ public class AvaloniaClipboardService : IClipboardService
             return false;
         }
     }
+
+    public async Task<string?> GetText()
+    {
+        var topLevel = GetTopLevel();
+        if (topLevel?.Clipboard is null) return null;
+
+        try
+        {
+            using var data = await topLevel.Clipboard.TryGetDataAsync();
+            if (data is null) return null;
+            return await data.TryGetTextAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read text from the clipboard");
+            return null;
+        }
+    }
 }
