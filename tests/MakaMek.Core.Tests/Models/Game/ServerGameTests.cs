@@ -30,6 +30,7 @@ public class ServerGameTests
     private readonly ServerGame _sut;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
+    private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly MtfDataProvider _mtfDataProvider = new(new ClassicBattletechComponentProvider());
     private readonly ILogger<ServerGame> _logger = Substitute.For<ILogger<ServerGame>>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
@@ -58,7 +59,7 @@ public class ServerGameTests
                 Substitute.For<ILocalizationService>()),
             _commandPublisher, _diceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IDamageTransferCalculator>(),
+            _damageTransferCalculator,
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IHullBreachCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -74,6 +75,12 @@ public class ServerGameTests
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
         _sut.IsDisposed.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void DamageTransferCalculator_ShouldReturnInjectedCalculator()
+    {
+        _sut.DamageTransferCalculator.ShouldBeSameAs(_damageTransferCalculator);
     }
     
     [Fact]

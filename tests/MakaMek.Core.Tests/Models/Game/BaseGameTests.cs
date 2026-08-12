@@ -1894,6 +1894,114 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateTurnIncrementedCommand()
+    {
+        // Arrange
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = Turn + 1
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateSetBattleMapCommand()
+    {
+        // Arrange
+        var command = new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateWeaponAttackResolutionCommand()
+    {
+        // Arrange
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            WeaponData = new ComponentData
+            {
+                Name = "Test Weapon",
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
+            },
+            ResolutionData = new AttackResolutionData(10, [], false, HitDirection.Front, 0)
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateHeatUpdatedCommand()
+    {
+        // Arrange
+        var command = new HeatUpdatedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            PreviousHeat = 0,
+            HeatData = new HeatData
+            {
+                MovementHeatSources = [],
+                WeaponHeatSources = [],
+                ExternalHeatSources = [],
+                DissipationData = new HeatDissipationData
+                {
+                    HeatSinks = 10,
+                    EngineHeatSinks = 10,
+                    DissipationPoints = 20,
+                    WaterDissipationBonus = 0
+                }
+            }
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectUnknownCommand()
+    {
+        // Arrange
+        var command = new StartPhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Start
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+    }
+
+    [Fact]
     public void OnHullBreach_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
