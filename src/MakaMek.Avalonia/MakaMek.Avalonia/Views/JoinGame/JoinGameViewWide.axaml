@@ -22,14 +22,27 @@
             LeftIcon="{StaticResource BackArrowIcon}"
             Margin="0,0,0,10"/>
             <Grid Grid.Row="1"
-                RowDefinitions="Auto,*">
-                <!-- Connect Fragment -->
-                <Border Classes="card">
-                    <fragments:ConnectFragment DataContext="{Binding}"/>
-                </Border>
+                ColumnDefinitions="*,Auto">
+                <!-- Left Column: Connect + Players -->
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Connect Fragment -->
+                    <Border Classes="card">
+                        <fragments:ConnectFragment DataContext="{Binding}"/>
+                    </Border>
 
-                <!-- Players Fragment (Reused) -->
-                <fragments2:PlayersFragment Grid.Row="1" DataContext="{Binding}"/>
+                    <!-- Players Fragment (Reused) -->
+                    <fragments2:PlayersFragment Grid.Row="1" DataContext="{Binding}"/>
+                </Grid>
+
+                <!-- Right Column: Map Preview -->
+                <Border Grid.Column="1" Classes="card" IsVisible="{Binding HasLobbyMapPreview}"
+                        Margin="10,0,0,0" VerticalAlignment="Top">
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{extensions:Localize 'Join_LobbyMapPreview'}" Classes="label"/>
+                        <Image Source="{Binding PreviewImage}" MaxWidth="400" MaxHeight="400"
+                               Stretch="Uniform" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Grid>
     </Grid>
