@@ -51,7 +51,7 @@ public class AvaloniaClipboardService : IClipboardService
 
         try
         {
-            var data = await topLevel.Clipboard.TryGetDataAsync();
+            using var data = await topLevel.Clipboard.TryGetDataAsync();
             if (data is null) return null;
             return await data.TryGetTextAsync();
         }

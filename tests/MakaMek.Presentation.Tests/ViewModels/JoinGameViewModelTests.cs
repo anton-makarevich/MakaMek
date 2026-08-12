@@ -590,6 +590,24 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_WhenClipboardReadIsDelayed_DoesNotOverwriteUserState()
+    {
+        // Arrange
+        var clipboardTcs = new TaskCompletionSource<string?>();
+        _clipboardService.GetText().Returns(clipboardTcs.Task);
+
+        // Act - start the async clipboard read, then change join state before it completes
+        _sut.AttachHandlers();
+        _sut.IsOnlineMode = true;
+        _sut.RoomCode = "GHIJKL";
+        clipboardTcs.SetResult("abcdef");
+
+        // Assert - the stale clipboard result must not overwrite the user's state
+        _sut.RoomCode.ShouldBe("GHIJKL");
+        _sut.IsOnlineMode.ShouldBeTrue();
+    }
+
+    [Fact]
     public void AddDefaultPlayer_ShouldSavePlayerToCache()
     {
         // Assert - cache should be called when default player is added

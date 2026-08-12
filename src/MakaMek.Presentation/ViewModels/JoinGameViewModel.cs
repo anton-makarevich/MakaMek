@@ -80,11 +80,16 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
     private async Task TryAutoFillRoomCodeFromClipboard()
     {
+        var initialOnlineMode = IsOnlineMode;
+        var initialRoomCode = RoomCode;
+
         var clipboardText = await _clipboardService.GetText();
         if (string.IsNullOrEmpty(clipboardText)) return;
 
         var candidate = clipboardText.Trim().ToUpperInvariant();
         if (!Regex.IsMatch(candidate, RoomCodeFormat)) return;
+
+        if (IsOnlineMode != initialOnlineMode || RoomCode != initialRoomCode) return;
 
         IsOnlineMode = true;
         RoomCode = candidate;
