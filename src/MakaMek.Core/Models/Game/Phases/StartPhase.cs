@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
@@ -24,7 +25,6 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 var broadcastStatusCommand = playerStatusCommand with { GameOriginId = Game.Id };
                 Game.OnPlayerStatusUpdated(playerStatusCommand);
                 Game.CommandPublisher.PublishCommand(broadcastStatusCommand);
-                TryTransitionToNextPhase();
                 break;
             case RequestGameLobbyStatusCommand:
                 // Send information about all currently joined players to the requesting client
@@ -65,6 +65,17 @@ public class StartPhase(ServerGame game) : GamePhase(game)
             
             // Send it to the requesting client
             Game.CommandPublisher.PublishCommand(joinCommand);
+        }
+
+        // Send the current battle map to the requesting client so late joiners see the lobby map
+        if (Game.BattleMap != null)
+        {
+            var mapCommand = new SetBattleMapCommand
+            {
+                GameOriginId = Game.Id,
+                MapData = Game.BattleMap.ToData()
+            };
+            Game.CommandPublisher.PublishCommand(mapCommand);
         }
     }
 

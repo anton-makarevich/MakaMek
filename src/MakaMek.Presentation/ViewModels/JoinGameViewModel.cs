@@ -10,11 +10,15 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -35,6 +39,11 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     private readonly IGameConnector _gameConnector;
     private readonly ILocalizationService _localizationService;
     private readonly IClipboardService _clipboardService;
+    private readonly IBattleMapFactory _mapFactory;
+    private readonly IMapPreviewRenderer _mapPreviewRenderer;
+    private CancellationTokenSource? _previewCts;
+    private BattleMap? _previewMap;
+    private object? _previewImage;
     private JoinMode _joinMode = JoinMode.Lan;
     private CancellationTokenSource? _activeJoinCts;
     private int _clipboardReadGeneration;
@@ -51,6 +60,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         IBotManager botManager,
         ILogger<JoinGameViewModel> logger,
         IMechFactory mechFactory,
+        IBattleMapFactory mapFactory,
+        IMapPreviewRenderer mapPreviewRenderer,
         IClipboardService clipboardService,
         ILocalizationService? localizationService = null)
         : base(unitsLoader,
@@ -65,6 +76,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         _gameConnector = gameConnector;
         _localizationService = localizationService ?? new FakeLocalizationService();
         _clipboardService = clipboardService;
+        _mapFactory = mapFactory;
+        _mapPreviewRenderer = mapPreviewRenderer;
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
@@ -77,6 +90,67 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         base.AttachHandlers();
         TryAutoFillRoomCodeFromClipboard().SafeFireAndForget(
             ex => _logger.LogError(ex, "Error reading room code from clipboard"));
+    }
+
+    /// <summary>
+    /// The lobby map received from the server, shown as a read-only preview before the game starts.
+    /// </summary>
+    public BattleMap? PreviewMap => _previewMap;
+
+    /// <summary>
+    /// Rendered preview image for the lobby map received from the server.
+    /// </summary>
+    public object? PreviewImage => _previewImage;
+
+    /// <summary>
+    /// Whether a lobby map preview is currently available for display.
+    /// </summary>
+    public bool HasLobbyMapPreview => _previewMap != null;
+
+    private async Task UpdateLobbyMapPreviewAsync(BattleMap? map)
+    {
+        _previewMap = map;
+        NotifyPropertyChanged(nameof(PreviewMap));
+        NotifyPropertyChanged(nameof(HasLobbyMapPreview));
+
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+
+        // Drop the previous preview image immediately: a null replacement, a cancelled
+        // render, or a render that returns null must never leave a stale map's image on
+        // screen. Notify before rendering so the UI clears while the new preview is built.
+        (_previewImage as IDisposable)?.Dispose();
+        _previewImage = null;
+        NotifyPropertyChanged(nameof(PreviewImage));
+
+        if (map == null)
+        {
+            _previewCts = null;
+            return;
+        }
+
+        _previewCts = new CancellationTokenSource();
+        var token = _previewCts.Token;
+
+        try
+        {
+            var newPreview = await _mapPreviewRenderer.GeneratePreview(map, cancellationToken: token);
+            if (!token.IsCancellationRequested && newPreview != null)
+            {
+                _previewImage = newPreview;
+            }
+            else
+            {
+                // Render was superseded or produced nothing; dispose the unused result.
+                (newPreview as IDisposable)?.Dispose();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Map preview generation cancelled - a newer map superseded this preview");
+        }
+
+        NotifyPropertyChanged(nameof(PreviewImage));
     }
 
     private async Task TryAutoFillRoomCodeFromClipboard()
@@ -147,20 +221,25 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
                 }
                 break;
                 
-            case SetBattleMapCommand:
-                // Handle navigation to BattleMapViewModel when the battle map is set
-                
-                // Get the BattleMapViewModel and set the game
+            case SetBattleMapCommand setBattleMapCommand:
+                // The ClientGame has already applied the map; show it as a lobby preview.
+                // Navigation to the battle map happens when the game actually starts.
+                var lobbyPreviewMap = _mapFactory.CreateFromData(setBattleMapCommand.MapData);
+                await UpdateLobbyMapPreviewAsync(lobbyPreviewMap);
+                break;
+
+            case ChangePhaseCommand phaseCommand:
+                // The game start signal: navigate to the battle map once the phase leaves Start
+                if (phaseCommand.Phase == PhaseNames.Start) break;
+
                 var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
                 if (battleMapViewModel == null)
                 {
                     throw new Exception("BattleMapViewModel is not registered");
                 }
                 battleMapViewModel.Game = _localGame;
-                
-                // Navigate to BattleMap view
+
                 await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
-                
                 break;
         }
         
@@ -465,6 +544,11 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+        _previewCts = null;
+        (_previewImage as IDisposable)?.Dispose();
+        _previewImage = null;
         await Disconnect();
         await _gameConnector.DisposeAsync();
         GC.SuppressFinalize(this);

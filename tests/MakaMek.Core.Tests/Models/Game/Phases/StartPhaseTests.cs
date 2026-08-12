@@ -57,11 +57,18 @@ public class StartPhaseTests : GamePhaseTestsBase
         SetMap();
 
         // Act
-        // Set both players ready
+        // Set both players ready; readiness alone must NOT start the game
         _sut.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
         _sut.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
 
-        // Assert
+        // Assert - no transition from readiness alone; the start must be explicit
+        MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
+        _mockNextPhase.DidNotReceive().Enter();
+
+        // The host explicitly starts the game
+        _sut.TryTransitionToNextPhase();
+
+        // Assert - only the explicit start transitions out of Start
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Start, Game);
         _mockNextPhase.Received(1).Enter();
     }
@@ -158,5 +165,46 @@ public class StartPhaseTests : GamePhaseTestsBase
         // Assert
         // Verify that no JoinGameCommand was published since there are no players
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<JoinGameCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatus_ShouldSendBattleMap_WhenSet()
+    {
+        // Arrange
+        SetMap();
+        CommandPublisher.ClearReceivedCalls();
+        
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
+            cmd.GameOriginId == Game.Id &&
+            cmd.MapData.HexData.Count == Game.BattleMap!.ToData().HexData.Count));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatus_ShouldNotSendBattleMap_WhenNotSet()
+    {
+        // Arrange
+        CommandPublisher.ClearReceivedCalls();
+        
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<SetBattleMapCommand>());
     }
 }

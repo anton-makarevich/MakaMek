@@ -376,6 +376,11 @@ public class GameManager : IGameManager
         _serverGame?.SetBattleMap(battleMap);
     }
 
+    public void TryStartGame()
+    {
+        _serverGame?.TryStartGame();
+    }
+
     public string? GetLanServerAddress()
     {
         // Return address only if the host service is actually running

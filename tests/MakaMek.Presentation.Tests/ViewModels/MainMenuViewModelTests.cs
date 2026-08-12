@@ -123,6 +123,8 @@ public class MainMenuViewModelTests
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<JoinGameViewModel>>(),
             Substitute.For<IMechFactory>(),
+            Substitute.For<IBattleMapFactory>(),
+            Substitute.For<IMapPreviewRenderer>(),
             Substitute.For<IClipboardService>()
         );
         _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);

@@ -15,8 +15,10 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -24,7 +26,11 @@ using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
@@ -53,8 +59,10 @@ public class JoinGameViewModelTests
     private readonly IGameConnector _gameConnector = Substitute.For<IGameConnector>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
+    private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly ClientGame _clientGame;
     private bool _connectorConnected;
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public JoinGameViewModelTests()
     {
@@ -120,6 +128,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService,
             localizationService ?? _localizationService);
         sut.AttachHandlers();
@@ -470,7 +480,102 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public async Task HandleCommandInternal_SetBattleMapCommand_SetsBattleMapAndNavigates()
+    public async Task HandleCommandInternal_SetBattleMapCommand_SetsLobbyMapPreview_AndDoesNotNavigate()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+
+        // Act
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert - the map is stored as a preview, no navigation happens
+        _sut.PreviewMap.ShouldBe(battleMap);
+        _sut.HasLobbyMapPreview.ShouldBeTrue();
+        navigationService.DidNotReceive().GetViewModel<BattleMapViewModel>();
+        await navigationService.DidNotReceive().NavigateToViewModelAsync(Arg.Any<BattleMapViewModel>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_SetBattleMapCommand_GeneratesPreviewImage()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+        var previewImage = new object();
+        _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(previewImage));
+
+        // Act
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert
+        _sut.PreviewMap.ShouldBe(battleMap);
+        _sut.PreviewImage.ShouldBe(previewImage);
+        await _mapPreviewRenderer.Received(1)
+            .GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateLobbyMapPreview_ClearsPreviewImage_WhenReplacementPreviewIsNull()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var firstMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        var secondMap = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(firstMap, secondMap);
+
+        var firstImage = Substitute.For<IDisposable>();
+        _mapPreviewRenderer.GeneratePreview(firstMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(firstImage));
+        // The replacement render returns null (e.g. renderer couldn't produce an image)
+        _mapPreviewRenderer.GeneratePreview(secondMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(null));
+
+        // Act - first map produces a completed preview image
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+        _sut.PreviewImage.ShouldBe(firstImage);
+
+        // A second map arrives whose GeneratePreview result is null
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert - the stale preview is cleared and disposed; no image lingers for the new map
+        _sut.PreviewImage.ShouldBeNull();
+        _sut.PreviewMap.ShouldBe(secondMap);
+        firstImage.Received(1).Dispose();
+        await _mapPreviewRenderer.Received(1)
+            .GeneratePreview(secondMap, Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_ChangePhaseCommand_NavigatesToBattleMap_WhenLeavingStart()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
@@ -486,33 +591,52 @@ public class JoinGameViewModelTests
             Substitute.For<IPlatformService>());
         navigationService.GetViewModel<BattleMapViewModel>()
             .Returns(battleMapViewModel);
- 
+
         _sut.SetNavigationService(navigationService);
 
         // Act
-        _sut.HandleServerCommand(new SetBattleMapCommand
+        _sut.HandleServerCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = new BattleMapData { HexData = [] }
+            Phase = PhaseNames.Deployment
         });
 
         // Assert
         navigationService.Received(1).GetViewModel<BattleMapViewModel>();
-        battleMapViewModel.Game.ShouldNotBeNull();
+        battleMapViewModel.Game.ShouldBe(_clientGame);
         await navigationService.Received(1).NavigateToViewModelAsync(battleMapViewModel);
     }
 
     [Fact]
-    public async Task HandleCommandInternal_SetBattleMapCommand_Throws_WhenBattleMapViewModelNotRegistered()
+    public void HandleCommandInternal_ChangePhaseCommand_DoesNotNavigate_WhenEnteringStart()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        _sut.HandleServerCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Start
+        });
+
+        // Assert
+        navigationService.DidNotReceive().GetViewModel<BattleMapViewModel>();
+        navigationService.DidNotReceive().NavigateToViewModelAsync(Arg.Any<BattleMapViewModel>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_ChangePhaseCommand_Throws_WhenBattleMapViewModelNotRegistered()
     {
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
         navigationService.GetViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
         _sut.SetNavigationService(navigationService);
-        var command = new SetBattleMapCommand
+        var command = new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = new BattleMapData { HexData = [] }
+            Phase = PhaseNames.Deployment
         };
         var method = typeof(JoinGameViewModel).GetMethod("HandleCommandInternal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -670,6 +794,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService);
         sut.AttachHandlers();
 
@@ -698,6 +824,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService);
 
         // Assert - should be able to add default player even when not connected
@@ -1372,6 +1500,70 @@ public class JoinGameViewModelTests
         _sut.IsConnected.ShouldBeTrue();
         _sut.IsOnlineFormVisible.ShouldBeFalse();
         raisedEvents.ShouldContain(nameof(JoinGameViewModel.IsOnlineFormVisible));
+    }
+
+    [Fact]
+    public async Task UpdateLobbyMapPreview_WhenCancelled_LogsDebugMessage()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+
+        var previewTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Signal set as soon as GeneratePreview is entered, so disposal happens only after
+        // the render is actually in flight (no arbitrary Task.Delay guessing).
+        var previewEnteredTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken capturedToken = default;
+        _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                capturedToken = ci.Arg<CancellationToken>();
+                capturedToken.Register(() => previewTcs.TrySetCanceled(capturedToken));
+                previewEnteredTcs.TrySetResult();
+                return previewTcs.Task;
+            });
+
+        // Signal completed when the expected cancellation debug log is observed.
+        var logReceivedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _logger
+            .When(l => l.Log(
+                LogLevel.Debug,
+                Arg.Any<EventId>(),
+                Arg.Is<object>(state => state.ToString()!.Contains("Map preview generation cancelled")),
+                Arg.Is<Exception?>(e => e == null),
+                Arg.Any<Func<object, Exception?, string>>()))
+            .Do(_ => logReceivedTcs.TrySetResult());
+
+        // Act - start preview generation
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Wait until GeneratePreview has actually been entered before cancelling
+        await previewEnteredTcs.Task;
+
+        // Cancel the in-flight preview by disposing the view model (which cancels the preview token)
+        await _sut.DisposeAsync();
+
+        // Assert - asynchronously wait (bounded) for the cancellation log rather than asserting
+        // immediately, since the cancellation continuation runs asynchronously after disposal.
+        var completed = await Task.WhenAny(
+            logReceivedTcs.Task,
+            Task.Delay(TimeSpan.FromSeconds(5)));
+        completed.ShouldBe(logReceivedTcs.Task,
+            "Timed out waiting for 'Map preview generation cancelled' debug log");
+
+        _logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains("Map preview generation cancelled")),
+            Arg.Is<Exception?>(e => e == null),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]

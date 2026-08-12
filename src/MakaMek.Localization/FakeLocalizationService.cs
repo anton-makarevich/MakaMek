@@ -490,6 +490,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Join_ConnectionFailed"] = "Failed to connect. Please check your connection and try again.",
         ["Join_ConfigurationError"] = "Online joining is not available on this device.",
         ["Join_ConnectedHeading"] = "Connected",
+        ["Join_LobbyMapPreview"] = "Lobby Map",
         ["Join_RoomJoinedInfo"] = "Room: {0}",
         ["Join_ServerConnectedInfo"] = "Server: {0}",
         ["Players_AddPlayer"] = "Add Player",

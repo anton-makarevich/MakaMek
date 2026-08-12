@@ -82,8 +82,16 @@ public class ServerGame : BaseGame, IDisposable
         };
         
         CommandPublisher.PublishCommand(mapCommand);
-        
-        ((StartPhase)_currentPhase).TryTransitionToNextPhase();
+    }
+
+    /// <summary>
+    /// Attempts to transition the server game out of the Start phase. Call this
+    /// explicitly when the host starts the game; <see cref="SetBattleMap"/> only
+    /// broadcasts the map and never advances the phase on its own.
+    /// </summary>
+    public void TryStartGame()
+    {
+        (_currentPhase as StartPhase)?.TryTransitionToNextPhase();
     }
     
     public void SetInitiativeOrder(IReadOnlyList<IPlayer> order)

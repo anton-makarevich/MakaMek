@@ -103,6 +103,37 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void SetBattleMap_AllowsRepeatedUpdates_WhileInStartPhase()
+    {
+        // Arrange
+        var map1 = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map2 = BattleMapFactory.GenerateMap(6, 6, new SingleTerrainGenerator(6, 6, new ClearTerrain()));
+
+        // Act
+        SetBattleMap(map1);
+        SetBattleMap(map2);
+
+        // Assert - the latest map wins while the game is still in the lobby
+        BattleMap.ShouldBe(map2);
+    }
+
+    [Fact]
+    public void SetBattleMap_IgnoresUpdates_AfterLeavingStartPhase()
+    {
+        // Arrange
+        var map1 = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map2 = BattleMapFactory.GenerateMap(6, 6, new SingleTerrainGenerator(6, 6, new ClearTerrain()));
+        SetBattleMap(map1);
+
+        // Act - the game has started, so late map updates must be rejected
+        TurnPhase = PhaseNames.Deployment;
+        SetBattleMap(map2);
+
+        // Assert
+        BattleMap.ShouldBe(map1);
+    }
+
+    [Fact]
     public void OnWeaponConfiguration_DoesNothing_WhenPlayerNotFound()
     {
         // Arrange
@@ -1860,6 +1891,114 @@ public sealed class BaseGameTests : BaseGame
 
         // Assert
         result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateTurnIncrementedCommand()
+    {
+        // Arrange
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = Turn + 1
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateSetBattleMapCommand()
+    {
+        // Arrange
+        var command = new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateWeaponAttackResolutionCommand()
+    {
+        // Arrange
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            WeaponData = new ComponentData
+            {
+                Name = "Test Weapon",
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
+            },
+            ResolutionData = new AttackResolutionData(10, [], false, HitDirection.Front, 0)
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateHeatUpdatedCommand()
+    {
+        // Arrange
+        var command = new HeatUpdatedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            PreviousHeat = 0,
+            HeatData = new HeatData
+            {
+                MovementHeatSources = [],
+                WeaponHeatSources = [],
+                ExternalHeatSources = [],
+                DissipationData = new HeatDissipationData
+                {
+                    HeatSinks = 10,
+                    EngineHeatSinks = 10,
+                    DissipationPoints = 20,
+                    WaterDissipationBonus = 0
+                }
+            }
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectUnknownCommand()
+    {
+        // Arrange
+        var command = new StartPhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Start
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
     }
 
     [Fact]

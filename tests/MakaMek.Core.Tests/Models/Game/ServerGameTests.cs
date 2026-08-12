@@ -30,6 +30,7 @@ public class ServerGameTests
     private readonly ServerGame _sut;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
+    private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly MtfDataProvider _mtfDataProvider = new(new ClassicBattletechComponentProvider());
     private readonly ILogger<ServerGame> _logger = Substitute.For<ILogger<ServerGame>>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
@@ -58,7 +59,7 @@ public class ServerGameTests
                 Substitute.For<ILocalizationService>()),
             _commandPublisher, _diceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IDamageTransferCalculator>(),
+            _damageTransferCalculator,
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IHullBreachCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -74,6 +75,12 @@ public class ServerGameTests
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
         _sut.IsDisposed.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void DamageTransferCalculator_ShouldReturnInjectedCalculator()
+    {
+        _sut.DamageTransferCalculator.ShouldBeSameAs(_damageTransferCalculator);
     }
     
     [Fact]
@@ -188,6 +195,9 @@ public class ServerGameTests
             PlayerStatus = PlayerStatus.Ready
         });
 
+        // The game starts explicitly (host trigger), not from readiness alone
+        _sut.TryStartGame();
+
         // Assert
         _sut.TurnPhase.ShouldBe(PhaseNames.Deployment);
         _commandPublisher.Received(1).PublishCommand(Arg.Is<ChangePhaseCommand>(cmd => 
@@ -237,6 +247,12 @@ public class ServerGameTests
             PlayerStatus = PlayerStatus.Ready
         });
         
+        // Readiness alone must not start the game; the host starts it explicitly
+        _sut.PhaseStepState.ShouldBeNull();
+
+        // Act - host explicitly starts the game now that all players are ready
+        _sut.TryStartGame();
+        
         // Assert
         _sut.PhaseStepState.ShouldNotBeNull();
         var expectedIds = new List<Guid> { playerId1, playerId2 };
@@ -269,6 +285,9 @@ public class ServerGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerStatus = PlayerStatus.Ready
         });
+    
+        // The game starts explicitly (host trigger), not from readiness alone
+        _sut.TryStartGame();
     
         // Act
         _sut.HandleCommand(new DeployUnitCommand
@@ -384,14 +403,31 @@ public class ServerGameTests
         var battleMap = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         _commandPublisher.ClearReceivedCalls();
-        
+
         // Act
         _sut.SetBattleMap(battleMap);
-        
+
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
             cmd.GameOriginId == _sut.Id &&
             cmd.MapData.HexData.Count == battleMap.ToData().HexData.Count));
+        // SetBattleMap must not advance the phase on its own
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
+        _sut.TurnPhase.ShouldBe(PhaseNames.Start);
+    }
+
+    [Fact]
+    public void TryStartGame_DoesNotTransition_WhenNoPlayersAreReady()
+    {
+        // Arrange - a map is set but no players have joined, so the transition gate
+        // (AllPlayersReady && BattleMap != null) is not satisfied.
+
+        // Act
+        _sut.TryStartGame();
+
+        // Assert - the phase is left in Start; no phase change command is published
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
+        _sut.TurnPhase.ShouldBe(PhaseNames.Start);
     }
 
     [Fact]

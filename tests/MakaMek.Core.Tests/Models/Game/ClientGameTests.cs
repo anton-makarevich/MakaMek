@@ -2969,16 +2969,8 @@ public class ClientGameTests
         _sut.Dispose();
         
         // Assert, a task should be canceled
-        var totalDelay = 0;
-        const int stepDelay = 20;
-        while (!task.IsCanceled)
-        {
-            await Task.Delay(stepDelay);
-            totalDelay+= stepDelay;
-            if (totalDelay > 500) throw new TimeoutException("Task did not complete in time");
-        }
-        
-        task.IsCanceled.ShouldBeTrue();
+        await Should.ThrowAsync<TaskCanceledException>(() => task)
+            .WaitAsync(TimeSpan.FromSeconds(5));
     }
     
     [Fact]
