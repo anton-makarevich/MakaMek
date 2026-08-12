@@ -112,9 +112,16 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         _previewMap = map;
         NotifyPropertyChanged(nameof(PreviewMap));
         NotifyPropertyChanged(nameof(HasLobbyMapPreview));
-        
+
         _previewCts?.Cancel();
         _previewCts?.Dispose();
+
+        // Drop the previous preview image immediately: a null replacement, a cancelled
+        // render, or a render that returns null must never leave a stale map's image on
+        // screen. Notify before rendering so the UI clears while the new preview is built.
+        (_previewImage as IDisposable)?.Dispose();
+        _previewImage = null;
+        NotifyPropertyChanged(nameof(PreviewImage));
 
         if (map == null)
         {
@@ -125,17 +132,16 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         _previewCts = new CancellationTokenSource();
         var token = _previewCts.Token;
 
-        var oldPreview = _previewImage as IDisposable;
         try
         {
             var newPreview = await _mapPreviewRenderer.GeneratePreview(map, cancellationToken: token);
             if (!token.IsCancellationRequested && newPreview != null)
             {
                 _previewImage = newPreview;
-                oldPreview?.Dispose();
             }
             else
             {
+                // Render was superseded or produced nothing; dispose the unused result.
                 (newPreview as IDisposable)?.Dispose();
             }
         }

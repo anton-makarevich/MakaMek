@@ -78,7 +78,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
 
-        // Broadcast the lobby map to the server once reselection settles (debounced)
+        // Broadcast the lobby map to the server once reselection settles (debounced).
+        // SetBattleMap only broadcasts the map; the phase transition is triggered
+        // explicitly via TryStartGame when the host starts the game.
         MapConfig.PropertyChanged += OnMapConfigPropertyChanged;
         _mapChangeSubscription = _mapChanges
             .Throttle(TimeSpan.FromSeconds(5))
@@ -447,6 +449,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
         // Set BattleMap on GameManager/ServerGame (propagates to clients via the command system)
         _gameManager.SetBattleMap(map);
+
+        // Explicitly trigger the Start → Deployment transition now that the map is set
+        // and all players are ready. SetBattleMap no longer transitions on its own.
+        _gameManager.TryStartGame();
 
         // Host Client for local player(s)
         var battleMapViewModel = await NavigationService.GetNewViewModelAsync<BattleMapViewModel>();

@@ -23,6 +23,13 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="battleMap">The battle map to use</param>
     void SetBattleMap(BattleMap battleMap);
+
+    /// <summary>
+    /// Attempts to transition the server game out of the Start phase. This is the
+    /// explicit trigger for starting the game; <see cref="SetBattleMap"/> only
+    /// broadcasts the map and never advances the phase on its own.
+    /// </summary>
+    void TryStartGame();
     
     /// <summary>
     /// Gets the LAN server address for clients to connect to

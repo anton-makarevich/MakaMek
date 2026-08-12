@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -335,6 +336,26 @@ public class GameManagerTests : IDisposable
 
         // Assert
         _serverGame.BattleMap.ShouldBe(battleMap); // Verify the map was set
+        _serverGame.TurnPhase.ShouldBe(PhaseNames.Start); // SetBattleMap must not transition
+    }
+
+    [Fact]
+    public async Task TryStartGame_DelegatesToServerGame()
+    {
+        // Arrange
+        await _sut.InitializeLobby();
+        var battleMap = new BattleMap(10, 10);
+
+        // Act - the map is set (broadcast only, no transition)...
+        _sut.SetBattleMap(battleMap);
+        _serverGame.TurnPhase.ShouldBe(PhaseNames.Start);
+
+        // ...and TryStartGame is the explicit trigger for the phase transition
+        // (with no ready players the transition gate is not met, so the phase stays)
+        _sut.TryStartGame();
+
+        // Assert
+        _serverGame.TurnPhase.ShouldBe(PhaseNames.Start);
     }
 
     [Fact]

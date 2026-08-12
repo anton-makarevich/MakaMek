@@ -533,6 +533,48 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task UpdateLobbyMapPreview_ClearsPreviewImage_WhenReplacementPreviewIsNull()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var firstMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        var secondMap = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(firstMap, secondMap);
+
+        var firstImage = Substitute.For<IDisposable>();
+        _mapPreviewRenderer.GeneratePreview(firstMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(firstImage));
+        // The replacement render returns null (e.g. renderer couldn't produce an image)
+        _mapPreviewRenderer.GeneratePreview(secondMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(null));
+
+        // Act - first map produces a completed preview image
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+        _sut.PreviewImage.ShouldBe(firstImage);
+
+        // A second map arrives whose GeneratePreview result is null
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert - the stale preview is cleared and disposed; no image lingers for the new map
+        _sut.PreviewImage.ShouldBeNull();
+        _sut.PreviewMap.ShouldBe(secondMap);
+        firstImage.Received(1).Dispose();
+        await _mapPreviewRenderer.Received(1)
+            .GeneratePreview(secondMap, Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleCommandInternal_ChangePhaseCommand_NavigatesToBattleMap_WhenLeavingStart()
     {
         // Arrange
@@ -1469,31 +1511,53 @@ public class JoinGameViewModelTests
         var battleMap = BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain()));
         _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
-        
+
         var previewTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Signal set as soon as GeneratePreview is entered, so disposal happens only after
+        // the render is actually in flight (no arbitrary Task.Delay guessing).
+        var previewEnteredTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken capturedToken = default;
         _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
                 capturedToken = ci.Arg<CancellationToken>();
                 capturedToken.Register(() => previewTcs.TrySetCanceled(capturedToken));
+                previewEnteredTcs.TrySetResult();
                 return previewTcs.Task;
             });
 
-        // Act - start preview generation, then cancel it by sending a null map
+        // Signal completed when the expected cancellation debug log is observed.
+        var logReceivedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _logger
+            .When(l => l.Log(
+                LogLevel.Debug,
+                Arg.Any<EventId>(),
+                Arg.Is<object>(state => state.ToString()!.Contains("Map preview generation cancelled")),
+                Arg.Is<Exception?>(e => e == null),
+                Arg.Any<Func<object, Exception?, string>>()))
+            .Do(_ => logReceivedTcs.TrySetResult());
+
+        // Act - start preview generation
         _sut.HandleServerCommand(new SetBattleMapCommand
         {
             GameOriginId = Guid.NewGuid(),
             MapData = new BattleMapData { HexData = [] }
         });
-        
-        // Allow some time for the preview to start
-        await Task.Delay(50);
-        
+
+        // Wait until GeneratePreview has actually been entered before cancelling
+        await previewEnteredTcs.Task;
+
         // Cancel the in-flight preview by disposing the view model (which cancels the preview token)
         await _sut.DisposeAsync();
 
-        // Assert - the cancellation was logged at least once
+        // Assert - asynchronously wait (bounded) for the cancellation log rather than asserting
+        // immediately, since the cancellation continuation runs asynchronously after disposal.
+        var completed = await Task.WhenAny(
+            logReceivedTcs.Task,
+            Task.Delay(TimeSpan.FromSeconds(5)));
+        completed.ShouldBe(logReceivedTcs.Task,
+            "Timed out waiting for 'Map preview generation cancelled' debug log");
+
         _logger.Received().Log(
             LogLevel.Debug,
             Arg.Any<EventId>(),

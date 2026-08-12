@@ -167,6 +167,7 @@ public class StartNewGameViewModelTests
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+        _gameManager.Received(1).TryStartGame();
     }
 
     [Fact]
@@ -190,6 +191,7 @@ public class StartNewGameViewModelTests
 
         await _gameManager.Received(1).CloseOnlineRoom(Arg.Any<CancellationToken>());
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+        _gameManager.Received(1).TryStartGame();
     }
 
     [Fact]
@@ -203,6 +205,7 @@ public class StartNewGameViewModelTests
 
         await _gameManager.DidNotReceive().CloseOnlineRoom(Arg.Any<CancellationToken>());
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+        _gameManager.Received(1).TryStartGame();
     }
 
     [Fact]
@@ -223,9 +226,10 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap()
+public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap()
     {
-        // Arrange - configure a second map to be returned on the second GenerateMap call
+        // Arrange - configure two maps returned on successive GenerateMap calls.
+        // MapHeight changes trigger debounced regeneration; each produces a new map.
         var firstMap = BattleMapFactory.GenerateMap(3, 3,
             new SingleTerrainGenerator(3, 3, new ClearTerrain()));
         var secondMap = BattleMapFactory.GenerateMap(4, 4,
@@ -233,21 +237,30 @@ public class StartNewGameViewModelTests
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(firstMap, secondMap);
 
+        // Capture every map the view model broadcasts so we can assert which one won
+        var broadcastMaps = new List<BattleMap>();
+        _gameManager.SetBattleMap(Arg.Do<BattleMap>(m => broadcastMaps.Add(m)));
+
         // Act - first reselection starts the debounce window
         _sut.MapConfig.SelectedTabIndex = 1;
-        await Task.Delay(1000);
+        _sut.MapConfig.MapHeight = 10;
+        // Wait for the MapConfigViewModel's 300ms debounce to settle and emit firstMap
+        await Task.Delay(500);
 
-        // Reselect during the window; the pending broadcast must be canceled and restarted
+        // Reselect during the 5s window; the pending broadcast must be canceled and restarted
         _sut.MapConfig.MapHeight = 20;
         await Task.Delay(500);
 
-        // Assert - nothing is broadcast while the (restarted) window is still open
+        // Assert - nothing is broadcast while the (restarted) 5s window is still open
         _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
 
         // Wait past the first window's expiry and the restarted window
         await Task.Delay(6000);
 
-        // Assert - the latest map was broadcast exactly once
+        // Assert - the latest map was broadcast exactly once and it is the second map;
+        // emissions of firstMap would have left it (or an extra entry) in the list.
+        broadcastMaps.Count.ShouldBe(1);
+        broadcastMaps[0].ShouldBe(secondMap);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
     }
 

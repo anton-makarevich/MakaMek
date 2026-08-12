@@ -384,14 +384,31 @@ public class ServerGameTests
         var battleMap = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         _commandPublisher.ClearReceivedCalls();
-        
+
         // Act
         _sut.SetBattleMap(battleMap);
-        
+
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
             cmd.GameOriginId == _sut.Id &&
             cmd.MapData.HexData.Count == battleMap.ToData().HexData.Count));
+        // SetBattleMap must not advance the phase on its own
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
+        _sut.TurnPhase.ShouldBe(PhaseNames.Start);
+    }
+
+    [Fact]
+    public void TryStartGame_DoesNotTransition_WhenNoPlayersAreReady()
+    {
+        // Arrange - a map is set but no players have joined, so the transition gate
+        // (AllPlayersReady && BattleMap != null) is not satisfied.
+
+        // Act
+        _sut.TryStartGame();
+
+        // Assert - the phase is left in Start; no phase change command is published
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
+        _sut.TurnPhase.ShouldBe(PhaseNames.Start);
     }
 
     [Fact]
