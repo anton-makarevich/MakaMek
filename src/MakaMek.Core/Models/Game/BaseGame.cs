@@ -126,7 +126,7 @@ public abstract class BaseGame : IGame
     
     public virtual void SetBattleMap(IBattleMap map)
     {
-        if (BattleMap != null) return; // Prevent changing map 
+        if (TurnPhase != PhaseNames.Start) return; // Prevent changing map mid-game
         BattleMap = map;
     }
 

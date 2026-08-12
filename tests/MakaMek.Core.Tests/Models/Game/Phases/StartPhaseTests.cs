@@ -159,4 +159,45 @@ public class StartPhaseTests : GamePhaseTestsBase
         // Verify that no JoinGameCommand was published since there are no players
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<JoinGameCommand>());
     }
+
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatus_ShouldSendBattleMap_WhenSet()
+    {
+        // Arrange
+        SetMap();
+        CommandPublisher.ClearReceivedCalls();
+        
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
+            cmd.GameOriginId == Game.Id &&
+            cmd.MapData.HexData.Count == Game.BattleMap!.ToData().HexData.Count));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatus_ShouldNotSendBattleMap_WhenNotSet()
+    {
+        // Arrange
+        CommandPublisher.ClearReceivedCalls();
+        
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<SetBattleMapCommand>());
+    }
 }

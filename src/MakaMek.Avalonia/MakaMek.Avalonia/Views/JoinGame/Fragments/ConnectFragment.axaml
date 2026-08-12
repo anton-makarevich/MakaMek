@@ -51,6 +51,13 @@
     </StackPanel>
     <SelectableTextBlock IsVisible="{Binding IsConnected}" Text="{Binding JoinedRoomInfoText}"
                          Classes="body"/>
+
+    <!-- Read-only lobby map preview received from the server -->
+    <StackPanel Classes="formGroup" IsVisible="{Binding HasLobbyMapPreview}">
+      <TextBlock Text="{extensions:Localize 'Join_LobbyMapPreview'}" Classes="label"/>
+      <Image Source="{Binding PreviewImage}" MaxWidth="400" MaxHeight="400"
+             Stretch="Uniform" HorizontalAlignment="Center"/>
+    </StackPanel>
   </StackPanel>
 
 </UserControl>

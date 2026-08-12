@@ -15,8 +15,10 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -24,7 +26,11 @@ using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
@@ -53,8 +59,10 @@ public class JoinGameViewModelTests
     private readonly IGameConnector _gameConnector = Substitute.For<IGameConnector>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
+    private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly ClientGame _clientGame;
     private bool _connectorConnected;
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public JoinGameViewModelTests()
     {
@@ -120,6 +128,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService,
             localizationService ?? _localizationService);
         sut.AttachHandlers();
@@ -470,7 +480,60 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public async Task HandleCommandInternal_SetBattleMapCommand_SetsBattleMapAndNavigates()
+    public async Task HandleCommandInternal_SetBattleMapCommand_SetsLobbyMapPreview_AndDoesNotNavigate()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+
+        // Act
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert - the map is stored as a preview, no navigation happens
+        _sut.PreviewMap.ShouldBe(battleMap);
+        _sut.HasLobbyMapPreview.ShouldBeTrue();
+        navigationService.DidNotReceive().GetViewModel<BattleMapViewModel>();
+        await navigationService.DidNotReceive().NavigateToViewModelAsync(Arg.Any<BattleMapViewModel>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_SetBattleMapCommand_GeneratesPreviewImage()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+        var previewImage = new object();
+        _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(previewImage));
+
+        // Act
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+
+        // Assert
+        _sut.PreviewMap.ShouldBe(battleMap);
+        _sut.PreviewImage.ShouldBe(previewImage);
+        await _mapPreviewRenderer.Received(1)
+            .GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_ChangePhaseCommand_NavigatesToBattleMap_WhenLeavingStart()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
@@ -486,33 +549,52 @@ public class JoinGameViewModelTests
             Substitute.For<IPlatformService>());
         navigationService.GetViewModel<BattleMapViewModel>()
             .Returns(battleMapViewModel);
- 
+
         _sut.SetNavigationService(navigationService);
 
         // Act
-        _sut.HandleServerCommand(new SetBattleMapCommand
+        _sut.HandleServerCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = new BattleMapData { HexData = [] }
+            Phase = PhaseNames.Deployment
         });
 
         // Assert
         navigationService.Received(1).GetViewModel<BattleMapViewModel>();
-        battleMapViewModel.Game.ShouldNotBeNull();
+        battleMapViewModel.Game.ShouldBe(_clientGame);
         await navigationService.Received(1).NavigateToViewModelAsync(battleMapViewModel);
     }
 
     [Fact]
-    public async Task HandleCommandInternal_SetBattleMapCommand_Throws_WhenBattleMapViewModelNotRegistered()
+    public void HandleCommandInternal_ChangePhaseCommand_DoesNotNavigate_WhenEnteringStart()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        _sut.HandleServerCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Start
+        });
+
+        // Assert
+        navigationService.DidNotReceive().GetViewModel<BattleMapViewModel>();
+        navigationService.DidNotReceive().NavigateToViewModelAsync(Arg.Any<BattleMapViewModel>());
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_ChangePhaseCommand_Throws_WhenBattleMapViewModelNotRegistered()
     {
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
         navigationService.GetViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
         _sut.SetNavigationService(navigationService);
-        var command = new SetBattleMapCommand
+        var command = new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            MapData = new BattleMapData { HexData = [] }
+            Phase = PhaseNames.Deployment
         };
         var method = typeof(JoinGameViewModel).GetMethod("HandleCommandInternal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -670,6 +752,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService);
         sut.AttachHandlers();
 
@@ -698,6 +782,8 @@ public class JoinGameViewModelTests
             _botManager,
             _logger,
             _mechFactory,
+            _mapFactory,
+            _mapPreviewRenderer,
             _clipboardService);
 
         // Assert - should be able to add default player even when not connected

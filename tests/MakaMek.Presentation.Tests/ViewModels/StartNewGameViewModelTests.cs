@@ -206,6 +206,52 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public async Task MapReselection_BroadcastsToServer_AfterDebounceWindowSettles()
+    {
+        // Act - switch to the Generate tab so the Map changes and the debounced broadcast starts
+        _sut.MapConfig.SelectedTabIndex = 1;
+
+        // Assert - the map is not broadcast immediately
+        await Task.Delay(200);
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+
+        // Wait for the 5s debounce window to settle
+        await Task.Delay(5400);
+
+        // Assert - the server received the map exactly once
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
+    public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap()
+    {
+        // Arrange - configure a second map to be returned on the second GenerateMap call
+        var firstMap = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var secondMap = BattleMapFactory.GenerateMap(4, 4,
+            new SingleTerrainGenerator(4, 4, new ClearTerrain()));
+        _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
+            .Returns(firstMap, secondMap);
+
+        // Act - first reselection starts the debounce window
+        _sut.MapConfig.SelectedTabIndex = 1;
+        await Task.Delay(1000);
+
+        // Reselect during the window; the pending broadcast must be canceled and restarted
+        _sut.MapConfig.MapHeight = 20;
+        await Task.Delay(500);
+
+        // Assert - nothing is broadcast while the (restarted) window is still open
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+
+        // Wait past the first window's expiry and the restarted window
+        await Task.Delay(6000);
+
+        // Assert - the latest map was broadcast exactly once
+        _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenLessThanFourPlayers()
     {
         var initialPlayerCount = _sut.Players.Count;

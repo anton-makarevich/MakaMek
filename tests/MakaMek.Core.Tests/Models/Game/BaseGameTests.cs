@@ -103,6 +103,37 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void SetBattleMap_AllowsRepeatedUpdates_WhileInStartPhase()
+    {
+        // Arrange
+        var map1 = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map2 = BattleMapFactory.GenerateMap(6, 6, new SingleTerrainGenerator(6, 6, new ClearTerrain()));
+
+        // Act
+        SetBattleMap(map1);
+        SetBattleMap(map2);
+
+        // Assert - the latest map wins while the game is still in the lobby
+        BattleMap.ShouldBe(map2);
+    }
+
+    [Fact]
+    public void SetBattleMap_IgnoresUpdates_AfterLeavingStartPhase()
+    {
+        // Arrange
+        var map1 = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map2 = BattleMapFactory.GenerateMap(6, 6, new SingleTerrainGenerator(6, 6, new ClearTerrain()));
+        SetBattleMap(map1);
+
+        // Act - the game has started, so late map updates must be rejected
+        TurnPhase = PhaseNames.Deployment;
+        SetBattleMap(map2);
+
+        // Assert
+        BattleMap.ShouldBe(map1);
+    }
+
+    [Fact]
     public void OnWeaponConfiguration_DoesNothing_WhenPlayerNotFound()
     {
         // Arrange
