@@ -97,6 +97,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             IsOnlineMode != initialOnlineMode ||
             RoomCode != initialRoomCode) return;
 
+        if (!string.IsNullOrEmpty(initialRoomCode)) return;
+
         IsOnlineMode = true;
         RoomCode = candidate;
     }

@@ -562,6 +562,20 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_WhenRoomCodeAlreadySet_DoesNotOverwriteWithClipboardCandidate()
+    {
+        // Arrange
+        _clipboardService.GetText().Returns("abcdef");
+        _sut.RoomCode = "GHIJKL";
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert - the pre-filled room code must be preserved
+        _sut.RoomCode.ShouldBe("GHIJKL");
+    }
+
+    [Fact]
     public void AttachHandlers_WhenClipboardContainsInvalidText_DoesNotAutoFillRoomCode()
     {
         // Arrange
