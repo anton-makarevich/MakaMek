@@ -57,11 +57,18 @@ public class StartPhaseTests : GamePhaseTestsBase
         SetMap();
 
         // Act
-        // Set both players ready
+        // Set both players ready; readiness alone must NOT start the game
         _sut.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
         _sut.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
 
-        // Assert
+        // Assert - no transition from readiness alone; the start must be explicit
+        MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
+        _mockNextPhase.DidNotReceive().Enter();
+
+        // The host explicitly starts the game
+        _sut.TryTransitionToNextPhase();
+
+        // Assert - only the explicit start transitions out of Start
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Start, Game);
         _mockNextPhase.Received(1).Enter();
     }

@@ -25,7 +25,6 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 var broadcastStatusCommand = playerStatusCommand with { GameOriginId = Game.Id };
                 Game.OnPlayerStatusUpdated(playerStatusCommand);
                 Game.CommandPublisher.PublishCommand(broadcastStatusCommand);
-                TryTransitionToNextPhase();
                 break;
             case RequestGameLobbyStatusCommand:
                 // Send information about all currently joined players to the requesting client

@@ -188,6 +188,9 @@ public class ServerGameTests
             PlayerStatus = PlayerStatus.Ready
         });
 
+        // The game starts explicitly (host trigger), not from readiness alone
+        _sut.TryStartGame();
+
         // Assert
         _sut.TurnPhase.ShouldBe(PhaseNames.Deployment);
         _commandPublisher.Received(1).PublishCommand(Arg.Is<ChangePhaseCommand>(cmd => 
@@ -237,6 +240,12 @@ public class ServerGameTests
             PlayerStatus = PlayerStatus.Ready
         });
         
+        // Readiness alone must not start the game; the host starts it explicitly
+        _sut.PhaseStepState.ShouldBeNull();
+
+        // Act - host explicitly starts the game now that all players are ready
+        _sut.TryStartGame();
+        
         // Assert
         _sut.PhaseStepState.ShouldNotBeNull();
         var expectedIds = new List<Guid> { playerId1, playerId2 };
@@ -269,6 +278,9 @@ public class ServerGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerStatus = PlayerStatus.Ready
         });
+    
+        // The game starts explicitly (host trigger), not from readiness alone
+        _sut.TryStartGame();
     
         // Act
         _sut.HandleCommand(new DeployUnitCommand
