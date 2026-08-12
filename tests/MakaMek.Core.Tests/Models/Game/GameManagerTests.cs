@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -18,6 +19,7 @@ using Sanet.Transport.SignalR.Client.Publishers;
 using Shouldly;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -345,17 +347,34 @@ public class GameManagerTests : IDisposable
         // Arrange
         await _sut.InitializeLobby();
         var battleMap = new BattleMap(10, 10);
+        var playerId = Guid.NewGuid();
+
+        // The host player joins and becomes ready so the transition gate is met
+        _serverGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Host",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _serverGame.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
 
         // Act - the map is set (broadcast only, no transition)...
         _sut.SetBattleMap(battleMap);
         _serverGame.TurnPhase.ShouldBe(PhaseNames.Start);
 
         // ...and TryStartGame is the explicit trigger for the phase transition
-        // (with no ready players the transition gate is not met, so the phase stays)
         _sut.TryStartGame();
 
-        // Assert
-        _serverGame.TurnPhase.ShouldBe(PhaseNames.Start);
+        // Assert - the manager delegates to the server game which moves Start → Deployment
+        _serverGame.TurnPhase.ShouldBe(PhaseNames.Deployment);
     }
 
     [Fact]

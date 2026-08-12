@@ -265,6 +265,20 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task DetachHandlers_CancelsPendingDebouncedMapBroadcast()
+    {
+        // Act - start a debounced broadcast window, then detach before it settles
+        _sut.MapConfig.SelectedTabIndex = 1;
+        _sut.DetachHandlers();
+
+        // Wait past the 5s debounce window that would have fired had the VM still been attached
+        await Task.Delay(5400);
+
+        // Assert - no delayed SetBattleMap call occurs after the ViewModel leaves
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+    }
+
+    [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenLessThanFourPlayers()
     {
         var initialPlayerCount = _sut.Players.Count;

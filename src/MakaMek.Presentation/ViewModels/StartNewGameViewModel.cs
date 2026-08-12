@@ -40,7 +40,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly ILocalizationService _localizationService;
     private readonly IClipboardService _clipboardService;
     private readonly Subject<BattleMap> _mapChanges = new();
-    private readonly IDisposable? _mapChangeSubscription;
+    private IDisposable? _mapChangeSubscription;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
@@ -77,14 +77,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
-
-        // Broadcast the lobby map to the server once reselection settles (debounced).
-        // SetBattleMap only broadcasts the map; the phase transition is triggered
-        // explicitly via TryStartGame when the host starts the game.
-        MapConfig.PropertyChanged += OnMapConfigPropertyChanged;
-        _mapChangeSubscription = _mapChanges
-            .Throttle(TimeSpan.FromSeconds(5))
-            .Subscribe(map => _gameManager.SetBattleMap(map));
     }
 
     private void OnMapConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -93,6 +85,25 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         var map = MapConfig.Map;
         if (map == null) return;
         _mapChanges.OnNext(map);
+    }
+
+    private void SubscribeToMapChanges()
+    {
+        // Broadcast the lobby map to the server once reselection settles (debounced).
+        // SetBattleMap only broadcasts the map; the phase transition is triggered
+        // explicitly via TryStartGame when the host starts the game.
+        UnsubscribeFromMapChanges();
+        MapConfig.PropertyChanged += OnMapConfigPropertyChanged;
+        _mapChangeSubscription = _mapChanges
+            .Throttle(TimeSpan.FromSeconds(5))
+            .Subscribe(map => _gameManager.SetBattleMap(map));
+    }
+
+    private void UnsubscribeFromMapChanges()
+    {
+        MapConfig.PropertyChanged -= OnMapConfigPropertyChanged;
+        _mapChangeSubscription?.Dispose();
+        _mapChangeSubscription = null;
     }
 
     public async Task InitializeLobbyAndSubscribe(CancellationToken cancellationToken)
@@ -450,6 +461,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Set BattleMap on GameManager/ServerGame (propagates to clients via the command system)
         _gameManager.SetBattleMap(map);
 
+        // Cancel any pending debounced map re-broadcast so no stale SetBattleMapCommand
+        // can be published after the Start → Deployment transition below.
+        UnsubscribeFromMapChanges();
+
         // Explicitly trigger the Start → Deployment transition now that the map is set
         // and all players are ready. SetBattleMap no longer transitions on its own.
         _gameManager.TryStartGame();
@@ -513,9 +528,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Cancel();
         _initCts?.Dispose();
         _commandPublisher.Unsubscribe(HandleServerCommand);
-        MapConfig.PropertyChanged -= OnMapConfigPropertyChanged;
+        UnsubscribeFromMapChanges();
         MapConfig.Dispose();
-        _mapChangeSubscription?.Dispose();
         _mapChanges.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -523,12 +537,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void DetachHandlers()
     {
         _initCts?.Cancel();
+        UnsubscribeFromMapChanges();
         base.DetachHandlers();
         _commandPublisher.Unsubscribe(HandleServerCommand);
     }
 
     public override void AttachHandlers()
     {
+        SubscribeToMapChanges();
+
         if (HasJoinedPlayers)
         {
             base.AttachHandlers();
