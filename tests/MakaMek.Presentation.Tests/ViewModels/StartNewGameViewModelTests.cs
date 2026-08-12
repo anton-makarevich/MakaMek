@@ -510,6 +510,29 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public async Task CancelAndRestartServer_WhenCancelled_LogsDebugMessage()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobby().ThrowsAsync<OperationCanceledException>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        await sut.CancelAndRestartServer();
+
+        sut.HostingError.ShouldBeNull();
+        sut.RoomCode.ShouldBeNull();
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+        
+        // Assert - the cancellation was logged
+        _vmLogger.Received(1).Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains("Lobby initialization cancelled")),
+            Arg.Is<Exception?>(e => e == null),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
     public async Task CancelAndRestartServer_WhenOnlineSucceeds_SetsRoomCodeAndDoesNotNavigate()
     {
         var gameManager = Substitute.For<IGameManager>();

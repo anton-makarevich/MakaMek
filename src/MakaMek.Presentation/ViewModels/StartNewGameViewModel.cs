@@ -404,8 +404,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             }
             catch (OperationCanceledException)
             {
-                // Cancelled by a superseded restart or by detach/dispose; treat as silent return.
-                // TODO add debug level log
+                _logger.LogDebug("Lobby initialization cancelled by superseded restart or detach/dispose");
             }
         }
         finally

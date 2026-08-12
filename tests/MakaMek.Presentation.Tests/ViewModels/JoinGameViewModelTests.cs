@@ -1461,6 +1461,48 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task UpdateLobbyMapPreview_WhenCancelled_LogsDebugMessage()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var battleMap = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+        
+        var previewTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken capturedToken = default;
+        _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                capturedToken = ci.Arg<CancellationToken>();
+                capturedToken.Register(() => previewTcs.TrySetCanceled(capturedToken));
+                return previewTcs.Task;
+            });
+
+        // Act - start preview generation, then cancel it by sending a null map
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = new BattleMapData { HexData = [] }
+        });
+        
+        // Allow some time for the preview to start
+        await Task.Delay(50);
+        
+        // Cancel the in-flight preview by disposing the view model (which cancels the preview token)
+        await _sut.DisposeAsync();
+
+        // Assert - the cancellation was logged at least once
+        _logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains("Map preview generation cancelled")),
+            Arg.Is<Exception?>(e => e == null),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
     public async Task JoinRoom_WhenSupersededByNewJoin_DisconnectsOrphanedConnection()
     {
         // Arrange

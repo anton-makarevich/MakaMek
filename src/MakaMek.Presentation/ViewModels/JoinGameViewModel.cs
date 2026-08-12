@@ -141,7 +141,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Expected when a newer map supersedes this preview - ignore gracefully
+            _logger.LogDebug("Map preview generation cancelled - a newer map superseded this preview");
         }
 
         NotifyPropertyChanged(nameof(PreviewImage));
