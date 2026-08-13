@@ -596,6 +596,40 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_StillResolvesAndProbesActiveHub()
+    {
+        // Arrange
+        var error = new RelayClientError(RelayClientErrorCode.NetworkError, "No connection");
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.OnlineError.Returns(error);
+        gameManager.RoomCode.Returns((string?)null);
+        gameManager.IsOnlineServerRunning.Returns(false);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var activeHub = new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+        _hubConfigurationProvider.GetHubs().Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([activeHub]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Name == "Demo Hub");
+
+        // Assert
+        sut.RoomCode.ShouldBeNull();
+        sut.HostingError.ShouldBe("No connection");
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Online);
+        await _relayRoomClient.Received(1).Health(
+            Arg.Any<CancellationToken>(),
+            Arg.Is<RelayClientOptions>(o => o!.BaseUrl == activeHub.BaseUrl));
+    }
+
+    [Fact]
     public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_DoesNotChangeState()
     {
         var gameManager = Substitute.For<IGameManager>();

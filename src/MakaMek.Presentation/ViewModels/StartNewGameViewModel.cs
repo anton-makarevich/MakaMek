@@ -142,6 +142,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         if (cancellationToken.IsCancellationRequested || _isDisposed)
             return;
 
+        // The active hub identity/status is independent of room creation success,
+        // so probe it even when hosting fails after the room was created.
+        ResolveActiveHubAndProbe().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error probing active hub"));
+
         if (_gameManager.OnlineError != null || _gameManager.RoomCode == null)
         {
             RoomCode = null;
@@ -152,9 +157,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
         RoomCode = _gameManager.RoomCode;
         HostingError = null;
-
-        ResolveActiveHubAndProbe().SafeFireAndForget(
-            ex => _logger.LogError(ex, "Error probing active hub"));
 
         SubscribeAndCreateLocalGame();
     }
