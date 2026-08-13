@@ -89,12 +89,14 @@
                                                     </Border>
                                                     <Button Command="{Binding RefreshStatusCommand}"
                                                             IsEnabled="{Binding !IsCheckingStatus}"
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Refresh'}"
                                                             ToolTip.Tip="{extensions:Localize 'Settings_Hub_Refresh'}"
                                                             Classes="secondary inlineIcon">
                                                         <TextBlock Text="&#xf021;"/>
                                                     </Button>
                                                     <Button Command="{Binding StartEditingCommand}"
                                                             IsEnabled="{Binding CanEdit}"
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Edit'}"
                                                             ToolTip.Tip="{extensions:Localize 'Settings_Hub_Edit'}"
                                                             Classes="secondary inlineIcon">
                                                         <TextBlock Text="&#xf304;"/>
@@ -102,6 +104,7 @@
                                                     <Button Command="{Binding $parent[ItemsControl].((viewModels:SettingsViewModel)DataContext).RemoveHubCommand}"
                                                             CommandParameter="{Binding}"
                                                             IsEnabled="{Binding CanRemove}"
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Remove'}"
                                                             ToolTip.Tip="{extensions:Localize 'Settings_Hub_Remove'}"
                                                             Classes="outline inlineIcon">
                                                         <TextBlock Text="&#xf2ed;"/>

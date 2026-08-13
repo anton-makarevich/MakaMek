@@ -574,6 +574,38 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task SwitchingToLan_BeforeHubResolutionCompletes_KeepsActiveHubCleared()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var hubsTcs = new TaskCompletionSource<IReadOnlyList<HubConfigData>>();
+        _hubConfigurationProvider.GetHubs().Returns(hubsTcs.Task);
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting, leaving hub resolution in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.GetHubs)));
+
+        // Switch to LAN before the hub resolution completes
+        sut.IsLanMode = true;
+        sut.ActiveHub.ShouldBeNull();
+
+        // Complete the stale hub resolution; it must not resurrect ActiveHub
+        hubsTcs.SetResult([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]);
+        await Task.Delay(100);
+
+        // Assert
+        sut.IsLanMode.ShouldBeTrue();
+        sut.ActiveHub.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_SetsHostingErrorAndDoesNotCreateLocalGame()
     {
         var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");

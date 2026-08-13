@@ -141,7 +141,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Probe the active hub up front so its name/status render immediately and
         // in parallel with the room-creation round trips below, instead of leaving
         // the online section empty until InitializeLobbyOnline completes.
-        ResolveActiveHubAndProbe().SafeFireAndForget(
+        ResolveActiveHubAndProbe(cancellationToken).SafeFireAndForget(
             ex => _logger.LogError(ex, "Error probing active hub"));
 
         await _gameManager.InitializeLobbyOnline(cancellationToken);
@@ -162,20 +162,27 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         SubscribeAndCreateLocalGame();
     }
 
-    private async Task ResolveActiveHubAndProbe()
+    private async Task ResolveActiveHubAndProbe(CancellationToken cancellationToken)
     {
         var hubs = await _hubConfigurationProvider.GetHubs();
+        if (cancellationToken.IsCancellationRequested || _isDisposed || !IsOnlineMode)
+            return;
+
         var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
+        if (cancellationToken.IsCancellationRequested || _isDisposed || !IsOnlineMode)
+            return;
+
         var activeHub = hubs.FirstOrDefault(h => h.Id == activeHubId);
-        ActiveHub = activeHub == null
+        var entry = activeHub == null
             ? null
             : new HubEntryViewModel(
                 activeHub,
                 isNew: false,
                 checkStatus: CheckHubStatusAsync);
-        if (ActiveHub != null)
+        ActiveHub = entry;
+        if (entry != null)
         {
-            await ActiveHub.RefreshStatusAsync();
+            await entry.RefreshStatusAsync(cancellationToken);
         }
     }
 
@@ -190,6 +197,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             };
             var error = await _relayRoomClient.Health(cancellationToken, options);
             return error == null ? HubStatus.Online : HubStatus.Offline;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

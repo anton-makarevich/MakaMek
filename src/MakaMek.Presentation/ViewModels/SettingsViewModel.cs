@@ -150,14 +150,6 @@ public class SettingsViewModel : BaseViewModel
         }
 
         await LoadHubsAsync();
-
-        // Probe the freshly persisted row so its badge reflects the new/edited endpoint immediately.
-        var persisted = Hubs.FirstOrDefault(h => h.Id == entry.Id);
-        if (persisted != null)
-        {
-            persisted.RefreshStatusAsync().SafeFireAndForget(
-                ex => _logger.LogError(ex, "Error refreshing hub status"));
-        }
     }
 
     private void OnHubEditCancelled(HubEntryViewModel entry)

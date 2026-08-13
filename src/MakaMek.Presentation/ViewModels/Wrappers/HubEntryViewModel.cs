@@ -38,7 +38,7 @@ public class HubEntryViewModel : BindableBase
         StartEditingCommand = new AsyncCommand(StartEditing);
         SaveCommand = new AsyncCommand(Save);
         CancelCommand = new AsyncCommand(Cancel);
-        RefreshStatusCommand = new AsyncCommand(RefreshStatusAsync);
+        RefreshStatusCommand = new AsyncCommand(() => RefreshStatusAsync());
     }
 
     public HubConfigData Hub => _hub;
@@ -154,7 +154,9 @@ public class HubEntryViewModel : BindableBase
         return Task.CompletedTask;
     }
 
-    public async Task RefreshStatusAsync()
+    private int _refreshGeneration;
+
+    public async Task RefreshStatusAsync(CancellationToken cancellationToken = default)
     {
         if (_checkStatus == null)
         {
@@ -162,19 +164,31 @@ public class HubEntryViewModel : BindableBase
             return;
         }
 
+        var generation = ++_refreshGeneration;
         IsCheckingStatus = true;
         Status = HubStatus.Checking;
         try
         {
-            Status = await _checkStatus(this, CancellationToken.None);
+            var result = await _checkStatus(this, cancellationToken);
+            if (generation != _refreshGeneration) return;
+            Status = result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            if (generation != _refreshGeneration) return;
+            Status = HubStatus.Unknown;
         }
         catch
         {
+            if (generation != _refreshGeneration) return;
             Status = HubStatus.Offline;
         }
         finally
         {
-            IsCheckingStatus = false;
+            if (generation == _refreshGeneration)
+            {
+                IsCheckingStatus = false;
+            }
         }
     }
 }

@@ -72,6 +72,33 @@ public class HubEntryViewModelTests
     }
 
     [Fact]
+    public async Task RefreshStatusAsync_WhenProbesOverlap_OlderResultDoesNotOverrideNewer()
+    {
+        var firstTcs = new TaskCompletionSource<HubStatus>();
+        var secondTcs = new TaskCompletionSource<HubStatus>();
+        var probeIndex = 0;
+        var sut = new HubEntryViewModel(
+            DemoHub,
+            checkStatus: (_, _) => probeIndex++ == 0 ? firstTcs.Task : secondTcs.Task);
+
+        // Start two overlapping probes; the second one is the current refresh
+        var firstProbe = sut.RefreshStatusAsync();
+        var secondProbe = sut.RefreshStatusAsync();
+
+        // The newer probe completes first; its result must win
+        secondTcs.SetResult(HubStatus.Online);
+        await secondProbe;
+        sut.Status.ShouldBe(HubStatus.Online);
+        sut.IsCheckingStatus.ShouldBeFalse();
+
+        // The older probe completes afterwards; its result must be ignored
+        firstTcs.SetResult(HubStatus.Offline);
+        await firstProbe;
+        sut.Status.ShouldBe(HubStatus.Online);
+        sut.IsCheckingStatus.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task RefreshStatusAsync_WithoutCheckStatus_SetsUnknown()
     {
         var sut = new HubEntryViewModel(DemoHub);
