@@ -13,4 +13,8 @@
     <InternalsVisibleTo Include="Sanet.MakaMek.Hub.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Sanet.Transport.SignalR.Client" Version="1.2.3" />
+  </ItemGroup>
+
 </Project>

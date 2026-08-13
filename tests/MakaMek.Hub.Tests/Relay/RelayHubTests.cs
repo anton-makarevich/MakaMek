@@ -7,12 +7,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
-using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
 using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
 using Sanet.MakaMek.Hub.Tests.TestLoggers;
+using Sanet.Transport.SignalR.Client.Relay;
 using Shouldly;
+using HubErrorCode = Sanet.MakaMek.Hub.Contracts.HubErrorCode;
 
 namespace Sanet.MakaMek.Hub.Tests.Relay;
 
