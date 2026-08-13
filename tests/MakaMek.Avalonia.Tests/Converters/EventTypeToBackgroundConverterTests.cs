@@ -102,7 +102,7 @@ public class EventTypeToBackgroundConverterTests:IDisposable
     {
         // Arrange
         var expectedBrush = new SolidColorBrush(Colors.Orange);
-        _resourcesLocator.TryFindResource("MechStructureBrush").Returns(null);
+        _resourcesLocator.TryFindResource("MechStructureBrush").Returns(null!);
 
         // Act
         var result = _sut.Convert(UiEventType.StructureDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -157,7 +157,7 @@ public class EventTypeToBackgroundConverterTests:IDisposable
     {
         // Arrange
         var expectedBrush = new SolidColorBrush(Colors.Red);
-        _resourcesLocator.TryFindResource("DestroyedColor").Returns(null);
+        _resourcesLocator.TryFindResource("DestroyedColor").Returns(null!);
 
         // Act
         var result = _sut.Convert(eventType, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
