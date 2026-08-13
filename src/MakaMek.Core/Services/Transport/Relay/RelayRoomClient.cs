@@ -296,6 +296,52 @@ public sealed class RelayRoomClient : IRelayRoomClient
         }
     }
 
+    public async Task<RelayClientError?> Health(
+        CancellationToken cancellationToken = default,
+        RelayClientOptions? options = null)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Checking relay hub health");
+
+            using var request = await CreateRequest(
+                HttpMethod.Get,
+                "health",
+                sessionToken: null,
+                options);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Relay hub health check succeeded");
+                return null;
+            }
+
+            return MapHubError(null, response.StatusCode);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Relay hub health check timed out");
+            return TimeoutError();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Relay hub health check network error");
+            return NetworkError();
+        }
+        catch (RelayConfigurationException ex)
+        {
+            _logger.LogError(ex, "Relay hub health check configuration error");
+            return ConfigurationError();
+        }
+    }
+
     private async Task<RoomOperationResult> SendAckAsync(
         HttpMethod method,
         string relativePath,

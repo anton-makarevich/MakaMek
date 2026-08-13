@@ -86,7 +86,9 @@ public class MainMenuViewModelTests
             Substitute.For<ILogger<StartNewGameViewModel>>(),
             _localizationService,
             Substitute.For<IMechFactory>(),
-            Substitute.For<IClipboardService>()
+            Substitute.For<IClipboardService>(),
+            Substitute.For<IRelayHubConfigurationProvider>(),
+            Substitute.For<IRelayRoomClient>()
         );
         _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns(startVm);
 
@@ -189,6 +191,7 @@ public class MainMenuViewModelTests
             _terrainAssetService,
             _localizationService,
             hubConfigurationProvider,
+            Substitute.For<IRelayRoomClient>(),
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 

@@ -39,4 +39,12 @@ public interface IRelayRoomClient
         string sessionToken,
         Guid deviceSessionId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Probes the relay hub health endpoint. Returns <c>null</c> when the hub is reachable,
+    /// or a client error describing why it is not.
+    /// </summary>
+    Task<RelayClientError?> Health(
+        CancellationToken cancellationToken = default,
+        RelayClientOptions? options = null);
 }

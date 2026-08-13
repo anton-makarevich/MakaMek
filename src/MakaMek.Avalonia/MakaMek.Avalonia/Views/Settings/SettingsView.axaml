@@ -79,6 +79,14 @@
                                                 </StackPanel>
                                                 <StackPanel IsVisible="{Binding !IsEditing}"
                                                             Classes="horizontalSpaced">
+                                                    <Border Classes="statusTag"
+                                                            Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
+                                                        <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"/>
+                                                    </Border>
+                                                    <Button Content="{extensions:Localize 'Settings_Hub_Refresh'}"
+                                                            Command="{Binding RefreshStatusCommand}"
+                                                            IsEnabled="{Binding !IsCheckingStatus}"
+                                                            Classes="secondary"/>
                                                     <Button Content="{extensions:Localize 'Settings_Hub_Edit'}"
                                                             Command="{Binding StartEditingCommand}"
                                                             IsEnabled="{Binding CanEdit}"

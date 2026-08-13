@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
@@ -39,6 +40,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IGameManager _gameManager;
     private readonly ILocalizationService _localizationService;
     private readonly IClipboardService _clipboardService;
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
+    private readonly IRelayRoomClient _relayRoomClient;
     private readonly Subject<BattleMap> _mapChanges = new();
     private IDisposable? _mapChangeSubscription;
     private CancellationTokenSource? _initCts;
@@ -60,7 +63,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         ILogger<StartNewGameViewModel> logger,
         ILocalizationService localizationService,
         IMechFactory mechFactory,
-        IClipboardService clipboardService)
+        IClipboardService clipboardService,
+        IRelayHubConfigurationProvider hubConfigurationProvider,
+        IRelayRoomClient relayRoomClient)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -73,6 +78,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _localizationService = localizationService;
         _clipboardService = clipboardService;
+        _hubConfigurationProvider = hubConfigurationProvider;
+        _relayRoomClient = relayRoomClient;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
@@ -146,7 +153,40 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         RoomCode = _gameManager.RoomCode;
         HostingError = null;
 
+        ResolveActiveHubAndProbe().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error probing active hub"));
+
         SubscribeAndCreateLocalGame();
+    }
+
+    private async Task ResolveActiveHubAndProbe()
+    {
+        var hubs = await _hubConfigurationProvider.GetHubs();
+        var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
+        var activeHub = hubs.FirstOrDefault(h => h.Id == activeHubId);
+        HubName = activeHub?.Name ?? string.Empty;
+        if (activeHub == null)
+        {
+            HubStatus = HubStatus.Unknown;
+            return;
+        }
+
+        HubStatus = HubStatus.Checking;
+        try
+        {
+            var options = new RelayClientOptions
+            {
+                BaseUrl = activeHub.BaseUrl,
+                ApiKey = activeHub.ApiKey
+            };
+            var error = await _relayRoomClient.Health(CancellationToken.None, options);
+            HubStatus = error == null ? HubStatus.Online : HubStatus.Offline;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Active hub {HubName} probe failed", activeHub.Name);
+            HubStatus = HubStatus.Offline;
+        }
     }
 
     private void SubscribeAndCreateLocalGame()
@@ -288,6 +328,24 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public bool CanChangeHostMode => !HasJoinedPlayers;
 
     private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
+
+    /// <summary>
+    /// Gets the display name of the hub used for the online lobby.
+    /// </summary>
+    public string HubName
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = string.Empty;
+
+    /// <summary>
+    /// Gets the reachability state of the hub used for the online lobby.
+    /// </summary>
+    public HubStatus HubStatus
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
 
     /// <summary>
     /// Gets the room code of the online lobby, if hosting online.

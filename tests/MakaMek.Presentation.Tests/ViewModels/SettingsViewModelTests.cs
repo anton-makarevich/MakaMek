@@ -19,6 +19,7 @@ public class SettingsViewModelTests
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+    private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private ILogger<SettingsViewModel> _logger = null!;
     private SettingsViewModel _sut = null!;
@@ -43,6 +44,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _hubConfigurationProvider,
+            _relayRoomClient,
             _logger);
     }
 
@@ -225,6 +227,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _hubConfigurationProvider,
+            _relayRoomClient,
             logger);
 
         // Assert - Poll for SafeFireAndForget completion
@@ -252,6 +255,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _hubConfigurationProvider,
+            _relayRoomClient,
             logger);
 
         // Assert - Poll for async initialization
@@ -280,6 +284,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _hubConfigurationProvider,
+            _relayRoomClient,
             logger);
 
         // Assert - Poll for async initialization
@@ -672,5 +677,103 @@ public class SettingsViewModelTests
 
         // Assert
         entry.IsEditing.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AttachHandlers_ShouldProbeStatusForEachHub()
+    {
+        // Arrange
+        SetupProviderHubs([DemoHub, CustomHub], "demo");
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 2);
+        await WaitFor(() => _relayRoomClient.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayRoomClient.Health)));
+
+        // Assert
+        await _relayRoomClient.Received(2).Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>());
+        await WaitFor(() => _sut.Hubs.All(h => h.Status == HubStatus.Online));
+    }
+
+    [Fact]
+    public async Task LoadHubs_Probe_UsesHubBaseUrlAndApiKey()
+    {
+        // Arrange
+        SetupProviderHubs([CustomHub], "custom-1");
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 1);
+        await WaitFor(() => _relayRoomClient.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayRoomClient.Health)));
+
+        // Assert
+        await _relayRoomClient.Received(1).Health(
+            Arg.Any<CancellationToken>(),
+            Arg.Is<RelayClientOptions>(o =>
+                o.BaseUrl == CustomHub.BaseUrl && o.ApiKey == CustomHub.ApiKey));
+    }
+
+    [Fact]
+    public async Task LoadHubs_WhenProbeThrows_LogsErrorAndMarksOffline()
+    {
+        // Arrange
+        SetupProviderHubs([CustomHub], "custom-1");
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns(Task.FromException<RelayClientError?>(new Exception("probe failed")));
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.Hubs.Count == 1);
+        var entry = _sut.Hubs.Single();
+        await WaitFor(() => entry.Status == HubStatus.Offline);
+
+        // Assert
+        entry.Status.ShouldBe(HubStatus.Offline);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("probe failed")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task AddHub_WhenSaved_ShouldProbeStatusForPersistedRow()
+    {
+        // Arrange
+        var hubs = new List<HubConfigData> { DemoHub };
+        _hubConfigurationProvider.GetHubs()
+            .Returns(_ => Task.FromResult<IReadOnlyList<HubConfigData>>(hubs.ToArray()));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        _hubConfigurationProvider.AddHub(Arg.Any<HubConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo => hubs.Add(callInfo.Arg<HubConfigData>()));
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+        var entry = _sut.Hubs.Single();
+        entry.EditableName = "My Hub";
+        entry.EditableBaseUrl = "http://my-hub.example";
+        entry.EditableApiKey = "secret";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+
+        // Assert
+        await _hubConfigurationProvider.Received(1).AddHub(Arg.Any<HubConfigData>());
+        await WaitFor(() => _relayRoomClient.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayRoomClient.Health)));
+        var persisted = _sut.Hubs.Single(h => h.Id == entry.Id);
+        await WaitFor(() => persisted.Status == HubStatus.Online);
     }
 }

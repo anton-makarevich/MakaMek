@@ -61,6 +61,8 @@ public class StartNewGameViewModelTests
     private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
     private readonly IFileService _fileService = Substitute.For<IFileService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+    private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
@@ -122,7 +124,9 @@ public class StartNewGameViewModelTests
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -490,6 +494,81 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         await gameManager.DidNotReceive().InitializeLobby();
         commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         sut.LocalGame.ShouldBe(_clientGame);
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_ResolvesActiveHubNameAndProbesStatus()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var activeHub = new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+        _hubConfigurationProvider.GetHubs().Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([activeHub]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.HubName == "Demo Hub");
+
+        // Assert
+        sut.HubName.ShouldBe("Demo Hub");
+        sut.HubStatus.ShouldBe(HubStatus.Online);
+        await _relayRoomClient.Received(1).Health(
+            Arg.Any<CancellationToken>(),
+            Arg.Is<RelayClientOptions>(o => o.BaseUrl == activeHub.BaseUrl));
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenHubUnreachable_MarksHubStatusOffline()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns(new RelayClientError(RelayClientErrorCode.Timeout, "timed out"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.HubStatus == HubStatus.Offline);
+
+        // Assert
+        sut.HubStatus.ShouldBe(HubStatus.Offline);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenLanMode_DoesNotProbeHubStatus()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        // Assert
+        await _relayRoomClient.DidNotReceive().Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>());
     }
 
     [Fact]
@@ -1082,7 +1161,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _vmLogger,
         _localizationService,
         _mechFactory,
-        _clipboardService);
+        _clipboardService,
+        _hubConfigurationProvider,
+        _relayRoomClient);
 
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
@@ -1530,7 +1611,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         sut.AttachHandlers();
 
         // Assert
@@ -1567,7 +1650,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         sut.AttachHandlers();
 
         // Act
@@ -1599,7 +1684,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -1629,7 +1716,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -1786,7 +1875,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -1812,7 +1903,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -1838,7 +1931,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.AttachHandlers();
@@ -1887,5 +1982,16 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
             Arg.Is<UnitInfoViewModel>(vm => vm!.HasPilot));
+    }
+
+    private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 20)
+    {
+        var start = DateTime.UtcNow;
+        while (!condition())
+        {
+            if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
+                throw new TimeoutException("Condition not met within timeout");
+            await Task.Delay(intervalMs);
+        }
     }
 }
