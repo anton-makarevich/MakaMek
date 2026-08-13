@@ -138,14 +138,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private async Task InitializeOnlineLobbyAndSubscribe(CancellationToken cancellationToken)
     {
+        // Probe the active hub up front so its name/status render immediately and
+        // in parallel with the room-creation round trips below, instead of leaving
+        // the online section empty until InitializeLobbyOnline completes.
+        ResolveActiveHubAndProbe().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error probing active hub"));
+
         await _gameManager.InitializeLobbyOnline(cancellationToken);
         if (cancellationToken.IsCancellationRequested || _isDisposed)
             return;
-
-        // The active hub identity/status is independent of room creation success,
-        // so probe it even when hosting fails after the room was created.
-        ResolveActiveHubAndProbe().SafeFireAndForget(
-            ex => _logger.LogError(ex, "Error probing active hub"));
 
         if (_gameManager.OnlineError != null || _gameManager.RoomCode == null)
         {

@@ -39,7 +39,6 @@
         </StackPanel>
 
         <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
-            <TextBlock Text="{extensions:Localize 'Network_Hub'}" Classes="label"/>
             <StackPanel Orientation="Horizontal" Spacing="8"
                         DataContext="{Binding ActiveHub}">
                 <TextBlock x:DataType="wrappers:HubEntryViewModel"
@@ -48,6 +47,8 @@
                            VerticalAlignment="Center"/>
                 <Border x:DataType="wrappers:HubEntryViewModel"
                         Classes="statusTag"
+                        Margin="0"
+                        VerticalAlignment="Center"
                         Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
                     <TextBlock x:DataType="wrappers:HubEntryViewModel"
                                Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"/>
