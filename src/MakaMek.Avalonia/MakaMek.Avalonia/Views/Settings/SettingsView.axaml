@@ -80,8 +80,11 @@
                                                 <StackPanel IsVisible="{Binding !IsEditing}"
                                                             Classes="horizontalSpaced">
                                                     <Border Classes="statusTag"
+                                                            VerticalAlignment="Center"
                                                             Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
-                                                        <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"/>
+                                                        <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"
+                                                                   VerticalAlignment="Center"
+                                                                   />
                                                     </Border>
                                                     <Button Content="{extensions:Localize 'Settings_Hub_Refresh'}"
                                                             Command="{Binding RefreshStatusCommand}"
