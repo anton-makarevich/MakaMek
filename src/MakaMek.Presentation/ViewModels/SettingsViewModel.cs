@@ -129,9 +129,9 @@ public class SettingsViewModel : BaseViewModel
         await entry.StartEditing();
     }
 
-    private async Task RemoveHubAsync(HubEntryViewModel entry)
+    private async Task RemoveHubAsync(HubEntryViewModel? entry)
     {
-        if (entry.IsBuiltIn) return;
+        if (entry is null || entry.IsBuiltIn) return;
 
         await _hubConfigurationProvider.RemoveHub(entry.Id);
         await LoadHubsAsync();

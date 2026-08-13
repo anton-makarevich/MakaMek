@@ -649,6 +649,19 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task RemoveHubCommand_WhenExecutedWithNull_ShouldNotRemove()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        await ((IAsyncCommand<HubEntryViewModel>)_sut.RemoveHubCommand).ExecuteAsync(null!);
+
+        // Assert
+        await _hubConfigurationProvider.DidNotReceive().RemoveHub(Arg.Any<string>());
+    }
+
+    [Fact]
     public async Task RemoveHubCommand_WhenBuiltIn_ShouldNotRemove()
     {
         // Arrange
