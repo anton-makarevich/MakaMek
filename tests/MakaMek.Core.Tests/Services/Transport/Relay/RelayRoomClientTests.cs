@@ -1072,6 +1072,118 @@ public class RelayRoomClientTests
         response.ExpiresAt.Value.UtcDateTime.ShouldBe(new DateTime(2026, 7, 30, 22, 0, 0, DateTimeKind.Utc));
     }
 
+    [Fact]
+    public async Task Health_WhenHealthy_ReturnsNull_AndSendsGetRequest()
+    {
+        _handler.StatusCode = HttpStatusCode.OK;
+        _handler.ResponseContent = """{ "status": "healthy", "service": "MakaMek.Hub" }""";
+
+        var result = await _sut.Health();
+
+        result.ShouldBeNull();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.Method.ShouldBe(HttpMethod.Get);
+        _handler.LastRequest.RequestUri!.ToString().ShouldBe($"{BaseUrl}/health");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe(ApiKey);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    public async Task Health_NonSuccessStatus_ReturnsError(HttpStatusCode statusCode)
+    {
+        _handler.StatusCode = statusCode;
+        _handler.ResponseContent = string.Empty;
+
+        var result = await _sut.Health();
+
+        result.ShouldNotBeNull();
+        result!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        result.Message.ShouldContain(((int)statusCode).ToString());
+        AssertNoSecretsLeaked(result.Message);
+    }
+
+    [Fact]
+    public async Task Health_NetworkFailure_ReturnsError()
+    {
+        _handler.ThrowException = new HttpRequestException("connection refused");
+
+        var result = await _sut.Health();
+
+        result.ShouldNotBeNull();
+        result!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
+        AssertNoSecretsLeaked(result.Message);
+    }
+
+    [Fact]
+    public async Task Health_Timeout_ReturnsError()
+    {
+        _handler.ThrowException = new TaskCanceledException("timed out");
+
+        var result = await _sut.Health();
+
+        result.ShouldNotBeNull();
+        result!.Code.ShouldBe(RelayClientErrorCode.Timeout);
+        AssertNoSecretsLeaked(result.Message);
+    }
+
+    [Theory]
+    [InlineData("not a valid url")]
+    [InlineData("ftp://hub.example.test")]
+    [InlineData("localhost:8080")]
+    public async Task Health_MalformedBaseUrl_ReturnsError(string baseUrl)
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        provider.GetActiveOptions().Returns(Task.FromResult(new RelayClientOptions
+        {
+            BaseUrl = baseUrl,
+            ApiKey = ApiKey
+        }));
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+
+        // Act
+        var result = await client.Health();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result!.Code.ShouldBe(RelayClientErrorCode.ConfigurationError);
+        AssertNoSecretsLeaked(result.Message);
+    }
+
+    [Fact]
+    public async Task Health_WhenOptionsProvided_PinsOptionsWithoutConsultingProvider()
+    {
+        // Arrange
+        var provider = Substitute.For<IRelayHubConfigurationProvider>();
+        var client = new RelayRoomClient(new HttpClient(_handler), provider, _logger);
+        _handler.StatusCode = HttpStatusCode.OK;
+
+        // Act
+        var result = await client.Health(options: new RelayClientOptions
+        {
+            BaseUrl = "https://pinned.example",
+            ApiKey = "pinned-key"
+        });
+
+        // Assert
+        result.ShouldBeNull();
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest!.RequestUri!.ToString().ShouldBe("https://pinned.example/health");
+        _handler.LastRequest.Headers.GetValues("X-Api-Key").Single().ShouldBe("pinned-key");
+        await provider.DidNotReceive().GetActiveOptions();
+    }
+
+    [Fact]
+    public async Task Health_OperationCanceled_Rethrows()
+    {
+        var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => _sut.Health(cts.Token));
+    }
+
     private void AssertNoSecretsLeaked(string? errorMessage)
     {
         if (errorMessage is not null)

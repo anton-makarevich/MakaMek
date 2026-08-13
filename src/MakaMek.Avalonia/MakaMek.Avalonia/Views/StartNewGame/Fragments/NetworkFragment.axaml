@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels1:StartNewGameViewModel"
@@ -38,6 +39,21 @@
         </StackPanel>
 
         <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+            <StackPanel Orientation="Horizontal" Spacing="8"
+                        DataContext="{Binding ActiveHub}">
+                <TextBlock x:DataType="wrappers:HubEntryViewModel"
+                           Text="{Binding Name}"
+                           Classes="body"
+                           VerticalAlignment="Center"/>
+                <Border x:DataType="wrappers:HubEntryViewModel"
+                        Classes="statusTag"
+                        Margin="0"
+                        VerticalAlignment="Center"
+                        Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
+                    <TextBlock x:DataType="wrappers:HubEntryViewModel"
+                               Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"/>
+                </Border>
+            </StackPanel>
             <TextBlock Text="{extensions:Localize 'Network_RoomCode'}" Classes="label"/>
             <SelectableTextBlock Text="{Binding RoomCode}"/>
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">

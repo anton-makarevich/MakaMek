@@ -56,8 +56,8 @@
                                   DisplayMemberBinding="{Binding Name}"/>
                         <Button Content="{Binding HubAddHubLabel}"
                                 Command="{Binding AddHubCommand}"
-                                Classes="secondary"
-                                HorizontalAlignment="Left"/>
+                                Classes="primary"
+                                HorizontalAlignment="Center"/>
                         <ItemsControl ItemsSource="{Binding Hubs}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -79,15 +79,36 @@
                                                 </StackPanel>
                                                 <StackPanel IsVisible="{Binding !IsEditing}"
                                                             Classes="horizontalSpaced">
-                                                    <Button Content="{extensions:Localize 'Settings_Hub_Edit'}"
-                                                            Command="{Binding StartEditingCommand}"
+                                                    <Border Classes="statusTag"
+                                                            Margin="0"
+                                                            VerticalAlignment="Center"
+                                                            Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
+                                                        <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"
+                                                                   VerticalAlignment="Center"
+                                                                   />
+                                                    </Border>
+                                                    <Button Command="{Binding RefreshStatusCommand}"
+                                                            IsEnabled="{Binding !IsCheckingStatus}"
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Refresh'}"
+                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Refresh'}"
+                                                            Classes="secondary inlineIcon">
+                                                        <TextBlock Text="&#xf021;"/>
+                                                    </Button>
+                                                    <Button Command="{Binding StartEditingCommand}"
                                                             IsEnabled="{Binding CanEdit}"
-                                                            Classes="secondary"/>
-                                                    <Button Content="{extensions:Localize 'Settings_Hub_Remove'}"
-                                                            Command="{Binding $parent[ItemsControl].((viewModels:SettingsViewModel)DataContext).RemoveHubCommand}"
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Edit'}"
+                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Edit'}"
+                                                            Classes="secondary inlineIcon">
+                                                        <TextBlock Text="&#xf304;"/>
+                                                    </Button>
+                                                    <Button Command="{Binding $parent[ItemsControl].((viewModels:SettingsViewModel)DataContext).RemoveHubCommand}"
                                                             CommandParameter="{Binding}"
                                                             IsEnabled="{Binding CanRemove}"
-                                                            Classes="outline"/>
+                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Remove'}"
+                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Remove'}"
+                                                            Classes="outline inlineIcon">
+                                                        <TextBlock Text="&#xf2ed;"/>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel IsVisible="{Binding IsEditing}" Spacing="8">

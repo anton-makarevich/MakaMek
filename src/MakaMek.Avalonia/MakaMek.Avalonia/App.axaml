@@ -18,6 +18,8 @@
             <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+            <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
+            <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>

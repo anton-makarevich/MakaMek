@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
@@ -39,6 +40,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IGameManager _gameManager;
     private readonly ILocalizationService _localizationService;
     private readonly IClipboardService _clipboardService;
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
+    private readonly IRelayRoomClient _relayRoomClient;
     private readonly Subject<BattleMap> _mapChanges = new();
     private IDisposable? _mapChangeSubscription;
     private CancellationTokenSource? _initCts;
@@ -60,7 +63,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         ILogger<StartNewGameViewModel> logger,
         ILocalizationService localizationService,
         IMechFactory mechFactory,
-        IClipboardService clipboardService)
+        IClipboardService clipboardService,
+        IRelayHubConfigurationProvider hubConfigurationProvider,
+        IRelayRoomClient relayRoomClient)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -73,6 +78,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _localizationService = localizationService;
         _clipboardService = clipboardService;
+        _hubConfigurationProvider = hubConfigurationProvider;
+        _relayRoomClient = relayRoomClient;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
@@ -131,6 +138,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private async Task InitializeOnlineLobbyAndSubscribe(CancellationToken cancellationToken)
     {
+        // Probe the active hub up front so its name/status render immediately and
+        // in parallel with the room-creation round trips below, instead of leaving
+        // the online section empty until InitializeLobbyOnline completes.
+        ResolveActiveHubAndProbe(cancellationToken).SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error probing active hub"));
+
         await _gameManager.InitializeLobbyOnline(cancellationToken);
         if (cancellationToken.IsCancellationRequested || _isDisposed)
             return;
@@ -147,6 +160,53 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         HostingError = null;
 
         SubscribeAndCreateLocalGame();
+    }
+
+    private async Task ResolveActiveHubAndProbe(CancellationToken cancellationToken)
+    {
+        var hubs = await _hubConfigurationProvider.GetHubs();
+        if (cancellationToken.IsCancellationRequested || _isDisposed || !IsOnlineMode)
+            return;
+
+        var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
+        if (cancellationToken.IsCancellationRequested || _isDisposed || !IsOnlineMode)
+            return;
+
+        var activeHub = hubs.FirstOrDefault(h => h.Id == activeHubId);
+        var entry = activeHub == null
+            ? null
+            : new HubEntryViewModel(
+                activeHub,
+                isNew: false,
+                checkStatus: CheckHubStatusAsync);
+        ActiveHub = entry;
+        if (entry != null)
+        {
+            await entry.RefreshStatusAsync(cancellationToken);
+        }
+    }
+
+    private async Task<HubStatus> CheckHubStatusAsync(HubEntryViewModel entry, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var options = new RelayClientOptions
+            {
+                BaseUrl = entry.BaseUrl,
+                ApiKey = entry.ApiKey
+            };
+            var error = await _relayRoomClient.Health(cancellationToken, options);
+            return error == null ? HubStatus.Online : HubStatus.Offline;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
+            return HubStatus.Offline;
+        }
     }
 
     private void SubscribeAndCreateLocalGame()
@@ -290,6 +350,16 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
 
     /// <summary>
+    /// Gets the relay hub backing the online lobby, including its reachability state.
+    /// Null while hosting over LAN.
+    /// </summary>
+    public HubEntryViewModel? ActiveHub
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
     /// Gets the room code of the online lobby, if hosting online.
     /// </summary>
     public string? RoomCode
@@ -383,6 +453,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private void ClearHostingState()
     {
         IsHosting = false;
+        ActiveHub = null;
         RoomCode = null;
         HostingError = null;
         RoomCodeCopySucceeded = null;

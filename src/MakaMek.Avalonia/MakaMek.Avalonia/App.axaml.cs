@@ -50,6 +50,7 @@ public partial class App : Application
         Converters.SegmentEventToTextConverter.Initialize(localizationService);
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
         Converters.MovementBreakdownConverter.Initialize(localizationService);
+        Converters.HubStatusTextConverter.Initialize(localizationService);
         LocalizeExtension.Initialize(localizationService);
 
         var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
@@ -57,6 +58,7 @@ public partial class App : Application
         Converters.EventTypeToBackgroundConverter.Initialize(avaloniaResourcesLocator);
         Converters.ConsciousnessColorConverter.Initialize(avaloniaResourcesLocator);
         Converters.SelectedItemToBrushConverter.Initialize(avaloniaResourcesLocator);
+        Converters.HubStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
 
         INavigationService navigationService;
 

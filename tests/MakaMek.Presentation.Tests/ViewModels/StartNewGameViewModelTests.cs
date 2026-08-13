@@ -61,6 +61,8 @@ public class StartNewGameViewModelTests
     private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
     private readonly IFileService _fileService = Substitute.For<IFileService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
+    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+    private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
@@ -122,7 +124,9 @@ public class StartNewGameViewModelTests
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -239,7 +243,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         // Capture every map the view model broadcasts so we can assert which one won
         var broadcastMaps = new List<BattleMap>();
-        _gameManager.SetBattleMap(Arg.Do<BattleMap>(m => broadcastMaps.Add(m)));
+        _gameManager.SetBattleMap(Arg.Do<BattleMap>(broadcastMaps.Add));
 
         // Act - first reselection starts the debounce window
         _sut.MapConfig.SelectedTabIndex = 1;
@@ -257,7 +261,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         // Wait past the first window's expiry and the restarted window
         await Task.Delay(6000);
 
-        // Assert - the latest map was broadcast exactly once and it is the second map;
+        // Assert - the latest map was broadcast exactly once, and it is the second map;
         // emissions of firstMap would have left it (or an extra entry) in the list.
         broadcastMaps.Count.ShouldBe(1);
         broadcastMaps[0].ShouldBe(secondMap);
@@ -431,12 +435,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task SwitchingHostMode_ClearsHostingState()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -471,12 +470,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task SettingOnlineMode_AutoStartsOnlineHosting_SetsRoomCodeAndCreatesLocalGame()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -493,15 +487,191 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
-    public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_SetsHostingErrorAndDoesNotCreateLocalGame()
+    public async Task InitializeOnlineLobbyAndSubscribe_ResolvesActiveHubNameAndProbesStatus()
     {
-        var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var activeHub = new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+        StubActiveHub(activeHub);
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Name == "Demo Hub");
+
+        // Assert
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Name.ShouldBe("Demo Hub");
+        sut.ActiveHub.Status.ShouldBe(HubStatus.Online);
+        await _relayRoomClient.Received(1).Health(
+            Arg.Any<CancellationToken>(),
+            Arg.Is<RelayClientOptions>(o => o!.BaseUrl == activeHub.BaseUrl));
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenHubUnreachable_MarksHubStatusOffline()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        StubActiveHub();
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns(new RelayClientError(RelayClientErrorCode.Timeout, "timed out"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Offline);
+
+        // Assert
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Offline);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenLanMode_DoesNotProbeHubStatus()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        // Assert
+        await _relayRoomClient.DidNotReceive().Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>());
+    }
+
+    [Fact]
+    public async Task SwitchingToLan_BeforeHubResolutionCompletes_KeepsActiveHubCleared()
+    {
+        // Arrange
         var gameManager = Substitute.For<IGameManager>();
         gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
-        gameManager.OnlineError.Returns(error);
-        gameManager.RoomCode.Returns((string?)null);
-        gameManager.IsOnlineServerRunning.Returns(false);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var hubsTcs = new TaskCompletionSource<IReadOnlyList<HubConfigData>>();
+        _hubConfigurationProvider.GetHubs().Returns(hubsTcs.Task);
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting, leaving hub resolution in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.GetHubs)));
+
+        // Switch to LAN before the hub resolution completes
+        sut.IsLanMode = true;
+        sut.ActiveHub.ShouldBeNull();
+
+        // Complete the stale hub resolution; it must not resurrect ActiveHub
+        hubsTcs.SetResult([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]);
+        await Task.Delay(100);
+
+        // Assert
+        sut.IsLanMode.ShouldBeTrue();
+        sut.ActiveHub.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SwitchingToLan_AfterGetHubsBeforeActiveHubId_KeepsActiveHubCleared()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]));
+        var activeHubIdTcs = new TaskCompletionSource<string>();
+        _hubConfigurationProvider.GetActiveHubId().Returns(activeHubIdTcs.Task);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting; GetHubs resolves, GetActiveHubId stays in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.GetActiveHubId)));
+
+        // Switch to LAN before the active hub id resolves
+        sut.IsLanMode = true;
+        sut.ActiveHub.ShouldBeNull();
+
+        // Complete the stale active-hub resolution; it must not resurrect ActiveHub
+        activeHubIdTcs.SetResult("demo");
+        await Task.Delay(100);
+
+        // Assert
+        sut.IsLanMode.ShouldBeTrue();
+        sut.ActiveHub.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenProbeThrows_SetsHubStatusOffline()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        StubActiveHub();
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .ThrowsAsync(new HttpRequestException("probe exploded"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Offline);
+
+        // Assert
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Offline);
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenProbeCancelled_SetsHubStatusUnknown()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        StubActiveHub();
+        var healthTcs = new TaskCompletionSource<RelayClientError?>();
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns(async ci =>
+            {
+                var token = ci.Arg<CancellationToken>();
+                token.Register(() => healthTcs.TrySetException(new OperationCanceledException(token)));
+                return await healthTcs.Task;
+            });
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting, leaving the health probe in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Checking);
+
+        // Detaching cancels the init token, faulting the in-flight probe with cancellation
+        sut.DetachHandlers();
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Unknown);
+
+        // Assert - a cancelled probe must not be reported as Offline
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Unknown);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_SetsHostingErrorAndDoesNotCreateLocalGame()
+    {
+        var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");
+        var gameManager = CreateOnlineGameManager(roomCode: null, error: error, isRunning: false);
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
         sut.IsOnlineMode = true;
@@ -515,14 +685,37 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_StillResolvesAndProbesActiveHub()
+    {
+        // Arrange
+        var error = new RelayClientError(RelayClientErrorCode.NetworkError, "No connection");
+        var gameManager = CreateOnlineGameManager(roomCode: null, error: error, isRunning: false);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var activeHub = new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+        StubActiveHub(activeHub);
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns((RelayClientError?)null);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Name == "Demo Hub");
+
+        // Assert
+        sut.RoomCode.ShouldBeNull();
+        sut.HostingError.ShouldBe("No connection");
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Online);
+        await _relayRoomClient.Received(1).Health(
+            Arg.Any<CancellationToken>(),
+            Arg.Is<RelayClientOptions>(o => o!.BaseUrl == activeHub.BaseUrl));
+    }
+
+    [Fact]
     public async Task InitializeLobbyAndSubscribe_WhenOnlineModeCancelled_DoesNotChangeState()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
         sut.IsOnlineMode = true;
@@ -554,7 +747,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _vmLogger.Received(1).Log(
             LogLevel.Debug,
             Arg.Any<EventId>(),
-            Arg.Is<object>(state => state.ToString()!.Contains("Lobby initialization cancelled")),
+            Arg.Is<object>(state => state!.ToString()!.Contains("Lobby initialization cancelled")),
             Arg.Is<Exception?>(e => e == null),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -562,12 +755,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task CancelAndRestartServer_WhenOnlineSucceeds_SetsRoomCodeAndDoesNotNavigate()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -586,12 +774,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task CancelAndRestartServer_WhenOnlineFails_SetsHostingErrorAndDoesNotNavigate()
     {
         var error = new RelayClientError(RelayClientErrorCode.NetworkError, "No connection");
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.OnlineError.Returns(error);
-        gameManager.RoomCode.Returns((string?)null);
-        gameManager.IsOnlineServerRunning.Returns(false);
+        var gameManager = CreateOnlineGameManager(roomCode: null, error: error, isRunning: false);
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
         sut.IsOnlineMode = true;
@@ -668,12 +851,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task AttachHandlers_WhenPlayerJoinedOnlineRoom_KeepsHostingStateAndRoomCode()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -733,12 +911,10 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task HostingStatusText_WhenHostingErrorSet_ReturnsErrorText()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.NetworkError, "No connection"));
-        gameManager.RoomCode.Returns((string?)null);
-        gameManager.IsOnlineServerRunning.Returns(false);
+        var gameManager = CreateOnlineGameManager(
+            roomCode: null,
+            error: new RelayClientError(RelayClientErrorCode.NetworkError, "No connection"),
+            isRunning: false);
         var sut = CreateSut(gameManager, _commandPublisher);
         sut.IsOnlineMode = true;
 
@@ -751,12 +927,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task HostingStatusText_WhenRoomReady_ReturnsRoomReadyText()
     {
         _localizationService.GetString("Hosting_RoomReady").Returns("Room ready, join with code: {0}");
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -861,7 +1032,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
                 var ct = callInfo.ArgAt<CancellationToken>(0);
                 if (ct.CanBeCanceled)
                 {
-                    // Simulate a remote player joining while the in-flight init is being cancelled.
+                    // Simulate a remote player joining while the in-flight init is being canceled.
                     ct.Register(() =>
                     {
                         sut.HandleServerCommand(new JoinGameCommand
@@ -926,12 +1097,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     [Fact]
     public async Task CopyRoomCodeCommand_WhenRoomCodeAvailable_CanExecuteAndRuns()
     {
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -948,12 +1114,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task CopyRoomCodeCommand_WhenCopySucceeds_SetsRoomCodeCopySucceeded()
     {
         _clipboardService.SetText("ABCDEF").Returns(true);
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -970,12 +1131,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task CopyRoomCodeCommand_WhenCopyFails_SetsRoomCodeCopySucceeded()
     {
         _clipboardService.SetText("ABCDEF").Returns(false);
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -1000,12 +1156,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     {
         _localizationService.GetString("Network_CopyRoomCode_Success").Returns("Copied to clipboard");
         _clipboardService.SetText("ABCDEF").Returns(true);
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -1023,12 +1174,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     {
         _localizationService.GetString("Network_CopyRoomCode_Failed").Returns("Copy failed");
         _clipboardService.SetText("ABCDEF").Returns(false);
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -1045,12 +1191,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task SwitchingHostMode_ResetsRoomCodeCopySucceeded()
     {
         _clipboardService.SetText("ABCDEF").Returns(true);
-        var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-        gameManager.RoomCode.Returns("ABCDEF");
-        gameManager.OnlineError.Returns((RelayClientError?)null);
-        gameManager.IsOnlineServerRunning.Returns(true);
+        var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
         var sut = CreateSut(gameManager, commandPublisher);
@@ -1082,7 +1223,31 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _vmLogger,
         _localizationService,
         _mechFactory,
-        _clipboardService);
+        _clipboardService,
+        _hubConfigurationProvider,
+        _relayRoomClient);
+
+    private static IGameManager CreateOnlineGameManager(
+        string? roomCode = "ABCDEF",
+        RelayClientError? error = null,
+        bool isRunning = true)
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns(roomCode);
+        gameManager.OnlineError.Returns(error);
+        gameManager.IsOnlineServerRunning.Returns(isRunning);
+        return gameManager;
+    }
+
+    private void StubActiveHub(HubConfigData? activeHub = null)
+    {
+        activeHub ??= new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([activeHub]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult(activeHub.Id));
+    }
 
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
@@ -1530,7 +1695,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         sut.AttachHandlers();
 
         // Assert
@@ -1567,7 +1734,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         sut.AttachHandlers();
 
         // Act
@@ -1599,7 +1768,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -1629,7 +1800,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger,
             _localizationService,
             _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -1786,7 +1959,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -1812,7 +1987,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -1838,7 +2015,9 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
             _mapResourceProvider, _fileService, _botManager,
             _vmLogger, _localizationService, _mechFactory,
-            _clipboardService);
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
 
         sut.AttachHandlers();
         sut.AttachHandlers();
@@ -1887,5 +2066,16 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
             Arg.Is<UnitInfoViewModel>(vm => vm!.HasPilot));
+    }
+
+    private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 20)
+    {
+        var start = DateTime.UtcNow;
+        while (!condition())
+        {
+            if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
+                throw new TimeoutException("Condition not met within timeout");
+            await Task.Delay(intervalMs);
+        }
     }
 }

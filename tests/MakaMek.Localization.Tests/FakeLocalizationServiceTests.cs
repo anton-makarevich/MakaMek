@@ -780,6 +780,11 @@ public class FakeLocalizationServiceTests
     [InlineData("Settings_Hub_Save", "Save")]
     [InlineData("Settings_Hub_Cancel", "Cancel")]
     [InlineData("Settings_Hub_Remove", "Remove")]
+    [InlineData("Settings_Hub_Refresh", "Refresh")]
+    [InlineData("Hub_Status_Online", "Online")]
+    [InlineData("Hub_Status_Offline", "Offline")]
+    [InlineData("Hub_Status_Checking", "Checking...")]
+    [InlineData("Hub_Status_Unknown", "Unknown")]
     public void GetString_SettingsView_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -922,6 +927,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Network_HostModeLan", "On LAN")]
     [InlineData("Network_HostModeOnline", "Online")]
     [InlineData("Network_RoomCode", "Room Code")]
+    [InlineData("Network_Hub", "Hub")]
     [InlineData("Network_CopyRoomCode", "Copy")]
     [InlineData("Network_CopyRoomCode_Success", "Copied to clipboard")]
     [InlineData("Network_CopyRoomCode_Failed", "Copy failed")]

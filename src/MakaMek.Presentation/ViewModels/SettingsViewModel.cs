@@ -19,6 +19,7 @@ public class SettingsViewModel : BaseViewModel
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
+    private readonly IRelayRoomClient _relayRoomClient;
     private readonly ILogger<SettingsViewModel> _logger;
     private HubEntryViewModel? _selectedHub;
     private Task? _selectHubTask;
@@ -29,6 +30,7 @@ public class SettingsViewModel : BaseViewModel
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
         IRelayHubConfigurationProvider hubConfigurationProvider,
+        IRelayRoomClient relayRoomClient,
         ILogger<SettingsViewModel> logger)
     {
         _fileCachingService = fileCachingService;
@@ -36,6 +38,7 @@ public class SettingsViewModel : BaseViewModel
         _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _hubConfigurationProvider = hubConfigurationProvider;
+        _relayRoomClient = relayRoomClient;
         _logger = logger;
 
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
@@ -117,7 +120,8 @@ public class SettingsViewModel : BaseViewModel
             new HubConfigData(Guid.NewGuid().ToString("N"), string.Empty, string.Empty, string.Empty, false),
             isNew: true,
             onSaved: OnHubSaved,
-            onCancelled: OnHubEditCancelled);
+            onCancelled: OnHubEditCancelled,
+            checkStatus: CheckHubStatusAsync);
 
         Hubs.Add(entry);
         _selectedHub = entry;
@@ -125,9 +129,9 @@ public class SettingsViewModel : BaseViewModel
         await entry.StartEditing();
     }
 
-    private async Task RemoveHubAsync(HubEntryViewModel entry)
+    private async Task RemoveHubAsync(HubEntryViewModel? entry)
     {
-        if (entry.IsBuiltIn) return;
+        if (entry is null || entry.IsBuiltIn) return;
 
         await _hubConfigurationProvider.RemoveHub(entry.Id);
         await LoadHubsAsync();
@@ -168,11 +172,38 @@ public class SettingsViewModel : BaseViewModel
                 hub,
                 isNew: false,
                 onSaved: OnHubSaved,
-                onCancelled: OnHubEditCancelled));
+                onCancelled: OnHubEditCancelled,
+                checkStatus: CheckHubStatusAsync));
         }
 
         _selectedHub = Hubs.FirstOrDefault(h => h.Id == activeHubId);
         NotifyPropertyChanged(nameof(SelectedHub));
+
+        // Fire-and-forget probes so the list renders immediately; badges settle in place.
+        foreach (var hub in Hubs)
+        {
+            hub.RefreshStatusAsync().SafeFireAndForget(
+                ex => _logger.LogError(ex, "Error refreshing hub status"));
+        }
+    }
+
+    private async Task<HubStatus> CheckHubStatusAsync(HubEntryViewModel entry, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var options = new RelayClientOptions
+            {
+                BaseUrl = entry.BaseUrl,
+                ApiKey = entry.ApiKey
+            };
+            var error = await _relayRoomClient.Health(cancellationToken, options);
+            return error == null ? HubStatus.Online : HubStatus.Offline;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
+            return HubStatus.Offline;
+        }
     }
 
     private async Task InitializeCacheStatusAsync()
