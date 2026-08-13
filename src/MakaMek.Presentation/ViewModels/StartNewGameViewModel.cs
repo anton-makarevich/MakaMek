@@ -164,28 +164,34 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         var hubs = await _hubConfigurationProvider.GetHubs();
         var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
         var activeHub = hubs.FirstOrDefault(h => h.Id == activeHubId);
-        HubName = activeHub?.Name ?? string.Empty;
-        if (activeHub == null)
+        ActiveHub = activeHub == null
+            ? null
+            : new HubEntryViewModel(
+                activeHub,
+                isNew: false,
+                checkStatus: CheckHubStatusAsync);
+        if (ActiveHub != null)
         {
-            HubStatus = HubStatus.Unknown;
-            return;
+            await ActiveHub.RefreshStatusAsync();
         }
+    }
 
-        HubStatus = HubStatus.Checking;
+    private async Task<HubStatus> CheckHubStatusAsync(HubEntryViewModel entry, CancellationToken cancellationToken)
+    {
         try
         {
             var options = new RelayClientOptions
             {
-                BaseUrl = activeHub.BaseUrl,
-                ApiKey = activeHub.ApiKey
+                BaseUrl = entry.BaseUrl,
+                ApiKey = entry.ApiKey
             };
-            var error = await _relayRoomClient.Health(CancellationToken.None, options);
-            HubStatus = error == null ? HubStatus.Online : HubStatus.Offline;
+            var error = await _relayRoomClient.Health(cancellationToken, options);
+            return error == null ? HubStatus.Online : HubStatus.Offline;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Active hub {HubName} probe failed", activeHub.Name);
-            HubStatus = HubStatus.Offline;
+            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
+            return HubStatus.Offline;
         }
     }
 
@@ -330,18 +336,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
 
     /// <summary>
-    /// Gets the display name of the hub used for the online lobby.
+    /// Gets the relay hub backing the online lobby, including its reachability state.
+    /// Null while hosting over LAN.
     /// </summary>
-    public string HubName
-    {
-        get;
-        private set => SetProperty(ref field, value);
-    } = string.Empty;
-
-    /// <summary>
-    /// Gets the reachability state of the hub used for the online lobby.
-    /// </summary>
-    public HubStatus HubStatus
+    public HubEntryViewModel? ActiveHub
     {
         get;
         private set => SetProperty(ref field, value);
@@ -441,6 +439,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private void ClearHostingState()
     {
         IsHosting = false;
+        ActiveHub = null;
         RoomCode = null;
         HostingError = null;
         RoomCodeCopySucceeded = null;

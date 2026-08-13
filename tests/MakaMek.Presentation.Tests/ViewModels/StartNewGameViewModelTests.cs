@@ -243,7 +243,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         // Capture every map the view model broadcasts so we can assert which one won
         var broadcastMaps = new List<BattleMap>();
-        _gameManager.SetBattleMap(Arg.Do<BattleMap>(m => broadcastMaps.Add(m)));
+        _gameManager.SetBattleMap(Arg.Do<BattleMap>(broadcastMaps.Add));
 
         // Act - first reselection starts the debounce window
         _sut.MapConfig.SelectedTabIndex = 1;
@@ -261,7 +261,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         // Wait past the first window's expiry and the restarted window
         await Task.Delay(6000);
 
-        // Assert - the latest map was broadcast exactly once and it is the second map;
+        // Assert - the latest map was broadcast exactly once, and it is the second map;
         // emissions of firstMap would have left it (or an extra entry) in the list.
         broadcastMaps.Count.ShouldBe(1);
         broadcastMaps[0].ShouldBe(secondMap);
@@ -517,14 +517,15 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         // Act
         sut.IsOnlineMode = true;
-        await WaitFor(() => sut.HubName == "Demo Hub");
+        await WaitFor(() => sut.ActiveHub?.Name == "Demo Hub");
 
         // Assert
-        sut.HubName.ShouldBe("Demo Hub");
-        sut.HubStatus.ShouldBe(HubStatus.Online);
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Name.ShouldBe("Demo Hub");
+        sut.ActiveHub.Status.ShouldBe(HubStatus.Online);
         await _relayRoomClient.Received(1).Health(
             Arg.Any<CancellationToken>(),
-            Arg.Is<RelayClientOptions>(o => o.BaseUrl == activeHub.BaseUrl));
+            Arg.Is<RelayClientOptions>(o => o!.BaseUrl == activeHub.BaseUrl));
     }
 
     [Fact]
@@ -548,10 +549,11 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         // Act
         sut.IsOnlineMode = true;
-        await WaitFor(() => sut.HubStatus == HubStatus.Offline);
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Offline);
 
         // Assert
-        sut.HubStatus.ShouldBe(HubStatus.Offline);
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Offline);
     }
 
     [Fact]
@@ -633,7 +635,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _vmLogger.Received(1).Log(
             LogLevel.Debug,
             Arg.Any<EventId>(),
-            Arg.Is<object>(state => state.ToString()!.Contains("Lobby initialization cancelled")),
+            Arg.Is<object>(state => state!.ToString()!.Contains("Lobby initialization cancelled")),
             Arg.Is<Exception?>(e => e == null),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -940,7 +942,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
                 var ct = callInfo.ArgAt<CancellationToken>(0);
                 if (ct.CanBeCanceled)
                 {
-                    // Simulate a remote player joining while the in-flight init is being cancelled.
+                    // Simulate a remote player joining while the in-flight init is being canceled.
                     ct.Register(() =>
                     {
                         sut.HandleServerCommand(new JoinGameCommand
