@@ -2,9 +2,11 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
-using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
+using Sanet.Transport.SignalR.Client.Relay;
+using HubError = Sanet.MakaMek.Hub.Contracts.HubError;
+using HubErrorCode = Sanet.MakaMek.Hub.Contracts.HubErrorCode;
 using HubOptions = Sanet.MakaMek.Hub.Configuration.HubOptions;
 
 namespace Sanet.MakaMek.Hub.Relay;
@@ -18,7 +20,7 @@ public sealed class RelayHub : Hub<IRelayHub>
 {
     /// <summary>
     /// Extra bytes reserved beyond <see cref="HubOptions.MaxRelayPayloadBytes"/> so the
-    /// transport can accept a full serialized <see cref="RelayEnvelope"/> without disconnecting.
+    /// transport can accept a full serialized <see cref="Transport.SignalR.Client.Relay.RelayEnvelope"/> without disconnecting.
     /// Precise payload enforcement still happens inside <see cref="Relay"/>.
     /// </summary>
     public const int ReceiveMessageSizeOverheadBytes = 64 * 1024;
@@ -113,7 +115,7 @@ public sealed class RelayHub : Hub<IRelayHub>
         await base.OnConnectedAsync();
     }
 
-    public async Task Relay(string roomCode, RelayEnvelope message)
+    public async Task Relay(string roomCode, RelayEnvelope? message)
     {
         var httpContext = Context.GetHttpContext();
         if (httpContext?.Items[RelayAuthenticationDefaults.AuthenticatedSessionItemKey]
@@ -135,7 +137,7 @@ public sealed class RelayHub : Hub<IRelayHub>
             throw new HubException("Caller is not a member of the specified room.");
         }
 
-        if (message.Payload is null)
+        if (message?.Payload is null)
         {
             _logger.LogWarning(
                 "Relay call from connection {ConnectionId} in room {RoomCode} rejected: payload must not be null",

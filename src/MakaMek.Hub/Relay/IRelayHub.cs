@@ -1,3 +1,5 @@
+using Sanet.Transport.SignalR.Client.Relay;
+
 namespace Sanet.MakaMek.Hub.Relay;
 
 using Contracts;

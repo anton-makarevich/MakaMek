@@ -16,7 +16,9 @@ using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
 using Sanet.MakaMek.Hub.Rooms;
 using Sanet.MakaMek.Hub.Security;
+using Sanet.Transport.SignalR.Client.Relay;
 using Shouldly;
+using HubErrorCode = Sanet.MakaMek.Hub.Contracts.HubErrorCode;
 
 namespace Sanet.MakaMek.Hub.Tests.Relay;
 
@@ -181,7 +183,7 @@ public class RelayRpcTests
         await hostConnection.StartAsync();
         await clientConnection.StartAsync();
 
-        var oversizedPayload = new string('x', (256 * 1024) + 1);
+        var oversizedPayload = new string('x', 256 * 1024 + 1);
         var exception = await Should.ThrowAsync<HubException>(async () =>
             await hostConnection.InvokeAsync(
                 nameof(RelayHub.Relay),

@@ -9,7 +9,10 @@ using Microsoft.Extensions.Time.Testing;
 using Sanet.MakaMek.Hub.Contracts;
 using Sanet.MakaMek.Hub.Relay;
 using Sanet.MakaMek.Hub.Security;
+using Sanet.Transport.SignalR.Client.Relay;
 using Shouldly;
+using HubError = Sanet.MakaMek.Hub.Contracts.HubError;
+using HubErrorCode = Sanet.MakaMek.Hub.Contracts.HubErrorCode;
 
 namespace Sanet.MakaMek.Hub.Tests.Relay;
 
