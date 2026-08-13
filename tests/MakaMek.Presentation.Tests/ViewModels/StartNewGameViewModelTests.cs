@@ -606,6 +606,105 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task SwitchingToLan_AfterGetHubsBeforeActiveHubId_KeepsActiveHubCleared()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]));
+        var activeHubIdTcs = new TaskCompletionSource<string>();
+        _hubConfigurationProvider.GetActiveHubId().Returns(activeHubIdTcs.Task);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting; GetHubs resolves, GetActiveHubId stays in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => _hubConfigurationProvider.ReceivedCalls()
+            .Any(c => c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.GetActiveHubId)));
+
+        // Switch to LAN before the active hub id resolves
+        sut.IsLanMode = true;
+        sut.ActiveHub.ShouldBeNull();
+
+        // Complete the stale active-hub resolution; it must not resurrect ActiveHub
+        activeHubIdTcs.SetResult("demo");
+        await Task.Delay(100);
+
+        // Assert
+        sut.IsLanMode.ShouldBeTrue();
+        sut.ActiveHub.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenProbeThrows_SetsHubStatusOffline()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .ThrowsAsync(new HttpRequestException("probe exploded"));
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Offline);
+
+        // Assert
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Offline);
+    }
+
+    [Fact]
+    public async Task InitializeOnlineLobbyAndSubscribe_WhenProbeCancelled_SetsHubStatusUnknown()
+    {
+        // Arrange
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        _hubConfigurationProvider.GetHubs()
+            .Returns(Task.FromResult<IReadOnlyList<HubConfigData>>([new HubConfigData("demo", "Demo Hub", "http://demo.local", string.Empty, true)]));
+        _hubConfigurationProvider.GetActiveHubId().Returns(Task.FromResult("demo"));
+        var healthTcs = new TaskCompletionSource<RelayClientError?>();
+        _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
+            .Returns(async ci =>
+            {
+                var token = ci.Arg<CancellationToken>();
+                token.Register(() => healthTcs.TrySetException(new OperationCanceledException(token)));
+                return await healthTcs.Task;
+            });
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - start online hosting, leaving the health probe in flight
+        sut.IsOnlineMode = true;
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Checking);
+
+        // Detaching cancels the init token, faulting the in-flight probe with cancellation
+        sut.DetachHandlers();
+        await WaitFor(() => sut.ActiveHub?.Status == HubStatus.Unknown);
+
+        // Assert - a cancelled probe must not be reported as Offline
+        sut.ActiveHub.ShouldNotBeNull();
+        sut.ActiveHub!.Status.ShouldBe(HubStatus.Unknown);
+    }
+
+    [Fact]
     public async Task InitializeLobbyAndSubscribe_WhenOnlineInitFails_SetsHostingErrorAndDoesNotCreateLocalGame()
     {
         var error = new RelayClientError(RelayClientErrorCode.HubAtCapacity, "Hub is full");

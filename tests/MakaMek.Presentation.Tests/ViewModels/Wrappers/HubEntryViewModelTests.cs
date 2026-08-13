@@ -126,4 +126,53 @@ public class HubEntryViewModelTests
         invoked.ShouldBeTrue();
         sut.Status.ShouldBe(HubStatus.Online);
     }
+
+    [Fact]
+    public async Task RefreshStatusAsync_WhenCancelled_SetsUnknownAndStopsChecking()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var sut = new HubEntryViewModel(
+            DemoHub,
+            checkStatus: (_, token) => Task.FromException<HubStatus>(new OperationCanceledException(token)));
+
+        await sut.RefreshStatusAsync(cts.Token);
+
+        sut.Status.ShouldBe(HubStatus.Unknown);
+        sut.IsCheckingStatus.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task RefreshStatusAsync_WhenOlderProbeCancelled_DoesNotOverrideNewerResult()
+    {
+        using var firstCts = new CancellationTokenSource();
+        var firstTcs = new TaskCompletionSource<HubStatus>();
+        var secondTcs = new TaskCompletionSource<HubStatus>();
+        var probeIndex = 0;
+        var sut = new HubEntryViewModel(
+            DemoHub,
+            checkStatus: (_, token) =>
+            {
+                if (probeIndex++ == 0)
+                {
+                    token.Register(() => firstTcs.TrySetException(new OperationCanceledException(token)));
+                    return firstTcs.Task;
+                }
+                return secondTcs.Task;
+            });
+
+        // Start two overlapping probes; the second one is the current refresh
+        var firstProbe = sut.RefreshStatusAsync(firstCts.Token);
+        var secondProbe = sut.RefreshStatusAsync();
+
+        secondTcs.SetResult(HubStatus.Online);
+        await secondProbe;
+        sut.Status.ShouldBe(HubStatus.Online);
+
+        // Cancelling the stale first probe must not overwrite the newer result
+        firstCts.Cancel();
+        await firstProbe;
+        sut.Status.ShouldBe(HubStatus.Online);
+        sut.IsCheckingStatus.ShouldBeFalse();
+    }
 }
