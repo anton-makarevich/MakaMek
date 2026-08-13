@@ -18,6 +18,7 @@ public class HubEntryViewModel : BindableBase
     private string _editableName;
     private string _editableBaseUrl;
     private string _editableApiKey;
+    private int _refreshGeneration;
 
     public HubEntryViewModel(
         HubConfigData hub,
@@ -154,8 +155,6 @@ public class HubEntryViewModel : BindableBase
         return Task.CompletedTask;
     }
 
-    private int _refreshGeneration;
-
     public async Task RefreshStatusAsync(CancellationToken cancellationToken = default)
     {
         if (_checkStatus == null)
@@ -164,28 +163,28 @@ public class HubEntryViewModel : BindableBase
             return;
         }
 
-        var generation = ++_refreshGeneration;
+        var generation = Interlocked.Increment(ref _refreshGeneration);
         IsCheckingStatus = true;
         Status = HubStatus.Checking;
         try
         {
             var result = await _checkStatus(this, cancellationToken);
-            if (generation != _refreshGeneration) return;
+            if (generation != Volatile.Read(ref _refreshGeneration)) return;
             Status = result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            if (generation != _refreshGeneration) return;
+            if (generation != Volatile.Read(ref _refreshGeneration)) return;
             Status = HubStatus.Unknown;
         }
         catch
         {
-            if (generation != _refreshGeneration) return;
+            if (generation != Volatile.Read(ref _refreshGeneration)) return;
             Status = HubStatus.Offline;
         }
         finally
         {
-            if (generation == _refreshGeneration)
+            if (generation == Volatile.Read(ref _refreshGeneration))
             {
                 IsCheckingStatus = false;
             }
