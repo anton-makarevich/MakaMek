@@ -38,7 +38,7 @@ public class HubStatusBackgroundConverter : IValueConverter
         {
             HubStatus.Online => _resourcesLocator?.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
             HubStatus.Offline => _resourcesLocator?.TryFindResource("ErrorBrush") as IBrush ?? new SolidColorBrush(Colors.Red),
-            HubStatus.Checking => _resourcesLocator?.TryFindResource("WarningBrush") as IBrush ?? new SolidColorBrush(Colors.Orange),
+            HubStatus.Checking => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
             _ => _resourcesLocator?.TryFindResource("OverlayTransparentBrush") as IBrush ?? new SolidColorBrush(Colors.Gray)
         };
     }

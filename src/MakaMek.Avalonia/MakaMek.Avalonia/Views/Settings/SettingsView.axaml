@@ -56,8 +56,8 @@
                                   DisplayMemberBinding="{Binding Name}"/>
                         <Button Content="{Binding HubAddHubLabel}"
                                 Command="{Binding AddHubCommand}"
-                                Classes="secondary"
-                                HorizontalAlignment="Left"/>
+                                Classes="primary"
+                                HorizontalAlignment="Center"/>
                         <ItemsControl ItemsSource="{Binding Hubs}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
