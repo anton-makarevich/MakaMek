@@ -80,6 +80,7 @@
                                                 <StackPanel IsVisible="{Binding !IsEditing}"
                                                             Classes="horizontalSpaced">
                                                     <Border Classes="statusTag"
+                                                            Margin="0"
                                                             VerticalAlignment="Center"
                                                             Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
                                                         <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"
