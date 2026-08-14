@@ -26,7 +26,9 @@ using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
 using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.Transport;
 using Sanet.Transport.Rx;
+using Sanet.Transport.SignalR.Client.Factories;
 
 namespace Sanet.MakaMek.Avalonia.DI;
 
@@ -154,8 +156,8 @@ public static class CoreServices
             return configuration;
         });
 
-        // Relay publisher factory — shared, creates RelayClientPublisher instances for online hosts.
-        services.AddSingleton<IRelayPublisherFactory, RelayPublisherFactory>();
+        // Relay publisher factory — shared, creates relay publishers for online hosts.
+        services.AddSingleton<IPublisherFactory, RelayPublisherFactory>();
 
         // Relay hub configuration — seeds the built-in Demo hub from RelayClientOptions
         // (MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY) and persists user-defined hubs.

@@ -7,8 +7,9 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.Transport;
 using Sanet.Transport.Rx;
-using Sanet.Transport.SignalR.Client.Publishers;
+using Sanet.Transport.SignalR.Client.Factories;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -25,9 +26,9 @@ public class GameManager : IGameManager
     private ICommandLogger? _commandLogger;
     private Action<IGameCommand>? _logHandler;
     private readonly IRelayRoomClient? _relayRoomClient;
-    private readonly IRelayPublisherFactory? _relayPublisherFactory;
+    private readonly IPublisherFactory? _relayPublisherFactory;
     private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
-    private RelayClientPublisher? _onlineRelayPublisher;
+    private ITransportPublisher? _onlineRelayPublisher;
     private string? _onlineSessionToken;
     private RelayClientOptions? _onlineRelayOptions;
 
@@ -38,7 +39,7 @@ public class GameManager : IGameManager
         ILogger<GameManager> logger,
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
-        IRelayPublisherFactory? relayPublisherFactory = null,
+        IPublisherFactory? relayPublisherFactory = null,
         IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
     {
         _commandPublisher = commandPublisher;
@@ -183,18 +184,20 @@ public class GameManager : IGameManager
             return;
         }
 
-        RelayClientPublisher? publisher = null;
+        ITransportPublisher? publisher = null;
         try
         {
             var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
             publisher = await _relayPublisherFactory.Create(
-                hubUrl,
-                createResult.RoomCode,
-                createResult.SessionToken,
-                createResult.HostGameId.Value,
-                relayOptions.ApiKey,
+                new RelayPublisherOptions
+                {
+                    HubUrl = hubUrl,
+                    RoomCode = createResult.RoomCode,
+                    SessionToken = createResult.SessionToken,
+                    ApiKey = relayOptions.ApiKey
+                },
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);
@@ -257,7 +260,7 @@ public class GameManager : IGameManager
         _commandPublisher.Subscribe(_logHandler, transportPublisher);
     }
 
-    private async Task RemoveAndDisposeOnlinePublisher(RelayClientPublisher? publisher)
+    private async Task RemoveAndDisposeOnlinePublisher(ITransportPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
         if (publisher == null) return;
@@ -324,7 +327,7 @@ public class GameManager : IGameManager
     private async Task CloseRelayRoomAndCleanup(
         string? roomCode,
         string? sessionToken,
-        RelayClientPublisher? publisher,
+        ITransportPublisher? publisher,
         RelayClientOptions options)
     {
         // Best-effort close of the relay room before local cleanup
@@ -343,7 +346,7 @@ public class GameManager : IGameManager
         await CleanupOnlineAfterFailure(publisher);
     }
 
-    private async Task CleanupOnlineAfterFailure(RelayClientPublisher? publisher)
+    private async Task CleanupOnlineAfterFailure(ITransportPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
         await RemoveAndDisposeOnlinePublisher(publisher);
