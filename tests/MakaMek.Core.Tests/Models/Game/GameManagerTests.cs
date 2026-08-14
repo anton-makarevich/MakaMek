@@ -1094,6 +1094,7 @@ public class GameManagerTests : IDisposable
 
         // Act & Assert - DisposeAsync should not throw even though the publisher's dispose does
         await Should.NotThrowAsync(() => sut.DisposeAsync().AsTask());
+        await ((IAsyncDisposable)throwingPublisher).Received(1).DisposeAsync();
         sut.IsOnlineServerRunning.ShouldBeFalse();
     }
 
