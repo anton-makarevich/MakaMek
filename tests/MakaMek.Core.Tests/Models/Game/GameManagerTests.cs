@@ -1067,6 +1067,36 @@ public class GameManagerTests : IDisposable
         sut.RoomCode.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task DisposeAsync_WhenPublisherDisposeAsyncThrows_SwallowsException()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomCreateResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var throwingPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
+            .Throw(new InvalidOperationException("dispose boom"));
+        relayPublisherFactory.Create(RelayOptions(roomCode, sessionToken), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(throwingPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline();
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+
+        // Act & Assert - DisposeAsync should not throw even though the publisher's dispose does
+        await Should.NotThrowAsync(() => sut.DisposeAsync().AsTask());
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
