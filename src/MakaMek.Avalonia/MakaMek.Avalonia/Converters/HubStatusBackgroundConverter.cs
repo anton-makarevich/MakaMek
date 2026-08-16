@@ -3,7 +3,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Sanet.MakaMek.Avalonia.Controls.Services;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
 

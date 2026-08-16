@@ -1,6 +1,6 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
