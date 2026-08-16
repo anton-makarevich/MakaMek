@@ -22,10 +22,10 @@
         <PackageReference Include="Avalonia.Skia" Version="12.1.1" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.11" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.7.1211" />
         <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.7.1211" />
         <PackageReference Include="Sanet.MVVM.Views.Avalonia" Version="1.6.1211" />
