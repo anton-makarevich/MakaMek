@@ -336,6 +336,26 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task Dispose_WhenRemoveLanPublisherThrows_SwallowsAndContinues()
+    {
+        // Arrange - InitializeLobby sets _lanPublisher via network host
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await _sut.InitializeLobby();
+
+        // Make RemovePublisher throw
+        var throwingAdapter = Substitute.For<ICommandTransportAdapter>();
+        throwingAdapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("adapter disposed"));
+        _commandPublisher.Adapter.Returns(throwingAdapter);
+
+        // Act & Assert - should not throw despite RemovePublisher failing
+        Should.NotThrow(() => _sut.Dispose());
+    }
+
+    [Fact]
     public async Task SetBattleMap_CallsSetBattleMapOnServerGame()
     {
         // Arrange
