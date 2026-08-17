@@ -1392,6 +1392,12 @@ public class GameManagerTests : IDisposable
 
         // Act & Assert - should not throw even though Stop throws
         await Should.NotThrowAsync(() => gameManager.InitializeLobby());
+        logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
