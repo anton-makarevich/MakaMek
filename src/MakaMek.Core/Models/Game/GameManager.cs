@@ -29,6 +29,7 @@ public class GameManager : IGameManager
     private readonly IPublisherFactory? _relayPublisherFactory;
     private readonly IRelayHubConfigurationProvider? _relayHubConfigurationProvider;
     private ITransportPublisher? _onlineRelayPublisher;
+    private ITransportPublisher? _lanPublisher;
     private string? _onlineSessionToken;
     private RelayClientOptions? _onlineRelayOptions;
 
@@ -72,6 +73,9 @@ public class GameManager : IGameManager
         await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
         _onlineRelayPublisher = null;
 
+        // Remove LAN publisher and stop host service
+        await RemoveLanPublisherAndStopHost();
+
         // Dispose current server game if exists
         if (_serverGame != null)
         {
@@ -110,6 +114,7 @@ public class GameManager : IGameManager
             if (_networkHostService.Publisher != null)
             {
                 transportAdapter.AddPublisher(_networkHostService.Publisher);
+                _lanPublisher = _networkHostService.Publisher;
             }
         }
 
@@ -296,6 +301,34 @@ public class GameManager : IGameManager
         }
     }
 
+    private async Task RemoveLanPublisherAndStopHost()
+    {
+        if (_lanPublisher != null)
+        {
+            try
+            {
+                _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter");
+            }
+            _lanPublisher = null;
+        }
+
+        if (_networkHostService != null && _networkHostService.IsRunning)
+        {
+            try
+            {
+                await _networkHostService.Stop();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to stop the network host service");
+            }
+        }
+    }
+
     public async Task<bool> CloseOnlineRoom(CancellationToken cancellationToken = default)
     {
         // Only attempt to close when an online room is actually active and we have
@@ -421,6 +454,20 @@ public class GameManager : IGameManager
         _serverGame?.Dispose();
         _serverGame = null;
 
+        // Remove LAN publisher from the adapter
+        if (_lanPublisher != null)
+        {
+            try
+            {
+                _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter during dispose");
+            }
+            _lanPublisher = null;
+        }
+
         // Dispose network host
         _networkHostService?.Dispose();
 
@@ -437,10 +484,25 @@ public class GameManager : IGameManager
         _serverGame = null;
 
         // Dispose network host
-        _networkHostService?.Dispose();
+        if (_networkHostService != null)
+            await _networkHostService.DisposeAsync();
 
         // Close the online relay room, if any, before tearing down the publisher
         await CloseOnlineRoom();
+
+        // Remove LAN publisher from the adapter
+        if (_lanPublisher != null)
+        {
+            try
+            {
+                _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter during async dispose");
+            }
+            _lanPublisher = null;
+        }
 
         // Remove and dispose online relay publisher if it exists
         await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);

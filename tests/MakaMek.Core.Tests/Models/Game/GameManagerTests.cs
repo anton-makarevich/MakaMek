@@ -321,7 +321,7 @@ public class GameManagerTests : IDisposable
         var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
-        Should.NotThrow(() => sutWithNullHost.Dispose());
+        Should.NotThrow(sutWithNullHost.Dispose);
     }
 
     [Fact]
@@ -333,6 +333,26 @@ public class GameManagerTests : IDisposable
 
         // Assert
         _networkHostService.Received(1).Dispose(); // Should still be called only once
+    }
+
+    [Fact]
+    public async Task Dispose_WhenRemoveLanPublisherThrows_SwallowsAndContinues()
+    {
+        // Arrange - InitializeLobby sets _lanPublisher via network host
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await _sut.InitializeLobby();
+
+        // Make RemovePublisher throw
+        var throwingAdapter = Substitute.For<ICommandTransportAdapter>();
+        throwingAdapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("adapter disposed"));
+        _commandPublisher.Adapter.Returns(throwingAdapter);
+
+        // Act & Assert - should not throw despite RemovePublisher failing
+        Should.NotThrow(() => _sut.Dispose());
     }
 
     [Fact]
@@ -462,7 +482,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Act
-        _sut.Dispose();
+        await _sut.DisposeAsync();
 
         // Assert
         logger.Received(1).Dispose();
@@ -1180,7 +1200,7 @@ public class GameManagerTests : IDisposable
         ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
             .Throw(new InvalidOperationException("dispose boom"));
         relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<ITransportPublisher>(throwingPublisher));
+            .Returns(Task.FromResult(throwingPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline();
         sut.IsOnlineServerRunning.ShouldBeTrue();
@@ -1189,6 +1209,256 @@ public class GameManagerTests : IDisposable
         await Should.NotThrowAsync(() => sut.DisposeAsync().AsTask());
         await ((IAsyncDisposable)throwingPublisher).Received(1).DisposeAsync();
         sut.IsOnlineServerRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task InitializeLobby_ThenOnline_RemovesLanPublisherAndStopsHost()
+    {
+        // Arrange - create a SUT with both relay and network host support
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        // Start in LAN mode
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+        // Simulate host has started
+        _networkHostService.IsRunning.Returns(true);
+
+        // Act - transition to online
+        await sut.InitializeLobbyOnline();
+
+        // Assert - LAN publisher removed, relay publisher added, host stopped
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+        await _networkHostService.Received(1).Stop();
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_ThenLan_RemovesRelayPublisherAndAddsLan()
+    {
+        // Arrange - set up online first
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        await sut.InitializeLobbyOnline();
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+
+        // Arrange - set up LAN publisher
+        var lanPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(lanPublisher);
+
+        // Act
+        await sut.InitializeLobby();
+
+        // Assert
+        _transportAdapter.TransportPublishers.ShouldNotContain(relayPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(lanPublisher);
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task InitializeLobby_ThenOnline_AdapterContainsLocalAndRelayPublishersOnly()
+    {
+        // Arrange - create a SUT with both relay and network host support
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        // Start in LAN mode
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+        // Simulate host has started
+        _networkHostService.IsRunning.Returns(true);
+
+        // Act - transition to online
+        await sut.InitializeLobbyOnline();
+
+        // Assert - only the local-loopback publisher and relay publisher remain;
+        // the LAN publisher was removed, guaranteeing single delivery of host-local commands
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+        _transportAdapter.TransportPublishers.Count.ShouldBe(2); // initial local + relay
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task RemoveLanPublisher_WhenRemovePublisherThrows_LogsDebugAndDoesNotThrow()
+    {
+        // Arrange - fully isolated setup
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initialPublisher = Substitute.For<ITransportPublisher>();
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
+        var adapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
+        commandPublisher.Adapter.Returns(adapter);
+        var gameFactory = Substitute.For<IGameFactory>();
+        var networkHostService = Substitute.For<INetworkHostService>();
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var gameManager = new GameManager(
+            commandPublisher, gameFactory, _localizationService, _commandLoggerFactory,
+            logger, networkHostService);
+
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        networkHostService.CanStart.Returns(true);
+        networkHostService.IsRunning.Returns(false);
+        networkHostService.Publisher.Returns(networkPublisher);
+        await gameManager.InitializeLobby();
+        adapter.TransportPublishers.ShouldContain(networkPublisher);
+
+        // Now make the adapter throw on RemovePublisher
+        var throwingAdapter = Substitute.For<ICommandTransportAdapter>();
+        throwingAdapter.TransportPublishers.Returns(adapter.TransportPublishers);
+        throwingAdapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("adapter boom"));
+        commandPublisher.Adapter.Returns(throwingAdapter);
+
+        // Act - InitializeLobby calls ResetForNewGame which calls RemoveLanPublisherAndStopHost
+        await Should.NotThrowAsync(() => gameManager.InitializeLobby());
+
+        // Assert
+        logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public async Task StopHost_WhenStopThrows_LogsDebugAndDoesNotThrow()
+    {
+        // Arrange - fully isolated setup
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initialPublisher = Substitute.For<ITransportPublisher>();
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
+        var adapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
+        commandPublisher.Adapter.Returns(adapter);
+        var gameFactory = Substitute.For<IGameFactory>();
+        var networkHostService = Substitute.For<INetworkHostService>();
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var gameManager = new GameManager(
+            commandPublisher, gameFactory, _localizationService, _commandLoggerFactory,
+            logger, networkHostService);
+
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        networkHostService.CanStart.Returns(true);
+        networkHostService.IsRunning.Returns(false);
+        networkHostService.Publisher.Returns(networkPublisher);
+        await gameManager.InitializeLobby();
+        networkHostService.IsRunning.Returns(true);
+        networkHostService.Stop().ThrowsAsync(new InvalidOperationException("stop boom"));
+
+        // Act & Assert - should not throw even though Stop throws
+        await Should.NotThrowAsync(() => gameManager.InitializeLobby());
+        logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenRemoveLanPublisherThrows_LogsDebugAndDoesNotThrow()
+    {
+        // Arrange - fully isolated setup
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var initialPublisher = Substitute.For<ITransportPublisher>();
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
+        var adapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
+        commandPublisher.Adapter.Returns(adapter);
+        var gameFactory = Substitute.For<IGameFactory>();
+        var networkHostService = Substitute.For<INetworkHostService>();
+        var logger = Substitute.For<ILogger<GameManager>>();
+        var gameManager = new GameManager(
+            commandPublisher, gameFactory, _localizationService, _commandLoggerFactory,
+            logger, networkHostService);
+
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        networkHostService.CanStart.Returns(true);
+        networkHostService.IsRunning.Returns(false);
+        networkHostService.Publisher.Returns(networkPublisher);
+        await gameManager.InitializeLobby();
+        networkHostService.IsRunning.Returns(true);
+
+        // Make the adapter throw on RemovePublisher
+        var throwingAdapter = Substitute.For<ICommandTransportAdapter>();
+        throwingAdapter.TransportPublishers.Returns(adapter.TransportPublishers);
+        throwingAdapter.When(x => x.RemovePublisher(Arg.Any<ITransportPublisher>()))
+            .Do(_ => throw new InvalidOperationException("adapter boom"));
+        commandPublisher.Adapter.Returns(throwingAdapter);
+
+        // Act & Assert
+        await Should.NotThrowAsync(() => gameManager.DisposeAsync().AsTask());
+        logger.Received().Log(
+            LogLevel.Debug,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     public void Dispose()

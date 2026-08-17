@@ -49,4 +49,13 @@ public class DummyNetworkHostService : INetworkHostService
     {
         // No-op implementation
     }
+
+    /// <summary>
+    /// No-op implementation
+    /// </summary>
+    public ValueTask DisposeAsync()
+    {
+        // No-op implementation
+        return ValueTask.CompletedTask;
+    }
 }

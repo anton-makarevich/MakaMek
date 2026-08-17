@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// <summary>
 /// Interface for services that manage network hosts for multiplayer
 /// </summary>
-public interface INetworkHostService : IDisposable
+public interface INetworkHostService : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Gets the transport publisher associated with this host
