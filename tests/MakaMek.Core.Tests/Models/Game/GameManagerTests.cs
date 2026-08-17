@@ -321,7 +321,7 @@ public class GameManagerTests : IDisposable
         var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
-        Should.NotThrow(() => sutWithNullHost.Dispose());
+        Should.NotThrow(sutWithNullHost.Dispose);
     }
 
     [Fact]
@@ -462,7 +462,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Act
-        _sut.Dispose();
+        await _sut.DisposeAsync();
 
         // Assert
         logger.Received(1).Dispose();
@@ -1180,7 +1180,7 @@ public class GameManagerTests : IDisposable
         ((IAsyncDisposable)throwingPublisher).When(x => x.DisposeAsync())
             .Throw(new InvalidOperationException("dispose boom"));
         relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<ITransportPublisher>(throwingPublisher));
+            .Returns(Task.FromResult(throwingPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
         await sut.InitializeLobbyOnline();
         sut.IsOnlineServerRunning.ShouldBeTrue();
@@ -1189,6 +1189,148 @@ public class GameManagerTests : IDisposable
         await Should.NotThrowAsync(() => sut.DisposeAsync().AsTask());
         await ((IAsyncDisposable)throwingPublisher).Received(1).DisposeAsync();
         sut.IsOnlineServerRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task InitializeLobby_ThenOnline_RemovesLanPublisherAndStopsHost()
+    {
+        // Arrange - set up LAN first
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+
+        await _sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+
+        // Arrange - set up relay for online transition
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+
+        // Create a SUT with both relay and network host support, sharing the same adapter
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        // Re-initialize LAN on the new SUT so the LAN publisher is tracked
+        sut.IsLanServerRunning.ShouldBeFalse();
+        await sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+
+        // Act
+        await sut.InitializeLobbyOnline();
+
+        // Assert
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+        await _networkHostService.Received(1).Stop();
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task InitializeLobbyOnline_ThenLan_RemovesRelayPublisherAndAddsLan()
+    {
+        // Arrange - set up online first
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        await sut.InitializeLobbyOnline();
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+
+        // Arrange - set up LAN publisher
+        var lanPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(lanPublisher);
+
+        // Act
+        await sut.InitializeLobby();
+
+        // Assert
+        _transportAdapter.TransportPublishers.ShouldNotContain(relayPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(lanPublisher);
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task InitializeLobby_ThenOnline_AdapterContainsLocalAndRelayPublishersOnly()
+    {
+        // Arrange - set up LAN first
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+
+        await _sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+
+        // Arrange - set up relay for online transition
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Close(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = CreateRelayPublisher(roomCode, relayTicket: RelayTicketValue);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+
+        // Create a SUT with both relay and network host support, sharing the same adapter
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory, _networkHostService);
+
+        // Re-initialize LAN on the new SUT so the LAN publisher is tracked
+        await sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+
+        // Act
+        await sut.InitializeLobbyOnline();
+
+        // Assert - only the local-loopback publisher and relay publisher remain;
+        // the LAN publisher was removed, guaranteeing single delivery of host-local commands
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+        _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
+        _transportAdapter.TransportPublishers.Count.ShouldBe(2); // initial local + relay
+        await sut.DisposeAsync();
     }
 
     public void Dispose()
