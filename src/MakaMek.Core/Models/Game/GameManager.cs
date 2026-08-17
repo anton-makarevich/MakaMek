@@ -309,9 +309,9 @@ public class GameManager : IGameManager
             {
                 _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow to avoid masking the original failure
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter");
             }
             _lanPublisher = null;
         }
@@ -322,9 +322,9 @@ public class GameManager : IGameManager
             {
                 await _networkHostService.Stop();
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow to avoid masking the original failure
+                _logger.LogDebug(ex, "Failed to stop the network host service");
             }
         }
     }
@@ -461,9 +461,9 @@ public class GameManager : IGameManager
             {
                 _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow to avoid masking the original failure
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter during dispose");
             }
             _lanPublisher = null;
         }
@@ -496,9 +496,9 @@ public class GameManager : IGameManager
             {
                 _commandPublisher.Adapter.RemovePublisher(_lanPublisher);
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow to avoid masking the original failure
+                _logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter during async dispose");
             }
             _lanPublisher = null;
         }
