@@ -484,7 +484,8 @@ public class GameManager : IGameManager
         _serverGame = null;
 
         // Dispose network host
-        _networkHostService?.Dispose();
+        if (_networkHostService != null)
+            await _networkHostService.DisposeAsync();
 
         // Close the online relay room, if any, before tearing down the publisher
         await CloseOnlineRoom();

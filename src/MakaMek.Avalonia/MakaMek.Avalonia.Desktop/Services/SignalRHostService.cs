@@ -52,13 +52,11 @@ public class SignalRHostService : INetworkHostService
     /// Stops the SignalR host if it is running
     /// </summary>
     /// <returns>A task representing the asynchronous operation</returns>
-    public Task Stop()
+    public async Task Stop()
     {
-        if (_hostManager == null) return Task.CompletedTask;
-        _hostManager.Dispose();
+        if (_hostManager == null) return;
+        await _hostManager.DisposeAsync();
         _hostManager = null;
-
-        return Task.CompletedTask;
     }
 
     public bool CanStart => true;
@@ -71,7 +69,22 @@ public class SignalRHostService : INetworkHostService
         if (_isDisposed) return;
         
         _isDisposed = true;
-        _hostManager?.Dispose();
+        _hostManager?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _hostManager = null;
+    }
+
+    /// <summary>
+    /// Asynchronously disposes the host service and stops the SignalR host
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_isDisposed) return;
+        
+        _isDisposed = true;
+        if (_hostManager != null)
+        {
+            await _hostManager.DisposeAsync();
+            _hostManager = null;
+        }
     }
 }
