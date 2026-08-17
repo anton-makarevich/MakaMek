@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Services;
+using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 

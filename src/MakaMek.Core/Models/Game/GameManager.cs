@@ -4,12 +4,12 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
 using Sanet.Transport.Rx;
 using Sanet.Transport.SignalR.Client.Factories;
+using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -190,13 +190,27 @@ public class GameManager : IGameManager
             var baseUrl = relayOptions.BaseUrl;
             var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
 
+            var ticketResult = await _relayRoomClient.GetRelayTicket(
+                createResult.RoomCode,
+                createResult.SessionToken,
+                cancellationToken,
+                relayOptions);
+            if (!ticketResult.Success || string.IsNullOrWhiteSpace(ticketResult.Ticket))
+            {
+                OnlineError = ticketResult.Error
+                    ?? new RelayClientError(
+                        RelayClientErrorCode.Unknown,
+                        "The relay did not issue a relay ticket for the host session.");
+                await CloseRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
+                return;
+            }
+
             publisher = await _relayPublisherFactory.Create(
                 new RelayPublisherOptions
                 {
                     HubUrl = hubUrl,
                     RoomCode = createResult.RoomCode,
-                    SessionToken = createResult.SessionToken,
-                    ApiKey = relayOptions.ApiKey
+                    RelayTicket = ticketResult.Ticket
                 },
                 cancellationToken);
 

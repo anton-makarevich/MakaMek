@@ -4,7 +4,7 @@ using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;

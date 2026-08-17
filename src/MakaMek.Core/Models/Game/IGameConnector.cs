@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 

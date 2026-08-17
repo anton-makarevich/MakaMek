@@ -4,7 +4,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;

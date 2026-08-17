@@ -1,5 +1,5 @@
 using AsyncAwaitBestPractices.MVVM;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
