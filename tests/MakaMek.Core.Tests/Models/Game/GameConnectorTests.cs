@@ -734,6 +734,100 @@ public class GameConnectorTests : IDisposable
         _sut.ConnectedHostGameId.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task ConnectToLanAsync_ClearsConnectedHostGameId()
+    {
+        // Arrange
+        await JoinOnlineAsync(_sut);
+        _sut.ConnectedHostGameId.ShouldNotBeNull();
+
+        // Act
+        await _sut.ConnectToLan("http://localhost:2439/makamekhub");
+
+        // Assert
+        _sut.ConnectedHostGameId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task DisconnectHandler_ClearsConnectedHostGameId()
+    {
+        // Arrange
+        var mockAdapter = Substitute.For<ICommandTransportAdapter>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        commandPublisher.Adapter.Returns(mockAdapter);
+        var sut = new GameConnector(
+            commandPublisher,
+            _transportFactory,
+            _logger,
+            _relayRoomClient,
+            _relayPublisherFactory,
+            CreateHubConfigurationProvider());
+
+        var deviceSessionId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostGameId = Guid.NewGuid();
+        _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+
+        Action<ITransportPublisher>? disconnectHandler = null;
+        mockAdapter.When(a => a.RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>()))
+            .Do(ci => disconnectHandler = ci.Arg<Action<ITransportPublisher>>());
+        await sut.JoinOnline(roomCode, sessionToken: null);
+        sut.ConnectedHostGameId.ShouldBe(hostGameId);
+        disconnectHandler.ShouldNotBeNull();
+
+        // Act
+        disconnectHandler.Invoke(publisher);
+
+        // Assert
+        sut.ConnectedHostGameId.ShouldBeNull();
+        sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task DisconnectHandler_SetsGameOriginIdFromConnectedHostGameId()
+    {
+        // Arrange
+        var mockAdapter = Substitute.For<ICommandTransportAdapter>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        commandPublisher.Adapter.Returns(mockAdapter);
+        var sut = new GameConnector(
+            commandPublisher,
+            _transportFactory,
+            _logger,
+            _relayRoomClient,
+            _relayPublisherFactory,
+            CreateHubConfigurationProvider());
+
+        var deviceSessionId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostGameId = Guid.NewGuid();
+        _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+
+        Action<ITransportPublisher>? disconnectHandler = null;
+        mockAdapter.When(a => a.RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>()))
+            .Do(ci => disconnectHandler = ci.Arg<Action<ITransportPublisher>>());
+        await sut.JoinOnline(roomCode, sessionToken: null);
+        disconnectHandler.ShouldNotBeNull();
+
+        // Act
+        disconnectHandler.Invoke(publisher);
+
+        // Assert - GameOriginId matches the host game ID so ClientGame.ShouldHandleCommand accepts it
+        mockAdapter.Received(1).DispatchLocalCommand(
+            Arg.Is<GameEndedCommand>(c => c.GameOriginId == hostGameId),
+            publisher);
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

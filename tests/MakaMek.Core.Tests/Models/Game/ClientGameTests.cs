@@ -3477,65 +3477,95 @@ public class ClientGameTests
     }
 
     [Fact]
-    public void HandleCommand_ShouldCompletePendingCommand_WhenServerRebroadcastsClientCommand()
+    public async Task HandleCommand_ShouldCompletePendingCommand_WhenServerRebroadcastsClientCommand()
     {
         // Arrange
         var serverGameId = Guid.NewGuid();
         using var sut = CreateClientGameWithServerGameId(serverGameId);
-        var idempotencyKey = Guid.NewGuid();
 
-        // Simulate sending a client command that creates a pending command
-        var joinCommand = new JoinGameCommand
-        {
-            PlayerId = Guid.NewGuid(),
-            PlayerName = "Player1",
-            GameOriginId = sut.Id, // Client origin
-            Units = [],
-            Tint = "#FF0000",
-            PilotAssignments = [],
-            IdempotencyKey = idempotencyKey
-        };
         // Publish via the command publisher to register the pending command
-        sut.JoinGameWithUnits(
+        var pendingTask = sut.JoinGameWithUnits(
             new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
             [],
             []);
 
-        // Now simulate the server rebroadcast
+        // Wait for the command to be published
+        JoinGameCommand? publishedCommand = null;
+        for (var i = 0; i < 50; i++)
+        {
+            var calls = _commandPublisher.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
+                .ToList();
+            if (calls.Count > 0)
+            {
+                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
+                break;
+            }
+            await Task.Delay(10);
+        }
+        publishedCommand.ShouldNotBeNull();
+
+        // Now simulate the server rebroadcast using the captured idempotency key
         var serverRebroadcast = new JoinGameCommand
         {
-            PlayerId = Guid.NewGuid(),
-            PlayerName = "Player1",
+            PlayerId = publishedCommand.Value.PlayerId,
+            PlayerName = publishedCommand.Value.PlayerName,
             GameOriginId = serverGameId,
             Units = [],
             Tint = "#FF0000",
             PilotAssignments = [],
-            IdempotencyKey = idempotencyKey
+            IdempotencyKey = publishedCommand.Value.IdempotencyKey
         };
 
         // Act
         sut.HandleCommand(serverRebroadcast);
 
-        // Assert - should have recorded the command
-        sut.CommandLog.Count.ShouldBe(1);
+        // Assert - pending command should complete successfully
+        var result = await pendingTask;
+        result.ShouldBeTrue();
     }
 
     [Fact]
-    public void HandleCommand_ShouldCompletePendingOnErrorCommand_WithServerOrigin()
+    public async Task HandleCommand_ShouldCompletePendingOnErrorCommand_WithServerOrigin()
     {
         // Arrange
         var serverGameId = Guid.NewGuid();
         using var sut = CreateClientGameWithServerGameId(serverGameId);
-        var idempotencyKey = Guid.NewGuid();
+
+        // Create a pending command first
+        var pendingTask = sut.JoinGameWithUnits(
+            new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
+            [],
+            []);
+
+        // Wait for the command to be published
+        JoinGameCommand? publishedCommand = null;
+        for (var i = 0; i < 50; i++)
+        {
+            var calls = _commandPublisher.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
+                .ToList();
+            if (calls.Count > 0)
+            {
+                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
+                break;
+            }
+            await Task.Delay(10);
+        }
+        publishedCommand.ShouldNotBeNull();
 
         var errorCommand = new ErrorCommand
         {
             GameOriginId = serverGameId,
-            IdempotencyKey = idempotencyKey,
+            IdempotencyKey = publishedCommand.Value.IdempotencyKey,
             ErrorCode = ErrorCode.ValidationFailed
         };
 
         // Act - should not throw
         Should.NotThrow(() => sut.HandleCommand(errorCommand));
+
+        // Assert - pending command should complete with false (error)
+        var result = await pendingTask;
+        result.ShouldBeFalse();
     }
 }

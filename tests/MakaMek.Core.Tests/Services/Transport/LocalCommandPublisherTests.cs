@@ -60,8 +60,8 @@ public class LocalCommandPublisherTests
     public void Subscribe_ReceivesOnlyFromRxPublisher()
     {
         // Arrange
-        IGameCommand? receivedCommand = null;
-        _sut.Subscribe(cmd => receivedCommand = cmd);
+        var handlerCallCount = 0;
+        _sut.Subscribe(cmd => handlerCallCount++);
 
         var command = new TurnIncrementedCommand
         {
@@ -84,13 +84,17 @@ public class LocalCommandPublisherTests
             Payload = payload
         };
 
-        // Act - simulate receiving from both publishers
+        // Act - simulate receiving from rx publisher first
         _rxCallback!(rxMessage);
+
+        // Assert - should have received exactly one command
+        handlerCallCount.ShouldBe(1);
+
+        // Act - simulate receiving from other publisher
         _otherCallback!(otherMessage);
 
-        // Assert - should only receive from Rx
-        receivedCommand.ShouldNotBeNull();
-        receivedCommand.ShouldBeOfType<TurnIncrementedCommand>();
+        // Assert - count remains one: the other transport does not invoke the handler
+        handlerCallCount.ShouldBe(1);
     }
 
     [Fact]

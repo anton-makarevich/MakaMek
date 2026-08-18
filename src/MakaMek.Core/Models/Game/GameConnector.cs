@@ -61,6 +61,7 @@ public class GameConnector : IGameConnector
             await adapter.ClearPublishers();
             adapter.AddPublisher(publisher);
 
+            ConnectedHostGameId = null;
             IsConnected = true;
             _logger.LogInformation("Connected to LAN server at {ServerAddress}", serverAddress);
         }
@@ -205,10 +206,13 @@ public class GameConnector : IGameConnector
         if (!IsConnected) return;
 
         IsConnected = false;
-        
+
+        var hostGameId = ConnectedHostGameId;
+        ConnectedHostGameId = null;
+
         var command = new GameEndedCommand
         {
-            GameOriginId = Guid.NewGuid(),
+            GameOriginId = hostGameId ?? Guid.NewGuid(),
             Reason = GameEndReason.HostDisconnected,
             Timestamp = DateTime.UtcNow
         };
