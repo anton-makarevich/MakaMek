@@ -31,6 +31,14 @@ public interface ICommandTransportAdapter : IAsyncDisposable
     void PublishCommand(IGameCommand command);
 
     /// <summary>
+    /// Converts an IGameCommand to a TransportMessage and publishes it to a single target publisher.
+    /// Serialization is performed once and per-publisher error isolation is preserved.
+    /// </summary>
+    /// <param name="command">The command to publish</param>
+    /// <param name="targetPublisher">The specific transport publisher to send to</param>
+    void PublishCommand(IGameCommand command, ITransportPublisher targetPublisher);
+
+    /// <summary>
     /// Subscribes to transport messages and converts them back to IGameCommand
     /// </summary>
     /// <param name="onCommandReceived">Callback for received commands</param>

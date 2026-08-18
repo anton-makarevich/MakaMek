@@ -177,6 +177,35 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
         }
     }
+
+    /// <summary>
+    /// Converts an IGameCommand to a TransportMessage and publishes it to a single target publisher.
+    /// </summary>
+    public void PublishCommand(IGameCommand command, ITransportPublisher targetPublisher)
+    {
+        var message = new TransportMessage
+        {
+            MessageType = command.GetType().Name,
+            SourceId = command.GameOriginId,
+            Payload = SerializeCommand(command),
+            Timestamp = command.Timestamp
+        };
+
+        _logger.LogDebug(
+            "Publishing command {MessageType} (origin {GameOriginId}) to {PublisherType}",
+            message.MessageType,
+            message.SourceId,
+            targetPublisher.GetType().Name);
+
+        try
+        {
+            targetPublisher.PublishMessage(message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing to {PublisherType}", targetPublisher.GetType().Name);
+        }
+    }
     
     /// <summary>
     /// Subscribes to transport messages and converts them back to IGameCommand

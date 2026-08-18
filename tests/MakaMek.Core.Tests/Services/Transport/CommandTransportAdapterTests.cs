@@ -1080,4 +1080,63 @@ public class CommandTransportAdapterTests
             Arg.Any<InvalidOperationException>(),
             Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
+
+    [Fact]
+    public void PublishCommand_ToTargetPublisher_SendsOnlyToTarget()
+    {
+        // Arrange
+        SetupAdapter(2);
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+
+        // Act
+        _sut.PublishCommand(command, _mockPublisher1);
+
+        // Assert
+        _mockPublisher1.Received(1).PublishMessage(Arg.Any<TransportMessage>());
+        _mockPublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+    }
+
+    [Fact]
+    public void PublishCommand_ToTargetPublisher_PreservesErrorIsolation()
+    {
+        // Arrange
+        SetupAdapter(2);
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(_ => throw new InvalidOperationException("boom"));
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+
+        // Act - target publisher throws, but the call should not propagate
+        Should.NotThrow(() => _sut.PublishCommand(command, _mockPublisher1));
+    }
+
+    [Fact]
+    public void PublishCommand_ToTargetPublisher_SerializesOnce()
+    {
+        // Arrange
+        SetupAdapter();
+        TransportMessage? capturedMessage = null;
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(x => capturedMessage = x.Arg<TransportMessage>());
+        var command = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        };
+
+        // Act
+        _sut.PublishCommand(command, _mockPublisher1);
+
+        // Assert
+        capturedMessage.ShouldNotBeNull();
+        capturedMessage!.MessageType.ShouldBe(nameof(TurnIncrementedCommand));
+        capturedMessage.SourceId.ShouldBe(command.GameOriginId);
+    }
 }

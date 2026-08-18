@@ -95,7 +95,7 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _hashService,
             _logger);
-        _gameFactory.CreateClientGame(_commandPublisher).Returns(_clientGame);
+        _gameFactory.CreateClientGame(_commandPublisher, Arg.Any<Guid?>()).Returns(_clientGame);
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);

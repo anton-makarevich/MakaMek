@@ -496,7 +496,7 @@ public abstract class BaseGame : IGame
             : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 
-    protected bool ShouldHandleCommand(IGameCommand command)
+    protected virtual bool ShouldHandleCommand(IGameCommand command)
     {
         return command.GameOriginId != Id && command.GameOriginId != Guid.Empty;
     }

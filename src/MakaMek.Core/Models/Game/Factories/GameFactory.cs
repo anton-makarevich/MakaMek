@@ -85,7 +85,7 @@ public class GameFactory : IGameFactory
             logger);
     }
 
-    public ClientGame CreateClientGame(ICommandPublisher commandPublisher)
+    public ClientGame CreateClientGame(ICommandPublisher commandPublisher, Guid? serverGameId = null)
     {
         var logger = _loggerFactory.CreateLogger<ClientGame>();
 
@@ -98,6 +98,7 @@ public class GameFactory : IGameFactory
             _heatEffectsCalculator,
             _battleMapFactory,
             _hashService,
-            logger);
+            logger,
+            serverGameId);
     }
 }

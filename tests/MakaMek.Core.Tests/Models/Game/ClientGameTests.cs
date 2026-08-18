@@ -82,7 +82,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService,
-            _logger, CommandAckTimeout);
+            _logger, null, CommandAckTimeout);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -2988,6 +2988,54 @@ public class ClientGameTests
     }
     
     [Fact]
+    public void TryStandup_ShouldPublishCommand_WithZeroAttempt_WhenUnitNotFound()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var nonExistentUnitId = Guid.NewGuid();
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = nonExistentUnitId,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Walk
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.TryStandupUnit(standupCommand);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd =>
+            cmd.UnitId == nonExistentUnitId));
+    }
+
+    [Fact]
     public void TryStandup_ShouldSendTryStandupCommand_WhenCalled()
     {
         // Arrange
@@ -3299,5 +3347,225 @@ public class ClientGameTests
         // Assert
         mech.Parts[PartLocation.CenterTorso].IsBreached.ShouldBeTrue();
         _sut.CommandLog.ShouldContain(c => c is HullBreachCommand);
+    }
+
+    // --- serverGameId filtering tests ---
+
+    private ClientGame CreateClientGameWithServerGameId(Guid serverGameId)
+    {
+        var mechFactory = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            Substitute.For<ILocalizationService>());
+        return new ClientGame(_rulesProvider,
+            mechFactory,
+            _commandPublisher,
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            _mapFactory,
+            _hashService,
+            _logger,
+            serverGameId,
+            CommandAckTimeout);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreCommand_WhenServerGameIdIsSet_AndOriginDoesNotMatch()
+    {
+        // Arrange
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+        var command = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(), // Different from serverGameId
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act
+        sut.HandleCommand(command);
+
+        // Assert
+        sut.Players.ShouldBeEmpty();
+        sut.CommandLog.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldApplyCommand_WhenServerGameIdIsSet_AndOriginMatches()
+    {
+        // Arrange
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+        var command = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = serverGameId, // Matches serverGameId
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act
+        sut.HandleCommand(command);
+
+        // Assert
+        sut.Players.Count.ShouldBe(1);
+        sut.CommandLog.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldApplyServerOriginCommand_ButIgnoreRawClientCommand()
+    {
+        // Arrange - simulates duplicate delivery: raw client + server rebroadcast
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+        var playerId = Guid.NewGuid();
+        var rawClientCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(), // Raw client origin
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        var serverRebroadcast = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = serverGameId, // Server rebroadcast
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act
+        sut.HandleCommand(rawClientCommand); // Should be ignored
+        sut.HandleCommand(serverRebroadcast); // Should be applied
+
+        // Assert - only one player, only one log entry
+        sut.Players.Count.ShouldBe(1);
+        sut.CommandLog.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldPreserveBaseBehavior_WhenServerGameIdIsNull()
+    {
+        // Arrange - no serverGameId, same as default _sut
+        var command = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(), // Not self-origin, not empty
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act - using _sut (no serverGameId)
+        _sut.HandleCommand(command);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(1);
+        _sut.CommandLog.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task HandleCommand_ShouldCompletePendingCommand_WhenServerRebroadcastsClientCommand()
+    {
+        // Arrange
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+
+        // Publish via the command publisher to register the pending command
+        var pendingTask = sut.JoinGameWithUnits(
+            new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
+            [],
+            []);
+
+        // Wait for the command to be published
+        JoinGameCommand? publishedCommand = null;
+        for (var i = 0; i < 50; i++)
+        {
+            var calls = _commandPublisher.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
+                .ToList();
+            if (calls.Count > 0)
+            {
+                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
+                break;
+            }
+            await Task.Delay(10);
+        }
+        publishedCommand.ShouldNotBeNull();
+
+        // Now simulate the server rebroadcast using the captured idempotency key
+        var serverRebroadcast = new JoinGameCommand
+        {
+            PlayerId = publishedCommand.Value.PlayerId,
+            PlayerName = publishedCommand.Value.PlayerName,
+            GameOriginId = serverGameId,
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = publishedCommand.Value.IdempotencyKey
+        };
+
+        // Act
+        sut.HandleCommand(serverRebroadcast);
+
+        // Assert - pending command should complete successfully
+        var result = await pendingTask;
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task HandleCommand_ShouldCompletePendingOnErrorCommand_WithServerOrigin()
+    {
+        // Arrange
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+
+        // Create a pending command first
+        var pendingTask = sut.JoinGameWithUnits(
+            new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
+            [],
+            []);
+
+        // Wait for the command to be published
+        JoinGameCommand? publishedCommand = null;
+        for (var i = 0; i < 50; i++)
+        {
+            var calls = _commandPublisher.ReceivedCalls()
+                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
+                .ToList();
+            if (calls.Count > 0)
+            {
+                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
+                break;
+            }
+            await Task.Delay(10);
+        }
+        publishedCommand.ShouldNotBeNull();
+
+        var errorCommand = new ErrorCommand
+        {
+            GameOriginId = serverGameId,
+            IdempotencyKey = publishedCommand.Value.IdempotencyKey,
+            ErrorCode = ErrorCode.ValidationFailed
+        };
+
+        // Act - should not throw
+        Should.NotThrow(() => sut.HandleCommand(errorCommand));
+
+        // Assert - pending command should complete with false (error)
+        var result = await pendingTask;
+        result.ShouldBeFalse();
     }
 }

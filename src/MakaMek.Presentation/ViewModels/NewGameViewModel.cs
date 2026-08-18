@@ -82,7 +82,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// <see cref="DecisionEngineProvider"/> for it, and initializes the <see cref="IBotManager"/>.
     /// Any previously created local game is disposed first so the setup is safe to run repeatedly.
     /// </summary>
-    protected void CreateAndInitializeLocalGame()
+    protected void CreateAndInitializeLocalGame(Guid? serverGameId = null, ICommandPublisher? publisherOverride = null)
     {
         if (_localGame != null)
         {
@@ -90,7 +90,8 @@ public abstract class NewGameViewModel : BaseViewModel
             _localGame = null;
         }
 
-        _localGame = _gameFactory.CreateClientGame(_commandPublisher);
+        var publisher = publisherOverride ?? _commandPublisher;
+        _localGame = _gameFactory.CreateClientGame(publisher, serverGameId);
 
         var decisionEngineProvider = new DecisionEngineProvider(_localGame);
         _botManager.Initialize(_localGame, decisionEngineProvider);
