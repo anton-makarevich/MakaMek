@@ -2988,6 +2988,54 @@ public class ClientGameTests
     }
     
     [Fact]
+    public void TryStandup_ShouldPublishCommand_WithZeroAttempt_WhenUnitNotFound()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var nonExistentUnitId = Guid.NewGuid();
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = nonExistentUnitId,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Walk
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.TryStandupUnit(standupCommand);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd =>
+            cmd.UnitId == nonExistentUnitId));
+    }
+
+    [Fact]
     public void TryStandup_ShouldSendTryStandupCommand_WhenCalled()
     {
         // Arrange
