@@ -450,7 +450,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             }
 
             _commandPublisher.Subscribe(HandleServerCommand);
-            CreateAndInitializeLocalGame();
+            CreateAndInitializeLocalGame(_gameConnector.ConnectedHostGameId);
 
             _localGame!.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {

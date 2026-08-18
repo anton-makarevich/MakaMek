@@ -44,6 +44,8 @@ public class GameConnector : IGameConnector
 
     public bool IsConnected { get; private set; }
 
+    public Guid? ConnectedHostGameId { get; private set; }
+
     public RelayClientError? OnlineError { get; private set; }
 
     public async Task ConnectToLan(string serverAddress)
@@ -164,6 +166,7 @@ public class GameConnector : IGameConnector
             _sessionToken = joinResult.SessionToken;
             _deviceSessionId = joinResult.DeviceSessionId;
 
+            ConnectedHostGameId = joinResult.HostGameId;
             IsConnected = true;
             _logger.LogInformation(
                 "Joined relay room {RoomCode} connected to host game {HostGameId}",
@@ -277,6 +280,7 @@ public class GameConnector : IGameConnector
             _logger.LogWarning(ex, "Failed to clear publishers during disconnect");
         }
 
+        ConnectedHostGameId = null;
         IsConnected = false;
     }
 
@@ -285,6 +289,7 @@ public class GameConnector : IGameConnector
         if (_isDisposed) return;
         
         IsConnected = false;
+        ConnectedHostGameId = null;
         _relayPublisher = null;
         _roomCode = null;
         _sessionToken = null;

@@ -220,7 +220,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         if (_localGame != null)
             return;
 
-        CreateAndInitializeLocalGame();
+        var rxPublisher = _commandPublisher.Adapter.TransportPublishers
+            .FirstOrDefault(t => t is Sanet.Transport.Rx.RxTransportPublisher);
+        var localPublisher = rxPublisher != null && _commandPublisher is CommandPublisher shared
+            ? new LocalCommandPublisher(shared, rxPublisher)
+            : null;
+
+        CreateAndInitializeLocalGame(_gameManager.ServerGameId, localPublisher);
     }
 
     // Implementation of the abstract method from the base class

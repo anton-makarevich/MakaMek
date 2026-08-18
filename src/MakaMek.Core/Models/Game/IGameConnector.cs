@@ -41,6 +41,12 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
     bool IsConnected { get; }
 
     /// <summary>
+    /// Gets the game id of the authoritative server host after a successful join.
+    /// Null when not connected or when connected via LAN.
+    /// </summary>
+    Guid? ConnectedHostGameId { get; }
+
+    /// <summary>
     /// Gets the last error reported by the online join flow, if any.
     /// </summary>
     RelayClientError? OnlineError { get; }

@@ -22,6 +22,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
+    private readonly Guid? _serverGameId;
     private record PendingCommand(TaskCompletionSource<bool> Tcs, string CommandType);
 
     private readonly ConcurrentDictionary<Guid, PendingCommand> _pendingCommands = new();
@@ -39,17 +40,29 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IBattleMapFactory mapFactory,
         IHashService hashService,
         ILogger<ClientGame> logger,
+        Guid? serverGameId = null,
         int ackTimeoutMilliseconds = 10000)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;
+        _serverGameId = serverGameId;
         _ackTimeout = TimeSpan.FromMilliseconds(ackTimeoutMilliseconds);
     }
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers.Keys.ToList();
 
     public bool IsDisposed => _isDisposed;
+
+    protected override bool ShouldHandleCommand(IGameCommand command)
+    {
+        if (!base.ShouldHandleCommand(command)) return false;
+
+        // When connected to a server, only process commands that the server validated and rebroadcast.
+        // This prevents raw client commands (from other clients) from being double-applied:
+        // once via the transport fan-out and once via the server rebroadcast.
+        return !_serverGameId.HasValue || command.GameOriginId == _serverGameId.Value;
+    }
 
     public override void HandleCommand(IGameCommand command)
     {

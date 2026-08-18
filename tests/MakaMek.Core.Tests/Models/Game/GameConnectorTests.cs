@@ -692,6 +692,48 @@ public class GameConnectorTests : IDisposable
             "ABCDEF", "session-token", Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task JoinOnlineAsync_WhenJoinSucceeds_SetsConnectedHostGameId()
+    {
+        // Arrange
+        var deviceSessionId = Guid.NewGuid();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var hostGameId = Guid.NewGuid();
+        _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+
+        // Act
+        await _sut.JoinOnline(roomCode, sessionToken: null);
+
+        // Assert
+        _sut.ConnectedHostGameId.ShouldBe(hostGameId);
+        _sut.IsConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_ClearsConnectedHostGameId()
+    {
+        // Arrange
+        await JoinOnlineAsync(_sut);
+        _sut.ConnectedHostGameId.ShouldNotBeNull();
+
+        // Act
+        await _sut.Disconnect();
+
+        // Assert
+        _sut.ConnectedHostGameId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ConnectedHostGameId_IsNull_ByDefault()
+    {
+        _sut.ConnectedHostGameId.ShouldBeNull();
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
