@@ -532,7 +532,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // LAN hosting has no relay room to lock.
         if (IsOnlineMode)
         {
-            await _gameManager.LockOnlineRoom();
+            var lockSucceeded = await _gameManager.LockOnlineRoom();
+            if (!lockSucceeded)
+            {
+                HostingError = _gameManager.OnlineError?.Message
+                    ?? _localizationService.GetString("Hosting_Failed");
+                return;
+            }
         }
 
         // Set BattleMap on GameManager/ServerGame (propagates to clients via the command system)

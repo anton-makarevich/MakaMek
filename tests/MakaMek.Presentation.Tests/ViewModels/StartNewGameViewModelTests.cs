@@ -177,18 +177,20 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WhenOnlineMode_LocksOnlineRoomBeforeSettingBattleMap()
     {
+        var invokedTcs = new TaskCompletionSource<bool>();
         var lockTcs = new TaskCompletionSource<bool>();
         _gameManager.LockOnlineRoom(Arg.Any<CancellationToken>()).Returns(lockTcs.Task);
+        _gameManager.When(x => x.LockOnlineRoom(Arg.Any<CancellationToken>())).Do(_ => invokedTcs.TrySetResult(true));
         await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
         _sut.IsOnlineMode = true;
 
         var commandTask = ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
-        
-        // Assert SetBattleMap has not been called while lock task is incomplete
-        await Task.Delay(50);
+
+        // Wait until LockOnlineRoom is actually invoked, then assert SetBattleMap has not been called
+        await invokedTcs.Task;
         _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
-        
+
         // Complete the lock task
         lockTcs.SetResult(true);
         await commandTask;
@@ -196,6 +198,28 @@ public class StartNewGameViewModelTests
         await _gameManager.Received(1).LockOnlineRoom(Arg.Any<CancellationToken>());
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
         _gameManager.Received(1).TryStartGame();
+    }
+
+    [Fact]
+    public async Task StartGameCommand_WhenOnlineLockFails_DoesNotSetBattleMapOrNavigate()
+    {
+        var lockTcs = new TaskCompletionSource<bool>();
+        _gameManager.LockOnlineRoom(Arg.Any<CancellationToken>()).Returns(lockTcs.Task);
+        _gameManager.OnlineError.Returns((RelayClientError?)null);
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
+        _sut.IsOnlineMode = true;
+
+        var commandTask = ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
+
+        lockTcs.SetResult(false);
+        await commandTask;
+
+        await _gameManager.Received(1).LockOnlineRoom(Arg.Any<CancellationToken>());
+        _gameManager.DidNotReceive().SetBattleMap(Arg.Any<BattleMap>());
+        _gameManager.DidNotReceive().TryStartGame();
+        await _navigationService.DidNotReceive().NavigateToViewModelAsync(Arg.Any<BattleMapViewModel>());
+        _sut.HostingError.ShouldNotBeNull();
     }
 
     [Fact]
