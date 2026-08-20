@@ -8,7 +8,7 @@ on:
 
 jobs:
   opencode:
-    timeout-minutes: 30
+    timeout-minutes: 60
     if: |
       (contains(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, '/opencode')) &&
