@@ -47,6 +47,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
+    private bool _isMultiplayerEnabled;
 
     public StartNewGameViewModel(
         IGameManager gameManager,
@@ -84,6 +85,34 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
+        EnableMultiplayerCommand = new AsyncCommand(ExecuteEnableMultiplayer, _ => !IsMultiplayerEnabled && !HasJoinedPlayers);
+    }
+
+    /// <summary>
+    /// Gets whether multiplayer networking is currently enabled.
+    /// </summary>
+    public bool IsMultiplayerEnabled
+    {
+        get => _isMultiplayerEnabled;
+        private set
+        {
+            if (field == value) return;
+            field = value;
+            NotifyPropertyChanged();
+            (EnableMultiplayerCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(HostingStatusText));
+        }
+    }
+
+    /// <summary>
+    /// Command to explicitly enable multiplayer for the currently selected host mode.
+    /// </summary>
+    public ICommand EnableMultiplayerCommand { get; }
+
+    private async Task ExecuteEnableMultiplayer()
+    {
+        IsMultiplayerEnabled = true;
+        await CancelAndRestartServer();
     }
 
     private void OnMapConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -342,9 +371,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _hostMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
-        ClearHostingState();
-        CancelAndRestartServer().SafeFireAndForget(
-            ex => _logger.LogError(ex, "Error restarting server after host mode change"));
     }
 
     /// <summary>
@@ -407,8 +433,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                 return _localizationService.GetString("Hosting_Starting");
             if (HostingError != null)
                 return HostingError;
-            if (RoomCode != null)
+            if (IsMultiplayerEnabled && RoomCode != null)
                 return string.Format(_localizationService.GetString("Hosting_RoomReady"), RoomCode);
+            if (IsMultiplayerEnabled && IsLanMode && _gameManager.IsLanServerRunning)
+                return _localizationService.GetString("Hosting_LanEnabled");
+            if (IsMultiplayerEnabled)
+                return _localizationService.GetString("Hosting_Starting");
             return string.Empty;
         }
     }
@@ -620,6 +650,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void DetachHandlers()
     {
         _initCts?.Cancel();
+        if (IsMultiplayerEnabled)
+        {
+            _gameManager.StopHosting().SafeFireAndForget(
+                ex => _logger.LogError(ex, "Error stopping hosting on detach"));
+        }
         UnsubscribeFromMapChanges();
         base.DetachHandlers();
         _commandPublisher.Unsubscribe(HandleServerCommand);
@@ -639,19 +674,20 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         base.AttachHandlers();
         _initCts?.Cancel();
         _initCts?.Dispose();
-        _initCts = new CancellationTokenSource();
-        InitializeLobbyAndSubscribe(_initCts.Token).SafeFireAndForget(
-            ex => _logger.LogError(ex, "Error initializing lobby"));
+        _ = _gameManager.InitializeLocalLobby();
+        SubscribeAndCreateLocalGame();
     }
 
     private void ResetHostingState()
     {
-        if (_hostMode != HostMode.Lan)
+        var defaultMode = CanStartLanServer ? HostMode.Lan : HostMode.Online;
+        if (_hostMode != defaultMode)
         {
-            _hostMode = HostMode.Lan;
+            _hostMode = defaultMode;
             NotifyPropertyChanged(nameof(IsLanMode));
             NotifyPropertyChanged(nameof(IsOnlineMode));
         }
+        IsMultiplayerEnabled = false;
         ClearHostingState();
     }
 }

@@ -99,6 +99,12 @@ public class GameManager : IGameManager
         _commandLogger = null; 
     }
 
+    public async Task InitializeLocalLobby()
+    {
+        await ResetForNewGame();
+        CreateServerGameAndSetupLogging();
+    }
+
     public async Task InitializeLobby()
     {
         // Reset before initializing new lobby
@@ -369,6 +375,30 @@ public class GameManager : IGameManager
             _logger.LogWarning(ex, "Failed to lock relay room {RoomCode}", RoomCode);
             return false;
         }
+    }
+
+    public async Task StopHosting()
+    {
+        try
+        {
+            await LockOnlineRoom();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to lock online room during StopHosting");
+        }
+
+        try
+        {
+            await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to remove online publisher during StopHosting");
+        }
+        _onlineRelayPublisher = null;
+
+        await RemoveLanPublisherAndStopHost();
     }
 
     private async Task LockRelayRoomAndCleanup(

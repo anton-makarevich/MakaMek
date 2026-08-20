@@ -20,6 +20,7 @@
                 <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
                              IsChecked="{Binding IsLanMode, Mode=TwoWay}"
                              IsEnabled="{Binding CanChangeHostMode}"
+                             IsVisible="{Binding CanStartLanServer}"
                              GroupName="HostMode"/>
                 <RadioButton Content="{extensions:Localize 'Network_HostModeOnline'}"
                              IsChecked="{Binding IsOnlineMode, Mode=TwoWay}"
@@ -64,6 +65,11 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
+
+        <Button Command="{Binding EnableMultiplayerCommand}"
+                Content="{extensions:Localize 'Network_EnableMultiplayer'}"
+                IsVisible="{Binding !IsMultiplayerEnabled}"
+                Classes="primary"/>
 
         <TextBlock Text="{Binding HostingStatusText}"
                    Classes="bodySmall"

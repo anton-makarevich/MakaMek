@@ -6,6 +6,12 @@ namespace Sanet.MakaMek.Core.Models.Game;
 public interface IGameManager : IDisposable, IAsyncDisposable
 { 
     /// <summary>
+    /// Initializes a local-only lobby (creates the ServerGame and logging)
+    /// without starting any network transport.
+    /// </summary>
+    Task InitializeLocalLobby();
+
+    /// <summary>
     /// Initializes the lobby asynchronously
     /// </summary>
     Task InitializeLobby();
@@ -72,4 +78,11 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// <param name="cancellationToken">Cancellation token for the lock call.</param>
     /// <returns>True if lock succeeded or no room was active; false if lock failed or was cancelled.</returns>
     Task<bool> LockOnlineRoom(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops any running network transport (online relay and/or LAN host) without
+    /// disposing the local ServerGame. Safe to call multiple times and when nothing
+    /// is running.
+    /// </summary>
+    Task StopHosting();
 }

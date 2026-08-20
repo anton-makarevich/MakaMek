@@ -457,7 +457,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
-    public async Task SwitchingHostMode_ClearsHostingState()
+    public async Task SwitchingHostMode_DoesNotClearRoomCode()
     {
         var gameManager = CreateOnlineGameManager();
         var commandPublisher = Substitute.For<ICommandPublisher>();
@@ -469,7 +469,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         sut.IsLanMode = true;
 
-        sut.RoomCode.ShouldBeNull();
+        sut.RoomCode.ShouldBe("ABCDEF");
         sut.HostingError.ShouldBeNull();
         sut.IsOnlineMode.ShouldBeFalse();
         sut.IsLanMode.ShouldBeTrue();
@@ -850,7 +850,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
-    public async Task AttachHandlers_ResetsHostModeToLan_AndClearsHostingState()
+    public async Task AttachHandlers_ResetsHostModeToOnline_WhenCanStartLanServerIsFalse_AndClearsHostingState()
     {
         var gameManager = Substitute.For<IGameManager>();
         gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
@@ -866,8 +866,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         sut.AttachHandlers();
 
-        sut.IsLanMode.ShouldBeTrue();
-        sut.IsOnlineMode.ShouldBeFalse();
+        sut.IsOnlineMode.ShouldBeTrue();
+        sut.IsLanMode.ShouldBeFalse();
         sut.RoomCode.ShouldBeNull();
         sut.HostingError.ShouldBeNull();
     }
