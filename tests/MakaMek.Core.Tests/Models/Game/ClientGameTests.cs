@@ -3568,4 +3568,43 @@ public class ClientGameTests
         var result = await pendingTask;
         result.ShouldBeFalse();
     }
+
+    [Fact]
+    public void ServerGameId_ShouldReturnConstructorValue()
+    {
+        var serverGameId = Guid.NewGuid();
+        using var sut = CreateClientGameWithServerGameId(serverGameId);
+
+        sut.ServerGameId.ShouldBe(serverGameId);
+    }
+
+    [Fact]
+    public void ServerGameId_ShouldBeNull_WhenNoServerGameIdIsProvided()
+    {
+        _sut.ServerGameId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SetPlayerReady_WhenPlayerIsUnknown_ShouldLogValidationWarning()
+    {
+        // Arrange
+        var readyCommand = new UpdatePlayerStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(), // Player not in game
+            PlayerStatus = PlayerStatus.Ready
+        };
+
+        // Act
+        var result = await _sut.SetPlayerReady(readyCommand);
+
+        // Assert
+        result.ShouldBeFalse();
+        _logger.Received().Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state!.ToString()!.Contains("rejected by validation")),
+            Arg.Is<Exception?>(e => e == null),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
 }

@@ -44,6 +44,7 @@ public class StartNewGameViewModelTests
     private readonly IGameManager _gameManager = Substitute.For<IGameManager>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly ClientGame _clientGame;
+    private readonly ClientGame _serverBoundClientGame;
     private readonly ILogger<ClientGame> _logger = Substitute.For<ILogger<ClientGame>>();
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
@@ -95,7 +96,11 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _hashService,
             _logger);
-        _gameFactory.CreateClientGame(_commandPublisher, Arg.Any<Guid?>()).Returns(_clientGame);
+        // Bind the factory to a real client game bound to the current server game id,
+        // mirroring production behavior (the view model rebinds its local game
+        // whenever the server game id changes).
+        _serverBoundClientGame = CreateRealClientGame(_commandPublisher, _serverGameId);
+        _gameFactory.CreateClientGame(_commandPublisher, _serverGameId).Returns(_serverBoundClientGame);
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
@@ -150,7 +155,7 @@ public class StartNewGameViewModelTests
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
-        _battleMapViewModel.Game.ShouldBe(_clientGame);
+        _battleMapViewModel.Game.ShouldBe(_sut.LocalGame);
     }
     
     [Fact]
@@ -1668,26 +1673,28 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         // Set player status to Joined so they can set ready
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
-        // Add a player to the client game
+        // Add a player to the client game (echo must carry the server game id
+        // so the bound client game accepts it)
         _sut.LocalGame.ShouldNotBeNull();
+        var localGameId = _sut.LocalGame!.Id;
         _sut.LocalGame?.HandleCommand(new JoinGameCommand
         {
             PlayerId = localPlayerVm.Player.Id,
             PlayerName = localPlayerVm.Player.Name,
             Units = [],
             Tint = localPlayerVm.Player.Tint,
-            GameOriginId = Guid.NewGuid(),
+            GameOriginId = _serverGameId,
             PilotAssignments = []
         });
 
         // Act
         localPlayerVm.SetReadyCommand.Execute(null);
-        
+
         // Assert - verify the command was published with correct parameters
         _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd =>
             cmd.PlayerId == localPlayerVm.Player.Id &&
             cmd.PlayerStatus == PlayerStatus.Ready &&
-            cmd.GameOriginId == _clientGame.Id &&
+            cmd.GameOriginId == localGameId &&
             cmd.IdempotencyKey != null
         ));
     }
@@ -2264,5 +2271,60 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
                 throw new TimeoutException("Condition not met within timeout");
             await Task.Delay(intervalMs);
         }
+    }
+
+    private ClientGame CreateRealClientGame(ICommandPublisher publisher, Guid? serverGameId) =>
+        new(_rulesProvider,
+            _mechFactory,
+            publisher,
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            _mapFactory,
+            _hashService,
+            _logger,
+            serverGameId);
+
+    [Fact]
+    public async Task EnableMultiplayer_WhenServerGameIdChanged_RecreatesLocalGameBoundToNewServerId()
+    {
+        // Arrange - the initial local lobby binds the local game to server game A
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        var initialGame = _sut.LocalGame;
+        initialGame.ShouldNotBeNull();
+        initialGame!.ServerGameId.ShouldBe(_serverGameId);
+
+        // Enabling online hosting restarts the server game under a new id (B)
+        var serverGameBId = Guid.NewGuid();
+        var reboundGame = CreateRealClientGame(_commandPublisher, serverGameBId);
+        _gameFactory.CreateClientGame(_commandPublisher, serverGameBId).Returns(reboundGame);
+        _gameManager.ServerGameId.Returns(serverGameBId);
+        _gameManager.RoomCode.Returns("ABCDEF");
+        _gameManager.OnlineError.Returns((RelayClientError?)null);
+        _sut.IsOnlineMode = true;
+
+        // Act
+        await ((IAsyncCommand)_sut.EnableMultiplayerCommand).ExecuteAsync();
+
+        // Assert - the local game must be recreated and bound to the new server game;
+        // keeping the stale binding would make ShouldHandleCommand drop every
+        // command from the real server (silently breaking join acks and SetReady).
+        _sut.IsMultiplayerEnabled.ShouldBeTrue();
+        _sut.LocalGame.ShouldBe(reboundGame);
+    }
+
+    [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenServerGameIdUnchanged_ReusesLocalGame()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        var initialGame = _sut.LocalGame;
+
+        // Act - re-run initialization while the server game id is unchanged
+        await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        // Assert
+        _sut.LocalGame.ShouldBe(initialGame);
     }
 }
