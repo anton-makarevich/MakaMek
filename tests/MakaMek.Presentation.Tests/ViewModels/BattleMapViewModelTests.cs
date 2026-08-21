@@ -477,6 +477,26 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_RestoresHexConfigurationPropertyChangedSubscription()
+    {
+        // Arrange
+        var propertyChangedEvents = new List<string>();
+        _sut.PropertyChanged += (_, e) => propertyChangedEvents.Add(e.PropertyName ?? string.Empty);
+
+        // Pre-assert - detached handler does not notify about HexConfiguration changes
+        _sut.DetachHandlers();
+        _sut.HexConfiguration.ShowOutline = false;
+        propertyChangedEvents.ShouldNotContain(nameof(_sut.HexConfiguration));
+
+        // Act
+        _sut.AttachHandlers();
+
+        // Assert - handler restored after re-attachment
+        _sut.HexConfiguration.ShowHighlightLabels = true;
+        propertyChangedEvents.ShouldContain(nameof(_sut.HexConfiguration));
+    }
+
+    [Fact]
     public void TerrainAssetService_ShouldBeInitialized_FromConstructor()
     {
         // Arrange & Act - _sut is already constructed in the test setup
