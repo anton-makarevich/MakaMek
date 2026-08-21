@@ -47,6 +47,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     private JoinMode _joinMode = JoinMode.Lan;
     private CancellationTokenSource? _activeJoinCts;
     private int _clipboardReadGeneration;
+    private bool _hasNavigatedToBattleMap;
 
     private const string RoomCodeFormat = "^[A-HJ-NP-Z2-9]{6}$";
 
@@ -232,11 +233,17 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
                 // The game start signal: navigate to the battle map once the phase leaves Start
                 if (phaseCommand.Phase == PhaseNames.Start) break;
 
+                // Navigate only once per join session; re-navigating on every phase change
+                // recreates the view, which detaches the BattleMapViewModel's subscriptions
+                // (command log, active player) without ever restoring them.
+                if (_hasNavigatedToBattleMap) break;
+
                 var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
                 if (battleMapViewModel == null)
                 {
                     throw new Exception("BattleMapViewModel is not registered");
                 }
+                _hasNavigatedToBattleMap = true;
                 battleMapViewModel.Game = _localGame;
 
                 await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
@@ -427,6 +434,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
         IsJoining = true;
         JoinError = null;
+        _hasNavigatedToBattleMap = false;
 
         CancellationTokenSource? joinCts = null;
         try
@@ -504,6 +512,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
         InvalidatePendingClipboardRead();
 
+        _hasNavigatedToBattleMap = false;
+
         try
         {
             await _gameConnector.ConnectToLan(ServerAddress);
@@ -539,6 +549,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         }
         _commandPublisher.Unsubscribe(HandleServerCommand);
         await _gameConnector.Disconnect();
+        _hasNavigatedToBattleMap = false;
         RefreshConnectionState();
     }
 
