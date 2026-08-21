@@ -101,8 +101,28 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             (EnableMultiplayerCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(HostingStatusText));
             NotifyPropertyChanged(nameof(CanChangeHostMode));
+            NotifyPropertyChanged(nameof(IsLanDetailsVisible));
         }
     }
+
+    /// <summary>
+    /// Gets whether the host mode selector should be shown. Only shown when both
+    /// hosting options (LAN and online) are available; platforms without LAN
+    /// support skip straight to the online flow.
+    /// </summary>
+    public bool IsHostModeSelectorVisible => CanStartLanServer;
+
+    /// <summary>
+    /// Gets whether the LAN connection details (server address) should be shown.
+    /// Only visible once LAN hosting is actually connected and running.
+    /// </summary>
+    public bool IsLanDetailsVisible => IsMultiplayerEnabled && IsLanMode;
+
+    /// <summary>
+    /// Gets whether the online connection details (hub, room code) should be shown.
+    /// Only visible once a room code has been received from the relay.
+    /// </summary>
+    public bool IsOnlineDetailsVisible => IsOnlineMode && RoomCode != null;
 
     /// <summary>
     /// Command to explicitly enable multiplayer for the currently selected host mode.
@@ -376,6 +396,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _hostMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
+        NotifyPropertyChanged(nameof(IsLanDetailsVisible));
+        NotifyPropertyChanged(nameof(IsOnlineDetailsVisible));
         // Stale hosting display state from the previous mode must not leak into the new one
         ClearHostingState();
     }
@@ -411,6 +433,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             if (field == value) return; // Reject no-op when unchanged
             field = value;
             NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(IsOnlineDetailsVisible));
             (CopyRoomCodeCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(HostingStatusText));
         }
@@ -701,6 +724,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private void RestartLocalLobbyInitialization()
     {
+        NotifyPropertyChanged(nameof(CanStartLanServer));
+        NotifyPropertyChanged(nameof(IsHostModeSelectorVisible));
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = new CancellationTokenSource();

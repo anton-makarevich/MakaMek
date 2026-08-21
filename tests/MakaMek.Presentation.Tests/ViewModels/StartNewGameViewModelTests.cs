@@ -1398,6 +1398,123 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         sut.CopyRoomCodeStatusText.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void IsHostModeSelectorVisible_MatchesCanStartLanServer(bool canStartLanServer, bool expected)
+    {
+        // Arrange - selector must only be shown when both hosting options exist
+        _gameManager.CanStartLanServer.Returns(canStartLanServer);
+        var sut = CreateSut();
+
+        // Assert
+        sut.IsHostModeSelectorVisible.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsLanDetailsVisible_BeforeMultiplayerEnabled_IsFalse()
+    {
+        // Arrange - LAN is the default mode on desktop, but nothing is connected yet
+        var sut = CreateSut();
+        sut.IsLanMode.ShouldBeTrue();
+
+        // Assert
+        sut.IsLanDetailsVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task IsLanDetailsVisible_AfterMultiplayerEnabled_IsTrueAndNotifies()
+    {
+        // Arrange
+        var sut = CreateSut();
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        await sut.CancelAndRestartServer();
+
+        // Assert - details appear only once LAN hosting is connected
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.IsLanDetailsVisible.ShouldBeTrue();
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.IsLanDetailsVisible));
+    }
+
+    [Fact]
+    public async Task IsLanDetailsVisible_WhenOnlineMode_IsFalseEvenAfterMultiplayerEnabled()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        // Act
+        await sut.CancelAndRestartServer();
+
+        // Assert
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.IsOnlineDetailsVisible.ShouldBeTrue();
+        sut.IsLanDetailsVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsOnlineDetailsVisible_BeforeRoomCodeArrives_IsFalse()
+    {
+        // Arrange - online mode selected but no room code received yet
+        var gameManager = CreateOnlineGameManager();
+        var sut = CreateSut(gameManager);
+        sut.IsOnlineMode = true;
+
+        // Assert
+        sut.IsOnlineDetailsVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task IsOnlineDetailsVisible_OnceRoomCodeArrives_IsTrueAndNotifies()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        await sut.CancelAndRestartServer();
+
+        // Assert - details (with copy option) appear as soon as the code arrives
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.IsOnlineDetailsVisible.ShouldBeTrue();
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.IsOnlineDetailsVisible));
+    }
+
+    [Fact]
+    public async Task PlatformWithoutLan_ShowsOnlyEnableButtonUntilRoomCodeArrives()
+    {
+        // Arrange - mobile/WASM-like platform without LAN support
+        var gameManager = CreateOnlineGameManager();
+        gameManager.CanStartLanServer.Returns(false);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+
+        // Assert - initially only the enable-multiplayer button area is visible:
+        // no host mode selector and no connection details
+        sut.IsHostModeSelectorVisible.ShouldBeFalse();
+        sut.IsOnlineDetailsVisible.ShouldBeFalse();
+
+        // Act
+        await sut.CancelAndRestartServer();
+
+        // Assert - the details panel with copy option appears once the room code arrives
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.IsOnlineDetailsVisible.ShouldBeTrue();
+    }
+
     private StartNewGameViewModel CreateSut(
         IGameManager? gameManager = null,
         ICommandPublisher? commandPublisher = null) => new(

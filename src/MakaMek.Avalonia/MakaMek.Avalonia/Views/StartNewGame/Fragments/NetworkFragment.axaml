@@ -14,7 +14,7 @@
             <TextBlock Text="{extensions:Localize 'Network_Multiplayer'}" Classes="label"/>
         </StackPanel>
 
-        <StackPanel Classes="formGroup">
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsHostModeSelectorVisible}">
             <TextBlock Text="{extensions:Localize 'Network_HostMode'}" Classes="label"/>
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
@@ -29,7 +29,7 @@
             </StackPanel>
         </StackPanel>
 
-        <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsLanDetailsVisible}">
             <TextBlock Text="{extensions:Localize 'Network_ServerAddress'}" Classes="label"/>
             <Border Classes="card" Background="{StaticResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
                 <SelectableTextBlock Text="{Binding ServerIpAddress}"/>
@@ -39,7 +39,7 @@
                        FontStyle="Italic"/>
         </StackPanel>
 
-        <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineDetailsVisible}">
             <StackPanel Orientation="Horizontal" Spacing="8"
                         DataContext="{Binding ActiveHub}">
                 <TextBlock x:DataType="wrappers:HubEntryViewModel"
