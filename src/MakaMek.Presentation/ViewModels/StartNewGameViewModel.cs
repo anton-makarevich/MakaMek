@@ -537,7 +537,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     /// </summary>
     public async Task CancelAndRestartServer()
     {
-        if (HasJoinedPlayers) return;
+        if (HasJoinedPlayers || _isDisposed) return;
 
         if (_initCts is not null)
         {
@@ -554,9 +554,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             {
                 await InitializeLobbyAndSubscribe(_initCts.Token);
                 // Multiplayer is only considered enabled once hosting completed
-                // without errors; a failed or cancelled initialization keeps the
-                // enable command available for retry.
-                IsMultiplayerEnabled = HostingError == null;
+                // without errors, cancellation, or disposal; a failed or cancelled
+                // initialization keeps the enable command available for retry.
+                IsMultiplayerEnabled = HostingError == null
+                    && !_initCts.IsCancellationRequested
+                    && !_isDisposed;
             }
             catch (OperationCanceledException)
             {

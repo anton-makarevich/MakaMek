@@ -124,8 +124,11 @@ public class GameManager : IGameManager
 
     public async Task InitializeLobby(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Reset before initializing new lobby
         await ResetForNewGame();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var transportAdapter = _commandPublisher.Adapter;
         // Start the network host if supported and not already running
@@ -148,6 +151,8 @@ public class GameManager : IGameManager
                 _lanPublisher = _networkHostService.Publisher;
             }
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         CreateServerGameAndSetupLogging();
     }
