@@ -101,6 +101,17 @@ public class GameManager : IGameManager
 
     public async Task InitializeLocalLobby()
     {
+        // Lock an active relay room before resetting, so the room stops accepting
+        // joins. On failure keep the publisher and session state intact so a
+        // subsequent cleanup attempt can retry the lock.
+        if (!await LockOnlineRoom())
+        {
+            _logger.LogWarning(
+                "Deferred local lobby initialization: relay room {RoomCode} could not be locked",
+                RoomCode);
+            return;
+        }
+
         await ResetForNewGame();
         CreateServerGameAndSetupLogging();
     }
@@ -379,13 +390,25 @@ public class GameManager : IGameManager
 
     public async Task StopHosting()
     {
+        bool lockSucceeded;
         try
         {
-            await LockOnlineRoom();
+            lockSucceeded = await LockOnlineRoom();
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to lock online room during StopHosting");
+            lockSucceeded = false;
+        }
+
+        if (!lockSucceeded)
+        {
+            // Keep the retryable relay state (publisher, room code, session token)
+            // intact so a subsequent cleanup attempt can retry locking the room.
+            _logger.LogWarning(
+                "Deferred hosting shutdown: relay room {RoomCode} could not be locked",
+                RoomCode);
+            return;
         }
 
         try

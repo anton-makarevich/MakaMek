@@ -583,6 +583,89 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task StopHosting_WhenRelayLockFails_RetainsRetryableStateAndRetriesOnNextStop()
+    {
+        // Arrange
+        var (sut, relayRoomClient, publisher) = await CreateOnlineHostWithLockResult(
+            RoomOperationResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "Lock failed")));
+
+        // Act
+        await sut.StopHosting();
+
+        // Assert - state is retained so the lock can be retried
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+
+        // Arrange - next lock attempt succeeds
+        relayRoomClient.Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+
+        // Act
+        await sut.StopHosting();
+
+        // Assert - cleanup retried the lock and completed the shutdown
+        await relayRoomClient.Received(2).Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>());
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+    }
+
+    [Fact]
+    public async Task InitializeLocalLobby_WhenRelayLockFails_PreservesRelayStateAndRetriesOnNextCall()
+    {
+        // Arrange
+        var (sut, relayRoomClient, publisher) = await CreateOnlineHostWithLockResult(
+            RoomOperationResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "Lock failed")));
+        _gameFactory.CreateServerGame(_commandPublisher).Returns(_serverGame);
+
+        // Act
+        await sut.InitializeLocalLobby();
+
+        // Assert - relay state preserved, no reset performed
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher); // only the one from InitializeLobbyOnline
+
+        // Arrange - next lock attempt succeeds
+        relayRoomClient.Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+
+        // Act
+        await sut.InitializeLocalLobby();
+
+        // Assert - retry locked the room and completed the local lobby reset
+        await relayRoomClient.Received(2).Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>());
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        sut.ServerGameId.ShouldNotBeNull();
+    }
+
+    private async Task<(GameManager Sut, IRelayRoomClient RelayRoomClient, ITransportPublisher Publisher)> CreateOnlineHostWithLockResult(
+        RoomOperationResult lockResult)
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(lockResult);
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline();
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        return (sut, relayRoomClient, publisher);
+    }
+
+    [Fact]
     public async Task StopHosting_CalledTwice_DoesNotThrow()
     {
         // Arrange

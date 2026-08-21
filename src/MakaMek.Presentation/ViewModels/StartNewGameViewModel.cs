@@ -96,11 +96,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         get => _isMultiplayerEnabled;
         private set
         {
-            if (field == value) return;
-            field = value;
+            if (_isMultiplayerEnabled == value) return;
+            _isMultiplayerEnabled = value;
             NotifyPropertyChanged();
             (EnableMultiplayerCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(HostingStatusText));
+            NotifyPropertyChanged(nameof(CanChangeHostMode));
         }
     }
 
@@ -111,7 +112,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private async Task ExecuteEnableMultiplayer()
     {
-        IsMultiplayerEnabled = true;
         await CancelAndRestartServer();
     }
 
@@ -250,7 +250,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             return;
 
         var rxPublisher = _commandPublisher.Adapter.TransportPublishers
-            .FirstOrDefault(t => t is Sanet.Transport.Rx.RxTransportPublisher);
+            .FirstOrDefault(t => t is Transport.Rx.RxTransportPublisher);
         var localPublisher = rxPublisher != null && _commandPublisher is CommandPublisher shared
             ? new LocalCommandPublisher(shared, rxPublisher)
             : null;
@@ -366,7 +366,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private void SetHostMode(HostMode mode)
     {
         if (_hostMode == mode) return; // Reject no-op when unchanged
-        if (HasJoinedPlayers) return; // Reject mode change while players are connected
+        if (!CanChangeHostMode) return; // Reject while players are connected or hosting is active
 
         _hostMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
@@ -376,8 +376,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     /// <summary>
     /// Gets whether the host mode can still be changed. Once any player has joined,
     /// the lobby must not be re-created because it would disconnect the joined players.
+    /// The mode is also locked while multiplayer hosting is active, since switching
+    /// would tear down the live transport.
     /// </summary>
-    public bool CanChangeHostMode => !HasJoinedPlayers;
+    public bool CanChangeHostMode => !HasJoinedPlayers && !IsMultiplayerEnabled;
 
     private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
 
@@ -521,10 +523,20 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             try
             {
                 await InitializeLobbyAndSubscribe(_initCts.Token);
+                // Multiplayer is only considered enabled once hosting completed
+                // without errors; a failed or cancelled initialization keeps the
+                // enable command available for retry.
+                IsMultiplayerEnabled = HostingError == null;
             }
             catch (OperationCanceledException)
             {
                 _logger.LogDebug("Lobby initialization cancelled by superseded restart or detach/dispose");
+                IsMultiplayerEnabled = false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing lobby during restart");
+                IsMultiplayerEnabled = false;
             }
         }
         finally
@@ -640,6 +652,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _isDisposed = true;
         _initCts?.Cancel();
         _initCts?.Dispose();
+        _initCts = null;
         _commandPublisher.Unsubscribe(HandleServerCommand);
         UnsubscribeFromMapChanges();
         MapConfig.Dispose();
@@ -650,6 +663,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void DetachHandlers()
     {
         _initCts?.Cancel();
+        _initCts?.Dispose();
+        _initCts = null;
         if (IsMultiplayerEnabled)
         {
             _gameManager.StopHosting().SafeFireAndForget(
@@ -672,9 +687,28 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
         ResetHostingState();
         base.AttachHandlers();
+        RestartLocalLobbyInitialization();
+    }
+
+    private void RestartLocalLobbyInitialization()
+    {
         _initCts?.Cancel();
         _initCts?.Dispose();
-        _ = _gameManager.InitializeLocalLobby();
+        _initCts = new CancellationTokenSource();
+        var cancellationToken = _initCts.Token;
+        InitializeLocalLobbyAndSubscribe(cancellationToken).SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error initializing local lobby"));
+    }
+
+    private async Task InitializeLocalLobbyAndSubscribe(CancellationToken cancellationToken)
+    {
+        // The local game must only be created once the manager has finished
+        // resetting and created the new server game, so it binds to the correct
+        // server game id.
+        await _gameManager.InitializeLocalLobby();
+        if (cancellationToken.IsCancellationRequested || _isDisposed)
+            return;
+
         SubscribeAndCreateLocalGame();
     }
 
