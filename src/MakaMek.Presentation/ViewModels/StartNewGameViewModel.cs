@@ -371,6 +371,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _hostMode = mode;
         NotifyPropertyChanged(nameof(IsLanMode));
         NotifyPropertyChanged(nameof(IsOnlineMode));
+        // Stale hosting display state from the previous mode must not leak into the new one
+        ClearHostingState();
     }
 
     /// <summary>
