@@ -2928,6 +2928,55 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void AttachHandlers_RestoresGameAndCommandSubscriptions_AfterDetach()
+    {
+        // Arrange
+        _localizationService.GetString("Phase_Movement").Returns("Movement");
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        // Act - detach (e.g. view recreated by navigation), then handle a phase change
+        _sut.DetachHandlers();
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+        var logCountWhileDetached = _sut.CommandLog.Count;
+
+        // Re-attach (AttachHandlers must restore the subscriptions)
+        _sut.AttachHandlers();
+
+        // Assert - current game state is picked up again...
+        _sut.TurnPhaseName.ShouldBe("Movement");
+
+        // ...and new commands are processed and logged again
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+        _sut.ActivePlayerName.ShouldBe("Player1");
+        _sut.ActionInfoLabel.ShouldBe("Select unit to move");
+        _sut.CommandLog.Count.ShouldBeGreaterThan(logCountWhileDetached);
+    }
+
+    [Fact]
     public void Dispose_ShouldDisposeGame()
     {
         // Arrange
