@@ -2,10 +2,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.Transport.Rx;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Factories;
@@ -107,14 +109,15 @@ public class GameConnectorTests : IDisposable
 
         // Assert
         await _transportFactory.Received(1).CreateAndStartClientPublisher("http://localhost:2439/makamekhub");
-        await _transportAdapter.Received(1).ClearPublishers();
+        await _transportAdapter.DidNotReceive().ClearPublishers();
+        _transportAdapter.DidNotReceive().RemovePublisher(Arg.Any<ITransportPublisher>());
         _transportAdapter.Received(1).AddPublisher(publisher);
         _sut.IsConnected.ShouldBeTrue();
         _sut.OnlineError.ShouldBeNull();
     }
 
     [Fact]
-    public async Task ConnectToLanAsync_ClearsPreviousPublishers_BeforeAddingNewOne()
+    public async Task ConnectToLanAsync_Reconnect_RemovesOnlyPreviousLanPublisher()
     {
         // Arrange
         var firstPublisher = Substitute.For<ITransportPublisher>();
@@ -127,7 +130,9 @@ public class GameConnectorTests : IDisposable
         await _sut.ConnectToLan("http://localhost:2439/makamekhub");
 
         // Assert
-        await _transportAdapter.Received(2).ClearPublishers();
+        await _transportAdapter.DidNotReceive().ClearPublishers();
+        _transportAdapter.Received(1).RemovePublisher(firstPublisher);
+        _transportAdapter.DidNotReceive().RemovePublisher(secondPublisher);
         _transportAdapter.Received(1).AddPublisher(firstPublisher);
         _transportAdapter.Received(1).AddPublisher(secondPublisher);
         _sut.IsConnected.ShouldBeTrue();
@@ -305,11 +310,34 @@ public class GameConnectorTests : IDisposable
         // Assert
         await _relayPublisherFactory.Received(1).Create(
             RelayOptions(roomCode), Arg.Any<CancellationToken>());
-        await _transportAdapter.Received(1).ClearPublishers();
+        await _transportAdapter.DidNotReceive().ClearPublishers();
         _transportAdapter.Received(1).AddPublisher(publisher);
         _transportAdapter.Received(1).RegisterDisconnectHandler(Arg.Any<Action<ITransportPublisher>>());
         _sut.IsConnected.ShouldBeTrue();
         _sut.OnlineError.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_Rejoin_RemovesOnlyPreviousRelayPublisher()
+    {
+        // Arrange
+        var firstPublisher = await JoinOnlineAsync(_sut, "AAAAAA");
+        var secondPublisher = CreateRelayPublisher("BBBBBB", RelayTicketValue);
+        _relayRoomClient.Join("BBBBBB", sessionToken: null, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(
+                "BBBBBB", "session-token", "Client", Guid.NewGuid(), Guid.NewGuid()));
+        _relayPublisherFactory.Create(RelayOptions("BBBBBB"), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(secondPublisher));
+
+        // Act
+        await _sut.JoinOnline("BBBBBB", sessionToken: null);
+
+        // Assert
+        await _transportAdapter.DidNotReceive().ClearPublishers();
+        _transportAdapter.Received(1).RemovePublisher(firstPublisher);
+        _transportAdapter.DidNotReceive().RemovePublisher(secondPublisher);
+        _transportAdapter.Received(1).AddPublisher(secondPublisher);
+        _sut.IsConnected.ShouldBeTrue();
     }
 
     [Fact]
@@ -387,7 +415,8 @@ public class GameConnectorTests : IDisposable
         _sut.IsConnected.ShouldBeFalse();
         _logger.Received(1).LogWarning(
             Arg.Any<InvalidOperationException>(),
-            "Failed to dispose relay publisher during cleanup");
+            "Failed to dispose {PublisherKind} publisher during cleanup",
+            "relay");
     }
 
     [Fact]
@@ -594,7 +623,7 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
-    public async Task DisconnectAsync_AfterLanConnect_ClearsPublishers()
+    public async Task DisconnectAsync_AfterLanConnect_RemovesLanPublisherWithoutClearingAdapter()
     {
         // Arrange
         var publisher = Substitute.For<ITransportPublisher>();
@@ -607,22 +636,26 @@ public class GameConnectorTests : IDisposable
         await _sut.Disconnect();
 
         // Assert
-        await _transportAdapter.Received(2).ClearPublishers();
+        await _transportAdapter.DidNotReceive().ClearPublishers();
+        _transportAdapter.Received(1).RemovePublisher(publisher);
+        await publisher.DidNotReceive().DisposeAsync();
         _sut.IsConnected.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task DisconnectAsync_WhenClearPublishersThrows_SwallsAndCompletes()
+    public async Task DisconnectAsync_AfterOnlineJoin_DoesNotClearPublishers()
     {
         // Arrange
-        await JoinOnlineAsync(_sut);
-        var mockAdapter = Substitute.For<ICommandTransportAdapter>();
-        mockAdapter.When(a => a.ClearPublishers())
-            .Throw(new InvalidOperationException("clear failed"));
-        _commandPublisher.Adapter.Returns(mockAdapter);
+        var publisher = await JoinOnlineAsync(_sut);
+        _sut.IsConnected.ShouldBeTrue();
 
-        // Act & Assert - should not throw
-        await Should.NotThrowAsync(() => _sut.Disconnect());
+        // Act
+        await _sut.Disconnect();
+
+        // Assert
+        await _transportAdapter.DidNotReceive().ClearPublishers();
+        _transportAdapter.Received(1).RemovePublisher(publisher);
+        publisher.State.ToString().ShouldBe("Disconnected");
         _sut.IsConnected.ShouldBeFalse();
     }
 
@@ -638,7 +671,8 @@ public class GameConnectorTests : IDisposable
         await Should.NotThrowAsync(() => _sut.Disconnect());
         _logger.Received(1).LogWarning(
             Arg.Any<InvalidOperationException>(),
-            "Failed to remove relay publisher during cleanup");
+            "Failed to remove {PublisherKind} publisher during cleanup",
+            "relay");
         _sut.IsConnected.ShouldBeFalse();
     }
 
@@ -826,6 +860,141 @@ public class GameConnectorTests : IDisposable
         mockAdapter.Received(1).DispatchLocalCommand(
             Arg.Is<GameEndedCommand>(c => c.GameOriginId == hostGameId),
             publisher);
+    }
+
+    // ---------- Integration: shared adapter pipeline ----------
+
+    private static CommandTransportAdapter CreateRealAdapter(RxTransportPublisher rxPublisher)
+    {
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger<CommandTransportAdapter>()
+            .Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
+        return new CommandTransportAdapter(loggerFactory, rxPublisher);
+    }
+
+    private GameConnector CreateSutWithRealAdapter(
+        CommandTransportAdapter adapter,
+        ITransportFactory? transportFactory = null,
+        IRelayRoomClient? relayRoomClient = null,
+        IPublisherFactory? relayPublisherFactory = null,
+        IRelayHubConfigurationProvider? hubConfigurationProvider = null)
+    {
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        commandPublisher.Adapter.Returns(adapter);
+        return new GameConnector(
+            commandPublisher,
+            transportFactory ?? _transportFactory,
+            _logger,
+            relayRoomClient ?? _relayRoomClient,
+            relayPublisherFactory ?? _relayPublisherFactory,
+            hubConfigurationProvider ?? CreateHubConfigurationProvider());
+    }
+
+    [Fact]
+    public async Task LanConnectAndDisconnect_WithRealAdapter_KeepsSharedRxPublisherAndLocalDelivery()
+    {
+        // Arrange - mirrors the DI wiring in CoreServices.cs: a shared singleton
+        // CommandTransportAdapter seeded with the local RxTransportPublisher
+        var rxPublisher = new RxTransportPublisher();
+        var adapter = CreateRealAdapter(rxPublisher);
+        var received = new List<IGameCommand>();
+        adapter.Initialize((command, _) => received.Add(command));
+
+        var otherFlowPublisher = Substitute.For<ITransportPublisher>();
+        adapter.AddPublisher(otherFlowPublisher);
+
+        var lanPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        var transportFactory = Substitute.For<ITransportFactory>();
+        transportFactory.CreateAndStartClientPublisher(Arg.Any<string>())
+            .Returns(Task.FromResult(lanPublisher));
+        var sut = CreateSutWithRealAdapter(adapter, transportFactory);
+
+        // Act - connect and disconnect a LAN game
+        await sut.ConnectToLan("http://localhost:2439/makamekhub");
+
+        // Assert - connector-owned LAN publisher is registered, shared/other flows' publishers survive
+        adapter.TransportPublishers.ShouldContain(lanPublisher);
+        adapter.TransportPublishers.ShouldContain(rxPublisher);
+        adapter.TransportPublishers.ShouldContain(otherFlowPublisher);
+
+        await sut.Disconnect();
+
+        adapter.TransportPublishers.ShouldContain(rxPublisher);
+        adapter.TransportPublishers.ShouldContain(otherFlowPublisher);
+        adapter.TransportPublishers.ShouldNotContain(lanPublisher);
+        await ((IAsyncDisposable)lanPublisher).Received(1).DisposeAsync();
+
+        // Local loopback through the shared publisher still delivers commands
+        var command = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.Victory,
+            Timestamp = DateTime.UtcNow
+        };
+        await rxPublisher.PublishMessage(new TransportMessage
+        {
+            MessageType = nameof(GameEndedCommand),
+            SourceId = command.GameOriginId,
+            Payload = JsonSerializer.Serialize(command, typeof(GameEndedCommand)),
+            Timestamp = command.Timestamp
+        });
+
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!received.Any(c => c is GameEndedCommand) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+        }
+
+        received.OfType<GameEndedCommand>()
+            .ShouldContain(c => c.GameOriginId == command.GameOriginId);
+    }
+
+    [Fact]
+    public async Task OnlineJoinAndDisconnect_WithRealAdapter_KeepsSharedRxPublisher()
+    {
+        // Arrange
+        var rxPublisher = new RxTransportPublisher();
+        var adapter = CreateRealAdapter(rxPublisher);
+        var sut = CreateSutWithRealAdapter(adapter);
+
+        // Act
+        var relayPublisher = await JoinOnlineAsync(sut);
+        adapter.TransportPublishers.ShouldContain(relayPublisher);
+        adapter.TransportPublishers.ShouldContain(rxPublisher);
+
+        await sut.Disconnect();
+
+        // Assert - the shared publisher survives the online teardown
+        adapter.TransportPublishers.ShouldContain(rxPublisher);
+        adapter.TransportPublishers.ShouldNotContain(relayPublisher);
+        relayPublisher.State.ToString().ShouldBe("Disconnected");
+    }
+
+    [Fact]
+    public async Task OnlineRejoin_WithRealAdapter_RemovesOnlyPreviousRelayPublisher()
+    {
+        // Arrange
+        var rxPublisher = new RxTransportPublisher();
+        var adapter = CreateRealAdapter(rxPublisher);
+        var sut = CreateSutWithRealAdapter(adapter);
+
+        var firstPublisher = await JoinOnlineAsync(sut, "AAAAAA");
+        _relayRoomClient.Join("BBBBBB", sessionToken: null, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(
+                "BBBBBB", "session-token", "Client", Guid.NewGuid(), Guid.NewGuid()));
+        var secondPublisher = CreateRelayPublisher("BBBBBB", RelayTicketValue);
+        _relayPublisherFactory.Create(RelayOptions("BBBBBB"), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(secondPublisher));
+
+        // Act - rejoin another room
+        await sut.JoinOnline("BBBBBB", sessionToken: null);
+
+        // Assert - only the previous relay publisher was removed;
+        // the shared RxTransportPublisher stays registered throughout
+        adapter.TransportPublishers.ShouldContain(secondPublisher);
+        adapter.TransportPublishers.ShouldContain(rxPublisher);
+        adapter.TransportPublishers.ShouldNotContain(firstPublisher);
+        firstPublisher.State.ToString().ShouldBe("Disconnected");
     }
 
     public void Dispose()
