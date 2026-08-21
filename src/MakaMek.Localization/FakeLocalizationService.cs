@@ -482,6 +482,8 @@ public class FakeLocalizationService : ILocalizationService
         ["Hosting_Starting"] = "Starting hosted game...",
         ["Hosting_RoomReady"] = "Game is running — share the room code above",
         ["Hosting_Failed"] = "Failed to start the hosted game.",
+        ["Hosting_LanEnabled"] = "Multiplayer enabled on LAN",
+        ["Network_EnableMultiplayer"] = "Enable Multiplayer",
         ["Join_Mode"] = "Join Mode",
         ["Join_EnterRoomCode"] = "Enter Room Code",
         ["Join_JoinButton"] = "Join Game",

@@ -6,9 +6,18 @@ namespace Sanet.MakaMek.Core.Models.Game;
 public interface IGameManager : IDisposable, IAsyncDisposable
 { 
     /// <summary>
+    /// Initializes a local-only lobby (creates the ServerGame and logging)
+    /// without starting any network transport.
+    /// Returns false if the relay room could not be locked or initialization was cancelled.
+    /// </summary>
+    Task<bool> InitializeLocalLobby(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Initializes the lobby asynchronously
     /// </summary>
-    Task InitializeLobby();
+    /// <param name="cancellationToken">Cancellation token; if cancelled after the LAN host
+    /// has started, the host is stopped again before throwing.</param>
+    Task InitializeLobby(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Initializes the lobby hosted through the cloud relay asynchronously.
@@ -50,6 +59,13 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     Guid? ServerGameId { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the hosted game has started (the server game
+    /// left the Start phase). While true, the hosting session belongs to the running
+    /// game and must not be torn down by lobby cleanup.
+    /// </summary>
+    bool IsGameStarted { get; }
+
+    /// <summary>
     /// Gets the room code of the online lobby, or null when no online lobby is running.
     /// </summary>
     string? RoomCode { get; }
@@ -72,4 +88,11 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// <param name="cancellationToken">Cancellation token for the lock call.</param>
     /// <returns>True if lock succeeded or no room was active; false if lock failed or was cancelled.</returns>
     Task<bool> LockOnlineRoom(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops any running network transport (online relay and/or LAN host) without
+    /// disposing the local ServerGame. Safe to call multiple times and when nothing
+    /// is running.
+    /// </summary>
+    Task StopHosting();
 }

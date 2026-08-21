@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -99,10 +100,35 @@ public class GameManager : IGameManager
         _commandLogger = null; 
     }
 
-    public async Task InitializeLobby()
+    public async Task<bool> InitializeLocalLobby(CancellationToken cancellationToken = default)
     {
+        // Lock an active relay room before resetting, so the room stops accepting
+        // joins. On failure keep the publisher and session state intact so a
+        // subsequent cleanup attempt can retry the lock.
+        if (!await LockOnlineRoom(cancellationToken))
+        {
+            _logger.LogWarning(
+                "Deferred local lobby initialization: relay room {RoomCode} could not be locked",
+                RoomCode);
+            return false;
+        }
+
+        await ResetForNewGame();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+        CreateServerGameAndSetupLogging();
+        return true;
+    }
+
+    public async Task InitializeLobby(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Reset before initializing new lobby
         await ResetForNewGame();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var transportAdapter = _commandPublisher.Adapter;
         // Start the network host if supported and not already running
@@ -110,13 +136,35 @@ public class GameManager : IGameManager
         {
             await _networkHostService.Start();
 
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // The host started after cancellation was requested; stop it
+                // again so no orphaned LAN server is left running.
+                await RemoveLanPublisherAndStopHost();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)
             {
-                transportAdapter.AddPublisher(_networkHostService.Publisher);
-                _lanPublisher = _networkHostService.Publisher;
+                try
+                {
+                    transportAdapter.AddPublisher(_networkHostService.Publisher);
+                    _lanPublisher = _networkHostService.Publisher;
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation occurred after the publisher was registered;
+                    // remove it and stop the host so nothing is left orphaned.
+                    await RemoveLanPublisherAndStopHost();
+                    throw;
+                }
             }
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         CreateServerGameAndSetupLogging();
     }
@@ -371,6 +419,42 @@ public class GameManager : IGameManager
         }
     }
 
+    public async Task StopHosting()
+    {
+        bool lockSucceeded;
+        try
+        {
+            lockSucceeded = await LockOnlineRoom();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to lock online room during StopHosting");
+            lockSucceeded = false;
+        }
+
+        if (!lockSucceeded)
+        {
+            // Keep the retryable relay state (publisher, room code, session token)
+            // intact so a subsequent cleanup attempt can retry locking the room.
+            _logger.LogWarning(
+                "Deferred hosting shutdown: relay room {RoomCode} could not be locked",
+                RoomCode);
+            return;
+        }
+
+        try
+        {
+            await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to remove online publisher during StopHosting");
+        }
+        _onlineRelayPublisher = null;
+
+        await RemoveLanPublisherAndStopHost();
+    }
+
     private async Task LockRelayRoomAndCleanup(
         string? roomCode,
         string? sessionToken,
@@ -430,6 +514,9 @@ public class GameManager : IGameManager
     {
         _serverGame?.TryStartGame();
     }
+
+    /// <inheritdoc />
+    public bool IsGameStarted => _serverGame != null && _serverGame.TurnPhase != PhaseNames.Start;
 
     public string? GetLanServerAddress()
     {

@@ -167,6 +167,31 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task InitializeLobby_WhenCancelledWhileHostStartIsPending_StopsHostAndThrows()
+    {
+        // Arrange
+        var startTcs = new TaskCompletionSource();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Start().Returns(startTcs.Task);
+        _networkHostService.Publisher.Returns(Substitute.For<ITransportPublisher>());
+
+        using var cts = new CancellationTokenSource();
+        var initTask = _sut.InitializeLobby(cts.Token);
+
+        // Act - cancel while Start() is still pending, then let Start complete
+        await cts.CancelAsync();
+        _networkHostService.IsRunning.Returns(true); // Host started despite cancellation
+        startTcs.SetResult();
+
+        // Assert
+        await Should.ThrowAsync<OperationCanceledException>(() => initTask);
+        await _networkHostService.Received(1).Stop();
+        _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Publisher not added
+        _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+    }
+
+    [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNetworkPublisherIsNull_StartsNetworkHostButDoesNotAddPublisher()
     {
         // Arrange
@@ -408,6 +433,53 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task IsGameStarted_ShouldBeFalse_WhileServerGameIsInStartPhase()
+    {
+        // Arrange
+        await _sut.InitializeLobby();
+
+        // Assert
+        _sut.IsGameStarted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task IsGameStarted_ShouldBeTrue_AfterServerGameLeavesStartPhase()
+    {
+        // Arrange
+        await _sut.InitializeLobby();
+        var battleMap = new BattleMap(10, 10);
+        var playerId = Guid.NewGuid();
+        _serverGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Host",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _serverGame.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
+
+        // Act
+        _sut.SetBattleMap(battleMap);
+        _sut.TryStartGame();
+
+        // Assert
+        _sut.IsGameStarted.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsGameStarted_ShouldBeFalse_WhenNoServerGameExists()
+    {
+        _sut.IsGameStarted.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task InitializeLobby_SubscribesLoggerAndLogsOnReceivedCommand()
     {
         // Arrange
@@ -471,6 +543,221 @@ public class GameManagerTests : IDisposable
             .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
         _commandLoggerFactory.Received(2).CreateLogger(_localizationService, _serverGame);
         _commandPublisher.Received().Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public async Task InitializeLocalLobby_CreatesServerGame()
+    {
+        // Act
+        await _sut.InitializeLocalLobby();
+
+        // Assert
+        _sut.ServerGameId.ShouldNotBeNull();
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher);
+    }
+
+    [Fact]
+    public async Task InitializeLocalLobby_DoesNotStartLanHost()
+    {
+        // Act
+        await _sut.InitializeLocalLobby();
+
+        // Assert
+        await _networkHostService.DidNotReceive().Start();
+    }
+
+    [Fact]
+    public async Task InitializeLocalLobby_DoesNotAddLanPublisher()
+    {
+        // Arrange
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+
+        // Act
+        await _sut.InitializeLocalLobby();
+
+        // Assert
+        _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only initial publisher
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+    }
+
+    [Fact]
+    public async Task StopHosting_StopsLanHost()
+    {
+        // Arrange
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await _sut.InitializeLobby();
+        _networkHostService.IsRunning.Returns(true);
+
+        // Act
+        await _sut.StopHosting();
+
+        // Assert
+        await _networkHostService.Received(1).Stop();
+    }
+
+    [Fact]
+    public async Task StopHosting_RemovesLanPublisherFromAdapter()
+    {
+        // Arrange
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await _sut.InitializeLobby();
+        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
+        _networkHostService.IsRunning.Returns(true);
+
+        // Act
+        await _sut.StopHosting();
+
+        // Assert
+        _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
+    }
+
+    [Fact]
+    public async Task StopHosting_ClosesOnlineRoom()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline();
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+
+        // Act
+        await sut.StopHosting();
+
+        // Assert
+        await relayRoomClient.Received(1).Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>());
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task StopHosting_WhenRelayLockFails_RetainsRetryableStateAndRetriesOnNextStop()
+    {
+        // Arrange
+        var (sut, relayRoomClient, publisher) = await CreateOnlineHostWithLockResult(
+            RoomOperationResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "Lock failed")));
+
+        // Act
+        await sut.StopHosting();
+
+        // Assert - state is retained so the lock can be retried
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+
+        // Arrange - next lock attempt succeeds
+        relayRoomClient.Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+
+        // Act
+        await sut.StopHosting();
+
+        // Assert - cleanup retried the lock and completed the shutdown
+        await relayRoomClient.Received(2).Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>());
+        sut.IsOnlineServerRunning.ShouldBeFalse();
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+    }
+
+    [Fact]
+    public async Task InitializeLocalLobby_WhenRelayLockFails_PreservesRelayStateAndRetriesOnNextCall()
+    {
+        // Arrange
+        var (sut, relayRoomClient, publisher) = await CreateOnlineHostWithLockResult(
+            RoomOperationResult.Failed(new RelayClientError(RelayClientErrorCode.Unknown, "Lock failed")));
+        _gameFactory.CreateServerGame(_commandPublisher).Returns(_serverGame);
+
+        // Act
+        await sut.InitializeLocalLobby();
+
+        // Assert - relay state preserved, no reset performed
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        _transportAdapter.TransportPublishers.ShouldContain(publisher);
+        _gameFactory.Received(1).CreateServerGame(_commandPublisher); // only the one from InitializeLobbyOnline
+
+        // Arrange - next lock attempt succeeds
+        relayRoomClient.Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+
+        // Act
+        await sut.InitializeLocalLobby();
+
+        // Assert - retry locked the room and completed the local lobby reset
+        await relayRoomClient.Received(2).Lock(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>());
+        _transportAdapter.TransportPublishers.ShouldNotContain(publisher);
+        sut.ServerGameId.ShouldNotBeNull();
+    }
+
+    private async Task<(GameManager Sut, IRelayRoomClient RelayRoomClient, ITransportPublisher Publisher)> CreateOnlineHostWithLockResult(
+        RoomOperationResult lockResult)
+    {
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        var deviceSessionId = Guid.NewGuid();
+        var hostGameId = Guid.NewGuid();
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", deviceSessionId, hostGameId));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(lockResult);
+        var publisher = CreateRelayPublisher(roomCode, sessionToken);
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(publisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+        await sut.InitializeLobbyOnline();
+        sut.IsOnlineServerRunning.ShouldBeTrue();
+        return (sut, relayRoomClient, publisher);
+    }
+
+    [Fact]
+    public async Task StopHosting_CalledTwice_DoesNotThrow()
+    {
+        // Arrange
+        var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Publisher.Returns(networkPublisher);
+        await _sut.InitializeLobby();
+        _networkHostService.IsRunning.Returns(true);
+
+        // Act & Assert
+        await Should.NotThrowAsync(() => _sut.StopHosting());
+        await Should.NotThrowAsync(() => _sut.StopHosting());
+    }
+
+    [Fact]
+    public async Task StopHosting_WhenNothingRunning_DoesNotThrow()
+    {
+        // Act & Assert
+        await Should.NotThrowAsync(() => _sut.StopHosting());
     }
 
     [Fact]

@@ -13,6 +13,12 @@ public interface IClientGame:IGame
     IReadOnlyList<IGameCommand> CommandLog { get; }
     IReadOnlyList<Guid> LocalPlayers { get; }
     bool IsDisposed { get; }
+
+    /// <summary>
+    /// Gets the id of the server game this client is bound to,
+    /// or null when the client processes all commands (standalone mode).
+    /// </summary>
+    Guid? ServerGameId { get; }
     bool CanActivePlayerAct { get; }
     IPilotingSkillCalculator PilotingSkillCalculator { get; }
     IConsciousnessCalculator ConsciousnessCalculator { get; }

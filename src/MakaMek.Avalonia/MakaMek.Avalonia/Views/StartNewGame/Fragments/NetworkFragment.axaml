@@ -10,16 +10,12 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.NetworkFragment">
     
     <StackPanel Classes="verticalSpaced">
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{extensions:Localize 'Network_Multiplayer'}" Classes="label"/>
-        </StackPanel>
-
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{extensions:Localize 'Network_HostMode'}" Classes="label"/>
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsHostModeSelectorVisible}">
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
                              IsChecked="{Binding IsLanMode, Mode=TwoWay}"
                              IsEnabled="{Binding CanChangeHostMode}"
+                             IsVisible="{Binding CanStartLanServer}"
                              GroupName="HostMode"/>
                 <RadioButton Content="{extensions:Localize 'Network_HostModeOnline'}"
                              IsChecked="{Binding IsOnlineMode, Mode=TwoWay}"
@@ -28,7 +24,7 @@
             </StackPanel>
         </StackPanel>
 
-        <StackPanel Classes="formGroup" IsVisible="{Binding IsLanMode}">
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsLanDetailsVisible}">
             <TextBlock Text="{extensions:Localize 'Network_ServerAddress'}" Classes="label"/>
             <Border Classes="card" Background="{StaticResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
                 <SelectableTextBlock Text="{Binding ServerIpAddress}"/>
@@ -38,7 +34,7 @@
                        FontStyle="Italic"/>
         </StackPanel>
 
-        <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineMode}">
+        <StackPanel Classes="formGroup" IsVisible="{Binding IsOnlineDetailsVisible}">
             <StackPanel Orientation="Horizontal" Spacing="8"
                         DataContext="{Binding ActiveHub}">
                 <TextBlock x:DataType="wrappers:HubEntryViewModel"
@@ -64,6 +60,11 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
+
+        <Button Command="{Binding EnableMultiplayerCommand}"
+                Content="{extensions:Localize 'Network_EnableMultiplayer'}"
+                IsVisible="{Binding !IsMultiplayerEnabled}"
+                Classes="primary"/>
 
         <TextBlock Text="{Binding HostingStatusText}"
                    Classes="bodySmall"

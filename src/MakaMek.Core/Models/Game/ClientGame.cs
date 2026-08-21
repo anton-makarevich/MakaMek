@@ -52,6 +52,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers.Keys.ToList();
 
+    /// <inheritdoc />
+    public Guid? ServerGameId => _serverGameId;
+
     public bool IsDisposed => _isDisposed;
 
     protected override bool ShouldHandleCommand(IGameCommand command)
@@ -230,7 +233,17 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
-        if (!ValidateCommand(command).IsValid) return false;
+        var validationResult = ValidateCommand(command);
+        if (!validationResult.IsValid)
+        {
+            Logger.LogWarning(
+                "Command {CommandType} rejected by validation: {ErrorCode}. PlayerId: {PlayerId}, GameOriginId: {GameOriginId}",
+                typeof(T).Name,
+                validationResult.ErrorCode,
+                command.PlayerId,
+                command.GameOriginId);
+            return false;
+        }
         
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
