@@ -3483,26 +3483,18 @@ public class ClientGameTests
         var serverGameId = Guid.NewGuid();
         using var sut = CreateClientGameWithServerGameId(serverGameId);
 
+        // Capture the published command synchronously via Arg.Do (registered before the call,
+        // so no polling/waiting is needed and the ack timeout cannot expire first)
+        JoinGameCommand? publishedCommand = null;
+        _commandPublisher
+            .PublishCommand(Arg.Do<IGameCommand>(c => publishedCommand = c is JoinGameCommand joinCmd ? joinCmd : null));
+
         // Publish via the command publisher to register the pending command
         var pendingTask = sut.JoinGameWithUnits(
             new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
             [],
             []);
 
-        // Wait for the command to be published
-        JoinGameCommand? publishedCommand = null;
-        for (var i = 0; i < 50; i++)
-        {
-            var calls = _commandPublisher.ReceivedCalls()
-                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
-                .ToList();
-            if (calls.Count > 0)
-            {
-                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
-                break;
-            }
-            await Task.Delay(10);
-        }
         publishedCommand.ShouldNotBeNull();
 
         // Now simulate the server rebroadcast using the captured idempotency key
@@ -3532,26 +3524,18 @@ public class ClientGameTests
         var serverGameId = Guid.NewGuid();
         using var sut = CreateClientGameWithServerGameId(serverGameId);
 
-        // Create a pending command first
+        // Create a pending command first.
+        // Capture the published command synchronously via Arg.Do (registered before the call,
+        // so no polling/waiting is needed and the ack timeout cannot expire first)
+        JoinGameCommand? publishedCommand = null;
+        _commandPublisher
+            .PublishCommand(Arg.Do<IGameCommand>(c => publishedCommand = c is JoinGameCommand joinCmd ? joinCmd : null));
+
         var pendingTask = sut.JoinGameWithUnits(
             new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human),
             [],
             []);
 
-        // Wait for the command to be published
-        JoinGameCommand? publishedCommand = null;
-        for (var i = 0; i < 50; i++)
-        {
-            var calls = _commandPublisher.ReceivedCalls()
-                .Where(c => c.GetMethodInfo().Name == nameof(ICommandPublisher.PublishCommand))
-                .ToList();
-            if (calls.Count > 0)
-            {
-                publishedCommand = (JoinGameCommand)calls.First().GetArguments()[0]!;
-                break;
-            }
-            await Task.Delay(10);
-        }
         publishedCommand.ShouldNotBeNull();
 
         var errorCommand = new ErrorCommand
