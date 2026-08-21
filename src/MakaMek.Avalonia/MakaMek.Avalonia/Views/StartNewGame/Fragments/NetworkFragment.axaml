@@ -10,12 +10,7 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.NetworkFragment">
     
     <StackPanel Classes="verticalSpaced">
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{extensions:Localize 'Network_Multiplayer'}" Classes="label"/>
-        </StackPanel>
-
         <StackPanel Classes="formGroup" IsVisible="{Binding IsHostModeSelectorVisible}">
-            <TextBlock Text="{extensions:Localize 'Network_HostMode'}" Classes="label"/>
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <RadioButton Content="{extensions:Localize 'Network_HostModeLan'}"
                              IsChecked="{Binding IsLanMode, Mode=TwoWay}"
