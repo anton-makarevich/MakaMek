@@ -147,8 +147,20 @@ public class GameManager : IGameManager
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)
             {
-                transportAdapter.AddPublisher(_networkHostService.Publisher);
-                _lanPublisher = _networkHostService.Publisher;
+                try
+                {
+                    transportAdapter.AddPublisher(_networkHostService.Publisher);
+                    _lanPublisher = _networkHostService.Publisher;
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation occurred after the publisher was registered;
+                    // remove it and stop the host so nothing is left orphaned.
+                    await RemoveLanPublisherAndStopHost();
+                    throw;
+                }
             }
         }
 

@@ -408,7 +408,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     /// The mode is also locked while multiplayer hosting is active, since switching
     /// would tear down the live transport.
     /// </summary>
-    public bool CanChangeHostMode => !HasJoinedPlayers && !IsMultiplayerEnabled;
+    public bool CanChangeHostMode => !HasJoinedPlayers && !IsMultiplayerEnabled && !IsHosting;
 
     private bool HasJoinedPlayers => _players.Any(p => p.Player.Status is PlayerStatus.Joined or PlayerStatus.Ready);
 
@@ -539,12 +539,16 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         if (HasJoinedPlayers || _isDisposed) return;
 
-        if (_initCts is not null)
+        var currentInitCts = _initCts;
+        if (currentInitCts is not null)
         {
-            await _initCts.CancelAsync();
+            await currentInitCts.CancelAsync();
             if (HasJoinedPlayers) return; // A player joined while cancellation was pending; keep the live lobby
+            // A concurrent restart may have replaced the source while we were awaiting;
+            // only dispose and replace it if it is still the active one.
+            if (!ReferenceEquals(_initCts, currentInitCts)) return;
         }
-        _initCts?.Dispose();
+        currentInitCts?.Dispose();
         _initCts = new CancellationTokenSource();
 
         try
