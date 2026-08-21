@@ -413,10 +413,13 @@ public class GameConnectorTests : IDisposable
         _sut.OnlineError.ShouldNotBeNull();
         _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.NetworkError);
         _sut.IsConnected.ShouldBeFalse();
-        _logger.Received(1).LogWarning(
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains(
+                "Failed to dispose relay publisher during cleanup")),
             Arg.Any<InvalidOperationException>(),
-            "Failed to dispose {PublisherKind} publisher during cleanup",
-            "relay");
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -635,10 +638,11 @@ public class GameConnectorTests : IDisposable
         // Act
         await _sut.Disconnect();
 
-        // Assert
+        // Assert - only the connector-owned LAN publisher is removed and disposed;
+        // ClearPublishers() must never be called on the shared adapter
         await _transportAdapter.DidNotReceive().ClearPublishers();
         _transportAdapter.Received(1).RemovePublisher(publisher);
-        await publisher.DidNotReceive().DisposeAsync();
+        await publisher.Received(1).DisposeAsync();
         _sut.IsConnected.ShouldBeFalse();
     }
 
@@ -669,10 +673,13 @@ public class GameConnectorTests : IDisposable
 
         // Act & Assert - should not throw
         await Should.NotThrowAsync(() => _sut.Disconnect());
-        _logger.Received(1).LogWarning(
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains(
+                "Failed to remove relay publisher during cleanup")),
             Arg.Any<InvalidOperationException>(),
-            "Failed to remove {PublisherKind} publisher during cleanup",
-            "relay");
+            Arg.Any<Func<object, Exception?, string>>());
         _sut.IsConnected.ShouldBeFalse();
     }
 
