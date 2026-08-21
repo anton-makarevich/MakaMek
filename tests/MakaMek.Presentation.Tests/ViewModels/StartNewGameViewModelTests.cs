@@ -2327,4 +2327,46 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         // Assert
         _sut.LocalGame.ShouldBe(initialGame);
     }
+
+    [Fact]
+    public async Task DetachHandlers_WhenMultiplayerEnabledWithoutGameStart_StopsHosting()
+    {
+        // Arrange
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        await ((IAsyncCommand)sut.EnableMultiplayerCommand).ExecuteAsync();
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+
+        // Act
+        sut.DetachHandlers();
+
+        // Assert - leaving the lobby without starting a game must tear hosting down
+        await gameManager.Received(1).StopHosting();
+    }
+
+    [Fact]
+    public async Task DetachHandlers_AfterGameStarted_DoesNotStopHosting()
+    {
+        // Arrange - enable online hosting and start the game (navigates to the battle map)
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.SetNavigationService(_navigationService);
+        sut.IsOnlineMode = true;
+        await ((IAsyncCommand)sut.EnableMultiplayerCommand).ExecuteAsync();
+        gameManager.LockOnlineRoom(Arg.Any<CancellationToken>()).Returns(true);
+        sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab so the Map is non-null
+        await ((IAsyncCommand)sut.StartGameCommand).ExecuteAsync();
+        // The server game left the Start phase (TryStartGame on the real manager)
+        gameManager.IsGameStarted.Returns(true);
+
+        // Act - navigating away from the lobby detaches its handlers
+        sut.DetachHandlers();
+
+        // Assert - the live relay session belongs to the running game and must survive;
+        // stopping it here disconnects the host mid-game ("host disconnected" on clients).
+        await gameManager.DidNotReceive().StopHosting();
+    }
 }

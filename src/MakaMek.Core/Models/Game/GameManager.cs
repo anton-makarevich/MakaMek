@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -496,6 +497,9 @@ public class GameManager : IGameManager
     {
         _serverGame?.TryStartGame();
     }
+
+    /// <inheritdoc />
+    public bool IsGameStarted => _serverGame != null && _serverGame.TurnPhase != PhaseNames.Start;
 
     public string? GetLanServerAddress()
     {

@@ -433,6 +433,53 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task IsGameStarted_ShouldBeFalse_WhileServerGameIsInStartPhase()
+    {
+        // Arrange
+        await _sut.InitializeLobby();
+
+        // Assert
+        _sut.IsGameStarted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task IsGameStarted_ShouldBeTrue_AfterServerGameLeavesStartPhase()
+    {
+        // Arrange
+        await _sut.InitializeLobby();
+        var battleMap = new BattleMap(10, 10);
+        var playerId = Guid.NewGuid();
+        _serverGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Host",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _serverGame.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
+
+        // Act
+        _sut.SetBattleMap(battleMap);
+        _sut.TryStartGame();
+
+        // Assert
+        _sut.IsGameStarted.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsGameStarted_ShouldBeFalse_WhenNoServerGameExists()
+    {
+        _sut.IsGameStarted.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task InitializeLobby_SubscribesLoggerAndLogsOnReceivedCommand()
     {
         // Arrange

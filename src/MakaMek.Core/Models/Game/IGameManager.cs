@@ -59,6 +59,13 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     Guid? ServerGameId { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the hosted game has started (the server game
+    /// left the Start phase). While true, the hosting session belongs to the running
+    /// game and must not be torn down by lobby cleanup.
+    /// </summary>
+    bool IsGameStarted { get; }
+
+    /// <summary>
     /// Gets the room code of the online lobby, or null when no online lobby is running.
     /// </summary>
     string? RoomCode { get; }

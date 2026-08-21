@@ -47,7 +47,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
-    private bool _isMultiplayerEnabled;
 
     public StartNewGameViewModel(
         IGameManager gameManager,
@@ -93,11 +92,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     /// </summary>
     public bool IsMultiplayerEnabled
     {
-        get => _isMultiplayerEnabled;
+        get;
         private set
         {
-            if (_isMultiplayerEnabled == value) return;
-            _isMultiplayerEnabled = value;
+            if (field == value) return;
+            field = value;
             NotifyPropertyChanged();
             (EnableMultiplayerCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(HostingStatusText));
@@ -673,7 +672,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = null;
-        if (IsMultiplayerEnabled)
+        // Once the game has started, the hosting session belongs to the running game;
+        // stopping it here would disconnect the host's relay/LAN transport mid-game.
+        if (IsMultiplayerEnabled && !_gameManager.IsGameStarted)
         {
             _gameManager.StopHosting().SafeFireAndForget(
                 ex => _logger.LogError(ex, "Error stopping hosting on detach"));
