@@ -869,6 +869,27 @@ public class GameConnectorTests : IDisposable
             publisher);
     }
 
+    [Fact]
+    public async Task Dispose_AfterConnectToLan_RemovesLanPublisherFromAdapter()
+    {
+        // Arrange
+        var lanPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        _transportFactory.CreateAndStartClientPublisher("http://localhost:2439/makamekhub")
+            .Returns(Task.FromResult<ITransportPublisher>(lanPublisher));
+        await _sut.ConnectToLan("http://localhost:2439/makamekhub");
+        _transportAdapter.Received(1).AddPublisher(lanPublisher);
+
+        // Act
+        _sut.Dispose();
+        _sut.Dispose(); // idempotent
+
+        // Assert - the adapter no longer retains the LAN publisher and it is disposed
+        _transportAdapter.Received(1).RemovePublisher(lanPublisher);
+        await ((IAsyncDisposable)lanPublisher).Received(1).DisposeAsync();
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.ConnectedHostGameId.ShouldBeNull();
+    }
+
     // ---------- Integration: shared adapter pipeline ----------
 
     private static CommandTransportAdapter CreateRealAdapter(RxTransportPublisher rxPublisher)

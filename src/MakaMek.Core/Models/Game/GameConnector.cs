@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -269,16 +270,17 @@ public class GameConnector : IGameConnector
     public void Dispose()
     {
         if (_isDisposed) return;
-        
+        _isDisposed = true;
+
+        // Detach connector-owned publishers and dispose them through the same
+        // teardown path used by DisposeAsync. The synchronous part of Teardown
+        // removes them from the adapter before the first await.
         IsConnected = false;
         ConnectedHostGameId = null;
-        _relayPublisher = null;
-        _lanPublisher = null;
-        _roomCode = null;
-        _sessionToken = null;
-        _deviceSessionId = null;
-        
-        _isDisposed = true;
+
+        Teardown().SafeFireAndForget(ex =>
+            _logger.LogError(ex, "Error during GameConnector teardown"));
+
         GC.SuppressFinalize(this);
     }
 
