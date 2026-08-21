@@ -155,9 +155,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     private async Task InitializeLanLobbyAndSubscribe(CancellationToken cancellationToken)
     {
-        await _gameManager.InitializeLobby();
+        await _gameManager.InitializeLobby(cancellationToken);
         if (cancellationToken.IsCancellationRequested || _isDisposed)
+        {
+            IsMultiplayerEnabled = false;
             return;
+        }
 
         SubscribeAndCreateLocalGame();
 

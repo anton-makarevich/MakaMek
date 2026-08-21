@@ -478,7 +478,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         sut.RoomCode.ShouldBe("ABCDEF");
         sut.HostingError.ShouldBeNull();
         await gameManager.Received(1).InitializeLobbyOnline(Arg.Any<CancellationToken>());
-        await gameManager.DidNotReceive().InitializeLobby();
+        await gameManager.DidNotReceive().InitializeLobby(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -596,7 +596,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
 
-        await gameManager.Received(1).InitializeLobby();
+        await gameManager.Received(1).InitializeLobby(Arg.Any<CancellationToken>());
         await gameManager.DidNotReceive().InitializeLobbyOnline(
             Arg.Any<CancellationToken>());
     }
@@ -890,7 +890,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task CancelAndRestartServer_WhenCancelled_LogsDebugMessage()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobby().ThrowsAsync<OperationCanceledException>();
+        gameManager.InitializeLobby(Arg.Any<CancellationToken>()).ThrowsAsync<OperationCanceledException>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
 
@@ -948,7 +948,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     public async Task CancelAndRestartServer_WhenInitIsCancelled_SilentlyReturns()
     {
         var gameManager = Substitute.For<IGameManager>();
-        gameManager.InitializeLobby().ThrowsAsync<OperationCanceledException>();
+        gameManager.InitializeLobby(Arg.Any<CancellationToken>()).ThrowsAsync<OperationCanceledException>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var sut = CreateSut(gameManager, commandPublisher);
 
@@ -961,12 +961,42 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task DetachHandlers_WhileLanInitializationIsPending_CancelsInitAndDisablesMultiplayer()
+    {
+        // Arrange - InitializeLobby stays pending until its token is cancelled
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobby(Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var tcs = new TaskCompletionSource();
+                ci.Arg<CancellationToken>().Register(() => tcs.SetCanceled());
+                return tcs.Task;
+            });
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        var restartTask = sut.CancelAndRestartServer();
+        await Task.Delay(50);
+
+        // Act
+        sut.DetachHandlers();
+
+        // Assert - cancellation wins: no error, multiplayer not enabled,
+        // and stopping hosting is left to GameManager's cancellation handling.
+        await restartTask;
+        sut.HostingError.ShouldBeNull();
+        sut.IsMultiplayerEnabled.ShouldBeFalse();
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+        await gameManager.DidNotReceive().StopHosting();
+    }
+
+    [Fact]
     public async Task CancelAndRestartServer_WhenCancelledDuringInit_ReturnsWithoutStartingGame()
     {
         var gameManager = Substitute.For<IGameManager>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLobby().Returns(initTcs.Task);
+        gameManager.InitializeLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         var sut = CreateSut(gameManager, commandPublisher);
         sut.SetNavigationService(_navigationService);
 
@@ -1165,7 +1195,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         await sut.CancelAndRestartServer();
 
-        await gameManager.DidNotReceive().InitializeLobby();
+        await gameManager.DidNotReceive().InitializeLobby(Arg.Any<CancellationToken>());
         await gameManager.DidNotReceive().InitializeLobbyOnline(
             Arg.Any<CancellationToken>());
     }

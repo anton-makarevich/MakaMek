@@ -167,6 +167,31 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task InitializeLobby_WhenCancelledWhileHostStartIsPending_StopsHostAndThrows()
+    {
+        // Arrange
+        var startTcs = new TaskCompletionSource();
+        _networkHostService.CanStart.Returns(true);
+        _networkHostService.IsRunning.Returns(false);
+        _networkHostService.Start().Returns(startTcs.Task);
+        _networkHostService.Publisher.Returns(Substitute.For<ITransportPublisher>());
+
+        using var cts = new CancellationTokenSource();
+        var initTask = _sut.InitializeLobby(cts.Token);
+
+        // Act - cancel while Start() is still pending, then let Start complete
+        await cts.CancelAsync();
+        _networkHostService.IsRunning.Returns(true); // Host started despite cancellation
+        startTcs.SetResult();
+
+        // Assert
+        await Should.ThrowAsync<OperationCanceledException>(() => initTask);
+        await _networkHostService.Received(1).Stop();
+        _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Publisher not added
+        _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+    }
+
+    [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNetworkPublisherIsNull_StartsNetworkHostButDoesNotAddPublisher()
     {
         // Arrange

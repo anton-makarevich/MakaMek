@@ -121,7 +121,7 @@ public class GameManager : IGameManager
         return true;
     }
 
-    public async Task InitializeLobby()
+    public async Task InitializeLobby(CancellationToken cancellationToken = default)
     {
         // Reset before initializing new lobby
         await ResetForNewGame();
@@ -131,6 +131,14 @@ public class GameManager : IGameManager
         if (CanStartLanServer && !IsLanServerRunning && _networkHostService != null)
         {
             await _networkHostService.Start();
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // The host started after cancellation was requested; stop it
+                // again so no orphaned LAN server is left running.
+                await RemoveLanPublisherAndStopHost();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
 
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)

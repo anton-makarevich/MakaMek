@@ -15,7 +15,9 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// <summary>
     /// Initializes the lobby asynchronously
     /// </summary>
-    Task InitializeLobby();
+    /// <param name="cancellationToken">Cancellation token; if cancelled after the LAN host
+    /// has started, the host is stopped again before throwing.</param>
+    Task InitializeLobby(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Initializes the lobby hosted through the cloud relay asynchronously.
