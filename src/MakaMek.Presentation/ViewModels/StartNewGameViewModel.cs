@@ -247,9 +247,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _commandPublisher.Unsubscribe(HandleServerCommand);
         _commandPublisher.Subscribe(HandleServerCommand);
 
-        // Reuse an existing local game; only create it the first time this flow runs.
-        // Re-creating would dispose a game that an overlapping initialization may still be using.
-        if (_localGame != null)
+        // Reuse an existing local game only when it is still bound to the current
+        // server game. Hosting initialization (local lobby → LAN/online) recreates
+        // the server game with a new id; keeping a game bound to the old id would
+        // make its ShouldHandleCommand filter drop every command from the real
+        // server, silently breaking join acks and SetReady validation.
+        if (_localGame != null && _localGame.ServerGameId == _gameManager.ServerGameId)
             return;
 
         var rxPublisher = _commandPublisher.Adapter.TransportPublishers
