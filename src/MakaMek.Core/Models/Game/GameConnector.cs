@@ -61,7 +61,7 @@ public class GameConnector : IGameConnector
             var adapter = _commandPublisher.Adapter;
             // Remove only the previously owned LAN publisher; other flows' publishers
             // (e.g. the shared local RxTransportPublisher) must stay registered.
-            await RemoveAndDisposePublisher(_lanPublisher, "LAN");
+            await _lanPublisher.RemoveAndDisposeAsync(adapter, _logger);
             _lanPublisher = null;
             adapter.AddPublisher(publisher);
             _lanPublisher = publisher;
@@ -165,7 +165,7 @@ public class GameConnector : IGameConnector
             var adapter = _commandPublisher.Adapter;
             // Remove only the previously owned relay publisher; other flows' publishers
             // (e.g. the shared local RxTransportPublisher) must stay registered.
-            await RemoveAndDisposePublisher(_relayPublisher, "relay");
+            await _relayPublisher.RemoveAndDisposeAsync(adapter, _logger);
             _relayPublisher = null;
             adapter.AddPublisher(publisher);
             adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
@@ -184,7 +184,7 @@ public class GameConnector : IGameConnector
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await RemoveAndDisposePublisher(publisher, "relay");
+            await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
             if (successfulSessionToken != null && successfulDeviceSessionId != null)
                 await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
             throw;
@@ -194,7 +194,7 @@ public class GameConnector : IGameConnector
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.NetworkError,
                 "Failed to connect the client to the relay.");
-            await RemoveAndDisposePublisher(publisher, "relay");
+            await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
             if (successfulSessionToken != null && successfulDeviceSessionId != null)
                 await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
         }
@@ -227,32 +227,6 @@ public class GameConnector : IGameConnector
         _commandPublisher.Adapter.DispatchLocalCommand(command, publisher);
     }
 
-    private async Task RemoveAndDisposePublisher(ITransportPublisher? publisher, string kind)
-    {
-        // Remove and dispose a connector-owned publisher if it was created.
-        // RemovePublisher does not dispose the publisher nor unhook its command
-        // subscription, so disposing it is what tears those down.
-        if (publisher == null) return;
-        try
-        {
-            _commandPublisher.Adapter.RemovePublisher(publisher);
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure
-            _logger.LogWarning(ex, "Failed to remove {PublisherKind} publisher during cleanup", kind);
-        }
-        try
-        {
-            await publisher.DisposeAsync();
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure
-            _logger.LogWarning(ex, "Failed to dispose {PublisherKind} publisher during cleanup", kind);
-        }
-    }
-
     public Task Disconnect(CancellationToken cancellationToken = default) =>
         Teardown();
 
@@ -279,13 +253,13 @@ public class GameConnector : IGameConnector
 
         // Remove and dispose only connector-owned publishers; other flows' publishers
         // (e.g. the shared local RxTransportPublisher) must stay registered on the adapter.
-        await RemoveAndDisposePublisher(_relayPublisher, "relay");
+        await _relayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _relayPublisher = null;
         _roomCode = null;
         _sessionToken = null;
         _deviceSessionId = null;
 
-        await RemoveAndDisposePublisher(_lanPublisher, "LAN");
+        await _lanPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _lanPublisher = null;
 
         ConnectedHostGameId = null;

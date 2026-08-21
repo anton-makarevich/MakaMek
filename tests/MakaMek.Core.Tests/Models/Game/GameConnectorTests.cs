@@ -417,7 +417,7 @@ public class GameConnectorTests : IDisposable
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(state => state.ToString()!.Contains(
-                "Failed to dispose relay publisher during cleanup")),
+                "Failed to dispose") && state.ToString()!.Contains("during cleanup")),
             Arg.Any<InvalidOperationException>(),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -677,7 +677,7 @@ public class GameConnectorTests : IDisposable
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(state => state.ToString()!.Contains(
-                "Failed to remove relay publisher during cleanup")),
+                "Failed to remove RelayClientPublisher during cleanup")),
             Arg.Any<InvalidOperationException>(),
             Arg.Any<Func<object, Exception?, string>>());
         _sut.IsConnected.ShouldBeFalse();

@@ -71,7 +71,7 @@ public class GameManager : IGameManager
     public async Task ResetForNewGame()
     {
         // Remove and dispose any stale relay publisher before re-hosting
-        await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
+        await _onlineRelayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
 
         // Remove LAN publisher and stop host service
@@ -327,28 +327,6 @@ public class GameManager : IGameManager
         _commandPublisher.Subscribe(_logHandler, transportPublisher);
     }
 
-    private async Task RemoveAndDisposeOnlinePublisher(ITransportPublisher? publisher)
-    {
-        // Remove and dispose the relay publisher if it was created
-        if (publisher == null) return;
-        try
-        {
-            _commandPublisher.Adapter.RemovePublisher(publisher);
-        }
-        catch
-        {
-            // Swallow to avoid masking the original failure
-        }
-        try
-        {
-            await publisher.DisposeAsync();
-        }
-        catch
-        {
-            // Swallow to avoid masking the original failure
-        }
-    }
-
     private async Task RemoveLanPublisherAndStopHost()
     {
         if (_lanPublisher != null)
@@ -444,7 +422,7 @@ public class GameManager : IGameManager
 
         try
         {
-            await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
+            await _onlineRelayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         }
         catch (Exception ex)
         {
@@ -480,7 +458,7 @@ public class GameManager : IGameManager
     private async Task CleanupOnlineAfterFailure(ITransportPublisher? publisher)
     {
         // Remove and dispose the relay publisher if it was created
-        await RemoveAndDisposeOnlinePublisher(publisher);
+        await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
         _onlineSessionToken = null;
         _onlineRelayOptions = null;
@@ -592,7 +570,7 @@ public class GameManager : IGameManager
         }
 
         // Remove and dispose online relay publisher if it exists
-        await RemoveAndDisposeOnlinePublisher(_onlineRelayPublisher);
+        await _onlineRelayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
 
         _commandLogger?.Dispose();
