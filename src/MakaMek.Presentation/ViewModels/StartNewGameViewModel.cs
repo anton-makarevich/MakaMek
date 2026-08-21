@@ -707,8 +707,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // The local game must only be created once the manager has finished
         // resetting and created the new server game, so it binds to the correct
         // server game id.
-        await _gameManager.InitializeLocalLobby();
-        if (cancellationToken.IsCancellationRequested || _isDisposed)
+        var initialized = await _gameManager.InitializeLocalLobby(cancellationToken);
+        if (!initialized || cancellationToken.IsCancellationRequested || _isDisposed)
             return;
 
         SubscribeAndCreateLocalGame();

@@ -8,8 +8,9 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// <summary>
     /// Initializes a local-only lobby (creates the ServerGame and logging)
     /// without starting any network transport.
+    /// Returns false if the relay room could not be locked or initialization was cancelled.
     /// </summary>
-    Task InitializeLocalLobby();
+    Task<bool> InitializeLocalLobby(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Initializes the lobby asynchronously

@@ -99,6 +99,7 @@ public class StartNewGameViewModelTests
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
+        _gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(Task.FromResult(true));
         // Desktop-like platform capable of LAN hosting, so the default host mode is LAN
         _gameManager.CanStartLanServer.Returns(true);
 
@@ -530,8 +531,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         var gameManager = Substitute.For<IGameManager>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         _gameFactory.CreateClientGame(commandPublisher, Arg.Any<Guid?>()).Returns(_clientGame);
-        var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLocalLobby().Returns(initTcs.Task);
+        var initTcs = new TaskCompletionSource<bool>();
+        gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
@@ -548,11 +549,40 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
 
-        initTcs.SetResult();
+        initTcs.SetResult(true);
         await WaitFor(() => commandPublisher.ReceivedCalls().Any());
 
         commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         sut.LocalGame.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenLocalLobbyInitializationFails_DoesNotSubscribeOrCreateLocalGame()
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher, Arg.Any<Guid?>()).Returns(_clientGame);
+        var initTcs = new TaskCompletionSource<bool>();
+        gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+
+        var sut = new StartNewGameViewModel(
+            gameManager, _unitsLoader,
+            commandPublisher, _dispatcherService,
+            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
+            _mapResourceProvider, _fileService, _botManager,
+            _vmLogger, _localizationService, _mechFactory,
+            _clipboardService,
+            _hubConfigurationProvider,
+            _relayRoomClient);
+
+        sut.AttachHandlers();
+
+        initTcs.SetResult(false);
+        await Task.Delay(100);
+
+        commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+        sut.LocalGame.ShouldBeNull();
     }
 
     [Fact]
@@ -2076,8 +2106,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     {
         var gameManager = Substitute.For<IGameManager>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLocalLobby().Returns(initTcs.Task);
+        var initTcs = new TaskCompletionSource<bool>();
+        gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
@@ -2092,11 +2122,12 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         sut.AttachHandlers();
         sut.DetachHandlers();
-        initTcs.SetResult();
+        initTcs.SetResult(true);
 
         await Task.Delay(100);
 
         commandPublisher.DidNotReceive().Subscribe(Arg.Any<Action<IGameCommand>>());
+        sut.LocalGame.ShouldBeNull();
     }
 
     [Fact]
@@ -2104,8 +2135,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     {
         var gameManager = Substitute.For<IGameManager>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLocalLobby().Returns(initTcs.Task);
+        var initTcs = new TaskCompletionSource<bool>();
+        gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
@@ -2120,7 +2151,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         sut.AttachHandlers();
         sut.Dispose();
-        initTcs.SetResult();
+        initTcs.SetResult(true);
 
         await Task.Delay(100);
 
@@ -2131,8 +2162,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     {
         var gameManager = Substitute.For<IGameManager>();
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var initTcs = new TaskCompletionSource();
-        gameManager.InitializeLocalLobby().Returns(initTcs.Task);
+        var initTcs = new TaskCompletionSource<bool>();
+        gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
         var sut = new StartNewGameViewModel(
@@ -2147,7 +2178,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         sut.AttachHandlers();
         sut.AttachHandlers();
-        initTcs.SetResult();
+        initTcs.SetResult(true);
 
         await Task.Delay(100);
 

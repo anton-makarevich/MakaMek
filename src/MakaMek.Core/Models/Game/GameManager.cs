@@ -99,21 +99,26 @@ public class GameManager : IGameManager
         _commandLogger = null; 
     }
 
-    public async Task InitializeLocalLobby()
+    public async Task<bool> InitializeLocalLobby(CancellationToken cancellationToken = default)
     {
         // Lock an active relay room before resetting, so the room stops accepting
         // joins. On failure keep the publisher and session state intact so a
         // subsequent cleanup attempt can retry the lock.
-        if (!await LockOnlineRoom())
+        if (!await LockOnlineRoom(cancellationToken))
         {
             _logger.LogWarning(
                 "Deferred local lobby initialization: relay room {RoomCode} could not be locked",
                 RoomCode);
-            return;
+            return false;
         }
 
         await ResetForNewGame();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
         CreateServerGameAndSetupLogging();
+        return true;
     }
 
     public async Task InitializeLobby()
