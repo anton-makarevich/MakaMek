@@ -984,6 +984,18 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public override void AttachHandlers()
+    {
+        base.AttachHandlers();
+        // Restore game/command subscriptions if the view was re-attached
+        // (e.g. re-navigation recreated the view and DetachHandlers disposed them).
+        SubscribeToGameChanges();
+        if (_hexConfigurationChangedHandler != null)
+        {
+            HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
+        }
+    }
+
     public override void DetachHandlers()
     {
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;

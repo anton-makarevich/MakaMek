@@ -239,6 +239,11 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
                 }
                 battleMapViewModel.Game = _localGame;
 
+                // The lobby view is done: stop listening to game commands so this VM is not
+                // invoked again during gameplay (re-navigating would recreate the battle map
+                // view and detach its subscriptions). A new join re-subscribes in JoinRoom.
+                _commandPublisher.Unsubscribe(HandleServerCommand);
+
                 await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
                 break;
         }

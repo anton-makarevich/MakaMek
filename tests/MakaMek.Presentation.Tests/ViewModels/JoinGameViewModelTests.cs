@@ -608,6 +608,39 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task HandleCommandInternal_ChangePhaseCommand_UnsubscribesFromGameCommands_WhenNavigating()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var navigationService = Substitute.For<INavigationService>();
+        var localizationService = Substitute.For<ILocalizationService>();
+        var imageService = Substitute.For<IImageService>();
+        var battleMapViewModel = new BattleMapViewModel(imageService,
+            Substitute.For<ITerrainAssetService>(),
+            localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>());
+        navigationService.GetViewModel<BattleMapViewModel>()
+            .Returns(battleMapViewModel);
+
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        _sut.HandleServerCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Deployment
+        });
+
+        // Assert - the lobby VM stops listening to game commands so later phase changes
+        // cannot re-navigate and detach the battle map subscriptions
+        _commandPublisher.Received(1).Unsubscribe(_sut.HandleServerCommand);
+        await navigationService.Received(1).NavigateToViewModelAsync(battleMapViewModel);
+    }
+
+    [Fact]
     public void HandleCommandInternal_ChangePhaseCommand_DoesNotNavigate_WhenEnteringStart()
     {
         // Arrange
