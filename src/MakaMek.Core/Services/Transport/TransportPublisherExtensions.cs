@@ -8,17 +8,18 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// </summary>
 public static class TransportPublisherExtensions
 {
-    /// <summary>
-    /// Removes the publisher from the adapter and disposes it, swallowing any exceptions
-    /// (logging them as warnings) so cleanup never masks an original failure.
-    /// <see cref="ICommandTransportAdapter.RemovePublisher"/> does not dispose the publisher
-    /// nor unhook its command subscription — disposing it is what tears those down.
-    /// </summary>
-    public static async Task RemoveAndDisposeAsync(
-        this ITransportPublisher? publisher,
-        ICommandTransportAdapter adapter,
-        ILogger logger)
+    extension(ITransportPublisher? publisher)
     {
+        /// <summary>
+        /// Removes the publisher from the adapter and disposes it, swallowing any exceptions
+        /// (logging them as warnings) so cleanup never masks an original failure.
+        /// <see cref="ICommandTransportAdapter.RemovePublisher"/> does not dispose the publisher
+        /// nor unhook its command subscription — disposing it is what tears those down.
+        /// </summary>
+        public async Task RemoveAndDisposeAsync(
+            ICommandTransportAdapter adapter,
+            ILogger logger)
+        {
         if (publisher == null) return;
         var publisherType = publisher.GetType().Name;
         try
@@ -37,6 +38,7 @@ public static class TransportPublisherExtensions
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to dispose {PublisherType} during cleanup", publisherType);
+        }
         }
     }
 }
