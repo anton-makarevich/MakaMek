@@ -1,16 +1,28 @@
 # Hub Deployment Guide
 
-How to build, configure, and run the MakaMek relay hub as a containerised service.
+How to deploy, configure, and operate the MakaMek relay hub (the SignalR hub service from the [Sanet.Transport](https://github.com/anton-makarevich/Sanet.Transport) repository) as a containerised service.
+
+## Production Deployment (Oracle Cloud Always Free)
+
+The hub is deployed as an always-on HTTPS/WSS service on an OCI **Always Free** ARM VM, provisioned with Pulumi:
+
+- Infrastructure project: `src/MakaMek.Hub.Infra` (see its [SETUP.md](../../src/MakaMek.Hub.Infra/SETUP.md) for every value you must obtain from OCI and Pulumi).
+- Runtime layout on the VM: Docker Compose stack — [Caddy](https://caddyserver.com/) terminates TLS (auto Let's Encrypt for `demohub.makamek.nl`, access logging disabled so query-string credentials are never recorded) and proxies to the hub container on port 8080.
+- Ad-hoc deployments run through the `Hub Infra (Pulumi)` GitHub workflow (`workflow_dispatch` only — no automatic triggers), backed by the Pulumi Cloud state backend.
+- A `$1/month` budget with an alert rule acts as a tripwire: all resources are Always Free, so it should never trigger.
+- Shape is pinned to `VM.Standard.A1.Flex` 2 OCPU / 12 GB — the current Always Free allowance per tenancy (halved by Oracle in June 2026). Do not increase it.
+
+Operational runbook (deploy, rollback, incident checks): see [SETUP.md §Troubleshooting](../../src/MakaMek.Hub.Infra/SETUP.md).
 
 ## Building the Container
 
-From the repository root:
+CI in the Sanet.Transport repository publishes the image to GHCR; there is normally no need to build it manually. To build locally from the Sanet.Transport repository root:
 
 ```bash
-docker build -f src/MakaMek.Hub/Dockerfile -t makamek-hub .
+docker build -f src/Sanet.Transport.SignalR.Hub/Dockerfile -t sanet-transport-hub .
 ```
 
-The build context is the repo root so the full solution tree is available for `dotnet restore`, `dotnet build`, and `dotnet publish`. The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:10.0` and exposes **port 8080** over plain HTTP (TLS termination is handled by a reverse proxy — see [TLS & Reverse Proxy](#tls--reverse-proxy) below).
+The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:10.0` and exposes **port 8080** over plain HTTP (TLS termination is handled by Caddy — see below).
 
 ## Running the Container
 
@@ -54,21 +66,21 @@ Request and URL logging are disabled by default to prevent credential leakage. S
 
 The `Hub:ApiKey` is the only secret. It must **never** be committed to the repository or embedded in `appsettings.json`. Supply it via one of:
 
-- Environment variable: `Hub__ApiKey=your-key`
+- Environment variable: `Hub__ApiKey=your-key` (this is what the deployment's `.env` file does)
 - Docker/Kubernetes secret mounted as an environment variable
-- Deployment platform secret store (e.g. Fly.io secrets, Hetzner Cloud-init)
+- Deployment platform secret store (the OCI deployment keeps it as an encrypted Pulumi Cloud stack secret)
 
 The `appsettings.Development.json` ships with an empty `Hub:ApiKey` for local development; the key must be supplied via user-secrets or environment variables.
 
 ## TLS & Reverse Proxy
 
-The hub serves plain HTTP. TLS **must** be terminated by a reverse proxy in front of the container. A typical production setup:
+The hub serves plain HTTP. TLS **must** be terminated by a reverse proxy in front of the container. The deployed setup:
 
 ```text
-Internet ──TLS──► Caddy / Nginx / Traefik ──HTTP──► Hub container:8080
+Internet ──TLS──► Caddy :443 ──HTTP──► Hub container:8080
 ```
 
-A lightweight reverse proxy such as [Caddy](https://caddyserver.com/) handles automatic TLS certificate provisioning (Let's Encrypt) and WebSocket upgrades.
+Caddy handles automatic TLS certificate provisioning (Let's Encrypt) and WebSocket upgrades. Its access log is disabled (`log { output discard }`) — see the redaction requirements below for why nothing may ever be logged at this layer.
 
 ### Credential Redaction
 

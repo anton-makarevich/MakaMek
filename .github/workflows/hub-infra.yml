@@ -1,0 +1,62 @@
+name: Hub Infra (Pulumi)
+
+# Ad-hoc deployment of the MakaMek relay hub OCI infrastructure.
+# No automatic triggers: run manually from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Pulumi command"
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - up
+          - destroy
+      stack:
+        description: "Pulumi stack name"
+        type: string
+        required: true
+        default: prod
+      imageTag:
+        description: "Hub image tag (optional, overrides stack config)"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  pulumi:
+    name: pulumi ${{ inputs.command }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Restore Pulumi config (incl. secrets) from the cloud backend and pass
+      # an optional imageTag override without touching stored config.
+      - uses: pulumi/actions@v7
+        with:
+          command: ${{ inputs.command }}
+          stack-name: ${{ github.repository_owner }}/makamek-hub-infra/${{ inputs.stack }}
+          work-dir: src/MakaMek.Hub.Infra
+          upsert: false
+          refresh: true
+          config-map: |
+            {
+              "imageTag": { "value": "${{ inputs.imageTag }}", "secret": false }
+            }
+          expect-no-changes: false
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
