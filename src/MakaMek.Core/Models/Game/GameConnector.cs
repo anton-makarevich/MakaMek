@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -61,7 +62,7 @@ public class GameConnector : IGameConnector
             var adapter = _commandPublisher.Adapter;
             // Remove only the previously owned LAN publisher; other flows' publishers
             // (e.g. the shared local RxTransportPublisher) must stay registered.
-            await RemoveAndDisposePublisher(_lanPublisher, "LAN");
+            await _lanPublisher.RemoveAndDisposeAsync(adapter, _logger);
             _lanPublisher = null;
             adapter.AddPublisher(publisher);
             _lanPublisher = publisher;
@@ -165,7 +166,7 @@ public class GameConnector : IGameConnector
             var adapter = _commandPublisher.Adapter;
             // Remove only the previously owned relay publisher; other flows' publishers
             // (e.g. the shared local RxTransportPublisher) must stay registered.
-            await RemoveAndDisposePublisher(_relayPublisher, "relay");
+            await _relayPublisher.RemoveAndDisposeAsync(adapter, _logger);
             _relayPublisher = null;
             adapter.AddPublisher(publisher);
             adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
@@ -184,7 +185,7 @@ public class GameConnector : IGameConnector
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await RemoveAndDisposePublisher(publisher, "relay");
+            await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
             if (successfulSessionToken != null && successfulDeviceSessionId != null)
                 await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
             throw;
@@ -194,7 +195,7 @@ public class GameConnector : IGameConnector
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.NetworkError,
                 "Failed to connect the client to the relay.");
-            await RemoveAndDisposePublisher(publisher, "relay");
+            await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
             if (successfulSessionToken != null && successfulDeviceSessionId != null)
                 await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
         }
@@ -227,32 +228,6 @@ public class GameConnector : IGameConnector
         _commandPublisher.Adapter.DispatchLocalCommand(command, publisher);
     }
 
-    private async Task RemoveAndDisposePublisher(ITransportPublisher? publisher, string kind)
-    {
-        // Remove and dispose a connector-owned publisher if it was created.
-        // RemovePublisher does not dispose the publisher nor unhook its command
-        // subscription, so disposing it is what tears those down.
-        if (publisher == null) return;
-        try
-        {
-            _commandPublisher.Adapter.RemovePublisher(publisher);
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure
-            _logger.LogWarning(ex, "Failed to remove {PublisherKind} publisher during cleanup", kind);
-        }
-        try
-        {
-            await publisher.DisposeAsync();
-        }
-        catch (Exception ex)
-        {
-            // Swallow to avoid masking the original failure
-            _logger.LogWarning(ex, "Failed to dispose {PublisherKind} publisher during cleanup", kind);
-        }
-    }
-
     public Task Disconnect(CancellationToken cancellationToken = default) =>
         Teardown();
 
@@ -269,24 +244,33 @@ public class GameConnector : IGameConnector
         }
     }
 
+    private void StartPublisherCleanup(out Task relayCleanupTask, out Task lanCleanupTask)
+    {
+        // Start both cleanups synchronously so their synchronous part (removing the
+        // publishers from the adapter) runs before any await; only connector-owned
+        // publishers are touched — other flows' publishers (e.g. the shared local
+        // RxTransportPublisher) must stay registered on the adapter.
+        relayCleanupTask = _relayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
+        _relayPublisher = null;
+        lanCleanupTask = _lanPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
+        _lanPublisher = null;
+    }
+
     private async Task Teardown()
     {
+        StartPublisherCleanup(out var relayCleanupTask, out var lanCleanupTask);
+
         // Best-effort guest leave of the online room, if one is active
         if (_relayRoomClient != null && _roomCode != null && _sessionToken != null && _deviceSessionId != null)
         {
             await RemoveRelayMembership(_roomCode, _sessionToken, _deviceSessionId.Value);
         }
-
-        // Remove and dispose only connector-owned publishers; other flows' publishers
-        // (e.g. the shared local RxTransportPublisher) must stay registered on the adapter.
-        await RemoveAndDisposePublisher(_relayPublisher, "relay");
-        _relayPublisher = null;
         _roomCode = null;
         _sessionToken = null;
         _deviceSessionId = null;
 
-        await RemoveAndDisposePublisher(_lanPublisher, "LAN");
-        _lanPublisher = null;
+        await relayCleanupTask;
+        await lanCleanupTask;
 
         ConnectedHostGameId = null;
         IsConnected = false;
@@ -295,16 +279,35 @@ public class GameConnector : IGameConnector
     public void Dispose()
     {
         if (_isDisposed) return;
-        
+        _isDisposed = true;
+
         IsConnected = false;
         ConnectedHostGameId = null;
-        _relayPublisher = null;
-        _lanPublisher = null;
+
+        // Start both publisher cleanups synchronously (their synchronous part removes
+        // them from the adapter) and clear the fields before awaiting membership removal,
+        // so a subsequent DisposeAsync() never needs to perform publisher cleanup.
+        StartPublisherCleanup(out var relayCleanupTask, out var lanCleanupTask);
+
+        // Best-effort guest leave of the online room, if one is active
+        var membershipRemovalTask =
+            _relayRoomClient != null && _roomCode != null && _sessionToken != null && _deviceSessionId != null
+                ? RemoveRelayMembership(_roomCode, _sessionToken, _deviceSessionId.Value)
+                : Task.CompletedTask;
         _roomCode = null;
         _sessionToken = null;
         _deviceSessionId = null;
-        
-        _isDisposed = true;
+
+        async Task AwaitCleanupAfterMembershipRemoval()
+        {
+            await membershipRemovalTask;
+            await relayCleanupTask;
+            await lanCleanupTask;
+        }
+
+        AwaitCleanupAfterMembershipRemoval().SafeFireAndForget(ex =>
+            _logger.LogError(ex, "Error during GameConnector teardown"));
+
         GC.SuppressFinalize(this);
     }
 

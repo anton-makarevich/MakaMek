@@ -417,7 +417,7 @@ public class GameConnectorTests : IDisposable
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(state => state.ToString()!.Contains(
-                "Failed to dispose relay publisher during cleanup")),
+                "Failed to dispose") && state.ToString()!.Contains("during cleanup")),
             Arg.Any<InvalidOperationException>(),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -677,7 +677,7 @@ public class GameConnectorTests : IDisposable
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(state => state.ToString()!.Contains(
-                "Failed to remove relay publisher during cleanup")),
+                "Failed to remove RelayClientPublisher during cleanup")),
             Arg.Any<InvalidOperationException>(),
             Arg.Any<Func<object, Exception?, string>>());
         _sut.IsConnected.ShouldBeFalse();
@@ -867,6 +867,27 @@ public class GameConnectorTests : IDisposable
         mockAdapter.Received(1).DispatchLocalCommand(
             Arg.Is<GameEndedCommand>(c => c.GameOriginId == hostGameId),
             publisher);
+    }
+
+    [Fact]
+    public async Task Dispose_AfterConnectToLan_RemovesLanPublisherFromAdapter()
+    {
+        // Arrange
+        var lanPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        _transportFactory.CreateAndStartClientPublisher("http://localhost:2439/makamekhub")
+            .Returns(Task.FromResult<ITransportPublisher>(lanPublisher));
+        await _sut.ConnectToLan("http://localhost:2439/makamekhub");
+        _transportAdapter.Received(1).AddPublisher(lanPublisher);
+
+        // Act
+        _sut.Dispose();
+        _sut.Dispose(); // idempotent
+
+        // Assert - the adapter no longer retains the LAN publisher and it is disposed
+        _transportAdapter.Received(1).RemovePublisher(lanPublisher);
+        await ((IAsyncDisposable)lanPublisher).Received(1).DisposeAsync();
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.ConnectedHostGameId.ShouldBeNull();
     }
 
     // ---------- Integration: shared adapter pipeline ----------
