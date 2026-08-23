@@ -144,12 +144,15 @@ return await Deployment.RunAsync(() =>
 
     // ------------------------------------------------------------------
     // Budget tripwire: Always Free A1 is $0, so this must never trigger.
-    // If it does, something billable leaked into the compartment.
+    // If it does, something billable leaked into the tenancy.
+    // NOTE: OCI budgets can only target the root compartment or a
+    // cost-tracking tag — not sub-compartments — so this watches the
+    // whole tenancy rather than just the hub compartment.
     // ------------------------------------------------------------------
     var budget = new Budget("hub-budget", new BudgetArgs
     {
-        CompartmentId = compartment.Id,
-        TargetCompartmentId = compartment.Id,
+        CompartmentId = tenancyOcid,
+        TargetCompartmentId = tenancyOcid,
         Amount = 1,
         ResetPeriod = "MONTHLY",
         BudgetProcessingPeriodStartOffset = 1,
