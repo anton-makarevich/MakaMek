@@ -54,12 +54,12 @@ jobs:
         id: cfg
         shell: bash
         run: |
-          map=$(jq -n '{}')
+          map=$(jq -cn '{}')
           if [ -n "$IMAGE_TAG" ]; then
-            map=$(jq --arg v "$IMAGE_TAG" '. + {imageTag: {value: $v, secret: false}}' <<<"$map")
+            map=$(jq -c --arg v "$IMAGE_TAG" '. + {imageTag: {value: $v, secret: false}}' <<<"$map")
           fi
           if [ -n "$AD_INDEX" ]; then
-            map=$(jq --argjson v "$AD_INDEX" '. + {availabilityDomainIndex: {value: $v, secret: false}}' <<<"$map")
+            map=$(jq -c --argjson v "$AD_INDEX" '. + {availabilityDomainIndex: {value: $v, secret: false}}' <<<"$map")
           fi
           echo "map=$map" >> "$GITHUB_OUTPUT"
         env:
