@@ -32,6 +32,10 @@ jobs:
   pulumi:
     name: pulumi ${{ inputs.command }}
     runs-on: ubuntu-latest
+    # Protected environment: required reviewers gate every run of this job
+    # (including destroy), so arbitrary dispatch inputs cannot mutate infra
+    # without manual approval.
+    environment: makamek-hub-infra
     steps:
       - uses: actions/checkout@v4
 
@@ -48,10 +52,9 @@ jobs:
           work-dir: src/MakaMek.Hub.Infra
           upsert: false
           refresh: true
-          config-map: |
-            {
-              "imageTag": { "value": "${{ inputs.imageTag }}", "secret": false }
-            }
+          # Only override imageTag when a non-empty tag is supplied; an empty
+          # config-map value would otherwise clear the stack-pinned tag.
+          config-map: ${{ inputs.imageTag != '' && format('{{"imageTag": {{"value": "{0}", "secret": false}}}}', inputs.imageTag) || '' }}
           expect-no-changes: false
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

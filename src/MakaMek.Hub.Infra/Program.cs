@@ -20,6 +20,9 @@ return await Deployment.RunAsync(() =>
         imageTag = "latest";
     }
     var alertEmail = config.Require("alertEmail");
+    // Administrator CIDR allowed to reach SSH (port 22). Leave unset (or set
+    // to an empty value) to omit the SSH ingress rule entirely.
+    var sshAdminCidr = config.Get("sshAdminCidr");
     var hubImage = $"ghcr.io/anton-makarevich/sanet.transport/hub:{imageTag}";
 
     // ------------------------------------------------------------------
@@ -66,7 +69,50 @@ return await Deployment.RunAsync(() =>
         },
     });
 
-    // 22 (SSH), 80 (ACME HTTP-01 challenge), 443 (HTTPS/WSS)
+    var ingressRules = new List<SecurityListIngressSecurityRuleArgs>
+    {
+        new()
+        {
+            Protocol = "6",
+            Source = "0.0.0.0/0",
+            SourceType = "CIDR_BLOCK",
+            TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
+            {
+                Min = 80,
+                Max = 80,
+            },
+            Description = "HTTP (ACME challenge)",
+        },
+        new()
+        {
+            Protocol = "6",
+            Source = "0.0.0.0/0",
+            SourceType = "CIDR_BLOCK",
+            TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
+            {
+                Min = 443,
+                Max = 443,
+            },
+            Description = "HTTPS / WSS",
+        },
+    };
+    if (!string.IsNullOrWhiteSpace(sshAdminCidr))
+    {
+        ingressRules.Insert(0, new SecurityListIngressSecurityRuleArgs
+        {
+            Protocol = "6",
+            Source = sshAdminCidr,
+            SourceType = "CIDR_BLOCK",
+            TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
+            {
+                Min = 22,
+                Max = 22,
+            },
+            Description = $"SSH (admin {sshAdminCidr})",
+        });
+    }
+
+    // 22 (SSH, admin CIDR only when configured), 80 (ACME HTTP-01), 443 (HTTPS/WSS)
     var securityList = new SecurityList("hub-security-list", new SecurityListArgs
     {
         CompartmentId = compartment.Id,
@@ -82,45 +128,7 @@ return await Deployment.RunAsync(() =>
                 Description = "Allow all egress",
             },
         },
-        IngressSecurityRules =
-        {
-            new SecurityListIngressSecurityRuleArgs
-            {
-                Protocol = "6",
-                Source = "0.0.0.0/0",
-                SourceType = "CIDR_BLOCK",
-                TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
-                {
-                    Min = 22,
-                    Max = 22,
-                },
-                Description = "SSH",
-            },
-            new SecurityListIngressSecurityRuleArgs
-            {
-                Protocol = "6",
-                Source = "0.0.0.0/0",
-                SourceType = "CIDR_BLOCK",
-                TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
-                {
-                    Min = 80,
-                    Max = 80,
-                },
-                Description = "HTTP (ACME challenge)",
-            },
-            new SecurityListIngressSecurityRuleArgs
-            {
-                Protocol = "6",
-                Source = "0.0.0.0/0",
-                SourceType = "CIDR_BLOCK",
-                TcpOptions = new SecurityListIngressSecurityRuleTcpOptionsArgs
-                {
-                    Min = 443,
-                    Max = 443,
-                },
-                Description = "HTTPS / WSS",
-            },
-        },
+        IngressSecurityRules = ingressRules,
     });
 
     var subnet = new Subnet("hub-subnet", new SubnetArgs

@@ -66,7 +66,18 @@ function Receive-UntilTarget {
     while ([DateTime]::UtcNow -lt $deadline) {
         $segmentEnd = $false
         while (-not $segmentEnd) {
-            $count = $Ws.ReceiveAsync([ArraySegment[byte]]::new($buffer), [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+            $cts = [System.Threading.CancellationTokenSource]::new($deadline - [DateTime]::UtcNow)
+            try {
+                try {
+                    $count = $Ws.ReceiveAsync([ArraySegment[byte]]::new($buffer), $cts.Token).GetAwaiter().GetResult()
+                }
+                catch [OperationCanceledException] {
+                    return $null
+                }
+            }
+            finally {
+                $cts.Dispose()
+            }
             if ($count.MessageType -eq [System.Net.WebSockets.WebSocketMessageType]::Close) {
                 return $null
             }

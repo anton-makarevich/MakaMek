@@ -64,7 +64,7 @@ Request and URL logging are disabled by default to prevent credential leakage. S
 
 ## Secrets
 
-The `Hub:ApiKey` is the only secret. It must **never** be committed to the repository or embedded in `appsettings.json`. Supply it via one of:
+The `Hub:ApiKey` is the only hub **runtime** secret. (Infrastructure and deployment credentials — `PULUMI_ACCESS_TOKEN`, OCI authentication material, and the Pulumi `apiKey` consumed by the infra project's `Program.cs` — are separate deployment-time secrets managed via GitHub/Pulumi secret stores.) The API key itself must **never** be committed to the repository or embedded in `appsettings.json`. Supply it via one of:
 
 - Environment variable: `Hub__ApiKey=your-key` (this is what the deployment's `.env` file does)
 - Docker/Kubernetes secret mounted as an environment variable
