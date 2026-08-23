@@ -54,7 +54,7 @@ jobs:
           refresh: true
           # Only override imageTag when a non-empty tag is supplied; an empty
           # config-map value would otherwise clear the stack-pinned tag.
-          config-map: ${{ inputs.imageTag != '' && format('{{"imageTag": {{"value": "{0}", "secret": false}}}}', inputs.imageTag) || '' }}
+          config-map: "${{ inputs.imageTag != '' && format('{{\"imageTag\": {{\"value\": \"{0}\", \"secret\": false}}}}', inputs.imageTag) || '' }}"
           expect-no-changes: false
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
