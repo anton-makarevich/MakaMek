@@ -24,6 +24,10 @@ on:
         description: "Hub image tag (optional, overrides stack config)"
         type: string
         required: false
+      adIndex:
+        description: "Availability domain index 0-based (optional, overrides stack config)"
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -37,14 +41,38 @@ jobs:
     # without manual approval.
     environment: makamek-hub-infra
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
       # Restore Pulumi config (incl. secrets) from the cloud backend and pass
       # an optional imageTag override without touching stored config.
+      # Build per-run config overrides (never persisted to stack config).
+      - name: Build Pulumi config overrides
+        id: cfg
+        shell: bash
+        run: |
+          map=$(jq -cn '{}')
+          if [ -n "$IMAGE_TAG" ]; then
+            map=$(jq -c --arg v "$IMAGE_TAG" '. + {imageTag: {value: $v, secret: false}}' <<<"$map")
+          fi
+          if [ -n "$AD_INDEX" ]; then
+            map=$(jq -c --argjson v "$AD_INDEX" '. + {availabilityDomainIndex: {value: $v, secret: false}}' <<<"$map")
+          fi
+          # Admin CIDR for SSH ingress lives only in the protected environment
+          # secret SSH_ADMIN_CIDR — never in stack config or the repo. When the
+          # secret is absent the program omits the SSH rule entirely (fail closed).
+          if [ -n "$SSH_ADMIN_CIDR" ]; then
+            map=$(jq -c --arg v "$SSH_ADMIN_CIDR" '. + {sshAdminCidr: {value: $v, secret: false}}' <<<"$map")
+          fi
+          echo "map=$map" >> "$GITHUB_OUTPUT"
+        env:
+          IMAGE_TAG: ${{ inputs.imageTag }}
+          AD_INDEX: ${{ inputs.adIndex }}
+          SSH_ADMIN_CIDR: ${{ secrets.SSH_ADMIN_CIDR }}
+
       - uses: pulumi/actions@v7
         with:
           command: ${{ inputs.command }}
@@ -52,9 +80,7 @@ jobs:
           work-dir: src/MakaMek.Hub.Infra
           upsert: false
           refresh: true
-          # Only override imageTag when a non-empty tag is supplied; an empty
-          # config-map value would otherwise clear the stack-pinned tag.
-          config-map: "${{ inputs.imageTag != '' && format('{{\"imageTag\": {{\"value\": \"{0}\", \"secret\": false}}}}', inputs.imageTag) || '' }}"
+          config-map: ${{ steps.cfg.outputs.map }}
           expect-no-changes: false
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

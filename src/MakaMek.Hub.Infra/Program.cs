@@ -23,6 +23,9 @@ return await Deployment.RunAsync(() =>
     // Administrator CIDR allowed to reach SSH (port 22). Leave unset (or set
     // to an empty value) to omit the SSH ingress rule entirely.
     var sshAdminCidr = config.Get("sshAdminCidr");
+    // Index of the availability domain to launch into (default 0). Free-tier
+    // A1 capacity varies per AD — switch this when one domain is exhausted.
+    var adIndex = config.GetInt32("availabilityDomainIndex") ?? 0;
     var hubImage = $"ghcr.io/anton-makarevich/sanet.transport/hub:{imageTag}";
 
     // ------------------------------------------------------------------
@@ -54,13 +57,16 @@ return await Deployment.RunAsync(() =>
         Enabled = true,
     });
 
-    var defaultRouteTable = new DefaultRouteTable("hub-route-table", new DefaultRouteTableArgs
+    // Explicit route table (not the VCN-default one): adopting the default
+    // table races against VCN propagation and intermittently 404s.
+    var routeTable = new RouteTable("hub-route-table", new RouteTableArgs
     {
         CompartmentId = compartment.Id,
-        ManageDefaultResourceId = vcn.Id,
+        VcnId = vcn.Id,
+        DisplayName = "makamek-hub-public-rt",
         RouteRules =
         {
-            new DefaultRouteTableRouteRuleArgs
+            new RouteTableRouteRuleArgs
             {
                 Destination = "0.0.0.0/0",
                 DestinationType = "CIDR_BLOCK",
@@ -138,18 +144,21 @@ return await Deployment.RunAsync(() =>
         CidrBlock = "10.0.1.0/24",
         DisplayName = "makamek-hub-public",
         DnsLabel = "hublic",
-        RouteTableId = defaultRouteTable.Id,
+        RouteTableId = routeTable.Id,
         SecurityListIds = { securityList.Id },
     });
 
     // ------------------------------------------------------------------
     // Budget tripwire: Always Free A1 is $0, so this must never trigger.
-    // If it does, something billable leaked into the compartment.
+    // If it does, something billable leaked into the tenancy.
+    // NOTE: OCI budgets can only target the root compartment or a
+    // cost-tracking tag — not sub-compartments — so this watches the
+    // whole tenancy rather than just the hub compartment.
     // ------------------------------------------------------------------
     var budget = new Budget("hub-budget", new BudgetArgs
     {
-        CompartmentId = compartment.Id,
-        TargetCompartmentId = compartment.Id,
+        CompartmentId = tenancyOcid,
+        Targets = { tenancyOcid },
         Amount = 1,
         ResetPeriod = "MONTHLY",
         BudgetProcessingPeriodStartOffset = 1,
@@ -178,10 +187,24 @@ return await Deployment.RunAsync(() =>
         GetAvailabilityDomains.Invoke(new GetAvailabilityDomainsInvokeArgs
         {
             CompartmentId = cid,
-        }).Apply(ads => ads.AvailabilityDomains.Length > 0
-            ? ads.AvailabilityDomains[0].Name
-            : throw new InvalidOperationException(
-                "No availability domains found in compartment.")));
+        }).Apply(ads =>
+        {
+            if (ads.AvailabilityDomains.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No availability domains found in compartment.");
+            }
+
+            var index = adIndex;
+            if (index >= ads.AvailabilityDomains.Length)
+            {
+                throw new InvalidOperationException(
+                    $"availabilityDomainIndex {index} is out of range; " +
+                    $"{ads.AvailabilityDomains.Length} domain(s) available.");
+            }
+
+            return ads.AvailabilityDomains[index].Name;
+        }));
 
     // Latest Ubuntu 22.04 aarch64 image compatible with the A1 shape.
     var ubuntuImage = compartment.Id.Apply(cid =>
@@ -200,6 +223,9 @@ return await Deployment.RunAsync(() =>
 
     var userData = RenderCloudInit(domain, apiKey, hubImage);
 
+    // Out-of-host-capacity is the norm for free-tier A1 shapes; the provider
+    // treats it as retryable and keeps re-attempting the launch until the
+    // create timeout expires, so give it a long window to catch freed capacity.
     var instance = new Instance("hub-instance", new InstanceArgs
     {
         AvailabilityDomain = availabilityDomain,
@@ -215,7 +241,6 @@ return await Deployment.RunAsync(() =>
             SourceType = "image",
             SourceId = ubuntuImage,
         },
-        SubnetId = subnet.Id,
         DisplayName = "makamek-hub-vm",
         Metadata =
         {
@@ -224,8 +249,15 @@ return await Deployment.RunAsync(() =>
         },
         CreateVnicDetails = new InstanceCreateVnicDetailsArgs
         {
+            SubnetId = subnet.Id,
             AssignPublicIp = "false", // reserved IP is attached below
-            HostnameLabel = "makamek-hub",
+        },
+    }, new CustomResourceOptions
+    {
+        CustomTimeouts = new CustomTimeouts
+        {
+            Create = TimeSpan.FromMinutes(60),
+            Update = TimeSpan.FromMinutes(60),
         },
     });
 
