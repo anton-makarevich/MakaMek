@@ -251,7 +251,6 @@ return await Deployment.RunAsync(() =>
         {
             SubnetId = subnet.Id,
             AssignPublicIp = "false", // reserved IP is attached below
-            HostnameLabel = "makamek-hub",
         },
     }, new CustomResourceOptions
     {
