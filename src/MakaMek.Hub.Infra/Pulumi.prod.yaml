@@ -1,0 +1,8 @@
+config:
+  makamek-hub-infra:apiKey:
+    secure: AAABAAH4kSU2hOSWyWaLsd3W3GD0KdVb5Jhu2o3WGTVwRRP7FH8Qzgt3V2Jm/kUhZL5ADRTwF8uOszfNn3dYlh3uv8k=
+  makamek-hub-infra:alertEmail: anton.makarevich@gmail.com
+  makamek-hub-infra:sshPublicKey: |
+    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDa2+tnQr1/ahsN/Qm/33JOZ/r0iO8r6JQMwxQwN8Ph5iuoWqBRiCILgeKuaI9tLtvZhbT6rSG5/DIgESFyNThNLqp6FMdtXXY9NWxcO4RU9z/bspUZqioQ0E+9qx+e7Kdhb7FB7wj+bXZwOkLd9BNTavA1zYDcTt33WgHtYEt6eETihpWwXi78xmTjzExQkp/HzytYLWCeQTCkegWj7uMdAs1FvkKh0nH3vxwTEdf5cEYIc86Mq90LoVK+T/HTfQecvRuuLWFhd7e/yaxwrA1IoWM8wx4TLsB9j5fNSw+2WyQ9xq91M4kS6DZsDK916wT0iFYO4CBDYl5OqUAc6m3eh/6H/yuk+JAqnlMUzP3Mtii8v6ie8OdNuUgB/HHJ6uXIEd1thDeg6jK9FsmJNdFHXz46lzM6LazXFvnTNat49EG+ZR356HdARgRpSd+T3dmfDRD19Yv8QeoTIubKri7G/AutaYKv0eCwhL0zOJGfBvuCZL1+YHfvy23TTYwt0lk= anton@AnteckPC
+  makamek-hub-infra:domain: demohub.makamek.nl
+  makamek-hub-infra:ociTenancyOcid: ocid1.tenancy.oc1..aaaaaaaadoydjfu3bu54445co73cfbov2wsnaij3anqwcz7z2mvpkrddzp6q

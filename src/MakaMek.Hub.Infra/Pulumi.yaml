@@ -1,0 +1,8 @@
+﻿name: makamek-hub-infra
+runtime: dotnet
+description: OCI Always Free infrastructure for the MakaMek SignalR relay hub (Caddy TLS + Docker Compose)
+config:
+  pulumi:tags:
+    value:
+      project: makamek
+      component: relay-hub

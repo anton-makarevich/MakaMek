@@ -1,5 +1,6 @@
 [tools]
 "gh" = "2.96.0"
+"pulumi" = "3.259.0"
 "uv" = "0.12.0"
 
 [tasks.install-skills]
