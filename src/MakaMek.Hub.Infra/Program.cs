@@ -23,6 +23,9 @@ return await Deployment.RunAsync(() =>
     // Administrator CIDR allowed to reach SSH (port 22). Leave unset (or set
     // to an empty value) to omit the SSH ingress rule entirely.
     var sshAdminCidr = config.Get("sshAdminCidr");
+    // Index of the availability domain to launch into (default 0). Free-tier
+    // A1 capacity varies per AD — switch this when one domain is exhausted.
+    var adIndex = config.GetInt32("availabilityDomainIndex") ?? 0;
     var hubImage = $"ghcr.io/anton-makarevich/sanet.transport/hub:{imageTag}";
 
     // ------------------------------------------------------------------
@@ -184,10 +187,24 @@ return await Deployment.RunAsync(() =>
         GetAvailabilityDomains.Invoke(new GetAvailabilityDomainsInvokeArgs
         {
             CompartmentId = cid,
-        }).Apply(ads => ads.AvailabilityDomains.Length > 0
-            ? ads.AvailabilityDomains[0].Name
-            : throw new InvalidOperationException(
-                "No availability domains found in compartment.")));
+        }).Apply(ads =>
+        {
+            if (ads.AvailabilityDomains.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No availability domains found in compartment.");
+            }
+
+            var index = adIndex;
+            if (index >= ads.AvailabilityDomains.Length)
+            {
+                throw new InvalidOperationException(
+                    $"availabilityDomainIndex {index} is out of range; " +
+                    $"{ads.AvailabilityDomains.Length} domain(s) available.");
+            }
+
+            return ads.AvailabilityDomains[index].Name;
+        }));
 
     // Latest Ubuntu 22.04 aarch64 image compatible with the A1 shape.
     var ubuntuImage = compartment.Id.Apply(cid =>
@@ -206,6 +223,9 @@ return await Deployment.RunAsync(() =>
 
     var userData = RenderCloudInit(domain, apiKey, hubImage);
 
+    // Out-of-host-capacity is the norm for free-tier A1 shapes; the provider
+    // treats it as retryable and keeps re-attempting the launch until the
+    // create timeout expires, so give it a long window to catch freed capacity.
     var instance = new Instance("hub-instance", new InstanceArgs
     {
         AvailabilityDomain = availabilityDomain,
@@ -232,6 +252,13 @@ return await Deployment.RunAsync(() =>
         {
             AssignPublicIp = "false", // reserved IP is attached below
             HostnameLabel = "makamek-hub",
+        },
+    }, new CustomResourceOptions
+    {
+        CustomTimeouts = new CustomTimeouts
+        {
+            Create = TimeSpan.FromMinutes(60),
+            Update = TimeSpan.FromMinutes(60),
         },
     });
 
