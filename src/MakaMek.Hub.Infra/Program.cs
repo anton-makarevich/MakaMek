@@ -54,13 +54,16 @@ return await Deployment.RunAsync(() =>
         Enabled = true,
     });
 
-    var defaultRouteTable = new DefaultRouteTable("hub-route-table", new DefaultRouteTableArgs
+    // Explicit route table (not the VCN-default one): adopting the default
+    // table races against VCN propagation and intermittently 404s.
+    var routeTable = new RouteTable("hub-route-table", new RouteTableArgs
     {
         CompartmentId = compartment.Id,
-        ManageDefaultResourceId = vcn.Id,
+        VcnId = vcn.Id,
+        DisplayName = "makamek-hub-public-rt",
         RouteRules =
         {
-            new DefaultRouteTableRouteRuleArgs
+            new RouteTableRouteRuleArgs
             {
                 Destination = "0.0.0.0/0",
                 DestinationType = "CIDR_BLOCK",
@@ -138,7 +141,7 @@ return await Deployment.RunAsync(() =>
         CidrBlock = "10.0.1.0/24",
         DisplayName = "makamek-hub-public",
         DnsLabel = "hublic",
-        RouteTableId = defaultRouteTable.Id,
+        RouteTableId = routeTable.Id,
         SecurityListIds = { securityList.Id },
     });
 
