@@ -6,30 +6,22 @@ namespace Sanet.MakaMek.Avalonia.DI;
 
 /// <summary>
 /// Resolves the built-in Demo hub connection defaults.
-/// Values embedded at build time (via the DemoHubBaseUrl/DemoHubApiKey MSBuild properties,
-/// emitted as AssemblyMetadata) are used unless overridden by environment variables
-/// (MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY), which take precedence for local development.
+/// Values are embedded at build time via the DemoHubBaseUrl/DemoHubApiKey MSBuild properties,
+/// emitted as AssemblyMetadata. For development, add/edit hubs in the app Settings instead of
+/// overriding these values.
 /// Note: build-time values are extractable from client binaries by design; the demo hub
 /// relies on rate limiting and short-lived ticket auth for abuse protection.
 /// </summary>
 public static class DemoHubDefaults
 {
-    private const string BaseUrlEnvVar = "MAKAMEK_RELAY_BASE_URL";
-    private const string ApiKeyEnvVar = "MAKAMEK_RELAY_API_KEY";
     private const string DefaultLocalBaseUrl = "http://localhost:8080";
 
     private static readonly Lazy<string?> BuildTimeBaseUrl = new(() => ReadMetadata("DemoHubBaseUrl"));
     private static readonly Lazy<string?> BuildTimeApiKey = new(() => ReadMetadata("DemoHubApiKey"));
 
-    public static string BaseUrl =>
-        Environment.GetEnvironmentVariable(BaseUrlEnvVar)
-        ?? BuildTimeBaseUrl.Value
-        ?? DefaultLocalBaseUrl;
+    public static string BaseUrl => BuildTimeBaseUrl.Value ?? DefaultLocalBaseUrl;
 
-    public static string ApiKey =>
-        Environment.GetEnvironmentVariable(ApiKeyEnvVar)
-        ?? BuildTimeApiKey.Value
-        ?? string.Empty;
+    public static string ApiKey => BuildTimeApiKey.Value ?? string.Empty;
 
     private static string? ReadMetadata(string key)
     {

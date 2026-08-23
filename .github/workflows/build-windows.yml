@@ -1,5 +1,9 @@
 name: Build and Package Windows App (Linux Runner)
 
+env:
+  DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+  DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
+
 on:
   push:
     branches:
@@ -38,8 +42,8 @@ jobs:
           dotnet publish -c Release -r win-x64 \
             --self-contained true \
             -p:PublishSingleFile=true \
-            -p:DemoHubBaseUrl=https://demohub.makamek.nl \
-            -p:DemoHubApiKey=${{ secrets.DEMOHUB_API_KEY }} \
+            -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DemoHubApiKey="$DEMOHUB_API_KEY" \
             -o publish
 
       - name: Setup jsign

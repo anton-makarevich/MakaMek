@@ -141,8 +141,8 @@ public static class CoreServices
         services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
 
         // Shared in-memory configuration source that populates the RelayClient section for all heads.
-        // Defaults come from build-time-embedded Demo hub values (DemoHubDefaults); override via
-        // MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY for local development.
+        // Defaults come from build-time-embedded Demo hub values (DemoHubDefaults); use the
+        // in-app Settings to add/edit hubs for development.
         services.AddSingleton<IConfiguration>(_ =>
         {
             var configuration = new ConfigurationBuilder()

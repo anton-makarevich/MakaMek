@@ -1,5 +1,9 @@
 name: Build and Release Android APK
 
+env:
+  DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+  DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
+
 on:
   push:
     branches:
@@ -25,7 +29,9 @@ jobs:
 
       - name: Build Android APK
         run: |
-          dotnet build src/MakaMek.Avalonia/MakaMek.Avalonia.Android/MakaMek.Avalonia.Android.csproj -c Release
+          dotnet build src/MakaMek.Avalonia/MakaMek.Avalonia.Android/MakaMek.Avalonia.Android.csproj -c Release \
+            -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DemoHubApiKey="$DEMOHUB_API_KEY"
 
       # For tagged releases only
       - name: Create Release
