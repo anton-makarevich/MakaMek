@@ -8,6 +8,7 @@
         <RootNamespace>Sanet.MakaMek.Hub.Infra</RootNamespace>
         <!-- Pulumi projects are never packed; suppress packaging-only props inherited from Directory.Build.props -->
         <IsPackable>false</IsPackable>
+        <AssemblyName>Sanet.MakaMek.Hub.Infra</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
