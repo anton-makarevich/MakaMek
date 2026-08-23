@@ -155,7 +155,7 @@ return await Deployment.RunAsync(() =>
     var budget = new Budget("hub-budget", new BudgetArgs
     {
         CompartmentId = tenancyOcid,
-        TargetCompartmentId = tenancyOcid,
+        Targets = { tenancyOcid },
         Amount = 1,
         ResetPeriod = "MONTHLY",
         BudgetProcessingPeriodStartOffset = 1,
