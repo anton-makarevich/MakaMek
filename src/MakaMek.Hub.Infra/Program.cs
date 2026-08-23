@@ -241,7 +241,6 @@ return await Deployment.RunAsync(() =>
             SourceType = "image",
             SourceId = ubuntuImage,
         },
-        SubnetId = subnet.Id,
         DisplayName = "makamek-hub-vm",
         Metadata =
         {
@@ -250,6 +249,7 @@ return await Deployment.RunAsync(() =>
         },
         CreateVnicDetails = new InstanceCreateVnicDetailsArgs
         {
+            SubnetId = subnet.Id,
             AssignPublicIp = "false", // reserved IP is attached below
             HostnameLabel = "makamek-hub",
         },
