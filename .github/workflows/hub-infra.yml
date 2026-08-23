@@ -61,10 +61,17 @@ jobs:
           if [ -n "$AD_INDEX" ]; then
             map=$(jq -c --argjson v "$AD_INDEX" '. + {availabilityDomainIndex: {value: $v, secret: false}}' <<<"$map")
           fi
+          # Admin CIDR for SSH ingress lives only in the protected environment
+          # secret SSH_ADMIN_CIDR — never in stack config or the repo. When the
+          # secret is absent the program omits the SSH rule entirely (fail closed).
+          if [ -n "$SSH_ADMIN_CIDR" ]; then
+            map=$(jq -c --arg v "$SSH_ADMIN_CIDR" '. + {sshAdminCidr: {value: $v, secret: false}}' <<<"$map")
+          fi
           echo "map=$map" >> "$GITHUB_OUTPUT"
         env:
           IMAGE_TAG: ${{ inputs.imageTag }}
           AD_INDEX: ${{ inputs.adIndex }}
+          SSH_ADMIN_CIDR: ${{ secrets.SSH_ADMIN_CIDR }}
 
       - uses: pulumi/actions@v7
         with:

@@ -25,5 +25,11 @@ runcmd:
   - apt-get update
   - DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   - systemctl enable --now docker
+  # OCI Ubuntu images ship a restrictive host iptables ruleset (REJECT all
+  # inbound except SSH/ICMP) that blocks 80/443 regardless of the VCN security
+  # list. Open HTTP(S) explicitly and persist across reboots.
+  - iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+  - iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  - command -v netfilter-persistent >/dev/null && netfilter-persistent save || true
   - mkdir -p /opt/makamek-hub
   - cd /opt/makamek-hub && docker compose pull && docker compose up -d
