@@ -35,7 +35,10 @@ jobs:
       - name: Build Linux App
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish -c Release -r linux-x64 --self-contained true -o publish
+          dotnet publish -c Release -r linux-x64 --self-contained true \
+            -p:DemoHubBaseUrl=https://demohub.makamek.nl \
+            -p:DemoHubApiKey=${{ secrets.DEMOHUB_API_KEY }} \
+            -o publish
           vpk pack --packId nl.sanetby.makamek \
                    --packVersion ${{ env.APP_VERSION }} \
                    --packDir publish \

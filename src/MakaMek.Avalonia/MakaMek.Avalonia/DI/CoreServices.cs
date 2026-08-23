@@ -1,6 +1,5 @@
-using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Configuration; 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
@@ -142,16 +141,15 @@ public static class CoreServices
         services.AddSingleton<IPlatformService, AvaloniaPlatformService>();
 
         // Shared in-memory configuration source that populates the RelayClient section for all heads.
-        // Defaults to a locally deployed Hub; override via MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY.
+        // Defaults come from build-time-embedded Demo hub values (DemoHubDefaults); override via
+        // MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY for local development.
         services.AddSingleton<IConfiguration>(_ =>
         {
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [RelayClientOptions.SectionName + ":BaseUrl"] =
-                        Environment.GetEnvironmentVariable("MAKAMEK_RELAY_BASE_URL") ?? "http://localhost:8080",
-                    [RelayClientOptions.SectionName + ":ApiKey"] =
-                        Environment.GetEnvironmentVariable("MAKAMEK_RELAY_API_KEY") ?? string.Empty
+                    [RelayClientOptions.SectionName + ":BaseUrl"] = DemoHubDefaults.BaseUrl,
+                    [RelayClientOptions.SectionName + ":ApiKey"] = DemoHubDefaults.ApiKey
                 })
                 .Build();
             return configuration;
