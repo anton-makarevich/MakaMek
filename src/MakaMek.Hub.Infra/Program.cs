@@ -179,7 +179,7 @@ return await Deployment.RunAsync(() =>
         {
             CompartmentId = cid,
         }).Apply(ads => ads.AvailabilityDomains.Length > 0
-            ? ads.AvailabilityDomains[0].Name!
+            ? ads.AvailabilityDomains[0].Name
             : throw new InvalidOperationException(
                 "No availability domains found in compartment.")));
 
@@ -194,7 +194,7 @@ return await Deployment.RunAsync(() =>
             SortBy = "TIMECREATED",
             SortOrder = "DESC",
         }).Apply(images => images.Images.Length > 0
-            ? images.Images[0].Id!
+            ? images.Images[0].Id
             : throw new InvalidOperationException(
                 "No Ubuntu 22.04 A1-compatible image found.")));
 
@@ -236,7 +236,7 @@ return await Deployment.RunAsync(() =>
             CompartmentId = values.Item1,
             InstanceId = values.Item2,
         }).Apply(attachments => attachments.VnicAttachments.Length > 0
-            ? attachments.VnicAttachments[0].VnicId!
+            ? attachments.VnicAttachments[0].VnicId
             : throw new InvalidOperationException("Instance has no VNIC attachment.")));
 
     var privateIp = primaryVnicId.Apply(vnicId =>
@@ -244,7 +244,7 @@ return await Deployment.RunAsync(() =>
         {
             VnicId = vnicId,
         }).Apply(ips => ips.PrivateIps.Length > 0
-            ? ips.PrivateIps[0].Id!
+            ? ips.PrivateIps[0].Id
             : throw new InvalidOperationException("Primary VNIC has no private IP.")));
 
     var reservedIp = new PublicIp("hub-reserved-ip", new PublicIpArgs
