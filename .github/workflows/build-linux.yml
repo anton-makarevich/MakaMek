@@ -1,5 +1,8 @@
 name: Build and Package Linux App
 
+env:
+  DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+
 on:
   push:
     branches:
@@ -33,9 +36,14 @@ jobs:
           dotnet tool install --global vpk
 
       - name: Build Linux App
+        env:
+          DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish -c Release -r linux-x64 --self-contained true -o publish
+          dotnet publish -c Release -r linux-x64 --self-contained true \
+            -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DemoHubApiKey="$DEMOHUB_API_KEY" \
+            -o publish
           vpk pack --packId nl.sanetby.makamek \
                    --packVersion ${{ env.APP_VERSION }} \
                    --packDir publish \
