@@ -20,6 +20,11 @@ return await Deployment.RunAsync(() =>
         imageTag = "latest";
     }
     var alertEmail = config.Require("alertEmail");
+    // Space-separated list of browser front-end origins allowed to call the hub
+    // cross-origin. Caddy answers their OPTIONS preflights and echoes
+    // Access-Control-Allow-Origin only for these origins. Optional; when unset,
+    // no CORS headers are emitted (same-origin / native clients still work).
+    var allowedOrigins = config.Get("allowedOrigins");
     // Administrator CIDR allowed to reach SSH (port 22). Leave unset (or set
     // to an empty value) to omit the SSH ingress rule entirely.
     var sshAdminCidr = config.Get("sshAdminCidr");
@@ -221,7 +226,7 @@ return await Deployment.RunAsync(() =>
             : throw new InvalidOperationException(
                 "No Ubuntu 22.04 A1-compatible image found.")));
 
-    var userData = RenderCloudInit(domain, apiKey, hubImage);
+    var userData = RenderCloudInit(domain, apiKey, hubImage, allowedOrigins);
 
     // Out-of-host-capacity is the norm for free-tier A1 shapes; the provider
     // treats it as retryable and keeps re-attempting the launch until the
@@ -297,11 +302,13 @@ return await Deployment.RunAsync(() =>
 });
 
 // Renders the cloud-init user-data by substituting placeholders in the embedded templates.
-static Output<string> RenderCloudInit(string domain, Output<string> apiKey, string hubImage)
+static Output<string> RenderCloudInit(string domain, Output<string> apiKey, string hubImage, string? allowedOrigins)
 {
     var dockerCompose = ReadTemplate("docker-compose.yml.tpl")
         .Replace("__HUB_IMAGE__", hubImage);
-    var caddyfile = ReadTemplate("Caddyfile.tpl").Replace("__DOMAIN__", domain);
+    var caddyfile = ReadTemplate("Caddyfile.tpl")
+        .Replace("__DOMAIN__", domain)
+        .Replace("__ALLOWED_ORIGINS__", allowedOrigins ?? string.Empty);
 
     return apiKey.Apply(key => ReadTemplate("cloud-init.yaml.tpl")
         .Replace("__DOCKER_COMPOSE__", Indent(dockerCompose, 6))
