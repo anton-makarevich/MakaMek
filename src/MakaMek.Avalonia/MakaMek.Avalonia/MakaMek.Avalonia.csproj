@@ -59,6 +59,8 @@
         <EmbeddedResource Include="Resources\Maps\hills.json" />
     </ItemGroup>
 
+    <Import Project="DemoHubDefaults.targets" />
+
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build">
         <Message Importance="high" Text="Project: $(MSBuildProjectName)" />

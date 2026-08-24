@@ -20,12 +20,6 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
-    <!-- Build-time-embedded Demo hub defaults (set via -p:DemoHubBaseUrl / -p:DemoHubApiKey in CI) -->
-    <ItemGroup Condition="'$(DemoHubApiKey)' != ''">
-        <AssemblyMetadata Include="DemoHubBaseUrl" Value="$(DemoHubBaseUrl)" />
-        <AssemblyMetadata Include="DemoHubApiKey" Value="$(DemoHubApiKey)" />
-    </ItemGroup>
-
     <ItemGroup>
         <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.11" />
         <PackageReference Include="Sanet.MVVM.ExternalNavigation.Desktop" Version="1.6.0" />

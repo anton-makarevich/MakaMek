@@ -8,12 +8,6 @@
         <RootNamespace>Sanet.MakaMek.Avalonia.iOS</RootNamespace>
     </PropertyGroup>
 
-    <!-- Build-time-embedded Demo hub defaults (set via -p:DemoHubBaseUrl / -p:DemoHubApiKey in CI) -->
-    <ItemGroup Condition="'$(DemoHubApiKey)' != ''">
-        <AssemblyMetadata Include="DemoHubBaseUrl" Value="$(DemoHubBaseUrl)" />
-        <AssemblyMetadata Include="DemoHubApiKey" Value="$(DemoHubApiKey)" />
-    </ItemGroup>
-
     <ItemGroup>
         <PackageReference Include="Avalonia.iOS" Version="12.1.1" />
         <PackageReference Include="Sanet.MVVM.ExternalNavigation.iOS" Version="1.6.0" />
