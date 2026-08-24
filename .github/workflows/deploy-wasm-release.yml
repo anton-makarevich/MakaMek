@@ -46,4 +46,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net10.0-browser/publish/wwwroot --project-name=makamek-play --branch=main --commit-dirty=true
+          command: pages deploy src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net10.0-browser/publish/wwwroot --project-name=makamek --branch=main --commit-dirty=true
