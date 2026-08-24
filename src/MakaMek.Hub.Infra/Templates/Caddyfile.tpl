@@ -8,11 +8,13 @@
 # allowlist.
 __DOMAIN__ {
 # __CORS_BEGIN__
-    @allowed_origin header Origin __ALLOWED_ORIGINS__
+    # The allowlist is rendered as an anchored regex; the Caddyfile `header`
+    # matcher cannot express an OR-list of origins in a single token.
+    @allowed_origin header_regexp Origin `__ALLOWED_ORIGINS_REGEX__`
 
     @cors_preflight {
         method OPTIONS
-        header Origin __ALLOWED_ORIGINS__
+        header_regexp Origin `__ALLOWED_ORIGINS_REGEX__`
     }
 
     handle @cors_preflight {

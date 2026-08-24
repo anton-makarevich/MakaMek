@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Pulumi;
 using Pulumi.Oci.Budget;
 using Pulumi.Oci.Core;
@@ -315,8 +316,10 @@ static Output<string> RenderCloudInit(string domain, Output<string> apiKey, stri
 }
 
 // Renders the Caddyfile. The CORS section is only kept when allowedOrigins is
-// configured; substituting an empty value would otherwise turn the
-// `header Origin` matchers into presence-only matchers (any Origin matches).
+// configured; substituting an empty value would otherwise leave dangling
+// matchers. Origins are rendered as an anchored alternation regex because the
+// Caddyfile `header` matcher treats multiple tokens as field/value pairs
+// rather than an OR-list.
 static string RenderCaddyfile(string domain, string? allowedOrigins)
 {
     var caddyfile = ReadTemplate("Caddyfile.tpl");
@@ -338,10 +341,14 @@ static string RenderCaddyfile(string domain, string? allowedOrigins)
     }
     else
     {
+        var originRegex =
+            "^(" + string.Join("|", allowedOrigins
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(Regex.Escape)) + ")$";
         caddyfile = caddyfile
             .Replace(beginMarker + "\n", string.Empty)
             .Replace("\n" + endMarker, string.Empty)
-            .Replace("__ALLOWED_ORIGINS__", allowedOrigins.Trim());
+            .Replace("__ALLOWED_ORIGINS_REGEX__", originRegex);
     }
     return caddyfile.Replace("__DOMAIN__", domain);
 }
