@@ -20,7 +20,7 @@ __DOMAIN__ {
     handle @cors_preflight {
         header Access-Control-Allow-Origin "{header.Origin}"
         header Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-        header Access-Control-Allow-Headers "Content-Type, x-api-key"
+        header Access-Control-Allow-Headers "Content-Type, x-api-key, Session-Token"
         header Access-Control-Max-Age "86400"
         header Vary "Origin"
         respond 204
