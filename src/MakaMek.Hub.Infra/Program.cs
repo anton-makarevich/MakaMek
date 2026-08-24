@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Pulumi;
 using Pulumi.Oci.Budget;
 using Pulumi.Oci.Core;
@@ -20,6 +21,11 @@ return await Deployment.RunAsync(() =>
         imageTag = "latest";
     }
     var alertEmail = config.Require("alertEmail");
+    // Space-separated list of browser front-end origins allowed to call the hub
+    // cross-origin. Caddy answers their OPTIONS preflights and echoes
+    // Access-Control-Allow-Origin only for these origins. Optional; when unset,
+    // no CORS headers are emitted (same-origin / native clients still work).
+    var allowedOrigins = config.Get("allowedOrigins");
     // Administrator CIDR allowed to reach SSH (port 22). Leave unset (or set
     // to an empty value) to omit the SSH ingress rule entirely.
     var sshAdminCidr = config.Get("sshAdminCidr");
@@ -221,7 +227,7 @@ return await Deployment.RunAsync(() =>
             : throw new InvalidOperationException(
                 "No Ubuntu 22.04 A1-compatible image found.")));
 
-    var userData = RenderCloudInit(domain, apiKey, hubImage);
+    var userData = RenderCloudInit(domain, apiKey, hubImage, allowedOrigins);
 
     // Out-of-host-capacity is the norm for free-tier A1 shapes; the provider
     // treats it as retryable and keeps re-attempting the launch until the
@@ -297,16 +303,54 @@ return await Deployment.RunAsync(() =>
 });
 
 // Renders the cloud-init user-data by substituting placeholders in the embedded templates.
-static Output<string> RenderCloudInit(string domain, Output<string> apiKey, string hubImage)
+static Output<string> RenderCloudInit(string domain, Output<string> apiKey, string hubImage, string? allowedOrigins)
 {
     var dockerCompose = ReadTemplate("docker-compose.yml.tpl")
         .Replace("__HUB_IMAGE__", hubImage);
-    var caddyfile = ReadTemplate("Caddyfile.tpl").Replace("__DOMAIN__", domain);
+    var caddyfile = RenderCaddyfile(domain, allowedOrigins);
 
     return apiKey.Apply(key => ReadTemplate("cloud-init.yaml.tpl")
         .Replace("__DOCKER_COMPOSE__", Indent(dockerCompose, 6))
         .Replace("__CADDYFILE__", Indent(caddyfile, 6))
         .Replace("__HUB_API_KEY__", key));
+}
+
+// Renders the Caddyfile. The CORS section is only kept when allowedOrigins is
+// configured; substituting an empty value would otherwise leave dangling
+// matchers. Origins are rendered as an anchored alternation regex because the
+// Caddyfile `header` matcher treats multiple tokens as field/value pairs
+// rather than an OR-list.
+static string RenderCaddyfile(string domain, string? allowedOrigins)
+{
+    var caddyfile = ReadTemplate("Caddyfile.tpl");
+    const string beginMarker = "# __CORS_BEGIN__";
+    const string endMarker = "# __CORS_END__";
+    if (string.IsNullOrWhiteSpace(allowedOrigins))
+    {
+        var start = caddyfile.IndexOf(beginMarker, StringComparison.Ordinal);
+        var end = caddyfile.IndexOf(endMarker, StringComparison.Ordinal);
+        if (start >= 0 && end > start)
+        {
+            end += endMarker.Length;
+            if (end < caddyfile.Length && caddyfile[end] == '\n')
+            {
+                end++;
+            }
+            caddyfile = caddyfile.Remove(start, end - start);
+        }
+    }
+    else
+    {
+        var originRegex =
+            "^(" + string.Join("|", allowedOrigins
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(Regex.Escape)) + ")$";
+        caddyfile = caddyfile
+            .Replace(beginMarker + "\n", string.Empty)
+            .Replace("\n" + endMarker, string.Empty)
+            .Replace("__ALLOWED_ORIGINS_REGEX__", originRegex);
+    }
+    return caddyfile.Replace("__DOMAIN__", domain);
 }
 
 static string ReadTemplate(string name)
