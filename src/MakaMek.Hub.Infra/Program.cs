@@ -306,14 +306,44 @@ static Output<string> RenderCloudInit(string domain, Output<string> apiKey, stri
 {
     var dockerCompose = ReadTemplate("docker-compose.yml.tpl")
         .Replace("__HUB_IMAGE__", hubImage);
-    var caddyfile = ReadTemplate("Caddyfile.tpl")
-        .Replace("__DOMAIN__", domain)
-        .Replace("__ALLOWED_ORIGINS__", allowedOrigins ?? string.Empty);
+    var caddyfile = RenderCaddyfile(domain, allowedOrigins);
 
     return apiKey.Apply(key => ReadTemplate("cloud-init.yaml.tpl")
         .Replace("__DOCKER_COMPOSE__", Indent(dockerCompose, 6))
         .Replace("__CADDYFILE__", Indent(caddyfile, 6))
         .Replace("__HUB_API_KEY__", key));
+}
+
+// Renders the Caddyfile. The CORS section is only kept when allowedOrigins is
+// configured; substituting an empty value would otherwise turn the
+// `header Origin` matchers into presence-only matchers (any Origin matches).
+static string RenderCaddyfile(string domain, string? allowedOrigins)
+{
+    var caddyfile = ReadTemplate("Caddyfile.tpl");
+    const string beginMarker = "# __CORS_BEGIN__";
+    const string endMarker = "# __CORS_END__";
+    if (string.IsNullOrWhiteSpace(allowedOrigins))
+    {
+        var start = caddyfile.IndexOf(beginMarker, StringComparison.Ordinal);
+        var end = caddyfile.IndexOf(endMarker, StringComparison.Ordinal);
+        if (start >= 0 && end > start)
+        {
+            end += endMarker.Length;
+            if (end < caddyfile.Length && caddyfile[end] == '\n')
+            {
+                end++;
+            }
+            caddyfile = caddyfile.Remove(start, end - start);
+        }
+    }
+    else
+    {
+        caddyfile = caddyfile
+            .Replace(beginMarker + "\n", string.Empty)
+            .Replace("\n" + endMarker, string.Empty)
+            .Replace("__ALLOWED_ORIGINS__", allowedOrigins.Trim());
+    }
+    return caddyfile.Replace("__DOMAIN__", domain);
 }
 
 static string ReadTemplate(string name)

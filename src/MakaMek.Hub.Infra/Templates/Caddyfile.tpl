@@ -1,11 +1,13 @@
 ﻿# MakaMek relay hub reverse proxy.
 # Access logging is intentionally disabled: request URLs carry the relay ticket
 # and API key, and nothing must ever be logged at any layer (credential redaction).
-# CORS: preflight (OPTIONS) requests from allowed origins are answered
-# directly by Caddy with 204 so they never reach the hub (which would 405).
-# Actual responses get Access-Control-Allow-Origin echoed only when the
-# request Origin matches the allowlist.
+# CORS (rendered only when allowedOrigins is configured): preflight (OPTIONS)
+# requests from allowed origins are answered directly by Caddy with 204 so they
+# never reach the hub (which would 405). Actual responses get
+# Access-Control-Allow-Origin echoed only when the request Origin matches the
+# allowlist.
 __DOMAIN__ {
+# __CORS_BEGIN__
     @allowed_origin header Origin __ALLOWED_ORIGINS__
 
     @cors_preflight {
@@ -27,6 +29,7 @@ __DOMAIN__ {
         header Vary "Origin"
         reverse_proxy hub:8080
     }
+# __CORS_END__
 
     handle {
         reverse_proxy hub:8080
