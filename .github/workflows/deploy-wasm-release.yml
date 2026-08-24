@@ -1,0 +1,49 @@
+name: Deploy WASM Release to Cloudflare Pages
+
+env:
+  DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: "wasm-release"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.x
+
+      - name: Install wasm-tools
+        run: dotnet workload install wasm-tools
+
+      - name: Publish WASM
+        env:
+          DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
+        run: |
+          dotnet publish src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/MakaMek.Avalonia.Browser.csproj -c Release --self-contained true \
+            -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DemoHubApiKey="$DEMOHUB_API_KEY"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net10.0-browser/publish/wwwroot --project-name=makamek-play --branch=main --commit-dirty=true
