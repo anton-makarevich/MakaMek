@@ -66,7 +66,7 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Shareable room codes and REST room lifecycle management.
 - Separate **Host Online** and **Host LAN** flows. Every supported client head, including browser/WASM, can host online by running `ServerGame` locally and connecting outbound to the relay.
 - Host loss handled gracefully by returning peers to a safe menu state.
-- Public deployment of the hub (clients currently default to a locally deployed hub via `MAKAMEK_RELAY_BASE_URL`).
+- Public deployment of the hub at https://demohub.makamek.net/.
 
 ### Future Phases
 - Support of paved areas and buildings
