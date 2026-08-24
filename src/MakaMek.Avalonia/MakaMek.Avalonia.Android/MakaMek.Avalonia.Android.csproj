@@ -14,12 +14,6 @@
         <RootNamespace>Sanet.MakaMek.Avalonia.Android</RootNamespace>
     </PropertyGroup>
 
-    <!-- Build-time-embedded Demo hub defaults (set via -p:DemoHubBaseUrl / -p:DemoHubApiKey in CI) -->
-    <ItemGroup Condition="'$(DemoHubApiKey)' != ''">
-        <AssemblyMetadata Include="DemoHubBaseUrl" Value="$(DemoHubBaseUrl)" />
-        <AssemblyMetadata Include="DemoHubApiKey" Value="$(DemoHubApiKey)" />
-    </ItemGroup>
-
     <ItemGroup>
         <AndroidResource Include="Icon.png">
             <Link>Resources\drawable\Icon.png</Link>
