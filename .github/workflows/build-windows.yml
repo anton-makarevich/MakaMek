@@ -2,7 +2,6 @@ name: Build and Package Windows App (Linux Runner)
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
-  DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
 
 on:
   push:
@@ -37,6 +36,8 @@ jobs:
           dotnet tool install --global vpk
 
       - name: Build Windows App
+        env:
+          DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           dotnet publish -c Release -r win-x64 \

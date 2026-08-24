@@ -2,7 +2,6 @@ name: Deploy WASM to GitHub Pages
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
-  DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
 
 on:
   push:
@@ -35,6 +34,8 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish WASM
+        env:
+          DEMOHUB_API_KEY: ${{ secrets.DEMOHUB_API_KEY }}
         run: |
           dotnet publish src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/MakaMek.Avalonia.Browser.csproj -c Release --self-contained true \
             -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
