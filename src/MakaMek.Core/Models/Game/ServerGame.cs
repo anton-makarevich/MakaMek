@@ -184,13 +184,13 @@ public class ServerGame : BaseGame, IDisposable
         base.OnPlayerLeft(command);
         CommandPublisher.PublishCommand(command with { GameOriginId = Id });
         // At the moment it's not possible to continue even if one player is leaving
-        StopGame(GameEndReason.PlayersLeft);
+        StopGame(GameEndReason.PlayersLeft, command.PlayerId);
     }
 
     /// <summary>
     /// Stops the game and notifies all clients
     /// </summary>
-    public void StopGame(GameEndReason reason)
+    public void StopGame(GameEndReason reason, Guid? playerId = null)
     {
         if (IsDisposed || IsGameOver) return;
 
@@ -199,7 +199,8 @@ public class ServerGame : BaseGame, IDisposable
         {
             GameOriginId = Id,
             Reason = reason,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            PlayerId = playerId
         };
         CommandPublisher.PublishCommand(endCommand);
 

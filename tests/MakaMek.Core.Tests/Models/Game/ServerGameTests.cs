@@ -394,6 +394,9 @@ public class ServerGameTests
         // Assert
         _sut.Players.ShouldNotContain(p => p.Id == playerId);
         player.Status.ShouldBe(PlayerStatus.NotJoined);
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<GameEndedCommand>(cmd =>
+            cmd.Reason == GameEndReason.PlayersLeft &&
+            cmd.PlayerId == playerId));
     }
 
     [Fact]

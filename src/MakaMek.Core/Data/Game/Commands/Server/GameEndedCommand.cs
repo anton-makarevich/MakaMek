@@ -8,6 +8,7 @@ public record struct GameEndedCommand : IGameCommand
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
     public required GameEndReason Reason { get; init; }
+    public Guid? PlayerId { get; init; }
     
     public string Render(ILocalizationService localizationService, IGame game)
     {
