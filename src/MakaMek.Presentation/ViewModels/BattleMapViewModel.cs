@@ -932,6 +932,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return;
         }
 
+        // If the local client caused the leave, suppress the interruption dialog.
+        // The LeaveGame() flow already performs navigation for this client.
+        if (GameEndReason == GameEndReason.PlayersLeft
+            && command.PlayerId.HasValue
+            && Game?.LocalPlayers.Contains(command.PlayerId.Value) == true)
+        {
+            return;
+        }
+
         // The game ended because of an interruption (e.g. the host disconnected).
         // Inform the player with a single-button dialog and return to the main menu.
         var okAction = new UiAction

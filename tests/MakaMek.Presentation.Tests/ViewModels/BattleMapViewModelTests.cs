@@ -302,6 +302,53 @@ public class BattleMapViewModelTests
         navigationService.DidNotReceive().NavigateToRootAsync();
     }
 
+    [Fact]
+    public async Task ProcessGameEnded_PlayersLeft_LocalPlayerId_DoesNotShowDialogOrNavigate()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        var playerId = Guid.NewGuid();
+        game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [], []);
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.PlayersLeft, PlayerId = playerId });
+        await Task.Delay(100);
+
+        // Assert
+        navigationService.DidNotReceive().AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>());
+        navigationService.DidNotReceive().NavigateToRootAsync();
+    }
+
+    [Fact]
+    public async Task ProcessGameEnded_PlayersLeft_NonLocalPlayerId_ShowsDialogAndNavigatesToRoot()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        game.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human), [], []);
+        _sut.Game = game;
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        game.HandleCommand(new GameEndedCommand { GameOriginId = Guid.NewGuid(), Reason = GameEndReason.PlayersLeft, PlayerId = Guid.NewGuid() });
+        await WaitForAsync(() => navigationService.ReceivedCalls().Any(
+            c => c.GetMethodInfo().Name == nameof(INavigationService.NavigateToRootAsync)));
+
+        // Assert
+        await navigationService.Received(1).NavigateToRootAsync();
+        navigationService.ReceivedCalls().ShouldContain(
+            c => c.GetMethodInfo().Name == nameof(INavigationService.AskForActionAsync));
+    }
+
     [Theory]
     [InlineData(1, "Select Unit",true)]
     [InlineData(0, "", false)]
