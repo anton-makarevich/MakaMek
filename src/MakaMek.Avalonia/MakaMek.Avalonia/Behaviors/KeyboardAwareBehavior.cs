@@ -5,19 +5,15 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using System;
-using System.Linq;
 
 namespace Sanet.MakaMek.Avalonia.Behaviors;
 
 public static class KeyboardAwareBehavior
 {
-    public static readonly AttachedProperty<bool> IsEnabledProperty =
+    private static readonly AttachedProperty<bool> IsEnabledProperty =
         AvaloniaProperty.RegisterAttached<TemplatedControl, bool>(
             "IsEnabled",
             typeof(KeyboardAwareBehavior));
-
-    public static bool GetIsEnabled(TemplatedControl element) =>
-        element.GetValue(IsEnabledProperty);
 
     public static void SetIsEnabled(TemplatedControl element, bool value) =>
         element.SetValue(IsEnabledProperty, value);
@@ -69,8 +65,8 @@ public static class KeyboardAwareBehavior
     {
         if (sender is TemplatedControl control)
         {
+            Detach(control);
             control.ClearValue(InputPaneProperty);
-            control.ClearValue(SubscriptionProperty);
         }
     }
 
@@ -88,15 +84,28 @@ public static class KeyboardAwareBehavior
         }
 
         inputPane.StateChanged += OnStateChanged;
-        control.SetValue(SubscriptionProperty, new InputPaneSubscription(inputPane, OnStateChanged));
+        control.GotFocus += OnFocusChanged;
+        control.SetValue(SubscriptionProperty, new InputPaneSubscription(inputPane, OnStateChanged, control));
     }
 
     private static void Detach(TemplatedControl control)
     {
         if (control.GetValue(SubscriptionProperty) is { } subscription)
         {
-            ((IDisposable)subscription).Dispose();
+            subscription.Dispose();
         }
+    }
+
+    private static void OnFocusChanged(object? sender, EventArgs e)
+    {
+        if (sender is not TemplatedControl control) return;
+
+        var topLevel = TopLevel.GetTopLevel(control);
+        var inputPane = topLevel?.InputPane;
+        if (inputPane == null || inputPane.State != InputPaneState.Open) return;
+        if (inputPane.OccludedRect.Height <= 0) return;
+
+        Dispatcher.UIThread.Post(() => BringFocusedElementIntoView(control));
     }
 
     private static void OnInputPaneStateChanged(TemplatedControl control, InputPaneStateEventArgs e)
@@ -120,27 +129,29 @@ public static class KeyboardAwareBehavior
     private static void BringFocusedElementIntoView(TemplatedControl control)
     {
         var topLevel = TopLevel.GetTopLevel(control);
-        var focused = topLevel?.FocusManager?.GetFocusedElement() as Visual;
+        var focused = topLevel?.FocusManager.GetFocusedElement() as Control;
         if (focused == null) return;
 
-        var scrollViewer = focused.GetVisualAncestors().OfType<ScrollViewer>().FirstOrDefault();
-        scrollViewer?.BringIntoView(focused.Bounds);
+        focused.BringIntoView();
     }
 
     private sealed class InputPaneSubscription : IDisposable
     {
         private readonly IInputPane _inputPane;
         private readonly EventHandler<InputPaneStateEventArgs> _handler;
+        private readonly TemplatedControl _control;
 
-        public InputPaneSubscription(IInputPane inputPane, EventHandler<InputPaneStateEventArgs> handler)
+        public InputPaneSubscription(IInputPane inputPane, EventHandler<InputPaneStateEventArgs> handler, TemplatedControl control)
         {
             _inputPane = inputPane;
             _handler = handler;
+            _control = control;
         }
 
         public void Dispose()
         {
             _inputPane.StateChanged -= _handler;
+            _control.GotFocus -= OnFocusChanged;
         }
     }
 }
