@@ -21,29 +21,32 @@
       LeftIcon="{StaticResource BackArrowIcon}"
       DockPanel.Dock="Top"
       Margin="0,0,0,10"/>
-    <Grid RowDefinitions="Auto,Auto,*"
-          Margin="10"
-          RowSpacing="15">
-      <!-- Connect Fragment -->
-     <Border Classes="card">
-          <fragments:ConnectFragment DataContext="{Binding}"/>
+    <ScrollViewer Classes="gameScrollViewer"
+                  HorizontalScrollBarVisibility="Disabled">
+      <Grid RowDefinitions="Auto,Auto,Auto"
+            Margin="10"
+            RowSpacing="15">
+        <!-- Connect Fragment -->
+       <Border Classes="card">
+            <fragments:ConnectFragment DataContext="{Binding}"/>
+          </Border>
+        
+
+        <!-- Players Fragment (Reused) -->
+        <Border Grid.Row="1" Classes="card">
+          <fragments2:PlayersFragment DataContext="{Binding}"/>
         </Border>
-      
 
-      <!-- Players Fragment (Reused) -->
-      <Border Grid.Row="1" Classes="card">
-        <fragments2:PlayersFragment DataContext="{Binding}"/>
-      </Border>
-
-      <!-- Map Preview -->
-      <Border Grid.Row="2" Classes="card" IsVisible="{Binding HasLobbyMapPreview}">
-        <StackPanel Classes="formGroup">
-          <TextBlock Text="{extensions:Localize 'Join_LobbyMapPreview'}" Classes="label"/>
-          <Image Source="{Binding PreviewImage}" MaxWidth="400" MaxHeight="400"
-                 Stretch="Uniform" HorizontalAlignment="Center"/>
-        </StackPanel>
-      </Border>
-    </Grid>
+        <!-- Map Preview -->
+        <Border Grid.Row="2" Classes="card" IsVisible="{Binding HasLobbyMapPreview}">
+          <StackPanel Classes="formGroup">
+            <TextBlock Text="{extensions:Localize 'Join_LobbyMapPreview'}" Classes="label"/>
+            <Image Source="{Binding PreviewImage}" MaxWidth="400" MaxHeight="400"
+                   Stretch="Uniform" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </ScrollViewer>
   </DockPanel>
   </Grid>
 </UserControl>
