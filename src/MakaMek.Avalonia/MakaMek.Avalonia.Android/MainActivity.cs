@@ -11,7 +11,8 @@ namespace Sanet.MakaMek.Avalonia.Android;
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,
-    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode,
+    WindowSoftInputMode = SoftInput.AdjustResize)]
 public class MainActivity : AvaloniaMainActivity
 { 
     protected override void OnCreate(Bundle? savedInstanceState)
