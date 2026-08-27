@@ -31,7 +31,10 @@ async function walk(dir) {
 }
 
 function toUrl(relativePath) {
-  return `${normalizedBase}/${relativePath.split(sep).join('/')}`;
+  return `${normalizedBase}/${relativePath
+    .split(sep)
+    .map(encodeURIComponent)
+    .join('/')}`;
 }
 
 try {

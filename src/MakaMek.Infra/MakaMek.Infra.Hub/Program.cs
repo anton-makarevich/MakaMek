@@ -202,6 +202,11 @@ return await Deployment.RunAsync(() =>
             }
 
             var index = adIndex;
+            if (index < 0)
+            {
+                throw new InvalidOperationException(
+                    $"availabilityDomainIndex {index} is a negative configuration value.");
+            }
             if (index >= ads.AvailabilityDomains.Length)
             {
                 throw new InvalidOperationException(
