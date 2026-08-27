@@ -131,7 +131,7 @@ MakaMek/
 ### Building
 
 1. Clone the repository
-2. Open `MakaMek.sln` in your IDE
+2. Open `MakaMek.slnx` in your IDE
 3. Build the solution
 
 ## License
