@@ -5,10 +5,10 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>Sanet.MakaMek.Data.Infra</RootNamespace>
+        <RootNamespace>Sanet.MakaMek.Infra.Data</RootNamespace>
         <!-- Pulumi projects are never packed; suppress packaging-only props inherited from Directory.Build.props -->
         <IsPackable>false</IsPackable>
-        <AssemblyName>Sanet.MakaMek.Data.Infra</AssemblyName>
+        <AssemblyName>Sanet.MakaMek.Infra.Data</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
