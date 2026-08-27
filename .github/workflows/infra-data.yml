@@ -31,7 +31,7 @@ jobs:
     # Protected environment: required reviewers gate every run of this job
     # (including destroy), so arbitrary dispatch inputs cannot mutate infra
     # without manual approval.
-    environment: makamek-data-infra
+    environment: makamek-infra-data
     steps:
       - uses: actions/checkout@v7
 
@@ -42,7 +42,7 @@ jobs:
       - uses: pulumi/actions@v7
         with:
           command: ${{ inputs.command }}
-          stack-name: ${{ github.repository_owner }}/makamek-data-infra/${{ inputs.stack }}
+          stack-name: ${{ github.repository_owner }}/makamek-infra-data/${{ inputs.stack }}
           work-dir: src/MakaMek.Infra/MakaMek.Infra.Data
           upsert: false
           refresh: true
