@@ -28,6 +28,11 @@ public static class KeyboardAwareBehavior
             "Subscription",
             typeof(KeyboardAwareBehavior));
 
+    private static readonly AttachedProperty<Thickness?> SavedPaddingProperty =
+        AvaloniaProperty.RegisterAttached<TemplatedControl, Thickness?>(
+            "SavedPadding",
+            typeof(KeyboardAwareBehavior));
+
     static KeyboardAwareBehavior()
     {
         IsEnabledProperty.Changed.AddClassHandler<TemplatedControl>(OnIsEnabledChanged);
@@ -66,6 +71,7 @@ public static class KeyboardAwareBehavior
         if (sender is TemplatedControl control)
         {
             Detach(control);
+            control.ClearValue(SavedPaddingProperty);
             control.ClearValue(InputPaneProperty);
         }
     }
@@ -115,13 +121,21 @@ public static class KeyboardAwareBehavior
             var occluded = e.EndRect;
             if (occluded.Height > 0)
             {
-                control.Padding = new Thickness(0, 0, 0, occluded.Height);
+                var saved = control.GetValue(SavedPaddingProperty);
+                if (saved == null)
+                {
+                    saved = control.Padding;
+                    control.SetValue(SavedPaddingProperty, saved);
+                }
+                control.Padding = new Thickness(
+                    saved.Value.Left, saved.Value.Top, saved.Value.Right, saved.Value.Bottom + occluded.Height);
             }
             Dispatcher.UIThread.Post(() => BringFocusedElementIntoView(control));
         }
         else
         {
-            control.Padding = new Thickness(0);
+            var saved = control.GetValue(SavedPaddingProperty);
+            control.Padding = saved ?? new Thickness(0);
             BringFocusedElementIntoView(control);
         }
     }
