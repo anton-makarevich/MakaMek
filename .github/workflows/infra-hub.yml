@@ -77,7 +77,7 @@ jobs:
         with:
           command: ${{ inputs.command }}
           stack-name: ${{ github.repository_owner }}/makamek-hub-infra/${{ inputs.stack }}
-          work-dir: src/MakaMek.Hub.Infra
+          work-dir: src/MakaMek.Infra/MakaMek.Infra.Hub
           upsert: false
           refresh: true
           config-map: ${{ steps.cfg.outputs.map }}

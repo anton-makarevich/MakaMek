@@ -43,7 +43,7 @@ jobs:
         with:
           command: ${{ inputs.command }}
           stack-name: ${{ github.repository_owner }}/makamek-data-infra/${{ inputs.stack }}
-          work-dir: src/MakaMek.Data.Infra
+          work-dir: src/MakaMek.Infra/MakaMek.Infra.Data
           upsert: false
           refresh: true
           expect-no-changes: false
