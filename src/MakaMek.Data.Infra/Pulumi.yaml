@@ -1,0 +1,8 @@
+﻿name: makamek-data-infra
+runtime: dotnet
+description: Cloudflare R2 infrastructure for the MakaMek data asset release bucket
+config:
+  pulumi:tags:
+    value:
+      project: makamek
+      component: data-release

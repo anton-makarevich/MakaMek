@@ -181,6 +181,7 @@ Unit and terrain assets under `data/` are also published to a **Cloudflare R2 bu
 
 ### Pipeline Flow
 
+0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Data.Infra`, run by `.github/workflows/data-infra.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern.
 1. **Trigger**: push of a `v*` tag, or a manual `workflow_dispatch` run.
 2. **Manifest generation**: `.github/scripts/generate-data-manifest.mjs` scans `data/` recursively and writes `manifest.json` to the workspace root.
 3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. The generated `manifest.json` is then uploaded to the bucket root.
