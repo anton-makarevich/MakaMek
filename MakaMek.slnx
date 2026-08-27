@@ -9,7 +9,7 @@
   <Project Path="src/MakaMek.Assets/MakaMek.Assets.csproj" />
   <Project Path="src/MakaMek.Localization/MakaMek.Localization.csproj" />
 
-  <Folder Name="/MakaMek.Avalonia/">
+  <Folder Name="/Avalonia/">
     <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia/MakaMek.Avalonia.csproj" />
     <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Android/MakaMek.Avalonia.Android.csproj" />
     <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/MakaMek.Avalonia.Desktop.csproj" />
@@ -26,14 +26,14 @@
     <Project Path="src/MakaMek.Tools/BotContainer/BotContainer.csproj" />
     <Project Path="src/MakaMek.Tools/BotAgent/BotAgent.csproj" />
     <Project Path="src/MakaMek.Tools/BotAgent.Models/BotAgent.Models.csproj" />
-    <Project Path="src/MakaMek.Hub.Infra/MakaMek.Hub.Infra.csproj" />
   </Folder>
 
-  <Folder Name="/MakaMek.Infra/">
-    <Project Path="src/MakaMek.Data.Infra/MakaMek.Data.Infra.csproj" />
+  <Folder Name="/Infra/">
+    <Project Path="src/MakaMek.Infra.Data/MakaMek.Infra.Data.csproj" />
+    <Project Path="src/MakaMek.Infra.Hub/MakaMek.Infra.Hub.csproj" />
   </Folder>
 
-  <Folder Name="/MakaMek.Tests/">
+  <Folder Name="/Tests/">
     <Project Path="tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj" />
     <Project Path="tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj" />
     <Project Path="tests/MakaMek.Presentation.Tests/MakaMek.Presentation.Tests.csproj" />
