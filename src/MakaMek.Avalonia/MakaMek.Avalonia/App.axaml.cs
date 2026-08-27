@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Avalonia.Behaviors;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Controls.Services;
@@ -69,12 +70,14 @@ public partial class App : Application
                 navigationService = new NavigationService(desktop, serviceProvider);
                 RegisterViews(navigationService);
                 viewModel = navigationService.GetViewModel<MainMenuViewModel>();
+                var mainMenuContent = new MainMenuView
+                {
+                    ViewModel = viewModel
+                };
+                KeyboardAwareBehavior.SetIsEnabled(mainMenuContent, true);
                 desktop.MainWindow = new MainWindow
                 {
-                    Content = new MainMenuView()
-                    {
-                        ViewModel = viewModel
-                    }
+                    Content = mainMenuContent
                 };
                 break;
             case IActivityApplicationLifetime activityLifetime:
@@ -84,6 +87,7 @@ public partial class App : Application
                     throw new Exception("Android SingleViewApplicationLifetime is not available");
                 }
                 var androidViewWrapper = new ContentControl();
+                KeyboardAwareBehavior.SetIsEnabled(androidViewWrapper, true);
                 navigationService =
                     new SingleViewNavigationService(
                         androidSingleViewLifeTime,
@@ -99,6 +103,7 @@ public partial class App : Application
                 break;
             case ISingleViewApplicationLifetime singleViewPlatform:
                 var mainViewWrapper = new ContentControl();
+                KeyboardAwareBehavior.SetIsEnabled(mainViewWrapper, true);
                 navigationService =
                     new SingleViewNavigationService(singleViewPlatform, mainViewWrapper, serviceProvider);
                 RegisterViews(navigationService);
