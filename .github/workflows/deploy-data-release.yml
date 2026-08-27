@@ -1,0 +1,55 @@
+﻿name: Deploy Data Release to Cloudflare R2
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "data-release"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Generate data manifest
+        env:
+          DATA_R2_BASE_URL: ${{ vars.DATA_R2_BASE_URL }}
+        run: node .github/scripts/generate-data-manifest.mjs data manifest.json
+
+      - name: Upload assets and manifest to R2
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID" --profile r2
+          aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY" --profile r2
+          aws configure set region auto --profile r2
+
+          ENDPOINT="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          echo "Syncing data/ to bucket ${CLOUDFLARE_R2_BUCKET}..."
+          aws s3 sync data "s3://${CLOUDFLARE_R2_BUCKET}" \
+            --endpoint-url "$ENDPOINT" \
+            --profile r2 \
+            --delete \
+            --no-progress
+
+          echo "Uploading manifest.json..."
+          aws s3 cp manifest.json "s3://${CLOUDFLARE_R2_BUCKET}/manifest.json" \
+            --endpoint-url "$ENDPOINT" \
+            --profile r2 \
+            --content-type application/json

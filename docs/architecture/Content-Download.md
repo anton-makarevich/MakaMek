@@ -175,9 +175,61 @@ foreach (var batch in batches)
 | **Wrong format** | Uint8Array issues | Check marshalling code |
 | **Network errors** | Download failures | Check GitHub API access |
 
+## R2 Release Pipeline
+
+Unit and terrain assets under `data/` are also published to a **Cloudflare R2 bucket** by a dedicated release workflow (`.github/workflows/deploy-data-release.yml`). Git remains the source of truth; the bucket is a flat mirror of the `data/` folder at the last released tag.
+
+### Pipeline Flow
+
+1. **Trigger**: push of a `v*` tag, or a manual `workflow_dispatch` run.
+2. **Manifest generation**: `.github/scripts/generate-data-manifest.mjs` scans `data/` recursively and writes `manifest.json` to the workspace root.
+3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. The generated `manifest.json` is then uploaded to the bucket root.
+
+Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_R2_BASE_URL`.
+
+### manifest.json Schema
+
+```json
+{
+  "version": 1,
+  "generatedAtUtc": "2026-08-27T00:00:00.000Z",
+  "fileCount": 200,
+  "files": [
+    {
+      "path": "units/mechs/Atlas.mmux",
+      "name": "Atlas.mmux",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "url": "https://<data-r2-domain>/units/mechs/Atlas.mmux"
+    }
+  ]
+}
+```
+
+#### Fields
+
+Top level:
+
+- **version**: Manifest schema version (currently `1`), for future evolution
+- **generatedAtUtc**: ISO-8601 timestamp of generation
+- **fileCount**: Number of entries in `files`
+- **files**: Array of file entries
+
+Per-file:
+
+- **path**: Path relative to `data/` (forward slashes, includes subfolders)
+- **name**: File name (last segment of `path`)
+- **hash**: SHA-256 of the raw file bytes (used as an opaque cache-version marker)
+- **url**: Public download URL (`DATA_R2_BASE_URL` + `/` + `path`)
+
+> This top-level manifest is unrelated to the per-package `manifest.json` inside each `.mmux`/`.mmtx` archive — those schemas are unchanged.
+
+### Current Status
+
+The existing GitHub-based runtime path (`GitHubResourceStreamProvider`) stays active until the application-side switch to R2 is implemented (tracked separately). This pipeline realizes the "CDN Integration" future enhancement: once switched, the app consumes `manifest.json` from the bucket and downloads files via their `url` field.
+
 ## Possible Future Enhancements
 
-- **CDN Integration**: Multiple content sources
+- **Delta Updates**: Only download changed files
 - **Delta Updates**: Only download changed files
 - **Compression**: Reduce storage size
 - **Preloading**: Background content preparation
