@@ -179,12 +179,14 @@ foreach (var batch in batches)
 
 Unit and terrain assets under `data/` are also published to a **Cloudflare R2 bucket** by a dedicated release workflow (`.github/workflows/deploy-data-release.yml`). Git remains the source of truth; the bucket is a flat mirror of the `data/` folder at the last released tag.
 
+The bucket is always **flat** — there are no versioned subfolders and no per-release copies. Re-releases simply sync the single copy in place. Versioning happens at the **bucket level**: a breaking change (one the app's manifest/format can't read) is published to a **new bucket**, and the app's base URL is switched to point at it. Within any given bucket the layout stays flat.
+
 ### Pipeline Flow
 
-0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Infra/MakaMek.Infra.Data`, run by `.github/workflows/infra-data.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern.
+0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Infra/MakaMek.Infra.Data`, run by `.github/workflows/infra-data.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern. A **new** bucket (and corresponding base URL) is provisioned whenever a breaking change ships; non-breaking releases reuse the existing flat bucket.
 1. **Trigger**: push of a `v*` tag, or a manual `workflow_dispatch` run.
 2. **Manifest generation**: `.github/scripts/generate-data-manifest.mjs` scans `data/` recursively and writes `manifest.json` to the workspace root.
-3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. The generated `manifest.json` is then uploaded to the bucket root.
+3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. `manifest.json` is excluded from the sync (it lives outside `data/`, so `--delete` would otherwise treat the root copy as remote-only and remove it) and is then published to the bucket root after the sync completes.
 
 Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_R2_BASE_URL`.
 
