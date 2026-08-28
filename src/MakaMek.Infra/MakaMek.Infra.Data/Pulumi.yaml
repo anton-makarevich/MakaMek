@@ -1,4 +1,4 @@
-﻿name: makamek-data-infra
+﻿name: makamek-infra-data
 runtime: dotnet
 description: Cloudflare R2 infrastructure for the MakaMek data asset release bucket
 config:
