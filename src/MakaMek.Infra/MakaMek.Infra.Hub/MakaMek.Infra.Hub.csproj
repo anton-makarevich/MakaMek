@@ -5,14 +5,14 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>Sanet.MakaMek.Hub.Infra</RootNamespace>
+        <RootNamespace>Sanet.MakaMek.Infra.Hub</RootNamespace>
         <!-- Pulumi projects are never packed; suppress packaging-only props inherited from Directory.Build.props -->
         <IsPackable>false</IsPackable>
-        <AssemblyName>Sanet.MakaMek.Hub.Infra</AssemblyName>
+        <AssemblyName>Sanet.MakaMek.Infra.Hub</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Pulumi" Version="3.*" />
+        <PackageReference Include="Pulumi" Version="3.113.0" />
         <PackageReference Include="Pulumi.Oci" Version="4.20.0" />
     </ItemGroup>
 

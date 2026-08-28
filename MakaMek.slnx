@@ -1,0 +1,46 @@
+<Solution>
+  <!-- Core -->
+  <Project Path="src/MakaMek.Core/MakaMek.Core.csproj" />
+  <Project Path="src/MakaMek.Presentation/MakaMek.Presentation.csproj" />
+  <Project Path="src/MakaMek.SourceGenerators/MakaMek.SourceGenerators.csproj" />
+  <Project Path="src/MakaMek.Bots/MakaMek.Bots.csproj" />
+  <Project Path="src/MakaMek.Map/MakaMek.Map.csproj" />
+  <Project Path="src/MakaMek.Services/MakaMek.Services.csproj" />
+  <Project Path="src/MakaMek.Assets/MakaMek.Assets.csproj" />
+  <Project Path="src/MakaMek.Localization/MakaMek.Localization.csproj" />
+
+  <Folder Name="/Avalonia/">
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia/MakaMek.Avalonia.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Android/MakaMek.Avalonia.Android.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/MakaMek.Avalonia.Desktop.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.iOS/MakaMek.Avalonia.iOS.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/MakaMek.Avalonia.Browser.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Services.Avalonia/MakaMek.Services.Avalonia.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Services.Avalonia.Browser/MakaMek.Services.Avalonia.Browser.csproj" />
+    <Project Path="src/MakaMek.Avalonia/MakaMek.Avalonia.Controls/MakaMek.Avalonia.Controls.csproj" />
+  </Folder>
+
+  <Folder Name="/Tools/">
+    <Project Path="src/MakaMek.Tools/MtfConverter/MtfConverter.csproj" />
+    <Project Path="src/MakaMek.Tools/MmuxPackager/MmuxPackager.csproj" />
+    <Project Path="src/MakaMek.Tools/BotContainer/BotContainer.csproj" />
+    <Project Path="src/MakaMek.Tools/BotAgent/BotAgent.csproj" />
+    <Project Path="src/MakaMek.Tools/BotAgent.Models/BotAgent.Models.csproj" />
+  </Folder>
+
+  <Folder Name="/Infra/">
+    <Project Path="src/MakaMek.Infra/MakaMek.Infra.Data/MakaMek.Infra.Data.csproj" />
+    <Project Path="src/MakaMek.Infra/MakaMek.Infra.Hub/MakaMek.Infra.Hub.csproj" />
+  </Folder>
+
+  <Folder Name="/Tests/">
+    <Project Path="tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj" />
+    <Project Path="tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj" />
+    <Project Path="tests/MakaMek.Presentation.Tests/MakaMek.Presentation.Tests.csproj" />
+    <Project Path="tests/MakaMek.Bots.Tests/MakaMek.Bots.Tests.csproj" />
+    <Project Path="tests/MakaMek.Map.Tests/MakaMek.Map.Tests.csproj" />
+    <Project Path="tests/MakaMek.Assets.Tests/MakaMek.Assets.Tests.csproj" />
+    <Project Path="tests/MakaMek.Localization.Tests/MakaMek.Localization.Tests.csproj" />
+    <Project Path="tests/MakaMek.Services.Tests/MakaMek.Services.Tests.csproj" />
+  </Folder>
+</Solution>

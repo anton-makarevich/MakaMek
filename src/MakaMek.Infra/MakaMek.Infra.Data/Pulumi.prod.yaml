@@ -1,0 +1,3 @@
+config:
+  makamek-infra-data:bucketName: makamek-data
+  makamek-infra-data:locationHint: weur

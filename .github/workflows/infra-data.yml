@@ -1,0 +1,53 @@
+﻿name: Data Infra (Pulumi)
+
+# Ad-hoc provisioning of the MakaMek data release R2 bucket.
+# No automatic triggers: run manually from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Pulumi command"
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - up
+          - destroy
+      stack:
+        description: "Pulumi stack name"
+        type: string
+        required: true
+        default: prod
+
+permissions:
+  contents: read
+
+jobs:
+  pulumi:
+    name: pulumi ${{ inputs.command }}
+    runs-on: ubuntu-latest
+    # Protected environment: required reviewers gate every run of this job
+    # (including destroy), so arbitrary dispatch inputs cannot mutate infra
+    # without manual approval.
+    environment: makamek-infra-data
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: pulumi/actions@v7
+        with:
+          command: ${{ inputs.command }}
+          stack-name: ${{ github.repository_owner }}/makamek-infra-data/${{ inputs.stack }}
+          work-dir: src/MakaMek.Infra/MakaMek.Infra.Data
+          upsert: true
+          refresh: true
+          expect-no-changes: false
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
