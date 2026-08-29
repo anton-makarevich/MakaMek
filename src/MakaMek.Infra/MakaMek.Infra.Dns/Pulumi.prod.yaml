@@ -29,13 +29,6 @@
       type: A
       content: 134.98.139.132
       proxied: false
-    # Placeholder while the R2 custom domain is not yet active. Remove once
-    # MakaMek.Infra.Data wires data.makamek.nl as the R2 public domain.
-    - name: data
-      type: A
-      content: 64.29.17.1
-      proxied: false
-    - name: data
-      type: A
-      content: 216.198.79.65
-      proxied: false
+    # NOTE: data.makamek.nl is intentionally absent here. It is owned by the
+    # R2 custom domain provisioned in MakaMek.Infra.Data (which references this
+    # stack's zoneId); Cloudflare manages its CNAME record + TLS certificate.
