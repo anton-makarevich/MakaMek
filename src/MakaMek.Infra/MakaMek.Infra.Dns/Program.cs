@@ -1,4 +1,5 @@
-﻿using Pulumi;
+﻿using System.Text.Json;
+using Pulumi;
 using Pulumi.Cloudflare;
 using Pulumi.Cloudflare.Inputs;
 
@@ -35,7 +36,10 @@ return await Deployment.RunAsync(() =>
     // are created DNS-only (grey cloud, proxied=false) so behaviour is identical
     // to the previous Vercel-hosted DNS while the zone is cut over. Flip proxied
     // to true per-record once ready to enable Cloudflare security/caching.
-    var recordsConfig = config.GetObject<RecordDefinition[]>("records") ?? [];
+    var recordsConfig = config.Get("records") is { } raw
+        ? JsonSerializer.Deserialize<RecordDefinition[]>(raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []
+        : [];
 
     foreach (var (record, i) in recordsConfig.Select((r, i) => (r, i)))
     {
