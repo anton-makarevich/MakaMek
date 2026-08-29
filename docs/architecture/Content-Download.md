@@ -194,7 +194,7 @@ Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY
 
 ```json
 {
-  "version": 1,
+  "version": "0.63.6",
   "generatedAtUtc": "2026-08-27T00:00:00.000Z",
   "fileCount": 200,
   "files": [
@@ -212,7 +212,7 @@ Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY
 
 Top level:
 
-- **version**: Manifest schema version (currently `1`), for future evolution
+- **version**: App release version (`<VersionPrefix>` from `Directory.Build.props`, picked up by the deploy pipeline and passed to the manifest generator). Lets clients detect when a new app release ships updated downloadable content.
 - **generatedAtUtc**: ISO-8601 timestamp of generation
 - **fileCount**: Number of entries in `files`
 - **files**: Array of file entries

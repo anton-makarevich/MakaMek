@@ -1,6 +1,6 @@
 // Generates manifest.json for the data/ folder: relative path, SHA-256 content hash,
 // and public download URL for every file (recursively). Used by deploy-data-release.yml.
-// Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json
+// Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json <version>
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -25,6 +25,7 @@ static IEnumerable<string> Walk(string dir)
 
 var dataDir = args.Length > 0 ? args[0] : "data";
 var outputFile = args.Length > 1 ? args[1] : "manifest.json";
+var manifestVersion = args.Length > 2 ? args[2] : "1";
 var baseUrl = Environment.GetEnvironmentVariable("DATA_R2_BASE_URL");
 
 if (string.IsNullOrEmpty(baseUrl))
@@ -68,7 +69,7 @@ try
 
     var manifest = new Manifest
     {
-        Version = 1,
+        Version = manifestVersion,
         GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
         FileCount = entries.Count,
         Files = entries,
@@ -99,7 +100,7 @@ internal partial class ManifestJsonContext : JsonSerializerContext
 internal sealed class Manifest
 {
     [JsonPropertyName("version")]
-    public int Version { get; set; }
+    public string? Version { get; set; }
     [JsonPropertyName("generatedAtUtc")]
     public string? GeneratedAtUtc { get; set; }
     [JsonPropertyName("fileCount")]

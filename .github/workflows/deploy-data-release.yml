@@ -25,7 +25,10 @@ jobs:
       - name: Generate data manifest
         env:
           DATA_R2_BASE_URL: ${{ vars.DATA_R2_BASE_URL }}
-        run: dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json
+        run: |
+          VERSION=$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' Directory.Build.props)
+          if [ -z "$VERSION" ]; then echo "Could not read VersionPrefix from Directory.Build.props"; exit 1; fi
+          dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json "$VERSION"
 
       - name: Upload assets and manifest to R2
         env:
