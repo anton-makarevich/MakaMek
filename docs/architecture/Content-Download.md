@@ -184,7 +184,7 @@ The bucket is always **flat** — there are no versioned subfolders and no per-r
 ### Pipeline Flow
 
 0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Infra/MakaMek.Infra.Data`, run by `.github/workflows/infra-data.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern. A **new** bucket (and corresponding base URL) is provisioned whenever a breaking change ships; non-breaking releases reuse the existing flat bucket.
-1. **Trigger**: push of a `v*` tag, or a manual `workflow_dispatch` run.
+1. **Trigger**: push of a `v*` tag.
 2. **Manifest generation**: `.github/scripts/generate-data-manifest.cs` (a .NET 10 file-based app run via `dotnet run --file`) scans `data/` recursively and writes `manifest.json` to the workspace root.
 3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. `manifest.json` is excluded from the sync (it lives outside `data/`, so `--delete` would otherwise treat the root copy as remote-only and remove it) and is then published to the bucket root after the sync completes.
 
