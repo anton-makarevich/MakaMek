@@ -1,0 +1,8 @@
+﻿name: makamek-infra-dns
+runtime: dotnet
+description: Cloudflare DNS zone + records for the makamek.nl domain
+config:
+  pulumi:tags:
+    value:
+      project: makamek
+      component: dns
