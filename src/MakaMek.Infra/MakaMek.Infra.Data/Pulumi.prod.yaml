@@ -1,3 +1,7 @@
 config:
   makamek-infra-data:bucketName: makamek-data
   makamek-infra-data:locationHint: weur
+  # Piggy-backs on the DNS stack (MakaMek.Infra.Dns) which owns the makamek.nl
+  # zone; this stack references its zoneId output to wire the R2 custom domain.
+  makamek-infra-data:dnsStack: prod
+  makamek-infra-data:customDomain: data.makamek.nl
