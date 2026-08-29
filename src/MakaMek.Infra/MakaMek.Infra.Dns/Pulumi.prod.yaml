@@ -1,0 +1,41 @@
+﻿config:
+  makamek-infra-dns:zoneName: makamek.nl
+  # Account id is set via `pulumi config set accountId <id>` or the workflow
+  # secret CLOUDFLARE_ACCOUNT_ID (not stored in this file).
+  # All records are DNS-only (proxied: false) to preserve current behaviour
+  # while the zone is moved from Vercel to Cloudflare.
+  makamek-infra-dns:records:
+    - name: "@"
+      type: A
+      content: 216.198.79.1
+      proxied: false
+    - name: "@"
+      type: A
+      content: 64.29.17.1
+      proxied: false
+    - name: www
+      type: A
+      content: 64.29.17.1
+      proxied: false
+    - name: www
+      type: A
+      content: 64.29.17.65
+      proxied: false
+    - name: play
+      type: CNAME
+      content: makamek.pages.dev
+      proxied: false
+    - name: demohub
+      type: A
+      content: 134.98.139.132
+      proxied: false
+    # Placeholder while the R2 custom domain is not yet active. Remove once
+    # MakaMek.Infra.Data wires data.makamek.nl as the R2 public domain.
+    - name: data
+      type: A
+      content: 64.29.17.1
+      proxied: false
+    - name: data
+      type: A
+      content: 216.198.79.65
+      proxied: false

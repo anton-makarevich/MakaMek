@@ -31,6 +31,7 @@
   <Folder Name="/Infra/">
     <Project Path="src/MakaMek.Infra/MakaMek.Infra.Data/MakaMek.Infra.Data.csproj" />
     <Project Path="src/MakaMek.Infra/MakaMek.Infra.Hub/MakaMek.Infra.Hub.csproj" />
+    <Project Path="src/MakaMek.Infra/MakaMek.Infra.Dns/MakaMek.Infra.Dns.csproj" />
   </Folder>
 
   <Folder Name="/Tests/">
