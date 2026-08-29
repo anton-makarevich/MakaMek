@@ -13,8 +13,10 @@ return await Deployment.RunAsync(() =>
         ?? throw new InvalidOperationException(
             "accountId is required: run 'pulumi config set accountId <id>' or export CLOUDFLARE_ACCOUNT_ID.");
     var bucketName = config.Get("bucketName") ?? "makamek-data";
-    // R2 location hint (jurisdiction): optional; valid values are
+    // R2 bucket location hint: optional; valid values are
     // "apac", "enam", "wnam", "weur", "eeur". Unset lets Cloudflare pick.
+    // Used only for the bucket Location below, NOT for the custom domain's
+    // Jurisdiction input (which is a regulatory constraint, not a location).
     var locationHint = config.Get("locationHint");
     // Public custom domain under the makamek.nl zone that serves the bucket.
     var customDomain = config.Get("customDomain") ?? "data.makamek.nl";
@@ -51,7 +53,6 @@ return await Deployment.RunAsync(() =>
         Domain = customDomain,
         Enabled = true,
         ZoneId = zoneId,
-        Jurisdiction = locationHint,
     });
 
     return new Dictionary<string, object?>
