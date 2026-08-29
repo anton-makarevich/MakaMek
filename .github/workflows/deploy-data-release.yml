@@ -26,7 +26,7 @@ jobs:
       - name: Generate data manifest
         env:
           DATA_R2_BASE_URL: ${{ vars.DATA_R2_BASE_URL }}
-        run: node .github/scripts/generate-data-manifest.mjs data manifest.json
+        run: dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json
 
       - name: Upload assets and manifest to R2
         env:
