@@ -1,3 +1,5 @@
 config:
   makamek-infra-data:bucketName: makamek-data
   makamek-infra-data:locationHint: weur
+  makamek-infra-data:budgetUsd: "5"
+  makamek-infra-data:budgetAlertEmail: anton.makarevich@gmail.com

@@ -1,5 +1,6 @@
 ﻿using Pulumi;
 using Pulumi.Cloudflare;
+using Pulumi.Cloudflare.Inputs;
 
 return await Deployment.RunAsync(() =>
 {
@@ -16,6 +17,16 @@ return await Deployment.RunAsync(() =>
     // R2 location hint (jurisdiction): optional; valid values are
     // "apac", "enam", "wnam", "weur", "eeur". Unset lets Cloudflare pick.
     var locationHint = config.Get("locationHint");
+    // Email address that receives the R2 spend alert. The alert fires once per
+    // billing cycle when Cloudflare's projected monthly R2 spend crosses the
+    // configured threshold. Value lives in stack config (Pulumi.prod.yaml); it
+    // is a public contact point, so keeping it plaintext is fine.
+    var budgetAlertEmail = config.Get("budgetAlertEmail")
+        ?? throw new InvalidOperationException(
+            "budgetAlertEmail is required to create the R2 spend alert: " +
+            "set makamek-infra-data:budgetAlertEmail in Pulumi.prod.yaml.");
+    // Dollar threshold at which the spend alert fires. Default: $5.
+    var budgetUsd = config.Get("budgetUsd") ?? "5";
 
     // ------------------------------------------------------------------
     // R2 bucket: flat mirror of the repository data/ folder at the last
@@ -26,7 +37,37 @@ return await Deployment.RunAsync(() =>
     {
         AccountId = accountId,
         Name = bucketName,
-        Location = locationHint,
+        Location = locationHint??"weur",
+    });
+
+    // ------------------------------------------------------------------
+    // R2 spend budget alert: Cloudflare "Usage Based Billing" alerts are
+    // informational only - there is no API to enforce a hard spend cap.
+    // Cloudflare emails the configured address when projected monthly R2
+    // spend crosses the threshold (once per billing cycle). Requires the
+    // API token used by the infra-data workflow to have the
+    // "Notifications:Write" (Account Settings) permission.
+    // ------------------------------------------------------------------
+    _ = new NotificationPolicy("r2-spend-alert", new NotificationPolicyArgs
+    {
+        AccountId = accountId,
+        Name = "MakaMek R2 spend budget alert",
+        Description =
+            "Emails when projected monthly R2 spend crosses the configured budget threshold.",
+        AlertType = "billing_usage_alert",
+        Enabled = true,
+        Mechanisms = new NotificationPolicyMechanismsArgs
+        {
+            Emails =
+            {
+                new NotificationPolicyMechanismsEmailArgs { Id = budgetAlertEmail },
+            },
+        },
+        Filters = new NotificationPolicyFiltersArgs
+        {
+            Products = { "r2" },
+            Limits = { budgetUsd },
+        },
     });
 
     return new Dictionary<string, object?>
