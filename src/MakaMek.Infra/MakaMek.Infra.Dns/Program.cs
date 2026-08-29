@@ -1,5 +1,6 @@
 ﻿using Pulumi;
 using Pulumi.Cloudflare;
+using Pulumi.Cloudflare.Inputs;
 
 return await Deployment.RunAsync(() =>
 {
@@ -7,11 +8,23 @@ return await Deployment.RunAsync(() =>
 
     var zoneName = config.Get("zoneName") ?? "makamek.nl";
 
-    // The Cloudflare provider is configured solely by the CLOUDFLARE_API_TOKEN /
-    // CLOUDFLARE_ACCOUNT_ID env vars (see infra-dns.yml workflow). The Zone is
-    // created as a full/primary zone in the account that issued that token.
+    // Account id comes from stack config (pulumi config set accountId ...)
+    // or falls back to the CLOUDFLARE_ACCOUNT_ID env var injected by the
+    // infra-dns workflow / local shell.
+    var accountId = config.Get("accountId")
+        ?? Environment.GetEnvironmentVariable("CLOUDFLARE_ACCOUNT_ID")
+        ?? throw new InvalidOperationException(
+            "accountId is required: run 'pulumi config set accountId <id>' or export CLOUDFLARE_ACCOUNT_ID.");
+
+    // The provider is otherwise configured solely by the CLOUDFLARE_API_TOKEN
+    // env var (see infra-dns.yml workflow). The Zone is created as a
+    // full/primary zone in the account resolved above.
     var zone = new Zone("makamek-zone", new ZoneArgs
     {
+        Account = new ZoneAccountArgs
+        {
+            Id = accountId,
+        },
         Name = zoneName,
         Type = "full",
     });
