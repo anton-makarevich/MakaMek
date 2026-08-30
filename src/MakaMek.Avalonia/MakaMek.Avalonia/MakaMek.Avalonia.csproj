@@ -60,6 +60,7 @@
     </ItemGroup>
 
     <Import Project="DemoHubDefaults.targets" />
+    <Import Project="BucketDefaults.targets" />
 
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build">
