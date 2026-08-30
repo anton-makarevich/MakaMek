@@ -114,7 +114,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
 
         try
         {
-            using var response = await _httpClient.GetAsync(resourceId);
+            using var response = await _httpClient.SendAsync(CreateRequest(resourceId));
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to download file from {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
@@ -159,6 +159,22 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     }
 
     /// <summary>
+    /// Creates a GET request for <paramref name="url"/>, ensuring a valid User-Agent header is
+    /// present. The header is applied on the request itself so an injected <see cref="HttpClient"/>
+    /// is never mutated, while the internally-created client keeps its configured default.
+    /// </summary>
+    private HttpRequestMessage CreateRequest(string url)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (_httpClient.DefaultRequestHeaders.UserAgent.Count == 0)
+        {
+            request.Headers.TryAddWithoutValidation("User-Agent", "MakaMek-Game");
+        }
+
+        return request;
+    }
+
+    /// <summary>
     /// Fetches a JSON listing from <paramref name="listingUrl"/>, caches the raw response for
     /// offline use and extracts resource ids using <paramref name="selector"/>.
     /// Falls back to the cached listing when the fetch or deserialization fails.
@@ -171,7 +187,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     {
         try
         {
-            using var response = await _httpClient.GetAsync(listingUrl);
+            using var response = await _httpClient.SendAsync(CreateRequest(listingUrl));
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch {ListingDescription} from {ListingUrl}: {StatusCode}",
