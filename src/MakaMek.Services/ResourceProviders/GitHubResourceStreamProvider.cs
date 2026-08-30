@@ -1,19 +1,12 @@
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Services.ResourceProviders;
 
-public class GitHubResourceStreamProvider : IResourceStreamProvider
+public class GitHubResourceStreamProvider : RemoteResourceStreamProvider
 {
-    private readonly HttpClient _httpClient;
     private readonly string _apiUrl;
     private readonly string _fileExtension;
-    private readonly bool _disposeHttpClient;
-    private readonly Lazy<Task<List<(string Url, string Sha)>>> _availableResourceIds;
-    private readonly IFileCachingService _cachingService;
-    private readonly ILogger<GitHubResourceStreamProvider> _logger;
 
     /// <summary>
     /// Initializes a new instance of GitHubResourceStreamProvider
@@ -29,213 +22,29 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         IFileCachingService cachingService,
         ILogger<GitHubResourceStreamProvider> logger,
         HttpClient? httpClient = null)
+        : base(cachingService, logger, httpClient)
     {
         _apiUrl = apiUrl;
         _fileExtension = fileExtension;
-        _disposeHttpClient = httpClient == null;
-        _httpClient = httpClient ?? new HttpClient();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
-        _cachingService = cachingService;
-        _logger = logger;
-
-        _availableResourceIds = new Lazy<Task<List<(string Url, string Sha)>>>(LoadAvailableResourceIds);
     }
 
-    /// <summary>
-    /// Gets all available resource identifiers from the GitHub repository
-    /// </summary>
-    /// <returns>Collection of download URLs that serve as resource identifiers</returns>
-    public async Task<IEnumerable<string>> GetAvailableResourceIds()
-    {
-        var resources = await _availableResourceIds.Value;
-        return resources.Select(r => r.Url);
-    }
+    protected override string ListingDescription => "GitHub contents";
 
-    /// <summary>
-    /// Gets a stream for the specified resource identifier (download URL)
-    /// </summary>
-    /// <param name="resourceId">The download URL from GitHub</param>
-    /// <returns>Stream containing the file data, or null if not found</returns>
-    public async Task<Stream?> GetResourceStream(string resourceId)
-    {
-        if (string.IsNullOrEmpty(resourceId))
-        {
-            return null;
-        }
-
-        // Look up the current SHA for this resource
-        var resources = await _availableResourceIds.Value;
-        var resourceInfo = resources.FirstOrDefault(r => r.Url == resourceId);
-        var currentSha = resourceInfo.Sha;
-
-        var needsFreshDownload = false;
-        if (!string.IsNullOrEmpty(currentSha))
-        {
-            var cachedVersion = await _cachingService.GetCacheVersion(resourceId);
-            if (cachedVersion != currentSha)
-            {
-                _logger.LogInformation(
-                    "Cache version mismatch for {ResourceId}: cached {CachedVersion} vs current {CurrentVersion}.",
-                    resourceId, cachedVersion ?? "<none>", currentSha);
-                needsFreshDownload = true;
-            }
-        }
-
-        // Return fresh cached content immediately (skip if stale and needs refresh)
-        if (!needsFreshDownload)
-        {
-            var cachedBytes = await _cachingService.TryGetCachedFile(resourceId);
-            if (cachedBytes != null)
-            {
-                return new MemoryStream(cachedBytes);
-            }
-        }
-
-        try
-        {
-            var response = await _httpClient.GetAsync(resourceId);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to download file from {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
-
-                var fallbackBytes = await _cachingService.TryGetCachedFile(resourceId);
-                if (fallbackBytes == null) return null;
-                _logger.LogInformation("Serving stale cached content for {ResourceId} due to download failure", resourceId);
-                return new MemoryStream(fallbackBytes);
-
-            }
-
-            await using var contentStream = await response.Content.ReadAsStreamAsync();
-
-            // Read the content into memory so we can cache it
-            using var memoryStream = new MemoryStream();
-            await contentStream.CopyToAsync(memoryStream);
-            var contentBytes = memoryStream.ToArray();
-
-            // Cache the content with version metadata if available
-            try
-            {
-                await _cachingService.SaveToCache(
-                    resourceId,
-                    contentBytes,
-                    string.IsNullOrEmpty(currentSha) ? null : currentSha);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
-            }
-            return new MemoryStream(contentBytes);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error downloading file from {ResourceId}", resourceId);
-
-            var fallbackBytes = await _cachingService.TryGetCachedFile(resourceId);
-            if (fallbackBytes == null) return null;
-            _logger.LogInformation("Serving stale cached content for {ResourceId} due to download failure", resourceId);
-            return new MemoryStream(fallbackBytes);
-        }
-    }
+    protected override string CachedListingDescription => "API manifest";
 
     /// <summary>
     /// Loads available resource IDs by querying the GitHub Contents API
     /// </summary>
     /// <returns>List of (download URL, SHA) tuples for files with the specified extension</returns>
-    private async Task<List<(string Url, string Sha)>> LoadAvailableResourceIds()
+    protected override Task<List<(string Url, string Sha)>> LoadAvailableResourceIds()
     {
-        var resourceIds = new List<(string Url, string Sha)>();
-
-        try
-        {
-            var response = await _httpClient.GetAsync(_apiUrl);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to fetch GitHub contents: {StatusCode}", response.StatusCode);
-                return await TryLoadCachedManifest(resourceIds);
-            }
-
-            var jsonContent = await response.Content.ReadAsStringAsync();
-            
-            var contentItems = JsonSerializer.Deserialize<GitHubContentItem[]>(jsonContent);
-
-            if (contentItems == null)
-            {
-                _logger.LogWarning("Failed to deserialize GitHub contents response");
-                return await TryLoadCachedManifest(resourceIds);
-            }
-            
-            // Cache the API response for offline use
-            try
-            {
-                await _cachingService.SaveToCache(_apiUrl, Encoding.UTF8.GetBytes(jsonContent));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error caching API manifest for {ApiUrl}", _apiUrl);
-            }
-
-            foreach (var item in contentItems)
-            {
-                // Only include files (not directories) with the specified extension
-                if (item.Type == "file" &&
-                    item.Name.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrEmpty(item.DownloadUrl))
-                {
-                    resourceIds.Add((item.DownloadUrl, item.Sha ?? string.Empty));
-                }
-            }
-
-            _logger.LogInformation("Found {Count} {FileExtension} files in GitHub repository", resourceIds.Count, _fileExtension);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading GitHub contents");
-            return await TryLoadCachedManifest(resourceIds);
-        }
-
-        return resourceIds;
-    }
-
-    private async Task<List<(string Url, string Sha)>> TryLoadCachedManifest(List<(string Url, string Sha)> resourceIds)
-    {
-        try
-        {
-            var cachedJson = await _cachingService.TryGetCachedFile(_apiUrl);
-            if (cachedJson != null)
-            {
-                var cachedContent = JsonSerializer.Deserialize<GitHubContentItem[]>(Encoding.UTF8.GetString(cachedJson));
-                if (cachedContent != null)
-                {
-                    _logger.LogInformation("Using cached API manifest for offline resource discovery");
-                    foreach (var item in cachedContent)
-                    {
-                        if (item.Type == "file" &&
-                            item.Name.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) &&
-                            !string.IsNullOrEmpty(item.DownloadUrl))
-                        {
-                            resourceIds.Add((item.DownloadUrl, item.Sha ?? string.Empty));
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading cached API manifest");
-        }
-
-        return resourceIds;
-    }
-
-    /// <summary>
-    /// Disposes the HTTP client if it was created internally
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposeHttpClient)
-        {
-            _httpClient.Dispose();
-        }
+        return FetchListingAsync<GitHubContentItem[]>(_apiUrl, contentItems =>
+            (contentItems ?? [])
+                .Where(item => item.Type == "file" &&
+                               item.Name.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) &&
+                               !string.IsNullOrEmpty(item.DownloadUrl))
+                .Select(item => (Url: item.DownloadUrl!, Sha: item.Sha ?? string.Empty))
+                .ToList());
     }
 
     private class GitHubContentItem

@@ -2,6 +2,7 @@ name: Deploy WASM to GitHub Pages
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
 
 on:
   push:
@@ -39,6 +40,7 @@ jobs:
         run: |
           dotnet publish src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/MakaMek.Avalonia.Browser.csproj -c Release --self-contained true \
             -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DataBucketBaseUrl="$DATA_BUCKET_BASE_URL" \
             -p:DemoHubApiKey="$DEMOHUB_API_KEY"
 
       - name: Setup Pages

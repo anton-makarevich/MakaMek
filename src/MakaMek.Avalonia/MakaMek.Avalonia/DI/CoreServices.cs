@@ -36,19 +36,32 @@ public static class CoreServices
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        // Register unit caching service with stream providers (from MakaMek.Assets)
+        // Register unit caching service with stream providers (from MakaMek.Assets).
+        // Single default assets provider: bucket provider in release/prod builds (build-time
+        // DataBucketBaseUrl), GitHub provider for local development. In the future users will
+        // be able to replace/extend the provider via Settings (see issues #1332 / #1333).
         services.AddSingleton<IUnitCachingService>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var streamProviders = new List<IResourceStreamProvider>
+            var streamProviders = new List<IResourceStreamProvider>();
+            if (BucketDefaults.IsConfigured)
             {
-                new GitHubResourceStreamProvider("mmux",
+                streamProviders.Add(new BucketResourceStreamProvider("units/mechs",
+                    "mmux",
+                    BucketDefaults.BaseUrl,
+                    cachingService,
+                    loggerFactory.CreateLogger<BucketResourceStreamProvider>()
+                ));
+            }
+            else
+            {
+                streamProviders.Add(new GitHubResourceStreamProvider("mmux",
                     "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
                     cachingService,
                     loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                )
-            };
+                ));
+            }
             return new UnitCachingService(streamProviders, loggerFactory);
         });
 
@@ -57,14 +70,24 @@ public static class CoreServices
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var streamProviders = new List<IResourceStreamProvider>
+            var streamProviders = new List<IResourceStreamProvider>();
+            if (BucketDefaults.IsConfigured)
             {
-                new GitHubResourceStreamProvider("mmtx",
+                streamProviders.Add(new BucketResourceStreamProvider("hexes/biomes",
+                    "mmtx",
+                    BucketDefaults.BaseUrl,
+                    cachingService,
+                    loggerFactory.CreateLogger<BucketResourceStreamProvider>()
+                ));
+            }
+            else
+            {
+                streamProviders.Add(new GitHubResourceStreamProvider("mmtx",
                     "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
                     cachingService,
                     loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                )
-            };
+                ));
+            }
             return new TerrainCachingService(streamProviders, loggerFactory);
         });
 

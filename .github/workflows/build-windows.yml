@@ -2,6 +2,7 @@ name: Build and Package Windows App (Linux Runner)
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
 
 on:
   push:
@@ -44,6 +45,7 @@ jobs:
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DataBucketBaseUrl="$DATA_BUCKET_BASE_URL" \
             -p:DemoHubApiKey="$DEMOHUB_API_KEY" \
             -o publish
 

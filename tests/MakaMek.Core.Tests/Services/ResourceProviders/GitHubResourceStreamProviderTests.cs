@@ -294,7 +294,7 @@ public class GitHubResourceStreamProviderTests
         _logger.Received(1).Log(
             LogLevel.Information,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 mmux files in GitHub repository")),
+            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 resources in GitHub contents")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>());
     }
@@ -329,7 +329,7 @@ public class GitHubResourceStreamProviderTests
         _logger.Received(1).Log(
             LogLevel.Information,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 mmux files in GitHub repository")),
+            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 resources in GitHub contents")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>());
     }

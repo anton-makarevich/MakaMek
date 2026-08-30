@@ -2,6 +2,7 @@ name: Build and Package Linux App
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
+  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
 
 on:
   push:
@@ -42,6 +43,7 @@ jobs:
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           dotnet publish -c Release -r linux-x64 --self-contained true \
             -p:DemoHubBaseUrl="$DEMOHUB_BASE_URL" \
+            -p:DataBucketBaseUrl="$DATA_BUCKET_BASE_URL" \
             -p:DemoHubApiKey="$DEMOHUB_API_KEY" \
             -o publish
           vpk pack --packId nl.sanetby.makamek \
