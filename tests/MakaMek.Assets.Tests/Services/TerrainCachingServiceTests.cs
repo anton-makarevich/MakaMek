@@ -66,6 +66,19 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
+    public async Task LoadTerrainFromMmtxStream_ShouldReturnNull_WhenStreamIsNotValidZip()
+    {
+        // Arrange — random bytes are not a valid zip archive
+        using var corruptStream = new MemoryStream([0x00, 0x01, 0x02, 0xFF, 0xFE]);
+
+        // Act
+        var manifest = await _sut.LoadTerrainFromMmtxStream(corruptStream);
+
+        // Assert
+        manifest.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task LoadTerrainFromMmtxStream_ShouldLoadBaseTerrain()
     {
         // Arrange
@@ -118,6 +131,30 @@ public class TerrainCachingServiceTests
         // Assert
         topEdgeVariants.Count.ShouldBe(1);
         bottomEdgeVariants.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task LoadTerrainFromMmtxStream_ShouldSkipMalformedEdgeFiles()
+    {
+        // Arrange — edge entries with malformed names must be skipped, valid ones still loaded
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("edges/top.png", PngHeader())          // too few parts (no direction)
+            .WithRawEntry("edges/top-0-1-2.png", PngHeader())    // too many parts
+            .WithRawEntry("edges/side-0.png", PngHeader())       // invalid edge type
+            .WithRawEntry("edges/top-abc.png", PngHeader())      // non-integer direction
+            .WithEdge("top", "0", 1));                           // valid edge still loads
+
+        // Act
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
+        var topVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "0");
+        var sideVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "side-0");
+        var topNameVariants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.EdgeTop, "top");
+
+        // Assert — malformed edge files are ignored entirely, valid edge is cached
+        topVariants.Count.ShouldBe(1);
+        topVariants.ShouldContain(1);
+        sideVariants.Count.ShouldBe(0);
+        topNameVariants.Count.ShouldBe(0);
     }
 
     [Fact]
@@ -653,6 +690,30 @@ public class TerrainCachingServiceTests
         // Assert
         biomes.Count.ShouldBe(1);
         biomes.ShouldContain("ok-biome");
+    }
+
+    [Fact]
+    public async Task StreamProvider_ShouldContinue_WhenGetAvailableResourceIdsThrows()
+    {
+        // Arrange
+        using var validStream = CreateMmtxPackage("valid-biome", "Valid Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var failingProvider = Substitute.For<IResourceStreamProvider>();
+        failingProvider.GetAvailableResourceIds()
+            .ThrowsAsync(new InvalidOperationException("provider enumeration failed"));
+
+        var validProvider = Substitute.For<IResourceStreamProvider>();
+        validProvider.GetAvailableResourceIds().Returns(["valid-resource"]);
+        validProvider.GetResourceStream("valid-resource").Returns(validStream);
+
+        var sut = new TerrainCachingService([failingProvider, validProvider], _loggerFactory);
+
+        // Act — the failing provider must not block enumeration of the valid one
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        biomes.Count.ShouldBe(1);
+        biomes.ShouldContain("valid-biome");
     }
 
     [Fact]
