@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services.ResourceProviders;
 
@@ -22,6 +21,8 @@ public class UnitCachingService : IUnitCachingService
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<UnitCachingService> _logger;
+
+    public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
     
     /// <summary>
     /// The maximum number of units to load in parallel
@@ -122,20 +123,17 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     private async Task LoadUnitsFromStreamProviders()
     {
+        // Enumerate all providers up front so the total is finalized before loading begins.
+        // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
+        var units = new List<(IResourceStreamProvider Provider, string UnitId)>();
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var unitIds = await provider.GetAvailableResourceIds();
-                var unitIdList = unitIds.ToList();
-                
-                // Process units in parallel batches
-                var batches = unitIdList.Chunk(MaxDegreeOfParallelism);
-                
-                foreach (var batch in batches)
+                foreach (var unitId in unitIds)
                 {
-                    var batchTasks = batch.Select(unitId => ProcessUnitAsync(provider, unitId));
-                    await Task.WhenAll(batchTasks);
+                    units.Add((provider, unitId));
                 }
             }
             catch (Exception ex)
@@ -144,6 +142,32 @@ public class UnitCachingService : IUnitCachingService
                 _logger.LogError(ex, "Error loading units from provider {ProviderType}", provider.GetType().Name);
             }
         }
+
+        var totalUnits = units.Count;
+        var processedUnits = 0;
+        RaiseLoadProgress(processedUnits, totalUnits);
+
+        // Process units in parallel batches, reporting progress as each task actually completes
+        var batches = units.Chunk(MaxDegreeOfParallelism);
+        foreach (var batch in batches)
+        {
+            var batchTasks = batch
+                .Select(u => ProcessUnitAsync(u.Provider, u.UnitId))
+                .ToList();
+
+            while (batchTasks.Count > 0)
+            {
+                var completedTask = await Task.WhenAny(batchTasks);
+                batchTasks.Remove(completedTask);
+                processedUnits++;
+                RaiseLoadProgress(processedUnits, totalUnits);
+            }
+        }
+    }
+
+    private void RaiseLoadProgress(int loadedCount, int totalCount)
+    {
+        LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
     }
     
     private async Task ProcessUnitAsync(IResourceStreamProvider provider, string unitId)

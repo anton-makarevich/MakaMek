@@ -16,7 +16,9 @@
                     VerticalAlignment="Center"
                     Spacing="20"
                     IsVisible="{Binding IsLoading}">
-            <ProgressBar IsIndeterminate="True"
+            <ProgressBar Value="{Binding LoadingProgress}"
+                         Minimum="0"
+                         Maximum="1"
                          Width="300"
                          Height="6"/>
             <TextBlock Text="{Binding LoadingText}"

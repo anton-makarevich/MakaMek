@@ -32,6 +32,8 @@ public class TerrainCachingService : ITerrainAssetService
     
     private volatile bool _isInitialized;
 
+    public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
+
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory)
@@ -219,26 +221,17 @@ public class TerrainCachingService : ITerrainAssetService
 
     private async Task LoadTerrainFromStreamProviders()
     {
+        // Enumerate all providers up front so the total is finalized before loading begins.
+        // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
+        var resources = new List<(IResourceStreamProvider Provider, string ResourceId)>();
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var resourceIds = await provider.GetAvailableResourceIds();
-                
                 foreach (var resourceId in resourceIds)
                 {
-                    try
-                    {
-                        await using var stream = await provider.GetResourceStream(resourceId);
-                        if (stream != null)
-                        {
-                            await LoadTerrainFromMmtxStream(stream);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error loading terrain from '{ResourceId}'", resourceId);
-                    }
+                    resources.Add((provider, resourceId));
                 }
             }
             catch (Exception ex)
@@ -247,6 +240,33 @@ public class TerrainCachingService : ITerrainAssetService
                     provider.GetType().Name);
             }
         }
+
+        var totalResources = resources.Count;
+        var processedResources = 0;
+        RaiseLoadProgress(processedResources, totalResources);
+
+        foreach (var (provider, resourceId) in resources)
+        {
+            try
+            {
+                await using var stream = await provider.GetResourceStream(resourceId);
+                if (stream != null)
+                {
+                    await LoadTerrainFromMmtxStream(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading terrain from '{ResourceId}'", resourceId);
+            }
+            processedResources++;
+            RaiseLoadProgress(processedResources, totalResources);
+        }
+    }
+
+    private void RaiseLoadProgress(int loadedCount, int totalCount)
+    {
+        LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
     }
 
     private async Task ExtractImagesAsync(ZipArchive archive, string biomeId)

@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Assets.Services;
 
-public interface IUnitCachingService
+public interface IUnitCachingService : IProgressReporting
 {
     /// <summary>
     /// Gets unit data by model name

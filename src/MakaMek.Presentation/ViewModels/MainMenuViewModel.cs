@@ -4,6 +4,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -13,19 +14,26 @@ public class MainMenuViewModel : BaseViewModel
     private readonly IUnitCachingService _unitCachingService;
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
+    private readonly IDispatcherService _dispatcherService;
     private bool _hasError;
     private string _unitLoadingStatus;
     private string _biomeLoadingStatus;
+    private int _unitLoadedCount;
+    private int _unitTotalCount;
+    private int _biomeLoadedCount;
+    private int _biomeTotalCount;
 
     public MainMenuViewModel(IUnitCachingService unitCachingService,
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
+        IDispatcherService dispatcherService,
         ILogger<MainMenuViewModel> logger,
         int messageDelay = 1000)
     {
         _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
         _terrainAssetService = terrainAssetService ?? throw new ArgumentNullException(nameof(terrainAssetService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         var currentLogger = logger;
 
         // Get version from entry assembly
@@ -42,6 +50,9 @@ public class MainMenuViewModel : BaseViewModel
         _unitLoadingStatus = _localizationService.GetString("MainMenu_Loading_Units");
         _biomeLoadingStatus = _localizationService.GetString("MainMenu_Loading_Biomes");
         UpdateLoadingText();
+
+        _unitCachingService.LoadProgress += OnUnitLoadProgress;
+        _terrainAssetService.LoadProgress += OnBiomeLoadProgress;
 
         InitializeAsync(messageDelay)
             .SafeFireAndForget(ex => currentLogger.LogError(ex, "Error preloading content"));
@@ -71,9 +82,58 @@ public class MainMenuViewModel : BaseViewModel
         private set => SetProperty(ref field, value);
     }
 
+    /// <summary>
+    /// Gets the current loading progress as a value between 0 and 1
+    /// </summary>
+    public double LoadingProgress
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
     private void UpdateLoadingText()
     {
         LoadingText = $"{_unitLoadingStatus}\n{_biomeLoadingStatus}";
+    }
+
+    /// <summary>
+    /// Derives overall loading progress from both preload operations so one completing cannot
+    /// report overall completion while the other is still active.
+    /// </summary>
+    private void UpdateLoadingProgress()
+    {
+        var totalCount = _unitTotalCount + _biomeTotalCount;
+        LoadingProgress = totalCount > 0
+            ? (double)(_unitLoadedCount + _biomeLoadedCount) / totalCount
+            : 0;
+    }
+
+    private void OnUnitLoadProgress(object? sender, ResourceLoadProgressEventArgs e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            _unitLoadingStatus = string.Format(
+                _localizationService.GetString("MainMenu_Loading_UnitsProgress"),
+                e.LoadedCount, e.TotalCount);
+            _unitLoadedCount = e.LoadedCount;
+            _unitTotalCount = e.TotalCount;
+            UpdateLoadingText();
+            UpdateLoadingProgress();
+        });
+    }
+
+    private void OnBiomeLoadProgress(object? sender, ResourceLoadProgressEventArgs e)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            _biomeLoadingStatus = string.Format(
+                _localizationService.GetString("MainMenu_Loading_BiomesProgress"),
+                e.LoadedCount, e.TotalCount);
+            _biomeLoadedCount = e.LoadedCount;
+            _biomeTotalCount = e.TotalCount;
+            UpdateLoadingText();
+            UpdateLoadingProgress();
+        });
     }
 
     private async Task InitializeAsync(int messageDelay)
@@ -129,6 +189,9 @@ public class MainMenuViewModel : BaseViewModel
         }
         finally
         {
+            // Mark the unit preload as complete so it cannot report overall completion on its own
+            _unitLoadedCount = _unitTotalCount;
+            UpdateLoadingProgress();
             UpdateLoadingText();
         }
     }
@@ -158,6 +221,9 @@ public class MainMenuViewModel : BaseViewModel
         }
         finally
         {
+            // Mark the biome preload as complete so it cannot report overall completion on its own
+            _biomeLoadedCount = _biomeTotalCount;
+            UpdateLoadingProgress();
             UpdateLoadingText();
         }
     }

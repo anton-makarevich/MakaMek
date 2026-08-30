@@ -23,6 +23,7 @@ public class MainMenuViewModelTests
 {
     private readonly MainMenuViewModel _sut;
     private readonly INavigationService _navigationService;
+    private readonly IDispatcherService _dispatcherService;
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
@@ -31,6 +32,9 @@ public class MainMenuViewModelTests
     public MainMenuViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
+        _dispatcherService = Substitute.For<IDispatcherService>();
+        _dispatcherService.When(x => x.RunOnUIThread(Arg.Any<Action>()))
+            .Do(ci => ci.Arg<Action>()());
 
         // Set up a default behavior for unit caching service
         _unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
@@ -40,6 +44,8 @@ public class MainMenuViewModelTests
         _localizationService.GetString("MainMenu_Loading_Content").Returns("Loading content...");
         _localizationService.GetString("MainMenu_Loading_Units").Returns("Loading units...");
         _localizationService.GetString("MainMenu_Loading_Biomes").Returns("Loading biomes...");
+        _localizationService.GetString("MainMenu_Loading_UnitsProgress").Returns("Loading units {0}/{1}");
+        _localizationService.GetString("MainMenu_Loading_BiomesProgress").Returns("Loading biomes {0}/{1}");
         _localizationService.GetString("MainMenu_Loading_NoItemsFound").Returns("No items found");
         _localizationService.GetString("MainMenu_Loading_NoUnitsFound").Returns("No units found");
         _localizationService.GetString("MainMenu_Loading_NoBiomesFound").Returns("No biomes found");
@@ -50,7 +56,7 @@ public class MainMenuViewModelTests
         _localizationService.GetString("MainMenu_Loading_UnitsError").Returns("Error loading units: {0}");
         _localizationService.GetString("MainMenu_Loading_BiomesError").Returns("Error loading biomes: {0}");
 
-        _sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        _sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -221,7 +227,7 @@ public class MainMenuViewModelTests
             .GetAvailableModels()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -239,7 +245,7 @@ public class MainMenuViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -260,7 +266,7 @@ public class MainMenuViewModelTests
             .GetLoadedBiomes()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -278,7 +284,7 @@ public class MainMenuViewModelTests
         // Arrange
         _terrainAssetService.GetLoadedBiomes().Returns([]);
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -288,5 +294,72 @@ public class MainMenuViewModelTests
         // Assert
         sut.LoadingText.ShouldContain("No biomes found");
         sut.IsLoading.ShouldBeTrue();
-    }   
+    }
+
+    [Fact]
+    public void UnitLoadProgress_UpdatesLoadingTextAndLoadingProgress()
+    {
+        // Arrange
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+
+        // Act
+        _unitCachingService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(2, 5));
+
+        // Assert
+        sut.LoadingText.ShouldContain("Loading units 2/5");
+        sut.LoadingProgress.ShouldBe(2d / 5);
+    }
+
+    [Fact]
+    public void BiomeLoadProgress_UpdatesLoadingTextAndLoadingProgress()
+    {
+        // Arrange
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+
+        // Act
+        _terrainAssetService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(1, 4));
+
+        // Assert
+        sut.LoadingText.ShouldContain("Loading biomes 1/4");
+        sut.LoadingProgress.ShouldBe(1d / 4);
+    }
+
+    [Fact]
+    public void LoadingProgress_IsSetToOne_WhenBothPreloadsComplete()
+    {
+        // Arrange
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+
+        // Act - both preloads report completion through progress events
+        _unitCachingService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(5, 5));
+        _terrainAssetService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(10, 10));
+
+        // Assert
+        sut.LoadingProgress.ShouldBe(1);
+    }
+
+    [Fact]
+    public void LoadingProgress_ReflectsBothPreloads_WhenOneCompletesBeforeOther()
+    {
+        // Arrange
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+
+        // Act - units complete (5/5) while biomes are still at partial progress (2/10)
+        _unitCachingService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(5, 5));
+        _terrainAssetService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(2, 10));
+
+        // Assert - overall progress is derived from both loaded/total pairs, not just one
+        sut.LoadingProgress.ShouldBe((5d + 2d) / (5d + 10d));
+        sut.LoadingProgress.ShouldNotBe(1);
+    }
 }
