@@ -451,6 +451,8 @@ public class FakeLocalizationServiceTests
     [InlineData("MainMenu_Loading_Content", "Loading content...")]
     [InlineData("MainMenu_Loading_Units", "Loading units...")]
     [InlineData("MainMenu_Loading_Biomes", "Loading biomes...")]
+    [InlineData("MainMenu_Loading_UnitsProgress", "Loading units {0}/{1}")]
+    [InlineData("MainMenu_Loading_BiomesProgress", "Loading biomes {0}/{1}")]
     [InlineData("MainMenu_Loading_NoUnitsFound", "No units found")]
     [InlineData("MainMenu_Loading_NoBiomesFound", "No biomes found")]
     [InlineData("MainMenu_Loading_UnitsLoaded", "Loaded {0} units")]

@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services.ResourceProviders;
 
@@ -22,6 +21,8 @@ public class UnitCachingService : IUnitCachingService
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<UnitCachingService> _logger;
+
+    public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
     
     /// <summary>
     /// The maximum number of units to load in parallel
@@ -122,20 +123,30 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     private async Task LoadUnitsFromStreamProviders()
     {
+        var processedUnits = 0;
+        var totalUnits = 0;
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var unitIds = await provider.GetAvailableResourceIds();
                 var unitIdList = unitIds.ToList();
+                totalUnits += unitIdList.Count;
                 
+                RaiseLoadProgress(processedUnits, totalUnits);
+
                 // Process units in parallel batches
                 var batches = unitIdList.Chunk(MaxDegreeOfParallelism);
                 
                 foreach (var batch in batches)
                 {
-                    var batchTasks = batch.Select(unitId => ProcessUnitAsync(provider, unitId));
-                    await Task.WhenAll(batchTasks);
+                    var batchTasks = batch.Select(unitId => ProcessUnitAsync(provider, unitId)).ToArray();
+                    foreach (var batchTask in batchTasks)
+                    {
+                        await batchTask;
+                        Interlocked.Increment(ref processedUnits);
+                        RaiseLoadProgress(processedUnits, totalUnits);
+                    }
                 }
             }
             catch (Exception ex)
@@ -144,6 +155,11 @@ public class UnitCachingService : IUnitCachingService
                 _logger.LogError(ex, "Error loading units from provider {ProviderType}", provider.GetType().Name);
             }
         }
+    }
+
+    private void RaiseLoadProgress(int loadedCount, int totalCount)
+    {
+        LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
     }
     
     private async Task ProcessUnitAsync(IResourceStreamProvider provider, string unitId)

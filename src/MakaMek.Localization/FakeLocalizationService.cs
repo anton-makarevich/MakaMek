@@ -292,6 +292,8 @@ public class FakeLocalizationService : ILocalizationService
         ["MainMenu_Loading_Content"] = "Loading content...",
         ["MainMenu_Loading_Units"] = "Loading units...",
         ["MainMenu_Loading_Biomes"] = "Loading biomes...",
+        ["MainMenu_Loading_UnitsProgress"] = "Loading units {0}/{1}",
+        ["MainMenu_Loading_BiomesProgress"] = "Loading biomes {0}/{1}",
         ["MainMenu_Loading_NoUnitsFound"] = "No units found",
         ["MainMenu_Loading_NoBiomesFound"] = "No biomes found",
         ["MainMenu_Loading_UnitsLoaded"] = "Loaded {0} units",

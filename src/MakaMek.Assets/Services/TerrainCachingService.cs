@@ -32,6 +32,8 @@ public class TerrainCachingService : ITerrainAssetService
     
     private volatile bool _isInitialized;
 
+    public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
+
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory)
@@ -219,13 +221,19 @@ public class TerrainCachingService : ITerrainAssetService
 
     private async Task LoadTerrainFromStreamProviders()
     {
+        var processedResources = 0;
+        var totalResources = 0;
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var resourceIds = await provider.GetAvailableResourceIds();
-                
-                foreach (var resourceId in resourceIds)
+                var resourceIdList = resourceIds.ToList();
+                totalResources += resourceIdList.Count;
+
+                RaiseLoadProgress(processedResources, totalResources);
+
+                foreach (var resourceId in resourceIdList)
                 {
                     try
                     {
@@ -239,6 +247,8 @@ public class TerrainCachingService : ITerrainAssetService
                     {
                         _logger.LogError(ex, "Error loading terrain from '{ResourceId}'", resourceId);
                     }
+                    processedResources++;
+                    RaiseLoadProgress(processedResources, totalResources);
                 }
             }
             catch (Exception ex)
@@ -247,6 +257,11 @@ public class TerrainCachingService : ITerrainAssetService
                     provider.GetType().Name);
             }
         }
+    }
+
+    private void RaiseLoadProgress(int loadedCount, int totalCount)
+    {
+        LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
     }
 
     private async Task ExtractImagesAsync(ZipArchive archive, string biomeId)

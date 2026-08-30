@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Services;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Map.Models;
@@ -419,5 +418,33 @@ public class UnitCachingServiceTests
             Arg.Any<object>(),
             Arg.Is<Exception>(ex => ex.Message == "Failed to deserialize unit.json"),
             Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    public async Task LoadUnits_ShouldRaiseLoadProgressEvents_WithIncreasingCounts()
+    {
+        // Arrange
+        const int unitCount = 5;
+        var unitIds = Enumerable.Range(1, unitCount).Select(i => $"UNIT-{i}").ToArray();
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(unitIds);
+        provider.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
+
+        var sut = new UnitCachingService([provider], _loggerFactory);
+        var progressEvents = new List<ResourceLoadProgressEventArgs>();
+        sut.LoadProgress += (_, e) => progressEvents.Add(e);
+
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
+
+        // Assert
+        progressEvents.ShouldNotBeEmpty();
+        progressEvents[0].LoadedCount.ShouldBe(0);
+        progressEvents[0].TotalCount.ShouldBe(unitCount);
+        progressEvents[^1].LoadedCount.ShouldBe(unitCount);
+        progressEvents[^1].TotalCount.ShouldBe(unitCount);
+        progressEvents.Select(e => e.LoadedCount).ShouldBeInOrder();
+        models.Count.ShouldBe(unitCount);
     }
 }

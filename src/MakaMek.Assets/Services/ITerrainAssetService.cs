@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Assets.Services;
 /// <summary>
 /// Service for caching and retrieving terrain assets from MMTX packages
 /// </summary>
-public interface ITerrainAssetService
+public interface ITerrainAssetService : IProgressReporting
 {
     /// <summary>
     /// Gets the manifest for a loaded biome.

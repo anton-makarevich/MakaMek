@@ -655,6 +655,34 @@ public class TerrainCachingServiceTests
         biomes.ShouldContain("ok-biome");
     }
 
+    [Fact]
+    public async Task LoadTerrain_ShouldRaiseLoadProgressEvents_WithIncreasingCounts()
+    {
+        // Arrange
+        const int biomeCount = 4;
+        var resourceIds = Enumerable.Range(1, biomeCount).Select(i => $"resource-{i}").ToArray();
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(resourceIds);
+        provider.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateMmtxPackage($"biome-{ci[0]}", $"Biome {ci[0]}"));
+
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var progressEvents = new List<ResourceLoadProgressEventArgs>();
+        sut.LoadProgress += (_, e) => progressEvents.Add(e);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        progressEvents.ShouldNotBeEmpty();
+        progressEvents[0].LoadedCount.ShouldBe(0);
+        progressEvents[0].TotalCount.ShouldBe(biomeCount);
+        progressEvents[^1].LoadedCount.ShouldBe(biomeCount);
+        progressEvents[^1].TotalCount.ShouldBe(biomeCount);
+        progressEvents.Select(e => e.LoadedCount).ShouldBeInOrder();
+        biomes.Count.ShouldBe(biomeCount);
+    }
+
     private static MemoryStream CreateMmtxPackage(
         string biomeId = "test-biome",
         string name = "Test Biome",
