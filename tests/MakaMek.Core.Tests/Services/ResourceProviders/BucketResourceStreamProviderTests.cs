@@ -142,18 +142,19 @@ public class BucketResourceStreamProviderTests
     public async Task GetAvailableResourceIds_ShouldTrimTrailingSlashFromBaseUrl()
     {
         // Arrange
+        var mockHandler = new UrlMatchingMockHttpMessageHandler();
+        mockHandler.SetResponse(ManifestUrl, CreateManifestJson());
         var sut = new BucketResourceStreamProvider("units/mechs", "mmux", $"{BaseUrl}/",
             _cachingService,
             _logger,
-            new HttpClient(_mockHttpMessageHandler));
-        _mockHttpMessageHandler.ResponseContent = CreateManifestJson();
+            new HttpClient(mockHandler));
 
         // Act
         var result = (await sut.GetAvailableResourceIds()).ToList();
 
-        // Assert
+        // Assert - manifest was fetched from the exact ManifestUrl (no double slash)
         result.ShouldNotBeNull();
-        result.Count.ShouldBe(1);
+        result.ShouldContain($"{BaseUrl}/units/mechs/commando.mmux");
     }
 
     [Fact]
@@ -612,7 +613,7 @@ public class BucketResourceStreamProviderTests
         var httpClient = new HttpClient(mockHandler);
 
         _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null);
-        _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>()))
+        _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>(), Arg.Any<string?>()))
                          .Do(_ => throw new InvalidOperationException("Cache error"));
 
         var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,

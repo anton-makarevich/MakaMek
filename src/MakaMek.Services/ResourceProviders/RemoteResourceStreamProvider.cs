@@ -31,9 +31,17 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     {
         _cachingService = cachingService;
         _logger = logger;
-        _disposeHttpClient = httpClient == null;
-        _httpClient = httpClient ?? new HttpClient();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
+        if (httpClient != null)
+        {
+            _httpClient = httpClient;
+            _disposeHttpClient = false;
+        }
+        else
+        {
+            _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
+            _disposeHttpClient = true;
+        }
 
         _availableResourceIds = new Lazy<Task<List<(string Url, string Sha)>>>(LoadAvailableResourceIds);
     }
@@ -106,7 +114,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
 
         try
         {
-            var response = await _httpClient.GetAsync(resourceId);
+            using var response = await _httpClient.GetAsync(resourceId);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to download file from {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
@@ -163,7 +171,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     {
         try
         {
-            var response = await _httpClient.GetAsync(listingUrl);
+            using var response = await _httpClient.GetAsync(listingUrl);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch {ListingDescription} from {ListingUrl}: {StatusCode}",
