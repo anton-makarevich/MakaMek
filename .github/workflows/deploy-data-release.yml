@@ -22,15 +22,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Generate data manifest
+      - name: Generate per-asset-type data manifests
         env:
           DATA_R2_BASE_URL: ${{ vars.DATA_R2_BASE_URL }}
         run: |
           VERSION=$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' Directory.Build.props)
           if [ -z "$VERSION" ]; then echo "Could not read VersionPrefix from Directory.Build.props"; exit 1; fi
-          dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json "$VERSION"
+          dotnet run --file .github/scripts/generate-data-manifest.cs -- data "$VERSION"
 
-      - name: Upload assets and manifest to R2
+      - name: Upload assets and manifests to R2
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
@@ -44,18 +44,11 @@ jobs:
           ENDPOINT="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
           echo "Syncing data/ to bucket ${CLOUDFLARE_R2_BUCKET}..."
-          # manifest.json lives outside the data/ source tree, so --delete would
-          # otherwise treat the root copy as remote-only and remove it mid-release.
-          # Exclude it here; it is (re)published below after the sync completes.
+          # Per-asset-type manifests (data/units/manifest.json, data/hexes/manifest.json)
+          # are generated before the sync and live inside the data/ tree, so this single
+          # sync publishes them together with the assets.
           aws s3 sync data "s3://${CLOUDFLARE_R2_BUCKET}" \
             --endpoint-url "$ENDPOINT" \
             --profile r2 \
             --delete \
-            --exclude "manifest.json" \
             --no-progress
-
-          echo "Publishing manifest.json..."
-          aws s3 cp manifest.json "s3://${CLOUDFLARE_R2_BUCKET}/manifest.json" \
-            --endpoint-url "$ENDPOINT" \
-            --profile r2 \
-            --content-type application/json

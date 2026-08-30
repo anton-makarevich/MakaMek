@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -11,7 +11,7 @@ namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
 public class BucketResourceStreamProviderTests
 {
     private const string BaseUrl = "https://data.makamek.nl";
-    private const string ManifestUrl = $"{BaseUrl}/manifest.json";
+    private const string ManifestUrl = $"{BaseUrl}/units/manifest.json";
 
     private readonly IFileCachingService _cachingService;
     private readonly ILogger<BucketResourceStreamProvider> _logger;
@@ -24,7 +24,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((byte[]?)null);
         _logger = Substitute.For<ILogger<BucketResourceStreamProvider>>();
         _mockHttpMessageHandler = new MockHttpMessageHandler();
-        _sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        _sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             new HttpClient(_mockHttpMessageHandler));
@@ -69,9 +69,10 @@ public class BucketResourceStreamProviderTests
     }
 
     [Fact]
-    public async Task GetAvailableResourceIds_ShouldFilterByPathPrefix()
+    public async Task GetAvailableResourceIds_ShouldExcludeForeignAssetTypeEntries()
     {
-        // Arrange
+        // Arrange — the units manifest lists all unit subtypes, so a foreign-extension
+        // entry (e.g. terrain) must be excluded
         _mockHttpMessageHandler.ResponseContent = $$"""
             {
                 "version": "1.2.3",
@@ -144,7 +145,7 @@ public class BucketResourceStreamProviderTests
         // Arrange
         var mockHandler = new UrlMatchingMockHttpMessageHandler();
         mockHandler.SetResponse(ManifestUrl, CreateManifestJson());
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", $"{BaseUrl}/",
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", $"{BaseUrl}/",
             _cachingService,
             _logger,
             new HttpClient(mockHandler));
@@ -357,7 +358,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedHash);
         _cachingService.TryGetCachedFile(testUrl).Returns(Encoding.UTF8.GetBytes("Stale content"));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -399,7 +400,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(matchingHash);
         _cachingService.TryGetCachedFile(testUrl).Returns(Encoding.UTF8.GetBytes(testContent));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -436,7 +437,7 @@ public class BucketResourceStreamProviderTests
 
         _cachingService.TryGetCachedFile(testUrl).Returns(Encoding.UTF8.GetBytes(testContent));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -470,7 +471,7 @@ public class BucketResourceStreamProviderTests
 
         var httpClient = new HttpClient(mockHandler);
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -509,7 +510,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedHash);
         _cachingService.TryGetCachedFile(testUrl).Returns(Encoding.UTF8.GetBytes(testContent));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -547,7 +548,7 @@ public class BucketResourceStreamProviderTests
 
         _cachingService.GetCacheVersion(testUrl).Returns(cachedHash);
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -577,7 +578,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedHash);
         _cachingService.TryGetCachedFile(testUrl).Returns(Encoding.UTF8.GetBytes(testContent));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -616,7 +617,7 @@ public class BucketResourceStreamProviderTests
         _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>(), Arg.Any<string?>()))
                          .Do(_ => throw new InvalidOperationException("Cache error"));
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -645,7 +646,7 @@ public class BucketResourceStreamProviderTests
 
         var httpClient = new HttpClient(mockHandler);
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             httpClient);
@@ -669,7 +670,7 @@ public class BucketResourceStreamProviderTests
         var mockHttpMessageHandler = new MockHttpMessageHandler();
         var externalHttpClient = new HttpClient(mockHttpMessageHandler);
 
-        var sut = new BucketResourceStreamProvider("units/mechs", "mmux", BaseUrl,
+        var sut = new BucketResourceStreamProvider("units/manifest.json", "mmux", BaseUrl,
             _cachingService,
             _logger,
             externalHttpClient);
