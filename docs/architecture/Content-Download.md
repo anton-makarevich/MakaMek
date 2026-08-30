@@ -184,8 +184,8 @@ The bucket is always **flat** — there are no versioned subfolders and no per-r
 ### Pipeline Flow
 
 0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Infra/MakaMek.Infra.Data`, run by `.github/workflows/infra-data.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern. A **new** bucket (and corresponding base URL) is provisioned whenever a breaking change ships; non-breaking releases reuse the existing flat bucket.
-1. **Trigger**: push of a `v*` tag, or a manual `workflow_dispatch` run.
-2. **Manifest generation**: `.github/scripts/generate-data-manifest.mjs` scans `data/` recursively and writes `manifest.json` to the workspace root.
+1. **Trigger**: push of a `v*` tag.
+2. **Manifest generation**: `.github/scripts/generate-data-manifest.cs` (a .NET 10 file-based app run via `dotnet run --file`) scans `data/` recursively and writes `manifest.json` to the workspace root.
 3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. `manifest.json` is excluded from the sync (it lives outside `data/`, so `--delete` would otherwise treat the root copy as remote-only and remove it) and is then published to the bucket root after the sync completes.
 
 Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_R2_BASE_URL`.
@@ -194,7 +194,7 @@ Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY
 
 ```json
 {
-  "version": 1,
+  "version": "0.63.6",
   "generatedAtUtc": "2026-08-27T00:00:00.000Z",
   "fileCount": 200,
   "files": [
@@ -212,7 +212,7 @@ Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY
 
 Top level:
 
-- **version**: Manifest schema version (currently `1`), for future evolution
+- **version**: App release version (`<VersionPrefix>` from `Directory.Build.props`, picked up by the deploy pipeline and passed to the manifest generator). Lets clients detect when a new app release ships updated downloadable content.
 - **generatedAtUtc**: ISO-8601 timestamp of generation
 - **fileCount**: Number of entries in `files`
 - **files**: Array of file entries
