@@ -47,7 +47,7 @@ public static class CoreServices
             var streamProviders = new List<IResourceStreamProvider>();
             if (BucketDefaults.IsConfigured)
             {
-                streamProviders.Add(new BucketResourceStreamProvider("units/mechs",
+                streamProviders.Add(new BucketResourceStreamProvider("units/manifest.json",
                     "mmux",
                     BucketDefaults.BaseUrl,
                     cachingService,
@@ -73,7 +73,7 @@ public static class CoreServices
             var streamProviders = new List<IResourceStreamProvider>();
             if (BucketDefaults.IsConfigured)
             {
-                streamProviders.Add(new BucketResourceStreamProvider("hexes/biomes",
+                streamProviders.Add(new BucketResourceStreamProvider("hexes/manifest.json",
                     "mmtx",
                     BucketDefaults.BaseUrl,
                     cachingService,

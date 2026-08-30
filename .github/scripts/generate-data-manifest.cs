@@ -1,6 +1,8 @@
-// Generates manifest.json for the data/ folder: relative path, SHA-256 content hash,
-// and public download URL for every file (recursively). Used by deploy-data-release.yml.
-// Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data manifest.json <version>
+// Generates per-asset-type manifests for the data/ folder: relative path, SHA-256 content hash,
+// and public download URL for every file (recursively). One manifest is written at the root of
+// each asset type (e.g. data/units/manifest.json, data/hexes/manifest.json) so each asset type's
+// resource provider fetches only its own listing. Used by deploy-data-release.yml.
+// Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data <version>
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -24,8 +26,7 @@ static IEnumerable<string> Walk(string dir)
 }
 
 var dataDir = args.Length > 0 ? args[0] : "data";
-var outputFile = args.Length > 1 ? args[1] : "manifest.json";
-var manifestVersion = args.Length > 2 ? args[2] : "1";
+var manifestVersion = args.Length > 1 ? args[1] : "1";
 var baseUrl = Environment.GetEnvironmentVariable("DATA_R2_BASE_URL");
 
 if (string.IsNullOrEmpty(baseUrl))
@@ -51,43 +52,52 @@ string ToUrl(string relativePath)
 
 try
 {
-    var filePaths = Walk(dataDir).OrderBy(p => p, StringComparer.Ordinal).ToList();
-    var entries = new List<ManifestEntry>();
-
-    foreach (var fullPath in filePaths)
+    // One manifest per asset type (each immediate subdirectory of data/).
+    foreach (var assetTypeDir in Directory.EnumerateDirectories(dataDir).OrderBy(p => p, StringComparer.Ordinal))
     {
-        var relativePath = Path.GetRelativePath(dataDir, fullPath).Replace('\\', '/');
-        var sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(fullPath))).ToLowerInvariant();
-        entries.Add(new ManifestEntry
+        var assetTypeName = Path.GetFileName(assetTypeDir);
+        var filePaths = Walk(assetTypeDir)
+            .Where(p => !string.Equals(Path.GetFileName(p), "manifest.json", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToList();
+        var entries = new List<ManifestEntry>();
+
+        foreach (var fullPath in filePaths)
         {
-            Path = relativePath,
-            Name = relativePath[(relativePath.LastIndexOf('/') + 1)..],
-            Hash = sha256,
-            Url = ToUrl(relativePath),
-        });
-    }
+            var relativePath = Path.GetRelativePath(dataDir, fullPath).Replace('\\', '/');
+            var sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(fullPath))).ToLowerInvariant();
+            entries.Add(new ManifestEntry
+            {
+                Path = relativePath,
+                Name = relativePath[(relativePath.LastIndexOf('/') + 1)..],
+                Hash = sha256,
+                Url = ToUrl(relativePath),
+            });
+        }
 
-    var manifest = new Manifest
-    {
-        Version = manifestVersion,
-        GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
-        FileCount = entries.Count,
-        Files = entries,
-    };
+        var manifest = new Manifest
+        {
+            Version = manifestVersion,
+            GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
+            FileCount = entries.Count,
+            Files = entries,
+        };
 
-    using (var stream = File.Create(outputFile))
-    using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
-    {
-        JsonSerializer.Serialize(writer, manifest, ManifestJsonContext.Default.Manifest);
-        writer.Flush();
-        stream.WriteByte((byte)'\n');
+        var outputFile = Path.Combine(assetTypeDir, "manifest.json");
+        using (var stream = File.Create(outputFile))
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+        {
+            JsonSerializer.Serialize(writer, manifest, ManifestJsonContext.Default.Manifest);
+            writer.Flush();
+            stream.WriteByte((byte)'\n');
+        }
+        Console.WriteLine($"Generated {outputFile} with {entries.Count} file(s) from {assetTypeName}/");
     }
-    Console.WriteLine($"Generated {outputFile} with {entries.Count} file(s) from {dataDir}/");
     return 0;
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine("Failed to generate data manifest: " + ex);
+    Console.Error.WriteLine("Failed to generate data manifests: " + ex);
     return 1;
 }
 

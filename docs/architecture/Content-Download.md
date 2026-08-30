@@ -185,12 +185,14 @@ The bucket is always **flat** — there are no versioned subfolders and no per-r
 
 0. **Bucket provisioning**: the R2 bucket is created upfront via Pulumi (`src/MakaMek.Infra/MakaMek.Infra.Data`, run by `.github/workflows/infra-data.yml`, Cloudflare provider). See [hub-deployment.md](hub-deployment.md) for the same ad-hoc workflow pattern. A **new** bucket (and corresponding base URL) is provisioned whenever a breaking change ships; non-breaking releases reuse the existing flat bucket.
 1. **Trigger**: push of a `v*` tag.
-2. **Manifest generation**: `.github/scripts/generate-data-manifest.cs` (a .NET 10 file-based app run via `dotnet run --file`) scans `data/` recursively and writes `manifest.json` to the workspace root.
-3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. `manifest.json` is excluded from the sync (it lives outside `data/`, so `--delete` would otherwise treat the root copy as remote-only and remove it) and is then published to the bucket root after the sync completes.
+2. **Manifest generation**: `.github/scripts/generate-data-manifest.cs` (a .NET 10 file-based app run via `dotnet run --file`) scans each asset type's subtree of `data/` (one manifest per immediate subdirectory: `units`, `hexes`, …) and writes a `manifest.json` at the root of each asset type (e.g. `data/units/manifest.json`, `data/hexes/manifest.json`). Each asset type's resource provider fetches only its own manifest, so no single shared listing is downloaded by every provider.
+3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. Because the manifests are generated before the sync and live inside the `data/` tree, this single sync publishes them together with the assets.
 
 Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_R2_BASE_URL`.
 
 ### manifest.json Schema
+
+One manifest per asset type, e.g. `units/manifest.json`:
 
 ```json
 {
@@ -224,11 +226,11 @@ Per-file:
 - **hash**: SHA-256 of the raw file bytes (used as an opaque cache-version marker)
 - **url**: Public download URL (`DATA_R2_BASE_URL` + `/` + `path`)
 
-> This top-level manifest is unrelated to the per-package `manifest.json` inside each `.mmux`/`.mmtx` archive — those schemas are unchanged.
+> These per-asset-type manifests are unrelated to the per-package `manifest.json` inside each `.mmux`/`.mmtx` archive — those schemas are unchanged.
 
 ### Current Status
 
-The existing GitHub-based runtime path (`GitHubResourceStreamProvider`) stays active until the application-side switch to R2 is implemented (tracked separately). This pipeline realizes the "CDN Integration" future enhancement: once switched, the app consumes `manifest.json` from the bucket and downloads files via their `url` field.
+The existing GitHub-based runtime path (`GitHubResourceStreamProvider`) stays active for local development. In release builds the app consumes the per-asset-type manifest (e.g. `units/manifest.json`) from the bucket via `BucketResourceStreamProvider` and downloads files via their `url` field.
 
 ## Possible Future Enhancements
 
