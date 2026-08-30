@@ -123,36 +123,44 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     private async Task LoadUnitsFromStreamProviders()
     {
-        var processedUnits = 0;
-        var totalUnits = 0;
+        // Enumerate all providers up front so the total is finalized before loading begins.
+        // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
+        var units = new List<(IResourceStreamProvider Provider, string UnitId)>();
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var unitIds = await provider.GetAvailableResourceIds();
-                var unitIdList = unitIds.ToList();
-                totalUnits += unitIdList.Count;
-                
-                RaiseLoadProgress(processedUnits, totalUnits);
-
-                // Process units in parallel batches
-                var batches = unitIdList.Chunk(MaxDegreeOfParallelism);
-                
-                foreach (var batch in batches)
+                foreach (var unitId in unitIds)
                 {
-                    var batchTasks = batch.Select(unitId => ProcessUnitAsync(provider, unitId)).ToArray();
-                    foreach (var batchTask in batchTasks)
-                    {
-                        await batchTask;
-                        Interlocked.Increment(ref processedUnits);
-                        RaiseLoadProgress(processedUnits, totalUnits);
-                    }
+                    units.Add((provider, unitId));
                 }
             }
             catch (Exception ex)
             {
                 // Log error but continue with other providers
                 _logger.LogError(ex, "Error loading units from provider {ProviderType}", provider.GetType().Name);
+            }
+        }
+
+        var totalUnits = units.Count;
+        var processedUnits = 0;
+        RaiseLoadProgress(processedUnits, totalUnits);
+
+        // Process units in parallel batches, reporting progress as each task actually completes
+        var batches = units.Chunk(MaxDegreeOfParallelism);
+        foreach (var batch in batches)
+        {
+            var batchTasks = batch
+                .Select(u => ProcessUnitAsync(u.Provider, u.UnitId))
+                .ToList();
+
+            while (batchTasks.Count > 0)
+            {
+                var completedTask = await Task.WhenAny(batchTasks);
+                batchTasks.Remove(completedTask);
+                processedUnits++;
+                RaiseLoadProgress(processedUnits, totalUnits);
             }
         }
     }

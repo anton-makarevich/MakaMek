@@ -18,6 +18,10 @@ public class MainMenuViewModel : BaseViewModel
     private bool _hasError;
     private string _unitLoadingStatus;
     private string _biomeLoadingStatus;
+    private int _unitLoadedCount;
+    private int _unitTotalCount;
+    private int _biomeLoadedCount;
+    private int _biomeTotalCount;
 
     public MainMenuViewModel(IUnitCachingService unitCachingService,
         ITerrainAssetService terrainAssetService,
@@ -92,6 +96,18 @@ public class MainMenuViewModel : BaseViewModel
         LoadingText = $"{_unitLoadingStatus}\n{_biomeLoadingStatus}";
     }
 
+    /// <summary>
+    /// Derives overall loading progress from both preload operations so one completing cannot
+    /// report overall completion while the other is still active.
+    /// </summary>
+    private void UpdateLoadingProgress()
+    {
+        var totalCount = _unitTotalCount + _biomeTotalCount;
+        LoadingProgress = totalCount > 0
+            ? (double)(_unitLoadedCount + _biomeLoadedCount) / totalCount
+            : 0;
+    }
+
     private void OnUnitLoadProgress(object? sender, ResourceLoadProgressEventArgs e)
     {
         _dispatcherService.RunOnUIThread(() =>
@@ -99,8 +115,10 @@ public class MainMenuViewModel : BaseViewModel
             _unitLoadingStatus = string.Format(
                 _localizationService.GetString("MainMenu_Loading_UnitsProgress"),
                 e.LoadedCount, e.TotalCount);
+            _unitLoadedCount = e.LoadedCount;
+            _unitTotalCount = e.TotalCount;
             UpdateLoadingText();
-            LoadingProgress = e.TotalCount > 0 ? (double)e.LoadedCount / e.TotalCount : 0;
+            UpdateLoadingProgress();
         });
     }
 
@@ -111,8 +129,10 @@ public class MainMenuViewModel : BaseViewModel
             _biomeLoadingStatus = string.Format(
                 _localizationService.GetString("MainMenu_Loading_BiomesProgress"),
                 e.LoadedCount, e.TotalCount);
+            _biomeLoadedCount = e.LoadedCount;
+            _biomeTotalCount = e.TotalCount;
             UpdateLoadingText();
-            LoadingProgress = e.TotalCount > 0 ? (double)e.LoadedCount / e.TotalCount : 0;
+            UpdateLoadingProgress();
         });
     }
 
@@ -169,7 +189,9 @@ public class MainMenuViewModel : BaseViewModel
         }
         finally
         {
-            LoadingProgress = 1;
+            // Mark the unit preload as complete so it cannot report overall completion on its own
+            _unitLoadedCount = _unitTotalCount;
+            UpdateLoadingProgress();
             UpdateLoadingText();
         }
     }
@@ -199,7 +221,9 @@ public class MainMenuViewModel : BaseViewModel
         }
         finally
         {
-            LoadingProgress = 1;
+            // Mark the biome preload as complete so it cannot report overall completion on its own
+            _biomeLoadedCount = _biomeTotalCount;
+            UpdateLoadingProgress();
             UpdateLoadingText();
         }
     }

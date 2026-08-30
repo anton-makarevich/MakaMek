@@ -329,13 +329,37 @@ public class MainMenuViewModelTests
     }
 
     [Fact]
-    public void LoadingProgress_IsSetToOne_WhenPreloadCompletes()
+    public void LoadingProgress_IsSetToOne_WhenBothPreloadsComplete()
     {
-        // Arrange & Act (default services complete preload synchronously in the constructor)
+        // Arrange
         var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
         sut.SetNavigationService(_navigationService);
 
+        // Act - both preloads report completion through progress events
+        _unitCachingService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(5, 5));
+        _terrainAssetService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(10, 10));
+
         // Assert
         sut.LoadingProgress.ShouldBe(1);
+    }
+
+    [Fact]
+    public void LoadingProgress_ReflectsBothPreloads_WhenOneCompletesBeforeOther()
+    {
+        // Arrange
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        sut.SetNavigationService(_navigationService);
+
+        // Act - units complete (5/5) while biomes are still at partial progress (2/10)
+        _unitCachingService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(5, 5));
+        _terrainAssetService.LoadProgress += Raise.Event<EventHandler<ResourceLoadProgressEventArgs>>(
+            new ResourceLoadProgressEventArgs(2, 10));
+
+        // Assert - overall progress is derived from both loaded/total pairs, not just one
+        sut.LoadingProgress.ShouldBe((5d + 2d) / (5d + 10d));
+        sut.LoadingProgress.ShouldNotBe(1);
     }
 }

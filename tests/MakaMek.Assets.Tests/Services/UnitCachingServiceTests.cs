@@ -447,4 +447,79 @@ public class UnitCachingServiceTests
         progressEvents.Select(e => e.LoadedCount).ShouldBeInOrder();
         models.Count.ShouldBe(unitCount);
     }
+
+    [Fact]
+    public async Task LoadUnits_ShouldKeepTotalCountStable_AcrossMultipleProviders()
+    {
+        // Arrange
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider1.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust"));
+
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.GetAvailableResourceIds().Returns(["SHD-2D", "WVR-6R"]);
+        provider2.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
+
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+        var progressEvents = new List<ResourceLoadProgressEventArgs>();
+        sut.LoadProgress += (_, e) => progressEvents.Add(e);
+
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
+
+        // Assert
+        models.Count.ShouldBe(3);
+        progressEvents.ShouldNotBeEmpty();
+        // The total is finalized up front (3) and never changes while loading
+        progressEvents.Select(e => e.TotalCount).Distinct().ShouldHaveSingleItem();
+        progressEvents[0].TotalCount.ShouldBe(3);
+        progressEvents[^1].LoadedCount.ShouldBe(3);
+        // Reported progress (loaded/total) never decreases
+        var normalized = progressEvents.Select(e => (double)e.LoadedCount / e.TotalCount).ToList();
+        for (var i = 1; i < normalized.Count; i++)
+            normalized[i].ShouldBeGreaterThanOrEqualTo(normalized[i - 1]);
+    }
+
+    [Fact]
+    public async Task LoadUnits_ShouldAdvanceProgress_WhenLaterTaskCompletesBeforeDelayedEarlierTask()
+    {
+        // Arrange
+        var provider = Substitute.For<IResourceStreamProvider>();
+        // DELAYED comes first in the batch but is blocked; FAST completes first
+        provider.GetAvailableResourceIds().Returns(["DELAYED", "FAST"]);
+
+        var delayedGate = new TaskCompletionSource<Stream?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        provider.GetResourceStream("DELAYED").Returns(delayedGate.Task);
+        provider.GetResourceStream("FAST").Returns(CreateTestMmuxStream("FAST", "Fast"));
+
+        var sut = new UnitCachingService([provider], _loggerFactory);
+        var progressEvents = new List<ResourceLoadProgressEventArgs>();
+        sut.LoadProgress += (_, e) => progressEvents.Add(e);
+
+        // Act - start loading; FAST completes while DELAYED is still blocked
+        var loadTask = sut.GetAvailableModels();
+
+        // Progress must advance past zero as soon as FAST completes, without waiting on DELAYED
+        var advancedBeforeRelease = await Task.Run(async () =>
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                if (progressEvents.Any(e => e.LoadedCount > 0)) return true;
+                await Task.Delay(10);
+            }
+            return false;
+        });
+
+        // Assert - progress reports 1/2 (FAST done) while DELAYED is still pending
+        advancedBeforeRelease.ShouldBeTrue();
+        progressEvents.Any(e => e.LoadedCount == 1 && e.TotalCount == 2).ShouldBeTrue();
+
+        // Release the delayed task and finish
+        delayedGate.SetResult(CreateTestMmuxStream("DELAYED", "Delayed"));
+        await loadTask;
+
+        progressEvents[^1].LoadedCount.ShouldBe(2);
+        progressEvents[^1].TotalCount.ShouldBe(2);
+    }
 }
