@@ -116,6 +116,13 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
                 }
 
                 previous = existing;
+                if (existing.IsActive &&
+                    (updated.AssetType != existing.AssetType || !updated.IsActive) &&
+                    !HasOtherActiveProvider(existing.AssetType, id))
+                {
+                    throw new InvalidOperationException(
+                        "Cannot update the only active provider for an asset type; at least one provider must remain active.");
+                }
                 _providers[id] = updated with { Id = existing.Id, IsDefault = existing.IsDefault };
             }
 

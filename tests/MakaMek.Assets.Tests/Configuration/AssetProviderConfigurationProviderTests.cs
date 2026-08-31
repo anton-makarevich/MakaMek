@@ -107,6 +107,50 @@ public class AssetProviderConfigurationProviderTests
     }
 
     [Fact]
+    public async Task UpdateProvider_WhenOnlyActiveForAssetType_Throws()
+    {
+        var defaults = new[]
+        {
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0)
+        };
+        var sut = new AssetProviderConfigurationProvider(defaults, new FakeFileCachingService(), Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.UpdateProvider("a", new AssetProviderConfigData(
+            "a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: false, IsDefault: true, SortOrder: 0)));
+    }
+
+    [Fact]
+    public async Task UpdateProvider_WhenMovingOnlyActiveProviderToNewAssetType_Throws()
+    {
+        var defaults = new[]
+        {
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0)
+        };
+        var sut = new AssetProviderConfigurationProvider(defaults, new FakeFileCachingService(), Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.UpdateProvider("a", new AssetProviderConfigData(
+            "a", ProviderType.Bucket, AssetType.Hexes, "h1", IsActive: true, IsDefault: true, SortOrder: 0)));
+    }
+
+    [Fact]
+    public async Task UpdateProvider_WhenAnotherActiveProviderRemains_Succeeds()
+    {
+        var defaults = new[]
+        {
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new AssetProviderConfigData("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        var sut = new AssetProviderConfigurationProvider(defaults, new FakeFileCachingService(), Logger());
+
+        await sut.UpdateProvider("a", new AssetProviderConfigData(
+            "a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: false, IsDefault: true, SortOrder: 0));
+
+        var a = await sut.GetProvider("a");
+        a.ShouldNotBeNull();
+        a.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task UpdateProvider_WhenMissing_Throws()
     {
         var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
