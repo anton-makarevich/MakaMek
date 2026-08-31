@@ -6,10 +6,9 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="200"
              x:Class="Sanet.MakaMek.Avalonia.Views.Settings.Fragments.DataSectionFragment"
              x:DataType="viewModels:SettingsViewModel">
-    <Border Classes="card">
-        <StackPanel Spacing="10">
-            <TextBlock Text="{Binding DataSectionTitle}"
-                       Classes="h3"/>
+    <ScrollViewer Classes="gameScrollViewer"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="15">
             <TextBlock Text="{Binding CacheStatus}"
                        Classes="body"
                        FontWeight="SemiBold"/>
@@ -23,5 +22,5 @@
                        Classes="body"
                        Foreground="Gray"/>
         </StackPanel>
-    </Border>
+    </ScrollViewer>
 </UserControl>

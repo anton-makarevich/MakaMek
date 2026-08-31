@@ -8,10 +8,9 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.Settings.Fragments.HubConfigurationFragment"
              x:DataType="viewModels:SettingsViewModel">
-    <Border Classes="card">
-        <StackPanel Spacing="10">
-            <TextBlock Text="{Binding HubSectionTitle}"
-                       Classes="h3"/>
+    <ScrollViewer Classes="gameScrollViewer"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="15">
             <TextBlock Text="{Binding HubSelectLabel}"
                        Classes="label"/>
             <ComboBox ItemsSource="{Binding Hubs}"
@@ -106,5 +105,5 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
-    </Border>
+    </ScrollViewer>
 </UserControl>
