@@ -3,9 +3,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.Settings.Fragments"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:DataType="viewModels:SettingsViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.Settings.SettingsView">
@@ -20,133 +20,18 @@
             LeftCommand="{Binding BackCommand}"
             LeftIcon="{StaticResource BackArrowIcon}"/>
 
-        <!-- Scrollable Content -->
-        <ScrollViewer Grid.Row="1" Margin="0,10,0,0">
-            <StackPanel Spacing="20" MaxWidth="800" HorizontalAlignment="Center">
-
-                <!-- Data Section -->
-                <Border Classes="card">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding DataSectionTitle}"
-                                   Classes="h3"/>
-                        <TextBlock Text="{Binding CacheStatus}"
-                                   Classes="body"
-                                   FontWeight="SemiBold"/>
-                        <Button Content="{Binding ClearCacheButton}"
-                                Command="{Binding ClearCacheCommand}"
-                                IsEnabled="{Binding !IsBusy}"
-                                Classes="primary"
-                                HorizontalAlignment="Left"/>
-                        <TextBlock Text="{Binding ClearCacheDescription}"
-                                   TextWrapping="Wrap"
-                                   Classes="body"
-                                   Foreground="Gray"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Hub Configuration Section -->
-                <Border Classes="card">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding HubSectionTitle}"
-                                   Classes="h3"/>
-                        <TextBlock Text="{Binding HubSelectLabel}"
-                                   Classes="label"/>
-                        <ComboBox ItemsSource="{Binding Hubs}"
-                                  SelectedItem="{Binding SelectedHub, Mode=TwoWay}"
-                                  DisplayMemberBinding="{Binding Name}"/>
-                        <Button Content="{Binding HubAddHubLabel}"
-                                Command="{Binding AddHubCommand}"
-                                Classes="primary"
-                                HorizontalAlignment="Center"/>
-                        <ItemsControl ItemsSource="{Binding Hubs}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="5"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="wrappers:HubEntryViewModel">
-                                    <Border Classes="gamePanel" Padding="10" CornerRadius="8">
-                                        <StackPanel Spacing="8">
-                                            <StackPanel Classes="horizontalSpaced">
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Text="{Binding Name}"
-                                                               Classes="body"
-                                                               FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding BaseUrl}"
-                                                               Classes="bodySmall"
-                                                               Foreground="Gray"/>
-                                                </StackPanel>
-                                                <StackPanel IsVisible="{Binding !IsEditing}"
-                                                            Classes="horizontalSpaced">
-                                                    <Border Classes="statusTag"
-                                                            Margin="0"
-                                                            VerticalAlignment="Center"
-                                                            Background="{Binding Status, Converter={StaticResource HubStatusBackgroundConverter}}">
-                                                        <TextBlock Text="{Binding Status, Converter={StaticResource HubStatusTextConverter}}"
-                                                                   VerticalAlignment="Center"
-                                                                   />
-                                                    </Border>
-                                                    <Button Command="{Binding RefreshStatusCommand}"
-                                                            IsEnabled="{Binding !IsCheckingStatus}"
-                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Refresh'}"
-                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Refresh'}"
-                                                            Classes="secondary inlineIcon">
-                                                        <TextBlock Text="&#xf021;"/>
-                                                    </Button>
-                                                    <Button Command="{Binding StartEditingCommand}"
-                                                            IsEnabled="{Binding CanEdit}"
-                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Edit'}"
-                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Edit'}"
-                                                            Classes="secondary inlineIcon">
-                                                        <TextBlock Text="&#xf304;"/>
-                                                    </Button>
-                                                    <Button Command="{Binding $parent[ItemsControl].((viewModels:SettingsViewModel)DataContext).RemoveHubCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            IsEnabled="{Binding CanRemove}"
-                                                            AutomationProperties.Name="{extensions:Localize 'Settings_Hub_Remove'}"
-                                                            ToolTip.Tip="{extensions:Localize 'Settings_Hub_Remove'}"
-                                                            Classes="outline inlineIcon">
-                                                        <TextBlock Text="&#xf2ed;"/>
-                                                    </Button>
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <StackPanel IsVisible="{Binding IsEditing}" Spacing="8">
-                                                <StackPanel Classes="formGroup">
-                                                    <TextBlock Text="{extensions:Localize 'Settings_Hub_Name'}"
-                                                               Classes="label"/>
-                                                    <TextBox Text="{Binding EditableName, Mode=TwoWay}"/>
-                                                </StackPanel>
-                                                <StackPanel Classes="formGroup">
-                                                    <TextBlock Text="{extensions:Localize 'Settings_Hub_Url'}"
-                                                               Classes="label"/>
-                                                    <TextBox Text="{Binding EditableBaseUrl, Mode=TwoWay}"/>
-                                                </StackPanel>
-                                                <StackPanel Classes="formGroup">
-                                                    <TextBlock Text="{extensions:Localize 'Settings_Hub_ApiKey'}"
-                                                               Classes="label"/>
-                                                    <TextBox Text="{Binding EditableApiKey, Mode=TwoWay}"
-                                                             PasswordChar="●"/>
-                                                </StackPanel>
-                                                <StackPanel Classes="horizontalSpaced" HorizontalAlignment="Right">
-                                                    <Button Content="{extensions:Localize 'Settings_Hub_Save'}"
-                                                            Command="{Binding SaveCommand}"
-                                                            Classes="primary"/>
-                                                    <Button Content="{extensions:Localize 'Settings_Hub_Cancel'}"
-                                                            Command="{Binding CancelCommand}"
-                                                            Classes="secondary"/>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-
-            </StackPanel>
-            </ScrollViewer>
+        <!-- Tabbed Content -->
+        <TabControl Grid.Row="1" Margin="0,10,0,0"
+                    Classes="gameTabControl">
+            <TabItem Classes="gameTabItem"
+                     Header="{extensions:Localize 'Settings_Data_SectionTitle'}">
+                <fragments:DataSectionFragment/>
+            </TabItem>
+            <TabItem Classes="gameTabItem"
+                     Header="{extensions:Localize 'Settings_Hub_SectionTitle'}">
+                <fragments:HubConfigurationFragment/>
+            </TabItem>
+        </TabControl>
         </Grid>
     </Grid>
 </UserControl>
