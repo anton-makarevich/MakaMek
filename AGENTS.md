@@ -32,6 +32,9 @@ Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI 
 
 `Directory.Build.props` holds a single `<VersionPrefix>` for all packages. **Every PR must bump this version** — `pr-version-check.yml` fails the PR if the version is not greater than `main`. Bump it as part of your change.
 
+- Only bump the version when actual code in `src/` was modified (test-only, docs-only or infra-only PRs do not require a bump).
+- Agents may only bump the **patch** segment (e.g. `0.63.10` → `0.63.11`). Never change Major or Minor without explicit human approval.
+
 ## Architecture
 
 The codebase is a layered set of projects; dependencies flow **Avalonia → Presentation → Core** (Core has no UI dependencies).
