@@ -72,6 +72,8 @@ public class AssetLoadingViewModel : BaseViewModel
         _biomeLoadingStatus = _localizationService.GetString("MainMenu_Loading_Biomes");
         UpdateLoadingText();
 
+        _unitCachingService.LoadProgress -= OnUnitLoadProgress;
+        _terrainAssetService.LoadProgress -= OnBiomeLoadProgress;
         _unitCachingService.LoadProgress += OnUnitLoadProgress;
         _terrainAssetService.LoadProgress += OnBiomeLoadProgress;
 
@@ -141,6 +143,7 @@ public class AssetLoadingViewModel : BaseViewModel
         if (!HasError)
         {
             await Task.Delay(messageDelay);
+            if (generation != _loadGeneration) return;
             IsLoading = false;
         }
     }
