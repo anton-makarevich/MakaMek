@@ -6,7 +6,7 @@ using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Shouldly;
 
 namespace Sanet.MakaMek.Assets.Tests.Services;

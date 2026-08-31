@@ -16,7 +16,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
-using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Tools.BotContainer.Configuration;
 using Sanet.MakaMek.Tools.BotContainer.Models.Mcp.Tools;
 using Sanet.MakaMek.Tools.BotContainer.Services;

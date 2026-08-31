@@ -1,7 +1,7 @@
 using Shouldly;
-using Sanet.MakaMek.Services.Configuration;
+using Sanet.MakaMek.Assets.Configuration;
 
-namespace Sanet.MakaMek.Services.Tests.Configuration;
+namespace Sanet.MakaMek.Assets.Tests.Configuration;
 
 public class AssetProviderConfigDataTests
 {

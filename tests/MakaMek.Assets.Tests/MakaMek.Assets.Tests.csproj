@@ -37,4 +37,9 @@
     <ProjectReference Include="..\..\src\MakaMek.Assets\MakaMek.Assets.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Resources\SHD-2D.mmux" />
+    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
+  </ItemGroup>
+
 </Project>

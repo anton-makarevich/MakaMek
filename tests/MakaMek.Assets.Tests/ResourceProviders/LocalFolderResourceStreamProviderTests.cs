@@ -1,7 +1,7 @@
-﻿using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
+namespace Sanet.MakaMek.Assets.Tests.ResourceProviders;
 
 public class LocalFolderResourceStreamProviderTests : IDisposable
 {

@@ -1,8 +1,9 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Services;
 
-namespace Sanet.MakaMek.Services.ResourceProviders;
+namespace Sanet.MakaMek.Assets.ResourceProviders;
 
 /// <summary>
 /// Base class for network-backed resource stream providers.

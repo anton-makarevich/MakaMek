@@ -42,8 +42,6 @@
     <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="Resources\SHD-2D.mmux" />
-    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
     <None Update="Resources\LCT-1V.mtf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

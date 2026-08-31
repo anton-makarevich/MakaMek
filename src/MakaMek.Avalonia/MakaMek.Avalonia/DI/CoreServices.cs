@@ -25,7 +25,7 @@ using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
-using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.Transport;
 using Sanet.Transport.Rx;
 using Sanet.Transport.SignalR.Client.Factories;
