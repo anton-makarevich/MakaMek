@@ -196,4 +196,160 @@ public class AssetProviderConfigurationProviderTests
 
         providers.Select(p => p.Id).ShouldBe(new[] { "u3", "u1" }, ignoreOrder: false);
     }
+
+    [Theory]
+    [InlineData(null!)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task AddProvider_WhenIdIsNullOrWhiteSpace_Throws(string? id)
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+        var provider = new AssetProviderConfigData(
+            id!, ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true, IsDefault: false, SortOrder: 0);
+
+        await Should.ThrowAsync<ArgumentException>(() => sut.AddProvider(provider));
+    }
+
+    [Fact]
+    public async Task RemoveProvider_WhenNotFound_ReturnsSilently()
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+
+        await sut.RemoveProvider("nonexistent");
+
+        (await sut.GetProvider("nonexistent")).ShouldBeNull();
+        (await sut.GetProviders()).Count.ShouldBe(Defaults.Length);
+    }
+
+    [Fact]
+    public async Task RemoveProvider_WhenOnlyActiveNonDefaultForAssetType_Throws()
+    {
+        var defaults = new[]
+        {
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new AssetProviderConfigData("b", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        var sut = new AssetProviderConfigurationProvider(defaults, new FakeFileCachingService(), Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.RemoveProvider("b"));
+    }
+
+    [Fact]
+    public async Task SetProviderActive_WhenNotFound_Throws()
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+
+        await Should.ThrowAsync<ArgumentException>(() => sut.SetProviderActive("nonexistent", false));
+    }
+
+    [Fact]
+    public async Task SetProviderActive_WhenSameValue_ReturnsSilently()
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+
+        await sut.SetProviderActive("bucket", true);
+
+        var provider = await sut.GetProvider("bucket");
+        provider.ShouldNotBeNull();
+        provider.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AddProvider_WhenPersistFails_RevertsAddition()
+    {
+        var cachingService = new FailingSaveCachingService { FailNextSave = true };
+        var sut = new AssetProviderConfigurationProvider(Defaults, cachingService, Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.AddProvider(new AssetProviderConfigData(
+            "local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true, IsDefault: false, SortOrder: 5)));
+
+        (await sut.GetProvider("local")).ShouldBeNull();
+        (await sut.GetProviders()).Count.ShouldBe(Defaults.Length);
+    }
+
+    [Fact]
+    public async Task UpdateProvider_WhenPersistFails_RevertsUpdate()
+    {
+        var cachingService = new FailingSaveCachingService { FailNextSave = true };
+        var sut = new AssetProviderConfigurationProvider(Defaults, cachingService, Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.UpdateProvider("bucket", new AssetProviderConfigData(
+            "different", ProviderType.GitHub, AssetType.Hexes, "https://new", IsActive: false, IsDefault: false, SortOrder: 9)));
+
+        var provider = await sut.GetProvider("bucket");
+        provider.ShouldNotBeNull();
+        provider.UrlOrPath.ShouldBe("https://data.makamek.nl/units/manifest.json");
+    }
+
+    [Fact]
+    public async Task RemoveProvider_WhenPersistFails_RevertsRemoval()
+    {
+        var cachingService = new FailingSaveCachingService();
+        var sut = new AssetProviderConfigurationProvider(Defaults, cachingService, Logger());
+        await sut.AddProvider(new AssetProviderConfigData(
+            "local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true, IsDefault: false, SortOrder: 5));
+        // Force a successful persist so the provider is added in memory
+        // Then make persist fail on the next call (remove)
+        cachingService.FailNextSave = true;
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.RemoveProvider("local"));
+
+        (await sut.GetProvider("local")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task SetProviderActive_WhenPersistFails_RevertsActivation()
+    {
+        var cachingService = new FailingSaveCachingService { FailNextSave = true };
+        var sut = new AssetProviderConfigurationProvider(Defaults, cachingService, Logger());
+
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.SetProviderActive("bucket", false));
+
+        var provider = await sut.GetProvider("bucket");
+        provider.ShouldNotBeNull();
+        provider.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Load_WhenCacheThrows_SeedsDefaults()
+    {
+        var cachingService = new ThrowingLoadCachingService();
+        var sut = new AssetProviderConfigurationProvider(Defaults, cachingService, Logger());
+
+        await sut.EnsureLoadedAsync();
+
+        var providers = await sut.GetProviders();
+        providers.Count.ShouldBe(Defaults.Length);
+        providers.ShouldAllBe(p => p.IsDefault);
+    }
+
+    private sealed class FailingSaveCachingService : IFileCachingService
+    {
+        public bool FailNextSave { get; set; }
+
+        public Task<byte[]?> TryGetCachedFile(string cacheKey) =>
+            Task.FromResult<byte[]?>(null);
+        public Task SaveToCache(string cacheKey, byte[] content, string? version = null)
+        {
+            if (FailNextSave)
+                throw new InvalidOperationException("Simulated save failure");
+            return Task.CompletedTask;
+        }
+        public Task ClearCache() => Task.CompletedTask;
+        public Task<bool> IsCached(string cacheKey) => Task.FromResult(false);
+        public Task RemoveFromCache(string cacheKey) => Task.CompletedTask;
+        public Task<string?> GetCacheVersion(string cacheKey) => Task.FromResult<string?>(null);
+    }
+
+    private sealed class ThrowingLoadCachingService : IFileCachingService
+    {
+        public Task<byte[]?> TryGetCachedFile(string cacheKey) =>
+            throw new InvalidOperationException("Simulated load failure");
+        public Task SaveToCache(string cacheKey, byte[] content, string? version = null) =>
+            Task.CompletedTask;
+        public Task ClearCache() => Task.CompletedTask;
+        public Task<bool> IsCached(string cacheKey) => Task.FromResult(false);
+        public Task RemoveFromCache(string cacheKey) => Task.CompletedTask;
+        public Task<string?> GetCacheVersion(string cacheKey) => Task.FromResult<string?>(null);
+    }
 }
