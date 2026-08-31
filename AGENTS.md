@@ -30,7 +30,10 @@ Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI 
 
 ## Versioning (required for PRs)
 
-`Directory.Build.props` holds a single `<VersionPrefix>` for all packages. **Every PR must bump this version** — `pr-version-check.yml` fails the PR if the version is not greater than `main`. Bump it as part of your change.
+`Directory.Build.props` holds a single `<VersionPrefix>` for all packages. **Every PR that modifies files under `src/` must bump this version** — `pr-version-check.yml` fails the PR if the version is not greater than `main`. Bump it as part of your change.
+- The version should only be incremented once per PR
+- Test-only, docs-only, or infra-only PRs do not require a version bump.
+- Agents may only bump the **patch** segment (e.g. `0.63.10` → `0.63.11`). Never change Major or Minor without explicit human approval.
 
 ## Architecture
 
