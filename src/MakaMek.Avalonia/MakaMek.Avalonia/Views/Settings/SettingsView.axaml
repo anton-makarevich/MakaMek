@@ -21,14 +21,11 @@
             LeftIcon="{StaticResource BackArrowIcon}"/>
 
         <!-- Tabbed Content -->
-        <TabControl Grid.Row="1" Margin="0,10,0,0"
-                    Classes="gameTabControl">
-            <TabItem Classes="gameTabItem"
-                     Header="{extensions:Localize 'Settings_Data_SectionTitle'}">
+        <TabControl Grid.Row="1" Margin="0,10,0,0">
+            <TabItem Header="{extensions:Localize 'Settings_Data_SectionTitle'}">
                 <fragments:DataSectionFragment/>
             </TabItem>
-            <TabItem Classes="gameTabItem"
-                     Header="{extensions:Localize 'Settings_Hub_SectionTitle'}">
+            <TabItem Header="{extensions:Localize 'Settings_Hub_SectionTitle'}">
                 <fragments:HubConfigurationFragment/>
             </TabItem>
         </TabControl>
