@@ -196,6 +196,8 @@ public class AssetLoadingViewModelTests
         // Assert
         _unitCachingService.Received(1).ClearCache();
         _terrainAssetService.Received(1).ClearCache();
-        _sut.IsLoading.ShouldBeTrue();
+        _sut.IsLoading.ShouldBeFalse();
+        _sut.LoadingText.ShouldContain("Loaded 2 units");
+        _sut.LoadingText.ShouldContain("Loaded 2 biomes");
     }
 }

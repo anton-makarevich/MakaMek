@@ -20,6 +20,8 @@ public class AssetLoadingViewModel : BaseViewModel
     private int _unitTotalCount;
     private int _biomeLoadedCount;
     private int _biomeTotalCount;
+    private long _loadGeneration;
+    private Task? _activeLoadTask;
 
     public AssetLoadingViewModel(
         IUnitCachingService unitCachingService,
@@ -57,8 +59,15 @@ public class AssetLoadingViewModel : BaseViewModel
 
     public void InitializeAsync(int messageDelay = 1000)
     {
+        var generation = ++_loadGeneration;
+
         IsLoading = true;
         HasError = false;
+        LoadingProgress = 0;
+        _unitLoadedCount = 0;
+        _unitTotalCount = 0;
+        _biomeLoadedCount = 0;
+        _biomeTotalCount = 0;
         _unitLoadingStatus = _localizationService.GetString("MainMenu_Loading_Units");
         _biomeLoadingStatus = _localizationService.GetString("MainMenu_Loading_Biomes");
         UpdateLoadingText();
@@ -66,7 +75,8 @@ public class AssetLoadingViewModel : BaseViewModel
         _unitCachingService.LoadProgress += OnUnitLoadProgress;
         _terrainAssetService.LoadProgress += OnBiomeLoadProgress;
 
-        LoadAsync(messageDelay)
+        _activeLoadTask = LoadAsync(messageDelay, generation);
+        _activeLoadTask
             .SafeFireAndForget(ex => _logger.LogError(ex, "Error preloading content"));
     }
 
@@ -75,6 +85,8 @@ public class AssetLoadingViewModel : BaseViewModel
         _unitCachingService.ClearCache();
         _terrainAssetService.ClearCache();
         InitializeAsync(messageDelay);
+        if (_activeLoadTask != null)
+            await _activeLoadTask;
     }
 
     private void UpdateLoadingText()
@@ -92,8 +104,10 @@ public class AssetLoadingViewModel : BaseViewModel
 
     private void OnUnitLoadProgress(object? sender, ResourceLoadProgressEventArgs e)
     {
+        var generation = _loadGeneration;
         _dispatcherService.RunOnUIThread(() =>
         {
+            if (generation != _loadGeneration) return;
             _unitLoadingStatus = string.Format(
                 _localizationService.GetString("MainMenu_Loading_UnitsProgress"),
                 e.LoadedCount, e.TotalCount);
@@ -106,8 +120,10 @@ public class AssetLoadingViewModel : BaseViewModel
 
     private void OnBiomeLoadProgress(object? sender, ResourceLoadProgressEventArgs e)
     {
+        var generation = _loadGeneration;
         _dispatcherService.RunOnUIThread(() =>
         {
+            if (generation != _loadGeneration) return;
             _biomeLoadingStatus = string.Format(
                 _localizationService.GetString("MainMenu_Loading_BiomesProgress"),
                 e.LoadedCount, e.TotalCount);
@@ -118,9 +134,10 @@ public class AssetLoadingViewModel : BaseViewModel
         });
     }
 
-    private async Task LoadAsync(int messageDelay)
+    private async Task LoadAsync(int messageDelay, long generation)
     {
-        await Task.WhenAll(PreloadUnits(), PreloadBiomes());
+        await Task.WhenAll(PreloadUnits(generation), PreloadBiomes(generation));
+        if (generation != _loadGeneration) return;
         if (!HasError)
         {
             await Task.Delay(messageDelay);
@@ -128,13 +145,14 @@ public class AssetLoadingViewModel : BaseViewModel
         }
     }
 
-    private async Task PreloadUnits()
+    private async Task PreloadUnits(long generation)
     {
         try
         {
             var models = await _unitCachingService.GetAvailableModels();
             var modelCount = models.Count();
 
+            if (generation != _loadGeneration) return;
             _unitLoadingStatus = modelCount == 0
                 ? _localizationService.GetString("MainMenu_Loading_NoUnitsFound")
                 : string.Format(_localizationService.GetString("MainMenu_Loading_UnitsLoaded"), modelCount);
@@ -144,24 +162,29 @@ public class AssetLoadingViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
+            if (generation != _loadGeneration) return;
             HasError = true;
             _unitLoadingStatus = string.Format(_localizationService.GetString("MainMenu_Loading_UnitsError"), ex.Message);
         }
         finally
         {
-            _unitLoadedCount = _unitTotalCount;
-            UpdateLoadingProgress();
-            UpdateLoadingText();
+            if (generation == _loadGeneration)
+            {
+                _unitLoadedCount = _unitTotalCount;
+                UpdateLoadingProgress();
+                UpdateLoadingText();
+            }
         }
     }
 
-    private async Task PreloadBiomes()
+    private async Task PreloadBiomes(long generation)
     {
         try
         {
             var biomes = await _terrainAssetService.GetLoadedBiomes();
             var biomeCount = biomes.Count();
 
+            if (generation != _loadGeneration) return;
             _biomeLoadingStatus = biomeCount == 0
                 ? _localizationService.GetString("MainMenu_Loading_NoBiomesFound")
                 : string.Format(_localizationService.GetString("MainMenu_Loading_BiomesLoaded"), biomeCount);
@@ -171,14 +194,18 @@ public class AssetLoadingViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
+            if (generation != _loadGeneration) return;
             HasError = true;
             _biomeLoadingStatus = string.Format(_localizationService.GetString("MainMenu_Loading_BiomesError"), ex.Message);
         }
         finally
         {
-            _biomeLoadedCount = _biomeTotalCount;
-            UpdateLoadingProgress();
-            UpdateLoadingText();
+            if (generation == _loadGeneration)
+            {
+                _biomeLoadedCount = _biomeTotalCount;
+                UpdateLoadingProgress();
+                UpdateLoadingText();
+            }
         }
     }
 }
