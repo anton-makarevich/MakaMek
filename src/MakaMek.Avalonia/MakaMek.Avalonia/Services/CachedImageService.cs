@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Services;
 
@@ -14,10 +15,12 @@ namespace Sanet.MakaMek.Avalonia.Services;
 public class CachedImageService : IImageService<Bitmap>
 {
     private readonly IUnitCachingService _unitCachingService;
+    private readonly ILogger<CachedImageService> _logger;
 
-    public CachedImageService(IUnitCachingService unitCachingService)
+    public CachedImageService(IUnitCachingService unitCachingService, ILogger<CachedImageService> logger)
     {
         _unitCachingService = unitCachingService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -56,7 +59,7 @@ public class CachedImageService : IImageService<Bitmap>
         catch (Exception ex)
         {
             // Log error but return null to gracefully handle missing images
-            Console.WriteLine($"Error loading image for unit '{model}': {ex.Message}");
+            _logger.LogError(ex, "Error loading image for unit '{Model}'", model);
             return null;
         }
     }

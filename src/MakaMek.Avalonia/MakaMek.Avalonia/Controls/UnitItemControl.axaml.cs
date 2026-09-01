@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 
@@ -15,6 +16,7 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 public partial class UnitItemControl : UserControl
 {
     private readonly IImageService<Bitmap>? _imageService;
+    private readonly ILogger<UnitItemControl>? _logger;
 
     public static readonly StyledProperty<ICommand?> RemoveCommandProperty =
         AvaloniaProperty.Register<UnitItemControl, ICommand?>(nameof(RemoveCommand));
@@ -88,6 +90,7 @@ public partial class UnitItemControl : UserControl
         if (serviceProvider == null) return;
         var imageService = serviceProvider.GetService<IImageService>();
         _imageService = imageService as IImageService<Bitmap>;
+        _logger = serviceProvider.GetService<ILogger<UnitItemControl>>();
         if (_imageService == null) return;
 
         DataContextChanged += OnDataContextChanged;
@@ -136,7 +139,7 @@ public partial class UnitItemControl : UserControl
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading unit image for {unitVm.Model}: {ex.Message}");
+            _logger?.LogError(ex, "Error loading unit image for {Model}", unitVm.Model);
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Services.Avalonia;
@@ -19,16 +20,19 @@ public class HybridImageService : IImageService<Bitmap>
     private readonly AvaloniaAssetImageService _avaloniaAssetImageService;
     private readonly CachedImageService _cachedImageService;
     private readonly ITerrainAssetService? _terrainAssetService;
+    private readonly ILogger<HybridImageService> _logger;
     private string _terrainThemeId;
 
     public HybridImageService(
         AvaloniaAssetImageService avaloniaAssetImageService,
         CachedImageService cachedImageService,
+        ILogger<HybridImageService> logger,
         ITerrainAssetService? terrainAssetService = null,
         string? terrainThemeId = "classic")
     {
         _avaloniaAssetImageService = avaloniaAssetImageService;
         _cachedImageService = cachedImageService;
+        _logger = logger;
         _terrainAssetService = terrainAssetService;
         _terrainThemeId = terrainThemeId ?? "classic";
     }
@@ -103,7 +107,7 @@ public class HybridImageService : IImageService<Bitmap>
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading terrain image '{assetName}': {ex.Message}");
+            _logger.LogError(ex, "Error loading terrain image '{AssetName}'", assetName);
             return null;
         }
     }

@@ -1,57 +1,52 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Assets.ResourceProviders;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 
 namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Service for caching and retrieving terrain assets from MMTX packages
 /// </summary>
-public class TerrainCachingService : ITerrainAssetService
+public class TerrainCachingService : PackageCacheCore<TerrainCachingService.TerrainCacheState>, ITerrainAssetService
 {
-    private IReadOnlyList<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<TerrainCachingService> _logger;
-    private readonly SemaphoreSlim _initializationLock = new(1, 1);
-    
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true
-    };
-    
+    private readonly MmtxTerrainPackageReader _packageReader = new();
+
     /// <summary>
-    /// Immutable-by-publication snapshot of all cached data. A new instance is built
-    /// completely and then published via a single volatile write to <see cref="_state"/>,
-    /// so readers either observe the previous complete cache or the new complete cache,
-    /// never a cleared or partially rebuilt state.
+    /// Snapshot of all cached terrain data.
     /// </summary>
-    private sealed class CacheState
+    public sealed class TerrainCacheState : PackageCacheState
     {
+        /// <summary>
+        /// Synchronizes package-merge operations so a duplicate biome is replaced by one complete
+        /// package rather than an interleaved mixture from concurrent callers on this same state.
+        /// </summary>
+        public readonly object SyncRoot = new();
+
         public readonly ConcurrentDictionary<string, BiomeManifest> BiomeManifests = new();
         public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
         public readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> VariantCache = new();
-        public volatile bool IsInitialized;
     }
-
-    private volatile CacheState _state = new();
-
-    public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
 
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory)
+        : base(streamProviders)
     {
-        _streamProviders = [.. streamProviders];
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
     }
+
+    /// <inheritdoc />
+    protected override string ResourceKind => "terrain biome";
+
+    /// <inheritdoc />
+    protected override ILogger Logger => _logger;
 
     /// <inheritdoc />
     public async Task<BiomeManifest?> GetBiomeManifest(string biomeId)
@@ -74,10 +69,10 @@ public class TerrainCachingService : ITerrainAssetService
 
         var variants = GetAvailableVariants(state, biomeId, TerrainAssetType.Base, "base");
         if (variants.Count == 0) return null;
-        
+
         var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, "base", 0);
         var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Base, "base", selectedVariant);
-        
+
         return state.ImageCache.GetValueOrDefault(cacheKey);
     }
 
@@ -88,10 +83,10 @@ public class TerrainCachingService : ITerrainAssetService
 
         var variants = GetAvailableVariants(state, biomeId, TerrainAssetType.Overlay, terrainType);
         if (variants.Count == 0) return null;
-        
+
         var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, terrainType, 0);
         var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Overlay, terrainType, selectedVariant);
-        
+
         return state.ImageCache.GetValueOrDefault(cacheKey);
     }
 
@@ -99,18 +94,18 @@ public class TerrainCachingService : ITerrainAssetService
     public async Task<byte[]?> GetEdgeImage(string biomeId, HexDirection direction, TerrainAssetType edgeType, HexCoordinates coordinates)
     {
         var state = await EnsureInitialized();
-        
+
         if (edgeType is not (TerrainAssetType.EdgeTop or TerrainAssetType.EdgeBottom))
             return null;
-        
+
         var directionName = ((int)direction).ToString();
         var variants = GetAvailableVariants(state, biomeId, edgeType, directionName);
         if (variants.Count == 0) return null;
-        
+
         // Use hex coordinates for deterministic variant selection
         var selectedVariant = SelectRandomVariant(variants, biomeId, directionName, coordinates.Q + coordinates.R * 31);
         var cacheKey = GetCacheKey(biomeId, edgeType, directionName, selectedVariant);
-        
+
         return state.ImageCache.GetValueOrDefault(cacheKey);
     }
 
@@ -149,7 +144,7 @@ public class TerrainCachingService : ITerrainAssetService
         return GetAvailableVariants(state, biomeId, assetType, assetName);
     }
 
-    private static IReadOnlyList<int> GetAvailableVariants(CacheState state, string biomeId, TerrainAssetType assetType, string assetName)
+    private static IReadOnlyList<int> GetAvailableVariants(TerrainCacheState state, string biomeId, TerrainAssetType assetType, string assetName)
     {
         var variantKey = GetVariantKey(biomeId, assetType, assetName);
         return state.VariantCache.TryGetValue(variantKey, out var variants)
@@ -160,52 +155,11 @@ public class TerrainCachingService : ITerrainAssetService
     /// <inheritdoc />
     public async Task<BiomeManifest?> LoadTerrainFromMmtxStream(Stream mmtxStream)
     {
-        return await LoadTerrainFromMmtxStream(mmtxStream, _state);
-    }
-
-    private async Task<BiomeManifest?> LoadTerrainFromMmtxStream(Stream mmtxStream, CacheState state)
-    {
         try
         {
-            await using var archive = new ZipArchive(mmtxStream, ZipArchiveMode.Read);
-            
-            // Load manifest.json
-            var manifestEntry = archive.GetEntry("manifest.json");
-            if (manifestEntry == null)
-            {
-                _logger.LogWarning("MMTX package missing manifest.json");
-                return null;
-            }
-
-            BiomeManifest manifest;
-            await using (var manifestStream = await manifestEntry.OpenAsync())
-            using (var reader = new StreamReader(manifestStream))
-            {
-                var jsonContent = await reader.ReadToEndAsync();
-                manifest = JsonSerializer.Deserialize<BiomeManifest>(jsonContent, _jsonOptions)
-                    ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
-            }
-            
-            if (string.IsNullOrEmpty(manifest.Id))
-            {
-                _logger.LogWarning("MMTX package manifest missing id");
-                return null;
-            }
-
-            // Cache the manifest first to reject duplicates before extracting images
-            if (!state.BiomeManifests.TryAdd(manifest.Id, manifest))
-            {
-                _logger.LogWarning("Duplicate biome ID '{BiomeId}' found, skipping extraction", manifest.Id);
-                return null;
-            }
-
-            // Extract and cache all images (only if manifest was successfully added)
-            await ExtractImagesAsync(archive, manifest.Id, state);
-            
-            _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}", 
-                manifest.Id, manifest.Version);
-            
-            return manifest;
+            var package = await _packageReader.Read(mmtxStream);
+            AddPackageToCache(package, CurrentState);
+            return package.Manifest;
         }
         catch (Exception ex)
         {
@@ -215,279 +169,67 @@ public class TerrainCachingService : ITerrainAssetService
     }
 
     /// <inheritdoc />
-    public void ClearCache()
+    protected override async Task LoadResource(
+        IResourceStreamProvider provider,
+        string resourceId,
+        Stream stream,
+        TerrainCacheState state,
+        CancellationToken cancellationToken = default)
     {
-        _initializationLock.Wait();
-        try
-        {
-            ClearCacheLocked();
-        }
-        finally
-        {
-            _initializationLock.Release();
-        }
-    }
-
-    /// <inheritdoc />
-    public void SetProviders(IEnumerable<IResourceStreamProvider> providers)
-    {
-        ArgumentNullException.ThrowIfNull(providers);
-
-        _initializationLock.Wait();
-        try
-        {
-            _streamProviders = providers.ToList();
-            ClearCacheLocked();
-        }
-        finally
-        {
-            _initializationLock.Release();
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task ReloadProviders()
-    {
-        await _initializationLock.WaitAsync();
-        try
-        {
-            // Build the replacement state completely before publishing it, so readers
-            // keep seeing the previous complete cache until the swap.
-            var freshState = new CacheState();
-            await LoadTerrainFromStreamProviders(freshState);
-            freshState.IsInitialized = true;
-            _state = freshState;
-        }
-        finally
-        {
-            _initializationLock.Release();
-        }
+        var package = await _packageReader.Read(stream, cancellationToken);
+        AddPackageToCache(package, state);
+        _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}",
+            package.Manifest.Id, package.Manifest.Version);
     }
 
     /// <summary>
-    /// Replaces the cached state with an empty, uninitialized one. Readers already
-    /// holding the previous state continue to see complete data; new readers wait
-    /// for re-initialization. Must be called while holding <see cref="_initializationLock"/>.
+    /// Adds a parsed terrain package (manifest + assets) to the cache, applying the shared
+    /// duplicate policy: a package from a provider lower in the list overwrites an earlier one.
     /// </summary>
-    private void ClearCacheLocked()
+    private void AddPackageToCache(TerrainPackage package, TerrainCacheState state)
     {
-        _state = new CacheState();
-    }
-
-    private async Task<CacheState> EnsureInitialized()
-    {
-        var state = _state;
-        if (state.IsInitialized) return state;
-
-        await _initializationLock.WaitAsync();
-        try
+        // Serialize the entire merge — duplicate detection, remove and all inserts — so a
+        // duplicate biome is replaced by one complete package instead of an interleaved
+        // mixture when multiple callers merge into the same state concurrently.
+        lock (state.SyncRoot)
         {
-            state = _state;
-            if (state.IsInitialized) return state; // double-check after acquiring a lock
-            await LoadTerrainFromStreamProviders(state);
-            state.IsInitialized = true;
-            return state;
-        }
-        finally
-        {
-            _initializationLock.Release();
-        }
-    }
-
-    private async Task LoadTerrainFromStreamProviders(CacheState state)
-    {
-        // Enumerate all providers up front so the total is finalized before loading begins.
-        // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
-        var resources = new List<(IResourceStreamProvider Provider, string ResourceId)>();
-        foreach (var provider in _streamProviders)
-        {
-            try
+            // Apply the shared duplicate policy: a package from a provider lower in the list
+            // replaces the earlier one entirely, so remove the previous biome's assets first.
+            if (state.BiomeManifests.ContainsKey(package.Manifest.Id))
             {
-                var resourceIds = await provider.GetAvailableResourceIds();
-                foreach (var resourceId in resourceIds)
-                {
-                    resources.Add((provider, resourceId));
-                }
+                _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
+                    package.Manifest.Id);
+                RemoveBiomeAssets(state, package.Manifest.Id);
             }
-            catch (Exception ex)
+
+            state.BiomeManifests[package.Manifest.Id] = package.Manifest;
+
+            foreach (var asset in package.Assets)
             {
-                _logger.LogError(ex, "Error loading terrain from provider {ProviderType}", 
-                    provider.GetType().Name);
+                var cacheKey = GetCacheKey(package.Manifest.Id, asset.AssetType, asset.AssetName, asset.Variant);
+                TryCache(state.ImageCache, cacheKey, asset.Image);
+
+                // Track variants
+                var variantKey = GetVariantKey(package.Manifest.Id, asset.AssetType, asset.AssetName);
+                state.VariantCache.AddOrUpdate(
+                    variantKey,
+                    _ => ImmutableSortedSet.Create(asset.Variant),
+                    (_, set) => set.Add(asset.Variant));
             }
         }
+    }
 
-        var totalResources = resources.Count;
-        var processedResources = 0;
-        RaiseLoadProgress(processedResources, totalResources);
-
-        foreach (var (provider, resourceId) in resources)
+    private static void RemoveBiomeAssets(TerrainCacheState state, string biomeId)
+    {
+        var prefix = $"{biomeId}/";
+        foreach (var key in state.ImageCache.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
         {
-            try
-            {
-                await using var stream = await provider.GetResourceStream(resourceId);
-                if (stream != null)
-                {
-                    await LoadTerrainFromMmtxStream(stream, state);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading terrain from '{ResourceId}'", resourceId);
-            }
-            processedResources++;
-            RaiseLoadProgress(processedResources, totalResources);
+            state.ImageCache.TryRemove(key, out _);
         }
-    }
-
-    private void RaiseLoadProgress(int loadedCount, int totalCount)
-    {
-        LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
-    }
-
-    private async Task ExtractImagesAsync(ZipArchive archive, string biomeId, CacheState state)
-    {
-        // Extract base terrain images
-        await ExtractImagesFromDirectoryAsync(archive, biomeId, "", TerrainAssetType.Base, state);
-
-        // Extract terrain overlay images
-        await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/", TerrainAssetType.Overlay, state);
-
-        // Extract water bitmask textures from terrains/water/
-        await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/water/", TerrainAssetType.Water, state);
-
-        // Extract road bitmask textures from terrains/road/
-        await ExtractImagesFromDirectoryAsync(archive, biomeId, "terrains/road/", TerrainAssetType.Road, state);
-
-        // Extract edge images
-        await ExtractEdgeImagesAsync(archive, biomeId, state);
-    }
-
-    private async Task ExtractImagesFromDirectoryAsync(
-        ZipArchive archive,
-        string biomeId,
-        string directory,
-        TerrainAssetType assetType,
-        CacheState state)
-    {
-        var entries = archive.Entries
-            .Where(e => e.FullName.StartsWith(directory, StringComparison.OrdinalIgnoreCase) &&
-                        e.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) &&
-                        e.FullName.IndexOf('/', directory.Length) == -1)
-            .ToList();
-
-        foreach (var entry in entries)
+        foreach (var key in state.VariantCache.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
         {
-            var fileName = Path.GetFileNameWithoutExtension(entry.Name);
-            var parsed = ParseAssetFileName(fileName);
-            if (parsed == null) continue;
-
-            await using var stream = await entry.OpenAsync();
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-
-            var cacheKey = GetCacheKey(biomeId, assetType, parsed.AssetName, parsed.Variant);
-            state.ImageCache.TryAdd(cacheKey, memoryStream.ToArray());
-
-            // Track variants
-            var variantKey = GetVariantKey(biomeId, assetType, parsed.AssetName);
-            state.VariantCache.AddOrUpdate(
-                variantKey,
-                _ => ImmutableSortedSet.Create(parsed.Variant),
-                (_, set) => set.Add(parsed.Variant));
+            state.VariantCache.TryRemove(key, out _);
         }
-    }
-
-    private async Task ExtractEdgeImagesAsync(ZipArchive archive, string biomeId, CacheState state)
-    {
-        const string edgesDirectory = "edges/";
-        var edgeEntries = archive.Entries
-            .Where(e => e.FullName.StartsWith(edgesDirectory, StringComparison.OrdinalIgnoreCase) &&
-                        e.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (var entry in edgeEntries)
-        {
-            var fileName = Path.GetFileNameWithoutExtension(entry.Name);
-            var parsed = ParseEdgeFileName(fileName);
-            if (parsed == null) continue;
-
-            var assetType = parsed.EdgeType == "top" ? TerrainAssetType.EdgeTop : TerrainAssetType.EdgeBottom;
-
-            await using var stream = await entry.OpenAsync();
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-
-            var cacheKey = GetCacheKey(biomeId, assetType, parsed.Direction, parsed.Variant);
-            state.ImageCache.TryAdd(cacheKey, memoryStream.ToArray());
-
-            // Track variants
-            var variantKey = GetVariantKey(biomeId, assetType, parsed.Direction);
-            state.VariantCache.AddOrUpdate(
-                variantKey,
-                _ => ImmutableSortedSet.Create(parsed.Variant),
-                (_, set) => set.Add(parsed.Variant));
-        }
-    }
-
-    private record AssetInfo(string AssetName, int Variant);
-    private record EdgeInfo(string EdgeType, string Direction, int Variant);
-
-    /// <summary>
-    /// Parses an asset file name into asset name and zero-based variant number.
-    /// Returns null when the file has an invalid (non-integer) variant suffix so the asset is skipped.
-    /// Examples: "base" -> ("base", 0), "base-1" -> ("base", 1), "base-abc" -> null
-    /// </summary>
-    private static AssetInfo? ParseAssetFileName(string fileName)
-    {
-        var normalizedFileName = fileName.ToLowerInvariant();
-        var lastDashIndex = fileName.LastIndexOf('-');
-        if (lastDashIndex < 0)
-            return new AssetInfo(normalizedFileName, 0);
-
-        var namePart = fileName[..lastDashIndex];
-        var variantPart = fileName[(lastDashIndex + 1)..];
-
-        return TryParseVariantSuffix(variantPart, out var variant)
-            ? new AssetInfo(namePart.ToLowerInvariant(), variant)
-            : null;
-    }
-
-    /// <summary>
-    /// Parses an edge file name into edge type, direction, and zero-based variant number.
-    /// Returns null when the file name is invalid or has an invalid variant suffix so the asset is skipped.
-    /// Examples: "top-0" -> ("top", "0", 0), "top-0-1" -> ("top", "0", 1), "top-0-abc" -> null
-    /// </summary>
-    private static EdgeInfo? ParseEdgeFileName(string fileName)
-    {
-        var parts = fileName.Split('-');
-
-        if (parts.Length is < 2 or > 3)
-            return null;
-
-        var edgeType = parts[0].ToLowerInvariant();
-        if (edgeType is not ("top" or "bottom"))
-            return null;
-
-        var direction = parts[1];
-        if (!int.TryParse(direction, out _))
-            return null;
-
-        if (parts.Length == 2)
-            return new EdgeInfo(edgeType, direction, 0);
-
-        return TryParseVariantSuffix(parts[2], out var variant)
-            ? new EdgeInfo(edgeType, direction, variant)
-            : null;
-    }
-
-    private static bool TryParseVariantSuffix(string variantPart, out int variant)
-    {
-        variant = 0;
-        if (!int.TryParse(variantPart, out var variantNum) || variantNum <= 0)
-            return false;
-
-        variant = variantNum;
-        return true;
     }
 
     private static string GetCacheKey(string biomeId, TerrainAssetType assetType, string assetName, int variant)
@@ -508,12 +250,12 @@ public class TerrainCachingService : ITerrainAssetService
     {
         if (variants.Count == 0) return 0;
         if (variants.Count == 1) return variants[0];
-        
+
         // Combine biome, asset name, and seed for deterministic selection
         var combined = $"{biomeId}-{assetName}-{seed}";
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(combined));
         var hashValue = BitConverter.ToUInt32(hash, 0);
-        
+
         var index = (int)(hashValue % (uint)variants.Count);
         return variants[index];
     }

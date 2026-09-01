@@ -241,7 +241,7 @@ public class UnitCachingServiceTests
         initialModels.ShouldNotBeEmpty();
 
         // Act
-        sut.ClearCache();
+        await sut.ClearCache();
         var modelsAfterClear = (await sut.GetAvailableModels()).ToList();
 
         // Assert
@@ -541,13 +541,40 @@ public class UnitCachingServiceTests
 
         // Act
         var modelsBefore = (await sut.GetAvailableModels()).ToList();
-        sut.SetProviders([providerB]);
+        await sut.SetProviders([providerB]);
         var modelsAfter = (await sut.GetAvailableModels()).ToList();
 
         // Assert
         modelsBefore.ShouldContain("LCT-1V");
         modelsAfter.ShouldContain("SHD-2D");
         modelsAfter.ShouldNotContain("LCT-1V");
+    }
+
+    [Fact]
+    public async Task LoadUnits_RepeatedProviderPositions_AreProcessedSeparately_WithFinalOccurrenceAuthoritative()
+    {
+        // Arrange - the same provider instance appears at positions 0 and 2, with B between
+        // them. All three produce the same model; A's second (position 2) occurrence must be
+        // authoritative even though B is a different provider in between.
+        var providerA = Substitute.For<IResourceStreamProvider>();
+        providerA.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        providerA.GetResourceStream("LCT-1V")
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-A"),
+                     CreateTestMmuxStream("LCT-1V", "Locust-A-Last"));
+
+        var providerB = Substitute.For<IResourceStreamProvider>();
+        providerB.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        providerB.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-B"));
+
+        var sut = new UnitCachingService([providerA, providerB, providerA], _loggerFactory);
+
+        // Act
+        var unitData = await sut.GetUnitData("LCT-1V");
+
+        // Assert - position 2 (the final 'A') loads last and therefore overwrites both the
+        // position 0 'A' and the middle 'B'.
+        unitData.ShouldNotBeNull();
+        unitData.Value.Chassis.ShouldBe("Locust-A-Last");
     }
 
     [Fact]
