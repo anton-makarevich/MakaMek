@@ -1,7 +1,8 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Services;
 
-namespace Sanet.MakaMek.Services.ResourceProviders;
+namespace Sanet.MakaMek.Assets.ResourceProviders;
 
 /// <summary>
 /// Resource stream provider that fetches assets from a public S3-compatible bucket

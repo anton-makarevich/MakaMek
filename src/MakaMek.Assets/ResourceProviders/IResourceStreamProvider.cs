@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Services.ResourceProviders;
+namespace Sanet.MakaMek.Assets.ResourceProviders;
 
 /// <summary>
 /// Interface for providing resource streams from various sources (assemblies, filesystem, network, etc.)

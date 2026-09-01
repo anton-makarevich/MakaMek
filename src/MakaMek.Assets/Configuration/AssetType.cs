@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Services.Configuration;
+namespace Sanet.MakaMek.Assets.Configuration;
 
 /// <summary>
 /// The kind of game assets a provider serves.

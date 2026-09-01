@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Services.ResourceProviders;
+namespace Sanet.MakaMek.Assets.ResourceProviders;
 
 /// <summary>
 /// Resource stream provider that loads assets from a local filesystem directory.

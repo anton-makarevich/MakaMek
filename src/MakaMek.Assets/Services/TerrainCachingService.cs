@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Services.ResourceProviders;
+using Sanet.MakaMek.Assets.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
 

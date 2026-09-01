@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Services.Configuration;
+namespace Sanet.MakaMek.Assets.Configuration;
 
 /// <summary>
 /// Configuration data describing a single asset source provider.

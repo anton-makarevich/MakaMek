@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Services.Configuration;
+namespace Sanet.MakaMek.Assets.Configuration;
 
 /// <summary>
 /// The type of an asset source provider, which determines how its assets are resolved.
