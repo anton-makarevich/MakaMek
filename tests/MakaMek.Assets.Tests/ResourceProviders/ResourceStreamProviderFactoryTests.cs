@@ -28,7 +28,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: true, SortOrder: 0);
+            "bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: true,
+            SortOrder: 0);
 
         var provider = sut.Create(config);
 
@@ -40,7 +41,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: true, SortOrder: 0);
+            "bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: true,
+            SortOrder: 0);
 
         var provider = sut.Create(config);
 
@@ -53,7 +55,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "bucket", ProviderType.Bucket, AssetType.Hexes, "https://data.example.com/", IsActive: true, IsDefault: true, SortOrder: 0);
+            "bucket", ProviderType.Bucket, AssetType.Hexes, "https://data.example.com/", IsActive: true,
+            IsDefault: true, SortOrder: 0);
 
         var provider = sut.Create(config);
 
@@ -66,7 +69,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/units", IsActive: true, IsDefault: true, SortOrder: 1);
+            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/units", IsActive: true,
+            IsDefault: true, SortOrder: 1);
 
         var provider = sut.Create(config);
 
@@ -78,7 +82,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/units", IsActive: true, IsDefault: true, SortOrder: 1);
+            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/units", IsActive: true,
+            IsDefault: true, SortOrder: 1);
 
         var provider = sut.Create(config);
 
@@ -91,7 +96,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "github", ProviderType.GitHub, AssetType.Hexes, "https://api.github.com/hexes", IsActive: true, IsDefault: true, SortOrder: 1);
+            "github", ProviderType.GitHub, AssetType.Hexes, "https://api.github.com/hexes", IsActive: true,
+            IsDefault: true, SortOrder: 1);
 
         var provider = sut.Create(config);
 
@@ -103,7 +109,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "local", ProviderType.Filesystem, AssetType.Units, "C:\\assets\\units", IsActive: true, IsDefault: false, SortOrder: 2);
+            "local", ProviderType.Filesystem, AssetType.Units, "C:\\assets\\units", IsActive: true, IsDefault: false,
+            SortOrder: 2);
 
         var provider = sut.Create(config);
 
@@ -115,7 +122,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "local", ProviderType.Filesystem, AssetType.Units, "C:\\assets\\units", IsActive: true, IsDefault: false, SortOrder: 2);
+            "local", ProviderType.Filesystem, AssetType.Units, "C:\\assets\\units", IsActive: true, IsDefault: false,
+            SortOrder: 2);
 
         var provider = sut.Create(config);
 
@@ -128,7 +136,8 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets\\hexes", IsActive: true, IsDefault: false, SortOrder: 2);
+            "local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets\\hexes", IsActive: true, IsDefault: false,
+            SortOrder: 2);
 
         var provider = sut.Create(config);
 
@@ -142,8 +151,10 @@ public class ResourceStreamProviderFactoryTests
         var sut = CreateSut();
         var configs = new[]
         {
-            new AssetProviderConfigData("bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: true, SortOrder: 0),
-            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true, IsDefault: false, SortOrder: 1)
+            new AssetProviderConfigData("bucket", ProviderType.Bucket, AssetType.Units, "https://data.example.com",
+                IsActive: true, IsDefault: true, SortOrder: 0),
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true,
+                IsDefault: false, SortOrder: 1)
         };
 
         var providers = sut.CreateAll(configs);
@@ -161,5 +172,38 @@ public class ResourceStreamProviderFactoryTests
         var exception = Should.Throw<ArgumentNullException>(() => sut.Create(null!));
 
         exception.ParamName.ShouldBe("config");
+    }
+
+    [Fact]
+    public void Create_WithUnsupportedProviderType_ThrowsArgumentOutOfRangeException()
+    {
+        var sut = CreateSut();
+        var config = new AssetProviderConfigData(
+            "unknown", (ProviderType)99, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: false,
+            SortOrder: 0);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Create(config));
+    }
+
+    [Fact]
+    public void Create_WithUnsupportedAssetType_ThrowsArgumentOutOfRangeExceptionForFileExtension()
+    {
+        var sut = CreateSut();
+        var config = new AssetProviderConfigData(
+            "unknown", ProviderType.GitHub, (AssetType)99, "https://data.example.com", IsActive: true, IsDefault: false,
+            SortOrder: 0);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Create(config));
+    }
+
+    [Fact]
+    public void Create_BucketWithUnsupportedAssetType_ThrowsArgumentOutOfRangeExceptionForManifest()
+    {
+        var sut = CreateSut();
+        var config = new AssetProviderConfigData(
+            "unknown", ProviderType.Bucket, (AssetType)99, "https://data.example.com", IsActive: true, IsDefault: false,
+            SortOrder: 0);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Create(config));
     }
 }
