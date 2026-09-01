@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Assets.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
 
@@ -93,4 +94,17 @@ public interface ITerrainAssetService : IProgressReporting
     /// Clears all cached terrain data
     /// </summary>
     void ClearCache();
+
+    /// <summary>
+    /// Replaces the set of providers the cache loads from and forces a lazy re-initialization.
+    /// Existing in-memory caches are cleared so the next access loads from the new provider set.
+    /// </summary>
+    /// <param name="providers">The new ordered provider list</param>
+    void SetProviders(IEnumerable<IResourceStreamProvider> providers);
+
+    /// <summary>
+    /// Clears all cached data and re-runs initialization from the current provider set.
+    /// This is used by the Settings reload flow to refresh assets after providers change.
+    /// </summary>
+    Task ReloadProviders();
 }

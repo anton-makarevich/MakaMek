@@ -19,7 +19,7 @@ public class UnitCachingService : IUnitCachingService
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
-    private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
+    private IReadOnlyList<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<UnitCachingService> _logger;
 
     public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
@@ -52,7 +52,7 @@ public class UnitCachingService : IUnitCachingService
     /// <param name="loggerFactory">Logger factory for logging</param>
     public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders, ILoggerFactory loggerFactory)
     {
-        _streamProviders = streamProviders;
+        _streamProviders = [.. streamProviders];
         _logger = loggerFactory.CreateLogger<UnitCachingService>();
     }
     
@@ -240,10 +240,61 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     public void ClearCache()
     {
+        _initializationLock.Wait();
+        try
+        {
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
 
+    /// <summary>
+    /// Replaces the provider set and forces a lazy re-initialization on next access.
+    /// </summary>
+    public void SetProviders(IEnumerable<IResourceStreamProvider> providers)
+    {
+        ArgumentNullException.ThrowIfNull(providers);
+
+        _initializationLock.Wait();
+        try
+        {
+            _streamProviders = providers.ToList();
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Clears all cached data and re-runs initialization from the current provider set.
+    /// </summary>
+    public async Task ReloadProviders()
+    {
+        await _initializationLock.WaitAsync();
+        try
+        {
+            ClearCacheLocked();
+            await LoadUnitsFromStreamProviders();
+            _isInitialized = true;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Clears all cached data. Must be called while holding <see cref="_initializationLock"/>.
+    /// </summary>
+    private void ClearCacheLocked()
+    {
         _unitDataCache.Clear();
         _imageCache.Clear();
         _isInitialized = false;
-
     }
 }

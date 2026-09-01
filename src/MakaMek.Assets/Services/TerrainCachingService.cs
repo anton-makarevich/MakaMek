@@ -19,7 +19,7 @@ public class TerrainCachingService : ITerrainAssetService
     private readonly ConcurrentDictionary<string, BiomeManifest> _biomeManifests = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> _variantCache = new();
-    private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
+    private IReadOnlyList<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<TerrainCachingService> _logger;
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
     
@@ -38,7 +38,7 @@ public class TerrainCachingService : ITerrainAssetService
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory)
     {
-        _streamProviders = streamProviders;
+        _streamProviders = [.. streamProviders];
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
     }
 
@@ -195,6 +195,55 @@ public class TerrainCachingService : ITerrainAssetService
 
     /// <inheritdoc />
     public void ClearCache()
+    {
+        _initializationLock.Wait();
+        try
+        {
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public void SetProviders(IEnumerable<IResourceStreamProvider> providers)
+    {
+        ArgumentNullException.ThrowIfNull(providers);
+
+        _initializationLock.Wait();
+        try
+        {
+            _streamProviders = providers.ToList();
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ReloadProviders()
+    {
+        await _initializationLock.WaitAsync();
+        try
+        {
+            ClearCacheLocked();
+            await LoadTerrainFromStreamProviders();
+            _isInitialized = true;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Clears all cached data. Must be called while holding <see cref="_initializationLock"/>.
+    /// </summary>
+    private void ClearCacheLocked()
     {
         _biomeManifests.Clear();
         _imageCache.Clear();
