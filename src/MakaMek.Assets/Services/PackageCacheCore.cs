@@ -98,13 +98,17 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     {
         // Enumerate all providers up front so the total is finalized before loading begins.
         // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
-        var resources = new List<(IResourceStreamProvider Provider, string ResourceId)>();
+        // Each provider keeps its positional index in the configured list (even when the same
+        // provider instance appears more than once) so repeated providers are treated as distinct
+        // precedence positions rather than being merged together.
+        var resources = new List<(int ProviderIndex, IResourceStreamProvider Provider, string ResourceId)>();
+        var providerIndex = 0;
         foreach (var provider in _streamProviders)
         {
             try
             {
                 var resourceIds = await provider.GetAvailableResourceIds();
-                resources.AddRange(resourceIds.Select(resourceId => (provider, resourceId)));
+                resources.AddRange(resourceIds.Select(resourceId => (providerIndex, provider, resourceId)));
             }
             catch (Exception ex)
             {
@@ -112,6 +116,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
                 Logger.LogError(ex, "Error enumerating {ResourceKind} resources from provider {ProviderType}",
                     ResourceKind, provider.GetType().Name);
             }
+            providerIndex++;
         }
 
         var totalResources = resources.Count;
@@ -120,9 +125,11 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
 
         // Process providers sequentially in their configured precedence order so a provider lower
         // in the list always loads after (and therefore overwrites) the providers above it,
-        // independent of parallel completion order. Resources belonging to the same provider may
-        // still load in parallel, while reporting progress as each task actually completes.
-        foreach (var providerGroup in resources.GroupBy(r => r.Provider))
+        // independent of parallel completion order. Grouping by the positional index keeps repeated
+        // providers as separate positions, so the final occurrence of a provider remains
+        // authoritative. Resources belonging to the same provider position may still load in
+        // parallel, while reporting progress as each task actually completes.
+        foreach (var providerGroup in resources.GroupBy(r => r.ProviderIndex))
         {
             foreach (var batch in providerGroup.Chunk(MaxDegreeOfParallelism))
             {

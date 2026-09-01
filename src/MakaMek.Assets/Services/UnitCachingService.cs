@@ -19,6 +19,13 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     /// </summary>
     public sealed class UnitCacheState : PackageCacheState
     {
+        /// <summary>
+        /// Serializes the commit of each parsed unit package (data + image) so a duplicate-model
+        /// load replaces one complete package instead of an interleaved mixture from concurrent
+        /// callers committing into this same state.
+        /// </summary>
+        public readonly object SyncRoot = new();
+
         public readonly ConcurrentDictionary<string, UnitData> UnitDataCache = new();
         public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
     }
@@ -102,8 +109,14 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     /// </summary>
     private void AddPackageToCache(UnitPackage package, UnitCacheState state)
     {
-        var model = package.Data.Model;
-        TryCache(state.UnitDataCache, model, package.Data);
-        TryCache(state.ImageCache, model, package.Image);
+        // Serialize both writes — data and image — so a duplicate model is replaced by one
+        // complete package instead of an interleaved mixture when multiple callers commit
+        // into the same state concurrently.
+        lock (state.SyncRoot)
+        {
+            var model = package.Data.Model;
+            TryCache(state.UnitDataCache, model, package.Data);
+            TryCache(state.ImageCache, model, package.Image);
+        }
     }
 }

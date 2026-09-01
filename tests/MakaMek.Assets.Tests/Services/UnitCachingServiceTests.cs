@@ -551,6 +551,33 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
+    public async Task LoadUnits_RepeatedProviderPositions_AreProcessedSeparately_WithFinalOccurrenceAuthoritative()
+    {
+        // Arrange - the same provider instance appears at positions 0 and 2, with B between
+        // them. All three produce the same model; A's second (position 2) occurrence must be
+        // authoritative even though B is a different provider in between.
+        var providerA = Substitute.For<IResourceStreamProvider>();
+        providerA.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        providerA.GetResourceStream("LCT-1V")
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-A"),
+                     CreateTestMmuxStream("LCT-1V", "Locust-A-Last"));
+
+        var providerB = Substitute.For<IResourceStreamProvider>();
+        providerB.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        providerB.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-B"));
+
+        var sut = new UnitCachingService([providerA, providerB, providerA], _loggerFactory);
+
+        // Act
+        var unitData = await sut.GetUnitData("LCT-1V");
+
+        // Assert - position 2 (the final 'A') loads last and therefore overwrites both the
+        // position 0 'A' and the middle 'B'.
+        unitData.ShouldNotBeNull();
+        unitData.Value.Chassis.ShouldBe("Locust-A-Last");
+    }
+
+    [Fact]
     public async Task ReloadProviders_ShouldReinitialize_FromCurrentProviders()
     {
         // Arrange
