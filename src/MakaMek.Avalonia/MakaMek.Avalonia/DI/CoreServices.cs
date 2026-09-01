@@ -102,7 +102,8 @@ public static class CoreServices
             var avaloniaService = sp.GetRequiredService<AvaloniaAssetImageService>();
             var cachedService = sp.GetRequiredService<CachedImageService>();
             var terrainService = sp.GetService<ITerrainAssetService>();
-            return new HybridImageService(avaloniaService, cachedService, terrainService);
+            return new HybridImageService(avaloniaService, cachedService,
+                sp.GetRequiredService<ILogger<HybridImageService>>(), terrainService);
         });
 
         // Register map preview renderer

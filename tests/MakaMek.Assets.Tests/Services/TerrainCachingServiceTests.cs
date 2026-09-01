@@ -451,31 +451,31 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
-    public async Task LoadTerrainFromMmtxStream_ShouldRejectDuplicateBiomeId()
+    public async Task LoadTerrainFromMmtxStream_ShouldOverwriteDuplicateBiomeId()
     {
         // Arrange
         using var firstStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
-        using var secondStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        using var secondStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(2));
 
         // Act - Load the first biome successfully
         var firstManifest = await _sut.LoadTerrainFromMmtxStream(firstStream);
         firstManifest.ShouldNotBeNull();
 
-        // Attempt to load the duplicate biome
+        // Attempt to load the duplicate biome (lower in the load order)
         var secondManifest = await _sut.LoadTerrainFromMmtxStream(secondStream);
 
-        // Assert
-        secondManifest.ShouldBeNull(); // Should return null for duplicate
+        // Assert - the later package overwrites the earlier one (consistent duplicate policy)
+        secondManifest.ShouldNotBeNull();
 
-        // Verify only the first biome is loaded
+        // Verify only one biome is loaded
         var loadedBiomes = (await _sut.GetLoadedBiomes()).ToList();
         loadedBiomes.Count.ShouldBe(1);
         loadedBiomes.ShouldContain("test-biome");
 
-        // Verify variants are only from the first load
+        // Verify variants reflect the last loaded package
         var variants = await _sut.GetAvailableVariants("test-biome", TerrainAssetType.Base, "base");
         variants.Count.ShouldBe(1);
-        variants.ShouldContain(1);
+        variants.ShouldContain(2);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Services.Avalonia.Browser.Services;
@@ -10,6 +11,13 @@ namespace Sanet.MakaMek.Services.Avalonia.Browser.Services;
 [SupportedOSPlatform("browser")]
 public partial class BrowserCachingService : IFileCachingService
 {
+    private readonly ILogger<BrowserCachingService> _logger;
+
+    public BrowserCachingService(ILogger<BrowserCachingService> logger)
+    {
+        _logger = logger;
+    }
+
     private static string GetHashedCacheKey(string originalKey)
     {
         var hashBytes = SHA256.HashData(
@@ -52,7 +60,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading cached file '{cacheKey}': {ex.Message}");
+            _logger.LogError(ex, "Error $1cached file '{CacheKey}'", cacheKey);
             return null;
         }
     }
@@ -70,7 +78,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving file to cache '{cacheKey}': {ex.Message}");
+            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
         }
     }
 
@@ -83,7 +91,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error clearing cache: {ex.Message}");
+            _logger.LogError(ex, "Error clearing cache");
         }
     }
 
@@ -99,7 +107,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error checking cache for '{cacheKey}': {ex.Message}");
+            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
             return false;
         }
     }
@@ -117,7 +125,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error removing file from cache '{cacheKey}': {ex.Message}");
+            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
         }
     }
 
@@ -140,7 +148,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading version for cached file '{cacheKey}': {ex.Message}");
+            _logger.LogError(ex, "Error $1cached file '{CacheKey}'", cacheKey);
             return null;
         }
     }
