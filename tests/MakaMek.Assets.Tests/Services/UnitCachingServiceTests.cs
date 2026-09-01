@@ -522,4 +522,88 @@ public class UnitCachingServiceTests
         progressEvents[^1].LoadedCount.ShouldBe(2);
         progressEvents[^1].TotalCount.ShouldBe(2);
     }
+
+    [Fact]
+    public async Task SetProviders_ShouldReplaceProviderSet_AndForceReinitialization()
+    {
+        // Arrange
+        await using var streamA = CreateTestMmuxStream("LCT-1V", "Locust");
+        var providerA = Substitute.For<IResourceStreamProvider>();
+        providerA.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        providerA.GetResourceStream("LCT-1V").Returns(streamA);
+
+        await using var streamB = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
+        var providerB = Substitute.For<IResourceStreamProvider>();
+        providerB.GetAvailableResourceIds().Returns(["SHD-2D"]);
+        providerB.GetResourceStream("SHD-2D").Returns(streamB);
+
+        var sut = new UnitCachingService([providerA], _loggerFactory);
+
+        // Act
+        var modelsBefore = (await sut.GetAvailableModels()).ToList();
+        sut.SetProviders([providerB]);
+        var modelsAfter = (await sut.GetAvailableModels()).ToList();
+
+        // Assert
+        modelsBefore.ShouldContain("LCT-1V");
+        modelsAfter.ShouldContain("SHD-2D");
+        modelsAfter.ShouldNotContain("LCT-1V");
+    }
+
+    [Fact]
+    public async Task ReloadProviders_ShouldReinitialize_FromCurrentProviders()
+    {
+        // Arrange
+        await using var stream1 = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var stream2 = CreateTestMmuxStream("LCT-1V", "Locust");
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider.GetResourceStream("LCT-1V").Returns(stream1, stream2);
+
+        var sut = new UnitCachingService([provider], _loggerFactory);
+        await sut.GetAvailableModels();
+
+        // Act
+        await sut.ReloadProviders();
+
+        // Assert - reload re-enumerates the provider
+        await provider.Received(2).GetAvailableResourceIds();
+    }
+
+    [Fact]
+    public async Task ConcurrentReloadAndAccess_ShouldNotCorruptState()
+    {
+        // Arrange
+        const int unitCount = 5;
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(
+            Enumerable.Range(1, unitCount).Select(i => $"UNIT-{i}").ToArray());
+        provider.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
+
+        var sut = new UnitCachingService([provider], _loggerFactory);
+
+        // Act - hammer reloads and reads concurrently
+        var reloadTask = Task.Run(async () =>
+        {
+            for (var i = 0; i < 25; i++)
+            {
+                await sut.ReloadProviders();
+            }
+        });
+
+        var readTask = Task.Run(async () =>
+        {
+            for (var i = 0; i < 25; i++)
+            {
+                await sut.GetAvailableModels();
+            }
+        });
+
+        await Task.WhenAll(reloadTask, readTask);
+
+        // Assert - state is consistent after concurrent operations
+        var models = (await sut.GetAvailableModels()).ToList();
+        models.Count.ShouldBe(unitCount);
+    }
 }

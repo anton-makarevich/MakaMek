@@ -744,6 +744,90 @@ public class TerrainCachingServiceTests
         biomes.Count.ShouldBe(biomeCount);
     }
 
+    [Fact]
+    public async Task SetProviders_ShouldReplaceProviderSet_AndForceReinitialization()
+    {
+        // Arrange
+        using var streamA = CreateMmtxPackage("biome-a", "Biome A", builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var providerA = Substitute.For<IResourceStreamProvider>();
+        providerA.GetAvailableResourceIds().Returns(["resourceA"]);
+        providerA.GetResourceStream("resourceA").Returns(streamA);
+
+        using var streamB = CreateMmtxPackage("biome-b", "Biome B", builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var providerB = Substitute.For<IResourceStreamProvider>();
+        providerB.GetAvailableResourceIds().Returns(["resourceB"]);
+        providerB.GetResourceStream("resourceB").Returns(streamB);
+
+        var sut = new TerrainCachingService([providerA], _loggerFactory);
+
+        // Act
+        var biomesBefore = (await sut.GetLoadedBiomes()).ToList();
+        sut.SetProviders([providerB]);
+        var biomesAfter = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert
+        biomesBefore.ShouldContain("biome-a");
+        biomesAfter.ShouldContain("biome-b");
+        biomesAfter.ShouldNotContain("biome-a");
+    }
+
+    [Fact]
+    public async Task ReloadProviders_ShouldReinitialize_FromCurrentProviders()
+    {
+        // Arrange
+        using var stream1 = CreateMmtxPackage("biome-a", "Biome A", builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        using var stream2 = CreateMmtxPackage("biome-a", "Biome A", builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["resourceA"]);
+        provider.GetResourceStream("resourceA").Returns(stream1, stream2);
+
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+        await sut.GetLoadedBiomes();
+
+        // Act
+        await sut.ReloadProviders();
+
+        // Assert - reload re-enumerates the provider
+        await provider.Received(2).GetAvailableResourceIds();
+    }
+
+    [Fact]
+    public async Task ConcurrentReloadAndAccess_ShouldNotCorruptState()
+    {
+        // Arrange
+        const int biomeCount = 5;
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(
+            Enumerable.Range(1, biomeCount).Select(i => $"resource-{i}").ToArray());
+        provider.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateMmtxPackage($"biome-{ci[0]}", $"Biome {ci[0]}"));
+
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+
+        // Act - hammer reloads and reads concurrently
+        var reloadTask = Task.Run(async () =>
+        {
+            for (var i = 0; i < 25; i++)
+            {
+                await sut.ReloadProviders();
+            }
+        });
+
+        var readTask = Task.Run(async () =>
+        {
+            for (var i = 0; i < 25; i++)
+            {
+                await sut.GetLoadedBiomes();
+            }
+        });
+
+        await Task.WhenAll(reloadTask, readTask);
+
+        // Assert - state is consistent after concurrent operations
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+        biomes.Count.ShouldBe(biomeCount);
+    }
+
     private static MemoryStream CreateMmtxPackage(
         string biomeId = "test-biome",
         string name = "Test Biome",

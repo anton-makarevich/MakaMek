@@ -17,10 +17,23 @@ namespace Sanet.MakaMek.Assets.Services;
 public class UnitCachingService : IUnitCachingService
 {
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
-    private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
-    private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
-    private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
+    private IReadOnlyList<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<UnitCachingService> _logger;
+
+    /// <summary>
+    /// Snapshot of all cached data. A new instance is built completely and then
+    /// published via a single volatile write to <see cref="_state"/>, so readers
+    /// either observe the previous complete cache or the new complete cache,
+    /// never a cleared or partially rebuilt state.
+    /// </summary>
+    private sealed class CacheState
+    {
+        public readonly ConcurrentDictionary<string, UnitData> UnitDataCache = new();
+        public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
+        public volatile bool IsInitialized;
+    }
+
+    private volatile CacheState _state = new();
 
     public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
     
@@ -43,7 +56,6 @@ public class UnitCachingService : IUnitCachingService
             new EnumConverter<WeightClass>()
         }
     };
-    private bool _isInitialized;
 
     /// <summary>
     /// Initializes a new instance of UnitCachingService
@@ -52,7 +64,7 @@ public class UnitCachingService : IUnitCachingService
     /// <param name="loggerFactory">Logger factory for logging</param>
     public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders, ILoggerFactory loggerFactory)
     {
-        _streamProviders = streamProviders;
+        _streamProviders = [.. streamProviders];
         _logger = loggerFactory.CreateLogger<UnitCachingService>();
     }
     
@@ -63,8 +75,8 @@ public class UnitCachingService : IUnitCachingService
     /// <returns>Unit data if found, null otherwise</returns>
     public async Task<UnitData?> GetUnitData(string model)
     {
-        await EnsureInitialized();
-        return _unitDataCache.TryGetValue(model, out var unitData) ? unitData : null;
+        var state = await EnsureInitialized();
+        return state.UnitDataCache.TryGetValue(model, out var unitData) ? unitData : null;
     }
 
     /// <summary>
@@ -74,8 +86,8 @@ public class UnitCachingService : IUnitCachingService
     /// <returns>Image bytes if found, null otherwise</returns>
     public async Task<byte[]?> GetUnitImage(string model)
     {
-        await EnsureInitialized();
-        return _imageCache.GetValueOrDefault(model);
+        var state = await EnsureInitialized();
+        return state.ImageCache.GetValueOrDefault(model);
     }
 
     /// <summary>
@@ -84,8 +96,8 @@ public class UnitCachingService : IUnitCachingService
     /// <returns>Collection of unit model identifiers</returns>
     public async Task<IEnumerable<string>> GetAvailableModels()
     {
-        await EnsureInitialized();
-        return _unitDataCache.Keys;
+        var state = await EnsureInitialized();
+        return state.UnitDataCache.Keys;
     }
 
     /// <summary>
@@ -94,23 +106,26 @@ public class UnitCachingService : IUnitCachingService
     /// <returns>Collection of all unit data</returns>
     public async Task<IEnumerable<UnitData>> GetAllUnits()
     {
-        await EnsureInitialized();
-        return _unitDataCache.Values;
+        var state = await EnsureInitialized();
+        return state.UnitDataCache.Values;
     }
 
     /// <summary>
     /// Ensures the cache is initialized by loading units from all available sources
     /// </summary>
-    private async Task EnsureInitialized()
+    private async Task<CacheState> EnsureInitialized()
     {
-        if (_isInitialized) return;
+        var state = _state;
+        if (state.IsInitialized) return state;
 
         await _initializationLock.WaitAsync();
         try
         {
-            if (_isInitialized) return;
-            await LoadUnitsFromStreamProviders();
-            _isInitialized = true;
+            state = _state;
+            if (state.IsInitialized) return state; // double-check after acquiring a lock
+            await LoadUnitsFromStreamProviders(state);
+            state.IsInitialized = true;
+            return state;
         }
         finally
         {
@@ -121,7 +136,7 @@ public class UnitCachingService : IUnitCachingService
     /// <summary>
     /// Loads units from all configured stream providers
     /// </summary>
-    private async Task LoadUnitsFromStreamProviders()
+    private async Task LoadUnitsFromStreamProviders(CacheState state)
     {
         // Enumerate all providers up front so the total is finalized before loading begins.
         // This keeps TotalCount stable and ensures reported progress cannot decrease between providers.
@@ -152,7 +167,7 @@ public class UnitCachingService : IUnitCachingService
         foreach (var batch in batches)
         {
             var batchTasks = batch
-                .Select(u => ProcessUnitAsync(u.Provider, u.UnitId))
+                .Select(u => ProcessUnitAsync(u.Provider, u.UnitId, state))
                 .ToList();
 
             while (batchTasks.Count > 0)
@@ -170,14 +185,14 @@ public class UnitCachingService : IUnitCachingService
         LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
     }
     
-    private async Task ProcessUnitAsync(IResourceStreamProvider provider, string unitId)
+    private async Task ProcessUnitAsync(IResourceStreamProvider provider, string unitId, CacheState state)
     {
         try
         {
             await using var stream = await provider.GetResourceStream(unitId);
             if (stream != null)
             {
-                await LoadUnitFromMmuxStreamAsync(stream);
+                await LoadUnitFromMmuxStreamAsync(stream, state);
             }
         }
         catch (Exception ex)
@@ -192,7 +207,7 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     /// <param name="mmuxStream">Stream containing the MMUX package data</param>
     /// <returns>Task representing the async operation</returns>
-    private async Task LoadUnitFromMmuxStreamAsync(Stream mmuxStream)
+    private async Task LoadUnitFromMmuxStreamAsync(Stream mmuxStream, CacheState state)
     {
         await using var archive = new ZipArchive(mmuxStream, ZipArchiveMode.Read);
 
@@ -231,8 +246,8 @@ public class UnitCachingService : IUnitCachingService
         }
 
         // Cache both unit data and image using model name as a key
-        _unitDataCache.TryAdd(unitData.Model, unitData);
-        _imageCache.TryAdd(unitData.Model, imageBytes);
+        state.UnitDataCache.TryAdd(unitData.Model, unitData);
+        state.ImageCache.TryAdd(unitData.Model, imageBytes);
     }
 
     /// <summary>
@@ -240,10 +255,64 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     public void ClearCache()
     {
+        _initializationLock.Wait();
+        try
+        {
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
 
-        _unitDataCache.Clear();
-        _imageCache.Clear();
-        _isInitialized = false;
+    /// <summary>
+    /// Replaces the provider set and forces a lazy re-initialization on next access.
+    /// </summary>
+    public void SetProviders(IEnumerable<IResourceStreamProvider> providers)
+    {
+        ArgumentNullException.ThrowIfNull(providers);
 
+        _initializationLock.Wait();
+        try
+        {
+            _streamProviders = providers.ToList();
+            ClearCacheLocked();
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Clears all cached data and re-runs initialization from the current provider set.
+    /// </summary>
+    public async Task ReloadProviders()
+    {
+        await _initializationLock.WaitAsync();
+        try
+        {
+            // Build the replacement state completely before publishing it, so readers
+            // keep seeing the previous complete cache until the swap.
+            var freshState = new CacheState();
+            await LoadUnitsFromStreamProviders(freshState);
+            freshState.IsInitialized = true;
+            _state = freshState;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Replaces the cached state with an empty, uninitialized one. Readers already
+    /// holding the previous state continue to see complete data; new readers wait
+    /// for re-initialization. Must be called while holding <see cref="_initializationLock"/>.
+    /// </summary>
+    private void ClearCacheLocked()
+    {
+        _state = new CacheState();
     }
 }
