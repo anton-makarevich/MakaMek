@@ -12,7 +12,7 @@ namespace Sanet.MakaMek.Assets.Services;
 /// and <see cref="ClearCache"/>, parallel batched loading with progress reporting and the
 /// duplicate/conflict policy.
 /// Per-format parsing is delegated to format-specific package readers by the concrete
-/// services via <see cref="LoadResourceAsync"/>.
+/// services via <see cref="LoadResource"/>.
 /// </summary>
 /// <typeparam name="TState">Type of the immutable-by-publication cache state snapshot</typeparam>
 public abstract class PackageCacheCore<TState> : IProgressReporting
@@ -60,11 +60,12 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     /// Loads a single package resource from the given provider into the state.
     /// Format-specific parsing is delegated to package readers by the concrete service.
     /// </summary>
-    protected abstract Task LoadResourceAsync(
+    protected abstract Task LoadResource(
         IResourceStreamProvider provider,
         string resourceId,
         Stream stream,
-        TState state);
+        TState state,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ensures the cache is initialized by loading resources from all available sources
@@ -122,7 +123,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         foreach (var batch in batches)
         {
             var batchTasks = batch
-                .Select(r => LoadResourceSafeAsync(r.Provider, r.ResourceId, state))
+                .Select(r => LoadResourceSafe(r.Provider, r.ResourceId, state))
                 .ToList();
 
             while (batchTasks.Count > 0)
@@ -135,14 +136,18 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         }
     }
 
-    private async Task LoadResourceSafeAsync(IResourceStreamProvider provider, string resourceId, TState state)
+    private async Task LoadResourceSafe(
+        IResourceStreamProvider provider,
+        string resourceId,
+        TState state,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             await using var stream = await provider.GetResourceStream(resourceId);
             if (stream != null)
             {
-                await LoadResourceAsync(provider, resourceId, stream, state);
+                await LoadResource(provider, resourceId, stream, state, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -172,9 +177,9 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     /// <summary>
     /// Clears all cached data (useful for testing or reloading)
     /// </summary>
-    public void ClearCache()
+    public async Task ClearCache()
     {
-        _initializationLock.Wait();
+        await _initializationLock.WaitAsync();
         try
         {
             ClearCacheLocked();
@@ -188,11 +193,11 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     /// <summary>
     /// Replaces the provider set and forces a lazy re-initialization on next access.
     /// </summary>
-    public void SetProviders(IEnumerable<IResourceStreamProvider> providers)
+    public async Task SetProviders(IEnumerable<IResourceStreamProvider> providers)
     {
         ArgumentNullException.ThrowIfNull(providers);
 
-        _initializationLock.Wait();
+        await _initializationLock.WaitAsync();
         try
         {
             _streamProviders = providers.ToList();

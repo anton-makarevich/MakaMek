@@ -37,9 +37,10 @@ public class MmuxUnitPackageReader
     /// Reads an MMUX unit package stream
     /// </summary>
     /// <param name="mmuxStream">Stream containing the MMUX package data</param>
+    /// <param name="cancellationToken">Optional cancellation token propagated to all async I/O</param>
     /// <returns>The parsed unit package</returns>
     /// <exception cref="InvalidOperationException">Thrown when the package is missing required entries or data is invalid</exception>
-    public async Task<UnitPackage> ReadAsync(Stream mmuxStream)
+    public async Task<UnitPackage> Read(Stream mmuxStream, CancellationToken cancellationToken = default)
     {
         await using var archive = new ZipArchive(mmuxStream, ZipArchiveMode.Read);
 
@@ -51,10 +52,10 @@ public class MmuxUnitPackageReader
         }
 
         UnitData unitData;
-        await using (var unitJsonStream = await unitJsonEntry.OpenAsync())
+        await using (var unitJsonStream = await unitJsonEntry.OpenAsync(cancellationToken))
         using (var reader = new StreamReader(unitJsonStream))
         {
-            var jsonContent = await reader.ReadToEndAsync();
+            var jsonContent = await reader.ReadToEndAsync(cancellationToken);
             unitData = JsonSerializer.Deserialize<UnitData>(jsonContent, _jsonOptions);
             if (string.IsNullOrEmpty(unitData.Model))
             {
@@ -70,10 +71,10 @@ public class MmuxUnitPackageReader
         }
 
         byte[] imageBytes;
-        await using (var imageStream = await unitImageEntry.OpenAsync())
+        await using (var imageStream = await unitImageEntry.OpenAsync(cancellationToken))
         using (var memoryStream = new MemoryStream())
         {
-            await imageStream.CopyToAsync(memoryStream);
+            await imageStream.CopyToAsync(memoryStream, cancellationToken);
             imageBytes = memoryStream.ToArray();
         }
 

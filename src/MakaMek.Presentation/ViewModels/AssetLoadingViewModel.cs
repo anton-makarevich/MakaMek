@@ -84,8 +84,8 @@ public class AssetLoadingViewModel : BaseViewModel
 
     public async Task ReloadAsync(int messageDelay = 1000)
     {
-        _unitCachingService.ClearCache();
-        _terrainAssetService.ClearCache();
+        await _unitCachingService.ClearCache();
+        await _terrainAssetService.ClearCache();
         InitializeAsync(messageDelay);
         if (_activeLoadTask != null)
             await _activeLoadTask;

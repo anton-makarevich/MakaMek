@@ -83,13 +83,14 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     }
 
     /// <inheritdoc />
-    protected override async Task LoadResourceAsync(
+    protected override async Task LoadResource(
         IResourceStreamProvider provider,
         string resourceId,
         Stream stream,
-        UnitCacheState state)
+        UnitCacheState state,
+        CancellationToken cancellationToken = default)
     {
-        var package = await _packageReader.ReadAsync(stream);
+        var package = await _packageReader.Read(stream, cancellationToken);
 
         // Cache both unit data and image using model name as a key
         TryCache(state.UnitDataCache, package.Data.Model, package.Data);

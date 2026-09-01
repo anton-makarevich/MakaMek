@@ -241,7 +241,7 @@ public class UnitCachingServiceTests
         initialModels.ShouldNotBeEmpty();
 
         // Act
-        sut.ClearCache();
+        await sut.ClearCache();
         var modelsAfterClear = (await sut.GetAvailableModels()).ToList();
 
         // Assert
@@ -541,7 +541,7 @@ public class UnitCachingServiceTests
 
         // Act
         var modelsBefore = (await sut.GetAvailableModels()).ToList();
-        sut.SetProviders([providerB]);
+        await sut.SetProviders([providerB]);
         var modelsAfter = (await sut.GetAvailableModels()).ToList();
 
         // Assert

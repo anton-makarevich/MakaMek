@@ -23,6 +23,12 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     /// </summary>
     public sealed class TerrainCacheState : PackageCacheState
     {
+        /// <summary>
+        /// Synchronizes package-merge operations so a duplicate biome is replaced by one complete
+        /// package rather than an interleaved mixture from concurrent callers on this same state.
+        /// </summary>
+        public readonly object SyncRoot = new();
+
         public readonly ConcurrentDictionary<string, BiomeManifest> BiomeManifests = new();
         public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
         public readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> VariantCache = new();
@@ -151,7 +157,7 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     {
         try
         {
-            var package = await _packageReader.ReadAsync(mmtxStream);
+            var package = await _packageReader.Read(mmtxStream);
             AddPackageToCache(package, CurrentState);
             return package.Manifest;
         }
@@ -163,13 +169,14 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     }
 
     /// <inheritdoc />
-    protected override async Task LoadResourceAsync(
+    protected override async Task LoadResource(
         IResourceStreamProvider provider,
         string resourceId,
         Stream stream,
-        TerrainCacheState state)
+        TerrainCacheState state,
+        CancellationToken cancellationToken = default)
     {
-        var package = await _packageReader.ReadAsync(stream);
+        var package = await _packageReader.Read(stream, cancellationToken);
         AddPackageToCache(package, state);
         _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}",
             package.Manifest.Id, package.Manifest.Version);
@@ -181,28 +188,34 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     /// </summary>
     private void AddPackageToCache(TerrainPackage package, TerrainCacheState state)
     {
-        // Apply the shared duplicate policy: a package from a provider lower in the list
-        // replaces the earlier one entirely, so remove the previous biome's assets first.
-        if (state.BiomeManifests.ContainsKey(package.Manifest.Id))
+        // Serialize the entire merge — duplicate detection, remove and all inserts — so a
+        // duplicate biome is replaced by one complete package instead of an interleaved
+        // mixture when multiple callers merge into the same state concurrently.
+        lock (state.SyncRoot)
         {
-            _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
-                package.Manifest.Id);
-            RemoveBiomeAssets(state, package.Manifest.Id);
-        }
+            // Apply the shared duplicate policy: a package from a provider lower in the list
+            // replaces the earlier one entirely, so remove the previous biome's assets first.
+            if (state.BiomeManifests.ContainsKey(package.Manifest.Id))
+            {
+                _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
+                    package.Manifest.Id);
+                RemoveBiomeAssets(state, package.Manifest.Id);
+            }
 
-        state.BiomeManifests[package.Manifest.Id] = package.Manifest;
+            state.BiomeManifests[package.Manifest.Id] = package.Manifest;
 
-        foreach (var asset in package.Assets)
-        {
-            var cacheKey = GetCacheKey(package.Manifest.Id, asset.AssetType, asset.AssetName, asset.Variant);
-            TryCache(state.ImageCache, cacheKey, asset.Image);
+            foreach (var asset in package.Assets)
+            {
+                var cacheKey = GetCacheKey(package.Manifest.Id, asset.AssetType, asset.AssetName, asset.Variant);
+                TryCache(state.ImageCache, cacheKey, asset.Image);
 
-            // Track variants
-            var variantKey = GetVariantKey(package.Manifest.Id, asset.AssetType, asset.AssetName);
-            state.VariantCache.AddOrUpdate(
-                variantKey,
-                _ => ImmutableSortedSet.Create(asset.Variant),
-                (_, set) => set.Add(asset.Variant));
+                // Track variants
+                var variantKey = GetVariantKey(package.Manifest.Id, asset.AssetType, asset.AssetName);
+                state.VariantCache.AddOrUpdate(
+                    variantKey,
+                    _ => ImmutableSortedSet.Create(asset.Variant),
+                    (_, set) => set.Add(asset.Variant));
+            }
         }
     }
 

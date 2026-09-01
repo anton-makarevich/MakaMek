@@ -236,8 +236,8 @@ public class SettingsViewModel : BaseViewModel
 
             // Clear all caches
             await _fileCachingService.ClearCache();
-            _unitCachingService.ClearCache();
-            _terrainAssetService.ClearCache();
+            await _unitCachingService.ClearCache();
+            await _terrainAssetService.ClearCache();
 
             CacheStatus = _localizationService.GetString("Settings_Data_Cleared");
         }

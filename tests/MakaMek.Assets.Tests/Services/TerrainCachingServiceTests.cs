@@ -424,7 +424,7 @@ public class TerrainCachingServiceTests
         await _sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act
-        _sut.ClearCache();
+        await _sut.ClearCache();
         var biomes = await _sut.GetLoadedBiomes();
 
         // Assert
@@ -762,7 +762,7 @@ public class TerrainCachingServiceTests
 
         // Act
         var biomesBefore = (await sut.GetLoadedBiomes()).ToList();
-        sut.SetProviders([providerB]);
+        await sut.SetProviders([providerB]);
         var biomesAfter = (await sut.GetLoadedBiomes()).ToList();
 
         // Assert

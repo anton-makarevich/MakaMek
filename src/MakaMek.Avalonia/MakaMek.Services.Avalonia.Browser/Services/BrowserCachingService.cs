@@ -2,9 +2,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Services.Avalonia.Browser.Services;
 
@@ -60,7 +58,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error $1cached file '{CacheKey}'", cacheKey);
+            _logger.LogError(ex, "Error reading cached file '{CacheKey}'", cacheKey);
             return null;
         }
     }
@@ -78,7 +76,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
+            _logger.LogError(ex, "Error saving file to cache '{CacheKey}'", cacheKey);
         }
     }
 
@@ -107,7 +105,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
+            _logger.LogError(ex, "Error checking cache for '{CacheKey}'", cacheKey);
             return false;
         }
     }
@@ -125,7 +123,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error $1'{CacheKey}'", cacheKey);
+            _logger.LogError(ex, "Error removing cached file '{CacheKey}'", cacheKey);
         }
     }
 
@@ -148,7 +146,7 @@ public partial class BrowserCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error $1cached file '{CacheKey}'", cacheKey);
+            _logger.LogError(ex, "Error reading version for cached file '{CacheKey}'", cacheKey);
             return null;
         }
     }

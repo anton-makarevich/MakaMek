@@ -5,16 +5,6 @@ using Sanet.MakaMek.Assets.Models.Terrains;
 namespace Sanet.MakaMek.Assets.Services.PackageReaders;
 
 /// <summary>
-/// A single parsed terrain asset (image) from an MMTX package
-/// </summary>
-public sealed record TerrainAssetEntry(TerrainAssetType AssetType, string AssetName, int Variant, byte[] Image);
-
-/// <summary>
-/// Parsed contents of an MMTX terrain package: the biome manifest and all extracted assets
-/// </summary>
-public sealed record TerrainPackage(BiomeManifest Manifest, IReadOnlyList<TerrainAssetEntry> Assets);
-
-/// <summary>
 /// Format-specific reader for MMTX terrain packages
 /// (<c>manifest.json</c> + per-asset PNGs: base/overlay/edge/water/road with variant suffixes)
 /// </summary>
@@ -31,9 +21,10 @@ public class MmtxTerrainPackageReader
     /// Reads an MMTX terrain package stream
     /// </summary>
     /// <param name="mmtxStream">Stream containing the MMTX package data</param>
+    /// <param name="cancellationToken">Optional cancellation token propagated to all async I/O</param>
     /// <returns>The parsed terrain package</returns>
     /// <exception cref="InvalidOperationException">Thrown when the package is missing required entries or data is invalid</exception>
-    public async Task<TerrainPackage> ReadAsync(Stream mmtxStream)
+    public async Task<TerrainPackage> Read(Stream mmtxStream, CancellationToken cancellationToken = default)
     {
         await using var archive = new ZipArchive(mmtxStream, ZipArchiveMode.Read);
 
@@ -45,10 +36,10 @@ public class MmtxTerrainPackageReader
         }
 
         BiomeManifest manifest;
-        await using (var manifestStream = await manifestEntry.OpenAsync())
+        await using (var manifestStream = await manifestEntry.OpenAsync(cancellationToken))
         using (var reader = new StreamReader(manifestStream))
         {
-            var jsonContent = await reader.ReadToEndAsync();
+            var jsonContent = await reader.ReadToEndAsync(cancellationToken);
             manifest = JsonSerializer.Deserialize<BiomeManifest>(jsonContent, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to deserialize manifest.json");
         }
@@ -59,20 +50,21 @@ public class MmtxTerrainPackageReader
         }
 
         var assets = new List<TerrainAssetEntry>();
-        await ExtractImagesFromDirectoryAsync(archive, "", TerrainAssetType.Base, assets);
-        await ExtractImagesFromDirectoryAsync(archive, "terrains/", TerrainAssetType.Overlay, assets);
-        await ExtractImagesFromDirectoryAsync(archive, "terrains/water/", TerrainAssetType.Water, assets);
-        await ExtractImagesFromDirectoryAsync(archive, "terrains/road/", TerrainAssetType.Road, assets);
-        await ExtractEdgeImagesAsync(archive, assets);
+        await ExtractImagesFromDirectory(archive, "", TerrainAssetType.Base, assets, cancellationToken);
+        await ExtractImagesFromDirectory(archive, "terrains/", TerrainAssetType.Overlay, assets, cancellationToken);
+        await ExtractImagesFromDirectory(archive, "terrains/water/", TerrainAssetType.Water, assets, cancellationToken);
+        await ExtractImagesFromDirectory(archive, "terrains/road/", TerrainAssetType.Road, assets, cancellationToken);
+        await ExtractEdgeImages(archive, assets, cancellationToken);
 
         return new TerrainPackage(manifest, assets);
     }
 
-    private async Task ExtractImagesFromDirectoryAsync(
+    private async Task ExtractImagesFromDirectory(
         ZipArchive archive,
         string directory,
         TerrainAssetType assetType,
-        List<TerrainAssetEntry> assets)
+        List<TerrainAssetEntry> assets,
+        CancellationToken cancellationToken = default)
     {
         var entries = archive.Entries
             .Where(e => e.FullName.StartsWith(directory, StringComparison.OrdinalIgnoreCase) &&
@@ -86,12 +78,12 @@ public class MmtxTerrainPackageReader
             var parsed = ParseAssetFileName(fileName);
             if (parsed == null) continue;
 
-            var imageBytes = await ReadEntryBytesAsync(entry);
+            var imageBytes = await ReadEntryBytes(entry, cancellationToken);
             assets.Add(new TerrainAssetEntry(assetType, parsed.AssetName, parsed.Variant, imageBytes));
         }
     }
 
-    private async Task ExtractEdgeImagesAsync(ZipArchive archive, List<TerrainAssetEntry> assets)
+    private async Task ExtractEdgeImages(ZipArchive archive, List<TerrainAssetEntry> assets, CancellationToken cancellationToken = default)
     {
         const string edgesDirectory = "edges/";
         var edgeEntries = archive.Entries
@@ -106,16 +98,16 @@ public class MmtxTerrainPackageReader
             if (parsed == null) continue;
 
             var assetType = parsed.EdgeType == "top" ? TerrainAssetType.EdgeTop : TerrainAssetType.EdgeBottom;
-            var imageBytes = await ReadEntryBytesAsync(entry);
+            var imageBytes = await ReadEntryBytes(entry, cancellationToken);
             assets.Add(new TerrainAssetEntry(assetType, parsed.Direction, parsed.Variant, imageBytes));
         }
     }
 
-    private static async Task<byte[]> ReadEntryBytesAsync(ZipArchiveEntry entry)
+    private static async Task<byte[]> ReadEntryBytes(ZipArchiveEntry entry, CancellationToken cancellationToken = default)
     {
-        await using var stream = await entry.OpenAsync();
+        await using var stream = await entry.OpenAsync(cancellationToken);
         using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
+        await stream.CopyToAsync(memoryStream, cancellationToken);
         return memoryStream.ToArray();
     }
 

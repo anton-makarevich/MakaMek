@@ -93,14 +93,14 @@ public interface ITerrainAssetService : IProgressReporting
     /// <summary>
     /// Clears all cached terrain data
     /// </summary>
-    void ClearCache();
+    Task ClearCache();
 
     /// <summary>
     /// Replaces the set of providers the cache loads from and forces a lazy re-initialization.
     /// Existing in-memory caches are cleared so the next access loads from the new provider set.
     /// </summary>
     /// <param name="providers">The new ordered provider list</param>
-    void SetProviders(IEnumerable<IResourceStreamProvider> providers);
+    Task SetProviders(IEnumerable<IResourceStreamProvider> providers);
 
     /// <summary>
     /// Clears all cached data and re-runs initialization from the current provider set.
