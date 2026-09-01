@@ -118,20 +118,25 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         var processedResources = 0;
         RaiseLoadProgress(processedResources, totalResources);
 
-        // Process resources in parallel batches, reporting progress as each task actually completes
-        var batches = resources.Chunk(MaxDegreeOfParallelism);
-        foreach (var batch in batches)
+        // Process providers sequentially in their configured precedence order so a provider lower
+        // in the list always loads after (and therefore overwrites) the providers above it,
+        // independent of parallel completion order. Resources belonging to the same provider may
+        // still load in parallel, while reporting progress as each task actually completes.
+        foreach (var providerGroup in resources.GroupBy(r => r.Provider))
         {
-            var batchTasks = batch
-                .Select(r => LoadResourceSafe(r.Provider, r.ResourceId, state))
-                .ToList();
-
-            while (batchTasks.Count > 0)
+            foreach (var batch in providerGroup.Chunk(MaxDegreeOfParallelism))
             {
-                var completedTask = await Task.WhenAny(batchTasks);
-                batchTasks.Remove(completedTask);
-                processedResources++;
-                RaiseLoadProgress(processedResources, totalResources);
+                var batchTasks = batch
+                    .Select(r => LoadResourceSafe(r.Provider, r.ResourceId, state))
+                    .ToList();
+
+                while (batchTasks.Count > 0)
+                {
+                    var completedTask = await Task.WhenAny(batchTasks);
+                    batchTasks.Remove(completedTask);
+                    processedResources++;
+                    RaiseLoadProgress(processedResources, totalResources);
+                }
             }
         }
     }

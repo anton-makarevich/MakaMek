@@ -91,9 +91,19 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(stream, cancellationToken);
+        AddPackageToCache(package, state);
+    }
 
-        // Cache both unit data and image using model name as a key
-        TryCache(state.UnitDataCache, package.Data.Model, package.Data);
-        TryCache(state.ImageCache, package.Data.Model, package.Image);
+    /// <summary>
+    /// Commits a parsed unit package (model data + image) to the cache as one entry, using the
+    /// provided provider-list precedence: a duplicate model from a provider lower in the list
+    /// replaces the complete earlier package. Both the data and the image are committed together
+    /// so a duplicate is never an interleaved mixture of different packages.
+    /// </summary>
+    private void AddPackageToCache(UnitPackage package, UnitCacheState state)
+    {
+        var model = package.Data.Model;
+        TryCache(state.UnitDataCache, model, package.Data);
+        TryCache(state.ImageCache, model, package.Image);
     }
 }
