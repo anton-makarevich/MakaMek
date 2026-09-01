@@ -9,12 +9,12 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Assets.Tests.ResourceProviders;
 
-public class AssetProviderFactoryTests
+public class ResourceStreamProviderFactoryTests
 {
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
     private readonly ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
-    private AssetProviderFactory CreateSut() => new(_cachingService, _loggerFactory);
+    private ResourceStreamProviderFactory CreateSut() => new(_cachingService, _loggerFactory);
 
     private static object? GetPrivateField(object instance, string fieldName)
     {

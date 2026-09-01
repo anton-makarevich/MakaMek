@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Assets.ResourceProviders;
 /// Creates the appropriate <see cref="IResourceStreamProvider"/> for a given
 /// <see cref="AssetProviderConfigData"/>.
 /// </summary>
-public interface IAssetProviderFactory
+public interface IResourceStreamProviderFactory
 {
     /// <summary>
     /// Creates a single resource stream provider from an asset provider configuration.

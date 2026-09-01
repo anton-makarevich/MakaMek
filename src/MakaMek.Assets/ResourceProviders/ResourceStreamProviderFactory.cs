@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Assets.ResourceProviders;
 /// Maps <see cref="ProviderType"/> to the concrete <see cref="IResourceStreamProvider"/>
 /// implementation and resolves the per-asset-type file extension and manifest path.
 /// </summary>
-public sealed class AssetProviderFactory : IAssetProviderFactory
+public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFactory
 {
     private const string UnitsExtension = "mmux";
     private const string HexesExtension = "mmtx";
@@ -18,7 +18,7 @@ public sealed class AssetProviderFactory : IAssetProviderFactory
     private readonly IFileCachingService _cachingService;
     private readonly ILoggerFactory _loggerFactory;
 
-    public AssetProviderFactory(IFileCachingService cachingService, ILoggerFactory loggerFactory)
+    public ResourceStreamProviderFactory(IFileCachingService cachingService, ILoggerFactory loggerFactory)
     {
         _cachingService = cachingService ?? throw new ArgumentNullException(nameof(cachingService));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
