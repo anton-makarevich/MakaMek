@@ -22,6 +22,7 @@ public class SettingsViewModel : BaseViewModel
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider;
+    private readonly AssetLoadingViewModel _assetLoadingViewModel;
     private readonly ILogger<SettingsViewModel> _logger;
     private HubEntryViewModel? _selectedHub;
     private Task? _selectHubTask;
@@ -34,6 +35,7 @@ public class SettingsViewModel : BaseViewModel
         IRelayHubConfigurationProvider hubConfigurationProvider,
         IRelayRoomClient relayRoomClient,
         IAssetProviderConfigurationProvider assetProviderConfigurationProvider,
+        AssetLoadingViewModel assetLoadingViewModel,
         ILogger<SettingsViewModel> logger)
     {
         _fileCachingService = fileCachingService;
@@ -43,12 +45,15 @@ public class SettingsViewModel : BaseViewModel
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;
         _assetProviderConfigurationProvider = assetProviderConfigurationProvider;
+        _assetLoadingViewModel = assetLoadingViewModel;
         _logger = logger;
 
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
         AddHubCommand = new AsyncCommand(AddHubAsync);
         RemoveHubCommand = new AsyncCommand<HubEntryViewModel>(RemoveHubAsync);
         RemoveAssetProviderCommand = new AsyncCommand<AssetProviderEntryViewModel>(RemoveAssetProviderAsync);
+        AddProviderCommand = new AsyncCommand(AddProviderAsync);
+        ReloadProvidersCommand = new AsyncCommand(ReloadProvidersAsync);
 
         // Initialize cache status
         InitializeCacheStatusAsync().SafeFireAndForget();
@@ -58,6 +63,8 @@ public class SettingsViewModel : BaseViewModel
     public ICommand AddHubCommand { get; }
     public ICommand RemoveHubCommand { get; }
     public ICommand RemoveAssetProviderCommand { get; }
+    public ICommand AddProviderCommand { get; }
+    public ICommand ReloadProvidersCommand { get; }
 
     public string CacheStatus
     {
@@ -114,7 +121,43 @@ public class SettingsViewModel : BaseViewModel
     public string HubSelectLabel => _localizationService.GetString("Settings_Hub_Select");
     public string HubAddHubLabel => _localizationService.GetString("Settings_Hub_AddHub");
 
+    public string ProvidersSectionTitle => _localizationService.GetString("Settings_Data_Providers_SectionTitle");
+    public string AddProviderLabel => _localizationService.GetString("Settings_Data_Providers_Add");
+    public string ProviderTypeLabel => _localizationService.GetString("Settings_Data_Providers_Type");
+    public string AssetTypeLabel => _localizationService.GetString("Settings_Data_Providers_AssetType");
+    public string ProviderUrlOrPathLabel => _localizationService.GetString("Settings_Data_Providers_UrlOrPath");
+    public string ReloadProvidersLabel => _localizationService.GetString("Settings_Data_Providers_Reload");
+
     public ObservableCollection<AssetProviderEntryViewModel> AssetProviders { get; } = [];
+
+    public IReadOnlyList<ProviderType> ProviderTypes { get; } =
+        [ProviderType.Bucket, ProviderType.GitHub, ProviderType.Filesystem];
+
+    public IReadOnlyList<AssetType> AssetTypes { get; } = [AssetType.Units, AssetType.Hexes];
+
+    public ProviderType SelectedAddProviderType
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = ProviderType.Bucket;
+
+    public AssetType SelectedAddAssetType
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AssetType.Units;
+
+    public string AddProviderUrlOrPath
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = string.Empty;
+
+    public string AddProviderValidationMessage
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = string.Empty;
 
     public override void AttachHandlers()
     {
@@ -331,5 +374,61 @@ public class SettingsViewModel : BaseViewModel
         if (entry is null || entry.CanRemove is false) return;
 
         await OnAssetProviderRemove(entry);
+    }
+
+    private async Task AddProviderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(AddProviderUrlOrPath))
+        {
+            AddProviderValidationMessage =
+                _localizationService.GetString("Settings_Data_Providers_UrlOrPathRequired");
+            return;
+        }
+
+        AddProviderValidationMessage = string.Empty;
+        try
+        {
+            var providers = await _assetProviderConfigurationProvider.GetProviders();
+            var nextSortOrder = providers.Count == 0 ? 0 : providers.Max(p => p.SortOrder) + 1;
+            var provider = new AssetProviderConfigData(
+                Guid.NewGuid().ToString("N"),
+                SelectedAddProviderType,
+                SelectedAddAssetType,
+                AddProviderUrlOrPath.Trim(),
+                IsActive: true,
+                IsDefault: false,
+                nextSortOrder);
+
+            await _assetProviderConfigurationProvider.AddProvider(provider);
+
+            AddProviderUrlOrPath = string.Empty;
+            SelectedAddProviderType = ProviderType.Bucket;
+            SelectedAddAssetType = AssetType.Units;
+            await LoadAssetProvidersAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add asset provider");
+        }
+    }
+
+    private async Task ReloadProvidersAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            // Toggle/remove actions persist immediately; refresh the list to pick up any external changes.
+            await LoadAssetProvidersAsync();
+            await _assetLoadingViewModel.ReloadAsync();
+            await InitializeCacheStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reload asset providers");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }

@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -16,6 +18,8 @@ public class AssetLoadingViewModelTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IDispatcherService _dispatcherService;
     private readonly ILogger _logger = Substitute.For<ILogger>();
+    private readonly IAssetProviderConfigurationProvider _configProvider = Substitute.For<IAssetProviderConfigurationProvider>();
+    private readonly IResourceStreamProviderFactory _providerFactory = Substitute.For<IResourceStreamProviderFactory>();
 
     public AssetLoadingViewModelTests()
     {
@@ -37,8 +41,12 @@ public class AssetLoadingViewModelTests
         _localizationService.GetString("MainMenu_Loading_UnitsError").Returns("Error loading units: {0}");
         _localizationService.GetString("MainMenu_Loading_BiomesError").Returns("Error loading biomes: {0}");
 
-        _sut = new AssetLoadingViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger);
+        _sut = CreateViewModel();
     }
+
+    private AssetLoadingViewModel CreateViewModel() =>
+        new(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger,
+            _configProvider, _providerFactory);
 
     [Fact]
     public void InitializeAsync_SetsIsLoadingTrue()
@@ -119,7 +127,7 @@ public class AssetLoadingViewModelTests
             .GetAvailableModels()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
 
-        var sut = new AssetLoadingViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger);
+        var sut = CreateViewModel();
         sut.InitializeAsync(0);
 
         for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains(errorMessage); i++)
@@ -135,7 +143,7 @@ public class AssetLoadingViewModelTests
     {
         _unitCachingService.GetAvailableModels().Returns([]);
 
-        var sut = new AssetLoadingViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger);
+        var sut = CreateViewModel();
         sut.InitializeAsync(0);
 
         for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains("No units found"); i++)
@@ -153,7 +161,7 @@ public class AssetLoadingViewModelTests
             .GetLoadedBiomes()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
 
-        var sut = new AssetLoadingViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger);
+        var sut = CreateViewModel();
         sut.InitializeAsync(0);
 
         for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains(errorMessage); i++)
@@ -169,7 +177,7 @@ public class AssetLoadingViewModelTests
     {
         _terrainAssetService.GetLoadedBiomes().Returns([]);
 
-        var sut = new AssetLoadingViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger);
+        var sut = CreateViewModel();
         sut.InitializeAsync(0);
 
         for (var i = 0; i < 100 && sut.IsLoading && !sut.LoadingText.Contains("No biomes found"); i++)
@@ -182,6 +190,12 @@ public class AssetLoadingViewModelTests
     [Fact]
     public async Task ReloadAsync_ClearsCacheAndReinitializes()
     {
+        // Arrange
+        _configProvider.GetActiveProviders(AssetType.Units).Returns([]);
+        _configProvider.GetActiveProviders(AssetType.Hexes).Returns([]);
+        _providerFactory.CreateAll(Arg.Any<IReadOnlyList<AssetProviderConfigData>>())
+            .Returns(Array.Empty<IResourceStreamProvider>());
+
         _sut.InitializeAsync(0);
 
         // Wait for initial load
@@ -194,10 +208,30 @@ public class AssetLoadingViewModelTests
         await _sut.ReloadAsync();
 
         // Assert
-        _unitCachingService.Received(1).ClearCache();
-        _terrainAssetService.Received(1).ClearCache();
+        await _unitCachingService.Received(1).ClearCache();
+        await _terrainAssetService.Received(1).ClearCache();
+        await _unitCachingService.Received(1).SetProviders(Arg.Any<IReadOnlyList<IResourceStreamProvider>>());
+        await _terrainAssetService.Received(1).SetProviders(Arg.Any<IReadOnlyList<IResourceStreamProvider>>());
         _sut.IsLoading.ShouldBeFalse();
         _sut.LoadingText.ShouldContain("Loaded 2 units");
         _sut.LoadingText.ShouldContain("Loaded 2 biomes");
+    }
+
+    [Fact]
+    public async Task ReloadAsync_TerrainConfigFails_DoesNotSetTerrainProviders()
+    {
+        _configProvider.GetActiveProviders(AssetType.Units).Returns(
+            Task.FromResult<IReadOnlyList<AssetProviderConfigData>>([]));
+        _providerFactory.CreateAll(Arg.Any<IReadOnlyList<AssetProviderConfigData>>())
+            .Returns(Array.Empty<IResourceStreamProvider>());
+
+        var terrainException = new Exception("terrain config error");
+        _configProvider.GetActiveProviders(AssetType.Hexes)
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(terrainException));
+
+        await Should.ThrowAsync<Exception>(() => _sut.ReloadAsync());
+
+        await _terrainAssetService.DidNotReceive().SetProviders(Arg.Any<IReadOnlyList<IResourceStreamProvider>>());
+        await _terrainAssetService.DidNotReceive().ClearCache();
     }
 }

@@ -35,10 +35,16 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     /// </summary>
     /// <param name="streamProviders">Collection of stream providers to load units from</param>
     /// <param name="loggerFactory">Logger factory for logging</param>
-    public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders, ILoggerFactory loggerFactory)
+    /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
+    public UnitCachingService(
+        IEnumerable<IResourceStreamProvider> streamProviders,
+        ILoggerFactory loggerFactory,
+        Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<UnitCachingService>();
+        if (lazyProviders is not null)
+            SetLazyProviders(lazyProviders);
     }
 
     /// <inheritdoc />

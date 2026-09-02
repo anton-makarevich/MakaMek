@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
@@ -22,6 +23,7 @@ public class SettingsViewModelTests
     private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
     private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider = Substitute.For<IAssetProviderConfigurationProvider>();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private ILogger<SettingsViewModel> _logger = null!;
     private SettingsViewModel _sut = null!;
 
@@ -36,9 +38,17 @@ public class SettingsViewModelTests
         }
     }
 
-    private void CreateSut()
+    private void CreateSut(ILogger<SettingsViewModel>? logger = null)
     {
-        _logger = Substitute.For<ILogger<SettingsViewModel>>();
+        _logger = logger ?? Substitute.For<ILogger<SettingsViewModel>>();
+        var assetLoadingViewModel = new AssetLoadingViewModel(
+            _unitCachingService,
+            _terrainAssetService,
+            _localizationService,
+            _dispatcherService,
+            Substitute.For<ILogger>(),
+            _assetProviderConfigurationProvider,
+            Substitute.For<IResourceStreamProviderFactory>());
         _sut = new SettingsViewModel(
             _fileCachingService,
             _unitCachingService,
@@ -47,6 +57,7 @@ public class SettingsViewModelTests
             _hubConfigurationProvider,
             _relayRoomClient,
             _assetProviderConfigurationProvider,
+            assetLoadingViewModel,
             _logger);
     }
 
@@ -223,15 +234,7 @@ public class SettingsViewModelTests
         var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
         // Act
-        _ = new SettingsViewModel(
-            _fileCachingService,
-            _unitCachingService,
-            _terrainAssetService,
-            _localizationService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            _assetProviderConfigurationProvider,
-            logger);
+        CreateSut(logger);
 
         // Assert - Poll for SafeFireAndForget completion
         await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
@@ -252,15 +255,8 @@ public class SettingsViewModelTests
         var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
         // Act
-        var viewModel = new SettingsViewModel(
-            _fileCachingService,
-            _unitCachingService,
-            _terrainAssetService,
-            _localizationService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            _assetProviderConfigurationProvider,
-            logger);
+        CreateSut(logger);
+        var viewModel = _sut;
 
         // Assert - Poll for async initialization
         await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
@@ -282,15 +278,8 @@ public class SettingsViewModelTests
         var logger = Substitute.For<ILogger<SettingsViewModel>>();
 
         // Act
-        var viewModel = new SettingsViewModel(
-            _fileCachingService,
-            _unitCachingService,
-            _terrainAssetService,
-            _localizationService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            _assetProviderConfigurationProvider,
-            logger);
+        CreateSut(logger);
+        var viewModel = _sut;
 
         // Assert - Poll for async initialization
         await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
@@ -1098,5 +1087,215 @@ public class SettingsViewModelTests
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to remove provider")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    private void SetupGrowingAssetProviders(List<AssetProviderConfigData> providers)
+    {
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo => providers.Add(callInfo.Arg<AssetProviderConfigData>()));
+    }
+
+    [Fact]
+    public async Task AddProviderCommand_WhenExecuted_ShouldAddProviderAndShowInCollection()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        SetupGrowingAssetProviders(providers);
+        CreateSut();
+        _sut.SelectedAddProviderType = ProviderType.Filesystem;
+        _sut.SelectedAddAssetType = AssetType.Hexes;
+        _sut.AddProviderUrlOrPath = "/data/hexes";
+
+        // Act
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Assert
+        await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Is<AssetProviderConfigData>(p =>
+            p.ProviderType == ProviderType.Filesystem &&
+            p.AssetType == AssetType.Hexes &&
+            p.UrlOrPath == "/data/hexes" &&
+            p.IsActive &&
+            !p.IsDefault));
+        _sut.AssetProviders.Single().AssetType.ShouldBe(AssetType.Hexes);
+        _sut.AddProviderUrlOrPath.ShouldBeEmpty();
+        _sut.AddProviderValidationMessage.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddProviderCommand_WhenUrlOrPathEmpty_ShouldShowValidationAndNotAdd()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        SetupGrowingAssetProviders(providers);
+        CreateSut();
+        _sut.AddProviderUrlOrPath = "   ";
+
+        // Act
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+
+        // Assert
+        await _assetProviderConfigurationProvider.DidNotReceive().AddProvider(Arg.Any<AssetProviderConfigData>());
+        _sut.AssetProviders.ShouldBeEmpty();
+        _sut.AddProviderValidationMessage.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddProviderCommand_WhenAddProviderThrows_ShouldLogError()
+    {
+        // Arrange
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(Task.FromResult<IReadOnlyList<AssetProviderConfigData>>([]));
+        _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
+            .ThrowsAsync(new Exception("persist failed"));
+        CreateSut();
+        _sut.AddProviderUrlOrPath = "/data/units";
+
+        // Act
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add asset provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ReloadProvidersCommand_WhenExecuted_ShouldTriggerAssetReloadAndRefreshCacheStatus()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.GetAvailableModels().Returns([]);
+        _terrainAssetService.GetLoadedBiomes().Returns([]);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Act
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert
+        await _unitCachingService.Received(1).ClearCache();
+        await _terrainAssetService.Received(1).ClearCache();
+        _sut.CacheStatus.ShouldBe("Loaded units: 0, Loaded biomes: 0");
+        _sut.IsBusy.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ReloadProvidersCommand_WhenReloadThrows_ShouldLogErrorAndResetIsBusy()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.ClearCache().Returns(Task.FromException(new Exception("reload failed")));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Act
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert
+        _sut.IsBusy.ShouldBeFalse();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to reload asset providers")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public void ProviderTypes_ShouldExposeAllProviderTypes()
+    {
+        // Arrange
+        CreateSut();
+
+        // Assert
+        _sut.ProviderTypes.ShouldBe([ProviderType.Bucket, ProviderType.GitHub, ProviderType.Filesystem]);
+        _sut.AssetTypes.ShouldBe([AssetType.Units, AssetType.Hexes]);
+    }
+
+    [Fact]
+    public void ProvidersSectionTitle_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProvidersSectionTitle;
+
+        // Assert
+        result.ShouldBe("Asset Providers");
+    }
+
+    [Fact]
+    public void AddProviderLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.AddProviderLabel;
+
+        // Assert
+        result.ShouldBe("Add Provider");
+    }
+
+    [Fact]
+    public void ProviderTypeLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProviderTypeLabel;
+
+        // Assert
+        result.ShouldBe("Type");
+    }
+
+    [Fact]
+    public void AssetTypeLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.AssetTypeLabel;
+
+        // Assert
+        result.ShouldBe("Asset Type");
+    }
+
+    [Fact]
+    public void ProviderUrlOrPathLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProviderUrlOrPathLabel;
+
+        // Assert
+        result.ShouldBe("URL or Path");
+    }
+
+    [Fact]
+    public void ReloadProvidersLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ReloadProvidersLabel;
+
+        // Assert
+        result.ShouldBe("Reload Assets");
     }
 }

@@ -2,6 +2,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -57,7 +58,7 @@ public class MainMenuViewModelTests
         _localizationService.GetString("MainMenu_Loading_UnitsError").Returns("Error loading units: {0}");
         _localizationService.GetString("MainMenu_Loading_BiomesError").Returns("Error loading biomes: {0}");
 
-        _sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        _sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -200,6 +201,14 @@ public class MainMenuViewModelTests
             hubConfigurationProvider,
             Substitute.For<IRelayRoomClient>(),
             Substitute.For<IAssetProviderConfigurationProvider>(),
+            new AssetLoadingViewModel(
+                _unitCachingService,
+                _terrainAssetService,
+                _localizationService,
+                Substitute.For<IDispatcherService>(),
+                Substitute.For<ILogger>(),
+                Substitute.For<IAssetProviderConfigurationProvider>(),
+                Substitute.For<IResourceStreamProviderFactory>()),
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 
@@ -229,7 +238,7 @@ public class MainMenuViewModelTests
             .GetAvailableModels()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -247,7 +256,7 @@ public class MainMenuViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -268,7 +277,7 @@ public class MainMenuViewModelTests
             .GetLoadedBiomes()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -286,7 +295,7 @@ public class MainMenuViewModelTests
         // Arrange
         _terrainAssetService.GetLoadedBiomes().Returns([]);
         
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -302,7 +311,7 @@ public class MainMenuViewModelTests
     public void UnitLoadProgress_UpdatesLoadingTextAndLoadingProgress()
     {
         // Arrange
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
 
         // Act
@@ -318,7 +327,7 @@ public class MainMenuViewModelTests
     public void BiomeLoadProgress_UpdatesLoadingTextAndLoadingProgress()
     {
         // Arrange
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
 
         // Act
@@ -334,7 +343,7 @@ public class MainMenuViewModelTests
     public void LoadingProgress_IsSetToOne_WhenBothPreloadsComplete()
     {
         // Arrange
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
 
         // Act - both preloads report completion through progress events
@@ -351,7 +360,7 @@ public class MainMenuViewModelTests
     public void LoadingProgress_ReflectsBothPreloads_WhenOneCompletesBeforeOther()
     {
         // Arrange
-        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _terrainAssetService, _localizationService, _dispatcherService, _logger, Substitute.For<IAssetProviderConfigurationProvider>(), Substitute.For<IResourceStreamProviderFactory>(), 0);
         sut.SetNavigationService(_navigationService);
 
         // Act - units complete (5/5) while biomes are still at partial progress (2/10)

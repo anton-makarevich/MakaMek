@@ -26,6 +26,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
     private IReadOnlyList<IResourceStreamProvider> _streamProviders;
     private volatile TState _state = new();
+    private Func<Task<IReadOnlyList<IResourceStreamProvider>>>? _lazyProviders;
 
     /// <inheritdoc />
     public event EventHandler<ResourceLoadProgressEventArgs>? LoadProgress;
@@ -57,6 +58,16 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     protected TState CurrentState => _state;
 
     /// <summary>
+    /// Sets an asynchronous factory that resolves the stream providers on first access.
+    /// Used by DI registrations that want to defer config resolution until the cache
+    /// is actually used, avoiding sync-over-async in the DI factory.
+    /// </summary>
+    protected void SetLazyProviders(Func<Task<IReadOnlyList<IResourceStreamProvider>>> factory)
+    {
+        _lazyProviders = factory ?? throw new ArgumentNullException(nameof(factory));
+    }
+
+    /// <summary>
     /// Loads a single package resource from the given provider into the state.
     /// Format-specific parsing is delegated to package readers by the concrete service.
     /// </summary>
@@ -80,6 +91,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         {
             state = _state;
             if (state.IsInitialized) return state; // double-check after acquiring a lock
+            await ResolveLazyProvidersIfNeeded();
             await LoadFromStreamProviders(state);
             state.IsInitialized = true;
             return state;
@@ -212,6 +224,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         await _initializationLock.WaitAsync();
         try
         {
+            _lazyProviders = null;
             _streamProviders = providers.ToList();
             ClearCacheLocked();
         }
@@ -229,6 +242,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         await _initializationLock.WaitAsync();
         try
         {
+            await ResolveLazyProvidersIfNeeded();
             // Build the replacement state completely before publishing it, so readers
             // keep seeing the previous complete cache until the swap.
             var freshState = new TState();
@@ -250,6 +264,19 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     private void ClearCacheLocked()
     {
         _state = new TState();
+    }
+
+    /// <summary>
+    /// If a lazy provider factory was set, resolves it and replaces the current
+    /// provider list. The factory is cleared only after successful resolution so
+    /// that a failed attempt can be retried on the next access.
+    /// Must be called while holding the initialization lock.
+    /// </summary>
+    private async Task ResolveLazyProvidersIfNeeded()
+    {
+        if (_lazyProviders is not { } factory) return;
+        _streamProviders = await factory();
+        _lazyProviders = null;
     }
 
     /// <summary>

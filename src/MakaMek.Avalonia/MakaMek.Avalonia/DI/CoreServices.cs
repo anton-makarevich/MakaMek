@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,59 +38,37 @@ public static class CoreServices
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        // Register unit caching service with stream providers (from MakaMek.Assets).
-        // Single default assets provider: bucket provider in release/prod builds (build-time
-        // DataBucketBaseUrl), GitHub provider for local development. In the future users will
-        // be able to replace/extend the provider via Settings (see issues #1332 / #1333).
+        // Factory that maps AssetProviderConfigData to concrete IResourceStreamProvider instances.
+        services.AddSingleton<IResourceStreamProviderFactory, ResourceStreamProviderFactory>();
+
+        // Unit caching service — providers are resolved lazily from IAssetProviderConfigurationProvider
+        // on first cache access, so users can add/remove/toggle providers in Settings and the
+        // changes take effect on the next asset load without a restart.
         services.AddSingleton<IUnitCachingService>(sp =>
         {
-            var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var streamProviders = new List<IResourceStreamProvider>();
-            if (BucketDefaults.IsConfigured)
+            var configProvider = sp.GetRequiredService<IAssetProviderConfigurationProvider>();
+            var providerFactory = sp.GetRequiredService<IResourceStreamProviderFactory>();
+            var emptyProviders = Array.Empty<IResourceStreamProvider>();
+            return new UnitCachingService(emptyProviders, loggerFactory, async () =>
             {
-                streamProviders.Add(new BucketResourceStreamProvider("units/manifest.json",
-                    "mmux",
-                    BucketDefaults.BaseUrl,
-                    cachingService,
-                    loggerFactory.CreateLogger<BucketResourceStreamProvider>()
-                ));
-            }
-            else
-            {
-                streamProviders.Add(new GitHubResourceStreamProvider("mmux",
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
-                    cachingService,
-                    loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                ));
-            }
-            return new UnitCachingService(streamProviders, loggerFactory);
+                var configs = await configProvider.GetActiveProviders(AssetType.Units);
+                return providerFactory.CreateAll(configs);
+            });
         });
 
-        // Register terrain caching service with stream providers
+        // Terrain caching service — same lazy pattern as units above.
         services.AddSingleton<ITerrainAssetService>(sp =>
         {
-            var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var streamProviders = new List<IResourceStreamProvider>();
-            if (BucketDefaults.IsConfigured)
+            var configProvider = sp.GetRequiredService<IAssetProviderConfigurationProvider>();
+            var providerFactory = sp.GetRequiredService<IResourceStreamProviderFactory>();
+            var emptyProviders = Array.Empty<IResourceStreamProvider>();
+            return new TerrainCachingService(emptyProviders, loggerFactory, async () =>
             {
-                streamProviders.Add(new BucketResourceStreamProvider("hexes/manifest.json",
-                    "mmtx",
-                    BucketDefaults.BaseUrl,
-                    cachingService,
-                    loggerFactory.CreateLogger<BucketResourceStreamProvider>()
-                ));
-            }
-            else
-            {
-                streamProviders.Add(new GitHubResourceStreamProvider("mmtx",
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
-                    cachingService,
-                    loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
-                ));
-            }
-            return new TerrainCachingService(streamProviders, loggerFactory);
+                var configs = await configProvider.GetActiveProviders(AssetType.Hexes);
+                return providerFactory.CreateAll(configs);
+            });
         });
 
         // Register both image services
@@ -250,6 +229,7 @@ public static class CoreServices
         services.AddTransient<BattleMapViewModel>();
         services.AddTransient<EndGameViewModel>();
         services.AddTransient<AboutViewModel>();
+        services.AddTransient<AssetLoadingViewModel>();
         services.AddTransient<SettingsViewModel>();
     }
 }
