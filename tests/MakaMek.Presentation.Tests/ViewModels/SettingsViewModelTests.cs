@@ -958,4 +958,145 @@ public class SettingsViewModelTests
         // Assert
         await _assetProviderConfigurationProvider.DidNotReceive().RemoveProvider(Arg.Any<string>());
     }
+
+    [Fact]
+    public async Task LoadAssetProvidersAsync_WhenGetProvidersThrows_ShouldLogError()
+    {
+        // Arrange
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("providers unavailable")));
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _logger.ReceivedCalls().Any());
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to load asset providers")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenSetProviderActiveThrowsInvalidOperation_ShouldLogWarning()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.SetProviderActive("a", false)
+            .ThrowsAsync(new InvalidOperationException("cannot deactivate"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot toggle provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenSetProviderActiveThrows_ShouldLogError()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.SetProviderActive("a", false)
+            .ThrowsAsync(new Exception("unexpected failure"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to toggle provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenRemoveProviderThrowsInvalidOperation_ShouldLogWarning()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("local", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.RemoveProvider("local")
+            .ThrowsAsync(new InvalidOperationException("cannot remove"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "local");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot remove provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenRemoveProviderThrows_ShouldLogError()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("local", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.RemoveProvider("local")
+            .ThrowsAsync(new Exception("unexpected failure"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "local");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to remove provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
 }
