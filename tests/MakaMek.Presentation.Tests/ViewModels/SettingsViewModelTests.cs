@@ -1343,6 +1343,90 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveProviderCommand_WhenUpdateProviderThrowsInvalidOperation_ShouldLogWarningAndRethrow()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .ThrowsAsync(new InvalidOperationException("cannot update"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The failed write keeps the edited values and leaves the editor open for retry
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot update provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenUpdateProviderThrows_ShouldLogErrorAndRethrow()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .ThrowsAsync(new Exception("update failed"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The failed write keeps the edited values and leaves the editor open for retry
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to update provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenCancelled_InvokesCancelCallbackAndKeepsEntryInList()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://changed";
+
+        // Act
+        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
+
+        // Assert - the cancel callback runs without error and the row stays in the collection
+        _sut.AssetProviders.Count.ShouldBe(1);
+        entry.IsEditing.ShouldBeFalse();
+        entry.UrlOrPath.ShouldBe("/assets/units");
+        await _assetProviderConfigurationProvider.DidNotReceive().UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>());
+    }
+
+    [Fact]
     public void AssetLoading_ShouldExposeComposedAssetLoadingViewModel()
     {
         // Arrange

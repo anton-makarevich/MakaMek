@@ -179,6 +179,28 @@ public class AssetProviderEntryViewModelTests
     }
 
     [Fact]
+    public async Task StartEditingCommand_WhenExecuted_EntersEditing()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("local", isDefault: false));
+
+        await ((IAsyncCommand)sut.StartEditingCommand).ExecuteAsync();
+
+        sut.IsEditing.ShouldBeTrue();
+        sut.EditableProviderType.ShouldBe(ProviderType.Filesystem);
+        sut.EditableAssetType.ShouldBe(AssetType.Units);
+    }
+
+    [Fact]
+    public async Task StartEditingCommand_WhenDefault_DoesNotEnterEditing()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("bucket", isDefault: true));
+
+        await ((IAsyncCommand)sut.StartEditingCommand).ExecuteAsync();
+
+        sut.IsEditing.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task SaveCommand_WhenExecuted_InvokesOnSavedWithPendingProvider()
     {
         AssetProviderEntryViewModel? saved = null;
