@@ -268,14 +268,15 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
 
     /// <summary>
     /// If a lazy provider factory was set, resolves it and replaces the current
-    /// provider list. The factory is consumed on first use and cleared afterward.
+    /// provider list. The factory is cleared only after successful resolution so
+    /// that a failed attempt can be retried on the next access.
     /// Must be called while holding the initialization lock.
     /// </summary>
     private async Task ResolveLazyProvidersIfNeeded()
     {
         if (_lazyProviders is not { } factory) return;
-        _lazyProviders = null;
         _streamProviders = await factory();
+        _lazyProviders = null;
     }
 
     /// <summary>

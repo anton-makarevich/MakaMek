@@ -216,4 +216,22 @@ public class AssetLoadingViewModelTests
         _sut.LoadingText.ShouldContain("Loaded 2 units");
         _sut.LoadingText.ShouldContain("Loaded 2 biomes");
     }
+
+    [Fact]
+    public async Task ReloadAsync_TerrainConfigFails_DoesNotSetTerrainProviders()
+    {
+        _configProvider.GetActiveProviders(AssetType.Units).Returns(
+            Task.FromResult<IReadOnlyList<AssetProviderConfigData>>([]));
+        _providerFactory.CreateAll(Arg.Any<IReadOnlyList<AssetProviderConfigData>>())
+            .Returns(Array.Empty<IResourceStreamProvider>());
+
+        var terrainException = new Exception("terrain config error");
+        _configProvider.GetActiveProviders(AssetType.Hexes)
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(terrainException));
+
+        await Should.ThrowAsync<Exception>(() => _sut.ReloadAsync());
+
+        await _terrainAssetService.DidNotReceive().SetProviders(Arg.Any<IReadOnlyList<IResourceStreamProvider>>());
+        await _terrainAssetService.DidNotReceive().ClearCache();
+    }
 }
