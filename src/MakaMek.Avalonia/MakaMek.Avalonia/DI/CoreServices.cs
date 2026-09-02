@@ -178,20 +178,20 @@ public static class CoreServices
             if (BucketDefaults.IsConfigured)
             {
                 defaults.Add(
-                    new(
+                    new AssetProviderConfigData(
                         "bucket",
                         ProviderType.Bucket,
                         AssetType.Units,
-                        $"{BucketDefaults.BaseUrl}/units/manifest.json",
+                        BucketDefaults.BaseUrl,
                         IsActive: true,
                         IsDefault: true,
                         SortOrder: 0));
                 defaults.Add(
-                    new(
+                    new AssetProviderConfigData(
                         "bucket-hexes",
                         ProviderType.Bucket,
                         AssetType.Hexes,
-                        $"{BucketDefaults.BaseUrl}/hexes/manifest.json",
+                        BucketDefaults.BaseUrl,
                         IsActive: true,
                         IsDefault: true,
                         SortOrder: 0));
@@ -199,7 +199,7 @@ public static class CoreServices
             else
             {
                 defaults.Add(
-                    new(
+                    new AssetProviderConfigData(
                         "github",
                         ProviderType.GitHub,
                         AssetType.Units,
@@ -208,7 +208,7 @@ public static class CoreServices
                         IsDefault: true,
                         SortOrder: 0));
                 defaults.Add(
-                    new(
+                    new AssetProviderConfigData(
                         "github-hexes",
                         ProviderType.GitHub,
                         AssetType.Hexes,

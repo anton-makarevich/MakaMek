@@ -392,10 +392,12 @@ public class SettingsViewModel : BaseViewModel
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
+            throw;
         }
     }
 
