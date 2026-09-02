@@ -46,7 +46,7 @@ public class UnitCachingServiceTests
         return new UnitCachingService([_resourceProvider], _loggerFactory);
     }
 
-    private static Stream CreateTestMmuxStream(string model, string chassis)
+    private static Stream CreateTestMmuxStream(string model, string chassis, byte[]? imageBytes = null)
     {
         var memoryStream = new MemoryStream();
         
@@ -79,7 +79,7 @@ public class UnitCachingServiceTests
             using (var entryStream = unitImageEntry.Open())
             {
                 // Write a minimal PNG header (not a valid image, but sufficient for testing)
-                var pngHeader = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+                var pngHeader = imageBytes ?? new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
                 entryStream.Write(pngHeader, 0, pngHeader.Length);
             }
         }
@@ -580,30 +580,35 @@ public class UnitCachingServiceTests
     [Fact]
     public async Task Service_LaterProviderShouldOverwriteEarlier_WhenSameModel()
     {
-        // Arrange — provider1 serves "LCT-1V" with chassis "Locust-1";
-        // provider2 (lower in list) serves the same model with chassis "Locust-2".
-        // The later provider must win.
+        // Arrange — provider1 serves "LCT-1V" with chassis "Locust-1" and image bytes [1];
+        // provider2 (lower in list) serves the same model with chassis "Locust-2" and image
+        // bytes [2]. The later provider must win for both chassis and image.
+        var provider1Image = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x01 };
+        var provider2Image = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x02 };
         var provider1 = Substitute.For<IResourceStreamProvider>();
         provider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
         provider1.GetResourceStream("LCT-1V")
-            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-1"));
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-1", provider1Image));
 
         var provider2 = Substitute.For<IResourceStreamProvider>();
         provider2.GetAvailableResourceIds().Returns(["LCT-1V"]);
         provider2.GetResourceStream("LCT-1V")
-            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-2"));
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-2", provider2Image));
 
         var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
         var unitData = await sut.GetUnitData("LCT-1V");
+        var image = await sut.GetUnitImage("LCT-1V");
 
-        // Assert — only one unit, chassis reflects provider2 (later/lower in list)
+        // Assert — only one unit, chassis and image reflect provider2 (later/lower in list)
         models.Count.ShouldBe(1);
         models.ShouldContain("LCT-1V");
         unitData.ShouldNotBeNull();
         unitData.Value.Chassis.ShouldBe("Locust-2");
+        image.ShouldNotBeNull();
+        image.ShouldBe(provider2Image);
     }
 
     [Fact]

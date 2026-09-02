@@ -746,6 +746,7 @@ public class TerrainCachingServiceTests
         variants.Count.ShouldBe(1);
         variants.ShouldContain(2);
         manifest.ShouldNotBeNull();
+        manifest.Name.ShouldBe("Biome Shared Override");
         manifest.Version.ShouldBe("1.0.0"); // default version from CreateMmtxPackage
     }
 
