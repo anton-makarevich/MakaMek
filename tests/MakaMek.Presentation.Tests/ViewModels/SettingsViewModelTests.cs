@@ -1217,4 +1217,82 @@ public class SettingsViewModelTests
         _sut.ProviderTypes.ShouldBe([ProviderType.Bucket, ProviderType.GitHub, ProviderType.Filesystem]);
         _sut.AssetTypes.ShouldBe([AssetType.Units, AssetType.Hexes]);
     }
+
+    [Fact]
+    public void ProvidersSectionTitle_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProvidersSectionTitle;
+
+        // Assert
+        result.ShouldBe("Asset Providers");
+    }
+
+    [Fact]
+    public void AddProviderLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.AddProviderLabel;
+
+        // Assert
+        result.ShouldBe("Add Provider");
+    }
+
+    [Fact]
+    public void ProviderTypeLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProviderTypeLabel;
+
+        // Assert
+        result.ShouldBe("Type");
+    }
+
+    [Fact]
+    public void AssetTypeLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.AssetTypeLabel;
+
+        // Assert
+        result.ShouldBe("Asset Type");
+    }
+
+    [Fact]
+    public void ProviderUrlOrPathLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ProviderUrlOrPathLabel;
+
+        // Assert
+        result.ShouldBe("URL or Path");
+    }
+
+    [Fact]
+    public void ReloadProvidersLabel_ShouldReturnLocalizedString()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        var result = _sut.ReloadProvidersLabel;
+
+        // Assert
+        result.ShouldBe("Reload Assets");
+    }
 }
