@@ -1298,4 +1298,57 @@ public class SettingsViewModelTests
         // Assert
         result.ShouldBe("Reload Assets");
     }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenExecuted_UpdatesProviderAndReloads()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo =>
+            {
+                var updated = callInfo.Arg<AssetProviderConfigData>();
+                var idx = providers.FindIndex(p => p.Id == callInfo.Arg<string>());
+                if (idx >= 0) providers[idx] = updated;
+            });
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableProviderType = ProviderType.GitHub;
+        entry.EditableAssetType = AssetType.Hexes;
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+        await WaitFor(() => _sut.AssetProviders.Single().ProviderType == ProviderType.GitHub);
+
+        // Assert
+        await _assetProviderConfigurationProvider.Received(1).UpdateProvider(
+            "local",
+            Arg.Is<AssetProviderConfigData>(p =>
+                p.ProviderType == ProviderType.GitHub &&
+                p.AssetType == AssetType.Hexes &&
+                p.UrlOrPath == "https://updated"));
+        var reloaded = _sut.AssetProviders.Single();
+        reloaded.IsEditing.ShouldBeFalse();
+        reloaded.UrlOrPath.ShouldBe("https://updated");
+    }
+
+    [Fact]
+    public void AssetLoading_ShouldExposeComposedAssetLoadingViewModel()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act & Assert
+        _sut.AssetLoading.ShouldNotBeNull();
+    }
 }

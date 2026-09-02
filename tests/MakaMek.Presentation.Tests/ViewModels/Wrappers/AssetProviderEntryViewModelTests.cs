@@ -138,4 +138,107 @@ public class AssetProviderEntryViewModelTests
         await execution;
         execution.IsCompletedSuccessfully.ShouldBeTrue();
     }
+
+    [Fact]
+    public void CanEdit_WhenDefault_IsFalse()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("bucket", isDefault: true));
+
+        sut.CanEdit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanEdit_WhenNotDefault_IsTrue()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("local", isDefault: false));
+
+        sut.CanEdit.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task StartEditing_WhenNotDefault_PopulatesEditableFieldsAndEntersEditing()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("local", isDefault: false));
+
+        await sut.StartEditing();
+
+        sut.IsEditing.ShouldBeTrue();
+        sut.EditableProviderType.ShouldBe(ProviderType.Filesystem);
+        sut.EditableAssetType.ShouldBe(AssetType.Units);
+        sut.EditableUrlOrPath.ShouldBe("/assets/local");
+    }
+
+    [Fact]
+    public async Task StartEditing_WhenDefault_DoesNotEnterEditing()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("bucket", isDefault: true));
+
+        await sut.StartEditing();
+
+        sut.IsEditing.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveCommand_WhenExecuted_InvokesOnSavedWithPendingProvider()
+    {
+        AssetProviderEntryViewModel? saved = null;
+        var sut = new AssetProviderEntryViewModel(
+            Provider("local", isDefault: false),
+            onSaved: e =>
+            {
+                saved = e;
+                return Task.CompletedTask;
+            });
+        await sut.StartEditing();
+        sut.EditableProviderType = ProviderType.GitHub;
+        sut.EditableAssetType = AssetType.Hexes;
+        sut.EditableUrlOrPath = "  https://new-url  ";
+
+        await ((IAsyncCommand)sut.SaveCommand).ExecuteAsync();
+
+        saved.ShouldBe(sut);
+        sut.PendingProvider.ProviderType.ShouldBe(ProviderType.GitHub);
+        sut.PendingProvider.AssetType.ShouldBe(AssetType.Hexes);
+        sut.PendingProvider.UrlOrPath.ShouldBe("https://new-url");
+        sut.IsEditing.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveCommand_WhenUrlOrPathEmpty_DoesNotInvokeOnSaved()
+    {
+        var saved = false;
+        var sut = new AssetProviderEntryViewModel(
+            Provider("local", isDefault: false),
+            onSaved: _ =>
+            {
+                saved = true;
+                return Task.CompletedTask;
+            });
+        await sut.StartEditing();
+        sut.EditableUrlOrPath = "   ";
+
+        await ((IAsyncCommand)sut.SaveCommand).ExecuteAsync();
+
+        saved.ShouldBeFalse();
+        sut.IsEditing.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CancelCommand_WhenExecuted_DiscardsEditsAndInvokesOnCancelled()
+    {
+        AssetProviderEntryViewModel? cancelled = null;
+        var sut = new AssetProviderEntryViewModel(
+            Provider("local", isDefault: false),
+            onCancelled: e => cancelled = e);
+        await sut.StartEditing();
+        sut.EditableUrlOrPath = "https://changed";
+
+        await ((IAsyncCommand)sut.CancelCommand).ExecuteAsync();
+
+        cancelled.ShouldBe(sut);
+        sut.IsEditing.ShouldBeFalse();
+        sut.EditableProviderType.ShouldBe(ProviderType.Filesystem);
+        sut.EditableAssetType.ShouldBe(AssetType.Units);
+        sut.EditableUrlOrPath.ShouldBe("/assets/local");
+    }
 }
