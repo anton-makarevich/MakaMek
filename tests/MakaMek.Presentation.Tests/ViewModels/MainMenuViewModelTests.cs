@@ -200,6 +200,12 @@ public class MainMenuViewModelTests
             hubConfigurationProvider,
             Substitute.For<IRelayRoomClient>(),
             Substitute.For<IAssetProviderConfigurationProvider>(),
+            new AssetLoadingViewModel(
+                _unitCachingService,
+                _terrainAssetService,
+                _localizationService,
+                Substitute.For<IDispatcherService>(),
+                Substitute.For<ILogger>()),
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 

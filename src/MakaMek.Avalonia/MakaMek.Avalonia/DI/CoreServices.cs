@@ -250,6 +250,7 @@ public static class CoreServices
         services.AddTransient<BattleMapViewModel>();
         services.AddTransient<EndGameViewModel>();
         services.AddTransient<AboutViewModel>();
+        services.AddTransient<AssetLoadingViewModel>();
         services.AddTransient<SettingsViewModel>();
     }
 }
