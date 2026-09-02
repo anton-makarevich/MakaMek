@@ -578,6 +578,61 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
+    public async Task Service_LaterProviderShouldOverwriteEarlier_WhenSameModel()
+    {
+        // Arrange — provider1 serves "LCT-1V" with chassis "Locust-1";
+        // provider2 (lower in list) serves the same model with chassis "Locust-2".
+        // The later provider must win.
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider1.GetResourceStream("LCT-1V")
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-1"));
+
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider2.GetResourceStream("LCT-1V")
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust-2"));
+
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
+        var unitData = await sut.GetUnitData("LCT-1V");
+
+        // Assert — only one unit, chassis reflects provider2 (later/lower in list)
+        models.Count.ShouldBe(1);
+        models.ShouldContain("LCT-1V");
+        unitData.ShouldNotBeNull();
+        unitData.Value.Chassis.ShouldBe("Locust-2");
+    }
+
+    [Fact]
+    public async Task Service_UniqueAssetsFromBothProviders_ShouldAllBePresent()
+    {
+        // Arrange — provider1 serves LCT-1V, provider2 serves SHD-2D and WVR-6R
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider1.GetResourceStream("LCT-1V")
+            .Returns(CreateTestMmuxStream("LCT-1V", "Locust"));
+
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.GetAvailableResourceIds().Returns(["SHD-2D", "WVR-6R"]);
+        provider2.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
+
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
+
+        // Assert — all three unique units from both providers are present
+        models.Count.ShouldBe(3);
+        models.ShouldContain("LCT-1V");
+        models.ShouldContain("SHD-2D");
+        models.ShouldContain("WVR-6R");
+    }
+
+    [Fact]
     public async Task ReloadProviders_ShouldReinitialize_FromCurrentProviders()
     {
         // Arrange

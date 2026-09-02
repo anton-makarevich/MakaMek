@@ -717,6 +717,66 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
+    public async Task StreamProvider_LaterProviderShouldOverwriteEarlier_WhenSameBiomeId()
+    {
+        // Arrange — provider1 serves biome "shared" with variant 1; provider2 (lower in list)
+        // serves the same biome id with variant 2. The later provider must win.
+        using var stream1 = CreateMmtxPackage("shared", "Biome Shared",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.GetAvailableResourceIds().Returns(["resource1"]);
+        provider1.GetResourceStream("resource1").Returns(stream1);
+
+        using var stream2 = CreateMmtxPackage("shared", "Biome Shared Override",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(2));
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.GetAvailableResourceIds().Returns(["resource2"]);
+        provider2.GetResourceStream("resource2").Returns(stream2);
+
+        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+        var variants = await sut.GetAvailableVariants("shared", TerrainAssetType.Base, "base");
+        var manifest = await sut.GetBiomeManifest("shared");
+
+        // Assert — only one biome loaded, variant reflects the later (provider2) package
+        biomes.Count.ShouldBe(1);
+        biomes.ShouldContain("shared");
+        variants.Count.ShouldBe(1);
+        variants.ShouldContain(2);
+        manifest.ShouldNotBeNull();
+        manifest.Version.ShouldBe("1.0.0"); // default version from CreateMmtxPackage
+    }
+
+    [Fact]
+    public async Task StreamProvider_UniqueBiomesFromBothProviders_ShouldAllBePresent()
+    {
+        // Arrange — provider1 serves "biome-alpha", provider2 serves "biome-beta"
+        using var stream1 = CreateMmtxPackage("biome-alpha", "Biome Alpha",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.GetAvailableResourceIds().Returns(["resource1"]);
+        provider1.GetResourceStream("resource1").Returns(stream1);
+
+        using var stream2 = CreateMmtxPackage("biome-beta", "Biome Beta",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.GetAvailableResourceIds().Returns(["resource2"]);
+        provider2.GetResourceStream("resource2").Returns(stream2);
+
+        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+
+        // Assert — both unique biomes from both providers are present
+        biomes.Count.ShouldBe(2);
+        biomes.ShouldContain("biome-alpha");
+        biomes.ShouldContain("biome-beta");
+    }
+
+    [Fact]
     public async Task LoadTerrain_ShouldRaiseLoadProgressEvents_WithIncreasingCounts()
     {
         // Arrange
