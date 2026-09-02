@@ -292,7 +292,7 @@ public class SettingsViewModel : BaseViewModel
         }
     }
 
-    private async void OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)
+    private async Task OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)
     {
         try
         {
@@ -309,7 +309,7 @@ public class SettingsViewModel : BaseViewModel
         }
     }
 
-    private async void OnAssetProviderRemove(AssetProviderEntryViewModel entry)
+    private async Task OnAssetProviderRemove(AssetProviderEntryViewModel entry)
     {
         try
         {
@@ -330,6 +330,6 @@ public class SettingsViewModel : BaseViewModel
     {
         if (entry is null || entry.CanRemove is false) return;
 
-        OnAssetProviderRemove(entry);
+        await OnAssetProviderRemove(entry);
     }
 }

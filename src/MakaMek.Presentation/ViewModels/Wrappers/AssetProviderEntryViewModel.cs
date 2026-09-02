@@ -8,15 +8,15 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class AssetProviderEntryViewModel : BindableBase
 {
     private readonly AssetProviderConfigData _provider;
-    private readonly Action<AssetProviderEntryViewModel>? _onToggleActive;
-    private readonly Action<AssetProviderEntryViewModel>? _onRemove;
+    private readonly Func<AssetProviderEntryViewModel, Task>? _onToggleActive;
+    private readonly Func<AssetProviderEntryViewModel, Task>? _onRemove;
     private bool _isActive;
     private bool _canDeactivate = true;
 
     public AssetProviderEntryViewModel(
         AssetProviderConfigData provider,
-        Action<AssetProviderEntryViewModel>? onToggleActive = null,
-        Action<AssetProviderEntryViewModel>? onRemove = null)
+        Func<AssetProviderEntryViewModel, Task>? onToggleActive = null,
+        Func<AssetProviderEntryViewModel, Task>? onRemove = null)
     {
         _provider = provider;
         _onToggleActive = onToggleActive;
@@ -61,15 +61,15 @@ public class AssetProviderEntryViewModel : BindableBase
     public ICommand ToggleActiveCommand { get; }
     public ICommand RemoveCommand { get; }
 
-    private Task ExecuteToggleActive()
+    private async Task ExecuteToggleActive()
     {
-        _onToggleActive?.Invoke(this);
-        return Task.CompletedTask;
+        if (_onToggleActive != null)
+            await _onToggleActive(this);
     }
 
-    private Task ExecuteRemove()
+    private async Task ExecuteRemove()
     {
-        _onRemove?.Invoke(this);
-        return Task.CompletedTask;
+        if (_onRemove != null)
+            await _onRemove(this);
     }
 }

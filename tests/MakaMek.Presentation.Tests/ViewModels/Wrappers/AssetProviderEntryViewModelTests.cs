@@ -97,7 +97,7 @@ public class AssetProviderEntryViewModelTests
     public async Task ToggleActiveCommand_WhenExecuted_InvokesOnToggleActive()
     {
         AssetProviderEntryViewModel? toggled = null;
-        var sut = new AssetProviderEntryViewModel(Provider("a"), onToggleActive: e => toggled = e);
+        var sut = new AssetProviderEntryViewModel(Provider("a"), onToggleActive: e => { toggled = e; return Task.CompletedTask; });
 
         await ((IAsyncCommand)sut.ToggleActiveCommand).ExecuteAsync();
 
@@ -108,10 +108,34 @@ public class AssetProviderEntryViewModelTests
     public async Task RemoveCommand_WhenExecuted_InvokesOnRemove()
     {
         AssetProviderEntryViewModel? removed = null;
-        var sut = new AssetProviderEntryViewModel(Provider("a"), onRemove: e => removed = e);
+        var sut = new AssetProviderEntryViewModel(Provider("a"), onRemove: e => { removed = e; return Task.CompletedTask; });
 
         await ((IAsyncCommand)sut.RemoveCommand).ExecuteAsync();
 
         removed.ShouldBe(sut);
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenCallbackIncomplete_ExecutionStaysIncomplete()
+    {
+        var completion = new TaskCompletionSource();
+        AssetProviderEntryViewModel? toggled = null;
+        var sut = new AssetProviderEntryViewModel(Provider("a"), onToggleActive: e =>
+        {
+            toggled = e;
+            return completion.Task;
+        });
+
+        // Act
+        var execution = ((IAsyncCommand)sut.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert - command execution must not complete until the awaited callback finishes
+        await Task.Delay(50);
+        execution.IsCompleted.ShouldBeFalse();
+        toggled.ShouldBe(sut);
+
+        completion.SetResult();
+        await execution;
+        execution.IsCompletedSuccessfully.ShouldBeTrue();
     }
 }
