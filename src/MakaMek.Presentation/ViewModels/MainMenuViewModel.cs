@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Services;
@@ -16,6 +18,8 @@ public class MainMenuViewModel : BaseViewModel
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
         ILogger<MainMenuViewModel> logger,
+        IAssetProviderConfigurationProvider configProvider,
+        IResourceStreamProviderFactory providerFactory,
         int messageDelay = 1000)
     {
         AssetLoading = new AssetLoadingViewModel(
@@ -23,7 +27,9 @@ public class MainMenuViewModel : BaseViewModel
             terrainAssetService,
             localizationService,
             dispatcherService,
-            logger);
+            logger,
+            configProvider,
+            providerFactory);
 
         AssetLoading.PropertyChanged += OnAssetLoadingPropertyChanged;
 

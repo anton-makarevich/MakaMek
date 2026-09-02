@@ -36,10 +36,13 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
 
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
+        if (lazyProviders is not null)
+            SetLazyProviders(lazyProviders);
     }
 
     /// <inheritdoc />

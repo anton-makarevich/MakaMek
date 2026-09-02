@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
@@ -45,7 +46,9 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _dispatcherService,
-            Substitute.For<ILogger>());
+            Substitute.For<ILogger>(),
+            _assetProviderConfigurationProvider,
+            Substitute.For<IResourceStreamProviderFactory>());
         _sut = new SettingsViewModel(
             _fileCachingService,
             _unitCachingService,

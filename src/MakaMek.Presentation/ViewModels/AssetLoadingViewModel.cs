@@ -1,5 +1,7 @@
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Configuration;
+using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Services;
@@ -14,6 +16,8 @@ public class AssetLoadingViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILogger _logger;
+    private readonly IAssetProviderConfigurationProvider _configProvider;
+    private readonly IResourceStreamProviderFactory _providerFactory;
     private string _unitLoadingStatus = string.Empty;
     private string _biomeLoadingStatus = string.Empty;
     private int _unitLoadedCount;
@@ -28,13 +32,17 @@ public class AssetLoadingViewModel : BaseViewModel
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        ILogger logger)
+        ILogger logger,
+        IAssetProviderConfigurationProvider configProvider,
+        IResourceStreamProviderFactory providerFactory)
     {
         _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
         _terrainAssetService = terrainAssetService ?? throw new ArgumentNullException(nameof(terrainAssetService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
+        _providerFactory = providerFactory ?? throw new ArgumentNullException(nameof(providerFactory));
     }
 
     public bool IsLoading
@@ -84,6 +92,14 @@ public class AssetLoadingViewModel : BaseViewModel
 
     public async Task ReloadAsync(int messageDelay = 1000)
     {
+        // Rebuild provider lists from the current configuration so added, removed,
+        // and deactivated providers take effect before the cache is repopulated.
+        var unitConfigs = await _configProvider.GetActiveProviders(AssetType.Units);
+        await _unitCachingService.SetProviders(_providerFactory.CreateAll(unitConfigs));
+
+        var terrainConfigs = await _configProvider.GetActiveProviders(AssetType.Hexes);
+        await _terrainAssetService.SetProviders(_providerFactory.CreateAll(terrainConfigs));
+
         await _unitCachingService.ClearCache();
         await _terrainAssetService.ClearCache();
         InitializeAsync(messageDelay);
