@@ -2,8 +2,8 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Core.Services;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -20,6 +20,7 @@ public class SettingsViewModelTests
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
     private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
+    private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider = Substitute.For<IAssetProviderConfigurationProvider>();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private ILogger<SettingsViewModel> _logger = null!;
     private SettingsViewModel _sut = null!;
@@ -45,6 +46,7 @@ public class SettingsViewModelTests
             _localizationService,
             _hubConfigurationProvider,
             _relayRoomClient,
+            _assetProviderConfigurationProvider,
             _logger);
     }
 
@@ -111,8 +113,8 @@ public class SettingsViewModelTests
 
         // Assert
         await _fileCachingService.Received(1).ClearCache();
-        _unitCachingService.Received(1).ClearCache();
-        _terrainAssetService.Received(1).ClearCache();
+        await _unitCachingService.Received(1).ClearCache();
+        await _terrainAssetService.Received(1).ClearCache();
     }
 
     [Fact]
@@ -228,6 +230,7 @@ public class SettingsViewModelTests
             _localizationService,
             _hubConfigurationProvider,
             _relayRoomClient,
+            _assetProviderConfigurationProvider,
             logger);
 
         // Assert - Poll for SafeFireAndForget completion
@@ -256,6 +259,7 @@ public class SettingsViewModelTests
             _localizationService,
             _hubConfigurationProvider,
             _relayRoomClient,
+            _assetProviderConfigurationProvider,
             logger);
 
         // Assert - Poll for async initialization
@@ -285,6 +289,7 @@ public class SettingsViewModelTests
             _localizationService,
             _hubConfigurationProvider,
             _relayRoomClient,
+            _assetProviderConfigurationProvider,
             logger);
 
         // Assert - Poll for async initialization
@@ -416,8 +421,8 @@ public class SettingsViewModelTests
         _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
 
         // Assert - the second selection must wait for the first one to finish
-        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
-        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        await _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
 
         // Complete the first selection; only then is the second issued
         firstSelection.SetResult();
@@ -452,8 +457,8 @@ public class SettingsViewModelTests
         _sut.SelectedHub = _sut.Hubs.First(h => h.Id == "demo");
 
         // The second selection must wait for the first one to finish
-        _hubConfigurationProvider.Received(1).SelectHub("custom-1");
-        _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
+        await _hubConfigurationProvider.Received(1).SelectHub("custom-1");
+        await _hubConfigurationProvider.DidNotReceive().SelectHub("demo");
 
         // Fail the first selection; the later selection must still go through
         firstSelection.SetException(new Exception("selection failed"));
@@ -461,7 +466,7 @@ public class SettingsViewModelTests
             c.GetMethodInfo().Name == nameof(IRelayHubConfigurationProvider.SelectHub)
             && c.GetArguments()[0] as string == "demo"));
 
-        _hubConfigurationProvider.Received(1).SelectHub("demo");
+        await _hubConfigurationProvider.Received(1).SelectHub("demo");
     }
 
     [Fact]
@@ -788,5 +793,310 @@ public class SettingsViewModelTests
             .Any(c => c.GetMethodInfo().Name == nameof(IRelayRoomClient.Health)));
         var persisted = _sut.Hubs.Single(h => h.Id == entry.Id);
         await WaitFor(() => persisted.Status == HubStatus.Online);
+    }
+
+    private static AssetProviderConfigData Provider(string id, AssetType assetType = AssetType.Units, bool isActive = true, bool isDefault = true) =>
+        new(id, ProviderType.Bucket, assetType, "https://data/" + id, isActive, isDefault, 0);
+
+    private void SetupAssetProviders(IReadOnlyList<AssetProviderConfigData> providers)
+    {
+        _assetProviderConfigurationProvider.GetProviders().Returns(Task.FromResult(providers));
+    }
+
+    [Fact]
+    public async Task AttachHandlers_ShouldLoadAssetProviders()
+    {
+        // Arrange
+        SetupAssetProviders([
+            Provider("bucket"),
+            Provider("local", isDefault: false)
+        ]);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+
+        // Assert
+        _sut.AssetProviders[0].Id.ShouldBe("bucket");
+        _sut.AssetProviders[1].Id.ShouldBe("local");
+        _sut.AssetProviders[1].CanRemove.ShouldBeTrue();
+        _sut.AssetProviders[0].CanRemove.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenOnlyActiveForAssetType_CanDeactivateIsFalse()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0)
+        ]);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Assert
+        _sut.AssetProviders.Single().CanDeactivate.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenAnotherActiveOfSameAssetType_CanDeactivateIsTrue()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new AssetProviderConfigData("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        ]);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+
+        // Assert
+        _sut.AssetProviders.ShouldAllBe(p => p.CanDeactivate);
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenInactiveProvider_CanDeactivateIsTrue()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: false, IsDefault: true, SortOrder: 0)
+        ]);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Assert
+        _sut.AssetProviders.Single().CanDeactivate.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenExecuted_PersistsActivationAndReloads()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert
+        await _assetProviderConfigurationProvider.Received(1).SetProviderActive("a", false);
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenExecuted_RemovesProvider()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("local", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "local");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
+
+        // Assert
+        await _assetProviderConfigurationProvider.Received(1).RemoveProvider("local");
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenExecutedWithNull_DoesNotRemove()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        CreateSut();
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(null!);
+
+        // Assert
+        await _assetProviderConfigurationProvider.DidNotReceive().RemoveProvider(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenDefault_DoesNotCallProvider()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var defaultEntry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(defaultEntry);
+
+        // Assert
+        await _assetProviderConfigurationProvider.DidNotReceive().RemoveProvider(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task LoadAssetProvidersAsync_WhenGetProvidersThrows_ShouldLogError()
+    {
+        // Arrange
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("providers unavailable")));
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _logger.ReceivedCalls().Any());
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to load asset providers")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenSetProviderActiveThrowsInvalidOperation_ShouldLogWarning()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.SetProviderActive("a", false)
+            .ThrowsAsync(new InvalidOperationException("cannot deactivate"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot toggle provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ToggleActiveCommand_WhenSetProviderActiveThrows_ShouldLogError()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("b", ProviderType.Bucket, AssetType.Units, "u2", IsActive: true, IsDefault: true, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.SetProviderActive("a", false)
+            .ThrowsAsync(new Exception("unexpected failure"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "a");
+
+        // Act
+        await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to toggle provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenRemoveProviderThrowsInvalidOperation_ShouldLogWarning()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("local", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.RemoveProvider("local")
+            .ThrowsAsync(new InvalidOperationException("cannot remove"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "local");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot remove provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task RemoveAssetProviderCommand_WhenRemoveProviderThrows_ShouldLogError()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("a", ProviderType.Bucket, AssetType.Units, "u1", IsActive: true, IsDefault: true, SortOrder: 0),
+            new("local", ProviderType.Filesystem, AssetType.Units, "u2", IsActive: true, IsDefault: false, SortOrder: 1)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.RemoveProvider("local")
+            .ThrowsAsync(new Exception("unexpected failure"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        var entry = _sut.AssetProviders.First(p => p.Id == "local");
+
+        // Act
+        await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
+
+        // Assert
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to remove provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
     }
 }

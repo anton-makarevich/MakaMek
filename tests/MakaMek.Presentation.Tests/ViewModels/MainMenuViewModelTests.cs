@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -198,6 +199,7 @@ public class MainMenuViewModelTests
             _localizationService,
             hubConfigurationProvider,
             Substitute.For<IRelayRoomClient>(),
+            Substitute.For<IAssetProviderConfigurationProvider>(),
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 

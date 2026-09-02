@@ -3,6 +3,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Localization;
@@ -20,6 +21,7 @@ public class SettingsViewModel : BaseViewModel
     private readonly ILocalizationService _localizationService;
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly IRelayRoomClient _relayRoomClient;
+    private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider;
     private readonly ILogger<SettingsViewModel> _logger;
     private HubEntryViewModel? _selectedHub;
     private Task? _selectHubTask;
@@ -31,6 +33,7 @@ public class SettingsViewModel : BaseViewModel
         ILocalizationService localizationService,
         IRelayHubConfigurationProvider hubConfigurationProvider,
         IRelayRoomClient relayRoomClient,
+        IAssetProviderConfigurationProvider assetProviderConfigurationProvider,
         ILogger<SettingsViewModel> logger)
     {
         _fileCachingService = fileCachingService;
@@ -39,11 +42,13 @@ public class SettingsViewModel : BaseViewModel
         _localizationService = localizationService;
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;
+        _assetProviderConfigurationProvider = assetProviderConfigurationProvider;
         _logger = logger;
 
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
         AddHubCommand = new AsyncCommand(AddHubAsync);
         RemoveHubCommand = new AsyncCommand<HubEntryViewModel>(RemoveHubAsync);
+        RemoveAssetProviderCommand = new AsyncCommand<AssetProviderEntryViewModel>(RemoveAssetProviderAsync);
 
         // Initialize cache status
         InitializeCacheStatusAsync().SafeFireAndForget();
@@ -52,6 +57,7 @@ public class SettingsViewModel : BaseViewModel
     public ICommand ClearCacheCommand { get; }
     public ICommand AddHubCommand { get; }
     public ICommand RemoveHubCommand { get; }
+    public ICommand RemoveAssetProviderCommand { get; }
 
     public string CacheStatus
     {
@@ -108,10 +114,13 @@ public class SettingsViewModel : BaseViewModel
     public string HubSelectLabel => _localizationService.GetString("Settings_Hub_Select");
     public string HubAddHubLabel => _localizationService.GetString("Settings_Hub_AddHub");
 
+    public ObservableCollection<AssetProviderEntryViewModel> AssetProviders { get; } = [];
+
     public override void AttachHandlers()
     {
         base.AttachHandlers();
         LoadHubsAsync().SafeFireAndForget();
+        LoadAssetProvidersAsync().SafeFireAndForget();
     }
 
     private async Task AddHubAsync()
@@ -250,5 +259,77 @@ public class SettingsViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task LoadAssetProvidersAsync()
+    {
+        try
+        {
+            var providers = await _assetProviderConfigurationProvider.GetProviders();
+            var activeCounts = providers
+                .Where(p => p.IsActive)
+                .GroupBy(p => p.AssetType)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            AssetProviders.Clear();
+            foreach (var provider in providers)
+            {
+                var canDeactivate = provider.IsActive
+                    ? activeCounts.GetValueOrDefault(provider.AssetType, 0) > 1
+                    : true;
+                AssetProviders.Add(new AssetProviderEntryViewModel(
+                    provider,
+                    onToggleActive: OnAssetProviderToggleActive,
+                    onRemove: OnAssetProviderRemove)
+                {
+                    CanDeactivate = canDeactivate
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load asset providers");
+        }
+    }
+
+    private async Task OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)
+    {
+        try
+        {
+            await _assetProviderConfigurationProvider.SetProviderActive(entry.Id, !entry.IsActive);
+            await LoadAssetProvidersAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot toggle provider {ProviderId}", entry.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to toggle provider {ProviderId}", entry.Id);
+        }
+    }
+
+    private async Task OnAssetProviderRemove(AssetProviderEntryViewModel entry)
+    {
+        try
+        {
+            await _assetProviderConfigurationProvider.RemoveProvider(entry.Id);
+            await LoadAssetProvidersAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot remove provider {ProviderId}", entry.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove provider {ProviderId}", entry.Id);
+        }
+    }
+
+    private async Task RemoveAssetProviderAsync(AssetProviderEntryViewModel? entry)
+    {
+        if (entry is null || entry.CanRemove is false) return;
+
+        await OnAssetProviderRemove(entry);
     }
 }
