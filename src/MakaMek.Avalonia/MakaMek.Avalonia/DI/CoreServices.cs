@@ -166,48 +166,57 @@ public static class CoreServices
         // (MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY) and persists user-defined hubs.
         services.AddSingleton<IRelayHubConfigurationProvider, RelayHubConfigurationProvider>();
 
-        // Asset provider configuration — seeds default bucket/github providers and persists
-        // user-defined providers (see issues #1332 / #1333). Defaults mirror the current
-        // hardcoded provider selection until the configuration-driven refactor (#1382) lands.
+        // Asset provider configuration — seeds the default bucket/github provider and persists
+        // user-defined providers (see issues #1332 / #1333). Bucket and GitHub are mutually
+        // exclusive defaults: bucket when it is configured at build time (release/prod),
+        // GitHub otherwise (dev fallback).
         services.AddSingleton<IAssetProviderConfigurationProvider>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var defaults = new List<AssetProviderConfigData>
+            var defaults = new List<AssetProviderConfigData>();
+            if (BucketDefaults.IsConfigured)
             {
-                new(
-                    "bucket",
-                    ProviderType.Bucket,
-                    AssetType.Units,
-                    "https://data.makamek.nl/units/manifest.json",
-                    IsActive: true,
-                    IsDefault: true,
-                    SortOrder: 0),
-                new(
-                    "github",
-                    ProviderType.GitHub,
-                    AssetType.Units,
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
-                    IsActive: true,
-                    IsDefault: true,
-                    SortOrder: 1),
-                new(
-                    "bucket-hexes",
-                    ProviderType.Bucket,
-                    AssetType.Hexes,
-                    "https://data.makamek.nl/hexes/manifest.json",
-                    IsActive: true,
-                    IsDefault: true,
-                    SortOrder: 0),
-                new(
-                    "github-hexes",
-                    ProviderType.GitHub,
-                    AssetType.Hexes,
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
-                    IsActive: true,
-                    IsDefault: true,
-                    SortOrder: 1)
-            };
+                defaults.Add(
+                    new(
+                        "bucket",
+                        ProviderType.Bucket,
+                        AssetType.Units,
+                        $"{BucketDefaults.BaseUrl}/units/manifest.json",
+                        IsActive: true,
+                        IsDefault: true,
+                        SortOrder: 0));
+                defaults.Add(
+                    new(
+                        "bucket-hexes",
+                        ProviderType.Bucket,
+                        AssetType.Hexes,
+                        $"{BucketDefaults.BaseUrl}/hexes/manifest.json",
+                        IsActive: true,
+                        IsDefault: true,
+                        SortOrder: 0));
+            }
+            else
+            {
+                defaults.Add(
+                    new(
+                        "github",
+                        ProviderType.GitHub,
+                        AssetType.Units,
+                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                        IsActive: true,
+                        IsDefault: true,
+                        SortOrder: 0));
+                defaults.Add(
+                    new(
+                        "github-hexes",
+                        ProviderType.GitHub,
+                        AssetType.Hexes,
+                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
+                        IsActive: true,
+                        IsDefault: true,
+                        SortOrder: 0));
+            }
             return new AssetProviderConfigurationProvider(
                 defaults,
                 cachingService,

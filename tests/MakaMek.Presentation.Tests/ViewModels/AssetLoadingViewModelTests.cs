@@ -17,7 +17,7 @@ public class AssetLoadingViewModelTests
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IDispatcherService _dispatcherService;
-    private readonly ILogger _logger = Substitute.For<ILogger>();
+    private readonly ILogger<AssetLoadingViewModel> _logger = Substitute.For<ILogger<AssetLoadingViewModel>>();
     private readonly IAssetProviderConfigurationProvider _configProvider = Substitute.For<IAssetProviderConfigurationProvider>();
     private readonly IResourceStreamProviderFactory _providerFactory = Substitute.For<IResourceStreamProviderFactory>();
 

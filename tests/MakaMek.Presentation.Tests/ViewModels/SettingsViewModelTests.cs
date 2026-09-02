@@ -46,7 +46,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _dispatcherService,
-            Substitute.For<ILogger>(),
+            Substitute.For<ILogger<AssetLoadingViewModel>>(),
             _assetProviderConfigurationProvider,
             Substitute.For<IResourceStreamProviderFactory>());
         _sut = new SettingsViewModel(
