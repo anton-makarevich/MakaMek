@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -131,6 +132,13 @@ public class GitHubResourceStreamProviderTests
     private readonly ILogger<GitHubResourceStreamProvider> _logger = Substitute.For<ILogger<GitHubResourceStreamProvider>>();
     private readonly GitHubResourceStreamProvider _sut;
 
+    private static object? GetPrivateField(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        field.ShouldNotBeNull($"Expected private field '{fieldName}' on {instance.GetType().Name}.");
+        return field.GetValue(instance);
+    }
+
     public GitHubResourceStreamProviderTests()
     {
         _mockHttpMessageHandler = new MockHttpMessageHandler
@@ -145,7 +153,7 @@ public class GitHubResourceStreamProviderTests
         
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((byte[]?)null);
 
-        _sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        _sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService, _logger,
             httpClient);
     }
@@ -154,10 +162,34 @@ public class GitHubResourceStreamProviderTests
     public void Constructor_ShouldCreateHttpClient_WhenNotProvided()
     {
         // Arrange & Act
-        var sut = new GitHubResourceStreamProvider("ext", "url", _cachingService, _logger);
+        var sut = new GitHubResourceStreamProvider("ext", "url", "sub", _cachingService, _logger);
 
         // Assert - Should not throw and should be able to get resource IDs
         sut.ShouldNotBeNull();
+        sut.Dispose();
+    }
+
+    [Fact]
+    public void Constructor_ShouldComposeApiUrlFromBaseUrlAndSubPath()
+    {
+        // Arrange & Act
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test", "units/mechs",
+            _cachingService, _logger);
+
+        // Assert
+        GetPrivateField(sut, "_apiUrl").ShouldBe("https://api.github.com/test/units/mechs");
+        sut.Dispose();
+    }
+
+    [Fact]
+    public void Constructor_ShouldTrimTrailingSlashFromBaseUrl()
+    {
+        // Arrange & Act
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test/", "units/mechs",
+            _cachingService, _logger);
+
+        // Assert
+        GetPrivateField(sut, "_apiUrl").ShouldBe("https://api.github.com/test/units/mechs");
         sut.Dispose();
     }
 
@@ -226,7 +258,7 @@ public class GitHubResourceStreamProviderTests
         var mockHttpMessageHandler = new MockHttpMessageHandler();
         var externalHttpClient = new HttpClient(mockHttpMessageHandler);
 
-        var provider = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var provider = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             externalHttpClient);
@@ -404,7 +436,7 @@ public class GitHubResourceStreamProviderTests
             BaseAddress = new Uri("https://api.github.com/")
         };
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -433,7 +465,7 @@ public class GitHubResourceStreamProviderTests
             BaseAddress = new Uri("https://api.github.com/")
         };
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -461,7 +493,7 @@ public class GitHubResourceStreamProviderTests
             BaseAddress = new Uri("https://api.github.com/")
         };
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -492,7 +524,7 @@ public class GitHubResourceStreamProviderTests
         };
         var httpClient = new HttpClient(mockHandler);
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -523,7 +555,7 @@ public class GitHubResourceStreamProviderTests
 
         _cachingService.TryGetCachedFile(testUrl).Returns(cachedData);
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -563,7 +595,7 @@ public class GitHubResourceStreamProviderTests
         _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>()))
                          .Do(_ => throw new InvalidOperationException("Cache error"));
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -609,7 +641,7 @@ public class GitHubResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
         _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -672,7 +704,7 @@ public class GitHubResourceStreamProviderTests
         var cachedBytes = Encoding.UTF8.GetBytes("Cached file content");
         _cachingService.TryGetCachedFile(testUrl).Returns(cachedBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -722,7 +754,7 @@ public class GitHubResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
         _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -763,7 +795,7 @@ public class GitHubResourceStreamProviderTests
 
         _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -807,7 +839,7 @@ public class GitHubResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
         _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);
@@ -859,7 +891,7 @@ public class GitHubResourceStreamProviderTests
         _cachingService.GetCacheVersion(testUrl).Returns(cachedSha);
         _cachingService.TryGetCachedFile(testUrl).Returns(staleBytes);
 
-        var sut = new GitHubResourceStreamProvider("mmux", apiUrl,
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com", "test",
             _cachingService,
             _logger,
             httpClient);

@@ -12,20 +12,22 @@ public class GitHubResourceStreamProvider : RemoteResourceStreamProvider
     /// <summary>
     /// Initializes a new instance of GitHubResourceStreamProvider
     /// </summary>
-    /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
+    /// <param name="baseUrl">Base URL of the GitHub contents folder containing the asset type subfolder</param>
+    /// <param name="subPath">Asset-type-relative subfolder to list (e.g. "units/mechs")</param>
     /// <param name="logger">Logger for class</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
     /// <param name="cachingService">Caching service to cache downloaded files</param>
     public GitHubResourceStreamProvider(
         string fileExtension,
-        string apiUrl,
+        string baseUrl,
+        string subPath,
         IFileCachingService cachingService,
         ILogger<GitHubResourceStreamProvider> logger,
         HttpClient? httpClient = null)
         : base(cachingService, logger, httpClient)
     {
-        _apiUrl = apiUrl;
+        _apiUrl = $"{baseUrl.TrimEnd('/')}/{subPath}";
         _fileExtension = fileExtension;
     }
 
