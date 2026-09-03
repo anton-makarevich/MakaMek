@@ -128,6 +128,8 @@ public class SettingsViewModel : BaseViewModel
     public string ProviderUrlOrPathLabel => _localizationService.GetString("Settings_Data_Providers_UrlOrPath");
     public string ReloadProvidersLabel => _localizationService.GetString("Settings_Data_Providers_Reload");
 
+    public AssetLoadingViewModel AssetLoading => _assetLoadingViewModel;
+
     public ObservableCollection<AssetProviderEntryViewModel> AssetProviders { get; } = [];
 
     public IReadOnlyList<ProviderType> ProviderTypes { get; } =
@@ -323,7 +325,9 @@ public class SettingsViewModel : BaseViewModel
                 AssetProviders.Add(new AssetProviderEntryViewModel(
                     provider,
                     onToggleActive: OnAssetProviderToggleActive,
-                    onRemove: OnAssetProviderRemove)
+                    onRemove: OnAssetProviderRemove,
+                    onSaved: OnAssetProviderSaved,
+                    onCancelled: OnAssetProviderEditCancelled)
                 {
                     CanDeactivate = canDeactivate
                 });
@@ -345,6 +349,8 @@ public class SettingsViewModel : BaseViewModel
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Cannot toggle provider {ProviderId}", entry.Id);
+            // Re-sync the list so row visuals match the persisted active state.
+            await LoadAssetProvidersAsync();
         }
         catch (Exception ex)
         {
@@ -374,6 +380,30 @@ public class SettingsViewModel : BaseViewModel
         if (entry is null || entry.CanRemove is false) return;
 
         await OnAssetProviderRemove(entry);
+    }
+
+    private async Task OnAssetProviderSaved(AssetProviderEntryViewModel entry)
+    {
+        try
+        {
+            await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
+            await LoadAssetProvidersAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
+            throw;
+        }
+    }
+
+    private void OnAssetProviderEditCancelled(AssetProviderEntryViewModel entry)
+    {
+        // Edits are discarded by the entry itself; nothing to roll back here.
     }
 
     private async Task AddProviderAsync()

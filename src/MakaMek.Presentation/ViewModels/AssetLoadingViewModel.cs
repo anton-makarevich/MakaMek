@@ -15,7 +15,7 @@ public class AssetLoadingViewModel : BaseViewModel
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly ILogger _logger;
+    private readonly ILogger<AssetLoadingViewModel> _logger;
     private readonly IAssetProviderConfigurationProvider _configProvider;
     private readonly IResourceStreamProviderFactory _providerFactory;
     private string _unitLoadingStatus = string.Empty;
@@ -32,7 +32,7 @@ public class AssetLoadingViewModel : BaseViewModel
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
         IDispatcherService dispatcherService,
-        ILogger logger,
+        ILogger<AssetLoadingViewModel> logger,
         IAssetProviderConfigurationProvider configProvider,
         IResourceStreamProviderFactory providerFactory)
     {

@@ -46,7 +46,7 @@ public class SettingsViewModelTests
             _terrainAssetService,
             _localizationService,
             _dispatcherService,
-            Substitute.For<ILogger>(),
+            Substitute.For<ILogger<AssetLoadingViewModel>>(),
             _assetProviderConfigurationProvider,
             Substitute.For<IResourceStreamProviderFactory>());
         _sut = new SettingsViewModel(
@@ -1297,5 +1297,142 @@ public class SettingsViewModelTests
 
         // Assert
         result.ShouldBe("Reload Assets");
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenExecuted_UpdatesProviderAndReloads()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(_ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()));
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo =>
+            {
+                var updated = callInfo.Arg<AssetProviderConfigData>();
+                var idx = providers.FindIndex(p => p.Id == callInfo.Arg<string>());
+                if (idx >= 0) providers[idx] = updated;
+            });
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableProviderType = ProviderType.GitHub;
+        entry.EditableAssetType = AssetType.Hexes;
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+        await WaitFor(() => _sut.AssetProviders.Single().ProviderType == ProviderType.GitHub);
+
+        // Assert
+        await _assetProviderConfigurationProvider.Received(1).UpdateProvider(
+            "local",
+            Arg.Is<AssetProviderConfigData>(p =>
+                p.ProviderType == ProviderType.GitHub &&
+                p.AssetType == AssetType.Hexes &&
+                p.UrlOrPath == "https://updated"));
+        var reloaded = _sut.AssetProviders.Single();
+        reloaded.IsEditing.ShouldBeFalse();
+        reloaded.UrlOrPath.ShouldBe("https://updated");
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenUpdateProviderThrowsInvalidOperation_ShouldLogWarningAndRethrow()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .ThrowsAsync(new InvalidOperationException("cannot update"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The failed write keeps the edited values and leaves the editor open for retry
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Cannot update provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenUpdateProviderThrows_ShouldLogErrorAndRethrow()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .ThrowsAsync(new Exception("update failed"));
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // The failed write keeps the edited values and leaves the editor open for retry
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to update provider")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenCancelled_InvokesCancelCallbackAndKeepsEntryInList()
+    {
+        // Arrange
+        SetupAssetProviders([
+            new AssetProviderConfigData("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        ]);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://changed";
+
+        // Act
+        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
+
+        // Assert - the cancel callback runs without error and the row stays in the collection
+        _sut.AssetProviders.Count.ShouldBe(1);
+        entry.IsEditing.ShouldBeFalse();
+        entry.UrlOrPath.ShouldBe("/assets/units");
+        await _assetProviderConfigurationProvider.DidNotReceive().UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>());
+    }
+
+    [Fact]
+    public void AssetLoading_ShouldExposeComposedAssetLoadingViewModel()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act & Assert
+        _sut.AssetLoading.ShouldNotBeNull();
     }
 }

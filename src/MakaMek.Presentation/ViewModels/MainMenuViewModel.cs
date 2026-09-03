@@ -1,35 +1,17 @@
 using System.ComponentModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
-using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Assets.Configuration;
-using Sanet.MakaMek.Assets.ResourceProviders;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class MainMenuViewModel : BaseViewModel
 {
-    public MainMenuViewModel(IUnitCachingService unitCachingService,
-        ITerrainAssetService terrainAssetService,
-        ILocalizationService localizationService,
-        IDispatcherService dispatcherService,
-        ILogger<MainMenuViewModel> logger,
-        IAssetProviderConfigurationProvider configProvider,
-        IResourceStreamProviderFactory providerFactory,
+    public MainMenuViewModel(
+        AssetLoadingViewModel assetLoading,
         int messageDelay = 1000)
     {
-        AssetLoading = new AssetLoadingViewModel(
-            unitCachingService,
-            terrainAssetService,
-            localizationService,
-            dispatcherService,
-            logger,
-            configProvider,
-            providerFactory);
+        AssetLoading = assetLoading;
 
         AssetLoading.PropertyChanged += OnAssetLoadingPropertyChanged;
 
