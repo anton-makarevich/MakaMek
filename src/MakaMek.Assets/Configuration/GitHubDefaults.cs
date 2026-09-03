@@ -1,9 +1,9 @@
-namespace Sanet.MakaMek.Avalonia.DI;
+namespace Sanet.MakaMek.Assets.Configuration;
 
 /// <summary>
 /// Provides the default GitHub data-folder Contents API base URL used as the dev fallback
-/// assets provider (see <see cref="BucketDefaults"/>). The asset-type subfolder
-/// (e.g. "units/mechs") is appended by <see cref="ResourceStreamProviderFactory"/>.
+/// assets provider. The asset-type subfolder (e.g. "units/mechs") is appended by
+/// <see cref="ResourceProviders.ResourceStreamProviderFactory"/>.
 /// </summary>
 public static class GitHubDefaults
 {
