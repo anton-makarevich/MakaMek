@@ -23,6 +23,8 @@
       <ProjectReference Include="..\MakaMek.Services\MakaMek.Services.csproj" />
     </ItemGroup>
 
+    <Import Project="BucketDefaults.targets" />
+
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
         <Message Importance="high" Text="Project: $(MSBuildProjectName)" />
