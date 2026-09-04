@@ -283,9 +283,8 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
                         continue;
                     }
 
-                    var normalized = NormalizeLegacyUrl(provider);
-                    var isDefault = IsDefaultId(normalized.Id);
-                    _providers[normalized.Id] = normalized with { IsDefault = isDefault };
+                    var isDefault = IsDefaultId(provider.Id);
+                    _providers[provider.Id] = provider with { IsDefault = isDefault };
                 }
 
                 // Ensure every built-in default still exists, even if absent from a stale cache.
@@ -311,31 +310,6 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
     private bool IsDefaultId(string id)
     {
         return _defaultProviders.Any(p => string.Equals(p.Id, id, StringComparison.Ordinal));
-    }
-
-    private static readonly string[] GitHubLegacySuffixes = ["/units/mechs", "/hexes/biomes"];
-
-    /// <summary>
-    /// Strips known asset-type sub-paths from a legacy GitHub provider's <c>UrlOrPath</c>
-    /// so the factory does not append them a second time.
-    /// </summary>
-    private static AssetProviderConfigData NormalizeLegacyUrl(AssetProviderConfigData provider)
-    {
-        if (provider.ProviderType != ProviderType.GitHub)
-        {
-            return provider;
-        }
-
-        var url = provider.UrlOrPath;
-        foreach (var suffix in GitHubLegacySuffixes)
-        {
-            if (url.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-            {
-                return provider with { UrlOrPath = url[..^suffix.Length] };
-            }
-        }
-
-        return provider;
     }
 
     private void SeedDefaults()

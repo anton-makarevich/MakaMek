@@ -31,21 +31,6 @@ public class GitHubResourceStreamProvider : RemoteResourceStreamProvider
         _fileExtension = fileExtension;
     }
 
-    /// <summary>
-    /// Backward-compatible overload that accepts a fully-resolved API URL (no subpath appending).
-    /// </summary>
-    public GitHubResourceStreamProvider(
-        string fileExtension,
-        string apiUrl,
-        IFileCachingService cachingService,
-        ILogger<GitHubResourceStreamProvider> logger,
-        HttpClient? httpClient = null)
-        : base(cachingService, logger, httpClient)
-    {
-        _apiUrl = apiUrl?.TrimEnd('/') ?? throw new ArgumentNullException(nameof(apiUrl));
-        _fileExtension = fileExtension;
-    }
-
     protected override string ListingDescription => "GitHub contents";
 
     protected override string CachedListingDescription => "API manifest";
