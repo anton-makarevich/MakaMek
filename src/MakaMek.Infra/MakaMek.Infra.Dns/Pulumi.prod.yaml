@@ -25,6 +25,10 @@
       type: CNAME
       content: makamek.pages.dev
       proxied: false
+    - name: play-early
+      type: CNAME
+      content: anton-makarevich.github.io
+      proxied: false
     - name: demohub
       type: A
       content: 134.98.139.132

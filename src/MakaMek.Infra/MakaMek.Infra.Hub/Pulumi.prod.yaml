@@ -7,5 +7,5 @@ config:
   makamek-hub-infra:domain: demohub.makamek.nl
   # Space-separated list of browser front-end origins allowed to call the hub
   # cross-origin (CORS allowlist handled by Caddy).
-  makamek-hub-infra:allowedOrigins: https://anton-makarevich.github.io https://makamek.online https://makamek.pages.dev https://play.makamek.net
+  makamek-hub-infra:allowedOrigins: https://anton-makarevich.github.io https://makamek.pages.dev https://play.makamek.net https://play-early.makamek.nl
   makamek-hub-infra:ociTenancyOcid: ocid1.tenancy.oc1..aaaaaaaadoydjfu3bu54445co73cfbov2wsnaij3anqwcz7z2mvpkrddzp6q

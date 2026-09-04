@@ -1,5 +1,6 @@
 ﻿using Pulumi;
 using Pulumi.Cloudflare;
+using Pulumi.Cloudflare.Inputs;
 
 return await Deployment.RunAsync(() =>
 {
@@ -53,6 +54,25 @@ return await Deployment.RunAsync(() =>
         Domain = customDomain,
         Enabled = true,
         ZoneId = zoneId,
+    });
+
+    var r2BucketCors = new R2BucketCors("data-bucket-cors", new R2BucketCorsArgs
+    {
+        AccountId = accountId,
+        BucketName = bucket.Name,
+        Rules = new[]
+        {
+            new R2BucketCorsRuleArgs
+            {
+                Id = "Public read-only asset fetches",
+                Allowed = new R2BucketCorsRuleAllowedArgs
+                {
+                    Origins = new[] { "*" },
+                    Methods = new[] { "GET", "HEAD" },
+                },
+                MaxAgeSeconds = 7200,
+            },
+        },
     });
 
     return new Dictionary<string, object?>

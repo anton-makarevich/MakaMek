@@ -86,7 +86,7 @@ Caddy handles automatic TLS certificate provisioning (Let's Encrypt) and WebSock
 
 Caddy handles CORS at the proxy layer so `OPTIONS` preflights never reach the hub (the hub itself returns `405` for preflights):
 
-- The allowed origins are set with the `allowedOrigins` Pulumi config key (`makamek-hub-infra:allowedOrigins`) as a space-separated list. Currently: GitHub Pages (`https://anton-makarevich.github.io`), `https://makamek.online`, `https://makamek.pages.dev`, and `https://play.makamek.net`. Caddy matches them via an anchored `header_regexp` alternation (the Caddyfile `header` matcher cannot express an OR-list of origins in a single token).
+- The allowed origins are set with the `allowedOrigins` Pulumi config key (`makamek-hub-infra:allowedOrigins`) as a space-separated list. Currently: GitHub Pages (`https://anton-makarevich.github.io`), `https://makamek.pages.dev`, `https://play.makamek.net`, and `https://play-early.makamek.nl`. Caddy matches them via an anchored `header_regexp` alternation (the Caddyfile `header` matcher cannot express an OR-list of origins in a single token).
 - Preflight requests (`OPTIONS` with an allowed `Origin`) are answered by Caddy with `204` and `Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS` and `Access-Control-Allow-Headers: Content-Type, x-api-key, Session-Token`.
 - For non-preflight requests, `Access-Control-Allow-Origin` echoes the request origin only when it matches the allowlist (no wildcard), plus `Vary: Origin`.
 - Credentials mode is not used — no cookies travel cross-origin, so no `Access-Control-Allow-Credentials` is emitted.
