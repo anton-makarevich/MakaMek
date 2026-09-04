@@ -82,13 +82,14 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/units", IsActive: true,
-            IsDefault: true, SortOrder: 1);
+            "github", ProviderType.GitHub, AssetType.Units, "https://api.github.com/repos/owner/repo/contents/data",
+            IsActive: true, IsDefault: true, SortOrder: 1);
 
         var provider = sut.Create(config);
 
         GetPrivateField(provider, "_fileExtension").ShouldBe("mmux");
-        GetPrivateField(provider, "_apiUrl").ShouldBe("https://api.github.com/units");
+        GetPrivateField(provider, "_apiUrl")
+            .ShouldBe("https://api.github.com/repos/owner/repo/contents/data/units/mechs");
     }
 
     [Fact]
@@ -96,12 +97,14 @@ public class ResourceStreamProviderFactoryTests
     {
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
-            "github", ProviderType.GitHub, AssetType.Hexes, "https://api.github.com/hexes", IsActive: true,
-            IsDefault: true, SortOrder: 1);
+            "github", ProviderType.GitHub, AssetType.Hexes, "https://api.github.com/repos/owner/repo/contents/data/",
+            IsActive: true, IsDefault: true, SortOrder: 1);
 
         var provider = sut.Create(config);
 
         GetPrivateField(provider, "_fileExtension").ShouldBe("mmtx");
+        GetPrivateField(provider, "_apiUrl")
+            .ShouldBe("https://api.github.com/repos/owner/repo/contents/data/hexes/biomes");
     }
 
     [Fact]

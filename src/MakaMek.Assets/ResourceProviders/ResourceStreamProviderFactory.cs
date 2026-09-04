@@ -14,6 +14,8 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
     private const string HexesExtension = "mmtx";
     private const string UnitsManifest = "units/manifest.json";
     private const string HexesManifest = "hexes/manifest.json";
+    private const string UnitsGitHubSubPath = "units/mechs";
+    private const string HexesGitHubSubPath = "hexes/biomes";
 
     private readonly IFileCachingService _cachingService;
     private readonly ILoggerFactory _loggerFactory;
@@ -39,6 +41,7 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
             ProviderType.GitHub => new GitHubResourceStreamProvider(
                 GetFileExtension(config.AssetType),
                 config.UrlOrPath,
+                GetGitHubSubPath(config.AssetType),
                 _cachingService,
                 _loggerFactory.CreateLogger<GitHubResourceStreamProvider>()),
             ProviderType.Filesystem => new LocalFolderResourceStreamProvider(
@@ -73,6 +76,17 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
         {
             AssetType.Units => UnitsManifest,
             AssetType.Hexes => HexesManifest,
+            _ => throw new ArgumentOutOfRangeException(nameof(assetType), assetType,
+                $"Unsupported asset type '{assetType}'.")
+        };
+    }
+
+    private static string GetGitHubSubPath(AssetType assetType)
+    {
+        return assetType switch
+        {
+            AssetType.Units => UnitsGitHubSubPath,
+            AssetType.Hexes => HexesGitHubSubPath,
             _ => throw new ArgumentOutOfRangeException(nameof(assetType), assetType,
                 $"Unsupported asset type '{assetType}'.")
         };

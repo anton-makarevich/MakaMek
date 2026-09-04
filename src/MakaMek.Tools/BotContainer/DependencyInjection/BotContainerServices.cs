@@ -1,4 +1,5 @@
 using ModelContextProtocol.Protocol;
+using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -54,7 +55,8 @@ public static class BotContainerServices
             var streamProviders = new List<IResourceStreamProvider>
             {
                 new GitHubResourceStreamProvider("mmux",
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                    GitHubDefaults.BaseUrl,
+                    "units/mechs",
                     cachingService,
                     loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
                 )

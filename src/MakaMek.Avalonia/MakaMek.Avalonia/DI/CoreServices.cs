@@ -203,7 +203,7 @@ public static class CoreServices
                         "github",
                         ProviderType.GitHub,
                         AssetType.Units,
-                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                        GitHubDefaults.BaseUrl,
                         IsActive: true,
                         IsDefault: true,
                         SortOrder: 0));
@@ -212,7 +212,7 @@ public static class CoreServices
                         "github-hexes",
                         ProviderType.GitHub,
                         AssetType.Hexes,
-                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/hexes/biomes",
+                        GitHubDefaults.BaseUrl,
                         IsActive: true,
                         IsDefault: true,
                         SortOrder: 0));

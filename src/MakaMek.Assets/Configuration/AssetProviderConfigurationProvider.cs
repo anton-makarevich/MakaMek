@@ -283,7 +283,6 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
                         continue;
                     }
 
-                    // Defaults are immutable; force IsDefault to match the seeded defaults.
                     var isDefault = IsDefaultId(provider.Id);
                     _providers[provider.Id] = provider with { IsDefault = isDefault };
                 }

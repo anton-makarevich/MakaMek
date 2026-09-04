@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Avalonia.DI;
+namespace Sanet.MakaMek.Assets.Configuration;
 
 /// <summary>
 /// Resolves the default data bucket (assets provider) base URL.
