@@ -127,18 +127,19 @@ public partial class App : Application
         {
             navigationService.RegisterViews(typeof(StartNewGameViewNarrow), typeof(StartNewGameViewModel));
             navigationService.RegisterViews(typeof(JoinGameViewNarrow), typeof(JoinGameViewModel));
+            navigationService.RegisterViews(typeof(SettingsViewNarrow), typeof(SettingsViewModel));
         }
         else
         {
             navigationService.RegisterViews(typeof(StartNewGameViewWide), typeof(StartNewGameViewModel));
             navigationService.RegisterViews(typeof(JoinGameViewWide), typeof(JoinGameViewModel));
+            navigationService.RegisterViews(typeof(SettingsViewWide), typeof(SettingsViewModel));
         }
 
         // Register views that are the same for all platforms
         navigationService.RegisterViews(typeof(BattleMapView), typeof(BattleMapViewModel));
         navigationService.RegisterViews(typeof(EndGameView), typeof(EndGameViewModel));
         navigationService.RegisterViews(typeof(AboutView), typeof(AboutViewModel));
-        navigationService.RegisterViews(typeof(SettingsView), typeof(SettingsViewModel));
         navigationService.RegisterViews(typeof(AvailableUnitsTableView), typeof(AvailableUnitsTableViewModel));
         navigationService.RegisterViews(typeof(UnitInfoView), typeof(UnitInfoViewModel));
     }
