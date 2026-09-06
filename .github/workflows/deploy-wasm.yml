@@ -2,7 +2,7 @@ name: Deploy WASM to GitHub Pages
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
-  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
+  DATA_BUCKET_BASE_URL: ""
 
 on:
   push:
