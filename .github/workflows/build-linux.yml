@@ -2,7 +2,6 @@ name: Build and Package Linux App
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
-  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
 
 on:
   push:
@@ -35,6 +34,15 @@ jobs:
       - name: Install Velopack CLI
         run: |
           dotnet tool install --global vpk
+
+      - name: Resolve data bucket URL for release tags
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "DATA_BUCKET_BASE_URL=${{ vars.DATA_BUCKET_BASE_URL }}" >> $GITHUB_ENV
+          else
+            echo "DATA_BUCKET_BASE_URL=" >> $GITHUB_ENV
+          fi
 
       - name: Build Linux App
         env:

@@ -2,7 +2,6 @@ name: Build and Release Android APK
 
 env:
   DEMOHUB_BASE_URL: ${{ vars.DEMOHUB_BASE_URL }}
-  DATA_BUCKET_BASE_URL: ${{ vars.DATA_BUCKET_BASE_URL }}
 
 on:
   push:
@@ -26,6 +25,15 @@ jobs:
 
       - name: Install Android workload
         run: dotnet workload install android
+
+      - name: Resolve data bucket URL for release tags
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "DATA_BUCKET_BASE_URL=${{ vars.DATA_BUCKET_BASE_URL }}" >> $GITHUB_ENV
+          else
+            echo "DATA_BUCKET_BASE_URL=" >> $GITHUB_ENV
+          fi
 
       - name: Build Android APK
         env:
