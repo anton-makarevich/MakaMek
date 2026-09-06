@@ -8,7 +8,7 @@
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.Settings.Fragments"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:DataType="viewModels:SettingsViewModel"
-             x:Class="Sanet.MakaMek.Avalonia.Views.Settings.SettingsView">
+             x:Class="Sanet.MakaMek.Avalonia.Views.Settings.SettingsViewNarrow">
 
     <Grid>
         <templatedControls:HexagonBackground/>
