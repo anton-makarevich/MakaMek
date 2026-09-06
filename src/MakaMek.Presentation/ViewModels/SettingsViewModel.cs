@@ -137,30 +137,6 @@ public class SettingsViewModel : BaseViewModel
 
     public IReadOnlyList<AssetType> AssetTypes { get; } = [AssetType.Units, AssetType.Hexes];
 
-    public ProviderType SelectedAddProviderType
-    {
-        get;
-        set => SetProperty(ref field, value);
-    } = ProviderType.Bucket;
-
-    public AssetType SelectedAddAssetType
-    {
-        get;
-        set => SetProperty(ref field, value);
-    } = AssetType.Units;
-
-    public string AddProviderUrlOrPath
-    {
-        get;
-        set => SetProperty(ref field, value);
-    } = string.Empty;
-
-    public string AddProviderValidationMessage
-    {
-        get;
-        private set => SetProperty(ref field, value);
-    } = string.Empty;
-
     public override void AttachHandlers()
     {
         base.AttachHandlers();
@@ -386,55 +362,65 @@ public class SettingsViewModel : BaseViewModel
     {
         try
         {
-            await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
+            if (entry.IsNew)
+            {
+                await _assetProviderConfigurationProvider.AddProvider(entry.PendingProvider);
+            }
+            else
+            {
+                await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
+            }
             await LoadAssetProvidersAsync();
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
+            _logger.LogWarning(ex, entry.IsNew
+                ? "Cannot add provider {ProviderId}"
+                : "Cannot update provider {ProviderId}", entry.Id);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
+            _logger.LogError(ex, entry.IsNew
+                ? "Failed to add provider {ProviderId}"
+                : "Failed to update provider {ProviderId}", entry.Id);
             throw;
         }
     }
 
     private void OnAssetProviderEditCancelled(AssetProviderEntryViewModel entry)
     {
-        // Edits are discarded by the entry itself; nothing to roll back here.
+        if (entry.IsNew)
+        {
+            AssetProviders.Remove(entry);
+        }
     }
 
     private async Task AddProviderAsync()
     {
-        if (string.IsNullOrWhiteSpace(AddProviderUrlOrPath))
-        {
-            AddProviderValidationMessage =
-                _localizationService.GetString("Settings_Data_Providers_UrlOrPathRequired");
-            return;
-        }
-
-        AddProviderValidationMessage = string.Empty;
         try
         {
             var providers = await _assetProviderConfigurationProvider.GetProviders();
             var nextSortOrder = providers.Count == 0 ? 0 : providers.Max(p => p.SortOrder) + 1;
             var provider = new AssetProviderConfigData(
                 Guid.NewGuid().ToString("N"),
-                SelectedAddProviderType,
-                SelectedAddAssetType,
-                AddProviderUrlOrPath.Trim(),
+                ProviderType.Bucket,
+                AssetType.Units,
+                string.Empty,
                 IsActive: true,
                 IsDefault: false,
                 nextSortOrder);
 
-            await _assetProviderConfigurationProvider.AddProvider(provider);
+            var entry = new AssetProviderEntryViewModel(
+                provider,
+                isNew: true,
+                onToggleActive: OnAssetProviderToggleActive,
+                onRemove: OnAssetProviderRemove,
+                onSaved: OnAssetProviderSaved,
+                onCancelled: OnAssetProviderEditCancelled);
 
-            AddProviderUrlOrPath = string.Empty;
-            SelectedAddProviderType = ProviderType.Bucket;
-            SelectedAddAssetType = AssetType.Units;
-            await LoadAssetProvidersAsync();
+            AssetProviders.Add(entry);
+            await entry.StartEditing();
         }
         catch (Exception ex)
         {
