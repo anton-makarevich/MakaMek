@@ -75,12 +75,12 @@ public class AddProviderViewModel : BaseViewModel, IResultProvider<AddProviderRe
 
     public Task<AddProviderResult?> GetResultAsync() => _resultTaskCompletionSource.Task;
 
-    private async Task Confirm()
+    private Task Confirm()
     {
         if (string.IsNullOrWhiteSpace(UrlOrPath))
         {
             ValidationMessage = _localizationService.GetString("Settings_Data_Providers_UrlOrPathRequired");
-            return;
+            return Task.CompletedTask;
         }
 
         _resultTaskCompletionSource.TrySetResult(new AddProviderResult
@@ -89,12 +89,12 @@ public class AddProviderViewModel : BaseViewModel, IResultProvider<AddProviderRe
             AssetType = SelectedAssetType,
             UrlOrPath = UrlOrPath.Trim()
         });
-        await CloseAsync();
+        return Task.CompletedTask;
     }
 
-    private async Task Cancel()
+    private Task Cancel()
     {
         _resultTaskCompletionSource.TrySetResult(null);
-        await CloseAsync();
+        return Task.CompletedTask;
     }
 }

@@ -63,12 +63,12 @@ public class AddHubViewModel : BaseViewModel, IResultProvider<AddHubResult?>
 
     public Task<AddHubResult?> GetResultAsync() => _resultTaskCompletionSource.Task;
 
-    private async Task Confirm()
+    private Task Confirm()
     {
         if (string.IsNullOrWhiteSpace(BaseUrl))
         {
             ValidationMessage = _localizationService.GetString("Settings_Hub_UrlRequired");
-            return;
+            return Task.CompletedTask;
         }
 
         _resultTaskCompletionSource.TrySetResult(new AddHubResult
@@ -77,12 +77,12 @@ public class AddHubViewModel : BaseViewModel, IResultProvider<AddHubResult?>
             BaseUrl = BaseUrl.Trim(),
             ApiKey = ApiKey
         });
-        await CloseAsync();
+        return Task.CompletedTask;
     }
 
-    private async Task Cancel()
+    private Task Cancel()
     {
         _resultTaskCompletionSource.TrySetResult(null);
-        await CloseAsync();
+        return Task.CompletedTask;
     }
 }

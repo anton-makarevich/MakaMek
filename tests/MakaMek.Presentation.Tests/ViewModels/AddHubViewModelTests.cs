@@ -1,8 +1,6 @@
 using AsyncAwaitBestPractices.MVVM;
-using NSubstitute;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
-using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -10,14 +8,8 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 public class AddHubViewModelTests
 {
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
-    private readonly INavigationService _navigationService = Substitute.For<INavigationService>();
 
-    private AddHubViewModel CreateSut()
-    {
-        var sut = new AddHubViewModel(_localizationService);
-        sut.SetNavigationService(_navigationService);
-        return sut;
-    }
+    private AddHubViewModel CreateSut() => new(_localizationService);
 
     [Fact]
     public void GetResultAsync_ShouldReturnIncompleteTask()

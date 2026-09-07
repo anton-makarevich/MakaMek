@@ -1,9 +1,7 @@
 using AsyncAwaitBestPractices.MVVM;
-using NSubstitute;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
-using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -11,17 +9,11 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 public class AddProviderViewModelTests
 {
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
-    private readonly INavigationService _navigationService = Substitute.For<INavigationService>();
 
-    private AddProviderViewModel CreateSut()
-    {
-        var sut = new AddProviderViewModel(
-            [ProviderType.Bucket, ProviderType.GitHub, ProviderType.Filesystem],
-            [AssetType.Units, AssetType.Hexes],
-            _localizationService);
-        sut.SetNavigationService(_navigationService);
-        return sut;
-    }
+    private AddProviderViewModel CreateSut() => new(
+        [ProviderType.Bucket, ProviderType.GitHub, ProviderType.Filesystem],
+        [AssetType.Units, AssetType.Hexes],
+        _localizationService);
 
     [Fact]
     public void Constructor_ShouldDefaultToBucketAndUnits()
