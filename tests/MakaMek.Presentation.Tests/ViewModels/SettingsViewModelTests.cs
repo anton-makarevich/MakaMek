@@ -1099,19 +1099,56 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task AddProviderCommand_WhenExecuted_ShouldAddProviderAndShowInCollection()
+    public async Task AddProviderCommand_WhenExecuted_ShouldAddNewEditingEntry()
     {
         // Arrange
         var providers = new List<AssetProviderConfigData>();
         SetupGrowingAssetProviders(providers);
         CreateSut();
-        _sut.SelectedAddProviderType = ProviderType.Filesystem;
-        _sut.SelectedAddAssetType = AssetType.Hexes;
-        _sut.AddProviderUrlOrPath = "/data/hexes";
 
         // Act
         await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Assert
+        _sut.AssetProviders.Count.ShouldBe(1);
+        var entry = _sut.AssetProviders[0];
+        entry.IsNew.ShouldBeTrue();
+        entry.IsEditing.ShouldBeTrue();
+        entry.IsDefault.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AddProvider_WhenCancelled_ShouldRemoveEntry()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        SetupGrowingAssetProviders(providers);
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+
+        // Act
+        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
+
+        // Assert
+        _sut.AssetProviders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddProvider_WhenSaved_ShouldAddProviderToProvider()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        SetupGrowingAssetProviders(providers);
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+        entry.EditableProviderType = ProviderType.Filesystem;
+        entry.EditableAssetType = AssetType.Hexes;
+        entry.EditableUrlOrPath = "/data/hexes";
+
+        // Act
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
         await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Is<AssetProviderConfigData>(p =>
@@ -1120,27 +1157,25 @@ public class SettingsViewModelTests
             p.UrlOrPath == "/data/hexes" &&
             p.IsActive &&
             !p.IsDefault));
-        _sut.AssetProviders.Single().AssetType.ShouldBe(AssetType.Hexes);
-        _sut.AddProviderUrlOrPath.ShouldBeEmpty();
-        _sut.AddProviderValidationMessage.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task AddProviderCommand_WhenUrlOrPathEmpty_ShouldShowValidationAndNotAdd()
+    public async Task AddProvider_WhenUrlOrPathEmpty_ShouldNotAdd()
     {
         // Arrange
         var providers = new List<AssetProviderConfigData>();
         SetupGrowingAssetProviders(providers);
         CreateSut();
-        _sut.AddProviderUrlOrPath = "   ";
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+        entry.EditableUrlOrPath = "   ";
 
         // Act
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
         await _assetProviderConfigurationProvider.DidNotReceive().AddProvider(Arg.Any<AssetProviderConfigData>());
-        _sut.AssetProviders.ShouldBeEmpty();
-        _sut.AddProviderValidationMessage.ShouldNotBeEmpty();
+        entry.IsEditing.ShouldBeTrue();
     }
 
     [Fact]
@@ -1152,18 +1187,51 @@ public class SettingsViewModelTests
         _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
             .ThrowsAsync(new Exception("persist failed"));
         CreateSut();
-        _sut.AddProviderUrlOrPath = "/data/units";
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+        entry.EditableUrlOrPath = "/data/units";
 
         // Act
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
 
         // Assert
         _logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add asset provider")),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add provider")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task AddProvider_WhenReloadAfterPersistThrows_ShouldKeepEditingAndPreservePendingValues()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(
+                _ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()),
+                _ => Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("reload failed")));
+        _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo => providers.Add(callInfo.Arg<AssetProviderConfigData>()));
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+        entry.EditableProviderType = ProviderType.Filesystem;
+        entry.EditableAssetType = AssetType.Hexes;
+        entry.EditableUrlOrPath = "/data/hexes";
+
+        // Act
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // Assert: the provider was persisted once, but the failed reload keeps the editor open
+        // with the pending values intact instead of closing on a stale list.
+        await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Any<AssetProviderConfigData>());
+        entry.IsEditing.ShouldBeTrue();
+        entry.PendingProvider.ProviderType.ShouldBe(ProviderType.Filesystem);
+        entry.PendingProvider.AssetType.ShouldBe(AssetType.Hexes);
+        entry.PendingProvider.UrlOrPath.ShouldBe("/data/hexes");
     }
 
     [Fact]

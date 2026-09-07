@@ -32,6 +32,22 @@ public class AssetProviderEntryViewModelTests
     }
 
     [Fact]
+    public void Constructor_ByDefault_IsNewIsFalse()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("local"));
+
+        sut.IsNew.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Constructor_WhenNew_IsNewIsTrue()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("local"), isNew: true);
+
+        sut.IsNew.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Constructor_WhenDefault_CanRemoveIsFalse()
     {
         var sut = new AssetProviderEntryViewModel(Provider("bucket", isDefault: true));

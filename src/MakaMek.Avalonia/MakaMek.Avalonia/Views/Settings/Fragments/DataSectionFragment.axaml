@@ -28,6 +28,11 @@
             <!-- Asset Providers -->
             <TextBlock Text="{Binding ProvidersSectionTitle}"
                        Classes="label"/>
+            <Button Content="{Binding AddProviderLabel}"
+                    Command="{Binding AddProviderCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    Classes="primary"
+                    HorizontalAlignment="Center"/>
             <ItemsControl ItemsSource="{Binding AssetProviders}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -107,41 +112,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <!-- Add Provider -->
-            <TextBlock Text="{Binding AddProviderLabel}"
-                       Classes="label"/>
-            <Border Classes="gamePanel" Padding="10" CornerRadius="8">
-                <StackPanel Spacing="8">
-                    <StackPanel Classes="horizontalSpaced">
-                        <StackPanel Classes="formGroup">
-                            <TextBlock Text="{extensions:Localize 'Settings_Data_Providers_Type'}"
-                                       Classes="label"/>
-                            <ComboBox ItemsSource="{Binding ProviderTypes}"
-                                      SelectedItem="{Binding SelectedAddProviderType, Mode=TwoWay}"/>
-                        </StackPanel>
-                        <StackPanel Classes="formGroup">
-                            <TextBlock Text="{extensions:Localize 'Settings_Data_Providers_AssetType'}"
-                                       Classes="label"/>
-                            <ComboBox ItemsSource="{Binding AssetTypes}"
-                                      SelectedItem="{Binding SelectedAddAssetType, Mode=TwoWay}"/>
-                        </StackPanel>
-                    </StackPanel>
-                    <StackPanel Classes="formGroup">
-                        <TextBlock Text="{extensions:Localize 'Settings_Data_Providers_UrlOrPath'}"
-                                   Classes="label"/>
-                        <TextBox Text="{Binding AddProviderUrlOrPath, Mode=TwoWay}"/>
-                    </StackPanel>
-                    <TextBlock Text="{Binding AddProviderValidationMessage}"
-                               Classes="bodySmall"
-                               Foreground="Red"/>
-                    <Button Content="{Binding AddProviderLabel}"
-                            Command="{Binding AddProviderCommand}"
-                            IsEnabled="{Binding !IsBusy}"
-                            Classes="primary"
-                            HorizontalAlignment="Left"/>
-                </StackPanel>
-            </Border>
 
             <!-- Reload -->
             <Button Content="{Binding ReloadProvidersLabel}"

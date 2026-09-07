@@ -23,13 +23,21 @@
             <!-- Scrollable two-column content, centered and limited to 800px -->
             <ScrollViewer Grid.Row="1" Margin="0,10,0,0"
                           HorizontalScrollBarVisibility="Disabled">
-                <StackPanel MaxWidth="800" HorizontalAlignment="Center" Spacing="20">
-                    <Grid ColumnDefinitions="*,*">
-                        <fragments:DataSectionFragment Grid.Column="0" VerticalAlignment="Top"/>
-                        <fragments:HubConfigurationFragment Grid.Column="1" VerticalAlignment="Top"
-                                                            Margin="10,0,0,0"/>
+                <Grid ColumnDefinitions="*,*">
+                    <Grid Grid.Column="0" RowDefinitions="Auto,*" 
+                          MaxWidth="800"
+                          VerticalAlignment="Top">
+                        <TextBlock Text="{extensions:Localize 'Settings_Data_SectionTitle'}" Classes="h2" HorizontalAlignment="Center"/>
+                        <fragments:DataSectionFragment Grid.Row="1"/>
                     </Grid>
-                </StackPanel>
+                    <Grid Grid.Column="1" RowDefinitions="Auto,*" 
+                          MaxWidth = "800"
+                          VerticalAlignment="Top"
+                          Margin="10,0,0,0">
+                        <TextBlock Text="{extensions:Localize 'Settings_Hub_SectionTitle'}" Classes="h2" HorizontalAlignment="Center"/>
+                        <fragments:HubConfigurationFragment Grid.Row="1"/>
+                    </Grid>
+                </Grid>
             </ScrollViewer>
         </Grid>
     </Grid>

@@ -20,12 +20,14 @@ public class AssetProviderEntryViewModel : BindableBase
 
     public AssetProviderEntryViewModel(
         AssetProviderConfigData provider,
+        bool isNew = false,
         Func<AssetProviderEntryViewModel, Task>? onToggleActive = null,
         Func<AssetProviderEntryViewModel, Task>? onRemove = null,
         Func<AssetProviderEntryViewModel, Task>? onSaved = null,
         Action<AssetProviderEntryViewModel>? onCancelled = null)
     {
         _provider = provider;
+        IsNew = isNew;
         _onToggleActive = onToggleActive;
         _onRemove = onRemove;
         _onSaved = onSaved;
@@ -48,6 +50,11 @@ public class AssetProviderEntryViewModel : BindableBase
     public AssetType AssetType => _provider.AssetType;
     public bool IsDefault => _provider.IsDefault;
     public int SortOrder => _provider.SortOrder;
+
+    /// <summary>
+    /// Marks an entry that has not yet been persisted to the provider.
+    /// </summary>
+    public bool IsNew { get; }
 
     /// <summary>
     /// The provider configuration produced by the current edits, before it is committed.
