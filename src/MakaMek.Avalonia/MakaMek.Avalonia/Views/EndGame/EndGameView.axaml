@@ -12,7 +12,7 @@
     <Grid>
         <templatedControls:HexagonBackground/>
         <Grid
-            Margin="10"
+            Margin="{StaticResource PageMargin}"
             RowDefinitions="Auto,Auto,*,Auto">
         <!-- Title -->
         <TextBlock Grid.Row="0"

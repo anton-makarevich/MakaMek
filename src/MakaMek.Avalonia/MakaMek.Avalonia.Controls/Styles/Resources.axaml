@@ -7,4 +7,5 @@
     </ResourceDictionary.MergedDictionaries>
 
     <FontFamily x:Key="AwesomeFontSolid">avares://Sanet.MakaMek.Avalonia.Controls/Assets/Fonts/#Font Awesome 6 Free Solid</FontFamily>
+    <Thickness x:Key="PageMargin">10</Thickness>
 </ResourceDictionary>

@@ -14,7 +14,7 @@
                 <TabItem.Header>
                     <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
                 </TabItem.Header>
-                <StackPanel Margin="10">
+                <StackPanel Margin="{StaticResource PageMargin}">
                     <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
                              IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
                              Margin="0,0,0,5"/>

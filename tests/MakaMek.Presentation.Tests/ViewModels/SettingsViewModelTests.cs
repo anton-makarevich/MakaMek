@@ -10,6 +10,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
+using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -459,71 +460,58 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task AddHubCommand_WhenExecuted_ShouldAddNewEditingEntry()
+    public async Task AddHubCommand_WhenExecuted_ShouldShowAddHubDialog()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         CreateSut();
+        _sut.SetNavigationService(navigationService);
 
         // Act
         await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
 
         // Assert
-        _sut.Hubs.Count.ShouldBe(1);
-        var entry = _sut.Hubs[0];
-        entry.IsNew.ShouldBeTrue();
-        entry.IsEditing.ShouldBeTrue();
-        entry.IsBuiltIn.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task AddHub_WhenCancelled_ShouldRemoveEntry()
-    {
-        // Arrange
-        CreateSut();
-        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
-        var entry = _sut.Hubs.Single();
-
-        // Act
-        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
-
-        // Assert
+        await navigationService.Received(1).ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(Arg.Any<AddHubViewModel>());
         _sut.Hubs.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task AddHub_WhenSaved_ShouldAddHubToProvider()
+    public async Task AddHub_WhenCancelled_ShouldNotAddHub()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         SetupProviderHubs([], "demo");
         CreateSut();
-        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
-        var entry = _sut.Hubs.Single();
-        entry.EditableName = "My Hub";
-        entry.EditableBaseUrl = "http://my-hub.example";
-        entry.EditableApiKey = "secret";
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(Arg.Any<AddHubViewModel>())
+            .Returns((AddHubResult?)null);
 
         // Act
-        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
-
-        // Assert
-        await _hubConfigurationProvider.Received(1).AddHub(Arg.Is<HubConfigData>(h =>
-            h.Id == entry.Id && h.Name == "My Hub" && h.BaseUrl == "http://my-hub.example" && h.ApiKey == "secret" && !h.IsBuiltIn));
-    }
-
-    [Fact]
-    public async Task AddHub_WhenSavedWithoutBaseUrl_ShouldNotCommit()
-    {
-        // Arrange
-        CreateSut();
         await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
-        var entry = _sut.Hubs.Single();
-        entry.EditableBaseUrl = "   ";
-
-        // Act
-        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
 
         // Assert
         await _hubConfigurationProvider.DidNotReceive().AddHub(Arg.Any<HubConfigData>());
+        _sut.Hubs.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddHub_WhenConfirmed_ShouldAddHubToProvider()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        SetupProviderHubs([], "demo");
+        CreateSut();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(Arg.Any<AddHubViewModel>())
+            .Returns(new AddHubResult { Name = "My Hub", BaseUrl = "http://my-hub.example", ApiKey = "secret" });
+
+        // Act
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
+
+        // Assert
+        await _hubConfigurationProvider.Received(1).AddHub(Arg.Is<HubConfigData>(h =>
+            h.Name == "My Hub" && h.BaseUrl == "http://my-hub.example" && h.ApiKey == "secret" && !h.IsBuiltIn));
+        await _hubConfigurationProvider.Received(1).GetHubs();
     }
 
     [Fact]
@@ -570,29 +558,29 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task AddHub_WhenPersistenceFails_KeepsEditorOpenAndDoesNotCommit()
+    public async Task AddHub_WhenPersistenceFails_ShouldLogErrorAndReloadHubs()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         _hubConfigurationProvider.AddHub(Arg.Any<HubConfigData>())
             .ThrowsAsync(new Exception("persist failed"));
+        SetupProviderHubs([], "demo");
         CreateSut();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(Arg.Any<AddHubViewModel>())
+            .Returns(new AddHubResult { Name = "My Hub", BaseUrl = "http://my-hub.example", ApiKey = "secret" });
+
+        // Act
         await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
-        var entry = _sut.Hubs.Single();
-        entry.EditableName = "My Hub";
-        entry.EditableBaseUrl = "http://my-hub.example";
-        entry.EditableApiKey = "secret";
 
-        // Act & Assert
-        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
-
-        // The editor stays open with the edited values so the save can be retried
-        entry.IsEditing.ShouldBeTrue();
-        entry.EditableName.ShouldBe("My Hub");
-        entry.EditableBaseUrl.ShouldBe("http://my-hub.example");
-        entry.EditableApiKey.ShouldBe("secret");
-        // The hub itself is not committed
-        entry.Hub.Name.ShouldBeEmpty();
-        entry.Hub.BaseUrl.ShouldBeEmpty();
+        // Assert
+        await _hubConfigurationProvider.Received(1).AddHub(Arg.Any<HubConfigData>());
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add hub")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
     }
 
     [Fact]
@@ -754,7 +742,7 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task AddHub_WhenSaved_ShouldProbeStatusForPersistedRow()
+    public async Task AddHub_WhenConfirmed_ShouldProbeStatusForPersistedRow()
     {
         // Arrange
         var hubs = new List<HubConfigData> { DemoHub };
@@ -764,23 +752,22 @@ public class SettingsViewModelTests
         _hubConfigurationProvider.AddHub(Arg.Any<HubConfigData>())
             .Returns(Task.CompletedTask)
             .AndDoes(callInfo => hubs.Add(callInfo.Arg<HubConfigData>()));
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(Arg.Any<AddHubViewModel>())
+            .Returns(new AddHubResult { Name = "My Hub", BaseUrl = "http://my-hub.example", ApiKey = "secret" });
         _relayRoomClient.Health(Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions>())
             .Returns((RelayClientError?)null);
         CreateSut();
-        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
-        var entry = _sut.Hubs.Single();
-        entry.EditableName = "My Hub";
-        entry.EditableBaseUrl = "http://my-hub.example";
-        entry.EditableApiKey = "secret";
+        _sut.SetNavigationService(navigationService);
 
         // Act
-        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+        await ((IAsyncCommand)_sut.AddHubCommand).ExecuteAsync();
 
         // Assert
         await _hubConfigurationProvider.Received(1).AddHub(Arg.Any<HubConfigData>());
         await WaitFor(() => _relayRoomClient.ReceivedCalls()
             .Any(c => c.GetMethodInfo().Name == nameof(IRelayRoomClient.Health)));
-        var persisted = _sut.Hubs.Single(h => h.Id == entry.Id);
+        var persisted = _sut.Hubs.Single(h => h.Name == "My Hub");
         await WaitFor(() => persisted.Status == HubStatus.Online);
     }
 
@@ -1099,114 +1086,108 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task AddProviderCommand_WhenExecuted_ShouldAddNewEditingEntry()
+    public async Task AddProviderCommand_WhenExecuted_ShouldShowAddProviderDialog()
     {
         // Arrange
-        var providers = new List<AssetProviderConfigData>();
-        SetupGrowingAssetProviders(providers);
+        var navigationService = Substitute.For<INavigationService>();
+        SetupAssetProviders([]);
         CreateSut();
+        _sut.SetNavigationService(navigationService);
 
         // Act
         await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
 
         // Assert
-        _sut.AssetProviders.Count.ShouldBe(1);
-        var entry = _sut.AssetProviders[0];
-        entry.IsNew.ShouldBeTrue();
-        entry.IsEditing.ShouldBeTrue();
-        entry.IsDefault.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task AddProvider_WhenCancelled_ShouldRemoveEntry()
-    {
-        // Arrange
-        var providers = new List<AssetProviderConfigData>();
-        SetupGrowingAssetProviders(providers);
-        CreateSut();
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        var entry = _sut.AssetProviders.Single();
-
-        // Act
-        await ((IAsyncCommand)entry.CancelCommand).ExecuteAsync();
-
-        // Assert
+        await navigationService.Received(1).ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(Arg.Any<AddProviderViewModel>());
         _sut.AssetProviders.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task AddProvider_WhenSaved_ShouldAddProviderToProvider()
+    public async Task AddProvider_WhenCancelled_ShouldNotAddProvider()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         var providers = new List<AssetProviderConfigData>();
         SetupGrowingAssetProviders(providers);
         CreateSut();
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        var entry = _sut.AssetProviders.Single();
-        entry.EditableProviderType = ProviderType.Filesystem;
-        entry.EditableAssetType = AssetType.Hexes;
-        entry.EditableUrlOrPath = "/data/hexes";
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(Arg.Any<AddProviderViewModel>())
+            .Returns((AddProviderResult?)null);
 
         // Act
-        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+
+        // Assert
+        await _assetProviderConfigurationProvider.DidNotReceive().AddProvider(Arg.Any<AssetProviderConfigData>());
+        _sut.AssetProviders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AddProvider_WhenConfirmed_ShouldAddProviderToProvider()
+    {
+        // Arrange
+        var navigationService = Substitute.For<INavigationService>();
+        var providers = new List<AssetProviderConfigData>();
+        SetupGrowingAssetProviders(providers);
+        CreateSut();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(Arg.Any<AddProviderViewModel>())
+            .Returns(new AddProviderResult
+            {
+                ProviderType = ProviderType.Filesystem,
+                AssetType = AssetType.Hexes,
+                UrlOrPath = "/data/hexes"
+            });
+
+        // Act
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
 
         // Assert
         await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Is<AssetProviderConfigData>(p =>
             p.ProviderType == ProviderType.Filesystem &&
             p.AssetType == AssetType.Hexes &&
             p.UrlOrPath == "/data/hexes" &&
+            p.SortOrder == 0 &&
             p.IsActive &&
             !p.IsDefault));
-    }
-
-    [Fact]
-    public async Task AddProvider_WhenUrlOrPathEmpty_ShouldNotAdd()
-    {
-        // Arrange
-        var providers = new List<AssetProviderConfigData>();
-        SetupGrowingAssetProviders(providers);
-        CreateSut();
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        var entry = _sut.AssetProviders.Single();
-        entry.EditableUrlOrPath = "   ";
-
-        // Act
-        await ((IAsyncCommand)entry.SaveCommand).ExecuteAsync();
-
-        // Assert
-        await _assetProviderConfigurationProvider.DidNotReceive().AddProvider(Arg.Any<AssetProviderConfigData>());
-        entry.IsEditing.ShouldBeTrue();
     }
 
     [Fact]
     public async Task AddProviderCommand_WhenAddProviderThrows_ShouldLogError()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         _assetProviderConfigurationProvider.GetProviders()
             .Returns(Task.FromResult<IReadOnlyList<AssetProviderConfigData>>([]));
         _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
             .ThrowsAsync(new Exception("persist failed"));
         CreateSut();
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        var entry = _sut.AssetProviders.Single();
-        entry.EditableUrlOrPath = "/data/units";
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(Arg.Any<AddProviderViewModel>())
+            .Returns(new AddProviderResult
+            {
+                ProviderType = ProviderType.Bucket,
+                AssetType = AssetType.Units,
+                UrlOrPath = "/data/units"
+            });
 
         // Act
-        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
 
         // Assert
         _logger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add provider")),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to add asset provider")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
     }
 
     [Fact]
-    public async Task AddProvider_WhenReloadAfterPersistThrows_ShouldKeepEditingAndPreservePendingValues()
+    public async Task AddProvider_WhenReloadAfterPersistFails_ShouldLogError()
     {
         // Arrange
+        var navigationService = Substitute.For<INavigationService>();
         var providers = new List<AssetProviderConfigData>();
         _assetProviderConfigurationProvider.GetProviders()
             .Returns(
@@ -1216,22 +1197,26 @@ public class SettingsViewModelTests
             .Returns(Task.CompletedTask)
             .AndDoes(callInfo => providers.Add(callInfo.Arg<AssetProviderConfigData>()));
         CreateSut();
-        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
-        var entry = _sut.AssetProviders.Single();
-        entry.EditableProviderType = ProviderType.Filesystem;
-        entry.EditableAssetType = AssetType.Hexes;
-        entry.EditableUrlOrPath = "/data/hexes";
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(Arg.Any<AddProviderViewModel>())
+            .Returns(new AddProviderResult
+            {
+                ProviderType = ProviderType.Bucket,
+                AssetType = AssetType.Units,
+                UrlOrPath = "/data/units"
+            });
 
         // Act
-        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
 
-        // Assert: the provider was persisted once, but the failed reload keeps the editor open
-        // with the pending values intact instead of closing on a stale list.
+        // Assert: the provider was persisted once; the failed reload is logged, not thrown
         await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Any<AssetProviderConfigData>());
-        entry.IsEditing.ShouldBeTrue();
-        entry.PendingProvider.ProviderType.ShouldBe(ProviderType.Filesystem);
-        entry.PendingProvider.AssetType.ShouldBe(AssetType.Hexes);
-        entry.PendingProvider.UrlOrPath.ShouldBe("/data/hexes");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to load asset providers")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>()!);
     }
 
     [Fact]

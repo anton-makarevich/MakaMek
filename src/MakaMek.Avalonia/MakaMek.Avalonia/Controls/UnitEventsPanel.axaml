@@ -12,7 +12,7 @@
     </UserControl.Resources>
     
     <ScrollViewer>
-        <ItemsControl ItemsSource="{Binding SelectedUnitEvents}" Margin="10">
+        <ItemsControl ItemsSource="{Binding SelectedUnitEvents}" Margin="{StaticResource PageMargin}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Margin="5" Padding="5" Text="{Binding FormattedText}" 

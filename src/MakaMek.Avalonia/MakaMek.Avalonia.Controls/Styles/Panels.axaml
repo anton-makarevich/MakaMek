@@ -21,7 +21,7 @@
         <Setter Property="MaxHeight" Value="400"/>
         <Setter Property="HorizontalAlignment" Value="Right"/>
         <Setter Property="VerticalAlignment" Value="Bottom"/>
-        <Setter Property="Margin" Value="10"/>
+        <Setter Property="Margin" Value="{StaticResource PageMargin}"/>
     </Style>
     
     <!-- Game Panel Header -->

@@ -76,7 +76,7 @@
 
             <ScrollViewer Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
                 <ItemsControl 
-                    Margin="10"
+                    Margin="{StaticResource PageMargin}"
                     ItemsSource="{Binding WeaponSelectionItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="wrappers:WeaponSelectionViewModel">

@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="400"
+             x:Class="Sanet.MakaMek.Avalonia.Views.Settings.AddHubView"
+             x:DataType="viewModels:AddHubViewModel">
+
+    <!-- Centered dialog panel -->
+    <templatedControls:GamePanel
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        MinWidth="400"
+        MaxWidth="600"
+        Title="{extensions:Localize 'Settings_Hub_AddDialogTitle'}"
+        CloseCommand="{Binding CancelCommand}">
+        <StackPanel Spacing="10" Margin="{StaticResource PageMargin}">
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{extensions:Localize 'Settings_Hub_Name'}"
+                           Classes="label"/>
+                <TextBox Text="{Binding Name, Mode=TwoWay}"/>
+            </StackPanel>
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{extensions:Localize 'Settings_Hub_Url'}"
+                           Classes="label"/>
+                <TextBox Text="{Binding BaseUrl, Mode=TwoWay}"
+                         Watermark="https://"/>
+            </StackPanel>
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{extensions:Localize 'Settings_Hub_ApiKey'}"
+                           Classes="label"/>
+                <TextBox Text="{Binding ApiKey, Mode=TwoWay}"
+                         PasswordChar="&#x25cf;"/>
+            </StackPanel>
+            <TextBlock Text="{Binding ValidationMessage}"
+                       IsVisible="{Binding HasValidationMessage}"
+                       Classes="bodySmall"
+                       TextWrapping="Wrap"
+                       Foreground="Red"/>
+            <Button HorizontalAlignment="Right"
+                    Content="{extensions:Localize 'Settings_Hub_AddHub'}"
+                    Command="{Binding ConfirmCommand}"
+                    Classes="primary"/>
+        </StackPanel>
+    </templatedControls:GamePanel>
+</UserControl>

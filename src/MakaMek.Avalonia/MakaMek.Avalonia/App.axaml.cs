@@ -142,6 +142,8 @@ public partial class App : Application
         navigationService.RegisterViews(typeof(AboutView), typeof(AboutViewModel));
         navigationService.RegisterViews(typeof(AvailableUnitsTableView), typeof(AvailableUnitsTableViewModel));
         navigationService.RegisterViews(typeof(UnitInfoView), typeof(UnitInfoViewModel));
+        navigationService.RegisterViews(typeof(AddHubView), typeof(AddHubViewModel));
+        navigationService.RegisterViews(typeof(AddProviderView), typeof(AddProviderViewModel));
     }
     private bool IsMobile()
     {
