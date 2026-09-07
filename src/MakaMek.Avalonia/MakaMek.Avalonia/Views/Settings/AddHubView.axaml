@@ -13,7 +13,8 @@
     <templatedControls:GamePanel
         HorizontalAlignment="Center"
         VerticalAlignment="Center"
-        Width="400"
+        MinWidth="400"
+        MaxWidth="600"
         Title="{extensions:Localize 'Settings_Hub_AddDialogTitle'}"
         CloseCommand="{Binding CancelCommand}">
         <StackPanel Spacing="10">
