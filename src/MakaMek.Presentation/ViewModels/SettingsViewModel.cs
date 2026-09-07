@@ -282,7 +282,7 @@ public class SettingsViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadAssetProvidersAsync()
+    private async Task<bool> LoadAssetProvidersAsync()
     {
         try
         {
@@ -308,10 +308,12 @@ public class SettingsViewModel : BaseViewModel
                     CanDeactivate = canDeactivate
                 });
             }
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load asset providers");
+            return false;
         }
     }
 
@@ -370,7 +372,6 @@ public class SettingsViewModel : BaseViewModel
             {
                 await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
             }
-            await LoadAssetProvidersAsync();
         }
         catch (InvalidOperationException ex)
         {
@@ -385,6 +386,13 @@ public class SettingsViewModel : BaseViewModel
                 ? "Failed to add provider {ProviderId}"
                 : "Failed to update provider {ProviderId}", entry.Id);
             throw;
+        }
+
+        // The write succeeded but the reload failed: report the save as failed so the editor
+        // stays open with the pending values instead of closing on a stale list.
+        if (!await LoadAssetProvidersAsync())
+        {
+            throw new InvalidOperationException("Failed to reload asset providers after save");
         }
     }
 

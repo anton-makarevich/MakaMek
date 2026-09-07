@@ -1204,6 +1204,37 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task AddProvider_WhenReloadAfterPersistThrows_ShouldKeepEditingAndPreservePendingValues()
+    {
+        // Arrange
+        var providers = new List<AssetProviderConfigData>();
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(
+                _ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()),
+                _ => Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("reload failed")));
+        _assetProviderConfigurationProvider.AddProvider(Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(callInfo => providers.Add(callInfo.Arg<AssetProviderConfigData>()));
+        CreateSut();
+        await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
+        var entry = _sut.AssetProviders.Single();
+        entry.EditableProviderType = ProviderType.Filesystem;
+        entry.EditableAssetType = AssetType.Hexes;
+        entry.EditableUrlOrPath = "/data/hexes";
+
+        // Act
+        await Should.ThrowAsync<Exception>(() => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        // Assert: the provider was persisted once, but the failed reload keeps the editor open
+        // with the pending values intact instead of closing on a stale list.
+        await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Any<AssetProviderConfigData>());
+        entry.IsEditing.ShouldBeTrue();
+        entry.PendingProvider.ProviderType.ShouldBe(ProviderType.Filesystem);
+        entry.PendingProvider.AssetType.ShouldBe(AssetType.Hexes);
+        entry.PendingProvider.UrlOrPath.ShouldBe("/data/hexes");
+    }
+
+    [Fact]
     public async Task ReloadProvidersCommand_WhenExecuted_ShouldTriggerAssetReloadAndRefreshCacheStatus()
     {
         // Arrange
