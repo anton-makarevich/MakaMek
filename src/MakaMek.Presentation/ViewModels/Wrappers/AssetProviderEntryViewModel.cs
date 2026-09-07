@@ -12,8 +12,10 @@ public class AssetProviderEntryViewModel : BindableBase
     private readonly Func<AssetProviderEntryViewModel, Task>? _onRemove;
     private readonly Func<AssetProviderEntryViewModel, Task>? _onSaved;
     private readonly Action<AssetProviderEntryViewModel>? _onCancelled;
+    private readonly string? _cachedCountFormat;
     private bool _isActive;
     private bool _canDeactivate = true;
+    private int _cachedCount;
     private ProviderType _editableProviderType;
     private AssetType _editableAssetType;
     private string _editableUrlOrPath;
@@ -24,7 +26,8 @@ public class AssetProviderEntryViewModel : BindableBase
         Func<AssetProviderEntryViewModel, Task>? onToggleActive = null,
         Func<AssetProviderEntryViewModel, Task>? onRemove = null,
         Func<AssetProviderEntryViewModel, Task>? onSaved = null,
-        Action<AssetProviderEntryViewModel>? onCancelled = null)
+        Action<AssetProviderEntryViewModel>? onCancelled = null,
+        string? cachedCountFormat = null)
     {
         _provider = provider;
         IsNew = isNew;
@@ -32,6 +35,7 @@ public class AssetProviderEntryViewModel : BindableBase
         _onRemove = onRemove;
         _onSaved = onSaved;
         _onCancelled = onCancelled;
+        _cachedCountFormat = cachedCountFormat;
         _isActive = provider.IsActive;
         _editableProviderType = provider.ProviderType;
         _editableAssetType = provider.AssetType;
@@ -48,6 +52,30 @@ public class AssetProviderEntryViewModel : BindableBase
     public string UrlOrPath => _provider.UrlOrPath;
     public ProviderType ProviderType => _provider.ProviderType;
     public AssetType AssetType => _provider.AssetType;
+
+    /// <summary>
+    /// Number of cached resources loaded from this provider. Raised by the owner
+    /// (e.g. <c>SettingsViewModel</c>) after it queries the caching services.
+    /// </summary>
+    public int CachedCount
+    {
+        get => _cachedCount;
+        set
+        {
+            if (_cachedCount == value) return;
+            _cachedCount = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(CachedCountLabel));
+        }
+    }
+
+    /// <summary>
+    /// Display string for <see cref="CachedCount"/>, formatted with the injected
+    /// format string when one is provided (e.g. "{0} items").
+    /// </summary>
+    public string CachedCountLabel => _cachedCountFormat is null
+        ? _cachedCount.ToString()
+        : string.Format(_cachedCountFormat, _cachedCount);
     public bool IsDefault => _provider.IsDefault;
     public int SortOrder => _provider.SortOrder;
 

@@ -37,16 +37,19 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
                 GetFileExtension(config.AssetType),
                 config.UrlOrPath,
                 _cachingService,
-                _loggerFactory.CreateLogger<BucketResourceStreamProvider>()),
+                _loggerFactory.CreateLogger<BucketResourceStreamProvider>(),
+                id: config.Id),
             ProviderType.GitHub => new GitHubResourceStreamProvider(
                 GetFileExtension(config.AssetType),
                 config.UrlOrPath,
                 GetGitHubSubPath(config.AssetType),
                 _cachingService,
-                _loggerFactory.CreateLogger<GitHubResourceStreamProvider>()),
+                _loggerFactory.CreateLogger<GitHubResourceStreamProvider>(),
+                id: config.Id),
             ProviderType.Filesystem => new LocalFolderResourceStreamProvider(
                 config.UrlOrPath,
-                GetFileExtension(config.AssetType)),
+                GetFileExtension(config.AssetType),
+                config.Id),
             _ => throw new ArgumentOutOfRangeException(nameof(config.ProviderType), config.ProviderType,
                 $"Unsupported provider type '{config.ProviderType}'.")
         };

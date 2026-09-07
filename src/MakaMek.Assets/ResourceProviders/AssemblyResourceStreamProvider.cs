@@ -9,6 +9,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
 {
     private readonly Assembly? _hostAssembly;
     private readonly string _resourceType;
+    private readonly string _id;
     private readonly Lazy<List<string>> _unitIdToResourceMap;
 
     /// <summary>
@@ -16,12 +17,17 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// </summary>
     /// <param name="resourceType">The type of resources to load (e.g., "mmux", "json", "xml")</param>
     /// <param name="hostAssembly">Assembly to scan for resources. If null, use entry assembly.</param>
-    public AssemblyResourceStreamProvider(string resourceType, Assembly? hostAssembly = null)
+    /// <param name="id">Stable provider identifier. Defaults to the resource type.</param>
+    public AssemblyResourceStreamProvider(string resourceType, Assembly? hostAssembly = null, string? id = null)
     {
         _resourceType = resourceType ?? throw new ArgumentNullException(nameof(resourceType));
         _hostAssembly = hostAssembly;
+        _id = string.IsNullOrWhiteSpace(id) ? resourceType : id;
         _unitIdToResourceMap = new Lazy<List<string>>(BuildUnitIdToResourceList);
     }
+
+    /// <inheritdoc />
+    public string Id => _id;
 
     /// <summary>
     /// Gets all available unit identifiers from embedded assembly resources

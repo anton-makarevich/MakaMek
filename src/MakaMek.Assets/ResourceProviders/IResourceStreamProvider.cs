@@ -6,6 +6,12 @@ namespace Sanet.MakaMek.Assets.ResourceProviders;
 public interface IResourceStreamProvider
 {
     /// <summary>
+    /// Stable identifier of this provider (matches the configured provider id, e.g. "bucket",
+    /// "local"). Used to attribute cached resources to the provider that loaded them.
+    /// </summary>
+    string Id { get; }
+
+    /// <summary>
     /// Gets all available resource identifiers from this provider
     /// </summary>
     /// <returns>Collection of resource identifiers</returns>

@@ -279,4 +279,50 @@ public class AssetProviderEntryViewModelTests
         sut.EditableAssetType.ShouldBe(AssetType.Units);
         sut.EditableUrlOrPath.ShouldBe("/assets/local");
     }
+
+    [Fact]
+    public void CachedCount_DefaultsToZero()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("a"));
+
+        sut.CachedCount.ShouldBe(0);
+        sut.CachedCountLabel.ShouldBe("0");
+    }
+
+    [Fact]
+    public void CachedCount_Set_RaisesPropertyChangedForCountAndLabel()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("a"));
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        sut.CachedCount = 5;
+
+        changed.ShouldContain(nameof(AssetProviderEntryViewModel.CachedCount));
+        changed.ShouldContain(nameof(AssetProviderEntryViewModel.CachedCountLabel));
+        sut.CachedCountLabel.ShouldBe("5");
+    }
+
+    [Fact]
+    public void CachedCountLabel_WhenFormatProvided_FormatsCount()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("a"), cachedCountFormat: "{0} items");
+
+        sut.CachedCount = 5;
+
+        sut.CachedCountLabel.ShouldBe("5 items");
+    }
+
+    [Fact]
+    public void CachedCount_SetToSameValue_DoesNotRaisePropertyChanged()
+    {
+        var sut = new AssetProviderEntryViewModel(Provider("a"));
+        sut.CachedCount = 2;
+        var raised = false;
+        sut.PropertyChanged += (_, _) => raised = true;
+
+        sut.CachedCount = 2;
+
+        raised.ShouldBeFalse();
+    }
 }

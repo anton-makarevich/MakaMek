@@ -25,11 +25,14 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     /// <param name="cachingService">Caching service to cache downloaded files and listings</param>
     /// <param name="logger">Logger for the derived provider type</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
+    /// <param name="id">Stable provider identifier. Defaults to the concrete type name.</param>
     protected RemoteResourceStreamProvider(
         IFileCachingService cachingService,
         ILogger logger,
-        HttpClient? httpClient = null)
+        HttpClient? httpClient = null,
+        string? id = null)
     {
+        Id = string.IsNullOrWhiteSpace(id) ? GetType().Name : id;
         _cachingService = cachingService;
         _logger = logger;
         if (httpClient != null)
@@ -46,6 +49,9 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
 
         _availableResourceIds = new Lazy<Task<List<(string Url, string Sha)>>>(LoadAvailableResourceIds);
     }
+
+    /// <inheritdoc />
+    public string Id { get; }
 
     /// <summary>
     /// Description of the remote listing, used in log messages (e.g. "GitHub contents")

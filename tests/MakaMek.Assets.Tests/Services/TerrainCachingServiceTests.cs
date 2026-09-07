@@ -751,6 +751,86 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
+    public async Task GetCachedCount_ShouldReturnCountForProvider()
+    {
+        // Arrange
+        using var stream1 = CreateMmtxPackage("biome-alpha", "Biome Alpha",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.Id.Returns("alpha-provider");
+        provider1.GetAvailableResourceIds().Returns(["resource1"]);
+        provider1.GetResourceStream("resource1").Returns(stream1);
+
+        using var stream2 = CreateMmtxPackage("biome-beta", "Biome Beta",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.Id.Returns("beta-provider");
+        provider2.GetAvailableResourceIds().Returns(["resource2"]);
+        provider2.GetResourceStream("resource2").Returns(stream2);
+
+        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        await sut.GetLoadedBiomes();
+
+        // Assert
+        (await sut.GetCachedCount("alpha-provider")).ShouldBe(1);
+        (await sut.GetCachedCount("beta-provider")).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_WhenDuplicateBiomeOverwritten_AttributesToOverwritingProvider()
+    {
+        // Arrange — provider1 serves biome "shared" first; provider2 (lower in list) overwrites it
+        using var stream1 = CreateMmtxPackage("shared", "Biome Shared",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.Id.Returns("a");
+        provider1.GetAvailableResourceIds().Returns(["resource1"]);
+        provider1.GetResourceStream("resource1").Returns(stream1);
+
+        using var stream2 = CreateMmtxPackage("shared", "Biome Shared Override",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(2));
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.Id.Returns("b");
+        provider2.GetAvailableResourceIds().Returns(["resource2"]);
+        provider2.GetResourceStream("resource2").Returns(stream2);
+
+        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        await sut.GetLoadedBiomes();
+
+        // Assert — the overwriting provider owns the biome
+        (await sut.GetCachedCount("a")).ShouldBe(0);
+        (await sut.GetCachedCount("b")).ShouldBe(1);
+        (await sut.GetCachedCount("unknown")).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_WhenProviderIdNullOrEmpty_ReturnsZero()
+    {
+        // Arrange
+        var sut = new TerrainCachingService([], _loggerFactory);
+
+        // Act & Assert — no initialization is triggered for null/empty provider ids
+        (await sut.GetCachedCount(null!)).ShouldBe(0);
+        (await sut.GetCachedCount(string.Empty)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_WhenBiomeLoadedFromStream_IsNotAttributedToAnyProvider()
+    {
+        // Arrange — a stream-loaded biome has no provider id and must not contribute to any count
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var sut = new TerrainCachingService([], _loggerFactory);
+        await sut.LoadTerrainFromMmtxStream(mmtxStream);
+
+        // Act & Assert
+        (await sut.GetCachedCount("any-provider")).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task StreamProvider_UniqueBiomesFromBothProviders_ShouldAllBePresent()
     {
         // Arrange — provider1 serves "biome-alpha", provider2 serves "biome-beta"

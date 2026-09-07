@@ -161,7 +161,7 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         try
         {
             var package = await _packageReader.Read(mmtxStream);
-            AddPackageToCache(package, CurrentState);
+            AddPackageToCache(package, CurrentState, null);
             return package.Manifest;
         }
         catch (Exception ex)
@@ -180,7 +180,7 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(stream, cancellationToken);
-        AddPackageToCache(package, state);
+        AddPackageToCache(package, state, provider.Id);
         _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}",
             package.Manifest.Id, package.Manifest.Version);
     }
@@ -189,7 +189,7 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     /// Adds a parsed terrain package (manifest + assets) to the cache, applying the shared
     /// duplicate policy: a package from a provider lower in the list overwrites an earlier one.
     /// </summary>
-    private void AddPackageToCache(TerrainPackage package, TerrainCacheState state)
+    private void AddPackageToCache(TerrainPackage package, TerrainCacheState state, string? providerId)
     {
         // Serialize the entire merge — duplicate detection, remove and all inserts — so a
         // duplicate biome is replaced by one complete package instead of an interleaved
@@ -206,6 +206,8 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
             }
 
             state.BiomeManifests[package.Manifest.Id] = package.Manifest;
+            if (!string.IsNullOrEmpty(providerId))
+                state.ResourceOwnership[package.Manifest.Id] = providerId;
 
             foreach (var asset in package.Assets)
             {

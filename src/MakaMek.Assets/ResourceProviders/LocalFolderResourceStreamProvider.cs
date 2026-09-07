@@ -8,17 +8,23 @@ public class LocalFolderResourceStreamProvider : IResourceStreamProvider
 {
     private readonly string _folderPath;
     private readonly string _fileExtension;
+    private readonly string _id;
 
     /// <summary>
     /// Initializes a new instance of LocalFolderResourceStreamProvider
     /// </summary>
     /// <param name="folderPath">Absolute path to the local folder containing resource files</param>
     /// <param name="fileExtension">File extension to filter by (e.g., "mmux", "mmtx") without the leading dot</param>
-    public LocalFolderResourceStreamProvider(string folderPath, string fileExtension)
+    /// <param name="id">Stable provider identifier. Defaults to the folder path.</param>
+    public LocalFolderResourceStreamProvider(string folderPath, string fileExtension, string? id = null)
     {
         _folderPath = folderPath ?? throw new ArgumentNullException(nameof(folderPath));
         _fileExtension = (fileExtension ?? throw new ArgumentNullException(nameof(fileExtension))).TrimStart('.');
+        _id = string.IsNullOrWhiteSpace(id) ? folderPath : id;
     }
+
+    /// <inheritdoc />
+    public string Id => _id;
 
     /// <summary>
     /// Gets all available resource identifiers by scanning the local folder

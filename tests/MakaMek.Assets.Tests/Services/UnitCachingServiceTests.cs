@@ -295,6 +295,77 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
+    public async Task GetCachedCount_ShouldReturnCountForProvider()
+    {
+        // Arrange
+        _resourceProvider.Id.Returns("provider-a");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        await sut.GetAvailableModels();
+        var count = await sut.GetCachedCount("provider-a");
+
+        // Assert
+        count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_ShouldCountMultipleModelsFromSameProvider()
+    {
+        // Arrange
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.Id.Returns("provider-a");
+        provider.GetAvailableResourceIds().Returns(["LCT-1V", "SHD-2D"]);
+        provider.GetResourceStream(Arg.Any<string>())
+            .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
+
+        var sut = new UnitCachingService([provider], _loggerFactory);
+
+        // Act
+        await sut.GetAvailableModels();
+
+        // Assert
+        (await sut.GetCachedCount("provider-a")).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_WhenDuplicateModelOverwritten_AttributesToOverwritingProvider()
+    {
+        // Arrange — provider1 serves LCT-1V first; provider2 (lower in list) overwrites it
+        var provider1 = Substitute.For<IResourceStreamProvider>();
+        provider1.Id.Returns("a");
+        provider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider1.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-A"));
+
+        var provider2 = Substitute.For<IResourceStreamProvider>();
+        provider2.Id.Returns("b");
+        provider2.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        provider2.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-B"));
+
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+
+        // Act
+        await sut.GetAvailableModels();
+
+        // Assert — the overwriting provider owns the model
+        (await sut.GetCachedCount("a")).ShouldBe(0);
+        (await sut.GetCachedCount("b")).ShouldBe(1);
+        (await sut.GetCachedCount("unknown")).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task GetCachedCount_WhenProviderIdNullOrEmpty_ReturnsZero()
+    {
+        // Arrange
+        var sut = new UnitCachingService([], _loggerFactory);
+
+        // Act & Assert — no initialization is triggered for null/empty provider ids
+        (await sut.GetCachedCount(null!)).ShouldBe(0);
+        (await sut.GetCachedCount(string.Empty)).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Service_ShouldHandleEmptyProviders()
     {
         // Arrange

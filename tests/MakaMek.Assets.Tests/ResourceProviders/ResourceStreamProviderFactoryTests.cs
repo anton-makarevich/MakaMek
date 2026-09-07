@@ -167,6 +167,22 @@ public class ResourceStreamProviderFactoryTests
         providers[1].ShouldBeOfType<LocalFolderResourceStreamProvider>();
     }
 
+    [Theory]
+    [InlineData(ProviderType.Bucket)]
+    [InlineData(ProviderType.GitHub)]
+    [InlineData(ProviderType.Filesystem)]
+    public void Create_ProviderId_MatchesConfigId(ProviderType providerType)
+    {
+        var sut = CreateSut();
+        var config = new AssetProviderConfigData(
+            "provider-42", providerType, AssetType.Units, "https://data.example.com", IsActive: true, IsDefault: false,
+            SortOrder: 0);
+
+        var provider = sut.Create(config);
+
+        provider.Id.ShouldBe("provider-42");
+    }
+
     [Fact]
     public void Create_WithNullConfig_ThrowsArgumentNullException()
     {

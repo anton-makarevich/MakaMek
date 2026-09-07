@@ -23,6 +23,13 @@ public interface ITerrainAssetService : IProgressReporting
     /// </summary>
     /// <returns>Collection of biome IDs</returns>
     Task<IEnumerable<string>> GetLoadedBiomes();
+
+    /// <summary>
+    /// Gets the number of loaded biomes that were loaded from the provider with the given id.
+    /// A biome overwritten by a provider lower in the list is attributed to the overwriting provider.
+    /// </summary>
+    /// <param name="providerId">The provider id to count biomes for</param>
+    Task<int> GetCachedCount(string providerId);
     
     /// <summary>
     /// Gets a base terrain image for the specified biome

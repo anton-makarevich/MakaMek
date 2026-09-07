@@ -54,9 +54,6 @@ public class SettingsViewModel : BaseViewModel
         RemoveAssetProviderCommand = new AsyncCommand<AssetProviderEntryViewModel>(RemoveAssetProviderAsync);
         AddProviderCommand = new AsyncCommand(AddProviderAsync);
         ReloadProvidersCommand = new AsyncCommand(ReloadProvidersAsync);
-
-        // Initialize cache status
-        InitializeCacheStatusAsync().SafeFireAndForget();
     }
 
     public ICommand ClearCacheCommand { get; }
@@ -231,27 +228,6 @@ public class SettingsViewModel : BaseViewModel
         }
     }
 
-    private async Task InitializeCacheStatusAsync()
-    {
-        try
-        {
-            var models = await _unitCachingService.GetAvailableModels();
-            var biomes = await _terrainAssetService.GetLoadedBiomes();
-            var unitCount = models.Count();
-            var biomeCount = biomes.Count();
-
-            CacheStatus = string.Format(
-                _localizationService.GetString("Settings_Data_CacheStatus"),
-                unitCount,
-                biomeCount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to initialize cache status");
-            CacheStatus = _localizationService.GetString("Settings_Data_CacheStatus");
-        }
-    }
-
     private async Task ClearCacheAsync()
     {
         IsBusy = true;
@@ -269,7 +245,7 @@ public class SettingsViewModel : BaseViewModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to clear cache");
-            CacheStatus = _localizationService.GetString("Settings_Data_CacheStatus");
+            CacheStatus = string.Empty;
         }
         finally
         {
@@ -286,6 +262,7 @@ public class SettingsViewModel : BaseViewModel
                 .Where(p => p.IsActive)
                 .GroupBy(p => p.AssetType)
                 .ToDictionary(g => g.Key, g => g.Count());
+            var cachedCountFormat = _localizationService.GetString("Settings_Data_Providers_Count");
 
             AssetProviders.Clear();
             foreach (var provider in providers)
@@ -293,14 +270,17 @@ public class SettingsViewModel : BaseViewModel
                 var canDeactivate = provider.IsActive
                     ? activeCounts.GetValueOrDefault(provider.AssetType, 0) > 1
                     : true;
-                AssetProviders.Add(new AssetProviderEntryViewModel(
+                var entry = new AssetProviderEntryViewModel(
                     provider,
                     onToggleActive: OnAssetProviderToggleActive,
                     onRemove: OnAssetProviderRemove,
-                    onSaved: OnAssetProviderSaved)
+                    onSaved: OnAssetProviderSaved,
+                    cachedCountFormat: cachedCountFormat)
                 {
                     CanDeactivate = canDeactivate
-                });
+                };
+                entry.CachedCount = await GetProviderCachedCountAsync(provider);
+                AssetProviders.Add(entry);
             }
             return true;
         }
@@ -309,6 +289,16 @@ public class SettingsViewModel : BaseViewModel
             _logger.LogError(ex, "Failed to load asset providers");
             return false;
         }
+    }
+
+    private async Task<int> GetProviderCachedCountAsync(AssetProviderConfigData provider)
+    {
+        return provider.AssetType switch
+        {
+            AssetType.Units => await _unitCachingService.GetCachedCount(provider.Id),
+            AssetType.Hexes => await _terrainAssetService.GetCachedCount(provider.Id),
+            _ => 0
+        };
     }
 
     private async Task OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)
@@ -414,10 +404,10 @@ public class SettingsViewModel : BaseViewModel
         IsBusy = true;
         try
         {
-            // Toggle/remove actions persist immediately; refresh the list to pick up any external changes.
-            await LoadAssetProvidersAsync();
+            // Reload caches from the persisted (possibly externally changed) provider set first,
+            // then re-read the list so row visuals and cached counts reflect the new set.
             await _assetLoadingViewModel.ReloadAsync();
-            await InitializeCacheStatusAsync();
+            await LoadAssetProvidersAsync();
         }
         catch (Exception ex)
         {
