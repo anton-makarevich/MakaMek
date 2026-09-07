@@ -13,7 +13,7 @@
 
     <Grid>
         <templatedControls:HexagonBackground/>
-        <Grid Margin="10" 
+        <Grid Margin="{StaticResource PageMargin}" 
               RowDefinitions="Auto,*">
             <templatedControls:ToolBar
                 Title="{extensions:Localize 'JoinGame_Title'}"

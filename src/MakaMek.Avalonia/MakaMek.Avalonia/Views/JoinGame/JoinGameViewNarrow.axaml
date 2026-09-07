@@ -24,7 +24,7 @@
     <ScrollViewer Classes="gameScrollViewer"
                   HorizontalScrollBarVisibility="Disabled">
       <Grid RowDefinitions="Auto,Auto,Auto"
-            Margin="10"
+            Margin="{StaticResource PageMargin}"
             RowSpacing="15">
         <!-- Connect Fragment -->
        <Border Classes="card">

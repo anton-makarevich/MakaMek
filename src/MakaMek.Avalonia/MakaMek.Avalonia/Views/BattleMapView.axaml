@@ -158,7 +158,7 @@
         
         <StackPanel HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
-                    Margin="10"
+                    Margin="{StaticResource PageMargin}"
                     Spacing="10">
             <!-- Center Map Button -->
             <templatedControls:ActionButton
@@ -277,7 +277,7 @@
             IsVisible="{Binding IsMapSettingsPanelVisible}"
             Title="{extensions:Localize 'BattleMap_Settings'}"
             CloseCommand="{Binding ToggleMapSettings}">
-            <StackPanel Margin="10" Spacing="10">
+            <StackPanel Margin="{StaticResource PageMargin}" Spacing="10">
                 <CheckBox Content="{extensions:Localize 'BattleMap_ShowLabels'}"
                           IsChecked="{Binding HexConfiguration.ShowLabels}"
                           Foreground="{StaticResource TextBrush}"/>

@@ -49,7 +49,7 @@
                     Margin="20"
                     Spacing="4">
             <Image Source="avares://Sanet.MakaMek.Avalonia/Assets/makameklogo.png"
-                   Margin="10"
+                   Margin="{StaticResource PageMargin}"
                    Stretch="UniformToFill"
                    Width="480"
                    MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=StackPanel}}"/>

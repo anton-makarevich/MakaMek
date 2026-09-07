@@ -11,7 +11,7 @@
 
     <Grid>
         <templatedControls:HexagonBackground/>
-        <Grid Margin="10" RowDefinitions="Auto,*">
+        <Grid Margin="{StaticResource PageMargin}" RowDefinitions="Auto,*">
             <!-- Toolbar with Back Button -->
             <templatedControls:ToolBar
                 Title="{extensions:Localize 'AboutView_Title'}"
