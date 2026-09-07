@@ -146,17 +146,28 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task AddHubAsync()
     {
-        var entry = new HubEntryViewModel(
-            new HubConfigData(Guid.NewGuid().ToString("N"), string.Empty, string.Empty, string.Empty, false),
-            isNew: true,
-            onSaved: OnHubSaved,
-            onCancelled: OnHubEditCancelled,
-            checkStatus: CheckHubStatusAsync);
+        var dialog = new AddHubViewModel(_localizationService);
+        dialog.SetNavigationService(NavigationService);
+        var result = await NavigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(dialog);
 
-        Hubs.Add(entry);
-        _selectedHub = entry;
-        NotifyPropertyChanged(nameof(SelectedHub));
-        await entry.StartEditing();
+        if (result is null) return;
+
+        var hub = new HubConfigData(
+            Guid.NewGuid().ToString("N"),
+            result.Name,
+            result.BaseUrl,
+            result.ApiKey,
+            false);
+        try
+        {
+            await _hubConfigurationProvider.AddHub(hub);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add hub {HubName}", hub.Name);
+        }
+
+        await LoadHubsAsync();
     }
 
     private async Task RemoveHubAsync(HubEntryViewModel? entry)
@@ -170,24 +181,9 @@ public class SettingsViewModel : BaseViewModel
     private async Task OnHubSaved(HubEntryViewModel entry)
     {
         var pending = entry.PendingHub;
-        if (entry.IsNew)
-        {
-            await _hubConfigurationProvider.AddHub(pending);
-        }
-        else
-        {
-            await _hubConfigurationProvider.UpdateHub(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
-        }
+        await _hubConfigurationProvider.UpdateHub(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
 
         await LoadHubsAsync();
-    }
-
-    private void OnHubEditCancelled(HubEntryViewModel entry)
-    {
-        if (entry.IsNew)
-        {
-            Hubs.Remove(entry);
-        }
     }
 
     private async Task LoadHubsAsync()
@@ -202,7 +198,6 @@ public class SettingsViewModel : BaseViewModel
                 hub,
                 isNew: false,
                 onSaved: OnHubSaved,
-                onCancelled: OnHubEditCancelled,
                 checkStatus: CheckHubStatusAsync));
         }
 
@@ -302,8 +297,7 @@ public class SettingsViewModel : BaseViewModel
                     provider,
                     onToggleActive: OnAssetProviderToggleActive,
                     onRemove: OnAssetProviderRemove,
-                    onSaved: OnAssetProviderSaved,
-                    onCancelled: OnAssetProviderEditCancelled)
+                    onSaved: OnAssetProviderSaved)
                 {
                     CanDeactivate = canDeactivate
                 });
@@ -364,27 +358,16 @@ public class SettingsViewModel : BaseViewModel
     {
         try
         {
-            if (entry.IsNew)
-            {
-                await _assetProviderConfigurationProvider.AddProvider(entry.PendingProvider);
-            }
-            else
-            {
-                await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
-            }
+            await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, entry.IsNew
-                ? "Cannot add provider {ProviderId}"
-                : "Cannot update provider {ProviderId}", entry.Id);
+            _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, entry.IsNew
-                ? "Failed to add provider {ProviderId}"
-                : "Failed to update provider {ProviderId}", entry.Id);
+            _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
             throw;
         }
 
@@ -396,39 +379,29 @@ public class SettingsViewModel : BaseViewModel
         }
     }
 
-    private void OnAssetProviderEditCancelled(AssetProviderEntryViewModel entry)
-    {
-        if (entry.IsNew)
-        {
-            AssetProviders.Remove(entry);
-        }
-    }
-
     private async Task AddProviderAsync()
     {
+        var dialog = new AddProviderViewModel(ProviderTypes, AssetTypes, _localizationService);
+        dialog.SetNavigationService(NavigationService);
+        var result = await NavigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(dialog);
+
+        if (result is null) return;
+
         try
         {
             var providers = await _assetProviderConfigurationProvider.GetProviders();
             var nextSortOrder = providers.Count == 0 ? 0 : providers.Max(p => p.SortOrder) + 1;
             var provider = new AssetProviderConfigData(
                 Guid.NewGuid().ToString("N"),
-                ProviderType.Bucket,
-                AssetType.Units,
-                string.Empty,
+                result.ProviderType,
+                result.AssetType,
+                result.UrlOrPath,
                 IsActive: true,
                 IsDefault: false,
                 nextSortOrder);
 
-            var entry = new AssetProviderEntryViewModel(
-                provider,
-                isNew: true,
-                onToggleActive: OnAssetProviderToggleActive,
-                onRemove: OnAssetProviderRemove,
-                onSaved: OnAssetProviderSaved,
-                onCancelled: OnAssetProviderEditCancelled);
-
-            AssetProviders.Add(entry);
-            await entry.StartEditing();
+            await _assetProviderConfigurationProvider.AddProvider(provider);
+            await LoadAssetProvidersAsync();
         }
         catch (Exception ex)
         {
