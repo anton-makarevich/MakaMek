@@ -112,7 +112,6 @@ public class SettingsViewModel : BaseViewModel
     // Localized string properties
     public string DataSectionTitle => _localizationService.GetString("Settings_Data_SectionTitle");
     public string ClearCacheButton => _localizationService.GetString("Settings_Data_ClearCache");
-    public string ClearCacheDescription => _localizationService.GetString("Settings_Data_ClearCacheDescription");
 
     public string HubSectionTitle => _localizationService.GetString("Settings_Hub_SectionTitle");
     public string HubSelectLabel => _localizationService.GetString("Settings_Hub_Select");

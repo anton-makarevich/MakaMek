@@ -405,7 +405,6 @@ public class FakeLocalizationService : ILocalizationService
         ["SettingsView_Title"] = "Settings",
         ["Settings_Data_SectionTitle"] = "Data",
         ["Settings_Data_ClearCache"] = "Clear Cache",
-        ["Settings_Data_ClearCacheDescription"] = "Note: An app restart is required after clearing the cache.",
         ["Settings_Data_Clearing"] = "Clearing cache...",
         ["Settings_Data_Cleared"] = "Cache cleared successfully",
         ["Settings_Data_Providers_SectionTitle"] = "Asset Providers",

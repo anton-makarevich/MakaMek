@@ -114,10 +114,7 @@
                         IsEnabled="{Binding !IsBusy}"
                         Classes="primary"/>
             </StackPanel>
-            <TextBlock Text="{Binding ClearCacheDescription}"
-                       TextWrapping="Wrap"
-                       Classes="body"
-                       Foreground="Gray"/>
+
             <TextBlock Text="{Binding CacheStatus}"
                        Classes="body"
                        FontWeight="SemiBold"/>
