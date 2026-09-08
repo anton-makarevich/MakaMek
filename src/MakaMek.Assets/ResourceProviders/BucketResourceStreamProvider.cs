@@ -24,14 +24,16 @@ public class BucketResourceStreamProvider : RemoteResourceStreamProvider
     /// <param name="logger">Logger for class</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
     /// <param name="cachingService">Caching service to cache downloaded files</param>
+    /// <param name="id">Stable provider identifier. Defaults to the type name.</param>
     public BucketResourceStreamProvider(
         string manifestPath,
         string fileExtension,
         string baseUrl,
         IFileCachingService cachingService,
         ILogger<BucketResourceStreamProvider> logger,
-        HttpClient? httpClient = null)
-        : base(cachingService, logger, httpClient)
+        HttpClient? httpClient = null,
+        string? id = null)
+        : base(cachingService, logger, httpClient, id)
     {
         _manifestUrl = $"{baseUrl.TrimEnd('/')}/{manifestPath}";
         _fileExtension = fileExtension;

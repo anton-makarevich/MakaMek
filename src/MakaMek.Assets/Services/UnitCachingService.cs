@@ -104,7 +104,7 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(stream, cancellationToken);
-        AddPackageToCache(package, state);
+        AddPackageToCache(package, state, provider.Id);
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     /// replaces the complete earlier package. Both the data and the image are committed together
     /// so a duplicate is never an interleaved mixture of different packages.
     /// </summary>
-    private void AddPackageToCache(UnitPackage package, UnitCacheState state)
+    private void AddPackageToCache(UnitPackage package, UnitCacheState state, string? providerId)
     {
         // Serialize both writes — data and image — so a duplicate model is replaced by one
         // complete package instead of an interleaved mixture when multiple callers commit
@@ -123,6 +123,8 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
             var model = package.Data.Model;
             TryCache(state.UnitDataCache, model, package.Data);
             TryCache(state.ImageCache, model, package.Image);
+            if (!string.IsNullOrEmpty(providerId))
+                state.ResourceOwnership[model] = providerId;
         }
     }
 }

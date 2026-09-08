@@ -214,6 +214,30 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ClearCacheCommand_ShouldZeroCachedCountOnAllProviders()
+    {
+        // Arrange
+        SetupAssetProviders([
+            Provider("p1"),
+            new AssetProviderConfigData("p2", ProviderType.Bucket, AssetType.Hexes, "h1", IsActive: true, IsDefault: true, SortOrder: 1)
+        ]);
+        _unitCachingService.GetCachedCount("p1").Returns(5);
+        _terrainAssetService.GetCachedCount("p2").Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        _sut.AssetProviders.First(p => p.Id == "p1").CachedCount.ShouldBe(5);
+        _sut.AssetProviders.First(p => p.Id == "p2").CachedCount.ShouldBe(3);
+
+        // Act
+        await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
+
+        // Assert
+        _sut.AssetProviders.First(p => p.Id == "p1").CachedCount.ShouldBe(0);
+        _sut.AssetProviders.First(p => p.Id == "p2").CachedCount.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task ClearCacheCommand_WhenExceptionThrown_ShouldSetIsBusyToFalse()
     {
         // Arrange
@@ -225,72 +249,6 @@ public class SettingsViewModelTests
 
         // Assert
         _sut.IsBusy.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task Constructor_WhenInitializeCacheStatusAsyncFails_ShouldLogError()
-    {
-        // Arrange
-        _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
-        var logger = Substitute.For<ILogger<SettingsViewModel>>();
-
-        // Act
-        CreateSut(logger);
-
-        // Assert - Poll for SafeFireAndForget completion
-        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
-        logger.Received(1).Log(
-            LogLevel.Error,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>()!);
-    }
-
-    [Fact]
-    public async Task InitializeCacheStatusAsync_WhenGetAvailableModelsThrows_ShouldLogErrorAndSetDefaultStatus()
-    {
-        // Arrange
-        _unitCachingService.GetAvailableModels().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
-        _terrainAssetService.GetLoadedBiomes().Returns([]);
-        var logger = Substitute.For<ILogger<SettingsViewModel>>();
-
-        // Act
-        CreateSut(logger);
-        var viewModel = _sut;
-
-        // Assert - Poll for async initialization
-        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
-        logger.Received(1).Log(
-            LogLevel.Error,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>()!);
-        viewModel.CacheStatus.ShouldBe("Loaded units: {0}, Loaded biomes: {1}");
-    }
-
-    [Fact]
-    public async Task InitializeCacheStatusAsync_WhenGetLoadedBiomesThrows_ShouldLogErrorAndSetDefaultStatus()
-    {
-        // Arrange
-        _unitCachingService.GetAvailableModels().Returns([]);
-        _terrainAssetService.GetLoadedBiomes().Returns(Task.FromException<IEnumerable<string>>(new Exception("Test error")));
-        var logger = Substitute.For<ILogger<SettingsViewModel>>();
-
-        // Act
-        CreateSut(logger);
-        var viewModel = _sut;
-
-        // Assert - Poll for async initialization
-        await WaitFor(() => logger.ReceivedCalls().Any(), timeoutMs: 1000);
-        logger.Received(1).Log(
-            LogLevel.Error,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString()!.Contains("Failed to initialize cache status")),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>()!);
-        viewModel.CacheStatus.ShouldBe("Loaded units: {0}, Loaded biomes: {1}");
     }
 
     private static HubConfigData DemoHub => new("demo", "Demo Hub", "http://demo.local", string.Empty, true);
@@ -801,6 +759,29 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task AttachHandlers_ShouldPopulateCachedCountsFromServices()
+    {
+        // Arrange
+        SetupAssetProviders([
+            Provider("units-provider"),
+            new AssetProviderConfigData("hex-provider", ProviderType.Bucket, AssetType.Hexes, "h1", IsActive: true, IsDefault: true, SortOrder: 1)
+        ]);
+        _unitCachingService.GetCachedCount("units-provider").Returns(7);
+        _terrainAssetService.GetCachedCount("hex-provider").Returns(3);
+        CreateSut();
+
+        // Act
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+
+        // Assert
+        _sut.AssetProviders.First(p => p.Id == "units-provider").CachedCount.ShouldBe(7);
+        _sut.AssetProviders.First(p => p.Id == "hex-provider").CachedCount.ShouldBe(3);
+        await _unitCachingService.Received(1).GetCachedCount("units-provider");
+        await _terrainAssetService.Received(1).GetCachedCount("hex-provider");
+    }
+
+    [Fact]
     public async Task AttachHandlers_WhenOnlyActiveForAssetType_CanDeactivateIsFalse()
     {
         // Arrange
@@ -1220,12 +1201,12 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task ReloadProvidersCommand_WhenExecuted_ShouldTriggerAssetReloadAndRefreshCacheStatus()
+    public async Task ReloadProvidersCommand_WhenExecuted_ShouldTriggerAssetReloadAndRefreshProviderCounts()
     {
         // Arrange
         SetupAssetProviders([Provider("a")]);
-        _unitCachingService.GetAvailableModels().Returns([]);
-        _terrainAssetService.GetLoadedBiomes().Returns([]);
+        _unitCachingService.GetCachedCount(Arg.Any<string>()).Returns(7);
+        _terrainAssetService.GetCachedCount(Arg.Any<string>()).Returns(3);
         CreateSut();
         _sut.AttachHandlers();
         await WaitFor(() => _sut.AssetProviders.Count == 1);
@@ -1236,7 +1217,8 @@ public class SettingsViewModelTests
         // Assert
         await _unitCachingService.Received(1).ClearCache();
         await _terrainAssetService.Received(1).ClearCache();
-        _sut.CacheStatus.ShouldBe("Loaded units: 0, Loaded biomes: 0");
+        _sut.AssetProviders.Single().CachedCount.ShouldBe(7);
+        _sut.AssetProviders.Single().CachedCountLabel.ShouldBe("7 items");
         _sut.IsBusy.ShouldBeFalse();
     }
 

@@ -18,14 +18,16 @@ public class GitHubResourceStreamProvider : RemoteResourceStreamProvider
     /// <param name="logger">Logger for class</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
     /// <param name="cachingService">Caching service to cache downloaded files</param>
+    /// <param name="id">Stable provider identifier. Defaults to the type name.</param>
     public GitHubResourceStreamProvider(
         string fileExtension,
         string baseUrl,
         string subPath,
         IFileCachingService cachingService,
         ILogger<GitHubResourceStreamProvider> logger,
-        HttpClient? httpClient = null)
-        : base(cachingService, logger, httpClient)
+        HttpClient? httpClient = null,
+        string? id = null)
+        : base(cachingService, logger, httpClient, id)
     {
         _apiUrl = $"{baseUrl.TrimEnd('/')}/{subPath}";
         _fileExtension = fileExtension;

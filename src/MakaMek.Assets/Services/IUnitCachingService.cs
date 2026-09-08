@@ -32,6 +32,13 @@ public interface IUnitCachingService : IProgressReporting
     Task<IEnumerable<UnitData>> GetAllUnits();
 
     /// <summary>
+    /// Gets the number of cached units that were loaded from the provider with the given id.
+    /// A model overwritten by a provider lower in the list is attributed to the overwriting provider.
+    /// </summary>
+    /// <param name="providerId">The provider id to count units for</param>
+    Task<int> GetCachedCount(string providerId);
+
+    /// <summary>
     /// Clears all cached data (useful for testing or reloading)
     /// </summary>
     Task ClearCache();

@@ -12,19 +12,6 @@
     <ScrollViewer Classes="gameScrollViewer"
                   HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="15">
-            <TextBlock Text="{Binding CacheStatus}"
-                       Classes="body"
-                       FontWeight="SemiBold"/>
-            <Button Content="{Binding ClearCacheButton}"
-                    Command="{Binding ClearCacheCommand}"
-                    IsEnabled="{Binding !IsBusy}"
-                    Classes="primary"
-                    HorizontalAlignment="Left"/>
-            <TextBlock Text="{Binding ClearCacheDescription}"
-                       TextWrapping="Wrap"
-                       Classes="body"
-                       Foreground="Gray"/>
-
             <!-- Asset Providers -->
             <TextBlock Text="{Binding ProvidersSectionTitle}"
                        Classes="label"/>
@@ -55,6 +42,9 @@
                                                    Classes="bodySmall"
                                                    Foreground="Gray"
                                                    TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding CachedCountLabel}"
+                                                   Classes="bodySmall"
+                                                   Foreground="Gray"/>
                                     </StackPanel>
                                     <StackPanel IsVisible="{Binding !IsEditing}"
                                                 Classes="horizontalSpaced">
@@ -113,12 +103,24 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- Reload -->
-            <Button Content="{Binding ReloadProvidersLabel}"
-                    Command="{Binding ReloadProvidersCommand}"
-                    IsEnabled="{Binding !IsBusy}"
-                    Classes="primary"
-                    HorizontalAlignment="Left"/>
+            <!-- Clear cache / reload -->
+            <StackPanel Classes="horizontalSpaced">
+                <Button Content="{Binding ClearCacheButton}"
+                        Command="{Binding ClearCacheCommand}"
+                        IsEnabled="{Binding !IsBusy}"
+                        Classes="primary"/>
+                <Button Content="{Binding ReloadProvidersLabel}"
+                        Command="{Binding ReloadProvidersCommand}"
+                        IsEnabled="{Binding !IsBusy}"
+                        Classes="primary"/>
+            </StackPanel>
+            <TextBlock Text="{Binding ClearCacheDescription}"
+                       TextWrapping="Wrap"
+                       Classes="body"
+                       Foreground="Gray"/>
+            <TextBlock Text="{Binding CacheStatus}"
+                       Classes="body"
+                       FontWeight="SemiBold"/>
             <fragments:AssetLoadingView DataContext="{Binding AssetLoading}"
                                         IsVisible="{Binding IsLoading}"/>
         </StackPanel>

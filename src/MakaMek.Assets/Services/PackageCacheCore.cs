@@ -215,6 +215,20 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     }
 
     /// <summary>
+    /// Gets the number of cached resources that were loaded from the provider with the given id.
+    /// Ownership follows the shared duplicate/conflict policy: a resource overwritten by a
+    /// provider lower in the list is attributed to the overwriting provider, so the returned
+    /// count matches the provider's share of <c>GetAvailableModels()</c>/<c>GetLoadedBiomes()</c>.
+    /// </summary>
+    /// <param name="providerId">The provider id to count resources for</param>
+    public async Task<int> GetCachedCount(string providerId)
+    {
+        if (string.IsNullOrEmpty(providerId)) return 0;
+        var state = await EnsureInitialized();
+        return state.ResourceOwnership.Values.Count(owner => owner == providerId);
+    }
+
+    /// <summary>
     /// Replaces the provider set and forces a lazy re-initialization on next access.
     /// </summary>
     public async Task SetProviders(IEnumerable<IResourceStreamProvider> providers)
