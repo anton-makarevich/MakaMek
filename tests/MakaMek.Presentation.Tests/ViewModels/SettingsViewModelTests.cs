@@ -1209,6 +1209,28 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ReloadProvidersCommand_AfterClearCache_ShouldUpdateCacheStatusToReloaded()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.GetCachedCount(Arg.Any<string>()).Returns(7);
+        _terrainAssetService.GetCachedCount(Arg.Any<string>()).Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Clear the cache first, so the status label shows "Cache cleared successfully"
+        await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
+        _sut.CacheStatus.ShouldBe("Cache cleared successfully");
+
+        // Act - reload assets afterwards
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert - the status should reflect that assets were reloaded, not that the cache was cleared
+        _sut.CacheStatus.ShouldBe("Assets reloaded");
+    }
+
+    [Fact]
     public async Task ReloadProvidersCommand_WhenReloadThrows_ShouldLogErrorAndResetIsBusy()
     {
         // Arrange

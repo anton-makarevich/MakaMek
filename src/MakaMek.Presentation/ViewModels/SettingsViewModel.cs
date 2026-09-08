@@ -410,6 +410,7 @@ public class SettingsViewModel : BaseViewModel
             // then re-read the list so row visuals and cached counts reflect the new set.
             await _assetLoadingViewModel.ReloadAsync();
             await LoadAssetProvidersAsync();
+            CacheStatus = _localizationService.GetString("Settings_Data_Reloaded");
         }
         catch (Exception ex)
         {

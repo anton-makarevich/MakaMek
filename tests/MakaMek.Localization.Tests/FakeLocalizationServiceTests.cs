@@ -770,6 +770,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Settings_Data_ClearCache", "Clear Cache")]
     [InlineData("Settings_Data_Clearing", "Clearing cache...")]
     [InlineData("Settings_Data_Cleared", "Cache cleared successfully")]
+    [InlineData("Settings_Data_Reloaded", "Assets reloaded")]
     [InlineData("Settings_Data_Providers_SectionTitle", "Asset Providers")]
     [InlineData("Settings_Data_Providers_Add", "Add Provider")]
     [InlineData("Settings_Data_Providers_AddDialogTitle", "Add Provider")]

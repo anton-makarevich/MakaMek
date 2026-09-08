@@ -407,6 +407,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Settings_Data_ClearCache"] = "Clear Cache",
         ["Settings_Data_Clearing"] = "Clearing cache...",
         ["Settings_Data_Cleared"] = "Cache cleared successfully",
+        ["Settings_Data_Reloaded"] = "Assets reloaded",
         ["Settings_Data_Providers_SectionTitle"] = "Asset Providers",
         ["Settings_Data_Providers_Add"] = "Add Provider",
         ["Settings_Data_Providers_AddDialogTitle"] = "Add Provider",
