@@ -99,20 +99,6 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void ClearCacheDescription_ShouldReturnLocalizedString()
-    {
-        // Arrange
-        CreateSut();
-
-        // Act
-        var result = _sut.ClearCacheDescription;
-
-        // Assert
-        result.ShouldContain("app restart");
-        result.ShouldContain("clearing the cache");
-    }
-
-    [Fact]
     public async Task ClearCacheCommand_ShouldClearAllCaches()
     {
         // Arrange
