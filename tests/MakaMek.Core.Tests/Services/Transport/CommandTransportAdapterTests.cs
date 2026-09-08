@@ -1139,4 +1139,79 @@ public class CommandTransportAdapterTests
         capturedMessage!.MessageType.ShouldBe(nameof(TurnIncrementedCommand));
         capturedMessage.SourceId.ShouldBe(command.GameOriginId);
     }
+
+    [Fact]
+    public void ConnectionStatusChanges_WhenPublisherRaisesConnectionStateChanged_MapsToConnectionStatus()
+    {
+        // Arrange - the publisher must go through AddPublisher for the state subscription to exist
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert - subject is a BehaviorSubject so the current value replays on subscribe
+        statuses.ShouldBe([
+            ConnectionStatus.Connected,
+            ConnectionStatus.Connecting,
+            ConnectionStatus.Reconnecting,
+            ConnectionStatus.Disconnected,
+            ConnectionStatus.Closed,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_AfterClearPublishers_ResetsToConnected()
+    {
+        // Arrange - the publisher must go through AddPublisher for the state subscription to exist
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+
+        // Act
+        Should.NotThrow(() => _sut.ClearPublishers().GetAwaiter().GetResult());
+
+        // Assert - the stream is reset so no stale status leaks into the next session
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+    }
+
+    [Fact]
+    public async Task ConnectionStatusChanges_AfterRemovePublisher_StopsListeningToThatPublisher()
+    {
+        // Arrange - the publishers must go through AddPublisher for the state subscription to exist
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - remove publisher 1 and only publisher 2 reports a state change afterwards
+        _sut.RemovePublisher(_mockPublisher1);
+        _mockPublisher2.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+
+        // Assert - publisher 1's later changes are ignored after removal
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
+        statuses.Last().ShouldBe(ConnectionStatus.Reconnecting);
+        await _sut.ClearPublishers();
+    }
 }

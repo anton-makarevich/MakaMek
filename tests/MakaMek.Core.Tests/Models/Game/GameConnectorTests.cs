@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using System.Reactive.Subjects;
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -26,6 +27,7 @@ public class GameConnectorTests : IDisposable
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly IPublisherFactory _relayPublisherFactory;
     private readonly ILogger<GameConnector> _logger;
+    private readonly BehaviorSubject<ConnectionStatus> _connectionStatusSubject;
     private readonly GameConnector _sut;
 
     public GameConnectorTests()
@@ -34,6 +36,8 @@ public class GameConnectorTests : IDisposable
         // Use a substitute for the adapter to allow simulating exceptions in tests
         _transportAdapter = Substitute.For<ICommandTransportAdapter>();
         _commandPublisher.Adapter.Returns(_transportAdapter);
+        _connectionStatusSubject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _transportAdapter.ConnectionStatusChanges.Returns(_connectionStatusSubject);
 
         _transportFactory = Substitute.For<ITransportFactory>();
         _relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -875,7 +879,7 @@ public class GameConnectorTests : IDisposable
         // Arrange
         var lanPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         _transportFactory.CreateAndStartClientPublisher("http://localhost:2439/makamekhub")
-            .Returns(Task.FromResult<ITransportPublisher>(lanPublisher));
+            .Returns(Task.FromResult(lanPublisher));
         await _sut.ConnectToLan("http://localhost:2439/makamekhub");
         _transportAdapter.Received(1).AddPublisher(lanPublisher);
 
@@ -1028,5 +1032,41 @@ public class GameConnectorTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+    }
+
+    // ---------- Online connection status forwarding ----------
+
+    [Fact]
+    public async Task JoinOnline_ForwardsAdapterStatusToOnlineStatus()
+    {
+        // Arrange
+        var statuses = new List<ConnectionStatus>();
+        _sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act - join and simulate a degraded connection on the adapter
+        await JoinOnlineAsync(_sut);
+        _connectionStatusSubject.OnNext(ConnectionStatus.Reconnecting);
+        _connectionStatusSubject.OnNext(ConnectionStatus.Closed);
+
+        // Assert - BehaviorSubject replays the initial Connected on subscribe
+        statuses.ShouldContain(ConnectionStatus.Connected);
+        statuses.ShouldContain(ConnectionStatus.Reconnecting);
+        statuses.ShouldContain(ConnectionStatus.Closed);
+    }
+
+    [Fact]
+    public async Task Disconnect_ResetsOnlineStatusToConnected()
+    {
+        // Arrange
+        var statuses = new List<ConnectionStatus>();
+        await JoinOnlineAsync(_sut);
+        _connectionStatusSubject.OnNext(ConnectionStatus.Disconnected);
+        _sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act
+        await _sut.Disconnect();
+
+        // Assert - the stream is reset so no stale status survives the session
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
     }
 }

@@ -44,6 +44,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly Subject<BattleMap> _mapChanges = new();
     private IDisposable? _mapChangeSubscription;
+    private IDisposable? _onlineStatusSubscription;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
@@ -210,7 +211,60 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         RoomCode = _gameManager.RoomCode;
         HostingError = null;
 
+        SubscribeToOnlineStatus();
         SubscribeAndCreateLocalGame();
+    }
+
+    /// <summary>
+    /// Gets the current online connection status of the hosted session.
+    /// </summary>
+    public ConnectionStatus OnlineConnectionStatus
+    {
+        get;
+        private set
+        {
+            if (field == value) return;
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(IsConnectionDegraded));
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+            NotifyPropertyChanged(nameof(CanStartGame));
+            NotifyPropertyChanged(nameof(CanPublishCommands));
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the hosted session is in a degraded connection state
+    /// (reconnecting, disconnected or closed). Hosting actions are disabled
+    /// until the connection recovers.
+    /// </summary>
+    public bool IsConnectionDegraded => OnlineConnectionStatus is ConnectionStatus.Reconnecting
+        or ConnectionStatus.Disconnected
+        or ConnectionStatus.Closed;
+
+    /// <summary>
+    /// Gets whether the connection status banner should be shown for the hosted online session.
+    /// </summary>
+    public bool IsConnectionBannerVisible => IsMultiplayerEnabled && IsConnectionDegraded;
+
+    private void SubscribeToOnlineStatus()
+    {
+        UnsubscribeFromOnlineStatus();
+
+        _onlineStatusSubscription = _gameManager.OnlineConnectionStatus
+            .ObserveOn(DispatcherService.Scheduler)
+            .Subscribe(UpdateConnectionStatus);
+    }
+
+    private void UnsubscribeFromOnlineStatus()
+    {
+        _onlineStatusSubscription?.Dispose();
+        _onlineStatusSubscription = null;
+    }
+
+    private void UpdateConnectionStatus(ConnectionStatus status)
+    {
+        OnlineConnectionStatus = status;
     }
 
     private async Task ResolveActiveHubAndProbe(CancellationToken cancellationToken)
@@ -343,7 +397,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public MapConfigViewModel MapConfig { get; }
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready) && !IsConnectionDegraded;
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -681,7 +735,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
     
     // Implementation of abstract property from base class
-    public override bool CanPublishCommands => true; // TODO: is it actually always true?
+    public override bool CanPublishCommands => !IsConnectionDegraded;
 
     public void Dispose()
     {
@@ -691,6 +745,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts = null;
         _commandPublisher.Unsubscribe(HandleServerCommand);
         UnsubscribeFromMapChanges();
+        UnsubscribeFromOnlineStatus();
         MapConfig.Dispose();
         _mapChanges.Dispose();
         GC.SuppressFinalize(this);
@@ -701,6 +756,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = null;
+        UnsubscribeFromOnlineStatus();
         // Once the game has started, the hosting session belongs to the running game;
         // stopping it here would disconnect the host's relay/LAN transport mid-game.
         if (IsMultiplayerEnabled && !_gameManager.IsGameStarted)

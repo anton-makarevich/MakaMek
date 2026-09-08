@@ -51,6 +51,12 @@
     </StackPanel>
     <SelectableTextBlock IsVisible="{Binding IsConnected}" Text="{Binding JoinedRoomInfoText}"
                          Classes="body"/>
+
+    <Border Classes="connectionBanner"
+            IsVisible="{Binding IsConnectionBannerVisible}"
+            Background="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusBackgroundConverter}}">
+      <TextBlock Text="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusTextConverter}}"/>
+    </Border>
   </StackPanel>
 
 </UserControl>

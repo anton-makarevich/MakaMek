@@ -1752,4 +1752,79 @@ public class GameManagerTests : IDisposable
     {
         _sut.Dispose();
     }
+
+    // ---------- Online connection status forwarding ----------
+
+    [Fact]
+    public async Task InitializeLobbyOnline_ForwardsAdapterStatusToOnlineStatus()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", Guid.NewGuid(), Guid.NewGuid()));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = Substitute.For<ITransportPublisher>();
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        var statuses = new List<ConnectionStatus>();
+        sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act - host online, then the relay connection degrades
+        await sut.InitializeLobbyOnline();
+        relayPublisher.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+
+        // Assert - adapter state reaches the manager's session-scoped stream
+        statuses.ShouldContain(ConnectionStatus.Connected);
+        statuses.ShouldContain(ConnectionStatus.Disconnected);
+
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_ResetsOnlineStatusToConnected()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", Guid.NewGuid(), Guid.NewGuid()));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = Substitute.For<ITransportPublisher>();
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline();
+        relayPublisher.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
+
+        var statuses = new List<ConnectionStatus>();
+        sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act
+        await sut.DisposeAsync();
+
+        // Assert - no stale status survives the session teardown
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+    }
 }

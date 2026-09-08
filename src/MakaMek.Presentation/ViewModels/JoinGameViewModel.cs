@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
@@ -47,6 +48,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     private JoinMode _joinMode = JoinMode.Lan;
     private CancellationTokenSource? _activeJoinCts;
     private int _clipboardReadGeneration;
+    private IDisposable? _onlineStatusSubscription;
 
     private const string RoomCodeFormat = "^[A-HJ-NP-Z2-9]{6}$";
 
@@ -407,6 +409,58 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         JoinError = null;
     }
 
+    /// <summary>
+    /// Gets the current online connection status of the joined session.
+    /// </summary>
+    public ConnectionStatus OnlineConnectionStatus
+    {
+        get;
+        private set
+        {
+            if (field == value) return;
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(IsConnectionDegraded));
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+            NotifyPropertyChanged(nameof(CanPublishCommands));
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the joined session is in a degraded connection state
+    /// (reconnecting, disconnected or closed). Commands are not published
+    /// until the connection recovers.
+    /// </summary>
+    public bool IsConnectionDegraded => OnlineConnectionStatus is ConnectionStatus.Reconnecting
+        or ConnectionStatus.Disconnected
+        or ConnectionStatus.Closed;
+
+    /// <summary>
+    /// Gets whether the connection status banner should be shown while joined to a game.
+    /// </summary>
+    public bool IsConnectionBannerVisible => IsConnected && IsConnectionDegraded;
+
+    private void SubscribeToOnlineStatus()
+    {
+        UnsubscribeFromOnlineStatus();
+        if (_gameConnector.OnlineConnectionStatus == null)
+            return;
+        _onlineStatusSubscription = _gameConnector.OnlineConnectionStatus
+            .ObserveOn(DispatcherService.Scheduler)
+            .Subscribe(UpdateConnectionStatus);
+    }
+
+    private void UnsubscribeFromOnlineStatus()
+    {
+        _onlineStatusSubscription?.Dispose();
+        _onlineStatusSubscription = null;
+    }
+
+    private void UpdateConnectionStatus(ConnectionStatus status)
+    {
+        OnlineConnectionStatus = status;
+    }
+
     private void RefreshConnectionState()
     {
         foreach (var player in _players)
@@ -422,6 +476,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanAddPlayer));
         NotifyPropertyChanged(nameof(JoinedRoomInfoText));
+        NotifyPropertyChanged(nameof(CanPublishCommands));
+        NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
     }
 
     private async Task JoinRoom()
@@ -456,6 +512,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
             _commandPublisher.Subscribe(HandleServerCommand);
             CreateAndInitializeLocalGame(_gameConnector.ConnectedHostGameId);
+            SubscribeToOnlineStatus();
 
             _localGame!.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {
@@ -516,6 +573,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
 
             _commandPublisher.Subscribe(HandleServerCommand);
             CreateAndInitializeLocalGame();
+            SubscribeToOnlineStatus();
 
             _localGame!.Logger.LogAttemptedToConnectToServerIp(ServerIp);
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
@@ -543,6 +601,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             _localGame = null;
         }
         _commandPublisher.Unsubscribe(HandleServerCommand);
+        UnsubscribeFromOnlineStatus();
         await _gameConnector.Disconnect();
         RefreshConnectionState();
     }
@@ -582,5 +641,5 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     public override bool CanAddPlayer => (IsConnected || _players.Count == 0) && _players.Count < 4;
 
     // Implementation of abstract property from base class
-    public override bool CanPublishCommands => IsConnected;
+    public override bool CanPublishCommands => IsConnected && !IsConnectionDegraded;
 }

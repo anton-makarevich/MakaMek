@@ -1,3 +1,4 @@
+using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,10 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     // Tracks the delegate registered on each publisher's HostDisconnected event so it can be
     // unsubscribed later (Action has no equality semantics beyond delegate reference).
     private readonly Dictionary<ITransportPublisher, Action> _disconnectHandlers = new();
+    // Tracks the delegate registered on each publisher's ConnectionStateChanged event so it can
+    // be unsubscribed later (Action<T> has no equality semantics beyond delegate reference).
+    private readonly Dictionary<ITransportPublisher, Action<TransportConnectionState>> _connectionStateHandlers = new();
+    private readonly BehaviorSubject<ConnectionStatus> _connectionStatus = new(ConnectionStatus.Connected);
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -62,6 +67,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
 
     public IReadOnlyList<ITransportPublisher> TransportPublishers => _transportPublishers;
 
+    public IObservable<ConnectionStatus> ConnectionStatusChanges => _connectionStatus;
+
     /// <summary>
     /// Adds a transport publisher to the adapter
     /// </summary>
@@ -87,6 +94,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             {
                 SubscribeDisconnectHandler(publisher, _onPublisherDisconnected);
             }
+
+            SubscribeConnectionState(publisher);
         }
     }
 
@@ -100,6 +109,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         {
             _transportPublishers.Remove(publisher);
             UnsubscribeDisconnectHandler(publisher);
+            UnsubscribeConnectionState(publisher);
         }
     }
 
@@ -116,11 +126,14 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             foreach (var publisher in snapshot)
             {
                 UnsubscribeDisconnectHandler(publisher);
+                UnsubscribeConnectionState(publisher);
             }
             _onCommandReceived = null;
             _onPublisherDisconnected = null;
             _isInitialized = false;
             _transportPublishers.Clear();
+            // Reset the status stream so no stale status leaks into the next session.
+            _connectionStatus.OnNext(ConnectionStatus.Connected);
         }
 
         // Dispose publishers outside the lock
@@ -389,6 +402,43 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             relayPublisher.HostDisconnected -= handler;
         }
     }
+
+    // Helper method to subscribe a publisher's connection state changes. Every publisher
+    // type reports connection state through ITransportPublisher.ConnectionStateChanged, so
+    // unlike the host-disconnect notification this needs no publisher-type seam.
+    private void SubscribeConnectionState(ITransportPublisher publisher)
+    {
+        lock (_initLock)
+        {
+            if (_connectionStateHandlers.ContainsKey(publisher)) return;
+
+            void Handler(TransportConnectionState state) =>
+                _connectionStatus.OnNext(MapConnectionStatus(state));
+            publisher.ConnectionStateChanged += Handler;
+            _connectionStateHandlers[publisher] = Handler;
+        }
+    }
+
+    // Helper method to remove a previously registered connection-state subscription.
+    private void UnsubscribeConnectionState(ITransportPublisher publisher)
+    {
+        if (_connectionStateHandlers.Remove(publisher, out var handler))
+        {
+            publisher.ConnectionStateChanged -= handler;
+        }
+    }
+
+    // Maps the transport's connection state enum to the UI-facing status. Keeps the
+    // transport enum from leaking beyond the adapter.
+    private static ConnectionStatus MapConnectionStatus(TransportConnectionState state) => state switch
+    {
+        TransportConnectionState.Connecting => ConnectionStatus.Connecting,
+        TransportConnectionState.Connected => ConnectionStatus.Connected,
+        TransportConnectionState.Reconnecting => ConnectionStatus.Reconnecting,
+        TransportConnectionState.Disconnected => ConnectionStatus.Disconnected,
+        TransportConnectionState.Closed => ConnectionStatus.Closed,
+        _ => ConnectionStatus.Disconnected
+    };
 
     public ValueTask DisposeAsync()
     {

@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -34,6 +35,12 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the leave calls.</param>
     Task Disconnect(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the connection status of the online join session. Remains
+    /// <see cref="ConnectionStatus.Connected"/> while no online room has been joined.
+    /// </summary>
+    IObservable<ConnectionStatus> OnlineConnectionStatus { get; }
 
     /// <summary>
     /// Gets a value indicating whether the client is connected to a game server.

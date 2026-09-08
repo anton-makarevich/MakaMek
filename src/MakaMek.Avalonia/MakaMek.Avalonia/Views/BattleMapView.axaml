@@ -117,7 +117,15 @@
             </Grid>
             
         </Grid>
-        
+
+        <Border Classes="connectionBanner"
+                IsVisible="{Binding IsConnectionBannerVisible}"
+                VerticalAlignment="Top"
+                Margin="60,56,60,0"
+                Background="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusBackgroundConverter}}">
+            <TextBlock Text="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusTextConverter}}"/>
+        </Border>
+
         <Grid x:Name="MechList"
               Background="{StaticResource SecondaryBrush}"
               IsVisible="{Binding AreUnitsToDeployVisible}"

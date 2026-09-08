@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
@@ -2954,6 +2955,78 @@ public class BattleMapViewModelTests
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
             terrainBitmaskService: terrainBitmaskService);
+    }
+
+    private BattleMapViewModel CreateViewModelWithConnectionStatus(BehaviorSubject<ConnectionStatus> subject)
+    {
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        commandPublisher.Adapter.ConnectionStatusChanges.Returns(subject);
+
+        return new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            commandPublisher: commandPublisher);
+    }
+
+    [Fact]
+    public async Task ConnectionStatus_WhenDegraded_ShowsBanner_AndWhenClosed_EndsGameAndNavigatesHome()
+    {
+        // Arrange
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var sut = CreateViewModelWithConnectionStatus(subject);
+        sut.Game = CreateClientGame();
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
+        sut.SetNavigationService(navigationService);
+
+        // Act - connection degrades, then closes
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        sut.IsConnectionDegraded.ShouldBeTrue();
+        sut.IsConnectionBannerVisible.ShouldBeTrue();
+        subject.OnNext(ConnectionStatus.Closed);
+
+        // Assert - the transport-closed flow ends the game synchronously
+        sut.IsGameOver.ShouldBeTrue();
+        sut.GameEndReason.ShouldBe(GameEndReason.HostDisconnected);
+        sut.IsConnectionBannerVisible.ShouldBeTrue();
+
+        // Wait for the async dialog flow to dispose the game and navigate home
+        await WaitForAsync(() => sut.Game == null);
+        await navigationService.Received(1).NavigateToRootAsync();
+    }
+
+    [Fact]
+    public void ConnectionStatus_WhenClosed_IgnoresGameEndedCommand()
+    {
+        // Arrange - no navigation service so the (fire-and-forget) interruption dialog
+        // faults without disposing the game, keeping the transport-closed state intact
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var sut = CreateViewModelWithConnectionStatus(subject);
+        sut.Game = CreateClientGame();
+
+        // Act - transport closes first
+        subject.OnNext(ConnectionStatus.Closed);
+        sut.IsGameOver.ShouldBeTrue();
+
+        // A game-ended command arrives after the transport already closed
+        sut.Game.HandleCommand(new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.Victory
+        });
+
+        // Assert - the transport-closed outcome wins; no second end is processed
+        sut.GameEndReason.ShouldBe(GameEndReason.HostDisconnected);
+        sut.Game.ShouldNotBeNull();
     }
 
 

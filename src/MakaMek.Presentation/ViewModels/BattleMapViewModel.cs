@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
@@ -41,6 +42,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
+    private IDisposable? _connectionStatusSubscription;
+    private readonly ICommandPublisher? _commandPublisher;
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
@@ -153,7 +156,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IPlatformService platformService,
         IPdfExportService? pdfExportService = null,
         IFileService? fileService = null,
-        ITerrainBitmaskService? terrainBitmaskService = null)
+        ITerrainBitmaskService? terrainBitmaskService = null,
+        ICommandPublisher? commandPublisher = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
@@ -163,6 +167,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _platformService = platformService;
         _pdfExportService = pdfExportService;
         _fileService = fileService;
+        _commandPublisher = commandPublisher;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -185,6 +190,79 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
+        SubscribeToConnectionStatus();
+    }
+
+    /// <summary>
+    /// Gets the current connection status reported by the command transport.
+    /// </summary>
+    public ConnectionStatus OnlineConnectionStatus
+    {
+        get;
+        private set
+        {
+            if (field == value) return;
+            field = value;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(IsConnectionDegraded));
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the transport is in a degraded connection state
+    /// (reconnecting, disconnected or closed).
+    /// </summary>
+    public bool IsConnectionDegraded => OnlineConnectionStatus is ConnectionStatus.Reconnecting
+        or ConnectionStatus.Disconnected
+        or ConnectionStatus.Closed;
+
+    /// <summary>
+    /// Gets whether the connection status banner should be shown on the battle map.
+    /// </summary>
+    public bool IsConnectionBannerVisible => IsConnectionDegraded;
+
+    private void SubscribeToConnectionStatus()
+    {
+        _connectionStatusSubscription?.Dispose();
+        if (_commandPublisher == null) return;
+        _connectionStatusSubscription = _commandPublisher.Adapter.ConnectionStatusChanges
+            .ObserveOn(Scheduler)
+            .Subscribe(OnConnectionStatusChanged);
+    }
+
+    private void OnConnectionStatusChanged(ConnectionStatus status)
+    {
+        OnlineConnectionStatus = status;
+        if (status != ConnectionStatus.Closed) return;
+        HandleTransportClosed();
+    }
+
+    private void HandleTransportClosed()
+    {
+        if (Game == null || IsGameOver) return;
+        IsGameOver = true;
+        GameEndReason = GameEndReason.HostDisconnected;
+        NotifyStateChanged();
+        ShowTransportClosedDialogAsync().SafeFireAndForget(
+            ex => Game?.Logger.LogError(ex, "Error showing transport closed dialog"));
+    }
+
+    private async Task ShowTransportClosedDialogAsync()
+    {
+        var okAction = new UiAction
+        {
+            Title = _localizationService.GetString("Dialog_Ok")
+        };
+
+        var selectedAction = await NavigationService.AskForActionAsync(
+            _localizationService.GetString("Dialog_GameInterrupted_Title"),
+            _localizationService.GetString("Dialog_GameInterrupted_Message"),
+            okAction);
+
+        if (selectedAction != okAction) return;
+
+        await GoToMainMenu();
     }
 
     private async Task LeaveGame()
@@ -922,6 +1000,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     private async Task ProcessGameEnded(GameEndedCommand command)
     {
+        // A terminated connection may already have ended the game (e.g. via the
+        // transport-closed flow); do not show a second interruption dialog.
+        if (IsGameOver) return;
         IsGameOver = true;
         GameEndReason = command.Reason;
         NotifyStateChanged();
@@ -986,6 +1067,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        _connectionStatusSubscription?.Dispose();
         if (Game is { IsDisposed: false })
         {
             Game.Dispose();

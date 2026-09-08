@@ -1,3 +1,4 @@
+using System.Reactive.Subjects;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -33,6 +34,11 @@ public class GameManager : IGameManager
     private ITransportPublisher? _lanPublisher;
     private string? _onlineSessionToken;
     private RelayClientOptions? _onlineRelayOptions;
+    // Forwarded connection status for the online hosting session. The stream only reflects
+    // the adapter's status while an online room is being hosted; it is reset otherwise so
+    // lobby UI never sees stale status from a previous session.
+    private readonly BehaviorSubject<ConnectionStatus> _onlineStatus = new(ConnectionStatus.Connected);
+    private IDisposable? _onlineStatusSubscription;
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -70,6 +76,9 @@ public class GameManager : IGameManager
 
     public async Task ResetForNewGame()
     {
+        // Stop forwarding online status before tearing down any publishers
+        ResetOnlineStatusForwarding();
+
         // Remove and dispose any stale relay publisher before re-hosting
         await _onlineRelayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
@@ -269,6 +278,7 @@ public class GameManager : IGameManager
 
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
+            StartOnlineStatusForwarding();
 
             var readyResult = await _relayRoomClient.Ready(
                 createResult.RoomCode,
@@ -430,6 +440,9 @@ public class GameManager : IGameManager
         }
         _onlineRelayPublisher = null;
 
+        // Reset the session-scoped status stream once hosting is torn down
+        ResetOnlineStatusForwarding();
+
         await RemoveLanPublisherAndStopHost();
     }
 
@@ -457,6 +470,9 @@ public class GameManager : IGameManager
 
     private async Task CleanupOnlineAfterFailure(ITransportPublisher? publisher)
     {
+        // Stop forwarding online status before tearing down the relay publisher
+        ResetOnlineStatusForwarding();
+
         // Remove and dispose the relay publisher if it was created
         await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
@@ -510,10 +526,37 @@ public class GameManager : IGameManager
     public bool IsOnlineServerRunning => _onlineRelayPublisher != null && _serverGame != null;
     public RelayClientError? OnlineError { get; private set; }
 
+    /// <summary>
+    /// Gets the connection status of the online hosting session. Remains
+    /// <see cref="ConnectionStatus.Connected"/> while no online room is being hosted.
+    /// </summary>
+    public IObservable<ConnectionStatus> OnlineConnectionStatus => _onlineStatus;
+
+    // Forwards the adapter's connection status into the session-scoped stream for as long
+    // as an online room is hosted. Dispose-then-subscribe keeps re-hosting idempotent.
+    private void StartOnlineStatusForwarding()
+    {
+        _onlineStatusSubscription?.Dispose();
+        _onlineStatusSubscription = _commandPublisher.Adapter.ConnectionStatusChanges
+            .Subscribe(_onlineStatus);
+    }
+
+    // Stops forwarding and resets the session-scoped stream to Connected so no stale
+    // status leaks into the next lobby session.
+    private void ResetOnlineStatusForwarding()
+    {
+        _onlineStatusSubscription?.Dispose();
+        _onlineStatusSubscription = null;
+        _onlineStatus.OnNext(ConnectionStatus.Connected);
+    }
+
     public void Dispose()
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        // Stop forwarding online status
+        ResetOnlineStatusForwarding();
 
         // Dispose server game if it exists
         _serverGame?.Dispose();
@@ -543,6 +586,9 @@ public class GameManager : IGameManager
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        // Stop forwarding online status
+        ResetOnlineStatusForwarding();
 
         // Dispose server game if it exists
         _serverGame?.Dispose();

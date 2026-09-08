@@ -52,6 +52,7 @@ public partial class App : Application
         Converters.ConsciousnessStatusConverter.Initialize(localizationService);
         Converters.MovementBreakdownConverter.Initialize(localizationService);
         Converters.HubStatusTextConverter.Initialize(localizationService);
+        Converters.ConnectionStatusTextConverter.Initialize(localizationService);
         LocalizeExtension.Initialize(localizationService);
 
         var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
@@ -60,6 +61,7 @@ public partial class App : Application
         Converters.ConsciousnessColorConverter.Initialize(avaloniaResourcesLocator);
         Converters.SelectedItemToBrushConverter.Initialize(avaloniaResourcesLocator);
         Converters.HubStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
+        Converters.ConnectionStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
 
         INavigationService navigationService;
 

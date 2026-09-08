@@ -45,6 +45,14 @@ public interface ICommandTransportAdapter : IAsyncDisposable
     void Initialize(Action<IGameCommand, ITransportPublisher> onCommandReceived);
 
     /// <summary>
+    /// Observable stream of the transport connection status. Emits
+    /// <see cref="ConnectionStatus.Connected"/> immediately on subscription and then every status
+    /// reported by any registered publisher's connection state change. Resets to Connected
+    /// whenever publishers are removed or cleared so no stale status leaks between sessions.
+    /// </summary>
+    IObservable<ConnectionStatus> ConnectionStatusChanges { get; }
+
+    /// <summary>
     /// Registers a callback invoked when a transport publisher reports that its underlying
     /// connection was lost because the remote host disconnected (e.g. relay host loss).
     /// Only publishers that support disconnect notifications will trigger this callback;
