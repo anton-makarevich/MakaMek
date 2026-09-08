@@ -208,6 +208,8 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
             state.BiomeManifests[package.Manifest.Id] = package.Manifest;
             if (!string.IsNullOrEmpty(providerId))
                 state.ResourceOwnership[package.Manifest.Id] = providerId;
+            else
+                state.ResourceOwnership.TryRemove(package.Manifest.Id, out _);
 
             foreach (var asset in package.Assets)
             {

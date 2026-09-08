@@ -831,6 +831,31 @@ public class TerrainCachingServiceTests
     }
 
     [Fact]
+    public async Task GetCachedCount_WhenProviderReplacedByStreamLoad_DoesNotAttributeOwnershipToOldProvider()
+    {
+        // Arrange — provider loads the biome, then a direct stream load replaces it
+        using var stream1 = CreateMmtxPackage("biome-x", "Biome X",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.Id.Returns("old-provider");
+        provider.GetAvailableResourceIds().Returns(["resource1"]);
+        provider.GetResourceStream("resource1").Returns(stream1);
+
+        var sut = new TerrainCachingService([provider], _loggerFactory);
+        await sut.GetLoadedBiomes(); // triggers provider load
+
+        // Act — replace the provider-loaded biome via direct stream (no provider id)
+        using var stream2 = CreateMmtxPackage("biome-x", "Biome X Replaced",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(2));
+        await sut.LoadTerrainFromMmtxStream(stream2);
+
+        // Assert — old provider no longer owns the replaced biome
+        (await sut.GetCachedCount("old-provider")).ShouldBe(0);
+        var variants = await sut.GetAvailableVariants("biome-x", TerrainAssetType.Base, "base");
+        variants.ShouldContain(2);
+    }
+
+    [Fact]
     public async Task StreamProvider_UniqueBiomesFromBothProviders_ShouldAllBePresent()
     {
         // Arrange — provider1 serves "biome-alpha", provider2 serves "biome-beta"

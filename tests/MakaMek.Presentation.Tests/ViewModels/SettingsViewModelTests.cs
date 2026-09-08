@@ -214,6 +214,30 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ClearCacheCommand_ShouldZeroCachedCountOnAllProviders()
+    {
+        // Arrange
+        SetupAssetProviders([
+            Provider("p1"),
+            new AssetProviderConfigData("p2", ProviderType.Bucket, AssetType.Hexes, "h1", IsActive: true, IsDefault: true, SortOrder: 1)
+        ]);
+        _unitCachingService.GetCachedCount("p1").Returns(5);
+        _terrainAssetService.GetCachedCount("p2").Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 2);
+        _sut.AssetProviders.First(p => p.Id == "p1").CachedCount.ShouldBe(5);
+        _sut.AssetProviders.First(p => p.Id == "p2").CachedCount.ShouldBe(3);
+
+        // Act
+        await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
+
+        // Assert
+        _sut.AssetProviders.First(p => p.Id == "p1").CachedCount.ShouldBe(0);
+        _sut.AssetProviders.First(p => p.Id == "p2").CachedCount.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task ClearCacheCommand_WhenExceptionThrown_ShouldSetIsBusyToFalse()
     {
         // Arrange

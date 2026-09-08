@@ -240,6 +240,9 @@ public class SettingsViewModel : BaseViewModel
             await _unitCachingService.ClearCache();
             await _terrainAssetService.ClearCache();
 
+            foreach (var provider in AssetProviders)
+                provider.CachedCount = 0;
+
             CacheStatus = _localizationService.GetString("Settings_Data_Cleared");
         }
         catch (Exception ex)
