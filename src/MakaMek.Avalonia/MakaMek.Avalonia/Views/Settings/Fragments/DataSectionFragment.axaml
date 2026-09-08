@@ -28,7 +28,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="wrappers:AssetProviderEntryViewModel">
-                        <Border Classes="gamePanel" Padding="10" CornerRadius="8">
+                        <Border Classes="card" Padding="10" CornerRadius="8">
                             <StackPanel Spacing="8">
                                 <StackPanel Classes="horizontalSpaced">
                                     <StackPanel Spacing="2">
