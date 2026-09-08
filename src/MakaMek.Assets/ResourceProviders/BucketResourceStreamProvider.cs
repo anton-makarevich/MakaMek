@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Services;
 
@@ -49,42 +48,12 @@ public class BucketResourceStreamProvider : RemoteResourceStreamProvider
     /// <returns>List of (download URL, hash) tuples for files matching the extension</returns>
     protected override Task<List<(string Url, string Sha)>> LoadAvailableResourceIds()
     {
-        return FetchListingAsync<Manifest>(_manifestUrl, manifest =>
+        return FetchListingAsync<DataManifest>(_manifestUrl, manifest =>
         [
             .. (manifest?.Files ?? [])
             .Where(file => file.Name?.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) == true &&
                            !string.IsNullOrEmpty(file.Url))
             .Select(file => (Url: file.Url!, Sha: file.Hash ?? string.Empty))
         ]);
-    }
-
-    private class Manifest
-    {
-        [JsonPropertyName("version")]
-        public string? Version { get; set; }
-
-        [JsonPropertyName("generatedAtUtc")]
-        public string? GeneratedAtUtc { get; set; }
-
-        [JsonPropertyName("fileCount")]
-        public int FileCount { get; set; }
-
-        [JsonPropertyName("files")]
-        public List<ManifestEntry>? Files { get; set; }
-    }
-
-    private class ManifestEntry
-    {
-        [JsonPropertyName("path")]
-        public string? Path { get; set; }
-
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("hash")]
-        public string? Hash { get; set; }
-
-        [JsonPropertyName("url")]
-        public string? Url { get; set; }
     }
 }
