@@ -3,9 +3,11 @@
 // each asset type (e.g. data/units/manifest.json, data/hexes/manifest.json) so each asset type's
 // resource provider fetches only its own listing. Used by deploy-data-release.yml.
 // Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data <version>
+#:project $(MSBuildStartupDirectory)/src/MakaMek.Assets/MakaMek.Assets.csproj
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Sanet.MakaMek.Assets.ResourceProviders;
 
 static IEnumerable<string> Walk(string dir)
 {
@@ -60,13 +62,13 @@ try
             .Where(p => !string.Equals(Path.GetFileName(p), "manifest.json", StringComparison.OrdinalIgnoreCase))
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToList();
-        var entries = new List<ManifestEntry>();
+        var entries = new List<DataManifestEntry>();
 
         foreach (var fullPath in filePaths)
         {
             var relativePath = Path.GetRelativePath(dataDir, fullPath).Replace('\\', '/');
             var sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(fullPath))).ToLowerInvariant();
-            entries.Add(new ManifestEntry
+            entries.Add(new DataManifestEntry
             {
                 Path = relativePath,
                 Name = relativePath[(relativePath.LastIndexOf('/') + 1)..],
@@ -75,7 +77,7 @@ try
             });
         }
 
-        var manifest = new Manifest
+        var manifest = new DataManifest
         {
             Version = manifestVersion,
             GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
@@ -87,7 +89,7 @@ try
         using (var stream = File.Create(outputFile))
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
         {
-            JsonSerializer.Serialize(writer, manifest, ManifestJsonContext.Default.Manifest);
+            JsonSerializer.Serialize(writer, manifest, ManifestJsonContext.Default.DataManifest);
             writer.Flush();
             stream.WriteByte((byte)'\n');
         }
@@ -101,32 +103,8 @@ catch (Exception ex)
     return 1;
 }
 
-[JsonSerializable(typeof(Manifest))]
-[JsonSerializable(typeof(ManifestEntry))]
+[JsonSerializable(typeof(DataManifest))]
+[JsonSerializable(typeof(DataManifestEntry))]
 internal partial class ManifestJsonContext : JsonSerializerContext
 {
-}
-
-internal sealed class Manifest
-{
-    [JsonPropertyName("version")]
-    public string? Version { get; set; }
-    [JsonPropertyName("generatedAtUtc")]
-    public string? GeneratedAtUtc { get; set; }
-    [JsonPropertyName("fileCount")]
-    public int FileCount { get; set; }
-    [JsonPropertyName("files")]
-    public List<ManifestEntry>? Files { get; set; }
-}
-
-internal sealed class ManifestEntry
-{
-    [JsonPropertyName("path")]
-    public string? Path { get; set; }
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
-    [JsonPropertyName("hash")]
-    public string? Hash { get; set; }
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
 }

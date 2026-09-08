@@ -22,6 +22,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.x
+
       - name: Generate per-asset-type data manifests
         env:
           DATA_R2_BASE_URL: ${{ vars.DATA_R2_BASE_URL }}
