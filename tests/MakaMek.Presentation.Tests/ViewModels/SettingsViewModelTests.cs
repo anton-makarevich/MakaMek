@@ -1254,6 +1254,27 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ReloadProvidersCommand_WhenProviderLoadingFails_ShouldNotReportSuccessfulReload()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.GetCachedCount(Arg.Any<string>()).Returns(7);
+        _terrainAssetService.GetCachedCount(Arg.Any<string>()).Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("providers unavailable")));
+
+        // Act
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert - a failed provider reload must not be reported as successful
+        _sut.CacheStatus.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void ProviderTypes_ShouldExposeAllProviderTypes()
     {
         // Arrange

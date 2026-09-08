@@ -409,8 +409,10 @@ public class SettingsViewModel : BaseViewModel
             // Reload caches from the persisted (possibly externally changed) provider set first,
             // then re-read the list so row visuals and cached counts reflect the new set.
             await _assetLoadingViewModel.ReloadAsync();
-            await LoadAssetProvidersAsync();
-            CacheStatus = _localizationService.GetString("Settings_Data_Reloaded");
+            var reloaded = await LoadAssetProvidersAsync();
+            CacheStatus = reloaded
+                ? _localizationService.GetString("Settings_Data_Reloaded")
+                : string.Empty;
         }
         catch (Exception ex)
         {
