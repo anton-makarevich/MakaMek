@@ -28,7 +28,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="wrappers:AssetProviderEntryViewModel">
-                        <Border Classes="gamePanel" Padding="10" CornerRadius="8">
+                        <Border Classes="card" Padding="10" CornerRadius="8">
                             <StackPanel Spacing="8">
                                 <StackPanel Classes="horizontalSpaced">
                                     <StackPanel Spacing="2">
@@ -114,11 +114,8 @@
                         IsEnabled="{Binding !IsBusy}"
                         Classes="primary"/>
             </StackPanel>
-            <TextBlock Text="{Binding ClearCacheDescription}"
-                       TextWrapping="Wrap"
-                       Classes="body"
-                       Foreground="Gray"/>
-            <TextBlock Text="{Binding CacheStatus}"
+
+            <TextBlock Text="{Binding DataStatus}"
                        Classes="body"
                        FontWeight="SemiBold"/>
             <fragments:AssetLoadingView DataContext="{Binding AssetLoading}"

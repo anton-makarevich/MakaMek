@@ -99,20 +99,6 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void ClearCacheDescription_ShouldReturnLocalizedString()
-    {
-        // Arrange
-        CreateSut();
-
-        // Act
-        var result = _sut.ClearCacheDescription;
-
-        // Assert
-        result.ShouldContain("app restart");
-        result.ShouldContain("clearing the cache");
-    }
-
-    [Fact]
     public async Task ClearCacheCommand_ShouldClearAllCaches()
     {
         // Arrange
@@ -148,7 +134,7 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task ClearCacheCommand_ShouldUpdateCacheStatusToClearing()
+    public async Task ClearCacheCommand_ShouldUpdateDataStatusToClearing()
     {
         // Arrange
         _fileCachingService.ClearCache().Returns(Task.Delay(100));
@@ -160,12 +146,12 @@ public class SettingsViewModelTests
         var task = ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
         
         // Assert
-        _sut.CacheStatus.ShouldBe("Clearing cache...");
+        _sut.DataStatus.ShouldBe("Clearing cache...");
         await task;
     }
 
     [Fact]
-    public async Task ClearCacheCommand_ShouldUpdateCacheStatusToClearedAfterSuccess()
+    public async Task ClearCacheCommand_ShouldUpdateDataStatusToClearedAfterSuccess()
     {
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
@@ -176,7 +162,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
 
         // Assert
-        _sut.CacheStatus.ShouldBe("Cache cleared successfully");
+        _sut.DataStatus.ShouldBe("Cache cleared successfully");
     }
 
     [Fact]
@@ -1223,6 +1209,28 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ReloadProvidersCommand_AfterClearCache_ShouldUpdateDataStatusToReloaded()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.GetCachedCount(Arg.Any<string>()).Returns(7);
+        _terrainAssetService.GetCachedCount(Arg.Any<string>()).Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        // Clear the cache first, so the status label shows "Cache cleared successfully"
+        await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
+        _sut.DataStatus.ShouldBe("Cache cleared successfully");
+
+        // Act - reload assets afterwards
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert - the status should reflect that assets were reloaded, not that the cache was cleared
+        _sut.DataStatus.ShouldBe("Assets reloaded");
+    }
+
+    [Fact]
     public async Task ReloadProvidersCommand_WhenReloadThrows_ShouldLogErrorAndResetIsBusy()
     {
         // Arrange
@@ -1243,6 +1251,27 @@ public class SettingsViewModelTests
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to reload asset providers")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task ReloadProvidersCommand_WhenProviderLoadingFails_ShouldNotReportSuccessfulReload()
+    {
+        // Arrange
+        SetupAssetProviders([Provider("a")]);
+        _unitCachingService.GetCachedCount(Arg.Any<string>()).Returns(7);
+        _terrainAssetService.GetCachedCount(Arg.Any<string>()).Returns(3);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("providers unavailable")));
+
+        // Act
+        await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
+
+        // Assert - a failed provider reload must not be reported as successful
+        _sut.DataStatus.ShouldBeEmpty();
     }
 
     [Fact]
