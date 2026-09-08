@@ -63,7 +63,7 @@ public class SettingsViewModel : BaseViewModel
     public ICommand AddProviderCommand { get; }
     public ICommand ReloadProvidersCommand { get; }
 
-    public string CacheStatus
+    public string DataStatus
     {
         get;
         private set => SetProperty(ref field, value);
@@ -232,7 +232,7 @@ public class SettingsViewModel : BaseViewModel
         IsBusy = true;
         try
         {
-            CacheStatus = _localizationService.GetString("Settings_Data_Clearing");
+            DataStatus = _localizationService.GetString("Settings_Data_Clearing");
 
             // Clear all caches
             await _fileCachingService.ClearCache();
@@ -242,12 +242,12 @@ public class SettingsViewModel : BaseViewModel
             foreach (var provider in AssetProviders)
                 provider.CachedCount = 0;
 
-            CacheStatus = _localizationService.GetString("Settings_Data_Cleared");
+            DataStatus = _localizationService.GetString("Settings_Data_Cleared");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to clear cache");
-            CacheStatus = string.Empty;
+            DataStatus = string.Empty;
         }
         finally
         {
@@ -410,7 +410,7 @@ public class SettingsViewModel : BaseViewModel
             // then re-read the list so row visuals and cached counts reflect the new set.
             await _assetLoadingViewModel.ReloadAsync();
             var reloaded = await LoadAssetProvidersAsync();
-            CacheStatus = reloaded
+            DataStatus = reloaded
                 ? _localizationService.GetString("Settings_Data_Reloaded")
                 : string.Empty;
         }

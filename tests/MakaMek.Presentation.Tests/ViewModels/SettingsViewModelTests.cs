@@ -134,7 +134,7 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task ClearCacheCommand_ShouldUpdateCacheStatusToClearing()
+    public async Task ClearCacheCommand_ShouldUpdateDataStatusToClearing()
     {
         // Arrange
         _fileCachingService.ClearCache().Returns(Task.Delay(100));
@@ -146,12 +146,12 @@ public class SettingsViewModelTests
         var task = ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
         
         // Assert
-        _sut.CacheStatus.ShouldBe("Clearing cache...");
+        _sut.DataStatus.ShouldBe("Clearing cache...");
         await task;
     }
 
     [Fact]
-    public async Task ClearCacheCommand_ShouldUpdateCacheStatusToClearedAfterSuccess()
+    public async Task ClearCacheCommand_ShouldUpdateDataStatusToClearedAfterSuccess()
     {
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
@@ -162,7 +162,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
 
         // Assert
-        _sut.CacheStatus.ShouldBe("Cache cleared successfully");
+        _sut.DataStatus.ShouldBe("Cache cleared successfully");
     }
 
     [Fact]
@@ -1209,7 +1209,7 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public async Task ReloadProvidersCommand_AfterClearCache_ShouldUpdateCacheStatusToReloaded()
+    public async Task ReloadProvidersCommand_AfterClearCache_ShouldUpdateDataStatusToReloaded()
     {
         // Arrange
         SetupAssetProviders([Provider("a")]);
@@ -1221,13 +1221,13 @@ public class SettingsViewModelTests
 
         // Clear the cache first, so the status label shows "Cache cleared successfully"
         await ((IAsyncCommand)_sut.ClearCacheCommand).ExecuteAsync();
-        _sut.CacheStatus.ShouldBe("Cache cleared successfully");
+        _sut.DataStatus.ShouldBe("Cache cleared successfully");
 
         // Act - reload assets afterwards
         await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
 
         // Assert - the status should reflect that assets were reloaded, not that the cache was cleared
-        _sut.CacheStatus.ShouldBe("Assets reloaded");
+        _sut.DataStatus.ShouldBe("Assets reloaded");
     }
 
     [Fact]
@@ -1271,7 +1271,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)_sut.ReloadProvidersCommand).ExecuteAsync();
 
         // Assert - a failed provider reload must not be reported as successful
-        _sut.CacheStatus.ShouldBeEmpty();
+        _sut.DataStatus.ShouldBeEmpty();
     }
 
     [Fact]
