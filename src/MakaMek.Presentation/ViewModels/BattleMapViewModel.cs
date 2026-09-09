@@ -42,6 +42,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
+    private readonly IObservable<ConnectionStatus>? _connectionStatusSource;
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
@@ -188,8 +189,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
-        ConnectionStatus = new ConnectionStatusViewModel(
-            commandPublisher1?.Adapter.ConnectionStatusChanges, Scheduler);
+        ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler);
+        _connectionStatusSource = commandPublisher1?.Adapter.ConnectionStatusChanges;
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
     }
 
@@ -1060,6 +1061,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         // Restore game/command subscriptions if the view was re-attached
         // (e.g. re-navigation recreated the view and DetachHandlers disposed them).
         SubscribeToGameChanges();
+        if (_connectionStatusSource != null)
+        {
+            ConnectionStatus.Subscribe(_connectionStatusSource, Scheduler);
+        }
         if (_hexConfigurationChangedHandler != null)
         {
             HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
@@ -1072,6 +1077,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         base.DetachHandlers();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        ConnectionStatus.Subscribe(null, Scheduler);
     }
 
     private async Task GoToMainMenu()

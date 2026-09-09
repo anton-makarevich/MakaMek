@@ -50,6 +50,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     };
     private readonly Lock _initLock = new();
     private readonly ILogger<CommandTransportAdapter> _logger;
+    private bool _isDisposed;
 
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -447,9 +448,22 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         _ => ConnectionStatus.Disconnected
     };
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        return new ValueTask(ClearPublishers());
+        if (_isDisposed) return;
+        _isDisposed = true;
+        try
+        {
+            await ClearPublishers();
+        }
+        finally
+        {
+            // Terminal disposal: complete the status stream so observers get a
+            // terminal signal, then dispose the subject. ClearPublishers() alone
+            // keeps the stream reusable for session reset.
+            _connectionStatus.OnCompleted();
+            _connectionStatus.Dispose();
+        }
     }
 }

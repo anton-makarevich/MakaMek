@@ -2987,6 +2987,7 @@ public class BattleMapViewModelTests
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
             .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
         sut.SetNavigationService(navigationService);
+        sut.AttachHandlers();
 
         // Act - connection degrades, then closes
         subject.OnNext(ConnectionStatus.Reconnecting);
@@ -3012,6 +3013,7 @@ public class BattleMapViewModelTests
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
         var sut = CreateViewModelWithConnectionStatus(subject);
         sut.Game = CreateClientGame();
+        sut.AttachHandlers();
 
         // Act - transport closes first
         subject.OnNext(ConnectionStatus.Closed);
