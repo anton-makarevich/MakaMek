@@ -16,7 +16,8 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
     private readonly ILogger? _logger;
     private IDisposable? _subscription;
 
-    public ConnectionStatusViewModel(IObservable<ConnectionStatus>? source, IScheduler scheduler, ILogger? logger = null)
+    public ConnectionStatusViewModel(IObservable<ConnectionStatus>? source, IScheduler scheduler,
+        ILogger? logger = null)
     {
         _logger = logger;
         Subscribe(source, scheduler);
@@ -34,15 +35,14 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
         {
             // Detached: reset to the default non-degraded status so no stale
             // state from the previous source remains.
-            _logger?.LogDebug("ConnectionStatus: detached from status source; resetting to NotConnected");
             OnlineConnectionStatus = ConnectionStatus.NotConnected;
             return;
         }
 
         _subscription = source
             .ObserveOn(scheduler)
-            .Subscribe(status => OnlineConnectionStatus = status, ex => _logger?.LogError(ex, "ConnectionStatus stream error"));
-        _logger?.LogDebug("ConnectionStatus: subscribed to status source (current status {CurrentStatus})", OnlineConnectionStatus);
+            .Subscribe(status => OnlineConnectionStatus = status,
+                ex => _logger?.LogError(ex, "ConnectionStatus stream error"));
     }
 
     /// <summary>
@@ -54,7 +54,6 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
         private set
         {
             if (field == value) return;
-            _logger?.LogDebug("ConnectionStatus: {OldStatus} -> {NewStatus}", field, value);
             field = value;
             NotifyPropertyChanged();
             NotifyPropertyChanged(nameof(IsConnectionDegraded));

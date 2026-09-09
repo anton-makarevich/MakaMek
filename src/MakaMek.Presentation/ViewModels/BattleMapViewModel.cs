@@ -49,9 +49,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IPlatformService _platformService;
     private readonly IPdfExportService? _pdfExportService;
     private readonly IFileService? _fileService;
-    private readonly ILogger<ConnectionStatusViewModel>? _connectionLogger;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
@@ -168,12 +168,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _platformService = platformService;
         _pdfExportService = pdfExportService;
         _fileService = fileService;
-        _connectionLogger = connectionLogger;
-        var commandPublisher1 = commandPublisher;
-        connectionLogger?.LogDebug(
-            "BattleMapViewModel ctor: commandPublisher={HasPublisher}, source={HasSource}",
-            commandPublisher1 != null,
-            commandPublisher1?.Adapter.ConnectionStatusChanges != null);
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -197,7 +191,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
         ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler, connectionLogger);
-        _connectionStatusSource = commandPublisher1?.Adapter.ConnectionStatusChanges;
+        _connectionStatusSource = commandPublisher?.Adapter.ConnectionStatusChanges;
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
     }
 
@@ -230,8 +224,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IsGameOver = true;
         GameEndReason = GameEndReason.HostDisconnected;
         NotifyStateChanged();
-        ShowTransportClosedDialogAsync().SafeFireAndForget(
-            ex => Game?.Logger.LogError(ex, "Error showing transport closed dialog"));
+        ShowTransportClosedDialogAsync()
+            .SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error showing transport closed dialog"));
     }
 
     private async Task ShowTransportClosedDialogAsync()
@@ -265,7 +259,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         };
 
         var selectedAction = await NavigationService.AskForActionAsync(
-            _localizationService.GetString("Dialog_LeaveGame_Title"), 
+            _localizationService.GetString("Dialog_LeaveGame_Title"),
             _localizationService.GetString("Dialog_LeaveGame_Message"),
             yesAction,
             noAction);
@@ -279,19 +273,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         // Send PlayerLeftCommand for each local player
         if (Game != null)
         {
-
             foreach (var playerId in Game.LocalPlayers)
             {
-                if (Game==null || Game.IsDisposed) return;
+                if (Game == null || Game.IsDisposed) return;
                 Game.LeaveGame(playerId);
             }
 
             // Small delay to allow command to be sent
             await Task.Delay(100);
         }
+
         await GoToMainMenu();
     }
-    
+
     public IClientGame? Game
     {
         get => _game;
@@ -301,7 +295,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             SubscribeToGameChanges();
         }
     }
-    
+
     public ILocalizationService LocalizationService => _localizationService;
 
     public IReadOnlyCollection<string> CommandLog => _commandLog;
@@ -337,8 +331,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public bool IsWeaponSelectionVisible
     {
         get => CurrentState is WeaponsAttackState { CurrentStep: WeaponsAttackStep.TargetSelection }
-            && SelectedTarget != null
-            && field;
+               && SelectedTarget != null
+               && field;
         set => SetProperty(ref field, value);
     }
 
@@ -351,13 +345,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
-        
+
         if (Game is null) return;
 
         _commandSubscription = Game.Commands
             .ObserveOn(_dispatcherService.Scheduler)
-            .Subscribe( ProcessCommand );
-        
+            .Subscribe(ProcessCommand);
+
         _gameSubscription = Game.TurnChanges
             .StartWith(Game.Turn)
             .CombineLatest(Game.PhaseChanges.StartWith(Game.TurnPhase),
@@ -396,7 +390,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case GameEndedCommand gameEndedCommand:
                 // Server ended the game - track state to allow UI to respond
-                ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error processing game ended command"));
+                ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex =>
+                    Game?.Logger.LogError(ex, "Error processing game ended command"));
                 break;
             case BridgeCollapsedCommand:
                 // Terrain mutation handled by ClientGame.OnBridgeCollapsed;
@@ -415,35 +410,35 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             movementState.ResumeMovementAfterFall(unitId);
             return;
         }
-        
+
         movementState.ResumeMovementAfterStandup(unitId);
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)
     {
         if (Game == null) return;
-    
+
         var attacker = Game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.UnitId);
-    
+
         if (attacker?.Position == null || attacker.Owner == null) return;
 
         // Initialize the collection if it's null
         WeaponAttacks ??= [];
-        
+
         // Dictionary to track offsets per target
         var targetOffsets = new Dictionary<Guid, int>();
-        
+
         var newAttacks = command.WeaponTargets
-            .Select(wt => 
+            .Select(wt =>
             {
                 var target = Game.Players
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
 
                 if (target?.Position == null) throw new Exception("The target should be deployed");
-                
+
                 // Get or initialize offset for this target
                 var offset = targetOffsets.GetValueOrDefault(target.Id, 5);
 
@@ -452,7 +447,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
                     wt.Weapon.Assignments.First().Location,
                     wt.Weapon.Assignments.First().FirstSlot);
-                
+
                 if (weapon == null) throw new Exception("The weapon is not found");
 
                 var attack = new WeaponAttackViewModel
@@ -467,11 +462,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
                 // Increment and save offset for this target
                 targetOffsets[target.Id] = offset + 5;
-                
+
                 return attack;
             })
             .ToList();
-            
+
         WeaponAttacks.AddRange(newAttacks);
         NotifyPropertyChanged(nameof(WeaponAttacks));
     }
@@ -479,21 +474,22 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private void ProcessWeaponAttackResolution(WeaponAttackResolutionCommand command)
     {
         if (Game == null || WeaponAttacks == null || !WeaponAttacks.Any()) return;
-        
+
         // Find and remove the attack that matches the weapon name and target ID
         var attacksToRemove = WeaponAttacks
-            .Where(attack => 
-                attack.Weapon.SlotAssignments[0].Location == command.WeaponData.Assignments[0].Location 
+            .Where(attack =>
+                attack.Weapon.SlotAssignments[0].Location == command.WeaponData.Assignments[0].Location
                 && attack.Weapon.SlotAssignments[0].FirstSlot == command.WeaponData.Assignments[0].FirstSlot
                 && attack.TargetId == command.TargetId)
             .ToList();
-            
+
         if (attacksToRemove.Any())
         {
             foreach (var attack in attacksToRemove)
             {
                 WeaponAttacks.Remove(attack);
             }
+
             NotifyPropertyChanged(nameof(WeaponAttacks));
         }
     }
@@ -512,20 +508,20 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
                 break;
-        
+
             case PhaseNames.Movement when phaseState.UnitsToPlay > 0:
                 TransitionToState(new MovementState(this));
                 break;
-        
+
             case PhaseNames.WeaponsAttack when phaseState.UnitsToPlay > 0:
                 TransitionToState(new WeaponsAttackState(this));
                 break;
-        
+
             case PhaseNames.End:
                 ClearWeaponAttacks();
                 TransitionToState(new EndState(this));
                 break;
-        
+
             default:
                 TransitionToState(new IdleState());
                 break;
@@ -547,7 +543,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             UnitsToDeploy = [];
             return;
         }
-        UnitsToDeploy = Game?.PhaseStepState?.ActivePlayer.Units.Where(u => !u.IsDeployed).ToList()??[];
+
+        UnitsToDeploy = Game?.PhaseStepState?.ActivePlayer.Units.Where(u => !u.IsDeployed).ToList() ?? [];
     }
 
     private void TransitionToState(IUiState newState)
@@ -649,6 +646,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             hex.RemoveHighlight<T>();
         }
+
         RemoveHighlightBoundaryOutlines(coordinates);
     }
 
@@ -663,6 +661,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             hex.ClearHighlights();
         }
+
         ClearHighlightBoundaryOutlines();
     }
 
@@ -749,7 +748,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return _localizationService.GetString(key);
         }
     }
-    
+
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
@@ -788,8 +787,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         // Update heat projection for a selected unit
         SelectedUnitHeatProjection.Unit = SelectedUnit;
     }
-    
-    public IUnit? Attacker => CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
+
+    public IUnit? Attacker =>
+        CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
 
     public void HandleHexSelection(Hex selectedHex)
     {
@@ -805,7 +805,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public bool IsUserActionLabelVisible => CurrentState.IsActionRequired;
 
     public string PlayerActionLabel => CurrentState.PlayerActionLabel;
-    
+
     public bool IsPlayerActionButtonVisible =>
         CurrentState.CanExecutePlayerAction;
 
@@ -880,10 +880,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HideMovementPath();
         if (path == null || path.TotalCost == 0)
         {
-            return; 
+            return;
         }
 
-        var segments = path.Segments.Select(p=> new PathSegmentViewModel(p)).ToList();
+        var segments = path.Segments.Select(p => new PathSegmentViewModel(p)).ToList();
         MovementPath = segments;
     }
 
@@ -912,7 +912,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 .Select(e => new UiEventViewModel(e, _localizationService))
                 .ToList();
         }
-        
+
         NotifyPropertyChanged(nameof(SelectedUnitEvents));
     }
 
@@ -1037,17 +1037,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             await GoToMainMenu();
             return;
         }
+
         var endGameViewModel = await NavigationService.GetNewViewModelAsync<EndGameViewModel>();
         if (endGameViewModel == null)
         {
             await GoToMainMenu();
             return;
         }
+
         // Initialize the end game view model with the game and reason
         endGameViewModel.Initialize(_game, GameEndReason);
         await NavigationService.NavigateToViewModelAsync(endGameViewModel);
     }
-    
+
     public void Dispose()
     {
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
@@ -1059,6 +1061,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             Game.Dispose();
         }
+
         GC.SuppressFinalize(this);
     }
 
@@ -1068,14 +1071,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         // Restore game/command subscriptions if the view was re-attached
         // (e.g. re-navigation recreated the view and DetachHandlers disposed them).
         SubscribeToGameChanges();
-        _connectionLogger?.LogDebug(
-            "BattleMapViewModel.AttachHandlers: source null={SourceNull}, status={Status}",
-            _connectionStatusSource == null,
-            ConnectionStatus.OnlineConnectionStatus);
         if (_connectionStatusSource != null)
         {
             ConnectionStatus.Subscribe(_connectionStatusSource, Scheduler);
         }
+
         if (_hexConfigurationChangedHandler != null)
         {
             HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
@@ -1086,7 +1086,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
         base.DetachHandlers();
-        _connectionLogger?.LogDebug("BattleMapViewModel.DetachHandlers: unsubscribing connection status");
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         ConnectionStatus.Subscribe(null, Scheduler);
@@ -1100,6 +1099,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             Game.Dispose();
             Game = null;
         }
+
         await NavigationService.NavigateToRootAsync();
     }
 }
