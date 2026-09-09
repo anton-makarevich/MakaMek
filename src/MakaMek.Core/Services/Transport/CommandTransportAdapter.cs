@@ -62,6 +62,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         foreach (var publisher in transportPublishers)
         {
             _transportPublishers.Add(publisher);
+            SubscribeConnectionState(publisher);
         }
     }
 
@@ -110,6 +111,12 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             _transportPublishers.Remove(publisher);
             UnsubscribeDisconnectHandler(publisher);
             UnsubscribeConnectionState(publisher);
+            // Only reset the status stream when the last publisher is gone;
+            // remaining publishers may still hold a valid status.
+            if (_transportPublishers.Count == 0)
+            {
+                _connectionStatus.OnNext(ConnectionStatus.NotConnected);
+            }
         }
     }
 

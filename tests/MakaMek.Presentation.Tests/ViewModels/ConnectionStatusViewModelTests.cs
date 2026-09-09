@@ -101,4 +101,24 @@ public class ConnectionStatusViewModelTests
         sut.OnlineConnectionStatus.ShouldBe(ConnectionStatus.Connected);
         sut.IsConnectionDegraded.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Subscribe_NullSource_AfterDegradedStatus_ResetsToNotConnected()
+    {
+        // Arrange
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Reconnecting);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        sut.IsConnectionDegraded.ShouldBeTrue();
+
+        // Act
+        sut.Subscribe(null, Scheduler.Immediate);
+
+        // Assert - no stale degraded status remains after detaching
+        sut.OnlineConnectionStatus.ShouldBe(ConnectionStatus.NotConnected);
+        sut.IsConnectionDegraded.ShouldBeFalse();
+
+        // The disposed subscription no longer receives updates
+        subject.OnNext(ConnectionStatus.Closed);
+        sut.OnlineConnectionStatus.ShouldBe(ConnectionStatus.NotConnected);
+    }
 }

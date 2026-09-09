@@ -1214,4 +1214,48 @@ public class CommandTransportAdapterTests
         statuses.Last().ShouldBe(ConnectionStatus.Reconnecting);
         await _sut.ClearPublishers();
     }
+
+    [Fact]
+    public void ConnectionStatusChanges_WhenConstructorPublisherRaisesConnectionStateChanged_MapsToConnectionStatus()
+    {
+        // Arrange - publisher provided through the constructor must also be subscribed to state changes
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory, _mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert
+        statuses.ShouldBe([
+            ConnectionStatus.NotConnected,
+            ConnectionStatus.Connecting,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public async Task ConnectionStatusChanges_AfterRemovePublisherWithRemainingPublisher_KeepsExistingStatus()
+    {
+        // Arrange
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Act - remove publisher 2 while publisher 1 is still attached
+        _sut.RemovePublisher(_mockPublisher2);
+
+        // Assert - status is preserved while a publisher remains
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+        await _sut.ClearPublishers();
+    }
 }

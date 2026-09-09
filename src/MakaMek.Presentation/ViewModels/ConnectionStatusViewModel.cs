@@ -27,7 +27,13 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
     {
         _subscription?.Dispose();
         _subscription = null;
-        if (source == null) return;
+        if (source == null)
+        {
+            // Detached: reset to the default non-degraded status so no stale
+            // state from the previous source remains.
+            OnlineConnectionStatus = ConnectionStatus.NotConnected;
+            return;
+        }
 
         _subscription = source
             .ObserveOn(scheduler)

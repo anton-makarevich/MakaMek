@@ -104,6 +104,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             NotifyPropertyChanged(nameof(HostingStatusText));
             NotifyPropertyChanged(nameof(CanChangeHostMode));
             NotifyPropertyChanged(nameof(IsLanDetailsVisible));
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
         }
     }
 
