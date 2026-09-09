@@ -86,6 +86,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         // Guard with the same lock to avoid races with Initialize
         lock (_initLock)
         {
+            if (_isDisposed) return;
             if (_transportPublishers.Contains(publisher)) return;
 
             _transportPublishers.Add(publisher);

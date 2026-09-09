@@ -234,6 +234,29 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
+    public async Task AddPublisher_AfterDisposeAsync_DoesNotAddPublisherOrThrow()
+    {
+        // Arrange
+        SetupAdapter();
+        var newPublisher = Substitute.For<ITransportPublisher>();
+        newPublisher.ConnectionState.Returns(TransportConnectionState.Disconnected);
+        await _sut.DisposeAsync();
+
+        // Act
+        Should.NotThrow(() => _sut.AddPublisher(newPublisher));
+        _sut.PublishCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        });
+
+        // Assert - no publisher registered, no ObjectDisposedException raised
+        _sut.TransportPublishers.ShouldNotContain(newPublisher);
+        newPublisher.DidNotReceive().Subscribe(Arg.Any<Action<TransportMessage>>());
+        await newPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+    }
+
+    [Fact]
     public void Initialize_SubscribesToAllPublishersAndDeserializesCommands()
     {
         // Arrange
