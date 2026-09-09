@@ -572,6 +572,25 @@ public class FakeLocalizationServiceTests
     }
 
     [Theory]
+    [InlineData("Connection_Status_NotConnected", "Not connected")]
+    [InlineData("Connection_Status_Connecting", "Connecting...")]
+    [InlineData("Connection_Status_Connected", "Connected")]
+    [InlineData("Connection_Status_Reconnecting", "Reconnecting...")]
+    [InlineData("Connection_Status_Disconnected", "Disconnected")]
+    [InlineData("Connection_Status_Closed", "Connection closed")]
+    public void GetString_ConnectionStatus_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("BattleMap_Turn", "TURN")]
     [InlineData("BattleMap_Phase", "PHASE")]
     [InlineData("BattleMap_ActivePlayer", "ACTIVE PLAYER")]
