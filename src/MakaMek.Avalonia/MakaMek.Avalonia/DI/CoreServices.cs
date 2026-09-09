@@ -137,6 +137,7 @@ public static class CoreServices
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
         services.AddSingleton<ITerrainBitmaskService, TerrainBitmaskService>();
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
+        services.AddSingleton<IOnlineStatusForwarder, OnlineStatusForwarder>();
         services.AddSingleton<IGameManager, GameManager>();
         services.AddTransient<IGameConnector, GameConnector>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.SignalR.Client;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using System.Reactive.Subjects;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -41,6 +42,8 @@ public class GameManagerTests : IDisposable
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
     private readonly ILogger<GameManager> _logger = Substitute.For<ILogger<GameManager>>();
+    private readonly IOnlineStatusForwarder _forwarder = Substitute.For<IOnlineStatusForwarder>();
+    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.Connected);
 
     public GameManagerTests()
     {
@@ -52,6 +55,8 @@ public class GameManagerTests : IDisposable
         _transportAdapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
+
+        _forwarder.OnlineConnectionStatus.Returns(_forwarderSubject);
 
         var rulesProvider = Substitute.For<IRulesProvider>();
         var mechFactory = Substitute.For<IMechFactory>();
@@ -87,7 +92,8 @@ public class GameManagerTests : IDisposable
             _localizationService,
             _commandLoggerFactory,
             _logger,
-            _networkHostService);
+            _networkHostService,
+            onlineStatusForwarder: _forwarder);
     }
     
     private GameManager CreateSutWithNullHost() => new GameManager(
@@ -95,7 +101,8 @@ public class GameManagerTests : IDisposable
         _gameFactory,
         _localizationService,
         _commandLoggerFactory,
-        _logger);
+        _logger,
+        onlineStatusForwarder: _forwarder);
 
     private GameManager CreateSutWithRelay(
         IRelayRoomClient relayRoomClient,
@@ -124,7 +131,8 @@ public class GameManagerTests : IDisposable
             networkHostService,
             relayRoomClient,
             relayPublisherFactory,
-            provider);
+            provider,
+            _forwarder);
     }
 
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string relayTicket) =>
@@ -1756,7 +1764,7 @@ public class GameManagerTests : IDisposable
     // ---------- Online connection status forwarding ----------
 
     [Fact]
-    public async Task InitializeLobbyOnline_ForwardsAdapterStatusToOnlineStatus()
+    public async Task InitializeLobbyOnline_StartsStatusForwarding()
     {
         // Arrange
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -1777,15 +1785,16 @@ public class GameManagerTests : IDisposable
             .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
+        // The manager's status stream is the forwarder's stream; status flows through it
         var statuses = new List<ConnectionStatus>();
         sut.OnlineConnectionStatus.Subscribe(statuses.Add);
 
-        // Act - host online, then the relay connection degrades
+        // Act - host online, then push a degraded status directly into the forwarder stream
         await sut.InitializeLobbyOnline();
-        relayPublisher.ConnectionStateChanged +=
-            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+        _forwarderSubject.OnNext(ConnectionStatus.Disconnected);
 
-        // Assert - adapter state reaches the manager's session-scoped stream
+        // Assert - the manager forwards to the forwarder and the stream reflects its subject
+        _forwarder.Received(1).Start(_transportAdapter);
         statuses.ShouldContain(ConnectionStatus.Connected);
         statuses.ShouldContain(ConnectionStatus.Disconnected);
 
@@ -1793,7 +1802,7 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task DisposeAsync_ResetsOnlineStatusToConnected()
+    public async Task DisposeAsync_ResetsStatusForwarding()
     {
         // Arrange
         var relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -1815,16 +1824,13 @@ public class GameManagerTests : IDisposable
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
         await sut.InitializeLobbyOnline();
-        relayPublisher.ConnectionStateChanged +=
-            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
-
-        var statuses = new List<ConnectionStatus>();
-        sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+        _forwarderSubject.OnNext(ConnectionStatus.Closed);
+        _forwarder.ClearReceivedCalls();
 
         // Act
         await sut.DisposeAsync();
 
-        // Assert - no stale status survives the session teardown
-        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+        // Assert - the forwarder is reset so no stale status survives the session teardown
+        _forwarder.Received(1).Reset();
     }
 }
