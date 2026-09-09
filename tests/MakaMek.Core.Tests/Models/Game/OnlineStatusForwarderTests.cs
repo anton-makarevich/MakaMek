@@ -12,7 +12,7 @@ public class OnlineStatusForwarderTests
     private readonly OnlineStatusForwarder _sut = new();
 
     private readonly ICommandTransportAdapter _adapter = Substitute.For<ICommandTransportAdapter>();
-    private readonly BehaviorSubject<ConnectionStatus> _connectionStatusSubject = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _connectionStatusSubject = new(ConnectionStatus.NotConnected);
 
     public OnlineStatusForwarderTests()
     {
@@ -26,8 +26,8 @@ public class OnlineStatusForwarderTests
         var statuses = new List<ConnectionStatus>();
         _sut.OnlineConnectionStatus.Subscribe(statuses.Add);
 
-        // Assert - BehaviorSubject replays the initial Connected on subscribe
-        statuses.ShouldBe([ConnectionStatus.Connected]);
+        // Assert - BehaviorSubject replays the initial NotConnected on subscribe
+        statuses.ShouldBe([ConnectionStatus.NotConnected]);
     }
 
     [Fact]
@@ -45,11 +45,11 @@ public class OnlineStatusForwarderTests
         _connectionStatusSubject.OnNext(ConnectionStatus.Closed);
         _connectionStatusSubject.OnNext(ConnectionStatus.Connected);
 
-        // Assert - the adapter's BehaviorSubject replays its current Connected on Start,
+        // Assert - the adapter's BehaviorSubject replays its current NotConnected on Start,
         // joined by the forwarder's own initial replay on subscribe
         statuses.ShouldBe([
-            ConnectionStatus.Connected,
-            ConnectionStatus.Connected,
+            ConnectionStatus.NotConnected,
+            ConnectionStatus.NotConnected,
             ConnectionStatus.Connecting,
             ConnectionStatus.Reconnecting,
             ConnectionStatus.Disconnected,
@@ -79,7 +79,7 @@ public class OnlineStatusForwarderTests
     }
 
     [Fact]
-    public void Reset_StopsForwardingAndPushesConnected()
+    public void Reset_StopsForwardingAndPushesNotConnected()
     {
         // Arrange
         var statuses = new List<ConnectionStatus>();
@@ -91,9 +91,9 @@ public class OnlineStatusForwarderTests
         // Act
         _sut.Reset();
 
-        // Assert - the stream restarts at Connected and no longer follows the adapter
+        // Assert - the stream restarts at NotConnected and no longer follows the adapter
         _connectionStatusSubject.OnNext(ConnectionStatus.Closed);
-        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+        statuses.Last().ShouldBe(ConnectionStatus.NotConnected);
         statuses.ShouldNotContain(ConnectionStatus.Closed);
     }
 }

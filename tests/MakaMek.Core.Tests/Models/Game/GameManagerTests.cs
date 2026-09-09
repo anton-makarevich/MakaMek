@@ -43,7 +43,7 @@ public class GameManagerTests : IDisposable
     private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
     private readonly ILogger<GameManager> _logger = Substitute.For<ILogger<GameManager>>();
     private readonly IOnlineStatusForwarder _forwarder = Substitute.For<IOnlineStatusForwarder>();
-    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.NotConnected);
 
     public GameManagerTests()
     {
@@ -1795,7 +1795,7 @@ public class GameManagerTests : IDisposable
 
         // Assert - the manager forwards to the forwarder and the stream reflects its subject
         _forwarder.Received(1).Start(_transportAdapter);
-        statuses.ShouldContain(ConnectionStatus.Connected);
+        statuses.ShouldContain(ConnectionStatus.NotConnected);
         statuses.ShouldContain(ConnectionStatus.Disconnected);
 
         await sut.DisposeAsync();

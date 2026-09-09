@@ -1164,7 +1164,7 @@ public class CommandTransportAdapterTests
 
         // Assert - subject is a BehaviorSubject so the current value replays on subscribe
         statuses.ShouldBe([
-            ConnectionStatus.Connected,
+            ConnectionStatus.NotConnected,
             ConnectionStatus.Connecting,
             ConnectionStatus.Reconnecting,
             ConnectionStatus.Disconnected,
@@ -1174,7 +1174,7 @@ public class CommandTransportAdapterTests
     }
 
     [Fact]
-    public void ConnectionStatusChanges_AfterClearPublishers_ResetsToConnected()
+    public void ConnectionStatusChanges_AfterClearPublishers_ResetsToNotConnected()
     {
         // Arrange - the publisher must go through AddPublisher for the state subscription to exist
         SetupAdapter();
@@ -1189,7 +1189,7 @@ public class CommandTransportAdapterTests
         Should.NotThrow(() => _sut.ClearPublishers().GetAwaiter().GetResult());
 
         // Assert - the stream is reset so no stale status leaks into the next session
-        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+        statuses.Last().ShouldBe(ConnectionStatus.NotConnected);
     }
 
     [Fact]

@@ -441,6 +441,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Hub_Status_Unknown"] = "Unknown",
         ["Connection_Status_Connecting"] = "Connecting...",
         ["Connection_Status_Connected"] = "Connected",
+        ["Connection_Status_NotConnected"] = "Not connected",
         ["Connection_Status_Reconnecting"] = "Reconnecting...",
         ["Connection_Status_Disconnected"] = "Disconnected",
         ["Connection_Status_Closed"] = "Connection closed",

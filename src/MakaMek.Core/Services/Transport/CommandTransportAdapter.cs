@@ -29,7 +29,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     // Tracks the delegate registered on each publisher's ConnectionStateChanged event so it can
     // be unsubscribed later (Action<T> has no equality semantics beyond delegate reference).
     private readonly Dictionary<ITransportPublisher, Action<TransportConnectionState>> _connectionStateHandlers = new();
-    private readonly BehaviorSubject<ConnectionStatus> _connectionStatus = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _connectionStatus = new(ConnectionStatus.NotConnected);
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -133,7 +133,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             _isInitialized = false;
             _transportPublishers.Clear();
             // Reset the status stream so no stale status leaks into the next session.
-            _connectionStatus.OnNext(ConnectionStatus.Connected);
+            _connectionStatus.OnNext(ConnectionStatus.NotConnected);
         }
 
         // Dispose publishers outside the lock

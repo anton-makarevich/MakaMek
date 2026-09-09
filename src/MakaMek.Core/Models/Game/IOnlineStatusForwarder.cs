@@ -12,7 +12,7 @@ public interface IOnlineStatusForwarder
 {
     /// <summary>
     /// Gets the connection status of the current online session. Remains
-    /// <see cref="ConnectionStatus.Connected"/> while no online session is active.
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online session is active.
     /// </summary>
     IObservable<ConnectionStatus> OnlineConnectionStatus { get; }
 
@@ -24,7 +24,7 @@ public interface IOnlineStatusForwarder
     void Start(ICommandTransportAdapter adapter);
 
     /// <summary>
-    /// Stops forwarding and resets the stream to <see cref="ConnectionStatus.Connected"/>
+    /// Stops forwarding and resets the stream to <see cref="ConnectionStatus.NotConnected"/>
     /// so no stale status leaks into the next session.
     /// </summary>
     void Reset();

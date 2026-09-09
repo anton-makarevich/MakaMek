@@ -10,7 +10,7 @@ namespace Sanet.MakaMek.Core.Models.Game;
 /// </summary>
 public class OnlineStatusForwarder : IOnlineStatusForwarder
 {
-    private readonly BehaviorSubject<ConnectionStatus> _onlineStatus = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _onlineStatus = new(ConnectionStatus.NotConnected);
     private IDisposable? _subscription;
 
     /// <inheritdoc />
@@ -28,6 +28,6 @@ public class OnlineStatusForwarder : IOnlineStatusForwarder
     {
         _subscription?.Dispose();
         _subscription = null;
-        _onlineStatus.OnNext(ConnectionStatus.Connected);
+        _onlineStatus.OnNext(ConnectionStatus.NotConnected);
     }
 }

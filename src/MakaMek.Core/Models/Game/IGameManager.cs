@@ -83,7 +83,7 @@ public interface IGameManager : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Gets the connection status of the online hosting session. Remains
-    /// <see cref="ConnectionStatus.Connected"/> while no online room is being hosted.
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room is being hosted.
     /// </summary>
     IObservable<ConnectionStatus> OnlineConnectionStatus { get; }
 

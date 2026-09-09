@@ -7,6 +7,11 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 public enum ConnectionStatus
 {
     /// <summary>
+    /// No connection session is active; initial/neutral state.
+    /// </summary>
+    NotConnected,
+
+    /// <summary>
     /// The connection is being established.
     /// </summary>
     Connecting,

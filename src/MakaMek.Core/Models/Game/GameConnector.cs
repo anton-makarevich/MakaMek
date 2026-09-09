@@ -29,7 +29,7 @@ public class GameConnector : IGameConnector
     private Guid? _deviceSessionId;
     private bool _isDisposed;
     private readonly IOnlineStatusForwarder? _forwarder;
-    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.NotConnected);
 
     public GameConnector(
         ICommandPublisher commandPublisher,
@@ -57,7 +57,7 @@ public class GameConnector : IGameConnector
 
     /// <summary>
     /// Gets the connection status of the online join session. Remains
-    /// <see cref="ConnectionStatus.Connected"/> while no online room has been joined.
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room has been joined.
     /// </summary>
     public IObservable<ConnectionStatus> OnlineConnectionStatus => _forwarder?.OnlineConnectionStatus ?? _fallbackOnlineStatus;
 

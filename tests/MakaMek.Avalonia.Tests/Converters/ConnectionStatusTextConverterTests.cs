@@ -20,6 +20,7 @@ public class ConnectionStatusTextConverterTests : IDisposable
     }
 
     [Theory]
+    [InlineData(ConnectionStatus.NotConnected, "Connection_Status_NotConnected")]
     [InlineData(ConnectionStatus.Connecting, "Connection_Status_Connecting")]
     [InlineData(ConnectionStatus.Connected, "Connection_Status_Connected")]
     [InlineData(ConnectionStatus.Reconnecting, "Connection_Status_Reconnecting")]
@@ -41,6 +42,7 @@ public class ConnectionStatusTextConverterTests : IDisposable
     }
 
     [Theory]
+    [InlineData(ConnectionStatus.NotConnected, "Not connected")]
     [InlineData(ConnectionStatus.Connecting, "Connecting...")]
     [InlineData(ConnectionStatus.Connected, "Connected")]
     [InlineData(ConnectionStatus.Reconnecting, "Reconnecting...")]

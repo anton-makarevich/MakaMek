@@ -28,6 +28,7 @@ public class ConnectionStatusTextConverter : IValueConverter
 
         return status switch
         {
+            ConnectionStatus.NotConnected => _localizationService?.GetString("Connection_Status_NotConnected") ?? "Not connected",
             ConnectionStatus.Connecting => _localizationService?.GetString("Connection_Status_Connecting") ?? "Connecting...",
             ConnectionStatus.Connected => _localizationService?.GetString("Connection_Status_Connected") ?? "Connected",
             ConnectionStatus.Reconnecting => _localizationService?.GetString("Connection_Status_Reconnecting") ?? "Reconnecting...",

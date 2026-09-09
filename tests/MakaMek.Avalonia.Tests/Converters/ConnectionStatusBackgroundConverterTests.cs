@@ -21,6 +21,7 @@ public class ConnectionStatusBackgroundConverterTests : IDisposable
     }
 
     [Theory]
+    [InlineData(ConnectionStatus.NotConnected, "InfoBrush")]
     [InlineData(ConnectionStatus.Connected, "SuccessBrush")]
     [InlineData(ConnectionStatus.Connecting, "InfoBrush")]
     [InlineData(ConnectionStatus.Reconnecting, "InfoBrush")]

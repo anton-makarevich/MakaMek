@@ -28,7 +28,7 @@ public class GameConnectorTests : IDisposable
     private readonly IPublisherFactory _relayPublisherFactory;
     private readonly ILogger<GameConnector> _logger;
     private readonly IOnlineStatusForwarder _forwarder = Substitute.For<IOnlineStatusForwarder>();
-    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.NotConnected);
     private readonly GameConnector _sut;
 
     public GameConnectorTests()
@@ -37,7 +37,7 @@ public class GameConnectorTests : IDisposable
         // Use a substitute for the adapter to allow simulating exceptions in tests
         _transportAdapter = Substitute.For<ICommandTransportAdapter>();
         _commandPublisher.Adapter.Returns(_transportAdapter);
-        var connectionStatusSubject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var connectionStatusSubject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.NotConnected);
         _transportAdapter.ConnectionStatusChanges.Returns(connectionStatusSubject);
         _forwarder.OnlineConnectionStatus.Returns(_forwarderSubject);
 
@@ -1059,9 +1059,9 @@ public class GameConnectorTests : IDisposable
         _forwarderSubject.OnNext(ConnectionStatus.Closed);
 
         // Assert - the connector starts forwarding to the shared forwarder and its subject
-        // replays the initial Connected on subscribe
+        // replays the initial NotConnected on subscribe
         _forwarder.Received(1).Start(_transportAdapter);
-        statuses.ShouldContain(ConnectionStatus.Connected);
+        statuses.ShouldContain(ConnectionStatus.NotConnected);
         statuses.ShouldContain(ConnectionStatus.Reconnecting);
         statuses.ShouldContain(ConnectionStatus.Closed);
     }

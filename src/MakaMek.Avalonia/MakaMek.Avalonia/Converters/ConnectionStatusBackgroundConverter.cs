@@ -36,6 +36,7 @@ public class ConnectionStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
+            ConnectionStatus.NotConnected => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
             ConnectionStatus.Connected => _resourcesLocator?.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
             ConnectionStatus.Connecting => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
             ConnectionStatus.Reconnecting => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),

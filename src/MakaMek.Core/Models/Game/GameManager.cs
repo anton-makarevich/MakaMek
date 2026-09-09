@@ -35,7 +35,7 @@ public class GameManager : IGameManager
     private string? _onlineSessionToken;
     private RelayClientOptions? _onlineRelayOptions;
     private readonly IOnlineStatusForwarder? _forwarder;
-    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.Connected);
+    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.NotConnected);
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -527,7 +527,7 @@ public class GameManager : IGameManager
 
     /// <summary>
     /// Gets the connection status of the online hosting session. Remains
-    /// <see cref="ConnectionStatus.Connected"/> while no online room is being hosted.
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room is being hosted.
     /// </summary>
     public IObservable<ConnectionStatus> OnlineConnectionStatus => _forwarder?.OnlineConnectionStatus ?? _fallbackOnlineStatus;
 

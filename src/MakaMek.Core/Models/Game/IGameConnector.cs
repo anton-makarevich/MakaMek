@@ -38,7 +38,7 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Gets the connection status of the online join session. Remains
-    /// <see cref="ConnectionStatus.Connected"/> while no online room has been joined.
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room has been joined.
     /// </summary>
     IObservable<ConnectionStatus> OnlineConnectionStatus { get; }
 
