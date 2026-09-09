@@ -46,9 +46,11 @@ public interface ICommandTransportAdapter : IAsyncDisposable
 
     /// <summary>
     /// Observable stream of the transport connection status. Emits
-    /// <see cref="ConnectionStatus.NotConnected"/> immediately on subscription and then every status
-    /// reported by any registered publisher's connection state change. Resets to NotConnected
-    /// whenever publishers are removed or cleared so no stale status leaks between sessions.
+    /// <see cref="ConnectionStatus.NotConnected"/> immediately on subscription and then the most
+    /// severe status reported by any registered publisher's connection state change. When a
+    /// publisher is removed or all publishers are cleared, the status is recomputed from the
+    /// remaining publishers so a stale status from the removed publisher does not linger; with
+    /// no publishers left it resets to <see cref="ConnectionStatus.NotConnected"/>.
     /// </summary>
     IObservable<ConnectionStatus> ConnectionStatusChanges { get; }
 

@@ -575,9 +575,9 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
 
         // Re-add a publisher and verify we need to re-initialize
         sut.AddPublisher(nonDisposablePublisher);
@@ -624,8 +624,8 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
 
     [Fact]
@@ -659,9 +659,9 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
 
     [Fact]
@@ -1257,5 +1257,90 @@ public class CommandTransportAdapterTests
         // Assert - status is preserved while a publisher remains
         statuses.Last().ShouldBe(ConnectionStatus.Connected);
         await _sut.ClearPublishers();
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_RemoveDegradedPublisher_RestoresRemainingPublisherStatus()
+    {
+        // Arrange - publisher 2 reports a worse status than publisher 1
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+        _mockPublisher2.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+
+        // Sanity - the degraded publisher dominates while both are attached
+        statuses.Last().ShouldBe(ConnectionStatus.Disconnected);
+
+        // Act - remove the degraded publisher
+        _sut.RemovePublisher(_mockPublisher2);
+
+        // Assert - the aggregate is recomputed from the remaining publisher's status
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenCalledConcurrently_DisposesPublishersOnlyOnce()
+    {
+        // Arrange
+        var disposablePublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+        var sut = new CommandTransportAdapter(_loggerFactory, disposablePublisher);
+
+        // Act - fire both invocations concurrently; only one may perform terminal cleanup
+        var first = sut.DisposeAsync().AsTask();
+        var second = sut.DisposeAsync().AsTask();
+        await Task.WhenAll(first, second);
+
+        // Assert
+        await ((IAsyncDisposable)disposablePublisher).Received(1).DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenConnectionStateCallbackInFlight_CompletesWithoutThrowing()
+    {
+        // Arrange
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        using var callbackEntered = new ManualResetEventSlim();
+        using var releaseCallback = new ManualResetEventSlim();
+        var errors = new List<Exception>();
+        var calls = 0;
+        _sut.ConnectionStatusChanges.Subscribe(_ =>
+        {
+            // The first delivery is the BehaviorSubject's NotConnected replay; only block on
+            // the second delivery (the in-flight Connected raised from the background thread).
+            calls++;
+            if (calls == 2)
+            {
+                callbackEntered.Set();
+                releaseCallback.Wait();
+            }
+        }, errors.Add);
+
+        // Start raising a state change; the subscriber callback blocks the handler (which
+        // holds the adapter lock inside OnNext) until we release it.
+        var raiseTask = Task.Run(() =>
+            _mockPublisher1.ConnectionStateChanged +=
+                Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected));
+        callbackEntered.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+
+        // Act - begin disposal on a background thread; it must block on the adapter lock
+        // until the in-flight emission completes, so no OnNext can follow the subject disposal.
+        var disposeTask = Task.Run(() => _sut.DisposeAsync().AsTask());
+        Thread.Sleep(100);
+        disposeTask.IsCompleted.ShouldBeFalse();
+
+        releaseCallback.Set();
+        await Task.WhenAll(raiseTask, disposeTask);
+
+        // Assert
+        errors.ShouldBeEmpty();
     }
 }
