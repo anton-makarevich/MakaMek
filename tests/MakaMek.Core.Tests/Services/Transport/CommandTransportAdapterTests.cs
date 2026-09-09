@@ -39,11 +39,15 @@ public class CommandTransportAdapterTests
         if (publisherCount >= 1)
         {
             _mockPublisher1 = Substitute.For<ITransportPublisher>();
+            // A publisher that has not connected yet (all transitions happen before the
+            // adapter subscribes, so the current state must be queried on registration).
+            _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Disconnected);
             _publishers.Add(_mockPublisher1);
         }
         if (publisherCount >= 2)
         {
             _mockPublisher2 = Substitute.For<ITransportPublisher>();
+            _mockPublisher2.ConnectionState.Returns(TransportConnectionState.Disconnected);
             _publishers.Add(_mockPublisher2);
         }
 
@@ -1162,9 +1166,10 @@ public class CommandTransportAdapterTests
         _mockPublisher1.ConnectionStateChanged +=
             Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
 
-        // Assert - subject is a BehaviorSubject so the current value replays on subscribe
+        // Assert - subject is a BehaviorSubject so the current value replays on subscribe;
+        // the seeded current state (Disconnected) is replayed, then each event is mapped
         statuses.ShouldBe([
-            ConnectionStatus.NotConnected,
+            ConnectionStatus.Disconnected,
             ConnectionStatus.Connecting,
             ConnectionStatus.Reconnecting,
             ConnectionStatus.Disconnected,
@@ -1232,8 +1237,67 @@ public class CommandTransportAdapterTests
 
         // Assert
         statuses.ShouldBe([
-            ConnectionStatus.NotConnected,
+            ConnectionStatus.Disconnected,
             ConnectionStatus.Connecting,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_AddPublisherAlreadyConnected_EmitsConnectedWithoutEvent()
+    {
+        // Arrange - simulates a relay publisher created by the factory: it is already
+        // connected when handed to the adapter, so no ConnectionStateChanged event fires.
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - connection stays healthy, no events are raised
+
+        // Assert - the BehaviorSubject replays only the latest value, which is the seeded one
+        statuses.ShouldBe([ConnectionStatus.Connected]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_ConstructorPublisherAlreadyConnected_EmitsConnectedWithoutEvent()
+    {
+        // Arrange
+        _mockPublisher1 = Substitute.For<ITransportPublisher>();
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        var sut = new CommandTransportAdapter(_loggerFactory, _mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - connection stays healthy, no events are raised
+
+        // Assert
+        statuses.ShouldBe([ConnectionStatus.Connected]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_SeededPublisherLaterReconnects_MapsTransitionsFromSeededState()
+    {
+        // Arrange - relay publisher registered while already connected
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - transient failure and recovery
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert
+        statuses.ShouldBe([
+            ConnectionStatus.Connected,
+            ConnectionStatus.Reconnecting,
             ConnectionStatus.Connected
         ]);
     }

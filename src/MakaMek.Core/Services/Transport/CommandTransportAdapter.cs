@@ -471,6 +471,13 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
             publisher.ConnectionStateChanged += Handler;
             _connectionStateHandlers[publisher] = Handler;
+
+            // Seed the tracked status from the publisher's current connection state:
+            // publishers (e.g. RelayClientPublisher) can be added already connected,
+            // so all Connecting/Connected transitions happen BEFORE this subscription
+            // exists and the event alone would never report the initial state.
+            _publisherStatuses[publisher] = MapConnectionStatus(publisher.ConnectionState);
+            _connectionStatus.OnNext(DeriveConnectionStatus());
         }
     }
 

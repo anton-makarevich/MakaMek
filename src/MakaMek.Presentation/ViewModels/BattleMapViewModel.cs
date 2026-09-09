@@ -49,6 +49,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IPlatformService _platformService;
     private readonly IPdfExportService? _pdfExportService;
     private readonly IFileService? _fileService;
+    private readonly ILogger<ConnectionStatusViewModel>? _connectionLogger;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
@@ -156,7 +157,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IPdfExportService? pdfExportService = null,
         IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null,
-        ICommandPublisher? commandPublisher = null)
+        ICommandPublisher? commandPublisher = null,
+        ILogger<ConnectionStatusViewModel>? connectionLogger = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
@@ -166,7 +168,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _platformService = platformService;
         _pdfExportService = pdfExportService;
         _fileService = fileService;
+        _connectionLogger = connectionLogger;
         var commandPublisher1 = commandPublisher;
+        connectionLogger?.LogDebug(
+            "BattleMapViewModel ctor: commandPublisher={HasPublisher}, source={HasSource}",
+            commandPublisher1 != null,
+            commandPublisher1?.Adapter.ConnectionStatusChanges != null);
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -189,7 +196,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
-        ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler);
+        ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler, connectionLogger);
         _connectionStatusSource = commandPublisher1?.Adapter.ConnectionStatusChanges;
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
     }
@@ -1061,6 +1068,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         // Restore game/command subscriptions if the view was re-attached
         // (e.g. re-navigation recreated the view and DetachHandlers disposed them).
         SubscribeToGameChanges();
+        _connectionLogger?.LogDebug(
+            "BattleMapViewModel.AttachHandlers: source null={SourceNull}, status={Status}",
+            _connectionStatusSource == null,
+            ConnectionStatus.OnlineConnectionStatus);
         if (_connectionStatusSource != null)
         {
             ConnectionStatus.Subscribe(_connectionStatusSource, Scheduler);
@@ -1075,6 +1086,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
         base.DetachHandlers();
+        _connectionLogger?.LogDebug("BattleMapViewModel.DetachHandlers: unsubscribing connection status");
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         ConnectionStatus.Subscribe(null, Scheduler);
