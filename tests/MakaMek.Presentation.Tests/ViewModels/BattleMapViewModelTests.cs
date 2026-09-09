@@ -234,7 +234,7 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
     }
 
@@ -254,7 +254,7 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToRootAsync();
     }
 
@@ -300,7 +300,7 @@ public class BattleMapViewModelTests
         await Task.Delay(50);
 
         // Assert
-        navigationService.DidNotReceive().NavigateToRootAsync();
+        await navigationService.DidNotReceive().NavigateToRootAsync();
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class BattleMapViewModelTests
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         var playerId = Guid.NewGuid();
-        game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [], []);
+        await game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [], []);
         _sut.Game = game;
         _sut.SetNavigationService(navigationService);
 
@@ -322,8 +322,8 @@ public class BattleMapViewModelTests
         await Task.Delay(100);
 
         // Assert
-        navigationService.DidNotReceive().AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>());
-        navigationService.DidNotReceive().NavigateToRootAsync();
+        await navigationService.DidNotReceive().AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>());
+        await navigationService.DidNotReceive().NavigateToRootAsync();
     }
 
     [Fact]
@@ -335,7 +335,7 @@ public class BattleMapViewModelTests
             .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
-        game.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human), [], []);
+        await game.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human), [], []);
         _sut.Game = game;
         _sut.SetNavigationService(navigationService);
 
@@ -2990,7 +2990,7 @@ public class BattleMapViewModelTests
 
         // Act - connection degrades, then closes
         subject.OnNext(ConnectionStatus.Reconnecting);
-        sut.IsConnectionDegraded.ShouldBeTrue();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         sut.IsConnectionBannerVisible.ShouldBeTrue();
         subject.OnNext(ConnectionStatus.Closed);
 
@@ -3218,8 +3218,7 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            pdfService,
-            null);
+            pdfService);
         sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
 
         await sut.ExportMapToPdfCommand.ExecuteAsync();

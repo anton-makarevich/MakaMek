@@ -42,8 +42,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
-    private IDisposable? _connectionStatusSubscription;
-    private readonly ICommandPublisher? _commandPublisher;
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
@@ -167,7 +165,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _platformService = platformService;
         _pdfExportService = pdfExportService;
         _fileService = fileService;
-        _commandPublisher = commandPublisher;
+        var commandPublisher1 = commandPublisher;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -190,52 +188,32 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
-        SubscribeToConnectionStatus();
+        ConnectionStatus = new ConnectionStatusViewModel(
+            commandPublisher1?.Adapter.ConnectionStatusChanges, Scheduler);
+        ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
     }
 
     /// <summary>
-    /// Gets the current connection status reported by the command transport.
+    /// Gets the child ViewModel that tracks connection status.
     /// </summary>
-    public ConnectionStatus OnlineConnectionStatus
-    {
-        get;
-        private set
-        {
-            if (field == value) return;
-            field = value;
-            NotifyPropertyChanged();
-            NotifyPropertyChanged(nameof(IsConnectionDegraded));
-            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
-        }
-    }
-
-    /// <summary>
-    /// Gets whether the transport is in a degraded connection state
-    /// (reconnecting, disconnected or closed).
-    /// </summary>
-    public bool IsConnectionDegraded => OnlineConnectionStatus is ConnectionStatus.Reconnecting
-        or ConnectionStatus.Disconnected
-        or ConnectionStatus.Closed;
+    public ConnectionStatusViewModel ConnectionStatus { get; }
 
     /// <summary>
     /// Gets whether the connection status banner should be shown on the battle map.
     /// </summary>
-    public bool IsConnectionBannerVisible => IsConnectionDegraded;
+    public bool IsConnectionBannerVisible => ConnectionStatus.IsConnectionDegraded;
 
-    private void SubscribeToConnectionStatus()
+    private void OnConnectionStatusPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        _connectionStatusSubscription?.Dispose();
-        if (_commandPublisher == null) return;
-        _connectionStatusSubscription = _commandPublisher.Adapter.ConnectionStatusChanges
-            .ObserveOn(Scheduler)
-            .Subscribe(OnConnectionStatusChanged);
-    }
-
-    private void OnConnectionStatusChanged(ConnectionStatus status)
-    {
-        OnlineConnectionStatus = status;
-        if (status != ConnectionStatus.Closed) return;
-        HandleTransportClosed();
+        if (e.PropertyName == nameof(ConnectionStatusViewModel.IsConnectionDegraded))
+        {
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+        }
+        else if (e.PropertyName == nameof(ConnectionStatusViewModel.OnlineConnectionStatus)
+                 && ConnectionStatus.OnlineConnectionStatus == Core.Services.Transport.ConnectionStatus.Closed)
+        {
+            HandleTransportClosed();
+        }
     }
 
     private void HandleTransportClosed()
@@ -1065,9 +1043,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public void Dispose()
     {
         HexConfiguration.PropertyChanged -= _hexConfigurationChangedHandler;
+        ConnectionStatus.PropertyChanged -= OnConnectionStatusPropertyChanged;
+        ConnectionStatus.Dispose();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
-        _connectionStatusSubscription?.Dispose();
         if (Game is { IsDisposed: false })
         {
             Game.Dispose();

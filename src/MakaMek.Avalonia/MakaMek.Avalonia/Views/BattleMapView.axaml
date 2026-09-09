@@ -118,13 +118,11 @@
             
         </Grid>
 
-        <Border Classes="connectionBanner"
+        <templatedControls:ConnectionStatusBanner
                 IsVisible="{Binding IsConnectionBannerVisible}"
+                ConnectionStatus="{Binding ConnectionStatus.OnlineConnectionStatus}"
                 VerticalAlignment="Top"
-                Margin="60,56,60,0"
-                Background="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusBackgroundConverter}}">
-            <TextBlock Text="{Binding OnlineConnectionStatus, Converter={StaticResource ConnectionStatusTextConverter}}"/>
-        </Border>
+                Margin="60,56,60,0"/>
 
         <Grid x:Name="MechList"
               Background="{StaticResource SecondaryBrush}"

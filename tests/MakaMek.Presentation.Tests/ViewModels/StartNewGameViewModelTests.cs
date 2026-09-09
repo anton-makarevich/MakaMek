@@ -46,7 +46,6 @@ public class StartNewGameViewModelTests
     private readonly IGameManager _gameManager = Substitute.For<IGameManager>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly ClientGame _clientGame;
-    private readonly ClientGame _serverBoundClientGame;
     private readonly ILogger<ClientGame> _logger = Substitute.For<ILogger<ClientGame>>();
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
@@ -101,8 +100,8 @@ public class StartNewGameViewModelTests
         // Bind the factory to a real client game bound to the current server game id,
         // mirroring production behavior (the view model rebinds its local game
         // whenever the server game id changes).
-        _serverBoundClientGame = CreateRealClientGame(_commandPublisher, _serverGameId);
-        _gameFactory.CreateClientGame(_commandPublisher, _serverGameId).Returns(_serverBoundClientGame);
+        var serverBoundClientGame = CreateRealClientGame(_commandPublisher, _serverGameId);
+        _gameFactory.CreateClientGame(_commandPublisher, _serverGameId).Returns(serverBoundClientGame);
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
@@ -2412,7 +2411,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         var initialGame = _sut.LocalGame;
         initialGame.ShouldNotBeNull();
-        initialGame!.ServerGameId.ShouldBe(_serverGameId);
+        initialGame.ServerGameId.ShouldBe(_serverGameId);
 
         // Enabling online hosting restarts the server game under a new id (B)
         var serverGameBId = Guid.NewGuid();
@@ -2536,7 +2535,7 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
         subject.OnNext(ConnectionStatus.Disconnected);
 
         // Assert
-        sut.IsConnectionDegraded.ShouldBeTrue();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         sut.IsConnectionBannerVisible.ShouldBeTrue();
         sut.CanStartGame.ShouldBeFalse();
         sut.CanPublishCommands.ShouldBeFalse();
@@ -2557,11 +2556,11 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
 
         // Act
         subject.OnNext(ConnectionStatus.Reconnecting);
-        sut.IsConnectionDegraded.ShouldBeTrue();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         subject.OnNext(ConnectionStatus.Connected);
 
         // Assert
-        sut.IsConnectionDegraded.ShouldBeFalse();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
         sut.IsConnectionBannerVisible.ShouldBeFalse();
         sut.CanStartGame.ShouldBeTrue();
         sut.CanPublishCommands.ShouldBeTrue();
@@ -2581,7 +2580,7 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
         MakeAllPlayersReady(sut);
 
         // Assert
-        sut.IsConnectionDegraded.ShouldBeFalse();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
         sut.IsConnectionBannerVisible.ShouldBeFalse();
         sut.CanStartGame.ShouldBeTrue();
     }
@@ -2603,7 +2602,7 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
         subject.OnNext(ConnectionStatus.Closed);
 
         // Assert
-        sut.IsConnectionDegraded.ShouldBeTrue();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         sut.CanPublishCommands.ShouldBeFalse();
         sut.CanStartGame.ShouldBeFalse();
     }
@@ -2626,7 +2625,7 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
         // Assert - the online status subscription is only established for online hosting,
         // so LAN mode never shows the banner and never reports a degraded state
         sut.IsMultiplayerEnabled.ShouldBeFalse();
-        sut.IsConnectionDegraded.ShouldBeFalse();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
         sut.IsConnectionBannerVisible.ShouldBeFalse();
     }
 }

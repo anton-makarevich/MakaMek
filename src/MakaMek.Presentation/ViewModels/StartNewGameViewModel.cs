@@ -44,7 +44,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly Subject<BattleMap> _mapChanges = new();
     private IDisposable? _mapChangeSubscription;
-    private IDisposable? _onlineStatusSubscription;
     private CancellationTokenSource? _initCts;
     private bool _isDisposed;
     private HostMode _hostMode = HostMode.Lan;
@@ -82,6 +81,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
+        ConnectionStatus = new ConnectionStatusViewModel(null, DispatcherService.Scheduler);
+        ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
@@ -216,55 +217,33 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     }
 
     /// <summary>
-    /// Gets the current online connection status of the hosted session.
+    /// Gets the child ViewModel that tracks online connection status.
     /// </summary>
-    public ConnectionStatus OnlineConnectionStatus
-    {
-        get;
-        private set
-        {
-            if (field == value) return;
-            field = value;
-            NotifyPropertyChanged();
-            NotifyPropertyChanged(nameof(IsConnectionDegraded));
-            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
-            NotifyPropertyChanged(nameof(CanStartGame));
-            NotifyPropertyChanged(nameof(CanPublishCommands));
-        }
-    }
-
-    /// <summary>
-    /// Gets whether the hosted session is in a degraded connection state
-    /// (reconnecting, disconnected or closed). Hosting actions are disabled
-    /// until the connection recovers.
-    /// </summary>
-    public bool IsConnectionDegraded => OnlineConnectionStatus is ConnectionStatus.Reconnecting
-        or ConnectionStatus.Disconnected
-        or ConnectionStatus.Closed;
+    public ConnectionStatusViewModel ConnectionStatus { get; }
 
     /// <summary>
     /// Gets whether the connection status banner should be shown for the hosted online session.
     /// </summary>
-    public bool IsConnectionBannerVisible => IsMultiplayerEnabled && IsConnectionDegraded;
+    public bool IsConnectionBannerVisible => IsMultiplayerEnabled && ConnectionStatus.IsConnectionDegraded;
 
     private void SubscribeToOnlineStatus()
     {
-        UnsubscribeFromOnlineStatus();
-
-        _onlineStatusSubscription = _gameManager.OnlineConnectionStatus
-            .ObserveOn(DispatcherService.Scheduler)
-            .Subscribe(UpdateConnectionStatus);
+        ConnectionStatus.Subscribe(_gameManager.OnlineConnectionStatus, DispatcherService.Scheduler);
     }
 
     private void UnsubscribeFromOnlineStatus()
     {
-        _onlineStatusSubscription?.Dispose();
-        _onlineStatusSubscription = null;
+        ConnectionStatus.Subscribe(null, DispatcherService.Scheduler);
     }
 
-    private void UpdateConnectionStatus(ConnectionStatus status)
+    private void OnConnectionStatusPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        OnlineConnectionStatus = status;
+        if (e.PropertyName == nameof(ConnectionStatusViewModel.IsConnectionDegraded))
+        {
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+            NotifyPropertyChanged(nameof(CanStartGame));
+            NotifyPropertyChanged(nameof(CanPublishCommands));
+        }
     }
 
     private async Task ResolveActiveHubAndProbe(CancellationToken cancellationToken)
@@ -397,7 +376,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public MapConfigViewModel MapConfig { get; }
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready) && !IsConnectionDegraded;
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready) && !ConnectionStatus.IsConnectionDegraded;
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -735,7 +714,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
     
     // Implementation of abstract property from base class
-    public override bool CanPublishCommands => !IsConnectionDegraded;
+    public override bool CanPublishCommands => !ConnectionStatus.IsConnectionDegraded;
 
     public void Dispose()
     {
@@ -744,8 +723,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Dispose();
         _initCts = null;
         _commandPublisher.Unsubscribe(HandleServerCommand);
-        UnsubscribeFromMapChanges();
         UnsubscribeFromOnlineStatus();
+        UnsubscribeFromMapChanges();
+        ConnectionStatus.PropertyChanged -= OnConnectionStatusPropertyChanged;
+        ConnectionStatus.Dispose();
         MapConfig.Dispose();
         _mapChanges.Dispose();
         GC.SuppressFinalize(this);
@@ -756,7 +737,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Cancel();
         _initCts?.Dispose();
         _initCts = null;
-        UnsubscribeFromOnlineStatus();
         // Once the game has started, the hosting session belongs to the running game;
         // stopping it here would disconnect the host's relay/LAN transport mid-game.
         if (IsMultiplayerEnabled && !_gameManager.IsGameStarted)
@@ -764,6 +744,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _gameManager.StopHosting().SafeFireAndForget(
                 ex => _logger.LogError(ex, "Error stopping hosting on detach"));
         }
+        UnsubscribeFromOnlineStatus();
         UnsubscribeFromMapChanges();
         base.DetachHandlers();
         _commandPublisher.Unsubscribe(HandleServerCommand);

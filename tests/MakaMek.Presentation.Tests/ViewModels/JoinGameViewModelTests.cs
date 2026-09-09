@@ -26,10 +26,8 @@ using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
-using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -1551,7 +1549,7 @@ public class JoinGameViewModelTests
         // Signal set as soon as GeneratePreview is entered, so disposal happens only after
         // the render is actually in flight (no arbitrary Task.Delay guessing).
         var previewEnteredTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        CancellationToken capturedToken = default;
+        CancellationToken capturedToken;
         _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
@@ -1662,7 +1660,7 @@ public class JoinGameViewModelTests
 
         // Act - the session degrades, then recovers
         subject.OnNext(ConnectionStatus.Reconnecting);
-        _sut.IsConnectionDegraded.ShouldBeTrue();
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         _sut.IsConnectionBannerVisible.ShouldBeTrue();
         _sut.CanPublishCommands.ShouldBeFalse();
 
@@ -1689,13 +1687,13 @@ public class JoinGameViewModelTests
         subject.OnNext(ConnectionStatus.Closed);
 
         // Assert
-        _sut.IsConnectionDegraded.ShouldBeTrue();
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
         _sut.IsConnectionBannerVisible.ShouldBeTrue();
         _sut.CanPublishCommands.ShouldBeFalse();
 
         // The session reconnects
         subject.OnNext(ConnectionStatus.Connected);
-        _sut.IsConnectionDegraded.ShouldBeFalse();
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
         _sut.CanPublishCommands.ShouldBeTrue();
     }
 
@@ -1710,7 +1708,7 @@ public class JoinGameViewModelTests
         _sut.IsOnlineMode = true;
         EnableOnlineJoin();
         await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
-        _sut.IsConnectionDegraded.ShouldBeTrue();
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
 
         // Act
         await _sut.Disconnect();
