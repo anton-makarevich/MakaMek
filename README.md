@@ -63,11 +63,11 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - [Network Multiplayer PRD](docs/project/network-prd.md) - Relay-hub architecture for internet play
 
 #### Implemented
-- Online Hub (separate project): a thin, WebSockets-only SignalR relay.
-- Shareable room codes and REST room lifecycle management.
+- Online Hub (separate project): a thin, WebSockets-only SignalR game relay.
+- Shareable room codes and room lifecycle management.
 - Every supported client, including WASM, can host an online game.
 - Host loss handled gracefully by returning peers to a safe menu state.
-- Public deployment of the hub at https://demohub.makamek.nl/.
+- Public deployment of the hub at https://demohub.makamek.nl/ (West EU).
 - Ability to configure custom hub url in settings.
 </details>
 
