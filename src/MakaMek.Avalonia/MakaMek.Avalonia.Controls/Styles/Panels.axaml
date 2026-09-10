@@ -97,4 +97,19 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="Bold"/>
     </Style>
+
+    <!-- Connection Status Banner -->
+    <Style Selector="Border.connectionBanner">
+        <Setter Property="Background" Value="{StaticResource OverlayTransparentBrush}"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    
+    <Style Selector="Border.connectionBanner > TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
 </Styles>

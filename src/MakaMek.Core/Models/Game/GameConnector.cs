@@ -1,3 +1,4 @@
+using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -27,6 +28,8 @@ public class GameConnector : IGameConnector
     private string? _sessionToken;
     private Guid? _deviceSessionId;
     private bool _isDisposed;
+    private readonly IOnlineStatusForwarder? _forwarder;
+    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.NotConnected);
 
     public GameConnector(
         ICommandPublisher commandPublisher,
@@ -34,7 +37,8 @@ public class GameConnector : IGameConnector
         ILogger<GameConnector> logger,
         IRelayRoomClient? relayRoomClient = null,
         IPublisherFactory? relayPublisherFactory = null,
-        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null,
+        IOnlineStatusForwarder? onlineStatusForwarder = null)
     {
         _commandPublisher = commandPublisher;
         _transportFactory = transportFactory;
@@ -42,6 +46,7 @@ public class GameConnector : IGameConnector
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
         _relayHubConfigurationProvider = relayHubConfigurationProvider;
+        _forwarder = onlineStatusForwarder;
     }
 
     public bool IsConnected { get; private set; }
@@ -49,6 +54,12 @@ public class GameConnector : IGameConnector
     public Guid? ConnectedHostGameId { get; private set; }
 
     public RelayClientError? OnlineError { get; private set; }
+
+    /// <summary>
+    /// Gets the connection status of the online join session. Remains
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room has been joined.
+    /// </summary>
+    public IObservable<ConnectionStatus> OnlineConnectionStatus => _forwarder?.OnlineConnectionStatus ?? _fallbackOnlineStatus;
 
     public async Task ConnectToLan(string serverAddress)
     {
@@ -95,6 +106,8 @@ public class GameConnector : IGameConnector
         CancellationToken cancellationToken = default)
     {
         OnlineError = null;
+        // Reset any status carried over from a previous join session before rejoining
+        _forwarder?.Reset();
 
         // Wait for persisted hub configuration before reading the active values below
         var relayOptions = _relayHubConfigurationProvider is null
@@ -178,6 +191,7 @@ public class GameConnector : IGameConnector
 
             ConnectedHostGameId = joinResult.HostGameId;
             IsConnected = true;
+            _forwarder?.Start(_commandPublisher.Adapter);
             _logger.LogInformation(
                 "Joined relay room {RoomCode} connected to host game {HostGameId}",
                 roomCode,
@@ -260,6 +274,9 @@ public class GameConnector : IGameConnector
     {
         StartPublisherCleanup(out var relayCleanupTask, out var lanCleanupTask);
 
+        // Stop forwarding online status
+        _forwarder?.Reset();
+
         // Best-effort guest leave of the online room, if one is active
         if (_relayRoomClient != null && _roomCode != null && _sessionToken != null && _deviceSessionId != null)
         {
@@ -280,6 +297,9 @@ public class GameConnector : IGameConnector
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        // Stop forwarding online status
+        _forwarder?.Reset();
 
         IsConnected = false;
         ConnectedHostGameId = null;

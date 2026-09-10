@@ -81,6 +81,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService, localizationService);
+        ConnectionStatus = new ConnectionStatusViewModel(null, DispatcherService.Scheduler);
+        ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);
@@ -102,6 +104,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             NotifyPropertyChanged(nameof(HostingStatusText));
             NotifyPropertyChanged(nameof(CanChangeHostMode));
             NotifyPropertyChanged(nameof(IsLanDetailsVisible));
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
         }
     }
 
@@ -210,7 +213,38 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         RoomCode = _gameManager.RoomCode;
         HostingError = null;
 
+        SubscribeToOnlineStatus();
         SubscribeAndCreateLocalGame();
+    }
+
+    /// <summary>
+    /// Gets the child ViewModel that tracks online connection status.
+    /// </summary>
+    public ConnectionStatusViewModel ConnectionStatus { get; }
+
+    /// <summary>
+    /// Gets whether the connection status banner should be shown for the hosted online session.
+    /// </summary>
+    public bool IsConnectionBannerVisible => IsMultiplayerEnabled && ConnectionStatus.IsConnectionDegraded;
+
+    private void SubscribeToOnlineStatus()
+    {
+        ConnectionStatus.Subscribe(_gameManager.OnlineConnectionStatus, DispatcherService.Scheduler);
+    }
+
+    private void UnsubscribeFromOnlineStatus()
+    {
+        ConnectionStatus.Subscribe(null, DispatcherService.Scheduler);
+    }
+
+    private void OnConnectionStatusPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ConnectionStatusViewModel.IsConnectionDegraded))
+        {
+            NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+            NotifyPropertyChanged(nameof(CanStartGame));
+            NotifyPropertyChanged(nameof(CanPublishCommands));
+        }
     }
 
     private async Task ResolveActiveHubAndProbe(CancellationToken cancellationToken)
@@ -343,7 +377,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public MapConfigViewModel MapConfig { get; }
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready) && !ConnectionStatus.IsConnectionDegraded;
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -681,7 +715,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
     
     // Implementation of abstract property from base class
-    public override bool CanPublishCommands => true; // TODO: is it actually always true?
+    public override bool CanPublishCommands => !ConnectionStatus.IsConnectionDegraded;
 
     public void Dispose()
     {
@@ -690,7 +724,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _initCts?.Dispose();
         _initCts = null;
         _commandPublisher.Unsubscribe(HandleServerCommand);
+        UnsubscribeFromOnlineStatus();
         UnsubscribeFromMapChanges();
+        ConnectionStatus.PropertyChanged -= OnConnectionStatusPropertyChanged;
+        ConnectionStatus.Dispose();
         MapConfig.Dispose();
         _mapChanges.Dispose();
         GC.SuppressFinalize(this);
@@ -708,6 +745,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _gameManager.StopHosting().SafeFireAndForget(
                 ex => _logger.LogError(ex, "Error stopping hosting on detach"));
         }
+        UnsubscribeFromOnlineStatus();
         UnsubscribeFromMapChanges();
         base.DetachHandlers();
         _commandPublisher.Unsubscribe(HandleServerCommand);

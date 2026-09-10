@@ -1,3 +1,4 @@
+using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,14 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     // Tracks the delegate registered on each publisher's HostDisconnected event so it can be
     // unsubscribed later (Action has no equality semantics beyond delegate reference).
     private readonly Dictionary<ITransportPublisher, Action> _disconnectHandlers = new();
+    // Tracks the delegate registered on each publisher's ConnectionStateChanged event so it can
+    // be unsubscribed later (Action<T> has no equality semantics beyond delegate reference).
+    private readonly Dictionary<ITransportPublisher, Action<TransportConnectionState>> _connectionStateHandlers = new();
+    // Tracks the latest connection status each publisher has reported so the adapter-level
+    // status can be re-derived when a publisher is removed; a removed publisher's status must
+    // not linger, but the remaining publishers' statuses must be restored.
+    private readonly Dictionary<ITransportPublisher, ConnectionStatus> _publisherStatuses = new();
+    private readonly BehaviorSubject<ConnectionStatus> _connectionStatus = new(ConnectionStatus.NotConnected);
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -45,6 +54,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     };
     private readonly Lock _initLock = new();
     private readonly ILogger<CommandTransportAdapter> _logger;
+    private bool _isDisposed;
 
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -57,10 +67,13 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         foreach (var publisher in transportPublishers)
         {
             _transportPublishers.Add(publisher);
+            SubscribeConnectionState(publisher);
         }
     }
 
     public IReadOnlyList<ITransportPublisher> TransportPublishers => _transportPublishers;
+
+    public IObservable<ConnectionStatus> ConnectionStatusChanges => _connectionStatus;
 
     /// <summary>
     /// Adds a transport publisher to the adapter
@@ -73,6 +86,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         // Guard with the same lock to avoid races with Initialize
         lock (_initLock)
         {
+            if (_isDisposed) return;
             if (_transportPublishers.Contains(publisher)) return;
 
             _transportPublishers.Add(publisher);
@@ -87,6 +101,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             {
                 SubscribeDisconnectHandler(publisher, _onPublisherDisconnected);
             }
+
+            SubscribeConnectionState(publisher);
         }
     }
 
@@ -98,8 +114,15 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     {
         lock (_initLock)
         {
+            if (_isDisposed) return;
             _transportPublishers.Remove(publisher);
             UnsubscribeDisconnectHandler(publisher);
+            UnsubscribeConnectionState(publisher);
+            // Drop the departing publisher's tracked status and re-derive the aggregate from
+            // the remaining publishers so a status reported only by the removed publisher does
+            // not linger after its removal.
+            _publisherStatuses.Remove(publisher);
+            _connectionStatus.OnNext(DeriveConnectionStatus());
         }
     }
 
@@ -108,23 +131,56 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     /// </summary>
     public async Task ClearPublishers()
     {
-        // Take a stable snapshot and clear the shared state under lock
-        ITransportPublisher[] snapshot;
+        var snapshot = DetachPublishers(terminal: false);
+        await DisposePublishersAsync(snapshot);
+    }
+
+    // Removes every publisher from the adapter and resets its shared state. Non-terminal
+    // invocation keeps the status stream reusable for a session reset; terminal invocation
+    // atomically transitions to the disposed state and completes/disposes the stream so no
+    // OnNext can occur after it has been disposed.
+    private ITransportPublisher[] DetachPublishers(bool terminal)
+    {
         lock (_initLock)
         {
-            snapshot = _transportPublishers.ToArray();
+            // Atomic terminal transition: only the first invocation performs terminal
+            // cleanup; concurrent or duplicate invocations are no-ops. Once terminal, even
+            // session-reset clears are ignored since the stream is no longer usable.
+            if (_isDisposed) return [];
+
+            if (terminal) _isDisposed = true;
+
+            // Take a stable snapshot and clear the shared state under lock
+            var snapshot = _transportPublishers.ToArray();
             foreach (var publisher in snapshot)
             {
                 UnsubscribeDisconnectHandler(publisher);
+                UnsubscribeConnectionState(publisher);
             }
             _onCommandReceived = null;
             _onPublisherDisconnected = null;
             _isInitialized = false;
+            _publisherStatuses.Clear();
             _transportPublishers.Clear();
-        }
+            // Reset the status stream so no stale status leaks into the next session.
+            _connectionStatus.OnNext(ConnectionStatus.NotConnected);
 
-        // Dispose publishers outside the lock
-        foreach (var publisher in snapshot)
+            if (terminal)
+            {
+                // Terminal disposal: complete the status stream so observers get a
+                // terminal signal, then dispose the subject. Non-terminal clears keep
+                // the stream reusable for session reset.
+                _connectionStatus.OnCompleted();
+                _connectionStatus.Dispose();
+            }
+            return snapshot;
+        }
+    }
+
+    // Disposes the given publishers outside the lock, isolating per-publisher failures.
+    private async Task DisposePublishersAsync(ITransportPublisher[] publishers)
+    {
+        foreach (var publisher in publishers)
         {
             if (publisher is not IAsyncDisposable asyncDisposable) continue;
             try
@@ -390,9 +446,79 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         }
     }
 
-    public ValueTask DisposeAsync()
+    // Helper method to subscribe a publisher's connection state changes. Every publisher
+    // type reports connection state through ITransportPublisher.ConnectionStateChanged, so
+    // unlike the host-disconnect notification this needs no publisher-type seam.
+    private void SubscribeConnectionState(ITransportPublisher publisher)
+    {
+        lock (_initLock)
+        {
+            if (_connectionStateHandlers.ContainsKey(publisher)) return;
+
+            void Handler(TransportConnectionState state)
+            {
+                lock (_initLock)
+                {
+                    // Ignore state changes racing with (or arriving after) terminal disposal
+                    // and changes from publishers that are no longer registered; otherwise the
+                    // status update is synchronized with removal/disposal so no OnNext can
+                    // reach the subject after it has been disposed.
+                    if (_isDisposed) return;
+                    if (!_transportPublishers.Contains(publisher)) return;
+
+                    _publisherStatuses[publisher] = MapConnectionStatus(state);
+                    _connectionStatus.OnNext(DeriveConnectionStatus());
+                }
+            }
+            publisher.ConnectionStateChanged += Handler;
+            _connectionStateHandlers[publisher] = Handler;
+
+            // Seed the tracked status from the publisher's current connection state:
+            // publishers (e.g. RelayClientPublisher) can be added already connected,
+            // so all Connecting/Connected transitions happen BEFORE this subscription
+            // exists and the event alone would never report the initial state.
+            _publisherStatuses[publisher] = MapConnectionStatus(publisher.ConnectionState);
+            _connectionStatus.OnNext(DeriveConnectionStatus());
+        }
+    }
+
+    // Derives the adapter-level status from the latest status of every registered publisher.
+    // The most severe reported status wins (enum order matches severity, NotConnected being
+    // neutral); publishers that have not reported a status are ignored, so a publisher that
+    // only reports status during an active session cannot mask the status of the remaining
+    // publishers after it is removed.
+    private ConnectionStatus DeriveConnectionStatus()
+    {
+        return _publisherStatuses.Count == 0
+            ? ConnectionStatus.NotConnected
+            : _publisherStatuses.Values.Max();
+    }
+
+    // Helper method to remove a previously registered connection-state subscription.
+    private void UnsubscribeConnectionState(ITransportPublisher publisher)
+    {
+        if (_connectionStateHandlers.Remove(publisher, out var handler))
+        {
+            publisher.ConnectionStateChanged -= handler;
+        }
+    }
+
+    // Maps the transport's connection state enum to the UI-facing status. Keeps the
+    // transport enum from leaking beyond the adapter.
+    private static ConnectionStatus MapConnectionStatus(TransportConnectionState state) => state switch
+    {
+        TransportConnectionState.Connecting => ConnectionStatus.Connecting,
+        TransportConnectionState.Connected => ConnectionStatus.Connected,
+        TransportConnectionState.Reconnecting => ConnectionStatus.Reconnecting,
+        TransportConnectionState.Disconnected => ConnectionStatus.Disconnected,
+        TransportConnectionState.Closed => ConnectionStatus.Closed,
+        _ => ConnectionStatus.Disconnected
+    };
+
+    public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        return new ValueTask(ClearPublishers());
+        var snapshot = DetachPublishers(terminal: true);
+        await DisposePublishersAsync(snapshot);
     }
 }

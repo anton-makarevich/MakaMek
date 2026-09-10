@@ -1,3 +1,4 @@
+using System.Reactive.Subjects;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -33,6 +34,8 @@ public class GameManager : IGameManager
     private ITransportPublisher? _lanPublisher;
     private string? _onlineSessionToken;
     private RelayClientOptions? _onlineRelayOptions;
+    private readonly IOnlineStatusForwarder? _forwarder;
+    private readonly BehaviorSubject<ConnectionStatus> _fallbackOnlineStatus = new(ConnectionStatus.NotConnected);
 
     public GameManager(ICommandPublisher commandPublisher,
         IGameFactory gameFactory,
@@ -42,7 +45,8 @@ public class GameManager : IGameManager
         INetworkHostService? networkHostService = null,
         IRelayRoomClient? relayRoomClient = null,
         IPublisherFactory? relayPublisherFactory = null,
-        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null)
+        IRelayHubConfigurationProvider? relayHubConfigurationProvider = null,
+        IOnlineStatusForwarder? onlineStatusForwarder = null)
     {
         _commandPublisher = commandPublisher;
         _gameFactory = gameFactory;
@@ -53,6 +57,7 @@ public class GameManager : IGameManager
         _relayRoomClient = relayRoomClient;
         _relayPublisherFactory = relayPublisherFactory;
         _relayHubConfigurationProvider = relayHubConfigurationProvider;
+        _forwarder = onlineStatusForwarder;
     }
     
     private static Action<IGameCommand> SafeLog(ICommandLogger logger) =>
@@ -70,6 +75,9 @@ public class GameManager : IGameManager
 
     public async Task ResetForNewGame()
     {
+        // Stop forwarding online status before tearing down any publishers
+        _forwarder?.Reset();
+
         // Remove and dispose any stale relay publisher before re-hosting
         await _onlineRelayPublisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
@@ -269,6 +277,7 @@ public class GameManager : IGameManager
 
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
+            _forwarder?.Start(_commandPublisher.Adapter);
 
             var readyResult = await _relayRoomClient.Ready(
                 createResult.RoomCode,
@@ -430,6 +439,9 @@ public class GameManager : IGameManager
         }
         _onlineRelayPublisher = null;
 
+        // Reset the session-scoped status stream once hosting is torn down
+        _forwarder?.Reset();
+
         await RemoveLanPublisherAndStopHost();
     }
 
@@ -457,6 +469,9 @@ public class GameManager : IGameManager
 
     private async Task CleanupOnlineAfterFailure(ITransportPublisher? publisher)
     {
+        // Stop forwarding online status before tearing down the relay publisher
+        _forwarder?.Reset();
+
         // Remove and dispose the relay publisher if it was created
         await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
         _onlineRelayPublisher = null;
@@ -510,10 +525,19 @@ public class GameManager : IGameManager
     public bool IsOnlineServerRunning => _onlineRelayPublisher != null && _serverGame != null;
     public RelayClientError? OnlineError { get; private set; }
 
+    /// <summary>
+    /// Gets the connection status of the online hosting session. Remains
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room is being hosted.
+    /// </summary>
+    public IObservable<ConnectionStatus> OnlineConnectionStatus => _forwarder?.OnlineConnectionStatus ?? _fallbackOnlineStatus;
+
     public void Dispose()
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        // Stop forwarding online status
+        _forwarder?.Reset();
 
         // Dispose server game if it exists
         _serverGame?.Dispose();
@@ -543,6 +567,9 @@ public class GameManager : IGameManager
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        // Stop forwarding online status
+        _forwarder?.Reset();
 
         // Dispose server game if it exists
         _serverGame?.Dispose();

@@ -26,15 +26,15 @@ using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
-using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
-using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
+using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -1549,7 +1549,7 @@ public class JoinGameViewModelTests
         // Signal set as soon as GeneratePreview is entered, so disposal happens only after
         // the render is actually in flight (no arbitrary Task.Delay guessing).
         var previewEnteredTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        CancellationToken capturedToken = default;
+        CancellationToken capturedToken;
         _mapPreviewRenderer.GeneratePreview(battleMap, Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
@@ -1642,5 +1642,80 @@ public class JoinGameViewModelTests
         _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsConnected.ShouldBeTrue();
         _sut.JoinError.ShouldBeNull();
+    }
+
+    // ---------- Online connection status / degraded connection ----------
+
+    [Fact]
+    public void ConnectToServer_WhenConnectionDegraded_ShowsBannerAndGatesCommands()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.IsConnectionBannerVisible.ShouldBeFalse();
+
+        // Act - the session degrades, then recovers
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        _sut.IsConnectionBannerVisible.ShouldBeTrue();
+        _sut.CanPublishCommands.ShouldBeFalse();
+
+        subject.OnNext(ConnectionStatus.Connected);
+        _sut.IsConnectionBannerVisible.ShouldBeFalse();
+        _sut.CanPublishCommands.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task JoinRoom_WhenConnectionClosed_GatesCommandsUntilRecovered()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _sut.RoomCode = "ABCDEF";
+        _sut.IsOnlineMode = true;
+        EnableOnlineJoin();
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.CanPublishCommands.ShouldBeTrue();
+
+        // Act - the connection closes
+        subject.OnNext(ConnectionStatus.Closed);
+
+        // Assert
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        _sut.IsConnectionBannerVisible.ShouldBeTrue();
+        _sut.CanPublishCommands.ShouldBeFalse();
+
+        // The session reconnects
+        subject.OnNext(ConnectionStatus.Connected);
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
+        _sut.CanPublishCommands.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Disconnect_UnsubscribesOnlineStatus_AndKeepsDegradedStateCleared()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Reconnecting);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _sut.RoomCode = "ABCDEF";
+        _sut.IsOnlineMode = true;
+        EnableOnlineJoin();
+        await ((AsyncCommand)_sut.JoinRoomCommand).ExecuteAsync();
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+
+        // Act
+        await _sut.Disconnect();
+
+        // Assert - disconnecting clears state; with no connection the banner is never shown
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.IsConnectionBannerVisible.ShouldBeFalse();
+        _sut.CanPublishCommands.ShouldBeFalse();
     }
 }

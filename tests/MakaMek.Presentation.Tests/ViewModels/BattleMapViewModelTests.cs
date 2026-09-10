@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
@@ -233,7 +234,7 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToViewModelAsync(endGameViewModel);
     }
 
@@ -253,7 +254,7 @@ public class BattleMapViewModelTests
         await _sut.NavigateToEndGame();
 
         // Assert
-        navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
+        await navigationService.Received(1).GetNewViewModelAsync<EndGameViewModel>();
         await navigationService.Received(1).NavigateToRootAsync();
     }
 
@@ -299,7 +300,7 @@ public class BattleMapViewModelTests
         await Task.Delay(50);
 
         // Assert
-        navigationService.DidNotReceive().NavigateToRootAsync();
+        await navigationService.DidNotReceive().NavigateToRootAsync();
     }
 
     [Fact]
@@ -312,7 +313,7 @@ public class BattleMapViewModelTests
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         var playerId = Guid.NewGuid();
-        game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [], []);
+        await game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [], []);
         _sut.Game = game;
         _sut.SetNavigationService(navigationService);
 
@@ -321,8 +322,8 @@ public class BattleMapViewModelTests
         await Task.Delay(100);
 
         // Assert
-        navigationService.DidNotReceive().AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>());
-        navigationService.DidNotReceive().NavigateToRootAsync();
+        await navigationService.DidNotReceive().AskForActionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>());
+        await navigationService.DidNotReceive().NavigateToRootAsync();
     }
 
     [Fact]
@@ -334,7 +335,7 @@ public class BattleMapViewModelTests
             .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
-        game.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human), [], []);
+        await game.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human), [], []);
         _sut.Game = game;
         _sut.SetNavigationService(navigationService);
 
@@ -2956,6 +2957,80 @@ public class BattleMapViewModelTests
             terrainBitmaskService: terrainBitmaskService);
     }
 
+    private BattleMapViewModel CreateViewModelWithConnectionStatus(BehaviorSubject<ConnectionStatus> subject)
+    {
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        commandPublisher.Adapter.ConnectionStatusChanges.Returns(subject);
+
+        return new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            commandPublisher: commandPublisher);
+    }
+
+    [Fact]
+    public async Task ConnectionStatus_WhenDegraded_ShowsBanner_AndWhenClosed_EndsGameAndNavigatesHome()
+    {
+        // Arrange
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var sut = CreateViewModelWithConnectionStatus(subject);
+        sut.Game = CreateClientGame();
+        var navigationService = Substitute.For<INavigationService>();
+        navigationService.AskForActionAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<UiAction>())
+            .Returns(ci => ((UiAction[])ci.Args()[2])[0]);
+        sut.SetNavigationService(navigationService);
+        sut.AttachHandlers();
+
+        // Act - connection degrades, then closes
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        sut.IsConnectionBannerVisible.ShouldBeTrue();
+        subject.OnNext(ConnectionStatus.Closed);
+
+        // Assert - the transport-closed flow ends the game synchronously
+        sut.IsGameOver.ShouldBeTrue();
+        sut.GameEndReason.ShouldBe(GameEndReason.HostDisconnected);
+        sut.IsConnectionBannerVisible.ShouldBeTrue();
+
+        // Wait for the async dialog flow to dispose the game and navigate home
+        await WaitForAsync(() => sut.Game == null);
+        await navigationService.Received(1).NavigateToRootAsync();
+    }
+
+    [Fact]
+    public void ConnectionStatus_WhenClosed_IgnoresGameEndedCommand()
+    {
+        // Arrange - no navigation service so the (fire-and-forget) interruption dialog
+        // faults without disposing the game, keeping the transport-closed state intact
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var sut = CreateViewModelWithConnectionStatus(subject);
+        sut.Game = CreateClientGame();
+        sut.AttachHandlers();
+
+        // Act - transport closes first
+        subject.OnNext(ConnectionStatus.Closed);
+        sut.IsGameOver.ShouldBeTrue();
+
+        // A game-ended command arrives after the transport already closed
+        sut.Game.HandleCommand(new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.Victory
+        });
+
+        // Assert - the transport-closed outcome wins; no second end is processed
+        sut.GameEndReason.ShouldBe(GameEndReason.HostDisconnected);
+        sut.Game.ShouldNotBeNull();
+    }
+
 
     [Fact]
     public void DetachHandlers_ShouldStopProcessingCommands()
@@ -3145,8 +3220,7 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            pdfService,
-            null);
+            pdfService);
         sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
 
         await sut.ExportMapToPdfCommand.ExecuteAsync();

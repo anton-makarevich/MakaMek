@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using System.Reactive.Subjects;
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -26,6 +27,8 @@ public class GameConnectorTests : IDisposable
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly IPublisherFactory _relayPublisherFactory;
     private readonly ILogger<GameConnector> _logger;
+    private readonly IOnlineStatusForwarder _forwarder = Substitute.For<IOnlineStatusForwarder>();
+    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.NotConnected);
     private readonly GameConnector _sut;
 
     public GameConnectorTests()
@@ -34,6 +37,9 @@ public class GameConnectorTests : IDisposable
         // Use a substitute for the adapter to allow simulating exceptions in tests
         _transportAdapter = Substitute.For<ICommandTransportAdapter>();
         _commandPublisher.Adapter.Returns(_transportAdapter);
+        var connectionStatusSubject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.NotConnected);
+        _transportAdapter.ConnectionStatusChanges.Returns(connectionStatusSubject);
+        _forwarder.OnlineConnectionStatus.Returns(_forwarderSubject);
 
         _transportFactory = Substitute.For<ITransportFactory>();
         _relayRoomClient = Substitute.For<IRelayRoomClient>();
@@ -49,7 +55,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider());
+            CreateHubConfigurationProvider(),
+            _forwarder);
     }
 
     private static IRelayHubConfigurationProvider CreateHubConfigurationProvider(string baseUrl = "http://hub.local", string apiKey = "api-key")
@@ -66,7 +73,8 @@ public class GameConnectorTests : IDisposable
     private GameConnector CreateSutWithoutRelay() => new(
         _commandPublisher,
         _transportFactory,
-        _logger);
+        _logger,
+        onlineStatusForwarder: _forwarder);
 
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string relayTicket) =>
         new("http://hub.local/hubs/relay", roomCode, relayTicket, NullLogger<RelayClientPublisher>.Instance);
@@ -216,7 +224,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider(baseUrl: "   "));
+            CreateHubConfigurationProvider(baseUrl: "   "),
+            _forwarder);
 
         // Act
         await sut.JoinOnline("ABCDEF", sessionToken: null);
@@ -508,7 +517,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider());
+            CreateHubConfigurationProvider(),
+            _forwarder);
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";
@@ -551,7 +561,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider());
+            CreateHubConfigurationProvider(),
+            _forwarder);
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";
@@ -802,7 +813,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider());
+            CreateHubConfigurationProvider(),
+            _forwarder);
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";
@@ -842,7 +854,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             _relayRoomClient,
             _relayPublisherFactory,
-            CreateHubConfigurationProvider());
+            CreateHubConfigurationProvider(),
+            _forwarder);
 
         var deviceSessionId = Guid.NewGuid();
         const string roomCode = "ABCDEF";
@@ -875,7 +888,7 @@ public class GameConnectorTests : IDisposable
         // Arrange
         var lanPublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
         _transportFactory.CreateAndStartClientPublisher("http://localhost:2439/makamekhub")
-            .Returns(Task.FromResult<ITransportPublisher>(lanPublisher));
+            .Returns(Task.FromResult(lanPublisher));
         await _sut.ConnectToLan("http://localhost:2439/makamekhub");
         _transportAdapter.Received(1).AddPublisher(lanPublisher);
 
@@ -915,7 +928,8 @@ public class GameConnectorTests : IDisposable
             _logger,
             relayRoomClient ?? _relayRoomClient,
             relayPublisherFactory ?? _relayPublisherFactory,
-            hubConfigurationProvider ?? CreateHubConfigurationProvider());
+            hubConfigurationProvider ?? CreateHubConfigurationProvider(),
+            _forwarder);
     }
 
     [Fact]
@@ -1028,5 +1042,42 @@ public class GameConnectorTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+    }
+
+    // ---------- Online connection status forwarding ----------
+
+    [Fact]
+    public async Task JoinOnline_StartsStatusForwarding()
+    {
+        // Arrange
+        var statuses = new List<ConnectionStatus>();
+        _sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act - join, then simulate a degraded connection on the forwarder's stream
+        await JoinOnlineAsync(_sut);
+        _forwarderSubject.OnNext(ConnectionStatus.Reconnecting);
+        _forwarderSubject.OnNext(ConnectionStatus.Closed);
+
+        // Assert - the connector starts forwarding to the shared forwarder and its subject
+        // replays the initial NotConnected on subscribe
+        _forwarder.Received(1).Start(_transportAdapter);
+        statuses.ShouldContain(ConnectionStatus.NotConnected);
+        statuses.ShouldContain(ConnectionStatus.Reconnecting);
+        statuses.ShouldContain(ConnectionStatus.Closed);
+    }
+
+    [Fact]
+    public async Task Disconnect_ResetsStatusForwarding()
+    {
+        // Arrange
+        await JoinOnlineAsync(_sut);
+        _forwarderSubject.OnNext(ConnectionStatus.Disconnected);
+        _forwarder.ClearReceivedCalls();
+
+        // Act
+        await _sut.Disconnect();
+
+        // Assert - the forwarder is reset so no stale status survives the session
+        _forwarder.Received(1).Reset();
     }
 }

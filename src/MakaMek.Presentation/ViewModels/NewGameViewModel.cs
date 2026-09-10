@@ -65,6 +65,8 @@ public abstract class NewGameViewModel : BaseViewModel
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
+    protected IDispatcherService DispatcherService => _dispatcherService;
+
     // Common command handlers with a template method pattern
     internal void HandleServerCommand(IGameCommand command)
     {

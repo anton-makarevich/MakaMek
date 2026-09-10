@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport.SignalR.Client.Relay;
 
@@ -79,6 +80,12 @@ public interface IGameManager : IDisposable, IAsyncDisposable
     /// Gets the last error reported by the online hosting flow, if any.
     /// </summary>
     RelayClientError? OnlineError { get; }
+
+    /// <summary>
+    /// Gets the connection status of the online hosting session. Remains
+    /// <see cref="ConnectionStatus.NotConnected"/> while no online room is being hosted.
+    /// </summary>
+    IObservable<ConnectionStatus> OnlineConnectionStatus { get; }
 
     /// <summary>
     /// Locks the online relay room, if one is currently active. Returns true if lock

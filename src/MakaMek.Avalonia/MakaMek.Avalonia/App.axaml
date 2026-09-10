@@ -20,6 +20,8 @@
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
             <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
             <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
+            <converters:ConnectionStatusBackgroundConverter x:Key="ConnectionStatusBackgroundConverter"/>
+            <converters:ConnectionStatusTextConverter x:Key="ConnectionStatusTextConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.SignalR.Client;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using System.Reactive.Subjects;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -41,6 +42,8 @@ public class GameManagerTests : IDisposable
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
     private readonly ILogger<GameManager> _logger = Substitute.For<ILogger<GameManager>>();
+    private readonly IOnlineStatusForwarder _forwarder = Substitute.For<IOnlineStatusForwarder>();
+    private readonly BehaviorSubject<ConnectionStatus> _forwarderSubject = new(ConnectionStatus.NotConnected);
 
     public GameManagerTests()
     {
@@ -52,6 +55,8 @@ public class GameManagerTests : IDisposable
         _transportAdapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
+
+        _forwarder.OnlineConnectionStatus.Returns(_forwarderSubject);
 
         var rulesProvider = Substitute.For<IRulesProvider>();
         var mechFactory = Substitute.For<IMechFactory>();
@@ -87,7 +92,8 @@ public class GameManagerTests : IDisposable
             _localizationService,
             _commandLoggerFactory,
             _logger,
-            _networkHostService);
+            _networkHostService,
+            onlineStatusForwarder: _forwarder);
     }
     
     private GameManager CreateSutWithNullHost() => new GameManager(
@@ -95,7 +101,8 @@ public class GameManagerTests : IDisposable
         _gameFactory,
         _localizationService,
         _commandLoggerFactory,
-        _logger);
+        _logger,
+        onlineStatusForwarder: _forwarder);
 
     private GameManager CreateSutWithRelay(
         IRelayRoomClient relayRoomClient,
@@ -124,7 +131,8 @@ public class GameManagerTests : IDisposable
             networkHostService,
             relayRoomClient,
             relayPublisherFactory,
-            provider);
+            provider,
+            _forwarder);
     }
 
     private static RelayClientPublisher CreateRelayPublisher(string roomCode, string relayTicket) =>
@@ -1751,5 +1759,78 @@ public class GameManagerTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+    }
+
+    // ---------- Online connection status forwarding ----------
+
+    [Fact]
+    public async Task InitializeLobbyOnline_StartsStatusForwarding()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", Guid.NewGuid(), Guid.NewGuid()));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = Substitute.For<ITransportPublisher>();
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        // The manager's status stream is the forwarder's stream; status flows through it
+        var statuses = new List<ConnectionStatus>();
+        sut.OnlineConnectionStatus.Subscribe(statuses.Add);
+
+        // Act - host online, then push a degraded status directly into the forwarder stream
+        await sut.InitializeLobbyOnline();
+        _forwarderSubject.OnNext(ConnectionStatus.Disconnected);
+
+        // Assert - the manager forwards to the forwarder and the stream reflects its subject
+        _forwarder.Received(1).Start(_transportAdapter);
+        statuses.ShouldContain(ConnectionStatus.NotConnected);
+        statuses.ShouldContain(ConnectionStatus.Disconnected);
+
+        await sut.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_ResetsStatusForwarding()
+    {
+        // Arrange
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        relayRoomClient.GetRelayTicket(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RelayTicketResult.Succeeded(RelayTicketValue, DateTimeOffset.UtcNow.AddMinutes(5)));
+        var relayPublisherFactory = Substitute.For<IPublisherFactory>();
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        relayRoomClient.Create(_serverGame.Id, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Host", Guid.NewGuid(), Guid.NewGuid()));
+        relayRoomClient.Ready(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        relayRoomClient.Lock(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
+            .Returns(RoomOperationResult.Succeeded());
+        var relayPublisher = Substitute.For<ITransportPublisher>();
+        relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+        var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
+
+        await sut.InitializeLobbyOnline();
+        _forwarderSubject.OnNext(ConnectionStatus.Closed);
+        _forwarder.ClearReceivedCalls();
+
+        // Act
+        await sut.DisposeAsync();
+
+        // Assert - the forwarder is reset so no stale status survives the session teardown
+        _forwarder.Received(1).Reset();
     }
 }

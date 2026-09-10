@@ -3,6 +3,7 @@
               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
               xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
               xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
               mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
               x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
@@ -51,6 +52,10 @@
     </StackPanel>
     <SelectableTextBlock IsVisible="{Binding IsConnected}" Text="{Binding JoinedRoomInfoText}"
                          Classes="body"/>
+
+    <controls:ConnectionStatusBanner
+        IsVisible="{Binding IsConnectionBannerVisible}"
+        ConnectionStatus="{Binding ConnectionStatus.OnlineConnectionStatus}"/>
   </StackPanel>
 
 </UserControl>

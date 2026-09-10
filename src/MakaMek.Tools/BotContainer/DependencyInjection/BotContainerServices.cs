@@ -95,6 +95,7 @@ public static class BotContainerServices
         services.AddSingleton<IWeaponAttackResolver, WeaponAttackResolver>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
+        services.AddSingleton<IOnlineStatusForwarder, OnlineStatusForwarder>();
         services.AddSingleton<IGameManager, GameManager>();
         services.AddSingleton<IHashService, HashService>();
 

@@ -33,6 +33,8 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
+using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -44,7 +46,6 @@ public class StartNewGameViewModelTests
     private readonly IGameManager _gameManager = Substitute.For<IGameManager>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly ClientGame _clientGame;
-    private readonly ClientGame _serverBoundClientGame;
     private readonly ILogger<ClientGame> _logger = Substitute.For<ILogger<ClientGame>>();
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
@@ -99,8 +100,8 @@ public class StartNewGameViewModelTests
         // Bind the factory to a real client game bound to the current server game id,
         // mirroring production behavior (the view model rebinds its local game
         // whenever the server game id changes).
-        _serverBoundClientGame = CreateRealClientGame(_commandPublisher, _serverGameId);
-        _gameFactory.CreateClientGame(_commandPublisher, _serverGameId).Returns(_serverBoundClientGame);
+        var serverBoundClientGame = CreateRealClientGame(_commandPublisher, _serverGameId);
+        _gameFactory.CreateClientGame(_commandPublisher, _serverGameId).Returns(serverBoundClientGame);
 
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
@@ -2410,7 +2411,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         await _sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         var initialGame = _sut.LocalGame;
         initialGame.ShouldNotBeNull();
-        initialGame!.ServerGameId.ShouldBe(_serverGameId);
+        initialGame.ServerGameId.ShouldBe(_serverGameId);
 
         // Enabling online hosting restarts the server game under a new id (B)
         var serverGameBId = Guid.NewGuid();
@@ -2485,5 +2486,146 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         // Assert - the live relay session belongs to the running game and must survive;
         // stopping it here disconnects the host mid-game ("host disconnected" on clients).
         await gameManager.DidNotReceive().StopHosting();
+    }
+
+    // ---------- Online connection status / degraded connection ----------
+
+    private static IGameManager CreateGameManagerWithConnectionStatus(BehaviorSubject<ConnectionStatus> subject)
+    {
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.InitializeLobbyOnline(Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        gameManager.RoomCode.Returns("ABCDEF");
+        gameManager.OnlineError.Returns((RelayClientError?)null);
+        gameManager.IsOnlineServerRunning.Returns(true);
+        gameManager.OnlineConnectionStatus.Returns(subject);
+        return gameManager;
+    }
+
+    private static void MakeAllPlayersReady(StartNewGameViewModel sut)
+    {
+        if (sut.Players.Count == 0)
+        {
+            sut.AddPlayerCommand!.Execute(null);
+        }
+        foreach (var player in sut.Players)
+        {
+            player.AddUnit(sut.AvailableUnits.First());
+            player.Player.Status = PlayerStatus.Ready;
+        }
+    }
+
+    [Fact]
+    public async Task OnlineConnectionStatus_WhenDegraded_SetsIsConnectionDegradedAndDisablesActions()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+var gameManager = CreateGameManagerWithConnectionStatus(subject);
+        var sut = CreateSut(gameManager, _commandPublisher);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        await sut.CancelAndRestartServer();
+        MakeAllPlayersReady(sut);
+        sut.CanStartGame.ShouldBeTrue();
+        sut.CanPublishCommands.ShouldBeTrue();
+
+        // Act
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        subject.OnNext(ConnectionStatus.Disconnected);
+
+        // Assert
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        sut.IsConnectionBannerVisible.ShouldBeTrue();
+        sut.CanStartGame.ShouldBeFalse();
+        sut.CanPublishCommands.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task OnlineConnectionStatus_WhenRecovered_ClearsDegradedStateAndReEnablesActions()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+var gameManager = CreateGameManagerWithConnectionStatus(subject);
+        var sut = CreateSut(gameManager, _commandPublisher);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        await sut.CancelAndRestartServer();
+        MakeAllPlayersReady(sut);
+
+        // Act
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        subject.OnNext(ConnectionStatus.Connected);
+
+        // Assert
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
+        sut.IsConnectionBannerVisible.ShouldBeFalse();
+        sut.CanStartGame.ShouldBeTrue();
+        sut.CanPublishCommands.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task OnlineConnectionStatus_WhileConnecting_IsNotTreatedAsDegraded()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connecting);
+var gameManager = CreateGameManagerWithConnectionStatus(subject);
+        var sut = CreateSut(gameManager, _commandPublisher);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        await sut.CancelAndRestartServer();
+        MakeAllPlayersReady(sut);
+
+        // Assert
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
+        sut.IsConnectionBannerVisible.ShouldBeFalse();
+        sut.CanStartGame.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task OnlineConnectionStatus_WhenConnectionClosed_GatesActionsUntilRecovered()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+var gameManager = CreateGameManagerWithConnectionStatus(subject);
+        var sut = CreateSut(gameManager, _commandPublisher);
+        sut.AttachHandlers();
+        sut.IsOnlineMode = true;
+        await sut.CancelAndRestartServer();
+        MakeAllPlayersReady(sut);
+
+        // Act
+        subject.OnNext(ConnectionStatus.Closed);
+
+        // Assert
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        sut.CanPublishCommands.ShouldBeFalse();
+        sut.CanStartGame.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task OnlineConnectionStatus_LanMode_DoesNotSubscribeToOnlineStatus()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        var gameManager = CreateGameManagerWithConnectionStatus(subject);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+
+        // Act - initialize in LAN mode, then push a degraded status on the manager stream
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        subject.OnNext(ConnectionStatus.Disconnected);
+
+        // Assert - the online status subscription is only established for online hosting,
+        // so LAN mode never shows the banner and never reports a degraded state
+        sut.IsMultiplayerEnabled.ShouldBeFalse();
+        sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
+        sut.IsConnectionBannerVisible.ShouldBeFalse();
     }
 }

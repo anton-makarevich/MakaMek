@@ -39,11 +39,15 @@ public class CommandTransportAdapterTests
         if (publisherCount >= 1)
         {
             _mockPublisher1 = Substitute.For<ITransportPublisher>();
+            // A publisher that has not connected yet (all transitions happen before the
+            // adapter subscribes, so the current state must be queried on registration).
+            _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Disconnected);
             _publishers.Add(_mockPublisher1);
         }
         if (publisherCount >= 2)
         {
             _mockPublisher2 = Substitute.For<ITransportPublisher>();
+            _mockPublisher2.ConnectionState.Returns(TransportConnectionState.Disconnected);
             _publishers.Add(_mockPublisher2);
         }
 
@@ -227,6 +231,29 @@ public class CommandTransportAdapterTests
         // Assert
         initialPublishCount.ShouldBe(1); // Should still only be called once
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>()); // Should only have been subscribed once during Initialize
+    }
+
+    [Fact]
+    public async Task AddPublisher_AfterDisposeAsync_DoesNotAddPublisherOrThrow()
+    {
+        // Arrange
+        SetupAdapter();
+        var newPublisher = Substitute.For<ITransportPublisher>();
+        newPublisher.ConnectionState.Returns(TransportConnectionState.Disconnected);
+        await _sut.DisposeAsync();
+
+        // Act
+        Should.NotThrow(() => _sut.AddPublisher(newPublisher));
+        _sut.PublishCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        });
+
+        // Assert - no publisher registered, no ObjectDisposedException raised
+        _sut.TransportPublishers.ShouldNotContain(newPublisher);
+        newPublisher.DidNotReceive().Subscribe(Arg.Any<Action<TransportMessage>>());
+        await newPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
 
     [Fact]
@@ -575,9 +602,9 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
 
         // Re-add a publisher and verify we need to re-initialize
         sut.AddPublisher(nonDisposablePublisher);
@@ -624,8 +651,8 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
 
     [Fact]
@@ -659,9 +686,9 @@ public class CommandTransportAdapterTests
         };
         sut.PublishCommand(command);
 
-        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        await nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
 
     [Fact]
@@ -1138,5 +1165,269 @@ public class CommandTransportAdapterTests
         capturedMessage.ShouldNotBeNull();
         capturedMessage!.MessageType.ShouldBe(nameof(TurnIncrementedCommand));
         capturedMessage.SourceId.ShouldBe(command.GameOriginId);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_WhenPublisherRaisesConnectionStateChanged_MapsToConnectionStatus()
+    {
+        // Arrange - the publisher must go through AddPublisher for the state subscription to exist
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert - subject is a BehaviorSubject so the current value replays on subscribe;
+        // the seeded current state (Disconnected) is replayed, then each event is mapped
+        statuses.ShouldBe([
+            ConnectionStatus.Disconnected,
+            ConnectionStatus.Connecting,
+            ConnectionStatus.Reconnecting,
+            ConnectionStatus.Disconnected,
+            ConnectionStatus.Closed,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_AfterClearPublishers_ResetsToNotConnected()
+    {
+        // Arrange - the publisher must go through AddPublisher for the state subscription to exist
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+
+        // Act
+        Should.NotThrow(() => _sut.ClearPublishers().GetAwaiter().GetResult());
+
+        // Assert - the stream is reset so no stale status leaks into the next session
+        statuses.Last().ShouldBe(ConnectionStatus.NotConnected);
+    }
+
+    [Fact]
+    public async Task ConnectionStatusChanges_AfterRemovePublisher_StopsListeningToThatPublisher()
+    {
+        // Arrange - the publishers must go through AddPublisher for the state subscription to exist
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - remove publisher 1 and only publisher 2 reports a state change afterwards
+        _sut.RemovePublisher(_mockPublisher1);
+        _mockPublisher2.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+
+        // Assert - publisher 1's later changes are ignored after removal
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Closed);
+        statuses.Last().ShouldBe(ConnectionStatus.Reconnecting);
+        await _sut.ClearPublishers();
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_WhenConstructorPublisherRaisesConnectionStateChanged_MapsToConnectionStatus()
+    {
+        // Arrange - publisher provided through the constructor must also be subscribed to state changes
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory, _mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert
+        statuses.ShouldBe([
+            ConnectionStatus.Disconnected,
+            ConnectionStatus.Connecting,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_AddPublisherAlreadyConnected_EmitsConnectedWithoutEvent()
+    {
+        // Arrange - simulates a relay publisher created by the factory: it is already
+        // connected when handed to the adapter, so no ConnectionStateChanged event fires.
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - connection stays healthy, no events are raised
+
+        // Assert - the BehaviorSubject replays only the latest value, which is the seeded one
+        statuses.ShouldBe([ConnectionStatus.Connected]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_ConstructorPublisherAlreadyConnected_EmitsConnectedWithoutEvent()
+    {
+        // Arrange
+        _mockPublisher1 = Substitute.For<ITransportPublisher>();
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        var sut = new CommandTransportAdapter(_loggerFactory, _mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - connection stays healthy, no events are raised
+
+        // Assert
+        statuses.ShouldBe([ConnectionStatus.Connected]);
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_SeededPublisherLaterReconnects_MapsTransitionsFromSeededState()
+    {
+        // Arrange - relay publisher registered while already connected
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _mockPublisher1.ConnectionState.Returns(TransportConnectionState.Connected);
+        _sut.AddPublisher(_mockPublisher1);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+
+        // Act - transient failure and recovery
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Reconnecting);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Assert
+        statuses.ShouldBe([
+            ConnectionStatus.Connected,
+            ConnectionStatus.Reconnecting,
+            ConnectionStatus.Connected
+        ]);
+    }
+
+    [Fact]
+    public async Task ConnectionStatusChanges_AfterRemovePublisherWithRemainingPublisher_KeepsExistingStatus()
+    {
+        // Arrange
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+
+        // Act - remove publisher 2 while publisher 1 is still attached
+        _sut.RemovePublisher(_mockPublisher2);
+
+        // Assert - status is preserved while a publisher remains
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+        await _sut.ClearPublishers();
+    }
+
+    [Fact]
+    public void ConnectionStatusChanges_RemoveDegradedPublisher_RestoresRemainingPublisherStatus()
+    {
+        // Arrange - publisher 2 reports a worse status than publisher 1
+        SetupAdapter(2);
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        _sut.AddPublisher(_mockPublisher2);
+        var statuses = new List<ConnectionStatus>();
+        _sut.ConnectionStatusChanges.Subscribe(statuses.Add);
+        _mockPublisher1.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected);
+        _mockPublisher2.ConnectionStateChanged +=
+            Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Disconnected);
+
+        // Sanity - the degraded publisher dominates while both are attached
+        statuses.Last().ShouldBe(ConnectionStatus.Disconnected);
+
+        // Act - remove the degraded publisher
+        _sut.RemovePublisher(_mockPublisher2);
+
+        // Assert - the aggregate is recomputed from the remaining publisher's status
+        statuses.Last().ShouldBe(ConnectionStatus.Connected);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenCalledConcurrently_DisposesPublishersOnlyOnce()
+    {
+        // Arrange
+        var disposablePublisher = Substitute.For<ITransportPublisher, IAsyncDisposable>();
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+        var sut = new CommandTransportAdapter(_loggerFactory, disposablePublisher);
+
+        // Act - fire both invocations concurrently; only one may perform terminal cleanup
+        var first = sut.DisposeAsync().AsTask();
+        var second = sut.DisposeAsync().AsTask();
+        await Task.WhenAll(first, second);
+
+        // Assert
+        await ((IAsyncDisposable)disposablePublisher).Received(1).DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenConnectionStateCallbackInFlight_CompletesWithoutThrowing()
+    {
+        // Arrange
+        SetupAdapter();
+        _sut = new CommandTransportAdapter(_loggerFactory);
+        _sut.AddPublisher(_mockPublisher1);
+        using var callbackEntered = new ManualResetEventSlim();
+        using var releaseCallback = new ManualResetEventSlim();
+        var errors = new List<Exception>();
+        var calls = 0;
+        _sut.ConnectionStatusChanges.Subscribe(_ =>
+        {
+            // The first delivery is the BehaviorSubject's NotConnected replay; only block on
+            // the second delivery (the in-flight Connected raised from the background thread).
+            calls++;
+            if (calls == 2)
+            {
+                callbackEntered.Set();
+                releaseCallback.Wait();
+            }
+        }, errors.Add);
+
+        // Start raising a state change; the subscriber callback blocks the handler (which
+        // holds the adapter lock inside OnNext) until we release it.
+        var raiseTask = Task.Run(() =>
+            _mockPublisher1.ConnectionStateChanged +=
+                Raise.Event<Action<TransportConnectionState>>(TransportConnectionState.Connected));
+        callbackEntered.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+
+        // Act - begin disposal on a background thread; it must block on the adapter lock
+        // until the in-flight emission completes, so no OnNext can follow the subject disposal.
+        var disposeTask = Task.Run(() => _sut.DisposeAsync().AsTask());
+        Thread.Sleep(100);
+        disposeTask.IsCompleted.ShouldBeFalse();
+
+        releaseCallback.Set();
+        await Task.WhenAll(raiseTask, disposeTask);
+
+        // Assert
+        errors.ShouldBeEmpty();
     }
 }
