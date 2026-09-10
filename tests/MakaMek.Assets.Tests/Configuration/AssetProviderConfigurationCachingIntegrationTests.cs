@@ -54,8 +54,9 @@ public class AssetProviderConfigurationCachingIntegrationTests
 
     private static void CreateTestMmuxPackage(string folder, string model)
     {
-        Directory.CreateDirectory(folder);
-        var path = Path.Combine(folder, $"{model}.mmux");
+        var packageDir = Path.Combine(folder, "units", "mechs");
+        Directory.CreateDirectory(packageDir);
+        var path = Path.Combine(packageDir, $"{model}.mmux");
         using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
 
         var unitData = new UnitData
