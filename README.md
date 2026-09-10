@@ -58,17 +58,22 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Support of roads and bridges (including bridge collision and skidding)
 </details>
 
-### Phase 3. Internet multiplayer — in progress 🚧
+<details>
+  <summary>Phase 3. Internet multiplayer ✅</summary>
 - [Network Multiplayer PRD](docs/project/network-prd.md) - Relay-hub architecture for internet play
 
 #### Implemented
-- Online Hub (separate project): a containerized ASP.NET Core service with a REST room-management API and a thin, WebSockets-only SignalR relay.
-- Shareable room codes and REST room lifecycle management.
-- Separate **Host Online** and **Host LAN** flows. Every supported client head, including browser/WASM, can host online by running `ServerGame` locally and connecting outbound to the relay.
+- Online Hub (separate project): a thin, WebSockets-only SignalR game relay.
+- Shareable room codes and room lifecycle management.
+- Every supported client, including WASM, can host an online game.
 - Host loss handled gracefully by returning peers to a safe menu state.
-- Public deployment of the hub at https://demohub.makamek.nl/.
+- Public deployment of the hub at https://demohub.makamek.nl/ (West EU).
+- Ability to configure custom hub url in settings.
+</details>
 
-### Future Phases
+### Next: the project is in the maintenance mode.
+
+### Future (possible) phases
 - Support of paved areas and buildings
 - Physical attacks
 - Support of advanced tech rules (Clan, LosTech equipment and more)
