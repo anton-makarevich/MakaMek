@@ -42,12 +42,12 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
             ProviderType.GitHub => new GitHubResourceStreamProvider(
                 GetFileExtension(config.AssetType),
                 config.UrlOrPath,
-                GetGitHubSubPath(config.AssetType),
+                GetAssetTypeSubPath(config.AssetType),
                 _cachingService,
                 _loggerFactory.CreateLogger<GitHubResourceStreamProvider>(),
                 id: config.Id),
             ProviderType.Filesystem => new LocalFolderResourceStreamProvider(
-                config.UrlOrPath,
+                Path.Combine(config.UrlOrPath, GetAssetTypeSubPath(config.AssetType)),
                 GetFileExtension(config.AssetType),
                 config.Id),
             _ => throw new ArgumentOutOfRangeException(nameof(config.ProviderType), config.ProviderType,
@@ -84,7 +84,7 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
         };
     }
 
-    private static string GetGitHubSubPath(AssetType assetType)
+    private static string GetAssetTypeSubPath(AssetType assetType)
     {
         return assetType switch
         {

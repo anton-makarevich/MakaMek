@@ -130,7 +130,7 @@ public class ResourceStreamProviderFactoryTests
 
         var provider = sut.Create(config);
 
-        GetPrivateField(provider, "_folderPath").ShouldBe("C:\\assets\\units");
+        GetPrivateField(provider, "_folderPath").ShouldBe(Path.Combine("C:\\assets\\units", "units/mechs"));
         GetPrivateField(provider, "_fileExtension").ShouldBe("mmux");
     }
 
@@ -144,7 +144,7 @@ public class ResourceStreamProviderFactoryTests
 
         var provider = sut.Create(config);
 
-        GetPrivateField(provider, "_folderPath").ShouldBe("C:\\assets\\hexes");
+        GetPrivateField(provider, "_folderPath").ShouldBe(Path.Combine("C:\\assets\\hexes", "hexes/biomes"));
         GetPrivateField(provider, "_fileExtension").ShouldBe("mmtx");
     }
 
@@ -221,6 +221,17 @@ public class ResourceStreamProviderFactoryTests
         var sut = CreateSut();
         var config = new AssetProviderConfigData(
             "unknown", ProviderType.Bucket, (AssetType)99, "https://data.example.com", IsActive: true, IsDefault: false,
+            SortOrder: 0);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Create(config));
+    }
+
+    [Fact]
+    public void Create_FilesystemWithUnsupportedAssetType_ThrowsArgumentOutOfRangeException()
+    {
+        var sut = CreateSut();
+        var config = new AssetProviderConfigData(
+            "unknown", ProviderType.Filesystem, (AssetType)99, "C:\\assets", IsActive: true, IsDefault: false,
             SortOrder: 0);
 
         Should.Throw<ArgumentOutOfRangeException>(() => sut.Create(config));
