@@ -37,7 +37,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          global-json-file: global.json
 
       - name: Run Avalonia tests
         run: dotnet test tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute "/p:Include=\"[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Converters*,[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Game*\""
@@ -74,7 +74,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          global-json-file: global.json
 
       - name: Determine version suffix
         run: |
