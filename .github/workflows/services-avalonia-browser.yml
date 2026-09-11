@@ -28,7 +28,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore src/MakaMek.Avalonia/MakaMek.Services.Avalonia.Browser/MakaMek.Services.Avalonia.Browser.csproj
@@ -47,7 +47,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          global-json-file: global.json
 
       - name: Determine version suffix
         run: |
