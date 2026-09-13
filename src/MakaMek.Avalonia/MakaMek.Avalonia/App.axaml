@@ -14,15 +14,12 @@
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
-            <converters:AdaptiveOrientationConverter x:Key="AdaptiveOrientationConverter"/>
-            <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
             <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
             <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
             <converters:ConnectionStatusBackgroundConverter x:Key="ConnectionStatusBackgroundConverter"/>
             <converters:ConnectionStatusTextConverter x:Key="ConnectionStatusTextConverter"/>
-            <converters:TurnInfoMaxWidthConverter x:Key="TurnInfoMaxWidthConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>
