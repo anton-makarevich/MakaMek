@@ -25,12 +25,12 @@
             Classes="gameScrollViewer">
                     <ItemsControl Name="WeaponsGroup">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="controls:ComponentGroup">
+                                <DataTemplate x:DataType="controls:ComponentGroup">
                                     <StackPanel>
                                         <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
                                         <ItemsControl Name="WeaponsList" ItemsSource="{Binding Components}">
                                             <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="weapons:Weapon">
+                                                <DataTemplate x:DataType="weapons:Weapon">
                                                     <Border Margin="2">
                                                         <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" 
                                                               Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
