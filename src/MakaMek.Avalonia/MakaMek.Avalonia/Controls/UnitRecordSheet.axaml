@@ -7,6 +7,8 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
+    <!-- All bindings in this file use #UnitRecordSheetControl element-name syntax
+         against the control's own properties, so no root x:DataType is required. -->
     <Grid RowDefinitions="*,Auto">
         <!-- Tabs -->
         <TabControl Grid.Row="0" Margin="0,5,0,0">

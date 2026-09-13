@@ -20,12 +20,12 @@
         <ScrollViewer Grid.ColumnSpan="4" Grid.Row="1">
             <ItemsControl x:Name="ComponentsGroup">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="controls:ComponentGroup">
+                    <DataTemplate x:DataType="controls:ComponentGroup">
                         <StackPanel>
                             <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
                             <ItemsControl ItemsSource="{Binding Components}">
                                 <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="components:Component">
+                                    <DataTemplate x:DataType="components:Component">
                                         <Border Margin="2">
                                             <Grid ColumnDefinitions="6*,2*,2*,3*" Margin="5,2"
                                                   Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
