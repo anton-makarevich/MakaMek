@@ -24,7 +24,7 @@
                 EnabledDirections="{Binding AvailableDirections}"
                 Position="{Binding DirectionSelectorPosition}"
                 DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
-                Foreground="{Binding ActivePlayerTint}"/>
+                ActiveTint="{Binding ActivePlayerTint}"/>
             <controls:SurfaceSelector
                 x:Name="SurfaceSelector"
                 IsVisible="{Binding IsSurfaceSelectorVisible}"
