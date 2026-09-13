@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reactive.Concurrency;
 using Avalonia;
 using Avalonia.Controls;
@@ -12,6 +13,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -21,6 +23,13 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 /// </summary>
 public class HexMap : Canvas
 {
+    public static readonly StyledProperty<IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>?> BoundaryOutlinesProperty =
+        AvaloniaProperty.Register<HexMap, IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>?>(
+            nameof(BoundaryOutlines));
+
+    public static readonly StyledProperty<HexRenderConfigurationViewModel?> HexConfigurationProperty =
+        AvaloniaProperty.Register<HexMap, HexRenderConfigurationViewModel?>(nameof(HexConfiguration));
+
     private Point _lastPointerPosition;
 
     private readonly MatrixTransform _mapTransform = new()
@@ -57,7 +66,57 @@ public class HexMap : Canvas
 
     public double ScaleStep { get; set; } = 0.1;
 
+    /// <summary>
+    /// Boundary outlines for highlighted hexes, bound from the view model.
+    /// </summary>
+    public IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>? BoundaryOutlines
+    {
+        get => GetValue(BoundaryOutlinesProperty);
+        set => SetValue(BoundaryOutlinesProperty, value);
+    }
+
+    /// <summary>
+    /// Hex render configuration view model, bound from the view model.
+    /// The control subscribes to its changes and updates the internal renderer.
+    /// </summary>
+    public HexRenderConfigurationViewModel? HexConfiguration
+    {
+        get => GetValue(HexConfigurationProperty);
+        set => SetValue(HexConfigurationProperty, value);
+    }
+
     public event EventHandler<Point>? ContentClicked;
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (e.Property == BoundaryOutlinesProperty)
+        {
+            SetBoundaryOutlines(e.GetNewValue<IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline>?>());
+        }
+        else if (e.Property == HexConfigurationProperty)
+        {
+            if (e.OldValue is HexRenderConfigurationViewModel oldConfiguration)
+            {
+                oldConfiguration.PropertyChanged -= OnHexConfigurationPropertyChanged;
+            }
+
+            if (e.NewValue is HexRenderConfigurationViewModel newConfiguration)
+            {
+                newConfiguration.PropertyChanged += OnHexConfigurationPropertyChanged;
+                UpdateHexConfiguration(newConfiguration.ToConfiguration());
+            }
+        }
+    }
+
+    private void OnHexConfigurationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is HexRenderConfigurationViewModel configuration)
+        {
+            UpdateHexConfiguration(configuration.ToConfiguration());
+        }
+    }
 
     public HexMap()
     {
@@ -90,6 +149,8 @@ public class HexMap : Canvas
     {
         var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler, resourcesLocator);
         renderer.SetHexData(data, configuration);
+        // Re-apply the currently bound boundary outlines to the new renderer
+        renderer.SetBoundaryOutlines(GetValue(BoundaryOutlinesProperty));
         Children.Insert(0, renderer);
         _hexRenderControl = renderer;
     }
