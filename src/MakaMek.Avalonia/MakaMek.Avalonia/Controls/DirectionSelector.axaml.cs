@@ -68,16 +68,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
         }
 
-        public new static readonly DirectProperty<DirectionSelector,string> ForegroundProperty =
-            AvaloniaProperty.RegisterDirect<DirectionSelector, string>(nameof(Foreground),
-                o=> o.Foreground,
-                (o, v) => o.Foreground = v);
+        public static readonly StyledProperty<string?> ActiveTintProperty =
+            AvaloniaProperty.Register<DirectionSelector, string?>(nameof(ActiveTint), "#FFFFFF");
 
-        private string _foreground = "#FFFFFF"; 
-        public new string Foreground
+        public string? ActiveTint
         {
-            get => _foreground;
-            set => SetAndRaise(ForegroundProperty, ref _foreground, value);
+            get => GetValue(ActiveTintProperty);
+            set => SetValue(ActiveTintProperty, value);
         }
 
         public bool HandleInteraction(Point position)
