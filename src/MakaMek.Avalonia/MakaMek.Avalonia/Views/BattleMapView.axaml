@@ -17,7 +17,9 @@
     </UserControl.Resources>
     <Grid>
         <mapControls:HexMap x:Name="MapCanvas"
-                            Background="Transparent">
+                            Background="Transparent"
+                            BoundaryOutlines="{Binding HighlightBoundaryOutlines}"
+                            HexConfiguration="{Binding HexConfiguration}">
             <controls:DirectionSelector
                 x:Name="DirectionSelector"
                 IsVisible="{Binding IsDirectionSelectorVisible}"
@@ -46,7 +48,8 @@
                 />
             <Grid Grid.Column="2"
                   x:Name="TurnInfoPanel"
-                  Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
+                  MaxWidth="{Binding #TurnStatus.Bounds.Width, Converter={StaticResource TurnInfoMaxWidthConverter}}"
+                  Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                   ColumnDefinitions="*,*,*">
                 <!-- Turn Info Section -->
                 <Border Grid.Column="0" 
@@ -168,7 +171,7 @@
                     Spacing="10">
             <!-- Center Map Button -->
             <templatedControls:ActionButton
-                Click="CenterMap"
+                Command="{Binding CenterMapCommand}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="{StaticResource CenterMapIcon}"/>
 

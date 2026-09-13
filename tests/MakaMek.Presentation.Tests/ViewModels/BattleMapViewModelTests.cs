@@ -3303,6 +3303,77 @@ public class BattleMapViewModelTests
             "PDF map export failed");
     }
 
+    [Fact]
+    public void SelectHexAt_WithValidHex_RoutesSelectionToCurrentState()
+    {
+        // Arrange
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        _sut.Game = game;
+        var mockState = Substitute.For<IUiState>();
+        SetCurrentState(_sut, mockState);
+        var coords = new HexCoordinates(2, 2);
+        var x = coords.H + HexCoordinatesPixelExtensions.HexWidth / 2;
+        var y = coords.V + HexCoordinatesPixelExtensions.HexHeight / 2;
+
+        // Act
+        _sut.SelectHexAt(x, y);
+
+        // Assert
+        mockState.Received(1).HandleHexSelection(game.BattleMap!.GetHex(coords)!);
+    }
+
+    [Fact]
+    public void SelectHexAt_WithPixelOutsideMap_DoesNotRouteSelection()
+    {
+        // Arrange
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        _sut.Game = game;
+        var mockState = Substitute.For<IUiState>();
+        SetCurrentState(_sut, mockState);
+
+        // Act
+        _sut.SelectHexAt(1_000_000, 1_000_000);
+
+        // Assert
+        mockState.DidNotReceive().HandleHexSelection(Arg.Any<Hex>());
+    }
+
+    [Fact]
+    public void SelectHexAt_WithNullGame_DoesNotThrowAndDoesNotRouteSelection()
+    {
+        // Arrange
+        _sut.Game = null;
+        var mockState = Substitute.For<IUiState>();
+        SetCurrentState(_sut, mockState);
+
+        // Act & Assert
+        Should.NotThrow(() => _sut.SelectHexAt(10, 10));
+        mockState.DidNotReceive().HandleHexSelection(Arg.Any<Hex>());
+    }
+
+    [Fact]
+    public void CenterMapCommand_InvokesAssignedCallback()
+    {
+        // Arrange
+        var called = false;
+        _sut.CenterMap = () => called = true;
+
+        // Act
+        _sut.CenterMapCommand.Execute(null);
+
+        // Assert
+        called.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CenterMapCommand_WithoutCallback_DoesNotThrow()
+    {
+        // Act & Assert
+        Should.NotThrow(() => _sut.CenterMapCommand.Execute(null));
+    }
+
     private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
