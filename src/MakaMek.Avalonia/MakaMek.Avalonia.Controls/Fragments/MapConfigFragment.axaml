@@ -29,7 +29,7 @@
                                     Cursor="Hand"
                                     BorderBrush="{Binding IsSelected, 
                                         Converter={StaticResource SelectedItemToBrushConverter}}"
-                                    Background="#1A000000"
+                                    Background="{StaticResource MapItemBackgroundBrush}"
                                     PointerPressed="OnMapItemPressed">
                                 <StackPanel HorizontalAlignment="Center" Spacing="4">
                                     <Image Source="{Binding PreviewImage}" 
