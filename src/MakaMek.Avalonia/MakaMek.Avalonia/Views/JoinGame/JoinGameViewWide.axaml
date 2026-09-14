@@ -27,11 +27,11 @@
             <Grid.Styles>
                 <Style Selector="UniformGrid#JoinGameAdaptiveGrid">
                     <Setter Property="Rows" Value="2"/>
-                    <Setter Property="Columns" Value="1"/>
+                    <Setter Property="Columns" Value="0"/>
                 </Style>
                 <ContainerQuery Name="joinGameContent" Query="min-width:800">
                     <Style Selector="UniformGrid#JoinGameAdaptiveGrid">
-                        <Setter Property="Rows" Value="1"/>
+                        <Setter Property="Rows" Value="0"/>
                         <Setter Property="Columns" Value="2"/>
                     </Style>
                 </ContainerQuery>
