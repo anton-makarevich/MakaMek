@@ -285,7 +285,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}"
-                                       Foreground="Black"
+                                       Foreground="{StaticResource TextBrush}"
                                        Margin="5"
                                        TextWrapping="Wrap"/>
                         </DataTemplate>
