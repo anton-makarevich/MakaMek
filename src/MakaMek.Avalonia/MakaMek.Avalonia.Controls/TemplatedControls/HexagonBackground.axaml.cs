@@ -7,14 +7,18 @@ namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 public class HexagonBackground : Control
 {
     public static readonly StyledProperty<IBrush?> StrokeProperty =
-        AvaloniaProperty.Register<HexagonBackground, IBrush?>(nameof(Stroke),
-            new SolidColorBrush(Color.FromArgb(25, 0, 0, 0)));
+        AvaloniaProperty.Register<HexagonBackground, IBrush?>(nameof(Stroke));
 
     public static readonly StyledProperty<double> StrokeThicknessProperty =
         AvaloniaProperty.Register<HexagonBackground, double>(nameof(StrokeThickness), 1.0);
 
     public static readonly StyledProperty<double> PatternScaleProperty =
         AvaloniaProperty.Register<HexagonBackground, double>(nameof(PatternScale), 2.0);
+
+    public HexagonBackground()
+    {
+        SetValue(StrokeProperty, new SolidColorBrush(Color.FromArgb(25, 0, 0, 0)));
+    }
 
     static HexagonBackground()
     {
