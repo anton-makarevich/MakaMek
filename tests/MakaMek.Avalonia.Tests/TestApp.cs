@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Markup.Xaml;
 using NSubstitute;
+using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Localization;
 
@@ -14,6 +15,7 @@ public partial class TestApp : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        Resources[LocalizeExtension.LocalizationServiceResourceKey] = LocalizationService;
         RegisterConverterResources();
     }
 
