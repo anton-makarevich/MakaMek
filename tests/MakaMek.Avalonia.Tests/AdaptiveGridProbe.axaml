@@ -1,0 +1,21 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MakaMek.Avalonia.Tests.AdaptiveGridProbe">
+    <Grid Name="probe"
+          Container.Name="probe"
+          Container.Sizing="Width">
+        <Grid.Styles>
+            <Style Selector="UniformGrid#AdaptiveGrid">
+                <Setter Property="Rows" Value="2"/>
+                <Setter Property="Columns" Value="1"/>
+            </Style>
+            <ContainerQuery Name="probe" Query="min-width:800">
+                <Style Selector="UniformGrid#AdaptiveGrid">
+                    <Setter Property="Rows" Value="1"/>
+                    <Setter Property="Columns" Value="2"/>
+                </Style>
+            </ContainerQuery>
+        </Grid.Styles>
+        <UniformGrid x:Name="AdaptiveGrid"/>
+    </Grid>
+</UserControl>

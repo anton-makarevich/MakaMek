@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Fragments;assembly=Sanet.MakaMek.Avalonia.Controls"
@@ -15,59 +14,68 @@
         <templatedControls:HexagonBackground/>
         <Grid
             Margin="{StaticResource PageMargin}"
-            RowDefinitions="Auto,*, Auto">
+            RowDefinitions="Auto,*, Auto"
+            Container.Name="startNewGameContent"
+            Container.Sizing="Width">
+            <Grid.Styles>
+                <Style Selector="UniformGrid#StartNewGameAdaptiveGrid">
+                    <Setter Property="Rows" Value="2"/>
+                    <Setter Property="Columns" Value="1"/>
+                </Style>
+                <ContainerQuery Name="startNewGameContent" Query="min-width:800">
+                    <Style Selector="UniformGrid#StartNewGameAdaptiveGrid">
+                        <Setter Property="Rows" Value="1"/>
+                        <Setter Property="Columns" Value="2"/>
+                    </Style>
+                </ContainerQuery>
+            </Grid.Styles>
             <templatedControls:ToolBar
                 Title="{extensions:Localize 'StartNewGame_Title'}"
-            TitleAlignment="Center"
-            LeftCommand="{Binding BackCommand}"
-            LeftIcon="{StaticResource BackArrowIcon}"/>
-        <UniformGrid Grid.Row="1"
-            VerticalAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
-                        Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveGridConverter}, 
-                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
-            Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
-                        Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveGridConverter}, 
-                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
-        >
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Text="{extensions:Localize 'StartNewGame_Players'}" Classes="h2" HorizontalAlignment="Center"/>
-                <fragments:PlayersFragment Grid.Row="1" Margin="{StaticResource PageMargin}"/>
-            </Grid>
-            <Grid RowDefinitions="Auto,*,Auto">
-                <TextBlock Text="{extensions:Localize 'StartNewGame_Map'}" Classes="h2" HorizontalAlignment="Center"/>
-                <ScrollViewer Grid.Row="1" >
-                    <fragments1:MapConfigFragment Margin="{StaticResource PageMargin}" DataContext="{Binding MapConfig}"/>
-                </ScrollViewer>
-                <StackPanel Grid.Row="2" Margin="{StaticResource PageMargin}">
-                    <Grid>
-                        <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <Button Command="{Binding ToggleNetworkSection}"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Cursor="Hand">
-                            <Grid>
-                                <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
-                                <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
-                            </Grid>
-                        </Button>
-                    </Grid>
-                    <fragments:NetworkFragment IsVisible="{Binding IsNetworkSectionExpanded}"/>
-                </StackPanel>
-            </Grid>
-        </UniformGrid>
-        <Button Grid.Row="2"
-                Command="{Binding StartGameCommand}"
-                Content="{extensions:Localize 'StartNewGame_StartGame'}"
-                Classes="primary"
-                IsEnabled="{Binding CanStartGame}"
-                HorizontalAlignment="Center"
-                Margin="0,10,0,0"/>
+                TitleAlignment="Center"
+                LeftCommand="{Binding BackCommand}"
+                LeftIcon="{StaticResource BackArrowIcon}"/>
+            <UniformGrid x:Name="StartNewGameAdaptiveGrid"
+                         Grid.Row="1">
+                <!-- Players -->
+                <Grid x:Name="StartNewGamePlayersPane"
+                      RowDefinitions="Auto,*">
+                    <TextBlock Text="{extensions:Localize 'StartNewGame_Players'}" Classes="h2" HorizontalAlignment="Center"/>
+                    <fragments:PlayersFragment Grid.Row="1" Margin="{StaticResource PageMargin}"/>
+                </Grid>
+
+                <!-- Map + Network -->
+                <Grid x:Name="StartNewGameMapNetworkPane"
+                      RowDefinitions="Auto,*,Auto">
+                    <TextBlock Text="{extensions:Localize 'StartNewGame_Map'}" Classes="h2" HorizontalAlignment="Center"/>
+                    <ScrollViewer Grid.Row="1" >
+                        <fragments1:MapConfigFragment Margin="{StaticResource PageMargin}" DataContext="{Binding MapConfig}"/>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="2" Margin="{StaticResource PageMargin}">
+                        <Grid>
+                            <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Button Command="{Binding ToggleNetworkSection}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Cursor="Hand">
+                                <Grid>
+                                    <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
+                                    <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
+                                </Grid>
+                            </Button>
+                        </Grid>
+                        <fragments:NetworkFragment IsVisible="{Binding IsNetworkSectionExpanded}"/>
+                    </StackPanel>
+                </Grid>
+            </UniformGrid>
+            <Button Grid.Row="2"
+                    Command="{Binding StartGameCommand}"
+                    Content="{extensions:Localize 'StartNewGame_StartGame'}"
+                    Classes="primary"
+                    IsEnabled="{Binding CanStartGame}"
+                    HorizontalAlignment="Center"
+                    Margin="0,10,0,0"/>
         </Grid>
     </Grid>
 

@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\MakaMek.Avalonia.csproj" />
   </ItemGroup>
 

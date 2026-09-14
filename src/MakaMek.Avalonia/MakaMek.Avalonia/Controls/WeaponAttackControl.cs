@@ -83,7 +83,7 @@ public class WeaponAttackControl : Control
         var geometry = new StreamGeometry();
         using (var context2 = geometry.Open())
         {
-            context2.BeginFigure(end, true);
+            context2.BeginFigure(end);
             context2.LineTo(arrowPoint1);
             context2.LineTo(arrowPoint2);
         }

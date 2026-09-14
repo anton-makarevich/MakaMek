@@ -1,32 +1,31 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Sanet.MakaMek.Avalonia.App"
-             xmlns:di="using:Microsoft.Extensions.DependencyInjection"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             x:Class="MakaMek.Avalonia.Tests.TestApp"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              RequestedThemeVariant="Light">
 
     <Application.Resources>
         <ResourceDictionary>
-            <di:ServiceCollection x:Key="ServiceCollection"/>
-            <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
             <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
-            <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
             <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
             <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
             <converters:ConnectionStatusBackgroundConverter x:Key="ConnectionStatusBackgroundConverter"/>
             <converters:ConnectionStatusTextConverter x:Key="ConnectionStatusTextConverter"/>
+            <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
+            <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
+            <converters:SelectedItemToBrushConverter x:Key="SelectedItemToBrushConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
-             
+
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Theme.axaml"/>

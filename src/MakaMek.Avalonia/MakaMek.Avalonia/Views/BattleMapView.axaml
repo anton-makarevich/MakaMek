@@ -15,7 +15,24 @@
              x:DataType="viewModels1:BattleMapViewModel">
     <UserControl.Resources>
     </UserControl.Resources>
-    <Grid>
+    <Grid Container.Name="battleMap"
+          Container.Sizing="Width">
+        <Grid.Styles>
+            <Style Selector="Border.statusSection">
+                <Setter Property="Padding" Value="10,5"/>
+            </Style>
+            <ContainerQuery Name="battleMap" Query="max-width:700">
+                <Style Selector="Border.statusSection">
+                    <Setter Property="Padding" Value="6,3"/>
+                </Style>
+                <Style Selector="TextBlock.turnInfo">
+                    <Setter Property="FontSize" Value="11"/>
+                </Style>
+                <Style Selector="TextBlock.turnInfoLabel">
+                    <Setter Property="FontSize" Value="9"/>
+                </Style>
+            </ContainerQuery>
+        </Grid.Styles>
         <mapControls:HexMap x:Name="MapCanvas"
                             Background="Transparent"
                             BoundaryOutlines="{Binding HighlightBoundaryOutlines}"
@@ -40,21 +57,19 @@
             VerticalAlignment="Top"
             Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
-            ColumnDefinitions="Auto,*,Auto,*">
+            ColumnDefinitions="Auto,*">
             <templatedControls:ActionButton
                 Margin="5"
                 Command="{Binding LeaveGameCommand}"
                 IconData="{StaticResource CloseIcon}"
                 />
-            <Grid Grid.Column="2"
+            <Grid Grid.Column="1"
                   x:Name="TurnInfoPanel"
-                  MaxWidth="{Binding #TurnStatus.Bounds.Width, Converter={StaticResource TurnInfoMaxWidthConverter}}"
                   Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                   ColumnDefinitions="*,*,*">
                 <!-- Turn Info Section -->
                 <Border Grid.Column="0" 
-                    Classes="statusSection"
-                    Padding="10,5">
+                    Classes="statusSection">
                     <Grid ColumnDefinitions="Auto,*">
                         <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Turn'}"
@@ -88,7 +103,6 @@
                 <!-- Active Player Section -->
                 <Border Grid.Column="1" 
                         Classes="statusSection"
-                        Padding="10,5"
                         Margin="1,0,1,0">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <TextBlock Text="{extensions:Localize 'BattleMap_ActivePlayer'}"
@@ -106,7 +120,6 @@
                 <!-- Player Action Section -->
                 <Border Grid.Column="2" 
                         Classes="statusSection"
-                        Padding="15,5"
                         IsVisible="{Binding IsUserActionLabelVisible}">
                     <TextBlock Text="{Binding ActionInfoLabel}" 
                              Classes="turnInfo"
