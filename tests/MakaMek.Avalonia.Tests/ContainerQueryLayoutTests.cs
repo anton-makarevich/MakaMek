@@ -57,6 +57,20 @@ public class ContainerQueryLayoutTests
             grid.ShouldNotBeNull();
             grid.Rows.ShouldBe(0);
             grid.Columns.ShouldBe(2);
+
+            window.Width = 500;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(2);
+            grid.Columns.ShouldBe(0);
+
+            window.Width = 1200;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(0);
+            grid.Columns.ShouldBe(2);
         }, CancellationToken.None);
     }
 
@@ -79,6 +93,20 @@ public class ContainerQueryLayoutTests
 
             var grid = view.FindControl<UniformGrid>("JoinGameAdaptiveGrid");
             grid.ShouldNotBeNull();
+            grid.Rows.ShouldBe(2);
+            grid.Columns.ShouldBe(0);
+
+            window.Width = 1200;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(0);
+            grid.Columns.ShouldBe(2);
+
+            window.Width = 500;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             grid.Rows.ShouldBe(2);
             grid.Columns.ShouldBe(0);
         }, CancellationToken.None);
@@ -105,6 +133,20 @@ public class ContainerQueryLayoutTests
             grid.ShouldNotBeNull();
             grid.Rows.ShouldBe(1);
             grid.Columns.ShouldBe(2);
+
+            window.Width = 500;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(2);
+            grid.Columns.ShouldBe(1);
+
+            window.Width = 1200;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(1);
+            grid.Columns.ShouldBe(2);
         }, CancellationToken.None);
     }
 
@@ -127,6 +169,20 @@ public class ContainerQueryLayoutTests
 
             var grid = view.FindControl<UniformGrid>("StartNewGameAdaptiveGrid");
             grid.ShouldNotBeNull();
+            grid.Rows.ShouldBe(2);
+            grid.Columns.ShouldBe(1);
+
+            window.Width = 1200;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            grid.Rows.ShouldBe(1);
+            grid.Columns.ShouldBe(2);
+
+            window.Width = 500;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             grid.Rows.ShouldBe(2);
             grid.Columns.ShouldBe(1);
         }, CancellationToken.None);
