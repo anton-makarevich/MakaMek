@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
