@@ -278,20 +278,19 @@
             IsVisible="{Binding IsCommandLogExpanded}"
             Title="{extensions:Localize 'BattleMap_CommandLog'}"
             CloseCommand="{Binding ToggleCommandLog}">
-            <ScrollViewer
-                behaviors:AutoScrollBehavior.EnableAutoScroll="True"
-                MaxHeight="360">
-                <ItemsControl ItemsSource="{Binding CommandLog}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}"
-                                       Foreground="{StaticResource TextBrush}"
-                                       Margin="5"
-                                       TextWrapping="Wrap"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+            <ListBox
+                MaxHeight="360"
+                behaviors:AutoScrollBehavior.EnableListBoxAutoScroll="True"
+                ItemsSource="{Binding CommandLog}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   Margin="5"
+                                   TextWrapping="Wrap"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </templatedControls:GamePanel>
 
         <!-- Map Settings Panel -->

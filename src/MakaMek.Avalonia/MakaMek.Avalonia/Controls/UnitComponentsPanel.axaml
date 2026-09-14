@@ -17,49 +17,49 @@
         <TextBlock Grid.Column="1" Text="{extensions:Localize 'UnitComponents_Slots'}" Classes="h4" Margin="5,0"/>
         <TextBlock Grid.Column="2" Text="{extensions:Localize 'UnitComponents_Hits'}" Classes="h4" Margin="5,0"/>
         <TextBlock Grid.Column="3" Text="{extensions:Localize 'UnitComponents_Status'}" Classes="h4" Margin="5,0"/>
-        <ScrollViewer Grid.ColumnSpan="4" Grid.Row="1">
-            <ItemsControl x:Name="ComponentsGroup">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="controls:ComponentGroup">
-                        <StackPanel>
-                            <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
-                            <ItemsControl ItemsSource="{Binding Components}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="components:Component">
-                                        <Border Margin="2">
-                                            <Grid ColumnDefinitions="6*,2*,2*,3*" Margin="5,2"
-                                                  Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
-                                                <TextBlock Grid.Column="0" 
-                                                           Text="{Binding Name}"
-                                                           Classes="bodySmall"
-                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding MountedAtFirstLocationSlots, Converter={StaticResource SlotsRangeConverter}}"
-                                                           Classes="bodySmall" Margin="5,0" 
-                                                           VerticalAlignment="Center"
-                                                           HorizontalAlignment="Center"
-                                                           TextWrapping="Wrap"/>
-                                                <TextBlock Grid.Column="2"
-                                                           Text="{Binding ., Converter={StaticResource ComponentHitsConverter}}"
-                                                           Classes="bodySmall" Margin="5,0"
-                                                           VerticalAlignment="Center"
-                                                           HorizontalAlignment="Center"
-                                                           IsVisible="{Binding HealthPoints, Converter={StaticResource GreaterThanValueConverter}}"/>
-                                                <TextBlock Grid.Column="3"
-                                                           Text="{Binding Status}" 
-                                                           Classes="bodySmall" Margin="5,0"
-                                                           VerticalAlignment="Center"
-                                                           HorizontalAlignment="Right"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+        <ListBox Grid.ColumnSpan="4" Grid.Row="1"
+                 Name="ComponentsGroup"
+                 IsHitTestVisible="False">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="controls:ComponentGroup">
+                    <StackPanel>
+                        <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
+                        <ItemsControl ItemsSource="{Binding Components}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="components:Component">
+                                    <Border Margin="2">
+                                        <Grid ColumnDefinitions="6*,2*,2*,3*" Margin="5,2"
+                                              Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="{Binding Name}"
+                                                       Classes="bodySmall"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding MountedAtFirstLocationSlots, Converter={StaticResource SlotsRangeConverter}}"
+                                                       Classes="bodySmall" Margin="5,0" 
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding ., Converter={StaticResource ComponentHitsConverter}}"
+                                                       Classes="bodySmall" Margin="5,0"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       IsVisible="{Binding HealthPoints, Converter={StaticResource GreaterThanValueConverter}}"/>
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding Status}" 
+                                                       Classes="bodySmall" Margin="5,0"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
     </Grid>
 </UserControl>
 
