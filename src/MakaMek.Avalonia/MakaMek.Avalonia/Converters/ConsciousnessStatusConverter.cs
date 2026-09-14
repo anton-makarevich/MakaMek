@@ -10,17 +10,17 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ConsciousnessStatusConverter : IValueConverter
 {
-    private static ILocalizationService? _localizationService;
+    private readonly ILocalizationService _localizationService;
 
-    public static void Initialize(ILocalizationService localization)
+    public ConsciousnessStatusConverter(ILocalizationService localizationService)
     {
-        _localizationService = localization;
+        _localizationService = localizationService;
     }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not bool isConscious || _localizationService == null)
-            return _localizationService?.GetString("Pilot_Status_Unknown") ?? "UNKNOWN";
+        if (value is not bool isConscious)
+            return _localizationService.GetString("Pilot_Status_Unknown");
 
         return isConscious
             ? _localizationService.GetString("Pilot_Status_Conscious")

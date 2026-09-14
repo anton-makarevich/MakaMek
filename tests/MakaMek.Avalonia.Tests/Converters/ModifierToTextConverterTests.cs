@@ -18,7 +18,7 @@ public class ModifierToTextConverterTests
     }
 
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly ModifierToTextConverter _sut = new();
+    private readonly ModifierToTextConverter _sut;
     private readonly TestRollModifier _testModifier;
 
     public ModifierToTextConverterTests()
@@ -28,8 +28,7 @@ public class ModifierToTextConverterTests
             Value = 1
         };
         
-        // Initialize the static field for testing
-        ModifierToTextConverter.Initialize(_localizationService);
+        _sut = new ModifierToTextConverter(_localizationService);
     }
 
     [Fact]

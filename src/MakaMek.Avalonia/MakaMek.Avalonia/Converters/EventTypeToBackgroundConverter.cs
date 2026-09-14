@@ -12,16 +12,12 @@ namespace Sanet.MakaMek.Avalonia.Converters
     /// </summary>
     public class EventTypeToBackgroundConverter : IValueConverter
     {
-        private static IAvaloniaResourcesLocator? _resourcesLocator;
+        private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-        /// <summary>
-        /// Initializes the converter with the resources locator
-        /// </summary>
-        /// <param name="resourcesLocator">The resource locator to use</param>
-        public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
-        {
-            _resourcesLocator = resourcesLocator;
-        }
+    public EventTypeToBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
+    {
+        _resourcesLocator = resourcesLocator;
+    }
 
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
@@ -29,11 +25,11 @@ namespace Sanet.MakaMek.Avalonia.Converters
             {
                 return eventType switch
                 {
-                    UiEventType.ArmorDamage => _resourcesLocator?.TryFindResource("MechArmorBrush") as SolidColorBrush
+                    UiEventType.ArmorDamage => _resourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
                                                ?? new SolidColorBrush(Colors.LightBlue),
-                    UiEventType.StructureDamage => _resourcesLocator?.TryFindResource("MechStructureBrush") as SolidColorBrush
+                    UiEventType.StructureDamage => _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                                                   ?? new SolidColorBrush(Colors.Orange),
-                    _ => _resourcesLocator?.TryFindResource("DestroyedColor") as SolidColorBrush
+                    _ => _resourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
                                                 ?? new SolidColorBrush(Colors.Red)
                 };
             }

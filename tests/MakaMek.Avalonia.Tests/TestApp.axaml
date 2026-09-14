@@ -12,13 +12,11 @@
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
-            <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
-            <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
-            <converters:ConnectionStatusBackgroundConverter x:Key="ConnectionStatusBackgroundConverter"/>
-            <converters:ConnectionStatusTextConverter x:Key="ConnectionStatusTextConverter"/>
-            <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
-            <converters:SelectedItemToBrushConverter x:Key="SelectedItemToBrushConverter"/>
+            <!-- DI-injected converters (HubStatus*, ConnectionStatus*, ComponentStatusBackground,
+                 SelectedItemToBrush, Consciousness*, ModifierToText, SegmentEventToText,
+                 MovementBreakdown, EventTypeToBackground) are intentionally omitted here;
+                 tests construct them with injected substitutes. -->
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>

@@ -12,13 +12,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ConnectionStatusBackgroundConverter : IValueConverter
 {
-    private static IAvaloniaResourcesLocator? _resourcesLocator;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-    /// <summary>
-    /// Initializes the converter with the resources locator
-    /// </summary>
-    /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    public ConnectionStatusBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }
@@ -36,11 +32,11 @@ public class ConnectionStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
-            ConnectionStatus.NotConnected => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
-            ConnectionStatus.Connected => _resourcesLocator?.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
-            ConnectionStatus.Connecting => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
-            ConnectionStatus.Reconnecting => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
-            _ => _resourcesLocator?.TryFindResource("ErrorBrush") as IBrush ?? new SolidColorBrush(Colors.Red)
+            ConnectionStatus.NotConnected => _resourcesLocator.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
+            ConnectionStatus.Connected => _resourcesLocator.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
+            ConnectionStatus.Connecting => _resourcesLocator.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
+            ConnectionStatus.Reconnecting => _resourcesLocator.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
+            _ => _resourcesLocator.TryFindResource("ErrorBrush") as IBrush ?? new SolidColorBrush(Colors.Red)
         };
     }
 

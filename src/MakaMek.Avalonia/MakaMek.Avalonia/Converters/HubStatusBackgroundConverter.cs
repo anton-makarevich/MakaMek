@@ -12,13 +12,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class HubStatusBackgroundConverter : IValueConverter
 {
-    private static IAvaloniaResourcesLocator? _resourcesLocator;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-    /// <summary>
-    /// Initializes the converter with the resources locator
-    /// </summary>
-    /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    public HubStatusBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }
@@ -36,10 +32,10 @@ public class HubStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
-            HubStatus.Online => _resourcesLocator?.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
-            HubStatus.Offline => _resourcesLocator?.TryFindResource("ErrorBrush") as IBrush ?? new SolidColorBrush(Colors.Red),
-            HubStatus.Checking => _resourcesLocator?.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
-            _ => _resourcesLocator?.TryFindResource("OverlayTransparentBrush") as IBrush ?? new SolidColorBrush(Colors.Gray)
+            HubStatus.Online => _resourcesLocator.TryFindResource("SuccessBrush") as IBrush ?? new SolidColorBrush(Colors.Green),
+            HubStatus.Offline => _resourcesLocator.TryFindResource("ErrorBrush") as IBrush ?? new SolidColorBrush(Colors.Red),
+            HubStatus.Checking => _resourcesLocator.TryFindResource("InfoBrush") as IBrush ?? new SolidColorBrush(Colors.DodgerBlue),
+            _ => _resourcesLocator.TryFindResource("OverlayTransparentBrush") as IBrush ?? new SolidColorBrush(Colors.Gray)
         };
     }
 

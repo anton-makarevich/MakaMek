@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Behaviors;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.DI;
-using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.About;
 using Sanet.MakaMek.Avalonia.Views.EndGame;
@@ -45,23 +44,22 @@ public partial class App : Application
         var serviceProvider = services.BuildServiceProvider();
         ServiceProvider = serviceProvider;
         
-        // Initialize converters that need DI
+        // Resolve converters and expose them (and the localization service) as application
+        // resources so {StaticResource ...} and the Localize markup extension can use them.
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
-        Converters.ModifierToTextConverter.Initialize(localizationService);
-        Converters.SegmentEventToTextConverter.Initialize(localizationService);
-        Converters.ConsciousnessStatusConverter.Initialize(localizationService);
-        Converters.MovementBreakdownConverter.Initialize(localizationService);
-        Converters.HubStatusTextConverter.Initialize(localizationService);
-        Converters.ConnectionStatusTextConverter.Initialize(localizationService);
-        LocalizeExtension.Initialize(localizationService);
-
-        var avaloniaResourcesLocator = serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
-        Converters.ComponentStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
-        Converters.EventTypeToBackgroundConverter.Initialize(avaloniaResourcesLocator);
-        Converters.ConsciousnessColorConverter.Initialize(avaloniaResourcesLocator);
-        Converters.SelectedItemToBrushConverter.Initialize(avaloniaResourcesLocator);
-        Converters.HubStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
-        Converters.ConnectionStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
+        Resources[LocalizeExtension.LocalizationServiceResourceKey] = localizationService;
+        Resources[nameof(Converters.ModifierToTextConverter)] = serviceProvider.GetRequiredService<Converters.ModifierToTextConverter>();
+        Resources[nameof(Converters.SegmentEventToTextConverter)] = serviceProvider.GetRequiredService<Converters.SegmentEventToTextConverter>();
+        Resources[nameof(Converters.ConsciousnessStatusConverter)] = serviceProvider.GetRequiredService<Converters.ConsciousnessStatusConverter>();
+        Resources[nameof(Converters.MovementBreakdownConverter)] = serviceProvider.GetRequiredService<Converters.MovementBreakdownConverter>();
+        Resources[nameof(Converters.HubStatusTextConverter)] = serviceProvider.GetRequiredService<Converters.HubStatusTextConverter>();
+        Resources[nameof(Converters.ConnectionStatusTextConverter)] = serviceProvider.GetRequiredService<Converters.ConnectionStatusTextConverter>();
+        Resources[nameof(Converters.ComponentStatusBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.ComponentStatusBackgroundConverter>();
+        Resources[nameof(Converters.EventTypeToBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.EventTypeToBackgroundConverter>();
+        Resources[nameof(Converters.ConsciousnessColorConverter)] = serviceProvider.GetRequiredService<Converters.ConsciousnessColorConverter>();
+        Resources[nameof(Converters.SelectedItemToBrushConverter)] = serviceProvider.GetRequiredService<Converters.SelectedItemToBrushConverter>();
+        Resources[nameof(Converters.HubStatusBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.HubStatusBackgroundConverter>();
+        Resources[nameof(Converters.ConnectionStatusBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.ConnectionStatusBackgroundConverter>();
 
         INavigationService navigationService;
 

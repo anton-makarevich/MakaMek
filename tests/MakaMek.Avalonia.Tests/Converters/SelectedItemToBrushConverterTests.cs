@@ -7,7 +7,7 @@ using Sanet.MakaMek.Avalonia.Controls.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class SelectedItemToBrushConverterTests : IDisposable
+public class SelectedItemToBrushConverterTests
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly SelectedItemToBrushConverter _sut;
@@ -15,8 +15,7 @@ public class SelectedItemToBrushConverterTests : IDisposable
     public SelectedItemToBrushConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        SelectedItemToBrushConverter.Initialize(_resourcesLocator);
-        _sut = new SelectedItemToBrushConverter();
+        _sut = new SelectedItemToBrushConverter(_resourcesLocator);
     }
 
     [Fact]
@@ -53,21 +52,6 @@ public class SelectedItemToBrushConverterTests : IDisposable
 
         // Act
         var result = _sut.Convert(true, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Color.Parse("#6B8E23")); // Fallback color
-    }
-
-    [Fact]
-    public void Convert_True_ReturnsFallbackColorWhenLocatorNotInitialized()
-    {
-        // Arrange
-        SelectedItemToBrushConverter.Initialize(null);
-        var sut = new SelectedItemToBrushConverter();
-
-        // Act
-        var result = sut.Convert(true, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();
@@ -113,10 +97,5 @@ public class SelectedItemToBrushConverterTests : IDisposable
         // Act & Assert
         Should.Throw<NotSupportedException>(() =>
             _sut.ConvertBack(null, typeof(object), null, CultureInfo.InvariantCulture));
-    }
-
-    public void Dispose()
-    {
-        SelectedItemToBrushConverter.Initialize(null!);
     }
 }

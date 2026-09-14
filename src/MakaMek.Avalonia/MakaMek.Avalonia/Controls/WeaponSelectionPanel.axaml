@@ -14,7 +14,7 @@
              x:CompileBindings="True">
     <UserControl.Resources>
         <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
-        <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
+        <!-- DI-injected converters are resolved from Application.Resources (App.axaml.cs) -->
     </UserControl.Resources>
     
     <templatedControls:GamePanel

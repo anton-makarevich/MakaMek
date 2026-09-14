@@ -11,11 +11,11 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ConnectionStatusTextConverter : IValueConverter
 {
-    private static ILocalizationService? _localizationService;
+    private readonly ILocalizationService _localizationService;
 
-    public static void Initialize(ILocalizationService localization)
+    public ConnectionStatusTextConverter(ILocalizationService localizationService)
     {
-        _localizationService = localization;
+        _localizationService = localizationService;
     }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -28,12 +28,12 @@ public class ConnectionStatusTextConverter : IValueConverter
 
         return status switch
         {
-            ConnectionStatus.NotConnected => _localizationService?.GetString("Connection_Status_NotConnected") ?? "Not connected",
-            ConnectionStatus.Connecting => _localizationService?.GetString("Connection_Status_Connecting") ?? "Connecting...",
-            ConnectionStatus.Connected => _localizationService?.GetString("Connection_Status_Connected") ?? "Connected",
-            ConnectionStatus.Reconnecting => _localizationService?.GetString("Connection_Status_Reconnecting") ?? "Reconnecting...",
-            ConnectionStatus.Disconnected => _localizationService?.GetString("Connection_Status_Disconnected") ?? "Disconnected",
-            _ => _localizationService?.GetString("Connection_Status_Closed") ?? "Connection closed"
+            ConnectionStatus.NotConnected => _localizationService.GetString("Connection_Status_NotConnected"),
+            ConnectionStatus.Connecting => _localizationService.GetString("Connection_Status_Connecting"),
+            ConnectionStatus.Connected => _localizationService.GetString("Connection_Status_Connected"),
+            ConnectionStatus.Reconnecting => _localizationService.GetString("Connection_Status_Reconnecting"),
+            ConnectionStatus.Disconnected => _localizationService.GetString("Connection_Status_Disconnected"),
+            _ => _localizationService.GetString("Connection_Status_Closed")
         };
     }
 

@@ -3,7 +3,6 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Shouldly;
-using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Map.Tests.Services;
 

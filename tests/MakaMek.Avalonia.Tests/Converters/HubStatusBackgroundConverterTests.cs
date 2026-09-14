@@ -8,7 +8,7 @@ using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class HubStatusBackgroundConverterTests : IDisposable
+public class HubStatusBackgroundConverterTests
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly HubStatusBackgroundConverter _sut;
@@ -16,8 +16,7 @@ public class HubStatusBackgroundConverterTests : IDisposable
     public HubStatusBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        HubStatusBackgroundConverter.Initialize(_resourcesLocator);
-        _sut = new HubStatusBackgroundConverter();
+        _sut = new HubStatusBackgroundConverter(_resourcesLocator);
     }
 
     [Fact]
@@ -50,21 +49,6 @@ public class HubStatusBackgroundConverterTests : IDisposable
     }
 
     [Fact]
-    public void Convert_Online_ReturnsDefaultWhenLocatorNotInitialized()
-    {
-        // Arrange
-        HubStatusBackgroundConverter.Initialize(null!);
-        var sut = new HubStatusBackgroundConverter();
-
-        // Act
-        var result = sut.Convert(HubStatus.Online, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.Green);
-    }
-
-    [Fact]
     public void Convert_Offline_ReturnsErrorBrush()
     {
         // Arrange
@@ -87,21 +71,6 @@ public class HubStatusBackgroundConverterTests : IDisposable
 
         // Act
         var result = _sut.Convert(HubStatus.Offline, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.Red);
-    }
-
-    [Fact]
-    public void Convert_Offline_ReturnsDefaultWhenLocatorNotInitialized()
-    {
-        // Arrange
-        HubStatusBackgroundConverter.Initialize(null!);
-        var sut = new HubStatusBackgroundConverter();
-
-        // Act
-        var result = sut.Convert(HubStatus.Offline, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();
@@ -201,10 +170,5 @@ public class HubStatusBackgroundConverterTests : IDisposable
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(object), null, CultureInfo.InvariantCulture));
-    }
-
-    public void Dispose()
-    {
-        HubStatusBackgroundConverter.Initialize(null!);
     }
 }

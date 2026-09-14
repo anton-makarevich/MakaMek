@@ -2,8 +2,6 @@ using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Services;
 
-using Models.Map;
-
 /// <summary>
 /// Interface for rendering map preview images
 /// </summary>

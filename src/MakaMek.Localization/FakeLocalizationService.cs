@@ -550,4 +550,9 @@ public class FakeLocalizationService : ILocalizationService
     {
         return Strings.GetValueOrDefault(key, key);
     }
+
+    /// <summary>
+    /// Never raised: the fake service is English-only and has no language switch.
+    /// </summary>
+    public event EventHandler? LanguageChanged;
 }
