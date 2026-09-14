@@ -8,7 +8,7 @@ using Sanet.MakaMek.Avalonia.Controls.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class EventTypeToBackgroundConverterTests:IDisposable
+public class EventTypeToBackgroundConverterTests
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly EventTypeToBackgroundConverter _sut;
@@ -16,8 +16,7 @@ public class EventTypeToBackgroundConverterTests:IDisposable
     public EventTypeToBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        EventTypeToBackgroundConverter.Initialize(_resourcesLocator);
-        _sut = new EventTypeToBackgroundConverter();
+        _sut = new EventTypeToBackgroundConverter(_resourcesLocator);
     }
 
     [Theory]
@@ -57,31 +56,15 @@ public class EventTypeToBackgroundConverterTests:IDisposable
     {
         // Arrange
         var expectedBrush = new SolidColorBrush(Colors.LightBlue);
-        var sut = new EventTypeToBackgroundConverter();
 
         // Act
-        var result = sut.Convert(UiEventType.ArmorDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+        var result = _sut.Convert(UiEventType.ArmorDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();
         result.Color.ShouldBe(expectedBrush.Color);
     }
     
-    [Fact]
-    public void Convert_ShouldReturnDefault_ForArmorDamage_WhenLocatorNotInitialized()
-    {
-        // Arrange
-        EventTypeToBackgroundConverter.Initialize(null!);
-        var sut = new EventTypeToBackgroundConverter();
-
-        // Act
-        var result = sut.Convert(UiEventType.ArmorDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.LightBlue);
-    }
-
     [Fact]
     public void Convert_StructureDamage_ReturnsMechStructureBrush()
     {
@@ -112,21 +95,6 @@ public class EventTypeToBackgroundConverterTests:IDisposable
         result.Color.ShouldBe(expectedBrush.Color);
     }
     
-    [Fact]
-    public void Convert_ShouldReturnDefault_ForStructureDamage_WhenLocatorNotInitialized()
-    {
-        // Arrange
-        EventTypeToBackgroundConverter.Initialize(null!);
-        var sut = new EventTypeToBackgroundConverter();
-
-        // Act
-        var result = sut.Convert(UiEventType.StructureDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.Orange);
-    }
-
     [Theory]
     [InlineData(UiEventType.Explosion)]
     [InlineData(UiEventType.CriticalHit)]
@@ -167,21 +135,6 @@ public class EventTypeToBackgroundConverterTests:IDisposable
         result.Color.ShouldBe(expectedBrush.Color);
     }
     
-    [Fact]
-    public void Convert_ShouldReturnDefault_ForOtherEventTypes_WhenLocatorNotInitialized()
-    {
-        // Arrange
-        EventTypeToBackgroundConverter.Initialize(null!);
-        var sut = new EventTypeToBackgroundConverter();
-        
-        // Act
-        var result = sut.Convert(UiEventType.Explosion, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.Red);
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -202,10 +155,5 @@ public class EventTypeToBackgroundConverterTests:IDisposable
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(UiEventType), null, CultureInfo.InvariantCulture));
-    }
-    
-    public void Dispose()
-    {
-        EventTypeToBackgroundConverter.Initialize(null!);
     }
 }

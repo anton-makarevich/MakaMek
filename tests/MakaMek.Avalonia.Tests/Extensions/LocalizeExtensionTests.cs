@@ -1,134 +1,194 @@
-﻿using NSubstitute;
-using Sanet.MakaMek.Localization;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Headless;
+using Avalonia.Markup.Xaml;
+using NSubstitute;
 using Shouldly;
-using System.Reflection;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
+using Sanet.MakaMek.Localization;
 
 namespace MakaMek.Avalonia.Tests.Extensions;
 
 public class LocalizeExtensionTests
 {
+    private static readonly HeadlessUnitTestSession Session =
+        HeadlessUnitTestSession.StartNew(typeof(TestApp));
+
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly LocalizeExtension _sut = new();
 
-    public LocalizeExtensionTests()
+    private static IServiceProvider CreateBindableTargetProvider()
     {
-        // Reset static field before each test to ensure test isolation
-        typeof(LocalizeExtension)
-            .GetField("_localizationService", BindingFlags.NonPublic | BindingFlags.Static)
-            ?.SetValue(null, null);
+        var serviceProvider = Substitute.For<IServiceProvider>();
+        var valueTarget = Substitute.For<IProvideValueTarget>();
+        valueTarget.TargetProperty.Returns(TextBlock.TextProperty);
+        serviceProvider.GetService(typeof(IProvideValueTarget)).Returns(valueTarget);
+        return serviceProvider;
+    }
+
+    private void Run(Action action)
+    {
+        Session.Dispatch(() => action(), CancellationToken.None).GetAwaiter().GetResult();
     }
 
     [Fact]
     public void Constructor_WithNoParameters_SetsEmptyKey()
     {
-        // Act
         var extension = new LocalizeExtension();
 
-        // Assert
         extension.Key.ShouldBe(string.Empty);
     }
 
     [Fact]
     public void Constructor_WithKeyParameter_SetsKey()
     {
-        // Arrange
         const string expectedKey = "Test_Key";
 
-        // Act
         var extension = new LocalizeExtension(expectedKey);
 
-        // Assert
         extension.Key.ShouldBe(expectedKey);
     }
 
     [Fact]
-    public void ProvideValue_WhenNotInitialized_ReturnsKey()
+    public void ProvideValue_WhenTargetIsNotAnAvaloniaProperty_ReturnsLocalizedString()
     {
-        // Arrange
-        _sut.Key = "Test_Key";
+        Run(() =>
+        {
+            const string key = "Test_Key";
+            const string localizedText = "Localized Text";
+            _sut.Key = key;
+            _localizationService.GetString(key).Returns(localizedText);
+            Application.Current!.Resources[LocalizeExtension.LocalizationServiceResourceKey] = _localizationService;
 
-        // Act
-        var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
+            // e.g. MultiBinding.StringFormat — not an AvaloniaProperty, must get a plain string
+            var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
 
-        // Assert
-        result.ShouldBe("Test_Key");
+            result.ShouldBeOfType<string>();
+            result.ShouldBe(localizedText);
+        });
     }
 
     [Fact]
-    public void ProvideValue_WhenInitialized_ReturnsLocalizedString()
+    public void ProvideValue_WhenNoServiceInApplicationResources_ReturnsKey()
     {
-        // Arrange
-        const string key = "Test_Key";
-        const string localizedText = "Localized Text";
-        _sut.Key = key;
-        LocalizeExtension.Initialize(_localizationService);
-        _localizationService.GetString(key).Returns(localizedText);
+        Run(() =>
+        {
+            _sut.Key = "Test_Key";
+            Application.Current?.Resources.Remove(LocalizeExtension.LocalizationServiceResourceKey);
 
-        // Act
-        var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
+            var result = _sut.ProvideValue(CreateBindableTargetProvider());
 
-        // Assert
-        result.ShouldBe(localizedText);
-        _localizationService.Received(1).GetString(key);
+            result.ShouldBe("Test_Key");
+        });
+    }
+
+    [Fact]
+    public void ProvideValue_WhenServiceAvailableAsResource_ReturnsReactiveBinding()
+    {
+        Run(() =>
+        {
+            const string key = "Test_Key";
+            const string localizedText = "Localized Text";
+            _sut.Key = key;
+            _localizationService.ClearReceivedCalls();
+            _localizationService.GetString(key).Returns(localizedText);
+            Application.Current!.Resources[LocalizeExtension.LocalizationServiceResourceKey] = _localizationService;
+
+            var result = _sut.ProvideValue(CreateBindableTargetProvider());
+
+            result.ShouldBeAssignableTo<BindingBase>();
+            var observable = GetObservable((BindingBase)result!);
+            var results = new List<object?>();
+            using (observable.Subscribe(results.Add))
+            {
+                results.Count.ShouldBe(1);
+                results[0].ShouldBe((object?)localizedText);
+                _localizationService.Received(1).GetString(key);
+            }
+        });
+    }
+
+    [Fact]
+    public void ProvideValue_WhenLanguageChanged_ObservableEmitsNewValue()
+    {
+        Run(() =>
+        {
+            const string key = "Test_Key";
+            const string localizedText = "Localized Text";
+            const string newText = "New Text";
+            _sut.Key = key;
+            _localizationService.ClearReceivedCalls();
+            _localizationService.GetString(key).Returns(localizedText);
+            Application.Current!.Resources[LocalizeExtension.LocalizationServiceResourceKey] = _localizationService;
+
+            var result = _sut.ProvideValue(CreateBindableTargetProvider());
+            result.ShouldBeAssignableTo<BindingBase>();
+            var observable = GetObservable((BindingBase)result!);
+
+            var results = new List<object?>();
+            using (observable.Subscribe(results.Add))
+            {
+                _localizationService.GetString(key).Returns(newText);
+                RaiseLanguageChanged();
+
+                results.Count.ShouldBe(2);
+                results[0].ShouldBe((object?)localizedText);
+                results[1].ShouldBe((object?)newText);
+                _localizationService.Received(2).GetString(key);
+            }
+        });
     }
 
     [Fact]
     public void ProvideValue_WithEmptyKey_ReturnsEmptyString()
     {
-        // Arrange
-        _sut.Key = string.Empty;
-        LocalizeExtension.Initialize(_localizationService);
-        _localizationService.GetString(string.Empty).Returns(string.Empty);
+        Run(() =>
+        {
+            _sut.Key = string.Empty;
+            _localizationService.ClearReceivedCalls();
+            _localizationService.GetString(string.Empty).Returns(string.Empty);
+            Application.Current!.Resources[LocalizeExtension.LocalizationServiceResourceKey] = _localizationService;
 
-        // Act
-        var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
+            var result = _sut.ProvideValue(CreateBindableTargetProvider());
 
-        // Assert
-        result.ShouldBe(string.Empty);
+            result.ShouldBeAssignableTo<BindingBase>();
+            var observable = GetObservable((BindingBase)result!);
+            var results = new List<object?>();
+            using (observable.Subscribe(results.Add))
+            {
+                results.Count.ShouldBe(1);
+                results[0].ShouldBe((object?)string.Empty);
+            }
+        });
     }
 
     [Fact]
-    public void Initialize_SetsStaticLocalizationService()
+    public void ProvideValue_WhenSubscriptionDisposed_UnsubscribesFromLanguageChanged()
     {
-        // Arrange
-        var newLocalizationService = Substitute.For<ILocalizationService>();
-        const string key = "Another_Key";
-        const string localizedText = "Another Text";
-        _sut.Key = key;
-        newLocalizationService.GetString(key).Returns(localizedText);
+        Run(() =>
+        {
+            _sut.Key = "Test_Key";
+            Application.Current!.Resources[LocalizeExtension.LocalizationServiceResourceKey] = _localizationService;
 
-        // Act
-        LocalizeExtension.Initialize(newLocalizationService);
-        var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
+            var observable = GetObservable((BindingBase)_sut.ProvideValue(CreateBindableTargetProvider()));
+            using (observable.Subscribe(_ => { })) { }
 
-        // Assert
-        result.ShouldBe(localizedText);
-        newLocalizationService.Received(1).GetString(key);
+            // Raising the event after disposal must not throw (subscriber was detached)
+            Should.NotThrow(RaiseLanguageChanged);
+        });
     }
 
-    [Fact]
-    public void ProvideValue_AfterReInitialize_UsesNewService()
+    private static IObservable<object?> GetObservable(BindingBase binding)
     {
-        // Arrange
-        const string key = "Test_Key";
-        const string newText = "New Text";
-        _sut.Key = key;
-        
-        var newService = Substitute.For<ILocalizationService>();
-        newService.GetString(key).Returns(newText);
-        
-        // First initialize with original service
-        LocalizeExtension.Initialize(_localizationService);
-        // Then re-initialize with new service
-        LocalizeExtension.Initialize(newService);
+        var target = new TextBlock();
+        target.Bind(TextBlock.TextProperty, binding);
+        return target.GetObservable(TextBlock.TextProperty);
+    }
 
-        // Act
-        var result = _sut.ProvideValue(Substitute.For<IServiceProvider>());
-
-        // Assert
-        result.ShouldBe(newText);
-        _localizationService.DidNotReceive().GetString(Arg.Any<string>());
-        newService.Received(1).GetString(key);
+    private void RaiseLanguageChanged()
+    {
+        _localizationService.LanguageChanged +=
+            Raise.EventWith(new object(), EventArgs.Empty);
     }
 }

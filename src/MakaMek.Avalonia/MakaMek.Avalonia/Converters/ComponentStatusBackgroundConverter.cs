@@ -12,13 +12,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ComponentStatusBackgroundConverter : IValueConverter
 {
-    private static IAvaloniaResourcesLocator? _resourcesLocator;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-    /// <summary>
-    /// Initializes the converter with the resources locator
-    /// </summary>
-    /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    public ComponentStatusBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }
@@ -36,8 +32,8 @@ public class ComponentStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
-            ComponentStatus.Destroyed => _resourcesLocator?.TryFindResource("DestroyedBrush") ?? new SolidColorBrush(Colors.Red),
-            ComponentStatus.Damaged => _resourcesLocator?.TryFindResource("DamagedBrush") ?? new SolidColorBrush(Colors.Orange),
+            ComponentStatus.Destroyed => _resourcesLocator.TryFindResource("DestroyedBrush") ?? new SolidColorBrush(Colors.Red),
+            ComponentStatus.Damaged => _resourcesLocator.TryFindResource("DamagedBrush") ?? new SolidColorBrush(Colors.Orange),
             ComponentStatus.Active => new SolidColorBrush(Colors.Transparent),
             _ => new SolidColorBrush(Colors.Gray)
         };

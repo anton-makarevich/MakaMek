@@ -1,7 +1,6 @@
 using System.Reactive.Concurrency;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MVVM.ExternalNavigation.Browser.Extensions;
 using Sanet.MakaMek.Core.Services.Transport;

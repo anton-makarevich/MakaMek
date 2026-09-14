@@ -14,11 +14,10 @@ public class ConsciousnessStatusConverterTests
     public ConsciousnessStatusConverterTests()
     {
         _localizationService = Substitute.For<ILocalizationService>();
-        _sut = new ConsciousnessStatusConverter();
+        _sut = new ConsciousnessStatusConverter(_localizationService);
         
         // Initialize the static field for testing
-        ConsciousnessStatusConverter.Initialize(_localizationService);
-    }
+            }
 
     [Fact]
     public void Convert_ShouldReturnLocalizedConsciousString_ForConsciousTrue()
@@ -70,22 +69,6 @@ public class ConsciousnessStatusConverterTests
         result.ShouldBeOfType<string>();
         result.ShouldBe(expectedText);
         _localizationService.Received(1).GetString("Pilot_Status_Unknown");
-    }
-
-    [Fact]
-    public void Convert_ShouldReturnUnknownString_WithoutInitialization()
-    {
-        // Arrange
-        ConsciousnessStatusConverter.Initialize(null!);
-        const string expectedText = "UNKNOWN";
-        _localizationService.GetString("Pilot_Status_Unknown").Returns(expectedText);
-
-        // Act
-        var result = _sut.Convert(true, typeof(string), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        result.ShouldBeOfType<string>();
-        result.ShouldBe(expectedText);
     }
 
     [Fact]

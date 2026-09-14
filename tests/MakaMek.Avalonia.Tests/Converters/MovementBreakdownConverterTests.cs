@@ -12,7 +12,7 @@ namespace MakaMek.Avalonia.Tests.Converters;
 public class MovementBreakdownConverterTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly MovementBreakdownConverter _sut = new();
+    private readonly MovementBreakdownConverter _sut;
 
     public MovementBreakdownConverterTests()
     {
@@ -22,7 +22,7 @@ public class MovementBreakdownConverterTests
         _localizationService.GetString("Terrain_HeavyWoods").Returns("Heavy Woods");
         _localizationService.GetString("Terrain_Rough").Returns("Rough");
         _localizationService.GetString("Terrain_Water").Returns("Water");
-        MovementBreakdownConverter.Initialize(_localizationService);
+        _sut = new MovementBreakdownConverter(_localizationService);
     }
 
     [Fact]

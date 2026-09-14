@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;

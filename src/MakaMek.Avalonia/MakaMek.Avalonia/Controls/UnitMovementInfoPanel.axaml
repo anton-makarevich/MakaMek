@@ -11,9 +11,7 @@
              >
     <UserControl.Resources>
         <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
-        <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
-        <converters:SegmentEventToTextConverter x:Key="SegmentEventToTextConverter"/>
-        <converters:MovementBreakdownConverter x:Key="MovementBreakdownConverter"/>
+        <!-- DI-injected converters are resolved from Application.Resources (App.axaml.cs) -->
     </UserControl.Resources>
     <StackPanel  Spacing="5" Orientation="Vertical">
         <Border

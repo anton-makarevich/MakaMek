@@ -8,14 +8,14 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 
 public class MovementBreakdownConverter : IValueConverter
 {
-    private static ILocalizationService? _localizationService;
+    private readonly ILocalizationService _localizationService;
 
-    public static void Initialize(ILocalizationService localizationService)
+    public MovementBreakdownConverter(ILocalizationService localizationService)
         => _localizationService = localizationService;
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (_localizationService is null || value is not MovementPath path)
+        if (value is not MovementPath path)
             return string.Empty;
         return path.Render(_localizationService);
     }

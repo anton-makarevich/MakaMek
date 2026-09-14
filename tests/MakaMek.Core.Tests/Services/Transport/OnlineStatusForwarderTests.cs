@@ -2,7 +2,6 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport;
 using Shouldly;
-using Xunit;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
