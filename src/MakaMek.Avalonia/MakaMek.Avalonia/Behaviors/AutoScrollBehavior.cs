@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using System.Collections.Specialized;
 using System.Linq;
 
@@ -142,9 +143,15 @@ public static class AutoScrollBehavior
 
         public void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.Action == NotifyCollectionChangedAction.Add && ListBox?.Scroll is ScrollViewer scrollViewer)
+            if (e.Action == NotifyCollectionChangedAction.Add)
             {
-                scrollViewer.ScrollToEnd();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (ListBox?.Scroll is ScrollViewer scrollViewer)
+                    {
+                        scrollViewer.ScrollToEnd();
+                    }
+                }, DispatcherPriority.Loaded);
             }
         }
     }
