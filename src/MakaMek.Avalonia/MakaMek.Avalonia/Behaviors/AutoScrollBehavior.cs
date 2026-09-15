@@ -143,16 +143,24 @@ public static class AutoScrollBehavior
 
         public void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.Action == NotifyCollectionChangedAction.Add)
+            if (e.Action != NotifyCollectionChangedAction.Add) return;
+            var listBox = ListBox;
+            var collection = Collection;
+            if (listBox is null || collection is null)
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (ListBox?.Scroll is ScrollViewer scrollViewer)
-                    {
-                        scrollViewer.ScrollToEnd();
-                    }
-                }, DispatcherPriority.Loaded);
+                return;
             }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (ReferenceEquals(ListBox, listBox) &&
+                    ReferenceEquals(Collection, collection) &&
+                    GetEnableListBoxAutoScroll(listBox) &&
+                    listBox.Scroll is ScrollViewer scrollViewer)
+                {
+                    scrollViewer.ScrollToEnd();
+                }
+            }, DispatcherPriority.Loaded);
         }
     }
 }
