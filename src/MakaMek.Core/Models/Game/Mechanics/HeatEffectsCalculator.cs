@@ -210,6 +210,11 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         };
 
         List<LocationCriticalHitsData> explosionDamage = [];
+        var destroyedPartsBefore = mech.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = mech.IsDestroyed;
 
         if (explosionOccurs)
         {
@@ -218,11 +223,18 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             explosionDamage = ProcessAmmoExplosion(mech, selectedAmmo);
         }
 
+        var newlyDestroyedParts = mech.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new AmmoExplosionCommand
         {
             UnitId = mech.Id,
             AvoidExplosionRoll = avoidExplosionRollData,
             CriticalHits = explosionDamage,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && mech.IsDestroyed,
             GameOriginId = Guid.Empty
         };
     }
