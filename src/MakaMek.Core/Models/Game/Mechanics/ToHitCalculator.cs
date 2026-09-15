@@ -182,7 +182,7 @@ public class ToHitCalculator : IToHitCalculator
         {
             modifiers.Add(new SkiddingTargetModifier
             {
-                Value = SkiddingTargetModifier.DefaultValue // +2 modifier for attacking a skidding target
+                Value = _rules.GetSkiddingTargetModifier()
             });
         }
 

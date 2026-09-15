@@ -426,7 +426,7 @@ public class Mech : Unit
         {
             penalties.Add(new SkiddingAttackerModifier
             {
-                Value = SkiddingAttackerModifier.DefaultValue
+                Value = rulesProvider.GetSkiddingAttackerModifier()
             });
         }
 

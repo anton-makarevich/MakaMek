@@ -138,6 +138,16 @@ public interface IRulesProvider
     int GetProneFiringModifier();
 
     /// <summary>
+    /// Gets the attack modifier applied when the attacker is skidding.
+    /// </summary>
+    int GetSkiddingAttackerModifier();
+
+    /// <summary>
+    /// Gets the attack modifier applied when the target is skidding.
+    /// </summary>
+    int GetSkiddingTargetModifier();
+
+    /// <summary>
     /// Gets the target number needed to avoid ammo explosion at a specific heat level
     /// </summary>
     /// <param name="heatLevel">The current heat level</param>

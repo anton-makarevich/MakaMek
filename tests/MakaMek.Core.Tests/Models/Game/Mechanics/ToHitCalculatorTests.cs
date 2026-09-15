@@ -75,6 +75,8 @@ public class ToHitCalculatorTests
             .Returns(callInfo => totalWarfareRules.GetHeatMovementPenalty(callInfo.Arg<int>()));
         _rules.GetLifeSupportPilotDamage(Arg.Any<int>())
             .Returns(callInfo => totalWarfareRules.GetLifeSupportPilotDamage(callInfo.Arg<int>()));
+        _rules.GetSkiddingAttackerModifier().Returns(totalWarfareRules.GetSkiddingAttackerModifier());
+        _rules.GetSkiddingTargetModifier().Returns(totalWarfareRules.GetSkiddingTargetModifier());
     }
 
     private void SetupAttackerAndTarget(HexPosition attackerPosition, HexPosition targetEndPosition)

@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -505,6 +506,12 @@ public class TotalWarfareRulesProvider : IRulesProvider
     {
         return ProneFiringModifier; // +2 modifier for firing while prone
     }
+
+    /// <inheritdoc />
+    public int GetSkiddingAttackerModifier() => SkiddingAttackerModifier.DefaultValue;
+
+    /// <inheritdoc />
+    public int GetSkiddingTargetModifier() => SkiddingTargetModifier.DefaultValue;
 
     public int GetHeatAmmoExplosionAvoidNumber(int heatLevel)
     {
