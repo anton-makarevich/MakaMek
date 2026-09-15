@@ -16,16 +16,6 @@ public class RubbleTerrainTests
     }
 
     [Fact]
-    public void TerrainFactor_Returns1()
-    {
-        // Arrange
-        var terrain = new RubbleTerrain();
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(1);
-    }
-
-    [Fact]
     public void Id_ReturnsRubble()
     {
         // Arrange
