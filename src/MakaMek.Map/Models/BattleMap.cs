@@ -19,6 +19,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     public string Biome { get; } = biome;
 
     /// <summary>
+    /// Gets or sets the terrain movement-cost rules used by pathfinding.
+    /// </summary>
+    public IMovementCostProvider MovementCostProvider { get; set; } = new DefaultMovementCostProvider();
+
+    /// <summary>
     /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries.
     /// Stamps the map's biome onto the hex.
     /// </summary>
@@ -109,7 +114,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                 var levelCost = Math.Abs(elevationChange);
 
                 var costList = new List<MovementCost>();
-                costList.AddRange(hex.GetEnterMovementCost(fromHex, from.Surface, to.Surface));
+                costList.AddRange(hex.GetEnterMovementCost(fromHex, from.Surface, to.Surface, MovementCostProvider));
                 if (levelCost > 0)
                 {
                     costList.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
@@ -238,7 +243,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     newPath.AddRange(turningSteps);
                     newPath.Add(nextPos);
 
-                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex, current.Position.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
+                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex, current.Position.Surface, toSurface, MovementCostProvider).Sum(c => c.Value) + turningCost + levelCost;
                     var isNewCoord = current.Path.All(p => p.Coordinates != nextCoord);
                     var newHexesTraveled = current.HexesTraveled + (isNewCoord ? 1 : 0);
 
@@ -350,7 +355,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
                     if (levelCost > maxLevelChange)
                         continue;
 
-                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex, current.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
+                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex, current.Surface, toSurface, MovementCostProvider).Sum(c => c.Value) + turningCost + levelCost;
 
                     if (totalCost > maxMovementPoints)
                         continue;

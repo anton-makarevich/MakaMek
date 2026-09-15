@@ -72,6 +72,7 @@ public class ServerGame : BaseGame, IDisposable
     public override void SetBattleMap(IBattleMap map)
     {
         if (TurnPhase!= PhaseNames.Start) return; // Prevent changing map mid-game
+        map.MovementCostProvider = RulesProvider;
         BattleMap = map;
         
         // Create and publish a command to send the map to all clients

@@ -8,6 +8,26 @@ namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 public class TotalWarfareRulesProvider : IRulesProvider
 {
+    /// <inheritdoc />
+    public int GetMovementCost(MakaMekTerrains terrainType, int terrainHeight) => terrainType switch
+    {
+        MakaMekTerrains.Clear => 0,
+        MakaMekTerrains.LightWoods => 1,
+        MakaMekTerrains.HeavyWoods => 2,
+        MakaMekTerrains.Rough => 1,
+        MakaMekTerrains.Water => terrainHeight switch
+        {
+            0 => 0,
+            -1 => 1,
+            _ => 3
+        },
+        MakaMekTerrains.Road => 0,
+        MakaMekTerrains.Pavement => 0,
+        MakaMekTerrains.Bridge => 0,
+        MakaMekTerrains.Rubble => 1,
+        _ => throw new ArgumentOutOfRangeException(nameof(terrainType), terrainType, "Unknown terrain type.")
+    };
+
     public Dictionary<PartLocation, int> GetStructureValues(int tonnage)
     {
         var structureValues = new Dictionary<PartLocation, int>();
