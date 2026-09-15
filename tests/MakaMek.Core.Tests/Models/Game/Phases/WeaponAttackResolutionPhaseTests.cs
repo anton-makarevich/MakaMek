@@ -119,6 +119,37 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_ShouldSkipWeaponTargetsWithoutAssignments()
+    {
+        // Arrange
+        SetMap();
+        var weapon = new TestWeapon();
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(weapon).ShouldBeTrue();
+        _player1Unit1.DeclareWeaponAttack(
+        [
+            new WeaponTargetData
+            {
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true,
+                Weapon = new ComponentData
+                {
+                    Name = weapon.Name,
+                    Type = weapon.ComponentType,
+                    Assignments = []
+                }
+            }
+        ]);
+
+        // Act
+        Should.NotThrow(() => _sut.Enter());
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
     public void Enter_ShouldProcessAttacksInInitiativeOrder()
     {
         // Arrange - Setup weapon targets
