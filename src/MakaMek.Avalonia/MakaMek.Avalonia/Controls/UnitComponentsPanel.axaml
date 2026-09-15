@@ -14,12 +14,12 @@
     </UserControl.Resources>
     <Grid ColumnDefinitions="6*,2*,2*,3*" RowDefinitions="Auto,*" Margin="5">
         <TextBlock Grid.Column="0" Text="{extensions:Localize 'UnitComponents_Component'}" Classes="h4"/>
-        <TextBlock Grid.Column="1" Text="{extensions:Localize 'UnitComponents_Slots'}" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="2" Text="{extensions:Localize 'UnitComponents_Hits'}" Classes="h4" Margin="5,0"/>
-        <TextBlock Grid.Column="3" Text="{extensions:Localize 'UnitComponents_Status'}" Classes="h4" Margin="5,0"/>
-        <ListBox Grid.ColumnSpan="4" Grid.Row="1"
+        <TextBlock Grid.Row="0" Grid.Column="1" Text="{extensions:Localize 'UnitComponents_Slots'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{extensions:Localize 'UnitComponents_Hits'}" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="3" Text="{extensions:Localize 'UnitComponents_Status'}" Classes="h4" Margin="5,0"/>
+        <ListBox Grid.ColumnSpan="4" Grid.Column="0" Grid.Row="1"
                  Name="ComponentsGroup"
-                 IsHitTestVisible="False">
+                 SelectionChanged="ComponentsGroup_OnSelectionChanged">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="controls:ComponentGroup">
                     <StackPanel>
