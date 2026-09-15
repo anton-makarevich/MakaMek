@@ -281,8 +281,7 @@
             <ListBox
                 MaxHeight="360"
                 behaviors:AutoScrollBehavior.EnableListBoxAutoScroll="True"
-                ItemsSource="{Binding CommandLog}"
-                IsHitTestVisible="False">
+                ItemsSource="{Binding CommandLog}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding}"
