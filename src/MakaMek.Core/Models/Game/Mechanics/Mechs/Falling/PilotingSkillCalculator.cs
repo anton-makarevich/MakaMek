@@ -228,7 +228,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             var levelsFallen = pilotDamageCtx.LevelsFallen;
             modifiers.Add(new FallingLevelsModifier
             {
-                Value = Math.Max(0, levelsFallen - 1), // TODO move to rules provider
+                Value = _rules.GetFallingLevelsModifier(levelsFallen),
                 LevelsFallen = levelsFallen
             }); 
         }

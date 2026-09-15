@@ -10,7 +10,7 @@ public class FallBroadcastAction(Mech mech, MoveUnitCommand truncatedCommand) : 
     public IReadOnlyList<IGameCommand> Process(ServerGame game)
     {
         var commands = new List<IGameCommand>();
-        var canStandup = mech.CanStandup();
+        var canStandup = mech.CanStandup(game.RulesProvider);
         var broadcastCommand = truncatedCommand with
         {
             GameOriginId = game.Id,

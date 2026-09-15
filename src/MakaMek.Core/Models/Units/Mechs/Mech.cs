@@ -66,10 +66,15 @@ public class Mech : Unit
 
     public override int GetMovementPoints(MovementType type)
     {
+        return GetMovementPoints(type, DefaultRulesProvider);
+    }
+
+    public override int GetMovementPoints(MovementType type, IRulesProvider rulesProvider)
+    {
         var baseMp = type switch
         {
-            MovementType.Walk => ModifiedMovement,
-            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
+            MovementType.Walk => GetModifiedMovement(rulesProvider),
+            MovementType.Run => (int)Math.Ceiling(GetModifiedMovement(rulesProvider) * 1.5),
             MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
             _ => 0
         };
@@ -235,51 +240,35 @@ public class Mech : Unit
         }
     }
 
-    protected override void ApplyHeatEffects()
-    {
-        // Heat shutdown is now handled by HeatEffectsCalculator in HeatPhase
-        // Only apply pilot damage from life support failure here
+    protected override void ApplyHeatEffects() => ApplyHeatEffects(DefaultRulesProvider);
 
-        var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
-        if (lifeSupport!=null && CurrentHeat >= 15 && Pilot is MechWarrior mw)
+    protected override void ApplyHeatEffects(IRulesProvider rulesProvider)
+    {
+        var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls => ls.IsDestroyed);
+        var hits = rulesProvider.GetLifeSupportPilotDamage(CurrentHeat);
+        if (lifeSupport != null && hits > 0 && Pilot is MechWarrior mw)
         {
-            var hits = 1;
-            if (CurrentHeat >=26)
-            {
-                hits++;
-            }
             mw.Hit(hits);
         }
     }
     
     // Calculate movement penalty based on current heat
     public override HeatMovementPenalty? MovementHeatPenalty
+        => GetMovementHeatPenalty(DefaultRulesProvider);
+
+    public override HeatMovementPenalty? GetMovementHeatPenalty(IRulesProvider rulesProvider)
     {
-        get
-        {
-            if (CurrentHeat < 5) return null;
-            var heatPenaltyValue = CurrentHeat switch
-            {
-                >= 25 => 5,
-                >= 20 => 4,
-                >= 15 => 3,
-                >= 10 => 2,
-                >= 5 => 1,
-                _ => 0
-            };
-            return new HeatMovementPenalty
-            {
-                HeatLevel = CurrentHeat,
-                Value = heatPenaltyValue
-            };
-        }
+        var penalty = rulesProvider.GetHeatMovementPenalty(CurrentHeat);
+        return penalty == 0
+            ? null
+            : new HeatMovementPenalty { HeatLevel = CurrentHeat, Value = penalty };
     }
 
     public override int DamageReducedMovement
     {
         get
         {
-            var movementPenalties = GetMovementModifiers();
+            var movementPenalties = GetMovementModifiers(DefaultRulesProvider);
             var destroyedLegsPenalty = movementPenalties.OfType<LegDestroyedPenalty>().FirstOrDefault();
             if (destroyedLegsPenalty != null) return 2-destroyedLegsPenalty.DestroyedLegCount; // This will reduce movement to 1 for one destroyed leg
             
@@ -291,7 +280,7 @@ public class Mech : Unit
             var hipModifiedMovement = BaseMovement - (destroyedHipsPenalty?.Value ?? 0);
             
             // Apply actuator penalties (excluding hip penalties which are handled above)
-            var actuatorPenalties = GetMovementModifiers()
+            var actuatorPenalties = GetMovementModifiers(DefaultRulesProvider)
                 .Where(p => p is FootActuatorMovementPenalty 
                     or LowerLegActuatorMovementPenalty 
                     or UpperLegActuatorMovementPenalty)
@@ -300,45 +289,52 @@ public class Mech : Unit
             return Math.Max(0, hipModifiedMovement - actuatorPenalties);
         }
     }
+
+    protected override int GetDamageReducedMovement(IRulesProvider rulesProvider)
+    {
+        var movementPenalties = GetMovementModifiers(rulesProvider);
+        var destroyedLegsPenalty = movementPenalties.OfType<LegDestroyedPenalty>().FirstOrDefault();
+        if (destroyedLegsPenalty != null) return 2 - destroyedLegsPenalty.DestroyedLegCount;
+
+        var destroyedHipsPenalty = movementPenalties.OfType<HipDestroyedPenalty>().FirstOrDefault();
+        if (destroyedHipsPenalty is { DestroyedHipCount: >= 2 }) return 0;
+
+        var hipModifiedMovement = BaseMovement - (destroyedHipsPenalty?.Value ?? 0);
+        var actuatorPenalties = movementPenalties
+            .Where(p => p is FootActuatorMovementPenalty
+                or LowerLegActuatorMovementPenalty
+                or UpperLegActuatorMovementPenalty)
+            .Sum(p => p.Value);
+
+        return Math.Max(0, hipModifiedMovement - actuatorPenalties);
+    }
     
     // Calculate attack penalty based on current heat
     public override HeatRollModifier? AttackHeatPenalty
+        => GetAttackHeatPenalty(DefaultRulesProvider);
+
+    public override HeatRollModifier? GetAttackHeatPenalty(IRulesProvider rulesProvider)
     {
-        get
-        {
-            if (CurrentHeat < 8) return null;
-
-            var heatPenaltyValue = CurrentHeat switch
-            {
-                >= 24 => 4,
-                >= 17 => 3,
-                >= 13 => 2,
-                >= 8 => 1,
-                _ => 0
-            };
-
-            return new HeatRollModifier
-            {
-                HeatLevel = CurrentHeat,
-                Value = heatPenaltyValue
-            };
-        }
+        var penalty = rulesProvider.GetHeatAttackPenalty(CurrentHeat);
+        return penalty == 0
+            ? null
+            : new HeatRollModifier { HeatLevel = CurrentHeat, Value = penalty };
     }
 
     /// <summary>
     /// Gets all movement penalties currently affecting this mech as a property for UI binding
     /// </summary>
-    public override IReadOnlyList<RollModifier> MovementModifiers => GetMovementModifiers();
+    public override IReadOnlyList<RollModifier> MovementModifiers => GetMovementModifiers(DefaultRulesProvider);
 
     /// <summary>
     /// Gets all movement penalties currently affecting this mech
     /// </summary>
-    private IReadOnlyList<RollModifier> GetMovementModifiers()
+    public override IReadOnlyList<RollModifier> GetMovementModifiers(IRulesProvider rulesProvider)
     {
         var penalties = new List<RollModifier>();
 
         // Heat movement penalty
-        var heatPenalty = MovementHeatPenalty;
+        var heatPenalty = GetMovementHeatPenalty(rulesProvider);
         if (heatPenalty != null)
         {
             penalties.Add(heatPenalty);
@@ -402,12 +398,18 @@ public class Mech : Unit
     /// </summary>
     public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
     {
+        return GetAttackModifiers(location, DefaultRulesProvider);
+    }
+
+    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider rulesProvider)
+    {
         var penalties = new List<RollModifier>();
 
         // Heat attack penalty
-        if (AttackHeatPenalty != null)
+        var attackHeatPenalty = GetAttackHeatPenalty(rulesProvider);
+        if (attackHeatPenalty != null)
         {
-            penalties.Add(AttackHeatPenalty);
+            penalties.Add(attackHeatPenalty);
         }
 
         // Prone firing penalty
@@ -415,7 +417,7 @@ public class Mech : Unit
         {
             penalties.Add(new ProneAttackerModifier
             {
-                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
+                Value = rulesProvider.GetProneFiringModifier()
             });
         }
 
@@ -424,7 +426,7 @@ public class Mech : Unit
         {
             penalties.Add(new SkiddingAttackerModifier
             {
-                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
+                Value = rulesProvider.GetSkiddingAttackerModifier()
             });
         }
 
@@ -526,6 +528,14 @@ public class Mech : Unit
     }
     
     public bool CanStandup()
+        => CanStandup(DefaultRulesProvider);
+
+    /// <summary>
+    /// Determines whether this mech can stand using the supplied movement rules.
+    /// </summary>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>True when the mech has enough provider-calculated movement points to stand.</returns>
+    public bool CanStandup(IRulesProvider rulesProvider)
     {
         if (IsShutdown) return false;
         
@@ -544,7 +554,7 @@ public class Mech : Unit
         if (destroyedLegs >= 2) return false;
 
         // Check if the Mech has at least the effective standup cost worth of movement points
-        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < EffectiveStandupCost) 
+        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk, rulesProvider) < EffectiveStandupCost)
             return false;
 
         if (Pilot?.IsConscious == false) return false;
@@ -592,6 +602,14 @@ public class Mech : Unit
     /// Determines if the mech can change its facing while prone
     /// </summary>
     public bool CanChangeFacingWhileProne()
+        => CanChangeFacingWhileProne(DefaultRulesProvider);
+
+    /// <summary>
+    /// Determines whether this prone mech can change facing using the supplied movement rules.
+    /// </summary>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>True when the mech has at least one provider-calculated movement point.</returns>
+    public bool CanChangeFacingWhileProne(IRulesProvider rulesProvider)
     {
         // Must be prone to use this action
         if (!IsProne) return false;
@@ -600,7 +618,7 @@ public class Mech : Unit
         if (IsShutdown) return false;
 
         // Must have at least 1 movement point available
-        if (GetMovementPoints(MovementType.Walk) < 1) return false;
+        if (GetMovementPoints(MovementType.Walk, rulesProvider) < 1) return false;
         
         return true;
     }

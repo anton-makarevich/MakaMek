@@ -199,7 +199,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             commands.AddRange(action.Process(Game));
             if (unit is Mech fallingMech && action is ApplyFallAction)
-                deferAfterFall = fallingMech.CanStandup();
+                deferAfterFall = fallingMech.CanStandup(Game.RulesProvider);
             if (action is ApplySkidAction)
                 deferAfterFall = false;
         }
@@ -237,7 +237,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         Game.CommandPublisher.PublishCommand(broadcastCommand);
 
         // Check if the unit can stand up (has sufficient MP, pilot is conscious, etc.)
-        if (!unit.CanStandup() || unit.Position == null)
+        if (!unit.CanStandup(Game.RulesProvider) || unit.Position == null)
         {
             return; // Cannot stand up
         }
