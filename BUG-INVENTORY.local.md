@@ -1,6 +1,7 @@
 # MakaMek local bug inventory
 
-> Local working document. Do not commit yet.
+> Local working document tracking hardening findings. It is currently committed because the owner
+> explicitly requested all current files be committed; keep it out of future PRs unless requested.
 >
 > This inventory was created on 2026-09-15 from branch `fix/695-conditional-join-broadcast`.
 > Findings are static-scan candidates until fixed and covered by regression tests. Recheck each
@@ -121,9 +122,32 @@ The available solution test sweep passed during the scan: Core 3,040 and Map 882
 - Suggested fix: confirm the intended Total Warfare constants, add provider methods for configurable
   thresholds/penalties, and cover a custom provider end to end. This may overlap future rules
   unification issues and should be coordinated before implementation.
-- Status: Deferred after consumer audit: fixing this correctly requires a shared rules-aware heat
-  modifier service or explicit rule context in the parameterless IUnit movement/attack APIs. A
-  partial IRulesProvider expansion would leave UI, bots, and authoritative calculations divergent.
+- Status: Fixed in WIP modifier work: heat penalties and life-support damage are provider-driven,
+  active rules are routed through movement, combat, bot, MCP, and heat paths, and regression coverage
+  verifies custom provider values.
+
+### BUG-009 — attack skid modifiers bypassed IRulesProvider
+
+- Severity: Low/Medium
+- Area: combat modifier calculation
+- Evidence: attacker and target skid modifiers used static defaults while other attack values came
+  from `IRulesProvider`.
+- Status: Fixed in WIP work: both modifiers now use provider values and classic defaults are covered.
+
+### BUG-010 — stand-up movement checks bypassed active rules
+
+- Severity: Medium
+- Area: movement validation and UI/bot decisions
+- Evidence: stand-up and prone-facing checks called parameterless movement APIs, allowing custom heat
+  rules to disagree with movement availability.
+- Status: Fixed in WIP work: server, fall-action, UI, and bot paths pass the active provider.
+
+### BUG-011 — falling-level piloting modifier was hardcoded
+
+- Severity: Low/Medium
+- Area: piloting-skill rules customization
+- Evidence: falling-level modifier used `Math.Max(0, levelsFallen - 1)` directly in the calculator.
+- Status: Fixed in WIP work: the formula now belongs to `IRulesProvider` with classic boundary tests.
 
 ## Lower-confidence boundary candidates
 
