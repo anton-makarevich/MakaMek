@@ -47,6 +47,16 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(4, 3)]
+    public void GetFallingLevelsModifier_ShouldUseClassicFormula(int levelsFallen, int expected)
+    {
+        _sut.GetFallingLevelsModifier(levelsFallen).ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
     [InlineData(25, 3, 8, 6, 6, 4, 4, 6, 6)]
     [InlineData(30, 3, 10, 7, 7, 5, 5, 7, 7)]

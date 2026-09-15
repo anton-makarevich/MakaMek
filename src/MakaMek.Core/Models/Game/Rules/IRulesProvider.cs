@@ -213,4 +213,11 @@ public interface IRulesProvider
     /// <param name="hexesMoved">The number of hexes moved before the skid turn</param>
     /// <returns>The modifier value for the skid PSR based on hexes moved</returns>
     int GetSkidModifier(int hexesMoved);
+
+    /// <summary>
+    /// Gets the piloting modifier for damage caused by falling levels.
+    /// </summary>
+    /// <param name="levelsFallen">The number of levels fallen.</param>
+    /// <returns>The modifier applied to the piloting roll.</returns>
+    int GetFallingLevelsModifier(int levelsFallen);
 }

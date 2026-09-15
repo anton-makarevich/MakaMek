@@ -612,4 +612,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
             _ => 6        // 25+ hexes
         };
     }
+
+    /// <inheritdoc />
+    public int GetFallingLevelsModifier(int levelsFallen) => Math.Max(0, levelsFallen - 1);
 }
