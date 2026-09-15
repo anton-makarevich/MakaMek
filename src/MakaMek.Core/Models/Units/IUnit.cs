@@ -158,7 +158,31 @@ public interface IUnit
     bool IsWeaponConfigurationApplied(WeaponConfiguration config);
 
     IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location);
+
+    /// <summary>
+    /// Gets attack modifiers using the supplied rule set for configurable values.
+    /// </summary>
+    /// <param name="location">The location of the weapon being fired.</param>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>The modifiers affecting the attack.</returns>
+    IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider rulesProvider);
+
     int GetMovementPoints(MovementType _);
+
+    /// <summary>
+    /// Gets available movement points using the supplied rule set.
+    /// </summary>
+    /// <param name="_">The movement type to calculate.</param>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>The remaining movement points.</returns>
+    int GetMovementPoints(MovementType _, IRulesProvider rulesProvider);
+
+    /// <summary>
+    /// Gets movement modifiers using the supplied rule set for configurable values.
+    /// </summary>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>The modifiers currently affecting movement.</returns>
+    IReadOnlyList<RollModifier> GetMovementModifiers(IRulesProvider rulesProvider);
 
     /// <summary>
     /// Determines if the unit can move backward with the given movement type
@@ -183,6 +207,12 @@ public interface IUnit
     int GetProjectedHeatValue(IRulesProvider rulesProvider);
 
     void ApplyHeat(HeatData heatData);
+    /// <summary>
+    /// Applies heat and heat effects using the supplied rule set.
+    /// </summary>
+    /// <param name="heatData">The heat data to apply.</param>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    void ApplyHeat(HeatData heatData, IRulesProvider rulesProvider);
 
     /// <summary>
     /// Assigns a pilot to this unit

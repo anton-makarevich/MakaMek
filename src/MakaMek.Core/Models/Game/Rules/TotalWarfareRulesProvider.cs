@@ -403,6 +403,35 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <inheritdoc />
+    public int GetHeatMovementPenalty(int heatLevel) => heatLevel switch
+    {
+        < 5 => 0,
+        < 10 => 1,
+        < 15 => 2,
+        < 20 => 3,
+        < 25 => 4,
+        _ => 5
+    };
+
+    /// <inheritdoc />
+    public int GetHeatAttackPenalty(int heatLevel) => heatLevel switch
+    {
+        < 8 => 0,
+        < 13 => 1,
+        < 17 => 2,
+        < 24 => 3,
+        _ => 4
+    };
+
+    /// <inheritdoc />
+    public int GetLifeSupportPilotDamage(int heatLevel) => heatLevel switch
+    {
+        < 15 => 0,
+        < 26 => 1,
+        _ => 2
+    };
+
     public int GetPilotingSkillRollModifier(PilotingSkillRollType psrType)
     {
         return psrType switch
