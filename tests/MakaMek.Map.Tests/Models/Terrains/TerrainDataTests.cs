@@ -261,7 +261,6 @@ public class TerrainDataTests
         // Assert
         restored.Id.ShouldBe(original.Id);
         restored.Height.ShouldBe(original.Height);
-        restored.MovementCost.ShouldBe(original.MovementCost);
         restored.InterveningFactor.ShouldBe(original.InterveningFactor);
     }
 
@@ -281,7 +280,6 @@ public class TerrainDataTests
         restored.Id.ShouldBe(sut.Id);
         restored.Height.ShouldBe(sut.Height);
         restored.Height.ShouldBe(height);
-        restored.MovementCost.ShouldBe(sut.MovementCost);
         restored.InterveningFactor.ShouldBe(sut.InterveningFactor);
     }
 
@@ -304,7 +302,6 @@ public class TerrainDataTests
         restored.Id.ShouldBe(original.Id);
         restored.Height.ShouldBe(original.Height);
         restored.Height.ShouldBe(depth);
-        restored.MovementCost.ShouldBe(original.MovementCost);
         restored.InterveningFactor.ShouldBe(original.InterveningFactor);
     }
 

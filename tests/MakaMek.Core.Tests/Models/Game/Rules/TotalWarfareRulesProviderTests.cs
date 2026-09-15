@@ -14,6 +14,23 @@ public class TotalWarfareRulesProviderTests
     private readonly TotalWarfareRulesProvider _sut = new();
 
     [Theory]
+    [InlineData(MakaMekTerrains.Clear, 0, 0)]
+    [InlineData(MakaMekTerrains.LightWoods, 0, 1)]
+    [InlineData(MakaMekTerrains.HeavyWoods, 0, 2)]
+    [InlineData(MakaMekTerrains.Rough, 0, 1)]
+    [InlineData(MakaMekTerrains.Water, 0, 0)]
+    [InlineData(MakaMekTerrains.Water, -1, 1)]
+    [InlineData(MakaMekTerrains.Water, -2, 3)]
+    [InlineData(MakaMekTerrains.Road, 0, 0)]
+    [InlineData(MakaMekTerrains.Pavement, 0, 0)]
+    [InlineData(MakaMekTerrains.Bridge, 0, 0)]
+    [InlineData(MakaMekTerrains.Rubble, 0, 1)]
+    public void GetMovementCost_ShouldUseClassicTerrainCosts(MakaMekTerrains terrainType, int height, int expected)
+    {
+        _sut.GetMovementCost(terrainType, height).ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
     [InlineData(25, 3, 8, 6, 6, 4, 4, 6, 6)]
     [InlineData(30, 3, 10, 7, 7, 5, 5, 7, 7)]
