@@ -10,5 +10,4 @@ public record ProneAttackerModifier : RollModifier
     public override string Render(ILocalizationService localizationService) =>
         string.Format(localizationService.GetString("Modifier_ProneFiring"), Value);
 
-    public const int DefaultValue = 2;
 }

@@ -213,7 +213,7 @@ public abstract class Unit : IUnit
     
     public virtual IReadOnlyList<RollModifier> MovementModifiers => [];
 
-    public virtual IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
+    public virtual IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider? rulesProvider = null)
     {
         return [];
     }

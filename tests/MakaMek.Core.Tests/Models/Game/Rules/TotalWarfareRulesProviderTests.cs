@@ -130,6 +130,13 @@ public class TotalWarfareRulesProviderTests
         _sut.GetSecondaryTargetModifier(isFrontArc).ShouldBe(expectedModifier);
     }
 
+    [Fact]
+    public void GetSkiddingModifiers_ShouldReturnClassicValues()
+    {
+        _sut.GetSkiddingAttackerModifier().ShouldBe(1);
+        _sut.GetSkiddingTargetModifier().ShouldBe(2);
+    }
+
     #region Hit Location Tests
 
     [Theory]
