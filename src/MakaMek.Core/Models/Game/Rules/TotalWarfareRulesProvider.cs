@@ -477,6 +477,10 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return ProneFiringModifier; // +2 modifier for firing while prone
     }
 
+    public int GetSkiddingAttackerModifier() => 1;
+
+    public int GetSkiddingTargetModifier() => 2;
+
     public int GetHeatAmmoExplosionAvoidNumber(int heatLevel)
     {
         return heatLevel switch

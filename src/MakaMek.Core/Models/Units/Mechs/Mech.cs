@@ -400,8 +400,9 @@ public class Mech : Unit
     /// <summary>
     /// Gets all attack penalties currently affecting this mech
     /// </summary>
-    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
+    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider? rulesProvider = null)
     {
+        rulesProvider ??= new TotalWarfareRulesProvider();
         var penalties = new List<RollModifier>();
 
         // Heat attack penalty
@@ -415,7 +416,7 @@ public class Mech : Unit
         {
             penalties.Add(new ProneAttackerModifier
             {
-                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
+                Value = rulesProvider.GetProneFiringModifier()
             });
         }
 
@@ -424,7 +425,7 @@ public class Mech : Unit
         {
             penalties.Add(new SkiddingAttackerModifier
             {
-                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
+                Value = rulesProvider.GetSkiddingAttackerModifier()
             });
         }
 

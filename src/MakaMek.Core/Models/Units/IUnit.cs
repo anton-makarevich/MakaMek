@@ -157,7 +157,7 @@ public interface IUnit
     /// <returns>True if the configuration is applied, false otherwise</returns>
     bool IsWeaponConfigurationApplied(WeaponConfiguration config);
 
-    IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location);
+    IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider? rulesProvider = null);
     int GetMovementPoints(MovementType _);
 
     /// <summary>

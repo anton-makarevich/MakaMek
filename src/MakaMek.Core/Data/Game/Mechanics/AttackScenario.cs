@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -96,7 +97,8 @@ public record AttackScenario
         IUnit target,
         PartLocation weaponLocation,
         bool isPrimaryTarget = true,
-        PartLocation? aimedShotTarget = null)
+        PartLocation? aimedShotTarget = null,
+        IRulesProvider? rulesProvider = null)
     {
         if (attacker.Pilot is null)
             throw new InvalidOperationException("Attacker pilot is not assigned");
@@ -116,7 +118,9 @@ public record AttackScenario
             TargetPosition = target.Position,
             AttackerMovementType = attacker.MovementTaken.MovementType,
             TargetHexesMoved = target.MovementTaken.HexesTraveled,
-            AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
+            AttackerModifiers = rulesProvider is null
+                ? attacker.GetAttackModifiers(weaponLocation)
+                : attacker.GetAttackModifiers(weaponLocation, rulesProvider),
             AttackerFacing = attacker.Facing,
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget,
@@ -179,4 +183,3 @@ public record AttackScenario
         };
     }
 }
-

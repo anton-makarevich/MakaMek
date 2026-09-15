@@ -66,6 +66,9 @@ public class ToHitCalculatorTests
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);
         _rules.GetTargetMovementModifier(1).Returns(0);
         _rules.GetRangeModifier(RangeBracket.Short,Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetProneFiringModifier().Returns(2);
+        _rules.GetSkiddingAttackerModifier().Returns(1);
+        _rules.GetSkiddingTargetModifier().Returns(2);
     }
 
     private void SetupAttackerAndTarget(HexPosition attackerPosition, HexPosition targetEndPosition)
@@ -345,7 +348,7 @@ public class ToHitCalculatorTests
 
         // Assert
         var skiddingModifier = result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
-        skiddingModifier.Value.ShouldBe(SkiddingAttackerModifier.DefaultValue);
+        skiddingModifier.Value.ShouldBe(1);
         result.Total.ShouldBe(5); // Base (4) + skidding attacker (1)
     }
 
@@ -382,7 +385,7 @@ public class ToHitCalculatorTests
 
         // Assert
         var skiddingModifier = result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldHaveSingleItem();
-        skiddingModifier.Value.ShouldBe(SkiddingTargetModifier.DefaultValue);
+        skiddingModifier.Value.ShouldBe(2);
         result.Total.ShouldBe(6); // Base (4) + skidding target (2)
     }
 

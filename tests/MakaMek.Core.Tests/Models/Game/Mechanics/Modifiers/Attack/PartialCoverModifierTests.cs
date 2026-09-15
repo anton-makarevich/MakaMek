@@ -9,16 +9,9 @@ public class PartialCoverModifierTests
 {
     private readonly PartialCoverModifier _sut = new()
     {
-        Value = PartialCoverModifier.DefaultValue
+        Value = 1
     };
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-
-    [Fact]
-    public void DefaultValue_ShouldBeOne()
-    {
-        // Assert
-        PartialCoverModifier.DefaultValue.ShouldBe(1);
-    }
 
     [Fact]
     public void Render_WithValidValue_ShouldFormatCorrectly()

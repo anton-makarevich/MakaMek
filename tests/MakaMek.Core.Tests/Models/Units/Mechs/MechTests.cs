@@ -2856,6 +2856,19 @@ public class MechTests
     }
 
     [Fact]
+    public void GetAttackModifiers_UsesProvidedRulesForProneModifier()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.SetProne();
+        var rules = Substitute.For<IRulesProvider>();
+        rules.GetProneFiringModifier().Returns(7);
+
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso, rules);
+
+        result.OfType<ProneAttackerModifier>().ShouldHaveSingleItem().Value.ShouldBe(7);
+    }
+
+    [Fact]
     public void GetAttackModifiers_WithNonProneMech_ShouldNotIncludeProneModifier()
     {
         // Arrange

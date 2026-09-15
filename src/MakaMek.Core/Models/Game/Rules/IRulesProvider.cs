@@ -122,6 +122,10 @@ public interface IRulesProvider
     /// <returns>The modifier value to apply when a mech is prone and firing</returns>
     int GetProneFiringModifier();
 
+    int GetSkiddingAttackerModifier();
+
+    int GetSkiddingTargetModifier();
+
     /// <summary>
     /// Gets the target number needed to avoid ammo explosion at a specific heat level
     /// </summary>
