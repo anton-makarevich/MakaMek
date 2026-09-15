@@ -93,6 +93,8 @@ public class BattleMapViewModelTests
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
         _localizationService.GetString("MovementType_Run").Returns("Run");
         _localizationService.GetString("Phase_Deployment").Returns("Deployment");
+        _localizationService.GetString("BattleMap_YourTurn").Returns("Your turn");
+        _localizationService.GetString("BattleMap_WaitingForPlayer").Returns("Waiting for {0}");
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
@@ -147,6 +149,64 @@ public class BattleMapViewModelTests
         });
         _sut.ActivePlayerName.ShouldBe("Player1");
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
+    }
+
+    [Fact]
+    public void TurnStatus_ShouldIdentifyLocalHumanPlayer_AndNotifyWhenActivePlayerChanges()
+    {
+        // Arrange
+        var localPlayer = new Player(Guid.NewGuid(), "Local", PlayerControlType.Human, "#FF0000");
+        var remotePlayer = new Player(Guid.NewGuid(), "Remote", PlayerControlType.Human, "#0000FF");
+        _game.JoinGameWithUnits(localPlayer, [], []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = localPlayer.Id,
+            PlayerName = localPlayer.Name,
+            Units = [],
+            Tint = localPlayer.Tint,
+            PilotAssignments = []
+        });
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remotePlayer.Id,
+            PlayerName = remotePlayer.Name,
+            Units = [],
+            Tint = remotePlayer.Tint,
+            PilotAssignments = []
+        });
+        var propertyChanged = new List<string?>();
+        _sut.PropertyChanged += (_, args) => propertyChanged.Add(args.PropertyName);
+
+        // Act: the local player becomes active.
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = localPlayer.Id,
+            UnitsToPlay = 0
+        });
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeTrue();
+        _sut.TurnStatusLabel.ShouldBe("Your turn");
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.TurnStatusLabel));
+
+        // Act: a remote player becomes active.
+        propertyChanged.Clear();
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remotePlayer.Id,
+            UnitsToPlay = 0
+        });
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeFalse();
+        _sut.TurnStatusLabel.ShouldBe("Waiting for Remote");
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.TurnStatusLabel));
     }
 
     [Fact]
@@ -2126,6 +2186,16 @@ public class BattleMapViewModelTests
             WeaponTargets = [weaponTargetData1, weaponTargetData2],
             GameOriginId = Guid.NewGuid()
         };
+
+        // Malformed assignment data should be ignored by the presentation layer.
+        game.HandleCommand(weaponAttackCommand with
+        {
+            WeaponTargets = [weaponTargetData1 with
+            {
+                Weapon = weaponTargetData1.Weapon with { Assignments = [] }
+            }]
+        });
+        _sut.WeaponAttacks.ShouldBeEmpty();
         
         game.HandleCommand(weaponAttackCommand);
         
@@ -2148,6 +2218,13 @@ public class BattleMapViewModelTests
                 ExternalHeat: 0),
             GameOriginId = Guid.NewGuid()
         };
+
+        // A malformed resolution must not abort processing or remove an unrelated attack.
+        game.HandleCommand(resolutionCommand with
+        {
+            WeaponData = resolutionCommand.WeaponData with { Assignments = [] }
+        });
+        _sut.WeaponAttacks.Count.ShouldBe(2);
         
         // Act
         game.HandleCommand(resolutionCommand);

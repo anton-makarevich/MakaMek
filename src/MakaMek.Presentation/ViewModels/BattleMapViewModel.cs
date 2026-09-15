@@ -433,6 +433,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var newAttacks = command.WeaponTargets
             .Select(wt =>
             {
+                var assignment = wt.Weapon.Assignments.FirstOrDefault();
+                if (assignment is null) return null;
+
                 var target = Game.Players
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
@@ -445,8 +448,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // Initial offset for new target
                 // Get the actual weapon from the attacker
                 var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
-                    wt.Weapon.Assignments.First().Location,
-                    wt.Weapon.Assignments.First().FirstSlot);
+                    assignment.Location,
+                    assignment.FirstSlot);
 
                 if (weapon == null) throw new Exception("The weapon is not found");
 
@@ -465,6 +468,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
                 return attack;
             })
+            .Where(attack => attack is not null)
+            .Select(attack => attack!)
             .ToList();
 
         WeaponAttacks.AddRange(newAttacks);
@@ -475,11 +480,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (Game == null || WeaponAttacks == null || !WeaponAttacks.Any()) return;
 
+        var assignment = command.WeaponData.Assignments.FirstOrDefault();
+        if (assignment is null) return;
+
         // Find and remove the attack that matches the weapon name and target ID
         var attacksToRemove = WeaponAttacks
             .Where(attack =>
-                attack.Weapon.SlotAssignments[0].Location == command.WeaponData.Assignments[0].Location
-                && attack.Weapon.SlotAssignments[0].FirstSlot == command.WeaponData.Assignments[0].FirstSlot
+                attack.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
+                && slotAssignment.Location == assignment.Location
+                && slotAssignment.FirstSlot == assignment.FirstSlot
                 && attack.TargetId == command.TargetId)
             .ToList();
 
@@ -559,6 +568,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(Turn));
         NotifyPropertyChanged(nameof(TurnPhaseName));
         NotifyPropertyChanged(nameof(ActivePlayerName));
+        NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
+        NotifyPropertyChanged(nameof(TurnStatusLabel));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
@@ -750,6 +761,20 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
+
+    /// <summary>
+    /// Indicates whether the active player is a local human player.
+    /// </summary>
+    public bool IsLocalPlayerTurn => Game is
+        { PhaseStepState.ActivePlayer: { Id: var playerId, ControlType: PlayerControlType.Human } }
+        && Game.LocalPlayers.Contains(playerId);
+
+    /// <summary>
+    /// Localized status text describing whether the local player may act.
+    /// </summary>
+    public string TurnStatusLabel => IsLocalPlayerTurn
+        ? _localizationService.GetString("BattleMap_YourTurn")
+        : string.Format(_localizationService.GetString("BattleMap_WaitingForPlayer"), ActivePlayerName);
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 

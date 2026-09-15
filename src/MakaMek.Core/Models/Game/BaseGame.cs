@@ -463,7 +463,7 @@ public abstract class BaseGame : IGame
             SetBattleMapCommand => CommandValidationResult.Valid(),
             MoveUnitCommand => CommandValidationResult.Valid(),
             WeaponConfigurationCommand => CommandValidationResult.Valid(),
-            WeaponAttackDeclarationCommand=> CommandValidationResult.Valid(),
+            WeaponAttackDeclarationCommand attackCommand => ValidateWeaponAttackDeclarationCommand(attackCommand),
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
@@ -520,6 +520,22 @@ public abstract class BaseGame : IGame
         }
         Logger.LogInformation("Hex {Position} is already occupied.", position);
         return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
+    }
+
+    /// <summary>
+    /// Validates the serialized weapon locations used to resolve an attack.
+    /// </summary>
+    private static CommandValidationResult ValidateWeaponAttackDeclarationCommand(
+        WeaponAttackDeclarationCommand command)
+    {
+        // An empty target list is a valid way to declare that a unit will not attack.
+        if (command.WeaponTargets is null || command.WeaponTargets.Count == 0)
+            return CommandValidationResult.Valid();
+
+        return command.WeaponTargets.Any(target =>
+                target is null || target.Weapon is null || target.Weapon.Assignments is not { Count: > 0 })
+            ? CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
+            : CommandValidationResult.Valid();
     }
     
     protected CommandValidationResult ValidateTurnIncrementedCommand(TurnIncrementedCommand command)

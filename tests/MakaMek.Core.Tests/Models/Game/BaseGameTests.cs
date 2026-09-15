@@ -1954,6 +1954,39 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithEmptyAssignments()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = new ComponentData
+                    {
+                        Name = "Test Weapon",
+                        Type = MakaMekComponent.MachineGun,
+                        Assignments = []
+                    }
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateHeatUpdatedCommand()
     {
         // Arrange

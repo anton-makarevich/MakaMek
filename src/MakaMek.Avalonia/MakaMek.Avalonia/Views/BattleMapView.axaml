@@ -114,6 +114,13 @@
                                  FontWeight="Bold" 
                                  HorizontalAlignment="Center"
                                  Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                        <TextBlock Text="{Binding TurnStatusLabel}"
+                                 Classes="turnInfoLabel"
+                                 FontWeight="Bold"
+                                 TextWrapping="Wrap"
+                                 TextAlignment="Center"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
                     </StackPanel>
                 </Border>
                 
@@ -312,4 +319,3 @@
         </templatedControls:GamePanel>
     </Grid>
 </UserControl>
-
