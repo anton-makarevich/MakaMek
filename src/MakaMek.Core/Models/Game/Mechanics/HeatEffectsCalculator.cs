@@ -180,6 +180,11 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return _rulesProvider.GetHeatAmmoExplosionAvoidNumber(heatLevel);
     }
 
+    /// <summary>
+    /// Checks for a heat-triggered ammo explosion and includes any destruction caused by the resulting critical hits.
+    /// </summary>
+    /// <param name="mech">The mech whose heat and ammunition are evaluated.</param>
+    /// <returns>An ammo-explosion command when an eligible check occurs, or <see langword="null"/> when no check is required.</returns>
     public AmmoExplosionCommand? CheckForHeatAmmoExplosion(Mech mech)
     {
         var currentHeat = mech.CurrentHeat;

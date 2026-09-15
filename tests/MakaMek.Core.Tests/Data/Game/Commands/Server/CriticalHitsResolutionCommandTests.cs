@@ -259,6 +259,7 @@ public class CriticalHitsResolutionCommandTests
     [Fact]
     public void Render_ShouldShowDestroyedPartsAndUnitDestroyed()
     {
+        // Destruction caused by critical hits must be visible in the chronological game log.
         var command = CreateCommand([]) with
         {
             DestroyedParts = [PartLocation.LeftArm, PartLocation.RightArm],

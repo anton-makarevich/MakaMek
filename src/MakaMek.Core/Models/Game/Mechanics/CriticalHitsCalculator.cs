@@ -20,6 +20,12 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
+    /// <summary>
+    /// Calculates and applies critical hits, including the newly destroyed locations and unit-destruction state caused by them.
+    /// </summary>
+    /// <param name="unit">The unit receiving the critical hits.</param>
+    /// <param name="hitLocationsData">The structure-damage locations that require critical-hit resolution.</param>
+    /// <returns>A command containing the applied results and destruction metadata, or <see langword="null"/> when no critical hits occurred.</returns>
     public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
         var destroyedPartsBefore = unit.Parts.Values
