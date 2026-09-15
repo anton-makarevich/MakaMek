@@ -424,7 +424,7 @@ public class MovementState : IUiState
             CreateStayProneAction()
         };
 
-        if (!mech.CanStandup()) return lockedProneActions;
+        if (!mech.CanStandup(RulesProvider)) return lockedProneActions;
 
         var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
         lockedProneActions.Add(new StateAction(
@@ -432,7 +432,7 @@ public class MovementState : IUiState
             true,
             () => AttemptStandup(lockedType)));
 
-        if (mech.CanChangeFacingWhileProne())
+        if (mech.CanChangeFacingWhileProne(RulesProvider))
             lockedProneActions.Add(CreateProneFacingChangeAction(mech));
 
         return lockedProneActions;
@@ -447,7 +447,7 @@ public class MovementState : IUiState
 
         if (mech.IsImmobile) return proneActions;
 
-        if (mech.CanStandup())
+        if (mech.CanStandup(RulesProvider))
         {
             var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
 
@@ -475,7 +475,7 @@ public class MovementState : IUiState
             }
         }
 
-        if (mech.CanChangeFacingWhileProne())
+                if (mech.CanChangeFacingWhileProne(RulesProvider))
             proneActions.Add(CreateProneFacingChangeAction(mech));
 
         return proneActions;
@@ -656,7 +656,7 @@ public class MovementState : IUiState
             
             _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
 
-            if (!mech.CanStandup())
+            if (!mech.CanStandup(RulesProvider))
             {
                 _builder.SetUnit(_selectedUnit);
                 _builder.SetMovementPath(_selectedPath);

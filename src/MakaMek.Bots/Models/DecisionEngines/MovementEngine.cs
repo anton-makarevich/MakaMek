@@ -166,7 +166,7 @@ public class MovementEngine : IBotDecisionEngine
         BotSettings settings)
     {
         // Handle prone mechs - try to stand up
-        if (unit is Mech { IsProne: true } mech && mech.CanStandup())
+        if (unit is Mech { IsProne: true } mech && mech.CanStandup(_clientGame.RulesProvider))
         {
             await AttemptStandup(player, mech);
             return;
@@ -333,4 +333,3 @@ public class MovementEngine : IBotDecisionEngine
         await MoveUnit(player, unmovedUnit, MovementPath.CreateSingleSegmentPath(position));
     }
 }
-

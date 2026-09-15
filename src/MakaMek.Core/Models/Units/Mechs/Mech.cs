@@ -528,6 +528,14 @@ public class Mech : Unit
     }
     
     public bool CanStandup()
+        => CanStandup(DefaultRulesProvider);
+
+    /// <summary>
+    /// Determines whether this mech can stand using the supplied movement rules.
+    /// </summary>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>True when the mech has enough provider-calculated movement points to stand.</returns>
+    public bool CanStandup(IRulesProvider rulesProvider)
     {
         if (IsShutdown) return false;
         
@@ -546,7 +554,7 @@ public class Mech : Unit
         if (destroyedLegs >= 2) return false;
 
         // Check if the Mech has at least the effective standup cost worth of movement points
-        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < EffectiveStandupCost) 
+        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk, rulesProvider) < EffectiveStandupCost)
             return false;
 
         if (Pilot?.IsConscious == false) return false;
@@ -594,6 +602,14 @@ public class Mech : Unit
     /// Determines if the mech can change its facing while prone
     /// </summary>
     public bool CanChangeFacingWhileProne()
+        => CanChangeFacingWhileProne(DefaultRulesProvider);
+
+    /// <summary>
+    /// Determines whether this prone mech can change facing using the supplied movement rules.
+    /// </summary>
+    /// <param name="rulesProvider">The active rules provider.</param>
+    /// <returns>True when the mech has at least one provider-calculated movement point.</returns>
+    public bool CanChangeFacingWhileProne(IRulesProvider rulesProvider)
     {
         // Must be prone to use this action
         if (!IsProne) return false;
@@ -602,7 +618,7 @@ public class Mech : Unit
         if (IsShutdown) return false;
 
         // Must have at least 1 movement point available
-        if (GetMovementPoints(MovementType.Walk) < 1) return false;
+        if (GetMovementPoints(MovementType.Walk, rulesProvider) < 1) return false;
         
         return true;
     }
