@@ -52,6 +52,28 @@ public class MapTransformCalculatorTests
     }
 
     [Theory]
+    [InlineData(double.NaN, 0, 0)]
+    [InlineData(double.PositiveInfinity, 0, 0)]
+    [InlineData(double.NegativeInfinity, 0, 0)]
+    [InlineData(0, 0, 0)]
+    [InlineData(-1, 0, 0)]
+    [InlineData(1, double.NaN, 0)]
+    [InlineData(1, double.PositiveInfinity, 0)]
+    [InlineData(1, 0, double.NegativeInfinity)]
+    public void SetTransform_ShouldRejectNonFiniteOrNonPositiveValues(
+        double scale, double translateX, double translateY)
+    {
+        // Act
+        var action = () => _sut.SetTransform(scale, translateX, translateY);
+
+        // Assert
+        action.ShouldThrow<ArgumentOutOfRangeException>();
+        _sut.Scale.ShouldBe(1.0);
+        _sut.TranslateX.ShouldBe(0.0);
+        _sut.TranslateY.ShouldBe(0.0);
+    }
+
+    [Theory]
     [InlineData(1.0, 0, 0, 10, 20, 10, 20)]
     [InlineData(2.0, 0, 0, 10, 20, 20, 40)]
     [InlineData(2.0, 5, 7, 10, 20, 25, 47)]
@@ -147,6 +169,35 @@ public class MapTransformCalculatorTests
 
         // Assert
         changed.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ApplyZoom_ShouldIgnoreInvalidScaleFactors(double scaleFactor)
+    {
+        // Act
+        var changed = _sut.ApplyZoom(scaleFactor, new Point(50, 50));
+
+        // Assert
+        changed.ShouldBeFalse();
+        _sut.Scale.ShouldBe(1.0);
+        _sut.TranslateX.ShouldBe(0.0);
+        _sut.TranslateY.ShouldBe(0.0);
+    }
+
+    [Fact]
+    public void ApplyZoom_ShouldIgnoreNonFiniteAnchor()
+    {
+        // Act
+        var changed = _sut.ApplyZoom(1.5, new Point(double.NaN, 50));
+
+        // Assert
+        changed.ShouldBeFalse();
+        _sut.Scale.ShouldBe(1.0);
     }
 
     [Fact]

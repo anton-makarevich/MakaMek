@@ -188,10 +188,9 @@ public class HexMap : Canvas
             return;
         }
 
-        if (e.Pointer.Type is PointerType.Touch or PointerType.Pen)
-        {
-            try { e.Pointer.Capture(this); } catch { /* ignore */ }
-        }
+        // Capture every pointer, including the mouse, so an active pan continues when the
+        // pointer leaves the map bounds and the matching release/capture-lost event is received.
+        try { e.Pointer.Capture(this); } catch { /* ignore */ }
 
         var localPos = e.GetPosition(this);
         var parentPos = LocalToParent(localPos);
@@ -345,6 +344,9 @@ public class HexMap : Canvas
         var delta = e.Delta.Y * ScaleStep;
         if (_calculator.ApplyZoom(1 + delta, parentPos))
             SyncTransform();
+
+        // Prevent a parent ScrollViewer from consuming the wheel event as a scroll operation.
+        e.Handled = true;
     }
 
     public void CenterMap()
