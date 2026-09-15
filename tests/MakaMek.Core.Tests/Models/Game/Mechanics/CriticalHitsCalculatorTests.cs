@@ -223,6 +223,8 @@ public class CriticalHitsCalculatorTests
         result.CriticalHits[0].Location.ShouldBe(PartLocation.CenterTorso);
         result.CriticalHits[0].NumCriticalHits.ShouldBe(1);
         testUnit.Events.ShouldBeEmpty("Critical-hit calculation must not mutate the authoritative unit");
+        testUnit.Parts[PartLocation.CenterTorso].HitSlots.ShouldBeEmpty(
+            "Critical-hit slots must be applied by the server command flow, not during calculation");
         _mockDiceRoller.Received(1).Roll2D6();
     }
 
