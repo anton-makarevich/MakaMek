@@ -114,6 +114,67 @@ public class ComponentTests
     }
 
     [Fact]
+    public void Mount_ShouldNotMount_WhenSlotIsNegative()
+    {
+        var sut = new TestComponent("Test Component");
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 3);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Mount(unitPart, [-1]));
+
+        sut.SlotAssignments.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Mount_ShouldRejectNullMountLocation()
+    {
+        var sut = new TestComponent("Test Component");
+
+        Should.Throw<ArgumentNullException>(() => sut.Mount(null!, [0]));
+
+        sut.SlotAssignments.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Mount_ShouldRejectNullSlots()
+    {
+        var sut = new TestComponent("Test Component");
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 3);
+
+        Should.Throw<ArgumentNullException>(() => sut.Mount(unitPart, null!));
+
+        sut.SlotAssignments.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Mount_ShouldPreserveExistingAssignments_WhenNewAssignmentOverlaps()
+    {
+        var sut = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 3);
+        sut.Mount(unitPart, [0]);
+
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [0]));
+
+        sut.IsMounted.ShouldBeFalse();
+        sut.GetMountedAtLocationSlots(PartLocation.LeftArm).ShouldBe([0]);
+    }
+
+    [Fact]
+    public void Mount_ShouldSupportAssignmentsAcrossMultipleParts()
+    {
+        var sut = new TestComponent("Test Component", 3);
+        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 3);
+        var rightArm = new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 3);
+
+        sut.Mount(leftArm, [0]);
+        sut.Mount(rightArm, [0, 1]);
+
+        sut.IsMounted.ShouldBeTrue();
+        sut.MountedOn.ShouldBe([leftArm, rightArm]);
+        sut.GetMountedAtLocationSlots(PartLocation.LeftArm).ShouldBe([0]);
+        sut.GetMountedAtLocationSlots(PartLocation.RightArm).ShouldBe([0, 1]);
+    }
+
+    [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange
