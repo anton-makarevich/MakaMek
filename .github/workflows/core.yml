@@ -22,7 +22,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: read
     env:
       COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
