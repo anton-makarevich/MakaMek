@@ -21,7 +21,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      actions: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -45,17 +46,33 @@ jobs:
           flags: localization
           fail_ci_if_error: true
 
-      - name: Diff coverage report
+      - name: Generate diff coverage report
+        id: report
         if: github.event_name == 'pull_request'
-        uses: anton-makarevich/Cocodif@v0.2.2
+        uses: anton-makarevich/Cocodif@v0.2.3
         with:
           coverage-files: ./tests/MakaMek.Localization.Tests/coverage.opencover.xml
           title: Localization Coverage
-          comment-marker: '<!-- cocodif-localization -->'
           include: 'src/MakaMek.Localization/**'
           exclude: '**/obj/**,**/bin/**'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment: 'false'
+          summary: 'false'
+
+      - name: Stage coverage comment artifact
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/cocodif-localization"
+          cp "${{ steps.report.outputs.report-path }}" "$RUNNER_TEMP/cocodif-localization/report.md"
+          echo "${{ github.event.pull_request.number }}" > "$RUNNER_TEMP/cocodif-localization/pr_number"
+
+      - name: Upload coverage comment artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cocodif-localization
+          path: ${{ runner.temp }}/cocodif-localization
+          if-no-files-found: ignore
   
   publish-nuget:
     runs-on: ubuntu-latest
