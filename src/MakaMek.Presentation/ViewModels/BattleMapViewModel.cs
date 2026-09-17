@@ -648,6 +648,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 TransitionToState(new WeaponsAttackState(this));
                 break;
 
+            case PhaseNames.PhysicalAttack when phaseState.UnitsToPlay > 0:
+                TransitionToState(new PhysicalAttackState(this));
+                break;
+
             case PhaseNames.End:
                 ClearWeaponAttacks();
                 TransitionToState(new EndState(this));
@@ -947,7 +951,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             var unitsToPlay = Game?.PhaseStepState?.UnitsToPlay ?? 0;
             return phase switch
             {
-                PhaseNames.Movement or PhaseNames.WeaponsAttack when unitsToPlay > 0 =>
+                PhaseNames.Movement or PhaseNames.WeaponsAttack or PhaseNames.PhysicalAttack when unitsToPlay > 0 =>
                     string.Format(_localizationService.GetString("BattleMap_UnitsRemaining"), unitsToPlay),
                 PhaseNames.End => _localizationService.GetString("BattleMap_EndTurnGuidance"),
                 _ => string.Empty
