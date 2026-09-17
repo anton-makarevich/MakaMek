@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -40,7 +41,8 @@ public class ServerGame : BaseGame, IDisposable
         IFallProcessor fallProcessor,
         IWeaponAttackResolver weaponAttackResolver,
         ILogger<ServerGame> logger,
-        IPhaseManager? phaseManager = null)
+        IPhaseManager? phaseManager = null,
+        IPhysicalAttackResolver? physicalAttackResolver = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
     {
         DiceRoller = diceRoller;
@@ -49,6 +51,7 @@ public class ServerGame : BaseGame, IDisposable
         HullBreachCalculator = hullBreachCalculator;
         FallProcessor = fallProcessor;
         WeaponAttackResolver = weaponAttackResolver;
+        PhysicalAttackResolver = physicalAttackResolver ?? new PhysicalAttackResolver(rulesProvider, diceRoller, damageTransferCalculator);
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
@@ -64,6 +67,9 @@ public class ServerGame : BaseGame, IDisposable
     public IFallProcessor FallProcessor { get; }
 
     public IWeaponAttackResolver WeaponAttackResolver { get; }
+
+    /// <summary>Gets the resolver used for authoritative physical attacks.</summary>
+    public IPhysicalAttackResolver PhysicalAttackResolver { get; }
 
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
     

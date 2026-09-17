@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -24,6 +25,8 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         MockPhaseManager.GetNextPhase(PhaseNames.PhysicalAttack, Game).Returns(_mockNextPhase);
         
         _sut = new PhysicalAttackPhase(Game);
+
+        DiceRoller.Roll2D6().Returns([new(6), new(6)]);
 
         // Add two players with units
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1", 2));
@@ -80,10 +83,11 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         });
     
         // Assert
-        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(cmd => 
-            cmd.UnitId == _unit1Id && 
-            cmd.TargetUnitId == _unit2Id &&
-            cmd.AttackType == PhysicalAttackType.Punch));
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackResolutionCommand>(cmd =>
+            cmd.AttackerId == _unit1Id &&
+            cmd.TargetId == _unit2Id &&
+            cmd.AttackType == PhysicalAttackType.Punch &&
+            cmd.ResolutionData.IsHit));
     }
 
     [Fact]

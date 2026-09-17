@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -48,10 +49,25 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
         switch (command)
         {
             case PhysicalAttackCommand attackCommand:
-                var broadcastAttack = attackCommand;
-                broadcastAttack.GameOriginId = Game.Id;
-                Game.OnPhysicalAttack(attackCommand);
-                Game.CommandPublisher.PublishCommand(broadcastAttack);
+                var attacker = Game.Players.SelectMany(player => player.Units)
+                    .FirstOrDefault(unit => unit.Id == attackCommand.UnitId);
+                var target = Game.Players.SelectMany(player => player.Units)
+                    .FirstOrDefault(unit => unit.Id == attackCommand.TargetUnitId);
+                if (attacker == null || target == null) break;
+
+                var resolution = Game.PhysicalAttackResolver.Resolve(attacker, target, attackCommand.AttackType);
+                if (resolution.IsHit && resolution.HitLocationsData is { } hitData)
+                    target.ApplyDamage(hitData.HitLocations, resolution.AttackDirection);
+
+                Game.CommandPublisher.PublishCommand(new PhysicalAttackResolutionCommand
+                {
+                    GameOriginId = Game.Id,
+                    PlayerId = attackCommand.PlayerId,
+                    AttackerId = attackCommand.UnitId,
+                    TargetId = attackCommand.TargetUnitId,
+                    AttackType = attackCommand.AttackType,
+                    ResolutionData = resolution
+                });
                 break;
             case PassPhysicalAttackCommand passCommand:
                 var broadcastPass = passCommand;

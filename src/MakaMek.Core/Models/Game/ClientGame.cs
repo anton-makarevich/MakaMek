@@ -159,6 +159,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case WeaponAttackResolutionCommand attackResolutionCommand:
                 OnWeaponsAttackResolution(attackResolutionCommand);
                 break;
+            case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
+                OnPhysicalAttackResolution(physicalAttackResolutionCommand);
+                break;
             case MechFallCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
                 break;

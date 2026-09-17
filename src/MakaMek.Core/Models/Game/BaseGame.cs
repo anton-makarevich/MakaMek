@@ -367,9 +367,16 @@ public abstract class BaseGame : IGame
         }
     }
     
-    internal void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
+    internal void OnPhysicalAttackResolution(PhysicalAttackResolutionCommand resolutionCommand)
     {
-        Logger.LogInformation("Physical attacks are not implemented");
+        var target = _players
+            .SelectMany(player => player.Units)
+            .FirstOrDefault(unit => unit.Id == resolutionCommand.TargetId);
+        if (target == null || !resolutionCommand.ResolutionData.IsHit
+            || resolutionCommand.ResolutionData.HitLocationsData is not { } hitData)
+            return;
+
+        target.ApplyDamage(hitData.HitLocations, resolutionCommand.ResolutionData.AttackDirection);
     }
 
     internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)
