@@ -1,14 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Input;
+using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -23,12 +28,33 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
     private readonly AvaloniaResourcesLocator _resourcesLocator = new();
+    private Border? _focusHighlight;
+    private DispatcherTimer? _focusHighlightTimer;
 
     public BattleMapView()
     {
         InitializeComponent();
 
         MapCanvas.ContentClicked += OnMapContentClicked;
+    }
+
+    /// <summary>
+    /// Handles global battle-map shortcuts that should remain useful while a drawer is open.
+    /// Enter is already handled by focused squad-card buttons; Escape closes the active drawer.
+    /// </summary>
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+            return;
+
+        if (ViewModel?.IsRecordSheetExpanded != true)
+        {
+            ViewModel?.CancelPlayerActionConfirmation();
+            return;
+        }
+
+        ViewModel.ToggleRecordSheet();
+        e.Handled = true;
     }
 
     private void RenderMap(IGame game)
@@ -148,9 +174,67 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel == null) return;
         ViewModel.CaptureMap = CaptureViewMap;
         ViewModel.CenterMap = () => MapCanvas.CenterMap();
+        ViewModel.ZoomIn = () => MapCanvas.Zoom(1.2);
+        ViewModel.ZoomOut = () => MapCanvas.Zoom(1 / 1.2);
+        ViewModel.FitMap = () => MapCanvas.FitMap();
+        ViewModel.FocusUnit = unit =>
+        {
+            if (unit.Position is { } position)
+            {
+                MapCanvas.CenterOnHex(position.Coordinates);
+                ShowFocusHighlight(unit);
+            }
+        };
         if (ViewModel.Game is not { } game) return;
         RenderMap(game);
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    /// <summary>
+    /// Displays a short-lived ring at the focused unit so map panning has an obvious visual result.
+    /// </summary>
+    private void ShowFocusHighlight(IUnit unit)
+    {
+        RemoveFocusHighlight();
+        if (unit.Position is not { } position) return;
+
+        var tint = unit.Owner is { } owner && Color.TryParse(owner.Tint, out var ownerColor)
+            ? ownerColor
+            : Colors.White;
+        _focusHighlight = new Border
+        {
+            Width = HexCoordinatesPixelExtensions.HexWidth * 0.92,
+            Height = HexCoordinatesPixelExtensions.HexHeight * 0.92,
+            BorderBrush = new SolidColorBrush(tint),
+            BorderThickness = new Thickness(4),
+            CornerRadius = new CornerRadius(999),
+            IsHitTestVisible = false,
+            Opacity = 1
+        };
+        MapCanvas.Children.Add(_focusHighlight);
+        Canvas.SetLeft(_focusHighlight, position.Coordinates.H + HexCoordinatesPixelExtensions.HexWidth * 0.04);
+        Canvas.SetTop(_focusHighlight, position.Coordinates.V + HexCoordinatesPixelExtensions.HexHeight * 0.04);
+
+        var highlight = _focusHighlight;
+        var remainingTicks = 10;
+        _focusHighlightTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        _focusHighlightTimer.Tick += (_, _) =>
+        {
+            remainingTicks--;
+            highlight.Opacity = remainingTicks / 10d;
+            if (remainingTicks > 0) return;
+            RemoveFocusHighlight();
+        };
+        _focusHighlightTimer.Start();
+    }
+
+    private void RemoveFocusHighlight()
+    {
+        _focusHighlightTimer?.Stop();
+        _focusHighlightTimer = null;
+        if (_focusHighlight is { } highlight)
+            MapCanvas.Children.Remove(highlight);
+        _focusHighlight = null;
     }
 
     private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureViewMap()

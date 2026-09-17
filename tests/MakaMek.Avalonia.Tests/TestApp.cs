@@ -35,5 +35,10 @@ public partial class TestApp : Application
         Resources["ModifierToTextConverter"] = new Sanet.MakaMek.Avalonia.Converters.ModifierToTextConverter(LocalizationService);
         Resources["SegmentEventToTextConverter"] = new Sanet.MakaMek.Avalonia.Converters.SegmentEventToTextConverter(LocalizationService);
         Resources["MovementBreakdownConverter"] = new Sanet.MakaMek.Avalonia.Converters.MovementBreakdownConverter(LocalizationService);
+        Resources["UnitActionHintConverter"] = new Sanet.MakaMek.Avalonia.Converters.UnitActionHintConverter(LocalizationService);
+        Resources["UnitMovementSummaryConverter"] = new Sanet.MakaMek.Avalonia.Converters.UnitMovementSummaryConverter(LocalizationService);
+        Resources["UnitPositionSummaryConverter"] = new Sanet.MakaMek.Avalonia.Converters.UnitPositionSummaryConverter(LocalizationService);
+        Resources["UnitResourceWarningConverter"] = new Sanet.MakaMek.Avalonia.Converters.UnitResourceWarningConverter(LocalizationService);
+        Resources["UnitStatusTextConverter"] = new Sanet.MakaMek.Avalonia.Converters.UnitStatusTextConverter(LocalizationService);
     }
 }

@@ -2,6 +2,8 @@ using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
@@ -592,6 +594,157 @@ public class AvailableUnitsTableViewModelTests
         await (sut.ShowUnitInfoCommand as IAsyncCommand)!.ExecuteAsync();
 
         await navigationService.DidNotReceive().ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(Arg.Any<UnitInfoViewModel>());
+    }
+
+    [Theory]
+    [InlineData("atlas", "Atlas")]
+    [InlineData("AS7-D", "Atlas")]
+    public void SearchText_ShouldMatchChassisAndModel_WithoutCaseSensitivity(string search, string expectedChassis)
+    {
+        var sut = new AvailableUnitsTableViewModel(CreateTestUnits(), _mechFactory)
+        {
+            SearchText = search
+        };
+
+        sut.FilteredAvailableUnits.Select(unit => unit.Chassis).ShouldBe([expectedChassis]);
+        sut.FilteredUnitCount.ShouldBe(1);
+        sut.HasNoResults.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SearchText_ShouldMatchCustomDisplayName()
+    {
+        var units = CreateTestUnits();
+        units[0] = units[0] with { Name = "Scout" };
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
+        {
+            SearchText = "scout"
+        };
+
+        sut.FilteredAvailableUnits.Single().Chassis.ShouldBe("Locust");
+    }
+
+    [Fact]
+    public void SearchText_ShouldMatchEraMetadata()
+    {
+        var unit = CreateTestUnits()[0] with
+        {
+            AdditionalAttributes = new Dictionary<string, string> { ["era"] = "Succession Wars" }
+        };
+        var sut = new AvailableUnitsTableViewModel([unit], _mechFactory)
+        {
+            SearchText = "succession"
+        };
+
+        sut.FilteredAvailableUnits.Single().ShouldBe(unit);
+    }
+
+    [Fact]
+    public void BattleValueLimit_ShouldFilterUnitsUsingRemainingBudget()
+    {
+        var units = CreateTestUnits();
+        var realFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var selectedValue = realFactory.Create(units[0]).CalculateBattleValue();
+        var budget = selectedValue * 2;
+        var sut = new AvailableUnitsTableViewModel(units.Take(2).ToList(), realFactory, budget,
+            [units[0]]);
+
+        sut.RemainingBattleValue.ShouldBe(selectedValue);
+        sut.FilteredAvailableUnits.ShouldContain(units[0]);
+        sut.FilteredAvailableUnits.Select(unit => realFactory.Create(unit).CalculateBattleValue())
+            .ShouldAllBe(value => value <= sut.RemainingBattleValue);
+    }
+
+    [Fact]
+    public void BattleValueLimit_Zero_ShouldLeaveAllUnitsAvailable()
+    {
+        var sut = new AvailableUnitsTableViewModel(CreateTestUnits(), _mechFactory, 0);
+
+        sut.FilteredUnitCount.ShouldBe(5);
+        sut.RemainingBattleValue.ShouldBe(0);
+    }
+
+    [Fact]
+    public void CanAddUnit_ShouldBeFalse_WhenSelectedUnitExceedsRemainingBattleValue()
+    {
+        var units = CreateTestUnits();
+        var realFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var unitValue = realFactory.Create(units[0]).CalculateBattleValue();
+        var sut = new AvailableUnitsTableViewModel(units, realFactory, unitValue - 1)
+        {
+            SelectedUnit = units[0]
+        };
+
+        sut.CanAddUnit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void BattleValueFilter_ShouldFailClosed_WhenFactoryCannotCreateUnit()
+    {
+        var sut = new AvailableUnitsTableViewModel(CreateTestUnits(), _mechFactory, 1000);
+
+        sut.FilteredAvailableUnits.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SearchText_ShouldExposeEmptyState_WhenNothingMatches()
+    {
+        var sut = new AvailableUnitsTableViewModel(CreateTestUnits(), _mechFactory)
+        {
+            SearchText = "does-not-exist"
+        };
+
+        sut.FilteredUnitCount.ShouldBe(0);
+        sut.HasNoResults.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ClearSearchCommand_ShouldRestoreAllUnits()
+    {
+        var sut = new AvailableUnitsTableViewModel(CreateTestUnits(), _mechFactory)
+        {
+            SearchText = "atlas"
+        };
+
+        sut.HasSearchText.ShouldBeTrue();
+        await ((IAsyncCommand)sut.ClearSearchCommand).ExecuteAsync();
+
+        sut.SearchText.ShouldBeEmpty();
+        sut.HasSearchText.ShouldBeFalse();
+        sut.FilteredUnitCount.ShouldBe(5);
+        sut.HasNoResults.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SelectedUnitPreview_ShouldUseStatsFromConstructedUnit()
+    {
+        var unitData = CreateTestUnits().Single(unit => unit.Chassis == "Atlas");
+        var realFactory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var realUnit = realFactory.Create(unitData);
+        _mechFactory.Create(unitData).Returns(realUnit);
+        var sut = new AvailableUnitsTableViewModel([unitData], _mechFactory)
+        {
+            SelectedUnit = unitData
+        };
+
+        sut.SelectedUnitPreview.ShouldNotBeNull();
+        sut.SelectedUnitPreview!.DisplayName.ShouldBe("Atlas AS7-D");
+        sut.SelectedUnitPreview.WeightClass.ShouldBe("Assault");
+        sut.SelectedUnitPreview.Tonnage.ShouldBe(100);
+        sut.SelectedUnitPreview.ArmorSummary.ShouldContain("armor");
+        sut.SelectedUnitPreview.StructureSummary.ShouldContain("structure");
+        sut.SelectedUnitPreview.ArmorPercent.ShouldBe(100);
+        sut.SelectedUnitPreview.StructurePercent.ShouldBe(100);
+        sut.SelectedUnitPreview.WeaponCount.ShouldBe(0);
     }
 
     private static List<UnitData> CreateTestUnits()

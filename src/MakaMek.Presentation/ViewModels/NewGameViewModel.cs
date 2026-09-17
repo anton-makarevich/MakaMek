@@ -26,6 +26,7 @@ public abstract class NewGameViewModel : BaseViewModel
 {
     protected readonly ObservableCollection<PlayerViewModel> _players = [];
     private IEnumerable<UnitData> _availableUnits = [];
+    private int _battleValueLimit;
 
     protected readonly ICommandPublisher _commandPublisher;
     private readonly IUnitsLoader _unitsLoader;
@@ -341,12 +342,25 @@ public abstract class NewGameViewModel : BaseViewModel
 
     public List<UnitData> AvailableUnits => _availableUnits.ToList();
 
+    /// <summary>
+    /// Gets or sets the per-player Battle Value budget. Zero means unrestricted.
+    /// </summary>
+    public int BattleValueLimit
+    {
+        get => _battleValueLimit;
+        set => SetProperty(ref _battleValueLimit, Math.Max(0, value));
+    }
+
     protected async Task ShowAvailableUnitsTable(PlayerViewModel playerVm)
     {
         if (!playerVm.CanAddUnit) return;
 
         // Create a new ViewModel instance for the dialog
-        var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits, _mechFactory);
+        var tableViewModel = new AvailableUnitsTableViewModel(
+            AvailableUnits,
+            _mechFactory,
+            BattleValueLimit,
+            playerVm.GetUnitsData());
         tableViewModel.SetNavigationService(NavigationService);
 
         // Show the dialog and wait for a result

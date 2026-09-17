@@ -54,6 +54,11 @@ public partial class App : Application
         Resources[nameof(Converters.MovementBreakdownConverter)] = serviceProvider.GetRequiredService<Converters.MovementBreakdownConverter>();
         Resources[nameof(Converters.HubStatusTextConverter)] = serviceProvider.GetRequiredService<Converters.HubStatusTextConverter>();
         Resources[nameof(Converters.ConnectionStatusTextConverter)] = serviceProvider.GetRequiredService<Converters.ConnectionStatusTextConverter>();
+        Resources[nameof(Converters.UnitActionHintConverter)] = serviceProvider.GetRequiredService<Converters.UnitActionHintConverter>();
+        Resources[nameof(Converters.UnitMovementSummaryConverter)] = serviceProvider.GetRequiredService<Converters.UnitMovementSummaryConverter>();
+        Resources[nameof(Converters.UnitPositionSummaryConverter)] = serviceProvider.GetRequiredService<Converters.UnitPositionSummaryConverter>();
+        Resources[nameof(Converters.UnitResourceWarningConverter)] = serviceProvider.GetRequiredService<Converters.UnitResourceWarningConverter>();
+        Resources[nameof(Converters.UnitStatusTextConverter)] = serviceProvider.GetRequiredService<Converters.UnitStatusTextConverter>();
         Resources[nameof(Converters.ComponentStatusBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.ComponentStatusBackgroundConverter>();
         Resources[nameof(Converters.EventTypeToBackgroundConverter)] = serviceProvider.GetRequiredService<Converters.EventTypeToBackgroundConverter>();
         Resources[nameof(Converters.ConsciousnessColorConverter)] = serviceProvider.GetRequiredService<Converters.ConsciousnessColorConverter>();

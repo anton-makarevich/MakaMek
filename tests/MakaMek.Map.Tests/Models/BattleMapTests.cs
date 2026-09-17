@@ -426,6 +426,31 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindPath_UsesConfiguredMovementCostProvider()
+    {
+        var sut = BattleMapFactory.GenerateMap(2, 1,
+            new SingleTerrainGenerator(2, 1, new ClearTerrain()));
+        sut.AddHex(new Hex(new HexCoordinates(2, 1)));
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new HeavyWoodsTerrain());
+        sut.MovementCostProvider = new FixedMovementCostProvider(0);
+
+        var path = sut.FindPath(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight),
+            new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight),
+            MovementType.Walk,
+            1,
+            1);
+
+        path.ShouldNotBeNull("The configured provider makes heavy woods cost no additional MP");
+        path.TotalCost.ShouldBe(1);
+    }
+
+    private sealed class FixedMovementCostProvider(int movementCost) : IMovementCostProvider
+    {
+        public int GetMovementCost(MakaMekTerrains terrainType, int terrainHeight) => movementCost;
+    }
+
+    [Fact]
     public void FindPath_WithCostBreakdown_ShowsEntryAndTerrainCostSeparately()
     {
         // Arrange
