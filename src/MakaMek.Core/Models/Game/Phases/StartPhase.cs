@@ -17,8 +17,10 @@ public class StartPhase(ServerGame game) : GamePhase(game)
             case JoinGameCommand joinGameCommand:
                 Game.Logger.LogInformation("JoinGameCommand received: {PlayerName}", joinGameCommand.PlayerName);
                 var broadcastJoinCommand = joinGameCommand with { GameOriginId = Game.Id };
-                Game.OnPlayerJoined(joinGameCommand);
-                Game.CommandPublisher.PublishCommand(broadcastJoinCommand);
+                if (Game.OnPlayerJoined(joinGameCommand))
+                {
+                    Game.CommandPublisher.PublishCommand(broadcastJoinCommand);
+                }
                 break;
             case UpdatePlayerStatusCommand playerStatusCommand:
                 Game.Logger.LogInformation("UpdatePlayerStatusCommand received: {PlayerId} - {PlayerStatus}", playerStatusCommand.PlayerId, playerStatusCommand.PlayerStatus);

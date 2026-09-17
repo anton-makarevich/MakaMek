@@ -8,6 +8,26 @@ namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 public class TotalWarfareRulesProvider : IRulesProvider
 {
+    /// <inheritdoc />
+    public int GetMovementCost(MakaMekTerrains terrainType, int terrainHeight) => terrainType switch
+    {
+        MakaMekTerrains.Clear => 0,
+        MakaMekTerrains.LightWoods => 1,
+        MakaMekTerrains.HeavyWoods => 2,
+        MakaMekTerrains.Rough => 1,
+        MakaMekTerrains.Water => terrainHeight switch
+        {
+            0 => 0,
+            -1 => 1,
+            _ => 3
+        },
+        MakaMekTerrains.Road => 0,
+        MakaMekTerrains.Pavement => 0,
+        MakaMekTerrains.Bridge => 0,
+        MakaMekTerrains.Rubble => 1,
+        _ => throw new ArgumentOutOfRangeException(nameof(terrainType), terrainType, "Unknown terrain type.")
+    };
+
     public Dictionary<PartLocation, int> GetStructureValues(int tonnage)
     {
         var structureValues = new Dictionary<PartLocation, int>();
@@ -402,6 +422,35 @@ public class TotalWarfareRulesProvider : IRulesProvider
             _ => 0 // No heat for other movement types
         };
     }
+
+    /// <inheritdoc />
+    public int GetHeatMovementPenalty(int heatLevel) => heatLevel switch
+    {
+        < 5 => 0,
+        < 10 => 1,
+        < 15 => 2,
+        < 20 => 3,
+        < 25 => 4,
+        _ => 5
+    };
+
+    /// <inheritdoc />
+    public int GetHeatAttackPenalty(int heatLevel) => heatLevel switch
+    {
+        < 8 => 0,
+        < 13 => 1,
+        < 17 => 2,
+        < 24 => 3,
+        _ => 4
+    };
+
+    /// <inheritdoc />
+    public int GetLifeSupportPilotDamage(int heatLevel) => heatLevel switch
+    {
+        < 15 => 0,
+        < 26 => 1,
+        _ => 2
+    };
 
     public int GetPilotingSkillRollModifier(PilotingSkillRollType psrType)
     {

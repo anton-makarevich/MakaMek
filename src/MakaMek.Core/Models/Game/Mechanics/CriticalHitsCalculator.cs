@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -14,48 +13,39 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
 {
     private readonly IDiceRoller _diceRoller;
     private readonly IDamageTransferCalculator _damageTransferCalculator;
-    private readonly IMechFactory _mechFactory;
 
-    /// <summary>
-    /// Initializes a calculator that resolves critical hits against a private simulation copy of each unit.
-    /// </summary>
-    /// <param name="diceRoller">The dice roller used for critical-hit resolution.</param>
-    /// <param name="damageTransferCalculator">The calculator used for component explosion damage.</param>
-    /// <param name="mechFactory">The factory used to create isolated simulation copies.</param>
-    public CriticalHitsCalculator(
-        IDiceRoller diceRoller,
-        IDamageTransferCalculator damageTransferCalculator,
-        IMechFactory mechFactory)
+    public CriticalHitsCalculator(IDiceRoller diceRoller, IDamageTransferCalculator damageTransferCalculator)
     {
         _diceRoller = diceRoller;
         _damageTransferCalculator = damageTransferCalculator;
-        _mechFactory = mechFactory;
     }
     
-    /// <summary>
-    /// Calculates critical hits without mutating the authoritative unit.
-    /// </summary>
-    /// <param name="unit">The unit receiving the critical-hit effects.</param>
-    /// <param name="hitLocationsData">The locations and structure damage requiring critical-hit resolution.</param>
-    /// <returns>A command containing the calculated critical hits, or <see langword="null"/> when none apply.</returns>
-    public CriticalHitsResolutionCommand? CalculateCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
+    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
-        if (!hitLocationsData.Any(damage => damage.StructureDamage > 0))
-            return null;
-
-        var simulationUnit = unit.CloneUnit(_mechFactory);
-        var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(simulationUnit, hitLocationsData);
+        var destroyedPartsBefore = unit.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = unit.IsDestroyed;
+        var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(unit, hitLocationsData);
 
         // If no critical hits occurred, no need to send a command
         if (allCriticalHitsData.Count == 0)
             return null;
 
         // Send critical hits resolution command
+        var newlyDestroyedParts = unit.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
             TargetId = unit.Id,
-            CriticalHits = allCriticalHitsData
+            CriticalHits = allCriticalHitsData,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && unit.IsDestroyed
         };
     }
     
@@ -86,9 +76,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             ExplosionDamageDistribution = explosionDamageData.ToArray()
         };
         
-        var simulationUnit = unit.CloneUnit(_mechFactory);
         var explosionConsequences =
-            ProcessAndApplyCriticalHitsDamage(simulationUnit, explosionDamageData.ToList());
+            ProcessAndApplyCriticalHitsDamage(unit, explosionDamageData.ToList());
 
         return new List<LocationCriticalHitsData>
         {
@@ -116,8 +105,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             var criticalHitsData = CalculateCriticalHitsForLocation(unit, locationHitDamage.Location, locationHitDamage.StructureDamage);
             if (criticalHitsData != null)
             {
-                // Apply intermediate results only to the simulation unit so chained explosions
-                // can resolve against the updated state without mutating the authoritative unit.
+                // KNOWN ISSUE
+                // This is a side effect and a deviation from the common design of applying server commands via BaseGame
                 unit.ApplyCriticalHits([criticalHitsData]);
                 allCriticalHitsData.Add(criticalHitsData);
             }

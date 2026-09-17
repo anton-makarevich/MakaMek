@@ -80,6 +80,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 var weaponTargets = unit.DeclaredWeaponTargets ?? [];
                 foreach (var weaponTarget in weaponTargets)
                 {
+                    // A malformed/stale declaration must not abort the entire resolution phase.
+                    if (weaponTarget is null || weaponTarget.Weapon is null ||
+                        weaponTarget.Weapon.Assignments is not { Count: > 0 })
+                        continue;
+
                     var primaryAssignment = weaponTarget.Weapon.Assignments[0];
                     var weapon = unit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
                     var targetUnit = allUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
@@ -203,7 +208,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
         {
             var criticalHitsCommand = Game.CriticalHitsCalculator
-                .CalculateCriticalHits(target,
+                .CalculateAndApplyCriticalHits(target,
                     (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
                     .SelectMany(h => h.Damage).ToList());
 
@@ -211,9 +216,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             if (criticalHitsCommand != null)
             {
                 criticalHitsCommand.GameOriginId = Game.Id;
-                // The server transport does not loop commands back to the server game.
-                // Apply the authoritative result before publishing it to clients.
-                Game.OnCriticalHitsResolution(criticalHitsCommand);
                 Game.CommandPublisher.PublishCommand(criticalHitsCommand);
 
                 // Check for component hits that can cause a fall
@@ -288,11 +290,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (locationsWithDamagedStructure.Count != 0)
                 {
                     var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                        .CalculateCriticalHits(targetMech, locationsWithDamagedStructure);
+                        .CalculateAndApplyCriticalHits(targetMech, locationsWithDamagedStructure);
                     if (fallCriticalHitsCommand != null)
                     {
                         fallCriticalHitsCommand.GameOriginId = Game.Id;
-                        Game.OnCriticalHitsResolution(fallCriticalHitsCommand);
                         Game.CommandPublisher.PublishCommand(fallCriticalHitsCommand);
                     }
                 }

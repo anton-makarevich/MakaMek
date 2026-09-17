@@ -586,6 +586,41 @@ public class ServerGameTests
     }
 
     [Fact]
+    public void HandleCommand_ShouldNotBroadcastJoin_WhenSamePlayerUsesDifferentIdempotencyKey()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var firstCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        };
+        var duplicateCommand = firstCommand with
+        {
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(firstCommand);
+        _sut.HandleCommand(duplicateCommand);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(1);
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(command =>
+            command.PlayerId == playerId));
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(command =>
+            command.IdempotencyKey == duplicateCommand.IdempotencyKey &&
+            command.ErrorCode == ErrorCode.ValidationFailed));
+    }
+
+    [Fact]
     public void HandleCommand_ShouldNotAddCommandToLog_WhenValidationFails()
     {
         // Arrange

@@ -8,12 +8,12 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public interface ICriticalHitsCalculator
 {
     /// <summary>
-    /// Calculates critical hits for locations that received structure damage without mutating the supplied unit.
+    /// Calculates and applies critical hits for locations that received structure damage.
     /// Returns a command describing all per-location results (including zero-crit entries) or null when no locations with structure damage produced any result.
     /// </summary>
     /// <param name="unit">The target unit</param>
     /// <param name="hitLocationsData">The hit locations data containing damage information</param>
-    CriticalHitsResolutionCommand? CalculateCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData);
+    CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData);
 
     /// <summary>
     /// Calculates critical hits for heat-induced component explosion

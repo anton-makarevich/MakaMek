@@ -36,11 +36,10 @@ public class ApplyFallAction(Mech mech, MechFallCommand command) : IGameAction
         if (locationsWithDamagedStructure.Count != 0)
         {
             var critCommand = game.CriticalHitsCalculator
-                .CalculateCriticalHits(mech, locationsWithDamagedStructure);
+                .CalculateAndApplyCriticalHits(mech, locationsWithDamagedStructure);
             if (critCommand != null)
             {
                 critCommand.GameOriginId = game.Id;
-                game.OnCriticalHitsResolution(critCommand);
                 commands.Add(critCommand);
             }
         }

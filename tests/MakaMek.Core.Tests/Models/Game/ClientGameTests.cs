@@ -2856,6 +2856,8 @@ public class ClientGameTests
         };
 
         _commandPublisher.ClearReceivedCalls();
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
 
         // Act
         var deployTask = _sut.DeployUnit(deployCommand);
@@ -2865,6 +2867,8 @@ public class ClientGameTests
 
         capturedCommand.ShouldNotBeNull("Command should have been published");
         capturedCommand.Value.IdempotencyKey.ShouldNotBeNull();
+        _sut.HasPendingCommands.ShouldBeTrue();
+        pendingStateChanges.ShouldBe(1);
 
         // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
         var rebroadcastCommand = capturedCommand.Value with { GameOriginId = Guid.NewGuid() };
@@ -2876,6 +2880,8 @@ public class ClientGameTests
 
         var result = await deployTask;
         result.ShouldBeTrue();
+        _sut.HasPendingCommands.ShouldBeFalse();
+        pendingStateChanges.ShouldBe(2);
     }
 
     [Fact]
@@ -2977,6 +2983,8 @@ public class ClientGameTests
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesNotAcknowledge()
     {
         // Arrange
+        var timeoutNotifications = 0;
+        _sut.CommandTimedOut += () => timeoutNotifications++;
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
@@ -2985,6 +2993,8 @@ public class ClientGameTests
         
         var result = await task;
         result.ShouldBeFalse();
+        timeoutNotifications.ShouldBe(1);
+        _sut.HasPendingCommands.ShouldBeFalse();
     }
     
     [Fact]
