@@ -474,6 +474,8 @@ public class GameCommandJsonConverterTests
     [InlineData("MechStandUpCommand")]
     [InlineData("MoveUnitCommand")]
     [InlineData("PhysicalAttackCommand")]
+    [InlineData("PassPhysicalAttackCommand")]
+    [InlineData("PhysicalAttackResolutionCommand")]
     [InlineData("PilotConsciousnessRollCommand")]
     [InlineData("PlayerLeftCommand")]
     [InlineData("RequestGameLobbyStatusCommand")]

@@ -55,6 +55,12 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
                     .FirstOrDefault(unit => unit.Id == attackCommand.TargetUnitId);
                 if (attacker == null || target == null) break;
 
+                // Acknowledge the accepted declaration before doing dice and damage work so
+                // connected clients do not remain pending if result processing fails.
+                var broadcastAttack = attackCommand;
+                broadcastAttack.GameOriginId = Game.Id;
+                Game.CommandPublisher.PublishCommand(broadcastAttack);
+
                 var resolution = Game.PhysicalAttackResolver.Resolve(attacker, target, attackCommand.AttackType);
                 if (resolution.IsHit && resolution.HitLocationsData is { } hitData)
                     target.ApplyDamage(hitData.HitLocations, resolution.AttackDirection);

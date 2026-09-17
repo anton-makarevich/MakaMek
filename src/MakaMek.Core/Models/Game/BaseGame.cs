@@ -479,6 +479,8 @@ public abstract class BaseGame : IGame
             MoveUnitCommand => CommandValidationResult.Valid(),
             WeaponConfigurationCommand => CommandValidationResult.Valid(),
             WeaponAttackDeclarationCommand attackCommand => ValidateWeaponAttackDeclarationCommand(attackCommand),
+            PhysicalAttackCommand => CommandValidationResult.Valid(),
+            PassPhysicalAttackCommand => CommandValidationResult.Valid(),
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
