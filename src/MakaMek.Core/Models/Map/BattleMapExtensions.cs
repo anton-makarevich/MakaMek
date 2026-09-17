@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 
@@ -74,12 +75,15 @@ public static class BattleMapExtensions
             IUnit unit,
             MovementType movementType,
             IReadOnlySet<HexCoordinates> prohibitedHexes,
-            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
+            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates,
+            IRulesProvider? rulesProvider = null)
         {
             if (unit.Position == null)
                 return new ReachableArea([], []);
 
-            var movementPoints = unit.GetMovementPoints(movementType);
+            var movementPoints = rulesProvider == null
+                ? unit.GetMovementPoints(movementType)
+                : unit.GetMovementPoints(movementType, rulesProvider);
             var canMoveBackward = unit.CanMoveBackward(movementType);
             return map.GetReachableHexesForPosition(unit.Position,
                 movementPoints,

@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -222,6 +223,9 @@ public class CriticalHitsCalculatorTests
         result.CriticalHits.Count.ShouldBe(1);
         result.CriticalHits[0].Location.ShouldBe(PartLocation.CenterTorso);
         result.CriticalHits[0].NumCriticalHits.ShouldBe(1);
+        testUnit.Events.ShouldContain(e => e.Type == UiEventType.CriticalHit);
+        testUnit.Parts[PartLocation.CenterTorso].HitSlots.ShouldNotBeEmpty(
+            "CalculateAndApplyCriticalHits applies the generated critical-hit resolution");
         _mockDiceRoller.Received(1).Roll2D6();
     }
 

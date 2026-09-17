@@ -22,6 +22,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     
     public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
+        var destroyedPartsBefore = unit.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = unit.IsDestroyed;
         var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(unit, hitLocationsData);
 
         // If no critical hits occurred, no need to send a command
@@ -29,11 +34,18 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             return null;
 
         // Send critical hits resolution command
+        var newlyDestroyedParts = unit.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
             TargetId = unit.Id,
-            CriticalHits = allCriticalHitsData
+            CriticalHits = allCriticalHitsData,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && unit.IsDestroyed
         };
     }
     
@@ -64,7 +76,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             ExplosionDamageDistribution = explosionDamageData.ToArray()
         };
         
-        var explosionConsequences = 
+        var explosionConsequences =
             ProcessAndApplyCriticalHitsDamage(unit, explosionDamageData.ToList());
 
         return new List<LocationCriticalHitsData>
@@ -94,7 +106,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             if (criticalHitsData != null)
             {
                 // KNOWN ISSUE
-                // This is a side effect and a deviation from the common design of applying server commands via BaseGame 
+                // This is a side effect and a deviation from the common design of applying server commands via BaseGame
                 unit.ApplyCriticalHits([criticalHitsData]);
                 allCriticalHitsData.Add(criticalHitsData);
             }

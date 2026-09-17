@@ -56,6 +56,10 @@
     <controls:ConnectionStatusBanner
         IsVisible="{Binding IsConnectionBannerVisible}"
         ConnectionStatus="{Binding ConnectionStatus.OnlineConnectionStatus}"/>
+    <Button Content="{extensions:Localize 'Connection_Retry'}"
+            Command="{Binding RetryConnectionCommand}"
+            IsVisible="{Binding CanRetryConnection}"
+            HorizontalAlignment="Stretch"/>
   </StackPanel>
 
 </UserControl>

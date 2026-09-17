@@ -59,6 +59,12 @@ public class MapTransformCalculator
     /// </summary>
     public Matrix Matrix => new(Scale, 0, 0, Scale, TranslateX, TranslateY);
 
+    /// <summary>
+    /// Sets the complete map transform used by the renderer.
+    /// </summary>
+    /// <param name="scale">Uniform content scale.</param>
+    /// <param name="translateX">Horizontal translation in parent coordinates.</param>
+    /// <param name="translateY">Vertical translation in parent coordinates.</param>
     public void SetTransform(double scale, double translateX, double translateY)
     {
         Scale = scale;

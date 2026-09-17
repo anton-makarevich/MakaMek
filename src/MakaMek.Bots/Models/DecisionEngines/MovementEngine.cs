@@ -194,7 +194,8 @@ public class MovementEngine : IBotDecisionEngine
                 unit,
                 movementType,
                 occupiedHexes,
-                friendlyPositions);
+                friendlyPositions,
+                _clientGame.RulesProvider);
 
             var reachablePaths = new List<MovementPath>();
 
@@ -205,7 +206,7 @@ public class MovementEngine : IBotDecisionEngine
                     unit.Position,
                     coordinates,
                     movementType,
-                    unit.GetMovementPoints(movementType),
+                    unit.GetMovementPoints(movementType, _clientGame.RulesProvider),
                     reachabilityData,
                     unit.Height,
                     unit.MaxLevelChangeForward,
@@ -332,5 +333,4 @@ public class MovementEngine : IBotDecisionEngine
         await MoveUnit(player, unmovedUnit, MovementPath.CreateSingleSegmentPath(position));
     }
 }
-
 

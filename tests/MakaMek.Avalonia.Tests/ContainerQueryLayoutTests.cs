@@ -2,8 +2,10 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
@@ -216,6 +218,35 @@ public class ContainerQueryLayoutTests
             Dispatcher.UIThread.RunJobs();
 
             section.Padding.ShouldBe(new Thickness(10, 5));
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task BattleMapView_RecordSheet_HasSafeMinimumHeight()
+    {
+        var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(ContainerQueryLayoutTests).Assembly);
+
+        await session.Dispatch(() =>
+        {
+            var view = new BattleMapView();
+            var panel = view.FindControl<GamePanel>("RecordSheetPanel");
+
+            panel.ShouldNotBeNull();
+            panel.MinHeight.ShouldBe(0);
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task UnitRecordSheet_Summary_Contains_Damage_PaperDoll()
+    {
+        var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(ContainerQueryLayoutTests).Assembly);
+
+        await session.Dispatch(() =>
+        {
+            var sheet = new Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet();
+            var indicator = sheet.FindControl<Sanet.MakaMek.Avalonia.Controls.UnitHealthIndicator>("SummaryHealthIndicator");
+
+            indicator.ShouldNotBeNull();
         }, CancellationToken.None);
     }
 

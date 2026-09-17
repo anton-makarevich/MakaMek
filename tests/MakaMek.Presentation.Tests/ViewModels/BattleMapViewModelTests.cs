@@ -4,6 +4,7 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -20,6 +21,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -108,6 +110,42 @@ public class BattleMapViewModelTests
         var setter = property.GetSetMethod(true)
             ?? throw new MissingMethodException(nameof(BattleMapViewModel), "set_CurrentState");
         setter.Invoke(sut, [state]);
+    }
+
+    [Fact]
+    public void InitiativeState_ActiveLocalPlayer_CanRollInitiative()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [unitData], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        _game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Initiative
+        });
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+
+        var state = new InitiativeState(_sut);
+
+        state.IsActionRequired.ShouldBeTrue();
+        state.ExecutePlayerAction();
+
+        _commandPublisher.Received().PublishCommand(Arg.Is<RollDiceCommand>(command =>
+            command.PlayerId == player.Id && command.GameOriginId == _game.Id));
     }
 
     [Fact]
@@ -518,6 +556,30 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void ErrorCommand_ShouldExposeImmediateFeedbackOutsideCommandLog()
+    {
+        // Arrange
+        var clientGame = CreateClientGame();
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Action rejected: {0}");
+        _sut.Game = clientGame;
+
+        // Act
+        clientGame.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = null,
+            ErrorCode = ErrorCode.ValidationFailed,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        _sut.IsCommandFeedbackVisible.ShouldBeTrue();
+        _sut.CommandFeedbackLabel.ShouldBe("Action rejected: Validation failed");
+        _sut.CommandLog.ShouldContain("Validation failed");
+    }
+
+    [Fact]
     public void HexConfiguration_ShouldNotBeNull_AfterConstruction()
     {
         // Assert
@@ -898,6 +960,64 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void OpeningCommandLog_ShouldCloseMapSettingsAndRecordSheet()
+    {
+        _sut.IsMapSettingsPanelVisible = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleCommandLog();
+
+        _sut.IsCommandLogExpanded.ShouldBeTrue();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningMapSettings_ShouldCloseCommandLogAndRecordSheet()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleMapSettings();
+
+        _sut.IsMapSettingsPanelVisible.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningRecordSheet_ShouldCloseUtilityPanels()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsMapSettingsPanelVisible = true;
+
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.IsRecordSheetExpanded.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ShowingDirectionSelector_ShouldCloseUtilityPanels()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsMapSettingsPanelVisible = true;
+        _sut.IsRecordSheetExpanded = true;
+        var position = new HexCoordinates(2, 3);
+
+        _sut.ShowDirectionSelector(position, [HexDirection.Top, HexDirection.Bottom]);
+
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+        _sut.DirectionSelectorPosition.ShouldBe(position);
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+    }
+
+    [Fact]
     public void MovementPhase_WithActivePlayer_ShouldShowCorrectActionLabel()
     {
         // Arrange
@@ -1216,6 +1336,23 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void InspectUnit_OpensDrawer_WithoutChangingPhaseSelection()
+    {
+        var mockState = Substitute.For<IUiState>();
+        var selectedUnit = new Mech("Selected", "SEL-1", 20, []);
+        var inspectedUnit = new Mech("Inspected", "INS-1", 50, []);
+        mockState.SelectedUnit.Returns(selectedUnit);
+        SetCurrentState(_sut, mockState);
+
+        _sut.InspectUnit(inspectedUnit);
+
+        _sut.SelectedUnit.ShouldBe(selectedUnit);
+        _sut.InspectedUnit.ShouldBe(inspectedUnit);
+        _sut.IsRecordSheetExpanded.ShouldBeTrue();
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitNotExpanded_ReturnsFalse()
     {
         var mockState = Substitute.For<IUiState>();
@@ -1377,6 +1514,18 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void ToggleMapControlsDrawer_TogglesDrawerVisibility()
+    {
+        _sut.IsMapControlsDrawerOpen.ShouldBeFalse();
+
+        _sut.ToggleMapControlsDrawer();
+        _sut.IsMapControlsDrawerOpen.ShouldBeTrue();
+
+        _sut.ToggleMapControlsDrawer();
+        _sut.IsMapControlsDrawerOpen.ShouldBeFalse();
+    }
+
+    [Fact]
     public void WeaponSelectionItems_WhenInWeaponsAttackState_ReturnsWeaponsFromState()
     {
         // Arrange
@@ -1432,6 +1581,57 @@ public class BattleMapViewModelTests
         // Assert
         items.ShouldNotBeEmpty();
         items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
+    }
+
+    [Fact]
+    public void AttackSelectionSummary_ReportsSelectedWeaponCosts()
+    {
+        // Arrange
+        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var laser = new MediumLaser();
+        var machineGun = new MachineGun();
+        attacker.Parts[PartLocation.LeftArm].TryAddComponent(laser, [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(machineGun, [1]).ShouldBeTrue();
+
+        var laserVm = CreateWeaponSelectionItem(laser, remainingAmmoShots: -1);
+        var machineGunVm = CreateWeaponSelectionItem(machineGun, remainingAmmoShots: 3);
+        laserVm.IsSelected = true;
+        machineGunVm.IsSelected = true;
+        _sut.WeaponSelectionItems.Add(laserVm);
+        _sut.WeaponSelectionItems.Add(machineGunVm);
+        _localizationService.GetString("WeaponSelection_AttackSummary")
+            .Returns("Selected: {0} weapon(s) · Heat +{1} · Ammo -{2}");
+
+        // Act
+        var count = _sut.SelectedAttackWeaponCount;
+        var heat = _sut.SelectedAttackHeat;
+        var ammo = _sut.SelectedAttackAmmo;
+
+        // Assert
+        count.ShouldBe(2);
+        heat.ShouldBe(laser.Heat + machineGun.Heat);
+        ammo.ShouldBe(1);
+        _sut.AttackSelectionSummaryText.ShouldBe(
+            $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
+    }
+
+    private WeaponSelectionViewModel CreateWeaponSelectionItem(
+        Weapon weapon,
+        int remainingAmmoShots)
+    {
+        var item = new WeaponSelectionViewModel(
+            weapon,
+            isInRange: true,
+            isSelected: false,
+            isEnabled: true,
+            target: null,
+            onSelectionChanged: (_, _) => { },
+            onAimedShotRequest: _ => { },
+            localizationService: _localizationService,
+            toHitCalculator: Substitute.For<IToHitCalculator>(),
+            remainingAmmoShots);
+        item.ModifiersBreakdown = CreateTestBreakdown(5);
+        return item;
     }
 
     [Fact]
@@ -2923,7 +3123,8 @@ public class BattleMapViewModelTests
                 Distance = 5,
                 WeaponName = "Test"
             },
-            TerrainModifiers = []
+            TerrainModifiers = [],
+            FiringArc = FiringArc.Front
         };
     }
 

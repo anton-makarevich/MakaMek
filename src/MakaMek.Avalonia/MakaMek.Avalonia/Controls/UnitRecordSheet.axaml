@@ -7,54 +7,165 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
+    <!-- The sheet is intentionally tabbed: each header combines an icon with a localized label
+         so the information remains discoverable without relying on icon recognition. -->
     <!-- All bindings in this file use #UnitRecordSheetControl element-name syntax
          against the control's own properties, so no root x:DataType is required. -->
     <Grid RowDefinitions="*,Auto">
         <!-- Tabs -->
-        <TabControl Grid.Row="0" Margin="0,5,0,0">
+        <TabControl Grid.Row="0"
+                    Margin="0,5,0,0"
+                    SelectedIndex="{Binding #UnitRecordSheetControl.SelectedTabIndex, Mode=TwoWay}">
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabSummary'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <StackPanel Margin="{StaticResource PageMargin}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="{StaticResource PageMargin}">
                     <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
                              IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
                              Margin="0,0,0,5"/>
+                    <Button Classes="actionButtonText"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding #UnitRecordSheetControl.FocusCommand}"
+                            CommandParameter="{Binding #UnitRecordSheetControl.Unit}"
+                            Content="{extensions:Localize 'BattleMap_CenterOnUnit'}"
+                            Margin="0,0,0,6"/>
+                    <Button Classes="actionButtonText"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding #UnitRecordSheetControl.PinCommand}"
+                            Content="{Binding #UnitRecordSheetControl.IsPinned,
+                                Converter={StaticResource DrawerPinTextConverter}}"
+                            Margin="0,0,0,6"/>
+                    <!-- Critical alerts stay above the detailed panels so the tactical consequence
+                         is visible immediately when the drawer opens. -->
+                    <StackPanel Spacing="4" Margin="0,0,0,6">
+                        <Border Background="{StaticResource ErrorBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                IsVisible="{Binding #UnitRecordSheetControl.Unit.IsDestroyed}">
+                            <TextBlock Text="{extensions:Localize 'UnitInfo_AlertDestroyed'}"
+                                       Foreground="White"
+                                       Classes="bodySmall"/>
+                        </Border>
+                        <Border Background="{StaticResource WarningBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                IsVisible="{Binding #UnitRecordSheetControl.Unit.IsShutdown}">
+                            <TextBlock Text="{extensions:Localize 'UnitInfo_AlertShutdown'}"
+                                       Classes="bodySmall"/>
+                        </Border>
+                        <Border Background="{StaticResource WarningBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                IsVisible="{Binding #UnitRecordSheetControl.Unit.IsImmobile}">
+                            <TextBlock Text="{extensions:Localize 'UnitInfo_AlertImmobile'}"
+                                       Classes="bodySmall"/>
+                        </Border>
+                        <Border Background="{StaticResource WarningBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                IsVisible="{Binding #UnitRecordSheetControl.Unit.CurrentHeat,
+                                    Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=9}">
+                            <TextBlock Text="{extensions:Localize 'UnitInfo_AlertHeat'}"
+                                       Classes="bodySmall"/>
+                        </Border>
+                    </StackPanel>
                     <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
+                    <!-- The summary is the at-a-glance combat view: show the paper-doll damage
+                         state here so players do not need to open the Armor tab for basic status. -->
+                    <Border Classes="card" Margin="0,8,0,4">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{extensions:Localize 'UnitInfo_DamageStatus'}"
+                                       Classes="h4"
+                                       HorizontalAlignment="Center"/>
+                            <controls:UnitHealthIndicator
+                                Name="SummaryHealthIndicator"
+                                Unit="{Binding #UnitRecordSheetControl.Unit}"
+                                HorizontalAlignment="Center"/>
+                            <WrapPanel HorizontalAlignment="Center"
+                                       ItemSpacing="10"
+                                       LineSpacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Border Width="12" Height="12" Background="{StaticResource MechArmorBrush}"/>
+                                    <TextBlock Text="{extensions:Localize 'UnitInfo_ArmorLegend'}" Classes="bodySmall"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Border Width="12" Height="12" Background="{StaticResource MechStructureBrush}"/>
+                                    <TextBlock Text="{extensions:Localize 'UnitInfo_StructureLegend'}" Classes="bodySmall"/>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
                     <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
                     <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
-                </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
             <TabItem IsVisible="{Binding #UnitRecordSheetControl.HasPilot}">
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabPilot'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <controls:UnitPilotInfoPanel DataContext="{Binding #UnitRecordSheetControl.EditablePilot}"
-                                             CanEdit="{Binding #UnitRecordSheetControl.CanEdit}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <controls:UnitPilotInfoPanel DataContext="{Binding #UnitRecordSheetControl.EditablePilot}"
+                                                 CanEdit="{Binding #UnitRecordSheetControl.CanEdit}"/>
+                </ScrollViewer>
             </TabItem>
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabArmor'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <controls:UnitHealthIndicator Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <controls:UnitHealthIndicator Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+                </ScrollViewer>
             </TabItem>
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabWeapons'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <controls:UnitWeaponsPanel Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <controls:UnitWeaponsPanel Unit="{Binding #UnitRecordSheetControl.Unit}"/>
+                </ScrollViewer>
             </TabItem>
             <TabItem>
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabComponents'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <controls:UnitComponentsPanel Unit="{Binding #UnitRecordSheetControl.Unit}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <controls:UnitComponentsPanel Unit="{Binding #UnitRecordSheetControl.Unit}" />
+                </ScrollViewer>
             </TabItem>
             <TabItem IsVisible="{Binding #UnitRecordSheetControl.ShowEventsTab}">
                 <TabItem.Header>
-                    <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_TabEvents'}" Classes="body"/>
+                    </StackPanel>
                 </TabItem.Header>
-                <controls:UnitEventsPanel/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <controls:UnitEventsPanel/>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
 

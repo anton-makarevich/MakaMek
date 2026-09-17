@@ -12,6 +12,12 @@
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+            <converters:UnitStatusToBrushConverter x:Key="UnitStatusToBrushConverter"/>
+            <converters:HeatRiskToBrushConverter x:Key="HeatRiskToBrushConverter"/>
+            <converters:UnitIntegrityPercentConverter x:Key="UnitIntegrityPercentConverter"/>
+            <converters:CompactPanelLayoutConverter x:Key="CompactPanelLayoutConverter"/>
+            <converters:UnitEventBadgeConverter x:Key="UnitEventBadgeConverter"/>
+            <converters:DrawerPinTextConverter x:Key="DrawerPinTextConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
             <!-- DI-injected converters (HubStatus*, ConnectionStatus*, ComponentStatusBackground,
                  SelectedItemToBrush, Consciousness*, ModifierToText, SegmentEventToText,

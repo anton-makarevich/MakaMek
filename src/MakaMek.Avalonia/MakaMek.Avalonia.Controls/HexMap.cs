@@ -353,6 +353,48 @@ public class HexMap : Canvas
         SyncTransform();
     }
 
+    /// <summary>
+    /// Zooms around the center of the visible map viewport.
+    /// </summary>
+    public void Zoom(double scaleFactor)
+    {
+        if (_calculator.ApplyZoom(scaleFactor, new Point(Bounds.Width / 2, Bounds.Height / 2)))
+            SyncTransform();
+    }
+
+    /// <summary>
+    /// Fits the complete rendered map within the visible viewport.
+    /// </summary>
+    public void FitMap()
+    {
+        if (Width <= 0 || Height <= 0 || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+
+        var scale = Math.Min(Bounds.Width / Width, Bounds.Height / Height);
+        scale = Math.Clamp(scale, MinScale, MaxScale);
+        var translateX = (Bounds.Width - Width * scale) / 2;
+        var translateY = (Bounds.Height - Height * scale) / 2;
+        _calculator.SetTransform(scale, translateX, translateY);
+        SyncTransform();
+    }
+
+    /// <summary>
+    /// Pans the map so the specified hex is centered in the visible map viewport,
+    /// preserving the current zoom level.
+    /// </summary>
+    /// <param name="coordinates">The map coordinates to bring into view.</param>
+    public void CenterOnHex(HexCoordinates coordinates)
+    {
+        var contentCenter = new Point(
+            coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
+            coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
+        var viewportCenter = new Point(Bounds.Width / 2, Bounds.Height / 2);
+        _calculator.SetTransform(
+            _calculator.Scale,
+            viewportCenter.X - contentCenter.X * _calculator.Scale,
+            viewportCenter.Y - contentCenter.Y * _calculator.Scale);
+        SyncTransform();
+    }
+
     public void ResetZoom()
     {
         _calculator.ResetZoom();

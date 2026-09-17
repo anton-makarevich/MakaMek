@@ -255,6 +255,23 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldContain("Critical Roll: 8");
         result.ShouldContain("Number of critical hits: 1");
     }
+
+    [Fact]
+    public void Render_ShouldShowDestroyedPartsAndUnitDestroyed()
+    {
+        var command = CreateCommand([]) with
+        {
+            DestroyedParts = [PartLocation.LeftArm, PartLocation.RightArm],
+            UnitDestroyed = true
+        };
+
+        var result = command.Render(_localizationService, _game);
+
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("Left Arm destroyed");
+        result.ShouldContain("Right Arm destroyed");
+        result.ShouldContain($"{_target.Model} has been destroyed!");
+    }
     
     private CriticalHitsResolutionCommand CreateCommand(List<LocationCriticalHitsData> criticalHits)
     {
