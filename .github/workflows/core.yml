@@ -22,7 +22,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      contents: read
     env:
       COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
@@ -48,17 +48,33 @@ jobs:
           flags: core
           fail_ci_if_error: true
 
-      - name: Diff coverage report
+      - name: Generate diff coverage report
+        id: report
         if: github.event_name == 'pull_request'
-        uses: anton-makarevich/Cocodif@v0.2.2
+        uses: anton-makarevich/Cocodif@v0.2.3
         with:
           coverage-files: ./tests/MakaMek.Core.Tests/coverage.opencover.xml
           title: Core Coverage
-          comment-marker: '<!-- cocodif-core -->'
           include: 'src/MakaMek.Core/**'
           exclude: '**/obj/**,**/bin/**'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment: 'false'
+          summary: 'false'
+
+      - name: Stage coverage comment artifact
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/cocodif-core"
+          cp "${{ steps.report.outputs.report-path }}" "$RUNNER_TEMP/cocodif-core/report.md"
+          echo "${{ github.event.pull_request.number }}" > "$RUNNER_TEMP/cocodif-core/pr_number"
+
+      - name: Upload coverage comment artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cocodif-core
+          path: ${{ runner.temp }}/cocodif-core
+          if-no-files-found: ignore
   
   publish-nuget:
     runs-on: ubuntu-latest
