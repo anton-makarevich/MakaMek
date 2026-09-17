@@ -4,6 +4,8 @@ Project-level planning, requirements specifications, gap tracking, and subsystem
 
 ## Documents
 
+| [ui-qol-roadmap.md](ui-qol-roadmap.md) | Prioritized UI/UX quality-of-life roadmap and completion tracking |
+
 | Document | Purpose | Summary |
 |----------|---------|---------|
 | [MakaMek-MVP-PRD.md](MakaMek-MVP-PRD.md) | Requirements specification | Product Requirements Document defining the scope, features, and acceptance criteria for the MakaMek MVP |
