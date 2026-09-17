@@ -42,9 +42,14 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { player2, player1 });
 
         // Deploy units
-        foreach (var unit in player1.Units.Concat(player2.Units))
+        foreach (var unit in player1.Units)
         {
             unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+        }
+
+        foreach (var unit in player2.Units)
+        {
+            unit.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         }
     }
 
@@ -118,6 +123,27 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_WhenAttackTargetsSelf_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit.Id,
+            TargetUnitId = unit.Id,
+            AttackType = PhysicalAttackType.Punch
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
     }
 
     [Fact]
