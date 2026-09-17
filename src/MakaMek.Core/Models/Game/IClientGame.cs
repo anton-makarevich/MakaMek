@@ -52,6 +52,8 @@ public interface IClientGame:IGame
     Task<bool> MoveUnit(MoveUnitCommand command);
     Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command);
     Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command);
+    Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command);
+    Task<bool> PassPhysicalAttack(PassPhysicalAttackCommand command);
     Task<bool> EndTurn(TurnEndedCommand command);
     Task<bool> TryStandupUnit(TryStandupCommand command);
     Task<bool> ShutdownUnit(ShutdownUnitCommand command);

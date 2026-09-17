@@ -185,6 +185,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Action_SelectTarget"] = "Select Target",
         ["Action_TurnTorso"] = "Turn Torso",
         ["Action_SkipAttack"] = "Skip Attack",
+        ["Command_PhysicalAttack_Pass"] = "{0} passes physical attack with {1}",
         ["Action_DeclareAttack"] = "Declare Attack",
         ["Action_SelectUnitToMove"] = "Select unit to move",
         ["Action_SelectMovementType"] = "Select movement type",

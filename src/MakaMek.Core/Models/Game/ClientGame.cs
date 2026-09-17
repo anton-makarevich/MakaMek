@@ -343,6 +343,16 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
 
+    /// <summary>
+    /// Sends a physical-attack declaration to the authoritative game.
+    /// </summary>
+    public Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command) => SendPlayerAction(command);
+
+    /// <summary>
+    /// Sends a physical-attack pass to complete the active unit's action.
+    /// </summary>
+    public Task<bool> PassPhysicalAttack(PassPhysicalAttackCommand command) => SendPlayerAction(command);
+
     public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
 
     public Task<bool> TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);

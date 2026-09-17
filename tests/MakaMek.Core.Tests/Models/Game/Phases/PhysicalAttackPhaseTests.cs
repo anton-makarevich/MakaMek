@@ -82,6 +82,24 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenUnitPasses_ShouldPublishAndUpdateTurn()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+
+        _sut.HandleCommand(new PassPhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = activePlayer.Units[0].Id
+        });
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PassPhysicalAttackCommand>(command =>
+            command.PlayerId == activePlayer.Id && command.UnitId == activePlayer.Units[0].Id));
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(activePlayer.Units.Count - 1);
+    }
+
+    [Fact]
     public void HandleCommand_WhenWrongPlayer_ShouldIgnoreCommand()
     {
         // Arrange
