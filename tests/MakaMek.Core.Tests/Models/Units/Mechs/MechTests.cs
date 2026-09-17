@@ -1760,7 +1760,9 @@ public class MechTests
         var rulesProvider = Substitute.For<IRulesProvider>();
         rulesProvider.GetHeatMovementPenalty(Arg.Any<int>()).Returns(6);
         rulesProvider.GetHeatAttackPenalty(Arg.Any<int>()).Returns(7);
-        rulesProvider.GetLifeSupportPilotDamage(Arg.Any<int>()).Returns(0);
+        rulesProvider.GetLifeSupportPilotDamage(Arg.Any<int>()).Returns(3);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.GetAllComponents<LifeSupport>().Single().Hit();
 
         sut.ApplyHeat(new HeatData
         {
@@ -1775,6 +1777,8 @@ public class MechTests
             .OfType<HeatRollModifier>()
             .Single()
             .Value.ShouldBe(7);
+        sut.Pilot!.Injuries.ShouldBe(3);
+        rulesProvider.Received().GetLifeSupportPilotDamage(sut.CurrentHeat);
     }
 
     [Fact]
