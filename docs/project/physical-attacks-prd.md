@@ -1,5 +1,7 @@
 # Physical Attacks — Initial Implementation Plan
 
+> Status: the punch/kick vertical slice is implemented and covered through local serialized transport. Push, charge, DFA, and physical-weapon attacks remain intentionally unsupported until their movement, PSR/DSR, equipment, and damage-transfer rules have dedicated acceptance criteria.
+
 ## Status
 
 Proposed first vertical slice. Physical attacks are intentionally not wired into the live phase order yet. The current Version 1 rules document explicitly excludes them, and the existing command and phase are placeholders.
