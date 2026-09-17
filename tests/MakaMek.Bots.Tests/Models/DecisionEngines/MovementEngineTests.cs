@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -188,6 +189,9 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([unit]);
         _clientGame.Players.Returns([_player]);
         unit.GetAvailableMovementTypes().Returns([MovementType.Walk]);
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        _clientGame.RulesProvider.Returns(rulesProvider);
+        unit.GetMovementPoints(MovementType.Walk, rulesProvider).Returns(4);
 
         // Mock reachable hexes
         var targetHex = new HexCoordinates(2, 2);
