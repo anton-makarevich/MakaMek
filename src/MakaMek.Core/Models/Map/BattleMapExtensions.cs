@@ -110,6 +110,8 @@ public static class BattleMapExtensions
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
         /// <param name="pathFindingMode">The pathfinding strategy to use (the shortest or longest path)</param>
         /// <param name="targetSurface">The surface to use for the destination hex (defaults to Ground)</param>
+        /// <param name="preferredFacings">Optional facing subset to evaluate. When omitted or empty,
+        /// all six facings are evaluated.</param>
         /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
         public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
             HexPosition startPosition,
@@ -122,13 +124,18 @@ public static class BattleMapExtensions
             int maxLevelChangeBackward,
             IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
             PathFindingMode pathFindingMode = PathFindingMode.Shortest,
-            HexSurface? targetSurface = null)
+            HexSurface? targetSurface = null,
+            IReadOnlyCollection<HexDirection>? preferredFacings = null)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var isForwardReachable = reachableArea.IsForwardReachable(targetHex);
             var isBackwardReachable = reachableArea.IsBackwardReachable(targetHex);
 
-            foreach (var direction in HexDirectionExtensions.AllDirections)
+            var directions = preferredFacings is { Count: > 0 }
+                ? preferredFacings.Distinct()
+                : HexDirectionExtensions.AllDirections;
+
+            foreach (var direction in directions)
             {
                 var targetPos = new HexPosition(targetHex, direction, targetSurface ?? HexSurface.Ground);
                 MovementPath? path = null;
