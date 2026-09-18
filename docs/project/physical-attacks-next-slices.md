@@ -76,3 +76,14 @@ Push currently has a deliberately narrow implementation: adjacent BattleMechs ca
 hit displaces the target one hex directly away when that hex exists and is unoccupied, and no
 domino or PSR consequences are applied yet. Charge and DFA remain rejected by
 `PhysicalAttackValidator` until their movement contracts exist.
+
+## Expansion hardening checklist
+
+- Keep every new physical-attack result replayable through `GameCommandJsonConverter`.
+- Treat displacement, damage, fall, and PSR outcomes as authoritative server data; clients should
+  apply commands rather than recalculate them.
+- Preserve `IdempotencyKey` values when accepted declarations are rebroadcast.
+- Reject stale, duplicate, wrong-owner, same-side, unsupported, and blocked-destination commands
+  before rolling dice or consuming the active unit's action.
+- Add one focused Core test, one serialized transport test, and one Presentation test for each new
+  attack type before exposing it in the UI or bot decision engines.

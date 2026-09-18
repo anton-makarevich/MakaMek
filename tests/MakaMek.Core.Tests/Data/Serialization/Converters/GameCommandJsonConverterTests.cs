@@ -458,6 +458,36 @@ public class GameCommandJsonConverterTests
         hullBreachCommand.BreachedLocations[0].EngineHitsApplied.ShouldBe(3);
     }
 
+    [Fact]
+    public void RoundTrip_PhysicalPushResolution_PreservesDisplacementTarget()
+    {
+        var originalCommand = new PhysicalAttackResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            AttackType = PhysicalAttackType.Push,
+            ResolutionData = new AttackResolutionData(
+                5,
+                [new Sanet.MakaMek.Core.Models.Game.Dice.DiceResult(6), new(5)],
+                true,
+                HitDirection.Front,
+                0,
+                DisplacementTarget: new HexCoordinateData(2, 3)),
+            Timestamp = DateTime.UtcNow
+        };
+
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        deserializedCommand.ShouldBeOfType<PhysicalAttackResolutionCommand>();
+        var resolutionCommand = (PhysicalAttackResolutionCommand)deserializedCommand!;
+        resolutionCommand.AttackType.ShouldBe(PhysicalAttackType.Push);
+        resolutionCommand.ResolutionData.IsHit.ShouldBeTrue();
+        resolutionCommand.ResolutionData.DisplacementTarget.ShouldBe(new HexCoordinateData(2, 3));
+    }
+
     [Theory]
     [InlineData("AmmoExplosionCommand")]
     [InlineData("ChangeActivePlayerCommand")]
