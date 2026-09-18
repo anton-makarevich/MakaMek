@@ -116,7 +116,7 @@ MakaMek implements the following game phases (from `PhaseNames.cs`):
 4. **Movement** - Unit movement and positioning *(requires LLM decision)*
 5. **WeaponsAttack** - Weapon target declaration *(requires LLM decision)*
 6. **WeaponAttackResolution** - Attack resolution and damage
-7. **PhysicalAttack** - Melee combat (not yet implemented)
+7. **PhysicalAttack** - Melee combat (Punch/Kick plus the narrow Push slice; Charge and DFA remain deferred)
 8. **Heat** - Heat management and effects
 9. **End** - Turn cleanup and phase cycling *(requires LLM decision)*
 

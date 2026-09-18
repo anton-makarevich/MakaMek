@@ -235,6 +235,25 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenPassUsesAnotherPlayersUnit_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var foreignUnit = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PassPhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = foreignUnit.Id
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PassPhysicalAttackCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Fact]
     public void HandleCommand_WhenUnitDeclaresTwice_ShouldRejectSecondDeclaration()
     {
         _sut.Enter();

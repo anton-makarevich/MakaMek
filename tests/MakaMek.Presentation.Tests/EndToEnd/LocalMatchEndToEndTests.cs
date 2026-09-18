@@ -169,7 +169,7 @@ public sealed class LocalMatchEndToEndTests : IDisposable
                 GameOriginId = activeClient.Id,
                 PlayerId = activePlayerId,
                 UnitId = activeServerUnit.Id,
-                Position = index == 0 ? new HexCoordinateData(1, 1) : new HexCoordinateData(1, 2),
+                Position = index == 0 ? new HexCoordinateData(3, 3) : new HexCoordinateData(3, 4),
                 Direction = 0
             })).ShouldBeTrue();
             await WaitUntil(() => activeServerUnit.IsDeployed);
@@ -257,6 +257,54 @@ public sealed class LocalMatchEndToEndTests : IDisposable
     }
 
     [Fact]
+    public async Task PhysicalPushTravelsThroughTransport_AndMovesBothClientMirrorsWithoutDamage()
+    {
+        await AdvanceToPhysicalAttack();
+
+        var attackerPlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+        var attackerClient = attackerPlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+        var attacker = _server.Players.Single(p => p.Id == attackerPlayerId).Units.Single();
+        var target = _server.Players.Single(p => p.Id != attackerPlayerId).Units.Single();
+        var expectedDestination = target.Position!.Coordinates.GetNeighbour(
+            attacker.Position!.Coordinates.GetDirectionToNeighbour(target.Position.Coordinates));
+        var armorBefore = target.TotalCurrentArmor;
+
+        var accepted = await attackerClient.DeclarePhysicalAttack(new PhysicalAttackCommand
+        {
+            GameOriginId = attackerClient.Id,
+            PlayerId = attackerPlayerId,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Push
+        });
+
+        accepted.ShouldBeTrue();
+        await WaitUntil(() => target.Position?.Coordinates == expectedDestination
+            && _clientOne.CommandLog.Any(command => command is DisplaceUnitCommand)
+            && _clientTwo.CommandLog.Any(command => command is DisplaceUnitCommand));
+
+        target.Position!.Coordinates.ShouldBe(expectedDestination);
+        target.TotalCurrentArmor.ShouldBe(armorBefore);
+        _clientOne.CommandLog.ShouldContain(command => command is PhysicalAttackResolutionCommand
+            && ((PhysicalAttackResolutionCommand)command).AttackType == PhysicalAttackType.Push
+            && ((PhysicalAttackResolutionCommand)command).ResolutionData.IsHit
+            && ((PhysicalAttackResolutionCommand)command).ResolutionData.HitLocationsData == null);
+        _clientTwo.CommandLog.ShouldContain(command => command is PhysicalAttackResolutionCommand
+            && ((PhysicalAttackResolutionCommand)command).AttackType == PhysicalAttackType.Push
+            && ((PhysicalAttackResolutionCommand)command).ResolutionData.IsHit
+            && ((PhysicalAttackResolutionCommand)command).ResolutionData.HitLocationsData == null);
+        _clientOne.CommandLog.ShouldContain(command => command is DisplaceUnitCommand
+            && ((DisplaceUnitCommand)command).UnitId == target.Id);
+        _clientTwo.CommandLog.ShouldContain(command => command is DisplaceUnitCommand
+            && ((DisplaceUnitCommand)command).UnitId == target.Id);
+
+        _clientOne.Players.SelectMany(player => player.Units).Single(unit => unit.Id == target.Id)
+            .Position!.Coordinates.ShouldBe(expectedDestination);
+        _clientTwo.Players.SelectMany(player => player.Units).Single(unit => unit.Id == target.Id)
+            .Position!.Coordinates.ShouldBe(expectedDestination);
+    }
+
+    [Fact]
     public async Task InvalidPhysicalAttack_IsRejectedWithoutDamageOrTurnProgress()
     {
         await AdvanceToPhysicalAttack();
@@ -326,7 +374,7 @@ public sealed class LocalMatchEndToEndTests : IDisposable
                 GameOriginId = activeClient.Id,
                 PlayerId = activePlayerId,
                 UnitId = activeServerUnit.Id,
-                Position = index == 0 ? new HexCoordinateData(1, 1) : new HexCoordinateData(1, 2),
+                Position = index == 0 ? new HexCoordinateData(3, 3) : new HexCoordinateData(3, 4),
                 Direction = 0
             })).ShouldBeTrue();
             await WaitUntil(() => activeServerUnit.IsDeployed);
