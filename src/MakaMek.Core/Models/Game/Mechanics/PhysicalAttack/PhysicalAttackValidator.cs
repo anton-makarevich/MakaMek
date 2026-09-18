@@ -5,12 +5,12 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
-/// Validates the geometry and unit types supported by the initial physical-attack slice.
+/// Validates the geometry and unit types supported by the initial physical-attack slices.
 /// </summary>
 public sealed class PhysicalAttackValidator
 {
     /// <summary>
-    /// Validates a punch or kick between two adjacent deployed BattleMechs.
+    /// Validates a punch, kick, or push between two adjacent deployed BattleMechs.
     /// </summary>
     /// <param name="attacker">The unit declaring the attack.</param>
     /// <param name="target">The intended target.</param>
@@ -27,7 +27,7 @@ public sealed class PhysicalAttackValidator
         if (attacker.Id == target.Id)
             return PhysicalAttackValidationResult.Invalid("A unit cannot target itself.");
 
-        if (attackType is not (PhysicalAttackType.Punch or PhysicalAttackType.Kick))
+        if (attackType is not (PhysicalAttackType.Punch or PhysicalAttackType.Kick or PhysicalAttackType.Push))
             return PhysicalAttackValidationResult.Invalid($"Physical attack type {attackType} is not supported yet.");
 
         if (attacker.IsDestroyed || target.IsDestroyed)

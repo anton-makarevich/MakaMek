@@ -9,7 +9,7 @@ using Sanet.MakaMek.Presentation.ViewModels;
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 /// <summary>
-/// Presents the physical-attack phase and its safe pass action while punch/kick resolution is added.
+/// Presents the physical-attack phase and its safe pass action for punch, kick, and push.
 /// </summary>
 public sealed class PhysicalAttackState : IUiState
 {
@@ -129,6 +129,10 @@ public sealed class PhysicalAttackState : IUiState
                 _viewModel.LocalizationService.GetString("Action_Kick"),
                 true,
                 () => SendPhysicalAttack(PhysicalAttackType.Kick)));
+            actions.Insert(2, new StateAction(
+                _viewModel.LocalizationService.GetString("Action_Push"),
+                true,
+                () => SendPhysicalAttack(PhysicalAttackType.Push)));
         }
 
         return actions;

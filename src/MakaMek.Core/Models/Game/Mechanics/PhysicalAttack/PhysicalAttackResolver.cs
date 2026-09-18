@@ -3,11 +3,12 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
-/// Resolves the initial simplified BattleMech punch and kick rules.
+/// Resolves the initial simplified BattleMech punch, kick, and push rules.
 /// </summary>
 public sealed class PhysicalAttackResolver : IPhysicalAttackResolver
 {
@@ -42,6 +43,21 @@ public sealed class PhysicalAttackResolver : IPhysicalAttackResolver
 
         var locationRoll = _diceRoller.Roll2D6();
         var initialLocation = _rulesProvider.GetHitLocation(locationRoll.Sum(die => die.Result), attackDirection);
+        if (attackType == PhysicalAttackType.Push)
+        {
+            var pushDirection = attacker.Position?.Coordinates.GetDirectionToNeighbour(target.Position!.Coordinates)
+                ?? HexDirection.Top;
+            var destination = target.Position!.Coordinates.GetNeighbour(pushDirection);
+
+            return new AttackResolutionData(
+                toHitNumber,
+                attackRoll,
+                true,
+                attackDirection,
+                0,
+                DisplacementTarget: new HexCoordinateData(destination.Q, destination.R));
+        }
+
         var damage = Math.Max(1, attackType == PhysicalAttackType.Kick
             ? attacker.Tonnage / 5
             : attacker.Tonnage / 10);

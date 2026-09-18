@@ -156,6 +156,21 @@ public sealed class PhysicalAttackStateTests
     }
 
     [Fact]
+    public void GetAvailableActions_WithAdjacentTarget_ProvidesExplicitPushAction()
+    {
+        _sut.HandleUnitSelectionFromList(_localUnit);
+        _sut.HandleHexSelection(_game.BattleMap!.GetHex(_enemyUnit.Position!.Coordinates)!);
+
+        var push = _sut.GetAvailableActions().Single(action => action.Label == "Push");
+        push.OnExecute();
+
+        _commandPublisher.Received(1).PublishCommand(
+            Arg.Is<PhysicalAttackCommand>(command =>
+                command.AttackType == PhysicalAttackType.Push &&
+                command.TargetUnitId == _enemyUnit.Id));
+    }
+
+    [Fact]
     public void GetAvailableActions_WithoutTarget_ProvidesPassActionOnly()
     {
         _sut.HandleUnitSelectionFromList(_localUnit);

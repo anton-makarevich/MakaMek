@@ -191,6 +191,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Action_PassPhysicalAttack"] = "Pass physical attack",
         ["Action_Punch"] = "Punch",
         ["Action_Kick"] = "Kick",
+        ["Action_Push"] = "Push",
         ["Command_PhysicalAttack_Pass"] = "{0} passes physical attack with {1}",
         ["Command_PhysicalAttack_Resolution"] = "{0} makes a {2} against {1} (to-hit {3}, rolled {4})",
         ["Command_PhysicalAttack_Damage"] = "Damage: {0}",

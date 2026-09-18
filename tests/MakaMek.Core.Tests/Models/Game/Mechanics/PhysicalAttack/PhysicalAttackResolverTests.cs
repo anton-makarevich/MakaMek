@@ -63,6 +63,19 @@ public class PhysicalAttackResolverTests
     }
 
     [Fact]
+    public void Resolve_WhenPushHits_ShouldReturnDisplacementWithoutDamage()
+    {
+        _dice.Roll2D6().Returns([new DiceResult(6), new DiceResult(6)]);
+
+        var result = _sut.Resolve(_attacker, _target, PhysicalAttackType.Push);
+
+        result.IsHit.ShouldBeTrue();
+        result.HitLocationsData.ShouldBeNull();
+        result.DisplacementTarget.ShouldBe(new Sanet.MakaMek.Map.Data.HexCoordinateData(1, 3));
+        _damage.DidNotReceiveWithAnyArgs().CalculateStructureDamage(default!, default, default, default, default);
+    }
+
+    [Fact]
     public void Resolve_WhenAttackRollMisses_ShouldNotCalculateDamage()
     {
         _dice.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]);

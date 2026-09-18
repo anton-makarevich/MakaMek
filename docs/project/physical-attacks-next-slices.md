@@ -3,7 +3,7 @@
 The initial vertical slice supports adjacent BattleMech Punch and Kick attacks. The following
 features require separate contracts before production implementation.
 
-## Slice 1 — Push
+## Slice 1 — Push (in progress)
 
 Required decisions and data:
 
@@ -64,6 +64,7 @@ Required decisions and data:
 
 ## Current guardrail
 
-`PhysicalAttackType.Push`, `Charge`, and `DFA` exist in the enum for roadmap compatibility but are
-intentionally rejected by `PhysicalAttackValidator` until these contracts are implemented. This
-prevents clients from silently sending partially supported attacks.
+Push currently has a deliberately narrow implementation: adjacent BattleMechs can make a push, a
+hit displaces the target one hex directly away when that hex exists and is unoccupied, and no
+domino or PSR consequences are applied yet. Charge and DFA remain rejected by
+`PhysicalAttackValidator` until their movement contracts exist.

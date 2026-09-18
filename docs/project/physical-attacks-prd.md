@@ -1,13 +1,14 @@
 # Physical Attacks — Initial Implementation Plan
 
-> Status: the punch/kick vertical slice is implemented and covered through local serialized transport. Push, charge, DFA, and physical-weapon attacks remain intentionally unsupported until their movement, PSR/DSR, equipment, and damage-transfer rules have dedicated acceptance criteria.
+> Status: the punch/kick vertical slice is implemented and covered through local serialized transport. Push has a narrow one-hex displacement slice; charge, DFA, and physical-weapon attacks remain intentionally unsupported until their movement, PSR/DSR, equipment, and damage-transfer rules have dedicated acceptance criteria.
 
 ## Status
 
 Implemented vertical slice. The live phase order now runs `WeaponAttackResolution → PhysicalAttack → Heat`.
-The current slice supports adjacent BattleMech punch/kick declarations, authoritative resolution,
-damage/result broadcasting, and explicit pass handling through local serialized transport. Push,
-charge, DFA, physical weapons, vehicles, and advanced physical-attack rules remain future slices.
+The current slice supports adjacent BattleMech punch/kick/push declarations, authoritative
+resolution, damage/displacement result broadcasting, and explicit pass handling through local
+serialized transport. Charge, DFA, physical weapons, vehicles, and advanced physical-attack rules
+remain future slices.
 
 ## Goal
 
@@ -24,7 +25,7 @@ The first playable slice should support:
 - Deterministic command/result data that clients can render and replay.
 - Explicit pass/no-attack handling so the phase cannot deadlock.
 
-The first slice should not include charge, DFA, push, clubs, physical weapons, vehicles, or advanced technology. Those mechanics introduce movement, falling, equipment, or unit-type rules that need separate acceptance criteria.
+The first slice does not include charge, DFA, clubs, physical weapons, vehicles, or advanced technology. Push is now supported only as a one-hex displacement slice; its domino, PSR, and edge-case rules need separate acceptance criteria.
 
 ## Existing seams
 

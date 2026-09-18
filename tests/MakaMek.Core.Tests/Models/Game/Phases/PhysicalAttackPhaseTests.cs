@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -91,6 +92,36 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenPushHits_ShouldPublishDisplacementAndMoveTarget()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var expectedDestination = target.Position!.Coordinates.GetNeighbour(
+            attacker.Position!.Coordinates.GetDirectionToNeighbour(target.Position.Coordinates));
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Push
+        });
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackResolutionCommand>(command =>
+            command.AttackType == PhysicalAttackType.Push &&
+            command.ResolutionData.IsHit &&
+            command.ResolutionData.HitLocationsData == null &&
+            command.ResolutionData.DisplacementTarget != null));
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<DisplaceUnitCommand>(command =>
+            command.UnitId == target.Id &&
+            command.DisplacementReason == DisplacementReason.PhysicalAttackPush));
+        target.Position!.Coordinates.ShouldBe(expectedDestination);
+    }
+
+    [Fact]
     public void HandleCommand_WhenUnitPasses_ShouldPublishAndUpdateTurn()
     {
         _sut.Enter();
@@ -151,7 +182,6 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void HandleCommand_WhenFutureAttackTypeIsDeclared_ShouldRejectWithoutConsumingAction(
