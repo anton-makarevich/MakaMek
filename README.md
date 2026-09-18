@@ -75,7 +75,6 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 ### Future (possible) phases
 - Support of paved areas and buildings
-- Physical attacks
 - Support of advanced tech rules (Clan, LosTech equipment and more)
 - Support for vehicles, battle armor and infantry
 - Tools for creating and managing custom units and maps, compatible with common community data formats

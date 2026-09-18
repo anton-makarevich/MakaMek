@@ -93,6 +93,9 @@ public sealed class PhysicalAttackState : IUiState
         if (_validator.Validate(SelectedUnit, unit, PhysicalAttackType.Punch).IsValid)
         {
             _selectedTarget = unit;
+            // Punch is the primary action when a target is selected. Kick remains
+            // available through the explicit action menu.
+            _selectedAttackType = PhysicalAttackType.Punch;
             _viewModel.NotifyStateChanged();
         }
     }

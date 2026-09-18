@@ -26,6 +26,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
         var deploymentFallback = new DeploymentEngine(clientGame);
         var movementFallback = new MovementEngine(clientGame, TacticalEvaluator);
         var weaponsFallback = new WeaponsEngine(clientGame, TacticalEvaluator);
+        var physicalAttackFallback = new PhysicalAttackEngine(clientGame);
         var endPhaseFallback = new EndPhaseEngine(clientGame);
 
         // Create LLM-enabled engines that wrap the fallback engines
@@ -58,6 +59,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
                     mcpServerUrl,
                     loggerFactory.CreateLogger<LlmWeaponsEngine>())
             },
+            { PhaseNames.PhysicalAttack, physicalAttackFallback },
             {
                 PhaseNames.End,
                 new LlmEndPhaseEngine(

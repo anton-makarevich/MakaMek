@@ -1,5 +1,8 @@
 ﻿**MakaMek** MVP targets the set of rules described in this document.
-This document focuses on a simplified set of rules for BattleMechs, using equipment primarily from the 3025 era (Succession Wars) and basic terrain types like clear and woods, without incorporating complex levels or physical attacks.
+This document defines the original simplified Version 1 baseline for BattleMechs, using equipment
+primarily from the 3025 era and basic clear/woods terrain. It intentionally excludes complex levels
+and physical attacks. The live application has since added a separate physical-attack vertical slice;
+see `docs/rules/Overview.md` and `docs/project/physical-attacks-prd.md` for current scope.
 
 ### BattleMechs: The Core Units
 
@@ -100,4 +103,3 @@ BattleMechs generate **heat points** from movement and weapon fire. This interna
     *   **Shutdown**: At heat levels of 14, 18, 22, 26, 30, a 'Mech automatically attempts to shut down its power plant as a safety measure, becoming immobile and unable to attack until restarted.
     *   **Ammunition**: If heat reaches or exceeds 19, 23, or 28 points, ammunition may explode, damaging the MechWarrior.
     *   **Damage to MechWarriors**: If life-support systems are critically hit, the MechWarrior takes damage at heat levels of 15 or more.
-
