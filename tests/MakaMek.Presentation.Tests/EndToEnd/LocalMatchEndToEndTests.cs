@@ -283,6 +283,34 @@ public sealed class LocalMatchEndToEndTests : IDisposable
         _server.CommandLog.ShouldNotContain(command => command is PhysicalAttackResolutionCommand);
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public async Task UnsupportedPhysicalAttack_IsRejectedThroughSerializedTransport(PhysicalAttackType attackType)
+    {
+        await AdvanceToPhysicalAttack();
+
+        var attackerPlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+        var attackerClient = attackerPlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+        var attacker = _server.Players.Single(p => p.Id == attackerPlayerId).Units.Single();
+        var target = _server.Players.Single(p => p.Id != attackerPlayerId).Units.Single();
+        var unitsRemaining = _server.PhaseStepState.Value.UnitsToPlay;
+
+        var accepted = await attackerClient.DeclarePhysicalAttack(new PhysicalAttackCommand
+        {
+            GameOriginId = attackerClient.Id,
+            PlayerId = attackerPlayerId,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = attackType
+        });
+
+        accepted.ShouldBeFalse();
+        _server.TurnPhase.ShouldBe(PhaseNames.PhysicalAttack);
+        _server.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+        _server.CommandLog.ShouldNotContain(command => command is PhysicalAttackResolutionCommand);
+    }
+
     private async Task AdvanceToPhysicalAttack()
     {
         await JoinReadyAndStart();

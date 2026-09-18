@@ -30,6 +30,11 @@ Required decisions and data:
 Likely implementation seams: movement command/path data, movement phase completion state, physical
 resolution, damage transfer, and fall actions.
 
+Safe preparation is complete for this slice: `Charge` remains rejected at the phase boundary, and
+local serialized transport tests verify that rejection does not publish a resolution or consume
+the active unit's turn. The first production change should introduce the declaration/path contract
+before enabling the enum value.
+
 ## Slice 3 — Death From Above (DFA)
 
 Required decisions and data:
@@ -39,6 +44,9 @@ Required decisions and data:
 - Define the attacker's post-DFA facing/position and fall behavior.
 
 This should reuse movement/fall actions rather than adding a second jump or fall implementation.
+
+Like Charge, DFA is covered by serialized rejection tests until its jump path and landing contract
+are defined.
 
 ## Slice 4 — Physical weapons
 
