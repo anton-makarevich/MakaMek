@@ -12,7 +12,7 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.PhysicalAttack;
 
-/// <summary>Tests the simplified punch and kick resolution contract.</summary>
+/// <summary>Tests the simplified punch, kick, and push resolution contract.</summary>
 public class PhysicalAttackResolverTests
 {
     private readonly IRulesProvider _rules = Substitute.For<IRulesProvider>();

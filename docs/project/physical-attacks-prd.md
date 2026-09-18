@@ -41,7 +41,7 @@ The first slice does not include charge, DFA, clubs, physical weapons, vehicles,
 
 ## Remaining contracts and follow-up slices
 
-1. Expand result data and rules for push, charge, DFA, physical weapons, and piloting consequences.
+1. Extend Push with domino/PSR edge cases, then add result data and rules for charge, DFA, physical weapons, and piloting consequences.
 2. Define the complete punch/kick modifiers for actuator damage and facing as the rules slice grows.
 3. Add presentation regression coverage for target selection, explicit Punch/Kick actions, pass,
    and result display.

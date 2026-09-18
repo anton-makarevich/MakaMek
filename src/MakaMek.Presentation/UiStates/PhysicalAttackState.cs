@@ -129,10 +129,13 @@ public sealed class PhysicalAttackState : IUiState
                 _viewModel.LocalizationService.GetString("Action_Kick"),
                 true,
                 () => SendPhysicalAttack(PhysicalAttackType.Kick)));
-            actions.Insert(2, new StateAction(
-                _viewModel.LocalizationService.GetString("Action_Push"),
-                true,
-                () => SendPhysicalAttack(PhysicalAttackType.Push)));
+            if (CanPushTarget())
+            {
+                actions.Insert(2, new StateAction(
+                    _viewModel.LocalizationService.GetString("Action_Push"),
+                    true,
+                    () => SendPhysicalAttack(PhysicalAttackType.Push)));
+            }
         }
 
         return actions;
@@ -193,5 +196,17 @@ public sealed class PhysicalAttackState : IUiState
             _viewModel.HighlightCoordinates(
                 _targetCoordinates,
                 new AttackReachableHighlight([], AttackRangeBand.Short, "Physical attack target"));
+    }
+
+    private bool CanPushTarget()
+    {
+        if (_selectedUnit?.Position is not { } attackerPosition || _selectedTarget?.Position is not { } targetPosition)
+            return false;
+
+        var pushDirection = attackerPosition.Coordinates.GetDirectionToNeighbour(targetPosition.Coordinates);
+        var destination = targetPosition.Coordinates.GetNeighbour(pushDirection);
+        return Game.BattleMap?.GetHex(destination) != null
+            && !Game.Players.SelectMany(player => player.Units)
+                .Any(unit => unit.Id != _selectedTarget.Id && unit.Position?.Coordinates == destination);
     }
 }

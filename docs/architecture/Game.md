@@ -29,7 +29,7 @@ The Game module orchestrates the core game loop, state, and player interactions 
 - **Phases:**
   - The game progresses through a set of well-defined phases: Start → Deployment → Initiative → Movement → WeaponsAttack → WeaponAttackResolution → PhysicalAttack → Heat → End
   - Each phase is represented by a class implementing `IGamePhase` (e.g., `StartPhase`, `MovementPhase`, `WeaponsAttackPhase`, `WeaponAttackResolutionPhase`).
-  - **PhysicalAttackPhase:** Integrated between weapon resolution and heat. The current vertical slice supports adjacent BattleMech punch/kick declarations, authoritative resolution, damage broadcast, and pass handling. Push, charge, DFA, and physical-weapon attacks remain separate follow-up rule slices.
+  - **PhysicalAttackPhase:** Integrated between weapon resolution and heat. The current vertical slice supports adjacent BattleMech punch/kick declarations and a narrow one-hex Push displacement, with authoritative resolution, result broadcast, and pass handling. Charge, DFA, and physical-weapon attacks remain separate follow-up rule slices.
   - `PhaseManager` coordinates phase transitions and enforces phase-specific rules.
   - Each phase transition triggers `ResetPhaseState()` on all units to reset damage tracking.
 
