@@ -122,6 +122,37 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenPushDestinationIsOccupied_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var destination = target.Position!.Coordinates.GetNeighbour(
+            attacker.Position!.Coordinates.GetDirectionToNeighbour(target.Position.Coordinates));
+        var blocker = Game.Players
+            .SelectMany(player => player.Units)
+            .First(unit => unit.Id != attacker.Id && unit.Id != target.Id);
+        blocker.RemoveFromBoard();
+        blocker.Deploy(new HexPosition(destination, HexDirection.Top), null);
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Push
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<DisplaceUnitCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+        target.Position!.Coordinates.ShouldNotBe(destination);
+    }
+
+    [Fact]
     public void HandleCommand_WhenUnitPasses_ShouldPublishAndUpdateTurn()
     {
         _sut.Enter();

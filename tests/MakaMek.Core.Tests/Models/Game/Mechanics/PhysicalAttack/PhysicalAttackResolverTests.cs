@@ -76,6 +76,18 @@ public class PhysicalAttackResolverTests
     }
 
     [Fact]
+    public void Resolve_WhenPushMisses_ShouldNotReturnDisplacement()
+    {
+        _dice.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]);
+
+        var result = _sut.Resolve(_attacker, _target, PhysicalAttackType.Push);
+
+        result.IsHit.ShouldBeFalse();
+        result.DisplacementTarget.ShouldBeNull();
+        result.HitLocationsData.ShouldBeNull();
+    }
+
+    [Fact]
     public void Resolve_WhenAttackRollMisses_ShouldNotCalculateDamage()
     {
         _dice.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]);
