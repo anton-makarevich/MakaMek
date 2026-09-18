@@ -38,6 +38,7 @@ jobs:
         id: resolve
         if: steps.download.outcome == 'success'
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
           PR_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           PR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
