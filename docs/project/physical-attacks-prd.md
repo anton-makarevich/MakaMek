@@ -46,6 +46,11 @@ The first slice should not include charge, DFA, push, clubs, physical weapons, v
    and result display.
 4. Add invalid, duplicate, stale, and rejected-command transport cases.
 
+Detailed acceptance planning for the next rule slices is in
+`docs/project/physical-attacks-next-slices.md`. Push, charge, DFA, physical weapons, and PSR
+consequences remain intentionally rejected until their movement, displacement, equipment, and
+roll-result contracts are complete.
+
 ## Acceptance criteria
 
 - A unit can complete the physical-attack phase by attacking or passing.

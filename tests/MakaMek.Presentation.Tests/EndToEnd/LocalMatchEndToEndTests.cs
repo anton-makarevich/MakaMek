@@ -256,6 +256,91 @@ public sealed class LocalMatchEndToEndTests : IDisposable
             string.Join(", ", _server.CommandLog.Select(command => command.GetType().Name)));
     }
 
+    [Fact]
+    public async Task InvalidPhysicalAttack_IsRejectedWithoutDamageOrTurnProgress()
+    {
+        await AdvanceToPhysicalAttack();
+
+        var attackerPlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+        var attackerClient = attackerPlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+        var attacker = _server.Players.Single(p => p.Id == attackerPlayerId).Units.Single();
+        var armorBefore = attacker.TotalCurrentArmor;
+        var activeUnitIdBefore = _server.PhaseStepState.Value.ActivePlayer.Id;
+
+        var accepted = await attackerClient.DeclarePhysicalAttack(new PhysicalAttackCommand
+        {
+            GameOriginId = attackerClient.Id,
+            PlayerId = attackerPlayerId,
+            UnitId = attacker.Id,
+            TargetUnitId = attacker.Id,
+            AttackType = PhysicalAttackType.Punch
+        });
+
+        accepted.ShouldBeFalse();
+        _server.TurnPhase.ShouldBe(PhaseNames.PhysicalAttack);
+        _server.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(activeUnitIdBefore);
+        attacker.TotalCurrentArmor.ShouldBe(armorBefore);
+        _server.CommandLog.ShouldNotContain(command => command is PhysicalAttackResolutionCommand);
+    }
+
+    private async Task AdvanceToPhysicalAttack()
+    {
+        await JoinReadyAndStart();
+
+        for (var index = 0; index < 2; index++)
+        {
+            var activePlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+            var activeServerUnit = _server.Players.Single(p => p.Id == activePlayerId).Units.Single();
+            var activeClient = activePlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+            await WaitUntil(() => activeClient.CanActivePlayerAct);
+            (await activeClient.DeployUnit(new DeployUnitCommand
+            {
+                GameOriginId = activeClient.Id,
+                PlayerId = activePlayerId,
+                UnitId = activeServerUnit.Id,
+                Position = index == 0 ? new HexCoordinateData(1, 1) : new HexCoordinateData(1, 2),
+                Direction = 0
+            })).ShouldBeTrue();
+            await WaitUntil(() => activeServerUnit.IsDeployed);
+        }
+
+        await WaitUntil(() => _server.TurnPhase == PhaseNames.Movement);
+        for (var index = 0; index < 2; index++)
+        {
+            var activePlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+            var activeServerUnit = _server.Players.Single(p => p.Id == activePlayerId).Units.Single();
+            var activeClient = activePlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+            await WaitUntil(() => activeClient.CanActivePlayerAct);
+            (await activeClient.MoveUnit(new MoveUnitCommand
+            {
+                GameOriginId = activeClient.Id,
+                PlayerId = activePlayerId,
+                UnitId = activeServerUnit.Id,
+                MovementType = MovementType.StandingStill,
+                MovementPath = MovementPath.CreateSingleSegmentPath(activeServerUnit.Position!).ToData(),
+                IsCompleted = true
+            })).ShouldBeTrue();
+        }
+
+        await WaitUntil(() => _server.TurnPhase == PhaseNames.WeaponsAttack);
+        for (var index = 0; index < 2; index++)
+        {
+            var activePlayerId = _server.PhaseStepState!.Value.ActivePlayer.Id;
+            var activeClient = activePlayerId == _playerOne.Id ? _clientOne : _clientTwo;
+            var activeUnit = _server.Players.Single(p => p.Id == activePlayerId).Units.Single();
+            await WaitUntil(() => activeClient.CanActivePlayerAct);
+            (await activeClient.DeclareWeaponAttack(new WeaponAttackDeclarationCommand
+            {
+                GameOriginId = activeClient.Id,
+                PlayerId = activePlayerId,
+                UnitId = activeUnit.Id,
+                WeaponTargets = []
+            })).ShouldBeTrue();
+        }
+
+        await WaitUntil(() => _server.TurnPhase == PhaseNames.PhysicalAttack);
+    }
+
     /// <summary>Creates the minimum ready lobby state needed by the phase workflow.</summary>
     private async Task JoinReadyAndStart()
     {

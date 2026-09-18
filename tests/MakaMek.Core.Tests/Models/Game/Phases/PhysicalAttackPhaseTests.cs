@@ -150,6 +150,31 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void HandleCommand_WhenFutureAttackTypeIsDeclared_ShouldRejectWithoutConsumingAction(
+        PhysicalAttackType attackType)
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit.Id,
+            TargetUnitId = _unit2Id,
+            AttackType = attackType
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
     [Fact]
     public void HandleCommand_WhenAllUnitsAttacked_ShouldTransitionToNextPhase()
     {
