@@ -212,6 +212,52 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
     }
 
+    [Fact]
+    public void HandleCommand_WhenUnitBelongsToAnotherPlayer_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var foreignUnit = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var target = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = foreignUnit.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Punch
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenUnitDeclaresTwice_ShouldRejectSecondDeclaration()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Punch
+        };
+
+        _sut.HandleCommand(command);
+        var unitsRemaining = Game.PhaseStepState!.Value.UnitsToPlay;
+        _sut.HandleCommand(command);
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
     [Theory]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
