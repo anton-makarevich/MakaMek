@@ -76,6 +76,9 @@ public abstract class Component : IManufacturedItem
 
     public void Mount(UnitPart mountLocation, int[] slots)
     {
+        ArgumentNullException.ThrowIfNull(mountLocation);
+        ArgumentNullException.ThrowIfNull(slots);
+
         if (slots.Length > Size)
         {
             throw new ComponentException($"Component {Name} requires {Size} slots.");
@@ -93,6 +96,7 @@ public abstract class Component : IManufacturedItem
             }
         }
 
+        var assignments = new List<CriticalSlotAssignment>();
         var start = slots[0];
         var length = 1;
 
@@ -105,8 +109,8 @@ public abstract class Component : IManufacturedItem
             }
             else
             {
-                // Break in sequence → commit current rangeBracket
-                Mount(new CriticalSlotAssignment
+                // Break in sequence; stage the current range for an atomic commit.
+                assignments.Add(new CriticalSlotAssignment
                 {
                     UnitPart = mountLocation,
                     FirstSlot = start,
@@ -119,27 +123,67 @@ public abstract class Component : IManufacturedItem
             }
         }
 
-        // Commit the last rangeBracket
-        Mount(new CriticalSlotAssignment
+        assignments.Add(new CriticalSlotAssignment
         {
             UnitPart = mountLocation,
             FirstSlot = start,
             Length = length
         });
+
+        MountAllOrThrow(assignments);
     }
-    
-    private void Mount(CriticalSlotAssignment slotAssignment)
+
+    private void MountAllOrThrow(IEnumerable<CriticalSlotAssignment> assignments)
     {
+        ArgumentNullException.ThrowIfNull(assignments);
         if (IsMounted) return;
-        if (slotAssignment.FirstSlot + slotAssignment.Length > slotAssignment.UnitPart.TotalSlots)
-            throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
-        var occupiedSlots = _slotAssignments.Sum(a => a.Length);
-        if (occupiedSlots + slotAssignment.Length > Size)
+
+        var staged = assignments.ToList();
+        if (staged.Count == 0) return;
+        if (staged.Any(a => a is null))
+            throw new ArgumentException("Assignments cannot contain null entries.", nameof(assignments));
+
+        foreach (var assignment in staged)
         {
-            throw new ComponentException($"Component {Name} requires {Size} slots.");
+            if (assignment.UnitPart is null)
+                throw new ArgumentException("Assignment.UnitPart cannot be null.", nameof(assignments));
+            if (assignment.FirstSlot < 0 || assignment.Length <= 0)
+                throw new ArgumentOutOfRangeException(nameof(assignments), "FirstSlot must be >= 0 and Length > 0.");
+            if (assignment.FirstSlot > assignment.UnitPart.TotalSlots - assignment.Length)
+                throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
         }
 
-        _slotAssignments.Add(slotAssignment);
+        foreach (var group in staged.GroupBy(a => a.UnitPart))
+        {
+            var intervals = new List<(int Start, int End)>();
+            foreach (var assignment in group)
+            {
+                var start = assignment.FirstSlot;
+                var end = start + assignment.Length - 1;
+                if (intervals.Any(interval => !(end < interval.Start || start > interval.End)))
+                    throw new ComponentException("Overlapping slot assignments for the same unit part.");
+                intervals.Add((start, end));
+            }
+        }
+
+        foreach (var assignment in staged)
+        {
+            var start = assignment.FirstSlot;
+            var end = start + assignment.Length - 1;
+            if (_slotAssignments.Any(existing =>
+                    existing.UnitPart == assignment.UnitPart &&
+                    !(end < existing.FirstSlot || start > existing.FirstSlot + existing.Length - 1)))
+                throw new ComponentException("Assignment overlaps existing mounts on the same part.");
+        }
+
+        var totalUniqueSlots = _slotAssignments.SelectMany(assignment => assignment.Slots)
+            .Concat(staged.SelectMany(assignment => assignment.Slots))
+            .Distinct()
+            .Count();
+        if (totalUniqueSlots > Size)
+            throw new ComponentException($"Component {Name} requires {Size} slots.");
+
+        _slotAssignments.AddRange(staged);
     }
 
     public void UnMount()
