@@ -106,10 +106,22 @@ public class BattleTechPhaseManagerTests
     }
 
     [Fact]
-    public void GetNextPhase_ShouldReturnHeatPhase_WhenCurrentPhaseIsAttackResolution()
+    public void GetNextPhase_ShouldReturnPhysicalAttackPhase_WhenCurrentPhaseIsAttackResolution()
     {
         // Act
         var nextPhase = _sut.GetNextPhase(PhaseNames.WeaponAttackResolution, _game);
+
+        // Assert
+        nextPhase.ShouldNotBeNull();
+        nextPhase.ShouldBeOfType<PhysicalAttackPhase>();
+        nextPhase.Name.ShouldBe(PhaseNames.PhysicalAttack);
+    }
+
+    [Fact]
+    public void GetNextPhase_ShouldReturnHeatPhase_WhenCurrentPhaseIsPhysicalAttack()
+    {
+        // Act
+        var nextPhase = _sut.GetNextPhase(PhaseNames.PhysicalAttack, _game);
 
         // Assert
         nextPhase.ShouldNotBeNull();
@@ -178,6 +190,9 @@ public class BattleTechPhaseManagerTests
         phase = _sut.GetNextPhase(phase.Name, _game);
         phase.ShouldBeOfType<WeaponAttackResolutionPhase>();
         
+        phase = _sut.GetNextPhase(phase.Name, _game);
+        phase.ShouldBeOfType<PhysicalAttackPhase>();
+
         phase = _sut.GetNextPhase(phase.Name, _game);
         phase.ShouldBeOfType<HeatPhase>();
         

@@ -491,6 +491,7 @@ public class WeaponsAttackState : IUiState
         }
 
         var hexToWeaponNames = new Dictionary<HexCoordinates, HashSet<string>>();
+        var hexToRangeBands = new Dictionary<HexCoordinates, HashSet<AttackRangeBand>>();
         foreach (var (weapon, hexes) in _weaponRanges)
         {
             foreach (var h in hexes)
@@ -502,13 +503,24 @@ public class WeaponsAttackState : IUiState
                 }
 
                 set.Add(weapon.Name);
+
+                if (!hexToRangeBands.TryGetValue(h, out var bands))
+                {
+                    bands = [];
+                    hexToRangeBands[h] = bands;
+                }
+
+                bands.Add(GetAttackRangeBand(weapon, unitPosition.Coordinates.DistanceTo(h)));
             }
         }
 
         foreach (var (hex, weaponNames) in hexToWeaponNames)
         {
             var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
-            reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames);
+            var rangeBand = hexToRangeBands[hex].Count == 1
+                ? hexToRangeBands[hex].Single()
+                : AttackRangeBand.Mixed;
+            reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames, rangeBand);
         }
 
         // Apply all highlights in a single batch call so boundary outlines
@@ -518,6 +530,17 @@ public class WeaponsAttackState : IUiState
         foreach (var (k, v) in losHighlights) perHexHighlights[k] = v;
         foreach (var (k, v) in reachableHighlights) perHexHighlights[k] = v;
         _viewModel.HighlightRegions(perHexHighlights);
+    }
+
+    /// <summary>
+    /// Classifies a target hex by the nearest weapon range band that can reach it.
+    /// </summary>
+    private static AttackRangeBand GetAttackRangeBand(Weapon weapon, int distance)
+    {
+        if (weapon.Range == null) return AttackRangeBand.Long;
+        if (distance <= weapon.Range.ShortRange) return AttackRangeBand.Short;
+        if (distance <= weapon.Range.MediumRange) return AttackRangeBand.Medium;
+        return AttackRangeBand.Long;
     }
 
     private void ClearWeaponRangeHighlights()
@@ -669,6 +692,38 @@ public class WeaponsAttackState : IUiState
 
         // Update the view model's collection
         UpdateViewModelWeaponItems();
+        UpdateTargetOverlay();
+    }
+
+    /// <summary>
+    /// Adds target-specific hit chance and expected damage to the target hex.
+    /// Expected damage makes the effective damage loss at longer ranges visible
+    /// without implying that the weapon's printed damage value changes by range.
+    /// </summary>
+    private void UpdateTargetOverlay()
+    {
+        if (SelectedTarget?.Position == null) return;
+
+        var targetHex = SelectedTarget.Position.Coordinates;
+        var weaponDetails = _weaponViewModels.Values
+            .Where(vm => vm.IsInRange
+                         && vm.ModifiersBreakdown?.HasLineOfSight == true
+                         && vm.HitProbability > 0)
+            .Select(vm => $"{vm.Weapon.Name}: {vm.HitProbability:F0}% / "
+                          + $"{vm.Weapon.Damage * vm.HitProbability / 100.0:F1}")
+            .ToList();
+        if (weaponDetails.Count == 0) return;
+
+        var hex = Game.BattleMap?.GetHex(targetHex);
+        var rangeHighlight = hex?.Highlights.OfType<AttackReachableHighlight>().FirstOrDefault();
+        if (rangeHighlight == null) return;
+
+        _viewModel.UpdateAttackHighlight(targetHex, rangeHighlight with
+        {
+            TacticalText = string.Format(
+                _viewModel.LocalizationService.GetString("WeaponSelection_TargetOverlay"),
+                string.Join(" · ", weaponDetails))
+        });
     }
 
     // Helper method to update the view model's weapon items collection

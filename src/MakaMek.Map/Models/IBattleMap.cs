@@ -9,6 +9,11 @@ public interface IBattleMap
     string Biome { get; }
 
     /// <summary>
+    /// Gets or sets the terrain movement-cost rules used by pathfinding.
+    /// </summary>
+    IMovementCostProvider MovementCostProvider { get; set; }
+
+    /// <summary>
     /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries
     /// </summary>
     void AddHex(Hex hex);

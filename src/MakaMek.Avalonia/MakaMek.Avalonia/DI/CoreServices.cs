@@ -110,6 +110,11 @@ public static class CoreServices
         services.AddSingleton<Converters.MovementBreakdownConverter>();
         services.AddSingleton<Converters.HubStatusTextConverter>();
         services.AddSingleton<Converters.ConnectionStatusTextConverter>();
+        services.AddSingleton<Converters.UnitActionHintConverter>();
+        services.AddSingleton<Converters.UnitMovementSummaryConverter>();
+        services.AddSingleton<Converters.UnitPositionSummaryConverter>();
+        services.AddSingleton<Converters.UnitResourceWarningConverter>();
+        services.AddSingleton<Converters.UnitStatusTextConverter>();
 
         // Converters that consume IAvaloniaResourcesLocator
         services.AddSingleton<Converters.ComponentStatusBackgroundConverter>();

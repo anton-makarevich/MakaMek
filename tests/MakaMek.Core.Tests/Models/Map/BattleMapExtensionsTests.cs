@@ -347,6 +347,30 @@ public class BattleMapExtensionsTests
     }
 
     [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldEvaluateOnlyPreferredFacings_WhenProvided()
+    {
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7);
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
+        var preferredFacings = new[] { HexDirection.Top, HexDirection.Bottom };
+
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Jump,
+            movementPoints: 3,
+            reachableArea: reachabilityData,
+            unitHeight: 2,
+            maxLevelChangeForward: 2,
+            maxLevelChangeBackward: 0,
+            preferredFacings: preferredFacings);
+
+        paths.Keys.ShouldBe(preferredFacings);
+    }
+
+    [Fact]
     public void GetPathsToHexWithAllFacings_ShouldReturnEmptyDictionary_WhenTargetTooFarForJump()
     {
         // Arrange

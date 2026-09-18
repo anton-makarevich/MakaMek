@@ -53,6 +53,12 @@
     <Color x:Key="MovementReachableFillColor">#3300BFFF</Color>
     <Color x:Key="AttackReachableStrokeColor">#FFB347</Color>
     <Color x:Key="AttackReachableFillColor">#33FFB347</Color>
+    <Color x:Key="AttackShortRangeStrokeColor">#66E3FF</Color>
+    <Color x:Key="AttackShortRangeFillColor">#3366E3FF</Color>
+    <Color x:Key="AttackLongRangeStrokeColor">#FF8C69</Color>
+    <Color x:Key="AttackLongRangeFillColor">#33FF8C69</Color>
+    <Color x:Key="AttackMixedRangeStrokeColor">#C084FC</Color>
+    <Color x:Key="AttackMixedRangeFillColor">#33C084FC</Color>
     <Color x:Key="LosBlockingStrokeColor">#8B0000</Color>
     <Color x:Key="LosBlockingFillColor">#338B0000</Color>
     <Color x:Key="WhiteHighlightColor">#FFFFFF</Color>
@@ -115,6 +121,12 @@
     <SolidColorBrush x:Key="MovementReachableFillBrush" Color="{StaticResource MovementReachableFillColor}"/>
     <SolidColorBrush x:Key="AttackReachableStrokeBrush" Color="{StaticResource AttackReachableStrokeColor}"/>
     <SolidColorBrush x:Key="AttackReachableFillBrush" Color="{StaticResource AttackReachableFillColor}"/>
+    <SolidColorBrush x:Key="AttackShortRangeStrokeBrush" Color="{StaticResource AttackShortRangeStrokeColor}"/>
+    <SolidColorBrush x:Key="AttackShortRangeFillBrush" Color="{StaticResource AttackShortRangeFillColor}"/>
+    <SolidColorBrush x:Key="AttackLongRangeStrokeBrush" Color="{StaticResource AttackLongRangeStrokeColor}"/>
+    <SolidColorBrush x:Key="AttackLongRangeFillBrush" Color="{StaticResource AttackLongRangeFillColor}"/>
+    <SolidColorBrush x:Key="AttackMixedRangeStrokeBrush" Color="{StaticResource AttackMixedRangeStrokeColor}"/>
+    <SolidColorBrush x:Key="AttackMixedRangeFillBrush" Color="{StaticResource AttackMixedRangeFillColor}"/>
     <SolidColorBrush x:Key="LosBlockingStrokeBrush" Color="{StaticResource LosBlockingStrokeColor}"/>
     <SolidColorBrush x:Key="LosBlockingFillBrush" Color="{StaticResource LosBlockingFillColor}"/>
     <SolidColorBrush x:Key="WhiteHighlightBrush" Color="{StaticResource WhiteHighlightColor}"/>

@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 
@@ -74,12 +75,15 @@ public static class BattleMapExtensions
             IUnit unit,
             MovementType movementType,
             IReadOnlySet<HexCoordinates> prohibitedHexes,
-            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
+            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates,
+            IRulesProvider? rulesProvider = null)
         {
             if (unit.Position == null)
                 return new ReachableArea([], []);
 
-            var movementPoints = unit.GetMovementPoints(movementType);
+            var movementPoints = rulesProvider == null
+                ? unit.GetMovementPoints(movementType)
+                : unit.GetMovementPoints(movementType, rulesProvider);
             var canMoveBackward = unit.CanMoveBackward(movementType);
             return map.GetReachableHexesForPosition(unit.Position,
                 movementPoints,
@@ -106,6 +110,8 @@ public static class BattleMapExtensions
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
         /// <param name="pathFindingMode">The pathfinding strategy to use (the shortest or longest path)</param>
         /// <param name="targetSurface">The surface to use for the destination hex (defaults to Ground)</param>
+        /// <param name="preferredFacings">Optional facing subset to evaluate. When omitted or empty,
+        /// all six facings are evaluated.</param>
         /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
         public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
             HexPosition startPosition,
@@ -118,13 +124,18 @@ public static class BattleMapExtensions
             int maxLevelChangeBackward,
             IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
             PathFindingMode pathFindingMode = PathFindingMode.Shortest,
-            HexSurface? targetSurface = null)
+            HexSurface? targetSurface = null,
+            IReadOnlyCollection<HexDirection>? preferredFacings = null)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var isForwardReachable = reachableArea.IsForwardReachable(targetHex);
             var isBackwardReachable = reachableArea.IsBackwardReachable(targetHex);
 
-            foreach (var direction in HexDirectionExtensions.AllDirections)
+            var directions = preferredFacings is { Count: > 0 }
+                ? preferredFacings.Distinct()
+                : HexDirectionExtensions.AllDirections;
+
+            foreach (var direction in directions)
             {
                 var targetPos = new HexPosition(targetHex, direction, targetSurface ?? HexSurface.Ground);
                 MovementPath? path = null;

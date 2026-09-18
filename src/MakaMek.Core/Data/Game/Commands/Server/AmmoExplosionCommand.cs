@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
 using System.Text;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -26,6 +27,8 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// Critical hits resolution data for the explosion
     /// </summary>
     public required List<LocationCriticalHitsData> CriticalHits { get; init; }
+    public List<PartLocation>? DestroyedParts { get; init; }
+    public bool UnitDestroyed { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
@@ -77,6 +80,24 @@ public record struct AmmoExplosionCommand : IGameCommand
         foreach (var criticalHitData in CriticalHits)
         {
             stringBuilder.Append(criticalHitData.Render(localizationService, unit));
+        }
+
+        if (DestroyedParts is { Count: > 0 })
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+            foreach (var location in DestroyedParts)
+            {
+                stringBuilder.AppendFormat(
+                    localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
+                    localizationService.GetString($"MechPart_{location}")).AppendLine();
+            }
+        }
+
+        if (UnitDestroyed)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
+                unit.Model).AppendLine();
         }
 
         return stringBuilder.ToString().TrimEnd();

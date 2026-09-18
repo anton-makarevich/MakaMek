@@ -45,4 +45,26 @@ public class AttackReachableHighlightTests
 
         sut.Render(_localization).ShouldBe("PPC, ML");
     }
+
+    [Theory]
+    [InlineData(AttackRangeBand.Short, "#66E3FF")]
+    [InlineData(AttackRangeBand.Medium, "#FFB347")]
+    [InlineData(AttackRangeBand.Long, "#FF8C69")]
+    [InlineData(AttackRangeBand.Mixed, "#C084FC")]
+    public void BoundaryOutlineColor_ShouldIdentifyRangeBand(
+        AttackRangeBand rangeBand,
+        string expectedColor)
+    {
+        var sut = new AttackReachableHighlight([], rangeBand);
+
+        sut.BoundaryOutlineColor.ShouldBe(expectedColor);
+    }
+
+    [Fact]
+    public void Render_ShouldPreferTacticalText_WhenProvided()
+    {
+        var sut = new AttackReachableHighlight(["PPC"], TacticalText: "PPC: 58% / 4.1");
+
+        sut.Render(_localization).ShouldBe("PPC: 58% / 4.1");
+    }
 }

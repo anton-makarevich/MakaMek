@@ -15,6 +15,12 @@
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+            <converters:UnitStatusToBrushConverter x:Key="UnitStatusToBrushConverter"/>
+            <converters:HeatRiskToBrushConverter x:Key="HeatRiskToBrushConverter"/>
+            <converters:UnitIntegrityPercentConverter x:Key="UnitIntegrityPercentConverter"/>
+            <converters:CompactPanelLayoutConverter x:Key="CompactPanelLayoutConverter"/>
+            <converters:UnitEventBadgeConverter x:Key="UnitEventBadgeConverter"/>
+            <converters:DrawerPinTextConverter x:Key="DrawerPinTextConverter"/>
             <!-- DI-injected converters (ModifierToTextConverter, ...ConnectionStatusBackgroundConverter)
                  are resolved from the service provider and added to Resources in App.axaml.cs. -->
 

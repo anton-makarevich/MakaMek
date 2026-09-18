@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
+             xmlns:viewModels="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitStatusBarItem"
+             x:Name="UnitStatusItem"
+             x:DataType="units:IUnit">
+    <!-- This card provides orientation and status without replacing the full record sheet. -->
+    <Border Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{Binding Status, Converter={StaticResource UnitStatusToBrushConverter}}"
+            BorderThickness="5,1,1,1"
+            CornerRadius="5"
+            MinWidth="220">
+        <!-- Hover is intentionally a compact read-only preview; activation remains the stable
+             way to open the full drawer, which also works on touch devices. -->
+        <ToolTip.Tip>
+            <Border Padding="10"
+                    Background="{StaticResource BackgroundBrush}"
+                    BorderBrush="{StaticResource PrimaryBrush}"
+                    BorderThickness="1"
+                    CornerRadius="5">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Name}" Classes="h4"/>
+                    <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Text="{extensions:Localize 'UnitInfo_HoverArmor'}" Classes="bodySmall" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Column="1" Classes="bodySmall">
+                            <Run Text="{Binding TotalCurrentArmor}"/>
+                            <Run Text=" / "/>
+                            <Run Text="{Binding TotalMaxArmor}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Row="1" Text="{extensions:Localize 'UnitInfo_HoverStructure'}" Classes="bodySmall" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodySmall">
+                            <Run Text="{Binding TotalCurrentStructure}"/>
+                            <Run Text=" / "/>
+                            <Run Text="{Binding TotalMaxStructure}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Row="2" Text="{extensions:Localize 'UnitInfo_HoverHeat'}" Classes="bodySmall" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentHeat}" Classes="bodySmall"/>
+                        <TextBlock Grid.Row="3" Text="{extensions:Localize 'UnitInfo_HoverMovement'}" Classes="bodySmall" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="bodySmall">
+                            <Run Text="{Binding ., Converter={StaticResource UnitMovementSummaryConverter}}"/>
+                        </TextBlock>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </ToolTip.Tip>
+        <Grid ColumnDefinitions="*,Auto">
+            <Button Command="{Binding $parent[ItemsControl].((viewModels:BattleMapViewModel)DataContext).InspectUnitCommand}"
+                    CommandParameter="{Binding}"
+                    AutomationProperties.Name="Open unit information"
+                    Padding="8,5"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    HorizontalContentAlignment="Stretch">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock
+                           Text="{Binding Name}"
+                           Classes="labelLarge"
+                           Foreground="{StaticResource TextLightBrush}"
+                           TextTrimming="CharacterEllipsis"/>
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <TextBlock Text="{Binding Class}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock Text="{Binding Tonnage, StringFormat={}{0}t}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock Text="{Binding Position, Converter={StaticResource UnitPositionSummaryConverter}}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding CurrentHeat, StringFormat={}{0} heat}" Classes="bodySmall" Foreground="{Binding CurrentHeat, Converter={StaticResource HeatRiskToBrushConverter}}"/>
+                    <TextBlock Text="{Binding ., Converter={StaticResource UnitMovementSummaryConverter}}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding Status, Converter={StaticResource UnitStatusTextConverter}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock Text="{Binding ., Converter={StaticResource UnitActionHintConverter}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource HighlightLightBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding ., Converter={StaticResource UnitResourceWarningConverter}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource ErrorBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Notifications, Converter={StaticResource UnitEventBadgeConverter}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource WarningBrush}"/>
+                </StackPanel>
+                <Grid Grid.Row="3" ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="5" Margin="0,3,0,0">
+                    <ProgressBar Value="{Binding TotalCurrentArmor}" Maximum="{Binding TotalMaxArmor}" Height="5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource UnitIntegrityPercentConverter}">
+                                <Binding Path="TotalCurrentArmor"/>
+                                <Binding Path="TotalMaxArmor"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <ProgressBar Grid.Column="2" Value="{Binding TotalCurrentStructure}" Maximum="{Binding TotalMaxStructure}" Height="5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="3" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource UnitIntegrityPercentConverter}">
+                                <Binding Path="TotalCurrentStructure"/>
+                                <Binding Path="TotalMaxStructure"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </Grid>
+                </Grid>
+            </Button>
+            <Button Grid.Column="1"
+                    Command="{Binding #UnitStatusItem.FocusCommand}"
+                    CommandParameter="{Binding}"
+                    AutomationProperties.Name="Center unit on map"
+                    ToolTip.Tip="Jump to mech on map"
+                    Padding="8,5"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <TextBlock Text="&#x2316;"
+                           FontSize="20"
+                           Foreground="{StaticResource TextLightBrush}"
+                           VerticalAlignment="Center"/>
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

@@ -84,8 +84,13 @@ public class Hex : IDisposable
     /// considering road/paved connections. Returns both the hex entry cost
     /// and the additional terrain-specific cost.
     /// </summary>
-    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    public IEnumerable<MovementCost> GetEnterMovementCost(
+        Hex fromHex,
+        HexSurface fromSurface,
+        HexSurface toSurface,
+        IMovementCostProvider? movementCostProvider = null)
     {
+        movementCostProvider ??= new DefaultMovementCostProvider();
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
         bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
@@ -104,7 +109,9 @@ public class Hex : IDisposable
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
             var terrainCost = new TerrainMovementCost
             {
-                TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
+                TerrainId = toRoad.Id,
+                Value = movementCostProvider.GetMovementCost(toRoad.Id, toRoad.Height),
+                Depth = this.GetWaterDepth()
             };
             return [hexEntry, terrainCost];
         }
@@ -114,7 +121,7 @@ public class Hex : IDisposable
             .Select(t => new TerrainMovementCost
             {
                 TerrainId = t.Id,
-                Value = t.MovementCost,
+                Value = movementCostProvider.GetMovementCost(t.Id, t.Height),
                 Depth = this.GetWaterDepth()
             }).ToList();
 

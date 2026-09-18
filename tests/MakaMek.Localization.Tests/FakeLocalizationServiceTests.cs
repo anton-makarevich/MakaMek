@@ -578,6 +578,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Connection_Status_Reconnecting", "Reconnecting...")]
     [InlineData("Connection_Status_Disconnected", "Disconnected")]
     [InlineData("Connection_Status_Closed", "Connection closed")]
+    [InlineData("Connection_Retry", "Retry connection")]
     public void GetString_ConnectionStatus_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -605,6 +606,12 @@ public class FakeLocalizationServiceTests
     [InlineData("BattleMap_ShowLabels", "Show Labels")]
     [InlineData("BattleMap_ShowHexOutlines", "Show Hex Outlines")]
     [InlineData("BattleMap_ShowHexHighlightText", "Show Hex Highlight Text")]
+    [InlineData("BattleMap_A11y_CenterMap", "Center map")]
+    [InlineData("BattleMap_A11y_OpenUnitInfo", "Open unit information")]
+    [InlineData("BattleMap_A11y_OpenCommandLog", "Open command log")]
+    [InlineData("BattleMap_A11y_OpenMapSettings", "Open map settings")]
+    [InlineData("BattleMap_CommandRejected", "Action rejected: {0}")]
+    [InlineData("BattleMap_CommandTimedOut", "No response from server. Check your connection and try again.")]
     public void GetString_BattleMap_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

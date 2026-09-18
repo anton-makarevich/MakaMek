@@ -23,7 +23,7 @@
         CloseCommand="{Binding CloseWeaponSelectionCommand}"
         HorizontalAlignment="Right"
         VerticalAlignment="Center">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*"
               ColumnDefinitions="Auto,*"
               Width="300">
             <TextBlock
@@ -44,11 +44,33 @@
                 Margin="10,5,10,5"
                 DataContext="{Binding HeatProjection}"/>
 
+            <Border
+                Grid.Row="2"
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Margin="10,0,10,5"
+                Padding="8,5"
+                Classes="statusTag"
+                IsVisible="{Binding IsAttackSelectionSummaryVisible}">
+                <StackPanel Spacing="3">
+                    <TextBlock
+                        Text="{Binding AttackSelectionSummaryText}"
+                        TextWrapping="Wrap"
+                        HorizontalAlignment="Center"/>
+                    <TextBlock
+                        FontSize="10"
+                        Foreground="Gray"
+                        Text="{extensions:Localize 'WeaponSelection_RangeLegend'}"
+                        TextWrapping="Wrap"
+                        HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
             <!-- Selected Target Section -->
             
             <StackPanel
                 DataContext="{Binding SelectedTarget}"
-                Grid.Row="2"
+                Grid.Row="3"
                 Grid.Column="0"
                 Grid.ColumnSpan="2"
                 Margin="10,10,0,0"
@@ -74,7 +96,7 @@
                 </Panel>
             </StackPanel>
 
-            <ScrollViewer Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+            <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
                 <ItemsControl 
                     Margin="{StaticResource PageMargin}"
                     ItemsSource="{Binding WeaponSelectionItems}">
@@ -179,4 +201,3 @@
         </Grid>
     </templatedControls:GamePanel>
 </UserControl>
-

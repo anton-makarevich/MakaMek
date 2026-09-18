@@ -42,7 +42,7 @@ public class ToHitCalculator : IToHitCalculator
     {
         var weaponLocation = weapon.FirstMountPartLocation ??
             throw new Exception($"Weapon {weapon.Name} is not mounted");
-        var scenario = AttackScenario.FromUnits(attacker, target, weaponLocation, isPrimaryTarget, aimedShotTarget);
+        var scenario = AttackScenario.FromUnits(attacker, target, weaponLocation, isPrimaryTarget, aimedShotTarget, _rules);
         return GetModifierBreakdown(scenario, weapon, map);
     }
 

@@ -1,5 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -25,6 +27,8 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         
         _sut = new PhysicalAttackPhase(Game);
 
+        DiceRoller.Roll2D6().Returns([new(6), new(6)]);
+
         // Add two players with units
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1", 2));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
@@ -42,9 +46,14 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         Game.SetInitiativeOrder(new List<IPlayer> { player2, player1 });
 
         // Deploy units
-        foreach (var unit in player1.Units.Concat(player2.Units))
+        foreach (var unit in player1.Units)
         {
             unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+        }
+
+        foreach (var unit in player2.Units)
+        {
+            unit.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         }
     }
 
@@ -75,10 +84,90 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         });
     
         // Assert
-        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(cmd => 
-            cmd.UnitId == _unit1Id && 
-            cmd.TargetUnitId == _unit2Id &&
-            cmd.AttackType == PhysicalAttackType.Punch));
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackResolutionCommand>(cmd =>
+            cmd.AttackerId == _unit1Id &&
+            cmd.TargetId == _unit2Id &&
+            cmd.AttackType == PhysicalAttackType.Punch &&
+            cmd.ResolutionData.IsHit));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenPushHits_ShouldPublishDisplacementAndMoveTarget()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var expectedDestination = target.Position!.Coordinates.GetNeighbour(
+            attacker.Position!.Coordinates.GetDirectionToNeighbour(target.Position.Coordinates));
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Push
+        });
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackResolutionCommand>(command =>
+            command.AttackType == PhysicalAttackType.Push &&
+            command.ResolutionData.IsHit &&
+            command.ResolutionData.HitLocationsData == null &&
+            command.ResolutionData.DisplacementTarget != null));
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<DisplaceUnitCommand>(command =>
+            command.UnitId == target.Id &&
+            command.DisplacementReason == DisplacementReason.PhysicalAttackPush));
+        target.Position!.Coordinates.ShouldBe(expectedDestination);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenPushDestinationIsOccupied_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var destination = target.Position!.Coordinates.GetNeighbour(
+            attacker.Position!.Coordinates.GetDirectionToNeighbour(target.Position.Coordinates));
+        var blocker = Game.Players
+            .SelectMany(player => player.Units)
+            .First(unit => unit.Id != attacker.Id && unit.Id != target.Id);
+        blocker.RemoveFromBoard();
+        blocker.Deploy(new HexPosition(destination, HexDirection.Top), null);
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Push
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<DisplaceUnitCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+        target.Position!.Coordinates.ShouldNotBe(destination);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenUnitPasses_ShouldPublishAndUpdateTurn()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+
+        _sut.HandleCommand(new PassPhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = activePlayer.Units[0].Id
+        });
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PassPhysicalAttackCommand>(command =>
+            command.PlayerId == activePlayer.Id && command.UnitId == activePlayer.Units[0].Id));
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(activePlayer.Units.Count - 1);
     }
 
     [Fact]
@@ -100,6 +189,116 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_WhenAttackTargetsSelf_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit.Id,
+            TargetUnitId = unit.Id,
+            AttackType = PhysicalAttackType.Punch
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenUnitBelongsToAnotherPlayer_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var foreignUnit = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var target = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = foreignUnit.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Punch
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenPassUsesAnotherPlayersUnit_ShouldRejectWithoutConsumingAction()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var foreignUnit = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PassPhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = foreignUnit.Id
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PassPhysicalAttackCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenUnitDeclaresTwice_ShouldRejectSecondDeclaration()
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = activePlayer.Units[0];
+        var target = Game.Players.First(player => player.Id != activePlayer.Id).Units[0];
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = attacker.Id,
+            TargetUnitId = target.Id,
+            AttackType = PhysicalAttackType.Punch
+        };
+
+        _sut.HandleCommand(command);
+        var unitsRemaining = Game.PhaseStepState!.Value.UnitsToPlay;
+        _sut.HandleCommand(command);
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void HandleCommand_WhenFutureAttackTypeIsDeclared_ShouldRejectWithoutConsumingAction(
+        PhysicalAttackType attackType)
+    {
+        _sut.Enter();
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = activePlayer.Units[0];
+        var unitsRemaining = Game.PhaseStepState.Value.UnitsToPlay;
+
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = activePlayer.Id,
+            UnitId = unit.Id,
+            TargetUnitId = _unit2Id,
+            AttackType = attackType
+        });
+
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackResolutionCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(unitsRemaining);
     }
 
     [Fact]

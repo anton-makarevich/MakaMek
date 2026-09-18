@@ -1754,6 +1754,34 @@ public class MechTests
     }
 
     [Fact]
+    public void ProviderAwareHeatModifiers_ShouldUseTheSuppliedRulesProvider()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        rulesProvider.GetHeatMovementPenalty(Arg.Any<int>()).Returns(6);
+        rulesProvider.GetHeatAttackPenalty(Arg.Any<int>()).Returns(7);
+        rulesProvider.GetLifeSupportPilotDamage(Arg.Any<int>()).Returns(3);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.GetAllComponents<LifeSupport>().Single().Hit();
+
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 10 }],
+            ExternalHeatSources = [],
+            DissipationData = default
+        }, rulesProvider);
+
+        sut.GetMovementPoints(MovementType.Walk, rulesProvider).ShouldBe(0);
+        sut.GetAttackModifiers(PartLocation.CenterTorso, rulesProvider)
+            .OfType<HeatRollModifier>()
+            .Single()
+            .Value.ShouldBe(7);
+        sut.Pilot!.Injuries.ShouldBe(3);
+        rulesProvider.Received().GetLifeSupportPilotDamage(sut.CurrentHeat);
+    }
+
+    [Fact]
     public void HeatDissipation_ShouldReduceHeatAndRestoreAttackPenalty()
     {
         // Arrange

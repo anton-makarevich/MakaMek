@@ -102,6 +102,18 @@ public class ComponentTests
     }
 
     [Fact]
+    public void Mount_ShouldNotPartiallyMount_WhenLaterSlotRangeIsInvalid()
+    {
+        var sut = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 3);
+
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [0, 2, 3]));
+
+        sut.IsMounted.ShouldBeFalse();
+        sut.SlotAssignments.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange

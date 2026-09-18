@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models.Logger;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -22,12 +23,15 @@ public class MovementEngine : IBotDecisionEngine
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _evaluator;
     private readonly Random _random;
+    private readonly HexFilteringService _hexFilteringService;
 
-    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null)
+    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null,
+        HexFilteringService? hexFilteringService = null)
     {
         _clientGame = clientGame;
         _evaluator = evaluator;
         _random = random ?? new Random();
+        _hexFilteringService = hexFilteringService ?? new HexFilteringService();
     }
 
     public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
@@ -186,6 +190,10 @@ public class MovementEngine : IBotDecisionEngine
 
         // Evaluate all candidate positions with all available movement types
         var candidateScores = new List<PositionScore>();
+        var enemyPositions = enemyUnits
+            .Where(enemy => enemy.Position is not null)
+            .Select(enemy => enemy.Position!.Coordinates)
+            .ToList();
 
         foreach (var movementType in availableMovementTypes)
         {
@@ -194,24 +202,32 @@ public class MovementEngine : IBotDecisionEngine
                 unit,
                 movementType,
                 occupiedHexes,
-                friendlyPositions);
+                friendlyPositions,
+                _clientGame.RulesProvider);
 
             var reachablePaths = new List<MovementPath>();
 
             // Process all reachable hexes (both forward and backward)
             foreach (var coordinates in reachabilityData.AllReachableCoordinates)
             {
+                var movementPoints = _clientGame.RulesProvider is { } rulesProvider
+                    ? unit.GetMovementPoints(movementType, rulesProvider)
+                    : unit.GetMovementPoints(movementType);
+                var priorityFacings = enemyPositions.Count > 0
+                    ? _hexFilteringService.GetPriorityFacings(coordinates, enemyPositions)
+                    : null;
                 var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
                     unit.Position,
                     coordinates,
                     movementType,
-                    unit.GetMovementPoints(movementType),
+                    movementPoints,
                     reachabilityData,
                     unit.Height,
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
                     occupiedHexes,
-                    PathFindingMode.Longest);
+                    PathFindingMode.Longest,
+                    preferredFacings: priorityFacings);
 
                 reachablePaths.AddRange(paths.Values);
             }
@@ -332,5 +348,3 @@ public class MovementEngine : IBotDecisionEngine
         await MoveUnit(player, unmovedUnit, MovementPath.CreateSingleSegmentPath(position));
     }
 }
-
-

@@ -20,6 +20,7 @@ public class DecisionEngineProvider : IDecisionEngineProvider
             { PhaseNames.Deployment, new DeploymentEngine(clientGame) },
             { PhaseNames.Movement, new MovementEngine(clientGame, tacticalEvaluator) },
             { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame, tacticalEvaluator) },
+            { PhaseNames.PhysicalAttack, new PhysicalAttackEngine(clientGame) },
             { PhaseNames.End, new EndPhaseEngine(clientGame) }
         };
     }

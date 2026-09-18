@@ -29,6 +29,7 @@ public class DecisionEngineProviderTests
         _sut.GetEngineForPhase(PhaseNames.Deployment).ShouldNotBeNull();
         _sut.GetEngineForPhase(PhaseNames.Movement).ShouldNotBeNull();
         _sut.GetEngineForPhase(PhaseNames.WeaponsAttack).ShouldNotBeNull();
+        _sut.GetEngineForPhase(PhaseNames.PhysicalAttack).ShouldNotBeNull();
         _sut.GetEngineForPhase(PhaseNames.End).ShouldNotBeNull();
     }
 
@@ -74,6 +75,15 @@ public class DecisionEngineProviderTests
         // Assert
         engine.ShouldNotBeNull();
         engine.ShouldBeOfType<EndPhaseEngine>();
+    }
+
+    [Fact]
+    public void GetEngineForPhase_WhenPhysicalAttackPhase_ShouldReturnPhysicalAttackEngine()
+    {
+        var engine = _sut.GetEngineForPhase(PhaseNames.PhysicalAttack);
+
+        engine.ShouldNotBeNull();
+        engine.ShouldBeOfType<PhysicalAttackEngine>();
     }
 
     [Fact]

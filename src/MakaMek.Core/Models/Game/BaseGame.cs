@@ -127,12 +127,18 @@ public abstract class BaseGame : IGame
     public virtual void SetBattleMap(IBattleMap map)
     {
         if (TurnPhase != PhaseNames.Start) return; // Prevent changing map mid-game
+        map.MovementCostProvider = RulesProvider;
         BattleMap = map;
     }
 
-    internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
+    /// <summary>
+    /// Adds a player to the game when the join command passes validation.
+    /// </summary>
+    /// <param name="joinGameCommand">The player join request to process.</param>
+    /// <returns><see langword="true"/> when a new player was added; otherwise, <see langword="false"/>.</returns>
+    internal bool OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
-        if (!ValidateJoinCommand(joinGameCommand).IsValid) return;
+        if (!ValidateJoinCommand(joinGameCommand).IsValid) return false;
         
         var controlType = GetLocalPlayerControlType(joinGameCommand.PlayerId) ?? PlayerControlType.Remote;
         var player = new Player(joinGameCommand.PlayerId,
@@ -158,6 +164,7 @@ public abstract class BaseGame : IGame
 
         player.Status = PlayerStatus.Joined;
         _players.Add(player);
+        return true;
     }
     
     protected virtual void OnPlayerLeft(PlayerLeftCommand command)
@@ -341,7 +348,7 @@ public abstract class BaseGame : IGame
         if (unit.HasAppliedHeat) return;
 
         // Apply heat to the unit using the heat data from the command
-        unit.ApplyHeat(heatUpdatedCommand.HeatData);
+        unit.ApplyHeat(heatUpdatedCommand.HeatData, RulesProvider);
     }
     
     /// <summary>
@@ -360,9 +367,16 @@ public abstract class BaseGame : IGame
         }
     }
     
-    internal void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
+    internal void OnPhysicalAttackResolution(PhysicalAttackResolutionCommand resolutionCommand)
     {
-        Logger.LogInformation("Physical attacks are not implemented");
+        var target = _players
+            .SelectMany(player => player.Units)
+            .FirstOrDefault(unit => unit.Id == resolutionCommand.TargetId);
+        if (target == null || !resolutionCommand.ResolutionData.IsHit
+            || resolutionCommand.ResolutionData.HitLocationsData is not { } hitData)
+            return;
+
+        target.ApplyDamage(hitData.HitLocations, resolutionCommand.ResolutionData.AttackDirection);
     }
 
     internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)
@@ -458,12 +472,15 @@ public abstract class BaseGame : IGame
         {
             JoinGameCommand joinGameCommand => ValidateJoinCommand(joinGameCommand),
             UpdatePlayerStatusCommand playerStateCommand => ValidatePlayer(playerStateCommand),
+            RollDiceCommand => CommandValidationResult.Valid(),
             DeployUnitCommand deployUnitCommand => ValidateDeployCommand(deployUnitCommand),
             TurnIncrementedCommand turnIncrementedCommand => ValidateTurnIncrementedCommand(turnIncrementedCommand),
             SetBattleMapCommand => CommandValidationResult.Valid(),
             MoveUnitCommand => CommandValidationResult.Valid(),
             WeaponConfigurationCommand => CommandValidationResult.Valid(),
-            WeaponAttackDeclarationCommand=> CommandValidationResult.Valid(),
+            WeaponAttackDeclarationCommand attackCommand => ValidateWeaponAttackDeclarationCommand(attackCommand),
+            PhysicalAttackCommand => CommandValidationResult.Valid(),
+            PassPhysicalAttackCommand => CommandValidationResult.Valid(),
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
@@ -520,6 +537,22 @@ public abstract class BaseGame : IGame
         }
         Logger.LogInformation("Hex {Position} is already occupied.", position);
         return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
+    }
+
+    /// <summary>
+    /// Validates the serialized weapon locations used to resolve an attack.
+    /// </summary>
+    private static CommandValidationResult ValidateWeaponAttackDeclarationCommand(
+        WeaponAttackDeclarationCommand command)
+    {
+        // An empty target list is a valid way to declare that a unit will not attack.
+        if (command.WeaponTargets is null || command.WeaponTargets.Count == 0)
+            return CommandValidationResult.Valid();
+
+        return command.WeaponTargets.Any(target =>
+                target is null || target.Weapon is null || target.Weapon.Assignments is not { Count: > 0 })
+            ? CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
+            : CommandValidationResult.Valid();
     }
     
     protected CommandValidationResult ValidateTurnIncrementedCommand(TurnIncrementedCommand command)

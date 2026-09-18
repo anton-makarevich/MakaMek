@@ -57,6 +57,15 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     public bool IsDisposed => _isDisposed;
 
+    /// <inheritdoc />
+    public bool HasPendingCommands => !_pendingCommands.IsEmpty;
+
+    /// <inheritdoc />
+    public event Action? PendingCommandsChanged;
+
+    /// <inheritdoc />
+    public event Action? CommandTimedOut;
+
     protected override bool ShouldHandleCommand(IGameCommand command)
     {
         if (!base.ShouldHandleCommand(command)) return false;
@@ -149,6 +158,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case WeaponAttackResolutionCommand attackResolutionCommand:
                 OnWeaponsAttackResolution(attackResolutionCommand);
+                break;
+            case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
+                OnPhysicalAttackResolution(physicalAttackResolutionCommand);
                 break;
             case MechFallCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
@@ -285,6 +297,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             return false;
         }
 
+        PendingCommandsChanged?.Invoke();
+
         // Return the task that will be completed when the server responds
         CommandPublisher.PublishCommand(commandWithKey);
 
@@ -293,7 +307,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         // Timeout: clean up and report failure
         tcs.TrySetResult(false);
-        _pendingCommands.TryRemove(idempotencyKey, out _);
+        CommandTimedOut?.Invoke();
+        if (_pendingCommands.TryRemove(idempotencyKey, out _))
+            PendingCommandsChanged?.Invoke();
         return false;
     }
 
@@ -315,6 +331,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     
     public Task<bool> SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
 
+    /// <summary>
+    /// Sends the active human player's initiative roll to the authoritative game.
+    /// </summary>
+    /// <param name="command">Initiative roll request for the active player.</param>
+    /// <returns>Whether the server acknowledged the request.</returns>
+    public Task<bool> RollInitiative(RollDiceCommand command) => SendPlayerAction(command);
+
     public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
 
     public Task<bool> MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
@@ -322,6 +345,16 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
 
     public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+
+    /// <summary>
+    /// Sends a physical-attack declaration to the authoritative game.
+    /// </summary>
+    public Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command) => SendPlayerAction(command);
+
+    /// <summary>
+    /// Sends a physical-attack pass to complete the active unit's action.
+    /// </summary>
+    public Task<bool> PassPhysicalAttack(PassPhysicalAttackCommand command) => SendPlayerAction(command);
 
     public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
 
@@ -387,6 +420,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         if (_pendingCommands.TryRemove(idempotencyKey, out var pendingCommand))
         {
             pendingCommand.Tcs.TrySetResult(success);
+            PendingCommandsChanged?.Invoke();
         }
 
         if (success) return;
@@ -404,9 +438,12 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         CommandPublisher.Unsubscribe(HandleCommand);
 
         // Fail/cancel any pending waits to avoid hangs
+        var hadPendingCommands = HasPendingCommands;
         foreach (var kv in _pendingCommands)
             kv.Value.Tcs.TrySetCanceled();
         _pendingCommands.Clear();
+        if (hadPendingCommands)
+            PendingCommandsChanged?.Invoke();
 
         DisposeCommandResources();
     }

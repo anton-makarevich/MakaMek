@@ -43,6 +43,7 @@ public class HexRenderControl : Control
     private readonly IBrush _whiteHighlightBrush;
     private readonly (Pen Pen, IBrush Fill) _movementHighlight;
     private readonly (Pen Pen, IBrush Fill) _attackHighlight;
+    private readonly Dictionary<AttackRangeBand, (Pen Pen, IBrush Fill)> _attackRangeHighlights = new();
     private readonly (Pen Pen, IBrush Fill) _losBlockingHighlight;
 
     private readonly Geometry _hexPolygon;
@@ -69,6 +70,13 @@ public class HexRenderControl : Control
         var attackStroke = FindBrush(resourcesLocator, "AttackReachableStrokeBrush", new SolidColorBrush(Color.Parse("#FFB347")));
         var attackFill = FindBrush(resourcesLocator, "AttackReachableFillBrush", new SolidColorBrush(Color.Parse("#33FFB347")));
         _attackHighlight = (new Pen(attackStroke), attackFill);
+        _attackRangeHighlights[AttackRangeBand.Short] = CreateHighlight(resourcesLocator,
+            "AttackShortRangeStrokeBrush", "AttackShortRangeFillBrush", "#66E3FF", "#3366E3FF");
+        _attackRangeHighlights[AttackRangeBand.Medium] = _attackHighlight;
+        _attackRangeHighlights[AttackRangeBand.Long] = CreateHighlight(resourcesLocator,
+            "AttackLongRangeStrokeBrush", "AttackLongRangeFillBrush", "#FF8C69", "#33FF8C69");
+        _attackRangeHighlights[AttackRangeBand.Mixed] = CreateHighlight(resourcesLocator,
+            "AttackMixedRangeStrokeBrush", "AttackMixedRangeFillBrush", "#C084FC", "#33C084FC");
 
         var losStroke = FindBrush(resourcesLocator, "LosBlockingStrokeBrush", new SolidColorBrush(Color.Parse("#8B0000")));
         var losFill = FindBrush(resourcesLocator, "LosBlockingFillBrush", new SolidColorBrush(Color.Parse("#338B0000")));
@@ -532,10 +540,22 @@ public class HexRenderControl : Control
         return highlight switch
         {
             MovementReachableHighlight => _movementHighlight,
-            AttackReachableHighlight => _attackHighlight,
+            AttackReachableHighlight attack => _attackRangeHighlights[attack.RangeBand],
             LosBlockingHighlight => _losBlockingHighlight,
             _ => (_whiteHighlightPen, null)
         };
+    }
+
+    private static (Pen Pen, IBrush Fill) CreateHighlight(
+        IAvaloniaResourcesLocator? resourcesLocator,
+        string strokeKey,
+        string fillKey,
+        string fallbackStroke,
+        string fallbackFill)
+    {
+        var stroke = FindBrush(resourcesLocator, strokeKey, new SolidColorBrush(Color.Parse(fallbackStroke)));
+        var fill = FindBrush(resourcesLocator, fillKey, new SolidColorBrush(Color.Parse(fallbackFill)));
+        return (new Pen(stroke), fill);
     }
 
     private static IBrush ParseBrush(string colorHex)
