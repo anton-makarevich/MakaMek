@@ -2,26 +2,21 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Sanet.MakaMek.Avalonia.App"
              xmlns:di="using:Microsoft.Extensions.DependencyInjection"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              RequestedThemeVariant="Light">
 
     <Application.Resources>
         <ResourceDictionary>
             <di:ServiceCollection x:Key="ServiceCollection"/>
-            <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
             <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
-            <converters:AdaptiveOrientationConverter x:Key="AdaptiveOrientationConverter"/>
-            <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
-            <converters:HubStatusBackgroundConverter x:Key="HubStatusBackgroundConverter"/>
-            <converters:HubStatusTextConverter x:Key="HubStatusTextConverter"/>
-            <converters:ConnectionStatusBackgroundConverter x:Key="ConnectionStatusBackgroundConverter"/>
-            <converters:ConnectionStatusTextConverter x:Key="ConnectionStatusTextConverter"/>
+            <!-- DI-injected converters (ModifierToTextConverter, ...ConnectionStatusBackgroundConverter)
+                 are resolved from the service provider and added to Resources in App.axaml.cs. -->
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>

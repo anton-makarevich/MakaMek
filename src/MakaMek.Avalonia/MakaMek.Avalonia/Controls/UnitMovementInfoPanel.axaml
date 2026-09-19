@@ -2,18 +2,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitMovementInfoPanel"
              mc:Ignorable="d"
              >
     <UserControl.Resources>
         <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
-        <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
-        <converters:SegmentEventToTextConverter x:Key="SegmentEventToTextConverter"/>
-        <converters:MovementBreakdownConverter x:Key="MovementBreakdownConverter"/>
+        <!-- DI-injected converters are resolved from Application.Resources (App.axaml.cs) -->
     </UserControl.Resources>
     <StackPanel  Spacing="5" Orientation="Vertical">
         <Border

@@ -52,4 +52,12 @@ public partial class UnitComponentsPanel : UserControl
 
         ComponentsGroup.ItemsSource = grouped;
     }
+
+    private void ComponentsGroup_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox listBox)
+        {
+            listBox.SelectedIndex = -1;
+        }
+    }
 }

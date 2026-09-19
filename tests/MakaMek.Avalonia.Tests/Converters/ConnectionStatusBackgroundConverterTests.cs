@@ -8,7 +8,7 @@ using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ConnectionStatusBackgroundConverterTests : IDisposable
+public class ConnectionStatusBackgroundConverterTests
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ConnectionStatusBackgroundConverter _sut;
@@ -16,8 +16,7 @@ public class ConnectionStatusBackgroundConverterTests : IDisposable
     public ConnectionStatusBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        ConnectionStatusBackgroundConverter.Initialize(_resourcesLocator);
-        _sut = new ConnectionStatusBackgroundConverter();
+        _sut = new ConnectionStatusBackgroundConverter(_resourcesLocator);
     }
 
     [Theory]
@@ -87,21 +86,6 @@ public class ConnectionStatusBackgroundConverterTests : IDisposable
         result.Color.ShouldBe(Colors.Red);
     }
 
-    [Fact]
-    public void Convert_ReturnsDefaultWhenLocatorNotInitialized()
-    {
-        // Arrange
-        ConnectionStatusBackgroundConverter.Initialize(null!);
-        var sut = new ConnectionStatusBackgroundConverter();
-
-        // Act
-        var result = sut.Convert(ConnectionStatus.Connected, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Color.ShouldBe(Colors.Green);
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("not a status")]
@@ -137,10 +121,5 @@ public class ConnectionStatusBackgroundConverterTests : IDisposable
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(object), null, CultureInfo.InvariantCulture));
-    }
-
-    public void Dispose()
-    {
-        ConnectionStatusBackgroundConverter.Initialize(null!);
     }
 }

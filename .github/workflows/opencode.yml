@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: Install mise tools
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4
 
       - name: Install skills
         run: mise run install-skills
@@ -47,6 +47,11 @@ jobs:
               "serena": {
                 "type": "local",
                 "command": ["serena", "start-mcp-server", "--context=ide"],
+                "enabled": true
+              },
+              "avalonia-docs": {
+                "type": "remote",
+                "url": "https://docs-mcp.avaloniaui.net/mcp",
                 "enabled": true
               }
             }

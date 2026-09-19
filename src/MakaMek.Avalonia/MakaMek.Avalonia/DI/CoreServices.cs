@@ -103,6 +103,22 @@ public static class CoreServices
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();
         services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
 
+        // Converters that consume ILocalizationService
+        services.AddSingleton<Converters.ModifierToTextConverter>();
+        services.AddSingleton<Converters.SegmentEventToTextConverter>();
+        services.AddSingleton<Converters.ConsciousnessStatusConverter>();
+        services.AddSingleton<Converters.MovementBreakdownConverter>();
+        services.AddSingleton<Converters.HubStatusTextConverter>();
+        services.AddSingleton<Converters.ConnectionStatusTextConverter>();
+
+        // Converters that consume IAvaloniaResourcesLocator
+        services.AddSingleton<Converters.ComponentStatusBackgroundConverter>();
+        services.AddSingleton<Converters.EventTypeToBackgroundConverter>();
+        services.AddSingleton<Converters.ConsciousnessColorConverter>();
+        services.AddSingleton<Converters.SelectedItemToBrushConverter>();
+        services.AddSingleton<Converters.HubStatusBackgroundConverter>();
+        services.AddSingleton<Converters.ConnectionStatusBackgroundConverter>();
+
         // Register RxTransportPublisher for local players
         services.AddSingleton<RxTransportPublisher>();
 

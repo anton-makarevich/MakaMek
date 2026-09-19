@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ConnectionStatusTextConverterTests : IDisposable
+public class ConnectionStatusTextConverterTests
 {
     private readonly ILocalizationService _localizationService;
     private readonly ConnectionStatusTextConverter _sut;
@@ -15,8 +15,7 @@ public class ConnectionStatusTextConverterTests : IDisposable
     public ConnectionStatusTextConverterTests()
     {
         _localizationService = Substitute.For<ILocalizationService>();
-        ConnectionStatusTextConverter.Initialize(_localizationService);
-        _sut = new ConnectionStatusTextConverter();
+        _sut = new ConnectionStatusTextConverter(_localizationService);
     }
 
     [Theory]
@@ -42,27 +41,6 @@ public class ConnectionStatusTextConverterTests : IDisposable
     }
 
     [Theory]
-    [InlineData(ConnectionStatus.NotConnected, "Not connected")]
-    [InlineData(ConnectionStatus.Connecting, "Connecting...")]
-    [InlineData(ConnectionStatus.Connected, "Connected")]
-    [InlineData(ConnectionStatus.Reconnecting, "Reconnecting...")]
-    [InlineData(ConnectionStatus.Disconnected, "Disconnected")]
-    [InlineData(ConnectionStatus.Closed, "Connection closed")]
-    public void Convert_ReturnsDefaultWhenServiceNotInitialized(ConnectionStatus status, string defaultValue)
-    {
-        // Arrange
-        ConnectionStatusTextConverter.Initialize(null!);
-        var sut = new ConnectionStatusTextConverter();
-
-        // Act
-        var result = sut.Convert(status, typeof(string), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        result.ShouldBeOfType<string>();
-        result.ShouldBe(defaultValue);
-    }
-
-    [Theory]
     [InlineData(null)]
     [InlineData("not a status")]
     [InlineData(123)]
@@ -83,30 +61,10 @@ public class ConnectionStatusTextConverterTests : IDisposable
     }
 
     [Fact]
-    public void Convert_InvalidInput_ReturnsDefaultWhenServiceNotInitialized()
-    {
-        // Arrange
-        ConnectionStatusTextConverter.Initialize(null!);
-        var sut = new ConnectionStatusTextConverter();
-
-        // Act
-        var result = sut.Convert("not a status", typeof(string), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        result.ShouldBeOfType<string>();
-        result.ShouldBe("Disconnected");
-    }
-
-    [Fact]
     public void ConvertBack_ThrowsNotImplementedException()
     {
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack("Connected", typeof(ConnectionStatus), null, CultureInfo.InvariantCulture));
-    }
-
-    public void Dispose()
-    {
-        ConnectionStatusTextConverter.Initialize(null!);
     }
 }

@@ -2,9 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Converters"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions"
+             xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Controls.Converters"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Controls.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
@@ -29,7 +29,7 @@
                                     Cursor="Hand"
                                     BorderBrush="{Binding IsSelected, 
                                         Converter={StaticResource SelectedItemToBrushConverter}}"
-                                    Background="#1A000000"
+                                    Background="{StaticResource MapItemBackgroundBrush}"
                                     PointerPressed="OnMapItemPressed">
                                 <StackPanel HorizontalAlignment="Center" Spacing="4">
                                     <Image Source="{Binding PreviewImage}" 

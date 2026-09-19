@@ -11,14 +11,14 @@ namespace MakaMek.Avalonia.Tests.Converters;
 public class SegmentEventToTextConverterTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly SegmentEventToTextConverter _sut = new();
+    private readonly SegmentEventToTextConverter _sut;
 
     public SegmentEventToTextConverterTests()
     {
         _localizationService.GetString("SegmentEvent_Fall").Returns("Fall");
         _localizationService.GetString("SegmentEvent_StandupAttempt").Returns("Standup");
 
-        SegmentEventToTextConverter.Initialize(_localizationService);
+        _sut = new SegmentEventToTextConverter(_localizationService);
     }
 
     [Fact]

@@ -61,6 +61,13 @@
     <Color x:Key="ShadowLightColor">#20000000</Color>
     <Color x:Key="ShadowMediumColor">#40000000</Color>
     <Color x:Key="ShadowDarkColor">#80000000</Color>
+
+    <!-- Overlay Colors (semi-transparent) -->
+    <Color x:Key="MapItemBackgroundColor">#1A000000</Color>
+    
+    <!-- Box Shadows -->
+    <BoxShadows x:Key="CardShadow">0 2 4 0 #20000000</BoxShadows>
+    <BoxShadows x:Key="DialogShadow">0 4 8 0 #40000000</BoxShadows>
     
     <!-- Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
@@ -111,4 +118,10 @@
     <SolidColorBrush x:Key="LosBlockingStrokeBrush" Color="{StaticResource LosBlockingStrokeColor}"/>
     <SolidColorBrush x:Key="LosBlockingFillBrush" Color="{StaticResource LosBlockingFillColor}"/>
     <SolidColorBrush x:Key="WhiteHighlightBrush" Color="{StaticResource WhiteHighlightColor}"/>
+
+    <SolidColorBrush x:Key="ShadowLightBrush" Color="{StaticResource ShadowLightColor}"/>
+    <SolidColorBrush x:Key="ShadowMediumBrush" Color="{StaticResource ShadowMediumColor}"/>
+    <SolidColorBrush x:Key="ShadowDarkBrush" Color="{StaticResource ShadowDarkColor}"/>
+
+    <SolidColorBrush x:Key="MapItemBackgroundBrush" Color="{StaticResource MapItemBackgroundColor}"/>
 </ResourceDictionary>

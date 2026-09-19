@@ -796,6 +796,20 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         CurrentState.HandleHexSelection(selectedHex);
     }
 
+    /// <summary>
+    /// Resolves a click position in map content pixels to a hex and routes
+    /// the selection to the current UI state.
+    /// </summary>
+    public void SelectHexAt(double x, double y)
+    {
+        if (Game?.BattleMap == null) return;
+        var coords = HexCoordinatesPixelExtensions.FromPixel(x, y);
+        var hex = Game.BattleMap.GetHexes()
+            .FirstOrDefault(h => h.Coordinates == coords);
+        if (hex != null)
+            HandleHexSelection(hex);
+    }
+
     private void ClearSelection()
     {
         SelectedUnit = null;
@@ -946,6 +960,17 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// Returns (PngBytes, WidthPixels, HeightPixels).
     /// </summary>
     public Func<Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)>>? CaptureMap { get; set; }
+
+    /// <summary>
+    /// Callback provided by the view to center the map viewport.
+    /// </summary>
+    public Action? CenterMap { get; set; }
+
+    public IAsyncCommand CenterMapCommand => field ??= new AsyncCommand(() =>
+    {
+        CenterMap?.Invoke();
+        return Task.CompletedTask;
+    });
 
     public IAsyncCommand ExportMapToPdfCommand => field ??= new AsyncCommand(async () =>
     {

@@ -2,14 +2,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
+             xmlns:fragments="using:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
              x:DataType="viewModels:JoinGameViewModel"
-             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
-             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls">
+             xmlns:viewModels="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:fragments2="using:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions">
 
     <Grid>
         <templatedControls:HexagonBackground/>
@@ -22,7 +22,21 @@
             LeftIcon="{StaticResource BackArrowIcon}"
             Margin="0,0,0,10"/>
             <Grid Grid.Row="1"
-                ColumnDefinitions="*,Auto">
+              Container.Name="joinGameContent"
+              Container.Sizing="Width">
+            <Grid.Styles>
+                <Style Selector="UniformGrid#JoinGameAdaptiveGrid">
+                    <Setter Property="Rows" Value="2"/>
+                    <Setter Property="Columns" Value="0"/>
+                </Style>
+                <ContainerQuery Name="joinGameContent" Query="min-width:800">
+                    <Style Selector="UniformGrid#JoinGameAdaptiveGrid">
+                        <Setter Property="Rows" Value="0"/>
+                        <Setter Property="Columns" Value="2"/>
+                    </Style>
+                </ContainerQuery>
+            </Grid.Styles>
+            <UniformGrid x:Name="JoinGameAdaptiveGrid">
                 <!-- Left Column: Connect + Players -->
                 <Grid RowDefinitions="Auto,*">
                     <!-- Connect Fragment -->
@@ -35,16 +49,17 @@
                 </Grid>
 
                 <!-- Right Column: Map Preview -->
-                <Border Grid.Column="1" Classes="card" IsVisible="{Binding HasLobbyMapPreview}"
-                        Margin="10,0,0,0" VerticalAlignment="Top">
+                <Border Classes="card" IsVisible="{Binding HasLobbyMapPreview}"
+                        VerticalAlignment="Top">
                     <StackPanel Classes="formGroup">
                         <TextBlock Text="{extensions:Localize 'Join_LobbyMapPreview'}" Classes="label"/>
                         <Image Source="{Binding PreviewImage}" MaxWidth="400" MaxHeight="400"
                                Stretch="Uniform" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
-            </Grid>
+            </UniformGrid>
         </Grid>
+    </Grid>
     </Grid>
 </UserControl>
 

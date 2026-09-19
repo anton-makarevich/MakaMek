@@ -1,0 +1,31 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MakaMek.Avalonia.Tests.TestApp"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
+             RequestedThemeVariant="Light">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
+            <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
+            <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
+            <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
+            <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
+            <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+            <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
+            <!-- DI-injected converters (HubStatus*, ConnectionStatus*, ComponentStatusBackground,
+                 SelectedItemToBrush, Consciousness*, ModifierToText, SegmentEventToText,
+                 MovementBreakdown, EventTypeToBackground) are intentionally omitted here;
+                 tests construct them with injected substitutes. -->
+
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Resources.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Sanet.MakaMek.Avalonia.Controls/Styles/Theme.axaml"/>
+    </Application.Styles>
+</Application>

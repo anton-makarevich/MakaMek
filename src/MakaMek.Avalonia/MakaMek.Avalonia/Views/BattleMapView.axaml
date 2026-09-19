@@ -2,29 +2,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
-             xmlns:mapControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls;assembly=Sanet.MakaMek.Avalonia.Controls"
-             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls.TemplatedControls;assembly=Sanet.MakaMek.Avalonia.Controls"
-             xmlns:behaviors="clr-namespace:Sanet.MakaMek.Avalonia.Behaviors"
-             xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:uiStates="clr-namespace:Sanet.MakaMek.Presentation.UiStates;assembly=Sanet.MakaMek.Presentation"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:mapControls="using:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
+             xmlns:behaviors="using:Sanet.MakaMek.Avalonia.Behaviors"
+             xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:uiStates="using:Sanet.MakaMek.Presentation.UiStates"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.BattleMapView"
              x:CompileBindings="True"
              x:DataType="viewModels1:BattleMapViewModel">
     <UserControl.Resources>
     </UserControl.Resources>
-    <Grid>
+    <Grid Container.Name="battleMap"
+          Container.Sizing="Width">
+        <Grid.Styles>
+            <Style Selector="Border.statusSection">
+                <Setter Property="Padding" Value="10,5"/>
+            </Style>
+            <ContainerQuery Name="battleMap" Query="max-width:700">
+                <Style Selector="Border.statusSection">
+                    <Setter Property="Padding" Value="6,3"/>
+                </Style>
+                <Style Selector="TextBlock.turnInfo">
+                    <Setter Property="FontSize" Value="11"/>
+                </Style>
+                <Style Selector="TextBlock.turnInfoLabel">
+                    <Setter Property="FontSize" Value="9"/>
+                </Style>
+            </ContainerQuery>
+        </Grid.Styles>
         <mapControls:HexMap x:Name="MapCanvas"
-                            Background="Transparent">
+                            Background="Transparent"
+                            BoundaryOutlines="{Binding HighlightBoundaryOutlines}"
+                            HexConfiguration="{Binding HexConfiguration}">
             <controls:DirectionSelector
                 x:Name="DirectionSelector"
                 IsVisible="{Binding IsDirectionSelectorVisible}"
                 EnabledDirections="{Binding AvailableDirections}"
                 Position="{Binding DirectionSelectorPosition}"
                 DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
-                Foreground="{Binding ActivePlayerTint}"/>
+                ActiveTint="{Binding ActivePlayerTint}"/>
             <controls:SurfaceSelector
                 x:Name="SurfaceSelector"
                 IsVisible="{Binding IsSurfaceSelectorVisible}"
@@ -38,20 +57,19 @@
             VerticalAlignment="Top"
             Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
-            ColumnDefinitions="Auto,*,Auto,*">
+            ColumnDefinitions="Auto,*">
             <templatedControls:ActionButton
                 Margin="5"
                 Command="{Binding LeaveGameCommand}"
                 IconData="{StaticResource CloseIcon}"
                 />
-            <Grid Grid.Column="2"
+            <Grid Grid.Column="1"
                   x:Name="TurnInfoPanel"
-                  Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
+                  Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                   ColumnDefinitions="*,*,*">
                 <!-- Turn Info Section -->
                 <Border Grid.Column="0" 
-                    Classes="statusSection"
-                    Padding="10,5">
+                    Classes="statusSection">
                     <Grid ColumnDefinitions="Auto,*">
                         <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Turn'}"
@@ -85,7 +103,6 @@
                 <!-- Active Player Section -->
                 <Border Grid.Column="1" 
                         Classes="statusSection"
-                        Padding="10,5"
                         Margin="1,0,1,0">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <TextBlock Text="{extensions:Localize 'BattleMap_ActivePlayer'}"
@@ -103,7 +120,6 @@
                 <!-- Player Action Section -->
                 <Border Grid.Column="2" 
                         Classes="statusSection"
-                        Padding="15,5"
                         IsVisible="{Binding IsUserActionLabelVisible}">
                     <TextBlock Text="{Binding ActionInfoLabel}" 
                              Classes="turnInfo"
@@ -168,7 +184,7 @@
                     Spacing="10">
             <!-- Center Map Button -->
             <templatedControls:ActionButton
-                Click="CenterMap"
+                Command="{Binding CenterMapCommand}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="{StaticResource CenterMapIcon}"/>
 
@@ -262,20 +278,19 @@
             IsVisible="{Binding IsCommandLogExpanded}"
             Title="{extensions:Localize 'BattleMap_CommandLog'}"
             CloseCommand="{Binding ToggleCommandLog}">
-            <ScrollViewer
-                behaviors:AutoScrollBehavior.EnableAutoScroll="True"
-                MaxHeight="360">
-                <ItemsControl ItemsSource="{Binding CommandLog}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}"
-                                       Foreground="Black"
-                                       Margin="5"
-                                       TextWrapping="Wrap"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+            <ListBox
+                MaxHeight="360"
+                behaviors:AutoScrollBehavior.EnableListBoxAutoScroll="True"
+                ItemsSource="{Binding CommandLog}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   Margin="5"
+                                   TextWrapping="Wrap"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </templatedControls:GamePanel>
 
         <!-- Map Settings Panel -->

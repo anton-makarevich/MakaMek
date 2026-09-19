@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Bots.Models.Map;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
 

@@ -8,11 +8,11 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 
 public class ModifierToTextConverter : IValueConverter
 {
-    private static ILocalizationService? _localizationService;
-    
-    public static void Initialize(ILocalizationService localization)
+    private readonly ILocalizationService _localizationService;
+
+    public ModifierToTextConverter(ILocalizationService localizationService)
     {
-        _localizationService = localization;
+        _localizationService = localizationService;
     }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

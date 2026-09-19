@@ -11,13 +11,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ConsciousnessColorConverter : IValueConverter
 {
-    private static IAvaloniaResourcesLocator? _resourcesLocator;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-    /// <summary>
-    /// Initializes the converter with the resources locator
-    /// </summary>
-    /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    public ConsciousnessColorConverter(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }
@@ -25,11 +21,11 @@ public class ConsciousnessColorConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not bool isConscious)
-            return _resourcesLocator?.TryFindResource("WarningColor") ?? Colors.Gray;
+            return _resourcesLocator.TryFindResource("WarningColor") ?? Colors.Gray;
 
         return isConscious 
-            ? _resourcesLocator?.TryFindResource("SuccessColor") ?? Colors.Green
-            : _resourcesLocator?.TryFindResource("ErrorColor") ?? Colors.Red;
+            ? _resourcesLocator.TryFindResource("SuccessColor") ?? Colors.Green
+            : _resourcesLocator.TryFindResource("ErrorColor") ?? Colors.Red;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

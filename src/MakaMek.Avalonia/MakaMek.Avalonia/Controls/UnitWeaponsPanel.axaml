@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:weapons="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components.Weapons;assembly=Sanet.MakaMek.Core"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
-             xmlns:extensions="clr-namespace:Sanet.MakaMek.Avalonia.Controls.Extensions;assembly=Sanet.MakaMek.Avalonia.Controls"
+             xmlns:weapons="using:Sanet.MakaMek.Core.Models.Units.Components.Weapons"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitWeaponsPanel">
     <UserControl.Resources>
@@ -19,39 +19,40 @@
         <TextBlock Grid.Column="1" Text="{extensions:Localize 'UnitWeapons_Damage'}" Classes="h4" Margin="5,0"/>
         <TextBlock Grid.Column="2" Text="{extensions:Localize 'UnitWeapons_Heat'}" Classes="h4" Margin="5,0"/>
         <TextBlock Grid.Column="3" Text="{extensions:Localize 'UnitWeapons_Range'}" Classes="h4" Margin="5,0"/>
-        <ScrollViewer
+        <ListBox
             Grid.ColumnSpan="4"
             Grid.Row="1"
-            Classes="gameScrollViewer">
-                    <ItemsControl Name="WeaponsGroup">
+            Name="WeaponsGroup"
+            IsHitTestVisible="False"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="controls:ComponentGroup">
+                    <StackPanel>
+                        <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
+                        <ItemsControl Name="WeaponsList" ItemsSource="{Binding Components}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="controls:ComponentGroup">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
-                                        <ItemsControl Name="WeaponsList" ItemsSource="{Binding Components}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="weapons:Weapon">
-                                                    <Border Margin="2">
-                                                        <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" 
-                                                              Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
-                                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="3" 
-                                                                    Text="{Binding ., Converter={StaticResource WeaponRangeConverter}}" 
-                                                                    Classes="body"
-                                                                    Margin="5,0" 
-                                                                    VerticalAlignment="Center"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                    </StackPanel>
+                                <DataTemplate x:DataType="weapons:Weapon">
+                                    <Border Margin="2">
+                                        <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" 
+                                              Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" 
+                                                    Text="{Binding ., Converter={StaticResource WeaponRangeConverter}}" 
+                                                    Classes="body"
+                                                    Margin="5,0" 
+                                                    VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                </ScrollViewer>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
     </Grid>
 </UserControl>
 

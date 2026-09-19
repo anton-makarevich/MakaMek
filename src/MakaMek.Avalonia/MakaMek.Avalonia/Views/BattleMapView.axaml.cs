@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
@@ -106,7 +103,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
         UpdateWeaponAttacks();
-        UpdateHighlightBoundaryOutlines();
     }
 
     private void OnMapContentClicked(object? sender, Point clickPosition)
@@ -143,22 +139,17 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
 
         // Hex selection via pixel→coordinate lookup
-        if (ViewModel?.Game?.BattleMap != null)
-        {
-            var coords = HexCoordinatesPixelExtensions.FromPixel(clickPosition.X, clickPosition.Y);
-            var hex = ViewModel.Game.BattleMap.GetHexes()
-                .FirstOrDefault(h => h.Coordinates == coords);
-            if (hex != null)
-                ViewModel.HandleHexSelection(hex);
-        }
+        ViewModel?.SelectHexAt(clickPosition.X, clickPosition.Y);
     }
 
     protected override void OnViewModelSet()
     {
         base.OnViewModelSet();
-        ViewModel?.CaptureMap = CaptureViewMap;
-        if (ViewModel is not { Game: not null }) return;
-        RenderMap(ViewModel.Game);
+        if (ViewModel == null) return;
+        ViewModel.CaptureMap = CaptureViewMap;
+        ViewModel.CenterMap = () => MapCanvas.CenterMap();
+        if (ViewModel.Game is not { } game) return;
+        RenderMap(game);
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
@@ -178,22 +169,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             UpdateWeaponAttacks();
         }
-        else if (e.PropertyName == nameof(ViewModel.HighlightBoundaryOutlines))
-        {
-            UpdateHighlightBoundaryOutlines();
-        }
-        else if (e.PropertyName == nameof(ViewModel.HexConfiguration))
-        {
-            if (ViewModel?.HexConfiguration == null) return;
-            var config = ViewModel.HexConfiguration.ToConfiguration();
-            MapCanvas.UpdateHexConfiguration(config);
-        }
-    }
-
-    private void UpdateHighlightBoundaryOutlines()
-    {
-        MapCanvas.SetBoundaryOutlines(
-            ViewModel?.HighlightBoundaryOutlines);
     }
 
     private void UpdateMovementPath()
@@ -239,16 +214,5 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _weaponAttackControls.Add(control);
             MapCanvas.Children.Add(control);
         }
-    }
-
-    private void CenterMap(object? sender, RoutedEventArgs e)
-    {
-        MapCanvas.CenterMap();
-    }
-
-    protected override void OnSizeChanged(SizeChangedEventArgs e)
-    {
-        base.OnSizeChanged(e);
-        TurnInfoPanel.MaxWidth = Math.Max(e.NewSize.Width - 6, 300);
     }
 }

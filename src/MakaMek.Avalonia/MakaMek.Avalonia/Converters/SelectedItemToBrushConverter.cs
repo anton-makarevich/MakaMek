@@ -11,13 +11,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class SelectedItemToBrushConverter : IValueConverter
 {
-    private static IAvaloniaResourcesLocator? _resourcesLocator;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
-    /// <summary>
-    /// Initializes the converter with the resources locator
-    /// </summary>
-    /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator? resourcesLocator)
+    public SelectedItemToBrushConverter(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }
@@ -28,7 +24,7 @@ public class SelectedItemToBrushConverter : IValueConverter
             return Brushes.Transparent;
 
         return value is true 
-            ? (_resourcesLocator?.TryFindResource("PrimaryBrush") as IBrush ?? new SolidColorBrush(Color.Parse("#6B8E23")))
+            ? (_resourcesLocator.TryFindResource("PrimaryBrush") as IBrush ?? new SolidColorBrush(Color.Parse("#6B8E23")))
             : Brushes.Transparent;
     }
 

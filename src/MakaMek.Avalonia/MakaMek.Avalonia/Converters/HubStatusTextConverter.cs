@@ -11,11 +11,11 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class HubStatusTextConverter : IValueConverter
 {
-    private static ILocalizationService? _localizationService;
+    private readonly ILocalizationService _localizationService;
 
-    public static void Initialize(ILocalizationService localization)
+    public HubStatusTextConverter(ILocalizationService localizationService)
     {
-        _localizationService = localization;
+        _localizationService = localizationService;
     }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -28,10 +28,10 @@ public class HubStatusTextConverter : IValueConverter
 
         return status switch
         {
-            HubStatus.Online => _localizationService?.GetString("Hub_Status_Online") ?? "Online",
-            HubStatus.Offline => _localizationService?.GetString("Hub_Status_Offline") ?? "Offline",
-            HubStatus.Checking => _localizationService?.GetString("Hub_Status_Checking") ?? "Checking...",
-            _ => _localizationService?.GetString("Hub_Status_Unknown") ?? "Unknown"
+            HubStatus.Online => _localizationService.GetString("Hub_Status_Online"),
+            HubStatus.Offline => _localizationService.GetString("Hub_Status_Offline"),
+            HubStatus.Checking => _localizationService.GetString("Hub_Status_Checking"),
+            _ => _localizationService.GetString("Hub_Status_Unknown")
         };
     }
 

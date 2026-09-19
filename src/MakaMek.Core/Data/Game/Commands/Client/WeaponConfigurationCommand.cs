@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 
