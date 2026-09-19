@@ -23,7 +23,7 @@ serena --version
 
 [tasks.install-devtools]
 description = "Installs or updates the AvaloniaUI Developer Tools global dotnet tool (avdt), required for F12 DevTools in the Desktop app"
-run = "dotnet tool update --global AvaloniaUI.DeveloperTools || dotnet tool install --global AvaloniaUI.DeveloperTools"
+run = "dotnet msbuild -t:InstallAvaloniaDevTools Directory.Build.props"
 
 [tasks.update-serena]
 description = "Updates the Serena MCP server to the latest version"
