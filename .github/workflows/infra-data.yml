@@ -1,4 +1,4 @@
-﻿name: Data Infra (Pulumi)
+﻿name: Infra - Data
 
 # Ad-hoc provisioning of the MakaMek data release R2 bucket.
 # No automatic triggers: run manually from the Actions tab.
