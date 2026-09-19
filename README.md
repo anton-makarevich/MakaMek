@@ -50,11 +50,12 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 <details>
   <summary>Phase 2. Support of map Levels and extended terrain types ✅</summary>
+
 #### Implemented
 - Support of map Levels and detailed LOS highlighting
 - Support for rough terrain
 - [Map Editor](https://github.com/anton-makarevich/MakaMek.MapEditor) (separate project)
-- Support of water (lakes, rivers and water effects)
+- Support of water (lakes, rivers and water effects) with bespoke textures (thanks to [@JoMarker](https://github.com/JoMarker))
 - Support of roads and bridges (including bridge collision and skidding)
 </details>
 
@@ -68,18 +69,17 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Every supported client, including WASM, can host an online game.
 - Host loss handled gracefully by returning peers to a safe menu state.
 - Public deployment of the hub at https://demohub.makamek.nl/ (West EU).
-- Ability to configure custom hub url in settings.
+- Ability to configure custom hub URL in settings.
 </details>
 
-### Next: the project is in the maintenance mode.
+### Next: Physical attacks (thanks [@Caleb68864](https://github.com/Caleb68864) for contributing)
 
 ### Future (possible) phases
 - Support of paved areas and buildings
-- Physical attacks
 - Support of advanced tech rules (Clan, LosTech equipment and more)
 - Support for vehicles, battle armor and infantry
 - Tools for creating and managing custom units and maps, compatible with common community data formats
-- Monogame version with 3D graphics and possible VR/AR support
+- MonoGame version with 3D graphics and possible VR/AR support
 
 ## Technology Stack
 
