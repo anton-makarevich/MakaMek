@@ -176,8 +176,9 @@ public abstract class Component : IManufacturedItem
                 throw new ComponentException("Assignment overlaps existing mounts on the same part.");
         }
 
-        var totalUniqueSlots = _slotAssignments.SelectMany(assignment => assignment.Slots)
-            .Concat(staged.SelectMany(assignment => assignment.Slots))
+        var totalUniqueSlots = _slotAssignments
+            .SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot)))
+            .Concat(staged.SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot))))
             .Distinct()
             .Count();
         if (totalUniqueSlots > Size)

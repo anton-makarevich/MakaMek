@@ -175,6 +175,21 @@ public class ComponentTests
     }
 
     [Fact]
+    public void Mount_ShouldRejectOverflow_WhenSameSlotNumbersUsedOnDifferentParts()
+    {
+        var sut = new TestComponent("Test Component", 3);
+        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 3);
+        var rightArm = new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 3);
+
+        sut.Mount(leftArm, [0, 1]);
+
+        Should.Throw<ComponentException>(() => sut.Mount(rightArm, [0, 1]))
+            .Message.ShouldBe("Component Test Component requires 3 slots.");
+
+        sut.SlotAssignments.ShouldAllBe(a => a.UnitPart == leftArm);
+    }
+
+    [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange
