@@ -42,6 +42,24 @@ public class StartPhaseTests : GamePhaseTestsBase
         Game.Players[0].Id.ShouldBe(playerId);
         Game.Players[0].Name.ShouldBe("Player 1");
         Game.Players[0].Units.Count.ShouldBe(1);
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(command =>
+            command.PlayerId == playerId && command.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenPlayerJoinsAgain_ShouldNotBroadcastDuplicateJoin()
+    {
+        // Arrange
+        var joinCommand = CreateJoinCommand(Guid.NewGuid(), "Player 1");
+        _sut.HandleCommand(joinCommand);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(joinCommand);
+
+        // Assert
+        Game.Players.Count.ShouldBe(1);
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<JoinGameCommand>());
     }
 
     [Fact]

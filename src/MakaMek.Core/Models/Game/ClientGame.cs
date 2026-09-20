@@ -288,13 +288,18 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         // Return the task that will be completed when the server responds
         CommandPublisher.PublishCommand(commandWithKey);
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(_ackTimeout)).ConfigureAwait(false);
-        if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
-
-        // Timeout: clean up and report failure
-        tcs.TrySetResult(false);
-        _pendingCommands.TryRemove(idempotencyKey, out _);
-        return false;
+        using var timeoutCts = new CancellationTokenSource(_ackTimeout);
+        try
+        {
+            return await tcs.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            // Timeout: clean up and report failure
+            tcs.TrySetResult(false);
+            _pendingCommands.TryRemove(idempotencyKey, out _);
+            return false;
+        }
     }
 
     public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
