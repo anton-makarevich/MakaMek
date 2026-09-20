@@ -1,4 +1,4 @@
-name: Hub Infra (Pulumi)
+name: Infra - Hub
 
 # Ad-hoc deployment of the MakaMek relay hub OCI infrastructure.
 # No automatic triggers: run manually from the Actions tab.
