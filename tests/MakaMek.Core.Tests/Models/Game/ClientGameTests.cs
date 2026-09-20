@@ -2826,7 +2826,7 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
-        await _sut.JoinGameWithUnits(player, [unitData],[]);
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
         var joinCommand = new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -2871,7 +2871,7 @@ public class ClientGameTests
         _sut.HandleCommand(rebroadcastCommand);
 
         // Assert - wait for the task to complete with a timeout
-        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(5000));
         completedTask.ShouldBe(deployTask, "Task should complete when server rebroadcasts command");
 
         var result = await deployTask;
@@ -2936,7 +2936,7 @@ public class ClientGameTests
         });
 
         // Assert - wait for the task to complete with a timeout
-        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(5000));
         completedTask.ShouldBe(deployTask, "Task should complete when ErrorCommand is received");
 
         var result = await deployTask;

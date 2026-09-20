@@ -3,6 +3,9 @@ using Avalonia;
 using Sanet.MakaMek.Avalonia.Desktop.DependencyInjection;
 using Sanet.MVVM.DI.Avalonia.Extensions;
 using Velopack;
+#if DEBUG
+using AvaloniaUI.DiagnosticsSupport;
+#endif
 
 namespace Sanet.MakaMek.Avalonia.Desktop;
 
@@ -25,5 +28,8 @@ sealed class Program
             .UsePlatformDetect()
             .UseDependencyInjection(services=>services.RegisterDesktopServices())
             .WithInterFont()
+#if DEBUG
+            .WithDeveloperTools()
+#endif
             .LogToTrace();
 }
