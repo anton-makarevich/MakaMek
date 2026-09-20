@@ -131,3 +131,11 @@ Pull requests should be ready for review, build cleanly in CI, and make it easy 
 ## Reporting bugs
 
 Please include the version or commit, platform, steps to reproduce, expected behavior, actual behavior, and relevant logs or screenshots. A small reproduction or failing test is especially helpful for game-rule issues.
+
+## Code of Conduct
+
+By participating in this project you agree to keep discussions respectful, constructive, and welcoming.
+
+## License and ownership of contributions
+
+MakaMek is licensed under the [GPL-3.0](LICENSE). Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work (via pull request or patch) shall be licensed under GPL-3.0 as well, without any additional terms or conditions. Submitted code must be your own work or compatible with GPL-3.0 (please quote and attribute anything derived from reference implementations such as MegaMek, etc).
