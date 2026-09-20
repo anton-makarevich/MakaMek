@@ -314,6 +314,18 @@ public class ComponentTests
     }
     
     [Fact]
+    public void Status_ReturnsDestroyed_WhenHitsReachedHealthPoints()
+    {
+        var sut = new TestComponent("Test");
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        sut.Mount(unitPart,[0]);
+
+        sut.Hit();
+
+        sut.Status.ShouldBe(ComponentStatus.Destroyed);
+    }
+
+    [Fact]
     public void Status_ReturnsDamaged_WhenHitsLessThanHP()
     {
         var sut = new TestComponent("Test", healthPoints:2);
