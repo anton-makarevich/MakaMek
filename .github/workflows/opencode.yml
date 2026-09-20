@@ -44,15 +44,17 @@ jobs:
           cat > opencode.json << 'EOF'
           {
             "mcp": {
-              "serena": {
-                "type": "local",
-                "command": ["serena", "start-mcp-server", "--context=ide"],
-                "enabled": true
-              },
-              "avalonia-docs": {
-                "type": "remote",
-                "url": "https://docs-mcp.avaloniaui.net/mcp",
-                "enabled": true
+              "servers": {
+                "serena": {
+                  "type": "local",
+                  "command": ["serena", "start-mcp-server", "--context=ide"],
+                  "disabled": false
+                },
+                "avalonia-docs": {
+                  "type": "remote",
+                  "url": "https://docs-mcp.avaloniaui.net/mcp",
+                  "disabled": false
+                }
               }
             }
           }
