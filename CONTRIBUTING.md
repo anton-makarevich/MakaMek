@@ -67,6 +67,35 @@ When changing code, add or update tests in the corresponding test project. Core 
 
 If you are unsure whether something is testable, ask in the PR — but "it's hard to test" is not an acceptable reason to ship untested logic; it usually means the code should be restructured (e.g. extracted from a view into a ViewModel or service).
 
+### Code coverage
+
+Coverage uses [Coverlet](https://github.com/coverlet-coverage/coverlet) (MSBuild integration) plus [Cocodif](https://github.com/anton-makarevich/Cocodif), a diff-coverage tool that reports coverage only of the lines your change touches. This mirrors the CI pipeline, which collects an OpenCover report per module, computes diff coverage against the PR base branch, and posts a per-file report as a PR comment.
+
+To run coverage locally (replace the project path and assembly name for other modules):
+
+```bash
+dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj \
+  /p:CollectCoverage=true /p:CoverletOutputFormat=opencover \
+  /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]*
+```
+
+The include filter uses the *source* assembly name (`Sanet.MakaMek.Core`), derived from the test assembly name (`Sanet.MakaMek.Core.Tests`) by dropping the `.Tests` suffix. Code marked `GeneratedCodeAttribute` (e.g. source-generator output) is excluded; UI (Avalonia) is intentionally outside coverage.
+
+To get the diff-coverage report against your current branch, install the global tool and run:
+
+```bash
+dotnet tool install --global Sanet.Cocodif
+
+Cocodif \
+  -c tests/MakaMek.Core.Tests/coverage.opencover.xml \
+  -o diff-coverage.md \
+  --include 'src/MakaMek.Core/**' \
+  --exclude '**/obj/**,**/bin/**' \
+  --title 'MakaMek Core Coverage'
+```
+
+Cocodif parses the OpenCover XML, filters changed files via `git diff --merge-base`, and writes `diff-coverage.md` with a per-file breakdown. The CI action (`cocodif`) embeds the same output as a sticky PR comment per module. The process (and how an agent runs it) is documented in the `coverage-check` skill under `skills/coverage-check` — agents installed there can run the whole flow automatically when asked to "run coverage".
+
 ## Project boundaries
 
 The normal dependency direction is `Avalonia → Presentation → Core`. Core contains the authoritative game rules and should not depend on UI code. Commands are the normal mechanism for changing game state and for communicating changes between server and client.
