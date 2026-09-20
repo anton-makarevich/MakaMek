@@ -10,6 +10,27 @@ Thank you for helping to improve MakaMek, a cross-platform BattleTech implementa
 
 Suggested branch names are `fix/123-short-description`, `feature/123-short-description`, and `docs/short-description`.
 
+### AI coding agents
+
+Using AI coding agents is **allowed and explicitly supported**. The repository already ships the infrastructure for it:
+
+- Root `AGENTS.md` describes the architecture, build/test commands, testing conventions, and versioning rules agents must follow; scoped `AGENTS.md` files exist where necessary (e.g. `src/MakaMek.Avalonia/AGENTS.md` for Avalonia UI work).
+- Repo-local agent skills live in `skills/` and are installed to `.agents/skills' and `/.claude/skills` via `mise run install-skills`.
+- The [Serena](https://github.com/oraios/serena) MCP server provides symbol-level code search and editing; install it with `mise run install-serena` (or update with `mise run update-serena`).
+
+But whether you contribute by hand or with an agent, the same rules apply.
+
+### Development dependencies with mise
+
+Tool and dev-workflow dependencies are managed with [mise](https://mise.jdx.dev/), configured in `mise.toml` at the repository root:
+
+- The `[tools]` section pins exact versions of CLI tools the project relies on (`gh`, `pulumi`, `uv`) so every contributor gets the same environment. Run `mise install` after cloning to install them.
+- The `[tasks.*]` sections define project bootstrap tasks, which are the preferred way to set up the agent/dev tooling:
+  - `mise run install-skills` — installs all agent skills (local + third-party) into `.agents/skills` using the skills.sh CLI.
+  - `mise run install-serena` — installs the Serena MCP server (via `uv tool install`).
+  - `mise run update-serena` — updates the Serena MCP server.
+  - `mise run install-devtools` — installs/updates the Avalonia Developer Tools global dotnet tool (`avdt`) required for F12 DevTools in the desktop app.
+
 ## Build and test
 
 From the repository root:
@@ -53,6 +74,17 @@ The normal dependency direction is `Avalonia → Presentation → Core`. Core co
 When adding command, component, movement-cost, roll-modifier, or piloting-resolution types, follow the existing source-generator conventions; generated registries should not be hand-maintained. Consult the relevant architecture documents under `docs/architecture/` and use `docs/INDEX.md` to find other project guidance.
 
 Do not modify or commit derived game art in `data/`. That content is distributed separately under its upstream license.
+
+## Commit messages
+
+Use the [Conventional Commits](https://www.conventionalcommits.org/) format: `<type>(<optional scope>): <short description>`, for example:
+
+- `feat(movement): allow skid damage on pavement`
+- `fix(combat): apply critical hit chance correctly for rear arcs`
+- `docs: update coverage instructions`
+- `refactor(presentation): extract WeaponsAttackStep logic`
+
+Keep the subject line concise (ideally under 72 characters), use the imperative mood ("add", not "added" or "adds"), and do not end it with a period. Common types are `feat`, `fix`, `docs`, `refactor`, `chore`, and `build`. If the change is not self-explanatory, add a body explaining the why, and reference the issue (`Refs #123` or `Fixes #123`) so it is linked automatically.
 
 ## Pull requests
 
