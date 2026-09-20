@@ -76,6 +76,9 @@ public abstract class Component : IManufacturedItem
 
     public void Mount(UnitPart mountLocation, int[] slots)
     {
+        ArgumentNullException.ThrowIfNull(mountLocation);
+        ArgumentNullException.ThrowIfNull(slots);
+
         if (slots.Length > Size)
         {
             throw new ComponentException($"Component {Name} requires {Size} slots.");
@@ -146,7 +149,7 @@ public abstract class Component : IManufacturedItem
                 throw new ArgumentException("Assignment.UnitPart cannot be null.", nameof(assignments));
             if (assignment.FirstSlot < 0 || assignment.Length <= 0)
                 throw new ArgumentOutOfRangeException(nameof(assignments), "FirstSlot must be >= 0 and Length > 0.");
-            if (assignment.FirstSlot + assignment.Length > assignment.UnitPart.TotalSlots)
+            if (assignment.FirstSlot > assignment.UnitPart.TotalSlots - assignment.Length)
                 throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
         }
 
@@ -173,8 +176,9 @@ public abstract class Component : IManufacturedItem
                 throw new ComponentException("Assignment overlaps existing mounts on the same part.");
         }
 
-        var totalUniqueSlots = _slotAssignments.SelectMany(assignment => assignment.Slots)
-            .Concat(staged.SelectMany(assignment => assignment.Slots))
+        var totalUniqueSlots = _slotAssignments
+            .SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot)))
+            .Concat(staged.SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot))))
             .Distinct()
             .Count();
         if (totalUniqueSlots > Size)
