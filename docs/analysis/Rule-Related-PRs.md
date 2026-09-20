@@ -73,13 +73,11 @@ Four concrete problems, independent of the data-vs-rules question:
 
 1. **Optional/nullable provider parameters.** `GetAttackModifiers(PartLocation location, IRulesProvider? rulesProvider = null)` and `Hex.GetEnterMovementCost(..., IMovementCostProvider? = null)` create two sources of truth. `AttackScenario` literally branches on it:
 
-<augment_code_snippet path="src/MakaMek.Core/Data/Game/Mechanics/AttackScenario.cs" mode="EXCERPT">
 ```csharp
 AttackerModifiers = rulesProvider is null
     ? attacker.GetAttackModifiers(weaponLocation)
     : attacker.GetAttackModifiers(weaponLocation, rulesProvider),
 ```
-</augment_code_snippet>
 
 A house rule set that changes the prone modifier silently does nothing on any call path that forgot to pass the provider. Also `Mech.GetAttackModifiers` calls `rulesProvider.GetProneFiringModifier()` on a parameter declared nullable — a latent NRE.
 
@@ -160,7 +158,7 @@ This satisfies both accepted points and the open concern simultaneously:
 - the rule set can still override by key;
 - **no entity depends on the provider** — the dependency lives only where it already lives (the game and its mechanics/factories).
 
-For runtime per-unit modifiers (heat/prone/skidding/falling) the same principle applies: these are already assembled inside mechanics services that own the provider (`ToHitCalculator`, piloting/fall calculators, `MechFactory`). Move the assembly there instead of adding `provider` parameters to `Mech.GetAttackModifiers`/`GetMovementPoints`. If a unit truly needs a value on its own API, resolve it from the unit's **owning game** (which holds the provider), not from a per-call parameter and not from a constructor-injected provider on the entity.
+For runtime per-unit modifiers (heat/prone/skidding/falling) the same principle applies: these are already assembled inside mechanics services that own the provider (`ToHitCalculator`, piloting/fall calculators). Move the assembly there instead of adding `provider` parameters to `Mech.GetAttackModifiers`/`GetMovementPoints`. If a unit truly needs a value on its own API, resolve it from the unit's **owning game** (which holds the provider), not from a per-call parameter and not from a constructor-injected provider on the entity.
 
 ## 7. Updated recommendations / disposition
 
