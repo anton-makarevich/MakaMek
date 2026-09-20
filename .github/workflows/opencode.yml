@@ -44,22 +44,24 @@ jobs:
           cat > opencode.json << 'EOF'
           {
             "mcp": {
-              "serena": {
-                "type": "local",
-                "command": ["serena", "start-mcp-server", "--context=ide"],
-                "enabled": true
-              },
-              "avalonia-docs": {
-                "type": "remote",
-                "url": "https://docs-mcp.avaloniaui.net/mcp",
-                "enabled": true
+              "servers": {
+                "serena": {
+                  "type": "local",
+                  "command": ["serena", "start-mcp-server", "--context=ide"],
+                  "disabled": false
+                },
+                "avalonia-docs": {
+                  "type": "remote",
+                  "url": "https://docs-mcp.avaloniaui.net/mcp",
+                  "disabled": false
+                }
               }
             }
           }
           EOF
 
       - name: Run OpenCode
-        uses: anomalyco/opencode/github@v1.18.29
+        uses: anomalyco/opencode/github@v2.0.5
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
