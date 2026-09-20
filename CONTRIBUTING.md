@@ -4,7 +4,7 @@ Thank you for helping to improve MakaMek, a cross-platform BattleTech implementa
 
 ## Before you start
 
-- Install GIT, .NET 10 SDK and platform workloads for the targets you need.
+- Install Git, the .NET 10 SDK and platform workloads for the targets you need.
 - Check the existing issues before starting substantial work. For a new feature or a change to game rules, open an issue first so the design can be discussed.
 - Fork the repository, create a focused branch, and keep unrelated formatting or refactoring out of the change.
 
@@ -15,10 +15,10 @@ Suggested branch names are `fix/123-short-description`, `feature/123-short-descr
 Using AI coding agents is **allowed and explicitly supported**. The repository already ships the infrastructure for it:
 
 - Root `AGENTS.md` describes the architecture, build/test commands, testing conventions, and versioning rules agents must follow; scoped `AGENTS.md` files exist where necessary (e.g. `src/MakaMek.Avalonia/AGENTS.md` for Avalonia UI work).
-- Repo-local agent skills live in `skills/` and are installed to `.agents/skills' and `/.claude/skills` via `mise run install-skills`.
+- Repo-local agent skills live in `skills/` and are installed to `.agents/skills` and `.claude/skills` via `mise run install-skills`.
 - The [Serena](https://github.com/oraios/serena) MCP server provides symbol-level code search and editing; install it with `mise run install-serena` (or update with `mise run update-serena`).
 
-But whether you contribute by hand or with an agent, the same rules apply.
+Whether you contribute by hand or with an agent, the same rules apply.
 
 ### Development dependencies with mise
 
@@ -79,7 +79,7 @@ dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj \
   /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]*
 ```
 
-The include filter uses the *source* assembly name (`Sanet.MakaMek.Core`), derived from the test assembly name (`Sanet.MakaMek.Core.Tests`) by dropping the `.Tests` suffix. Code marked `GeneratedCodeAttribute` (e.g. source-generator output) is excluded; UI (Avalonia) is intentionally outside coverage.
+The include filter uses the *source* assembly name (`Sanet.MakaMek.Core`), derived from the test assembly name (`Sanet.MakaMek.Core.Tests`) by dropping the `.Tests` suffix. Code marked with the `GeneratedCodeAttribute` (e.g. source-generator output) is excluded; UI (Avalonia) is intentionally outside coverage.
 
 To get the diff-coverage report against your current branch, install the global tool and run:
 
