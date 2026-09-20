@@ -262,6 +262,99 @@ public class HeatEffectsCalculatorTests
     }
     
     [Fact]
+    public void CheckForHeatAmmoExplosion_ShouldNotReportPreexistingDestroyedParts_WhenRollSucceeds()
+    {
+        // Arrange
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+
+        var mech = CreateTestMechWithAmmo();
+        // Destroy the left arm before the explosion check
+        mech.Parts[PartLocation.LeftArm].ApplyDamage(10, HitDirection.Front);
+        mech.Parts[PartLocation.LeftArm].IsDestroyed.ShouldBeTrue();
+        SetMechHeat(mech, 25);
+
+        // Setup dice roll that succeeds (rolls 7, needs 6+)
+        var diceResults = new List<DiceResult> { new(3), new(4) };
+        _diceRoller.Roll2D6().Returns(diceResults);
+
+        // Act
+        var result = _sut.CheckForHeatAmmoExplosion(mech);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.AvoidExplosionRoll.ShouldNotBeNull();
+        result.Value.AvoidExplosionRoll.IsSuccessful.ShouldBeTrue();
+        result.Value.CriticalHits.ShouldBeEmpty();
+        result.Value.DestroyedParts.ShouldBeNull(); // Pre-existing destruction is not reported
+    }
+
+    [Fact]
+    public void CheckForHeatAmmoExplosion_ShouldReportDestroyedParts_WhenExplosionDestroysLocation()
+    {
+        // Arrange
+        var damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
+        // Use the real critical hits calculator so the explosion damage is actually applied
+        var sut = new HeatEffectsCalculator(
+            _rulesProvider,
+            _diceRoller,
+            new CriticalHitsCalculator(_diceRoller, damageTransferCalculator));
+
+        var mech = CreateTestMech();
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
+        var leftTorso = mech.Parts[PartLocation.LeftTorso];
+
+        // Explodable ammo in the center torso (the heat-triggered explosion)
+        var explodingAmmo = AmmoTests.CreateAmmo(Lrm5, 24);
+        centerTorso.TryAddComponent(explodingAmmo, [10]).ShouldBeTrue();
+
+        // Ammo in the left torso that will be hit by the critical hit caused by the explosion
+        var chainAmmo = AmmoTests.CreateAmmo(Lrm5, 1);
+        leftTorso.TryAddComponent(chainAmmo, [8]).ShouldBeTrue();
+        // Additional 0-shot ammo fillers in the left torso so the critical slot roll
+        // uses the group selection logic (> 6 available slots)
+        foreach (var slot in new[] { 5, 6, 7, 9, 10, 11 })
+        {
+            leftTorso.TryAddComponent(AmmoTests.CreateAmmo(Lrm5, 0), [slot]).ShouldBeTrue();
+        }
+
+        SetMechHeat(mech, 25);
+
+        // First roll: explosion avoidance check fails (3 < 4)
+        // Second roll: critical hit roll for the left torso (8 -> 1 crit)
+        _diceRoller.Roll2D6().Returns(
+            [new DiceResult(1), new DiceResult(2)],
+            [new DiceResult(4), new DiceResult(4)]);
+        // First roll: slot group selection (slots >= 6)
+        // Second roll: slot 3 -> slot 8 (the chain ammo)
+        _diceRoller.RollD6().Returns(new DiceResult(5), new DiceResult(3));
+
+        // The heat explosion damages the left torso...
+        damageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)]);
+        // ...and the critical hit on the left torso ammo damages the right torso enough to destroy it
+        damageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Any<int>())
+            .Returns([new LocationDamageData(PartLocation.RightTorso, 0, 5, false)]);
+
+        // Act
+        var result = sut.CheckForHeatAmmoExplosion(mech);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.CriticalHits.ShouldNotBeEmpty();
+        result.Value.DestroyedParts.ShouldNotBeNull();
+        result.Value.DestroyedParts!.ShouldContain(PartLocation.RightTorso);
+        result.Value.UnitDestroyed.ShouldBeFalse();
+        mech.Parts[PartLocation.RightTorso].IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
     public void CheckForHeatShutdown_ShouldReturnNull_WhenMechIsAlreadyShutdown()
     {
         // Arrange
