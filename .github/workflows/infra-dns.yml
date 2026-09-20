@@ -1,4 +1,4 @@
-﻿name: DNS Infra (Pulumi)
+﻿name: Infra - DNS
 
 # Ad-hoc provisioning of the makamek.nl Cloudflare zone + DNS records.
 # No automatic triggers: run manually from the Actions tab.

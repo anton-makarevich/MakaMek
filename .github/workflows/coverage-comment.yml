@@ -1,0 +1,70 @@
+name: Coverage Comments
+permissions:
+  contents: read
+on:
+  workflow_run:
+    workflows:
+      - MakaMek Core Library
+      - MakaMek Presentation Library
+      - MakaMek Bots Library
+      - MakaMek Avalonia Library
+      - MakaMek Assets Library
+      - MakaMek Localization Library
+      - MakaMek Map Library
+    types:
+      - completed
+
+jobs:
+  post-coverage-comment:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      - uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        with:
+          pattern: cocodif-*
+          path: coverage
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Validate report and resolve PR number
+        id: resolve
+        if: steps.download.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+          PR_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          PR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          test -f coverage/report.md
+          PR_NUMBER="${{ github.event.workflow_run.pull_requests[0].number }}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=$(gh api "repos/${{ github.repository }}/pulls" \
+              --method GET \
+              -f state=open \
+              -f "head=$PR_HEAD_OWNER:$PR_HEAD_BRANCH" \
+              --jq '[.[] | select(.head.sha == env.PR_HEAD_SHA)][0].number // empty' 2>/dev/null || true)
+          fi
+          if [ -z "$PR_NUMBER" ]; then
+            echo "::error::Could not determine pull request number from workflow_run event or pull request lookup"
+            exit 1
+          fi
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Post coverage comment
+        if: steps.resolve.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          number: ${{ steps.resolve.outputs.pr_number }}
+          header: ${{ github.event.workflow_run.name }}
+          path: coverage/report.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
