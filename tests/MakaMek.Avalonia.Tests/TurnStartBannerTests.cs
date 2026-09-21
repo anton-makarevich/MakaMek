@@ -25,16 +25,7 @@ public class TurnStartBannerTests
 
         await session.Dispatch(() =>
         {
-            var view = new BattleMapView();
-            var window = new Window
-            {
-                Width = 1000,
-                Height = 600,
-                Content = view
-            };
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
+            var (_, view) = ShowBattleMap();
             var banner = view.FindControl<Border>("TurnStartBanner");
 
             banner.ShouldNotBeNull();
@@ -62,7 +53,7 @@ public class TurnStartBannerTests
             // make this assertion pass without proving anything.
             banner.Opacity = 1;
             banner.Background = Brushes.Red;
-            Dispatcher.UIThread.RunJobs();
+            Settle(window);
             var overBanner = banner.Bounds.Center;
 
             Click(window, overBanner);
@@ -102,7 +93,7 @@ public class TurnStartBannerTests
             Content = view
         };
         window.Show();
-        Dispatcher.UIThread.RunJobs();
+        Settle(window);
         return (window, view);
     }
 
@@ -110,6 +101,19 @@ public class TurnStartBannerTests
     {
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>
+    /// Runs layout to completion. Showing a window does not guarantee it, and these assertions are
+    /// all about where the banner ended up, so stale bounds would make them depend on what ran
+    /// first.
+    /// </summary>
+    private static void Settle(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
     }
 
