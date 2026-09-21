@@ -565,11 +565,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public void NotifyStateChanged()
     {
+        AnnounceTurnStartIfItJustBecameOurs();
         NotifyPropertyChanged(nameof(Turn));
         NotifyPropertyChanged(nameof(TurnPhaseName));
         NotifyPropertyChanged(nameof(ActivePlayerName));
         NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
-        NotifyPropertyChanged(nameof(TurnStatusLabel));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
@@ -770,11 +770,29 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         && Game.LocalPlayers.Contains(playerId);
 
     /// <summary>
-    /// Localized status text describing whether the local player may act.
+    /// Text of the banner announcing that the local player's turn has begun.
     /// </summary>
-    public string TurnStatusLabel => IsLocalPlayerTurn
-        ? _localizationService.GetString("BattleMap_YourTurn")
-        : string.Format(_localizationService.GetString("BattleMap_WaitingForPlayer"), ActivePlayerName);
+    public string TurnStartLabel => _localizationService.GetString("BattleMap_YourTurn");
+
+    /// <summary>
+    /// Callback assigned by the map view to play the turn-start announcement.
+    /// Deliberately not a status-bar label: the active player is already named there.
+    /// </summary>
+    public Action? PlayTurnStartAnimation { get; set; }
+
+    private bool _wasLocalPlayerTurn;
+
+    /// <summary>
+    /// Fires the turn-start announcement once, on the transition into the local player's turn,
+    /// rather than on every notification raised while that turn is already in progress.
+    /// </summary>
+    private void AnnounceTurnStartIfItJustBecameOurs()
+    {
+        var isOurTurn = IsLocalPlayerTurn;
+        if (isOurTurn && !_wasLocalPlayerTurn)
+            PlayTurnStartAnimation?.Invoke();
+        _wasLocalPlayerTurn = isOurTurn;
+    }
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 

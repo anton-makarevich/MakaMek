@@ -106,6 +106,18 @@
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
     
+    <Style Selector="Border.turnStartBanner">
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style Selector="Border.turnStartBanner > TextBlock">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+
     <Style Selector="Border.connectionBanner > TextBlock">
         <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="FontSize" Value="12"/>
