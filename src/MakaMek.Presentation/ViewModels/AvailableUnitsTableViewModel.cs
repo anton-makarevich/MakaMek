@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
@@ -21,6 +22,10 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     private bool _showAllClasses;
     private SortColumn _currentSortColumn = SortColumn.Name;
     private bool _isSortAscending = true;
+    private string _searchText = string.Empty;
+    private UnitSelectionPreviewViewModel? _selectedUnitPreview;
+    private readonly int _usedBattleValue;
+    private int _battleValueLimit;
     private const string FilterAllKey = "All";
 
     private enum SortColumn
@@ -29,10 +34,15 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         Tonnage
     }
 
-    public AvailableUnitsTableViewModel(IList<UnitData> availableUnits, IMechFactory mechFactory)
+    public AvailableUnitsTableViewModel(IList<UnitData> availableUnits, IMechFactory mechFactory,
+        int battleValueLimit = 0, IEnumerable<UnitData>? selectedUnits = null)
     {
         _availableUnits = new ObservableCollection<UnitData>(availableUnits);
         _mechFactory = mechFactory;
+        _battleValueLimit = Math.Max(0, battleValueLimit);
+        _usedBattleValue = _battleValueLimit > 0
+            ? selectedUnits?.Sum(GetBattleValue) ?? 0
+            : 0;
 
         // Initialize with "All" filter selected
         _showAllClasses = true;
@@ -43,6 +53,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         AddUnitCommand = new AsyncCommand(AddUnit, _ => CanAddUnit);
         CancelCommand = new AsyncCommand(Cancel);
         ShowUnitInfoCommand = new AsyncCommand(ShowUnitInfo, _ => CanShowUnitInfo);
+        ClearSearchCommand = new AsyncCommand(ClearSearch, _ => HasSearchText);
     }
 
     /// <summary>
@@ -55,6 +66,18 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
             var filtered = _showAllClasses
                 ? _availableUnits
                 : _availableUnits.Where(u => u.Mass.ToWeightClass() == _selectedWeightClassFilter);
+
+            if (!string.IsNullOrWhiteSpace(_searchText))
+            {
+                var search = _searchText.Trim();
+                filtered = filtered.Where(u => u.Chassis.Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || u.Model.Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || (u.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || GetEra(u).Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (_battleValueLimit > 0)
+                filtered = filtered.Where(u => GetBattleValue(u) <= RemainingBattleValue);
 
             return ApplySorting(filtered);
         }
@@ -107,17 +130,84 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         set
         {
             SetProperty(ref _selectedUnit, value);
+            _selectedUnitPreview = value is { } selected
+                ? new UnitSelectionPreviewViewModel(selected, _mechFactory.Create(selected))
+                : null;
             NotifyPropertyChanged(nameof(CanAddUnit));
             NotifyPropertyChanged(nameof(CanShowUnitInfo));
+            NotifyPropertyChanged(nameof(SelectedUnitPreview));
+            NotifyPropertyChanged(nameof(HasSelection));
+            NotifyPropertyChanged(nameof(HasNoSelection));
             (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             (ShowUnitInfoCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
 
+    /// <summary>Gets or sets the case-insensitive chassis/model search text.</summary>
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            SetProperty(ref _searchText, value);
+            NotifyPropertyChanged(nameof(FilteredAvailableUnits));
+            NotifyPropertyChanged(nameof(FilteredUnitCount));
+            NotifyPropertyChanged(nameof(HasNoResults));
+            NotifyPropertyChanged(nameof(HasSearchText));
+            (ClearSearchCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        }
+    }
+
+    /// <summary>Gets the number of units currently visible after filtering and search.</summary>
+    public int FilteredUnitCount => FilteredAvailableUnits.Count();
+
+    /// <summary>Gets whether the current filters leave no selectable units.</summary>
+    public bool HasNoResults => FilteredUnitCount == 0;
+
+    /// <summary>Gets or sets the per-player BV cap; zero disables the cap.</summary>
+    public int BattleValueLimit
+    {
+        get => _battleValueLimit;
+        set
+        {
+            _battleValueLimit = Math.Max(0, value);
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(RemainingBattleValue));
+            NotifyPropertyChanged(nameof(IsBattleValueLimitEnabled));
+            NotifyPropertyChanged(nameof(CanAddUnit));
+            NotifyPropertyChanged(nameof(FilteredAvailableUnits));
+            NotifyPropertyChanged(nameof(FilteredUnitCount));
+            NotifyPropertyChanged(nameof(HasNoResults));
+        }
+    }
+
+    /// <summary>Gets the BV still available for the current player's force.</summary>
+    public int RemainingBattleValue => _battleValueLimit > 0
+        ? Math.Max(0, _battleValueLimit - _usedBattleValue)
+        : 0;
+
+    /// <summary>Gets whether the picker is applying a finite BV budget.</summary>
+    public bool IsBattleValueLimitEnabled => _battleValueLimit > 0;
+
+    /// <summary>Gets whether the preview pane has a selected mech to display.</summary>
+    public bool HasSelection => _selectedUnit.HasValue;
+
+    /// <summary>Gets whether the preview pane should show its selection prompt.</summary>
+    public bool HasNoSelection => !HasSelection;
+
+    /// <summary>Gets whether the search box currently contains text.</summary>
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(_searchText);
+
+    /// <summary>
+    /// Gets a rules-backed preview for the selected unit, or null before selection.
+    /// </summary>
+    public UnitSelectionPreviewViewModel? SelectedUnitPreview => _selectedUnitPreview;
+
     /// <summary>
     /// Gets whether a unit can be added right now (unit is selected and player can add units)
     /// </summary>
-    public bool CanAddUnit => _selectedUnit.HasValue;
+    public bool CanAddUnit => _selectedUnit.HasValue
+        && (!IsBattleValueLimitEnabled || GetBattleValue(_selectedUnit.Value) <= RemainingBattleValue);
 
     /// <summary>
     /// Gets whether unit info can be shown (unit is selected)
@@ -133,6 +223,9 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     /// Command to show unit info for the selected unit
     /// </summary>
     public ICommand ShowUnitInfoCommand { get; }
+
+    /// <summary>Clears the roster search without changing the weight-class filter.</summary>
+    public ICommand ClearSearchCommand { get; }
 
     /// <summary>
     /// Command to cancel unit selection
@@ -224,6 +317,29 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         };
     }
 
+    private int GetBattleValue(UnitData unit)
+    {
+        try
+        {
+            return Math.Max(0, _mechFactory.Create(unit).CalculateBattleValue());
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Unable to calculate Battle Value for {unit.Chassis} {unit.Model}: {exception}");
+            return int.MaxValue;
+        }
+    }
+
+    private static string GetEra(UnitData unit)
+    {
+        if (unit.AdditionalAttributes is null)
+            return string.Empty;
+
+        return unit.AdditionalAttributes.FirstOrDefault(attribute =>
+            attribute.Key.Equals("era", StringComparison.OrdinalIgnoreCase)
+            || attribute.Key.Equals("introduction-era", StringComparison.OrdinalIgnoreCase)).Value ?? string.Empty;
+    }
+
     private Task AddUnit()
     {
         if (!CanAddUnit) return Task.CompletedTask;
@@ -248,6 +364,12 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(infoViewModel);
     }
 
+    private Task ClearSearch()
+    {
+        SearchText = string.Empty;
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Gets a task that completes when a unit is selected or the dialog is cancelled.
     /// Note: This method returns the same task instance on every call. Once the task completes,
@@ -258,4 +380,3 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         return _resultTaskCompletionSource.Task;
     }
 }
-
