@@ -125,6 +125,30 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
+    public async Task Reconnect_AfterLanConnect_CreatesReplacementPublisher()
+    {
+        // Arrange
+        const string serverAddress = "http://localhost:2439/makamekhub";
+        var firstPublisher = Substitute.For<ITransportPublisher>();
+        var replacementPublisher = Substitute.For<ITransportPublisher>();
+        _transportFactory.CreateAndStartClientPublisher(serverAddress)
+            .Returns(Task.FromResult(firstPublisher), Task.FromResult(replacementPublisher));
+
+        await _sut.ConnectToLan(serverAddress);
+
+        // Act
+        var result = await _sut.Reconnect();
+
+        // Assert
+        result.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.CanReconnect.ShouldBeTrue();
+        await _transportFactory.Received(2).CreateAndStartClientPublisher(serverAddress);
+        _transportAdapter.Received(1).RemovePublisher(firstPublisher);
+        _transportAdapter.Received(1).AddPublisher(replacementPublisher);
+    }
+
+    [Fact]
     public async Task ConnectToLanAsync_Reconnect_RemovesOnlyPreviousLanPublisher()
     {
         // Arrange
