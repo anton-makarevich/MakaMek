@@ -1,5 +1,8 @@
 ﻿**MakaMek** MVP targets the set of rules described in this document.
-This document focuses on a simplified set of rules for BattleMechs, using equipment primarily from the 3025 era (Succession Wars) and basic terrain types like clear and woods, without incorporating complex levels or physical attacks.
+This document defines the original simplified Version 1 baseline for BattleMechs, using equipment
+primarily from the 3025 era and basic clear/woods terrain. It intentionally excludes complex levels
+and physical attacks. The live application has since added a separate physical-attack vertical slice;
+see `docs/rules/Overview.md` and `docs/project/physical-attacks-prd.md` for current scope.
 
 ### BattleMechs: The Core Units
 

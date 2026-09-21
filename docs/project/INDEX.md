@@ -10,4 +10,6 @@ Project-level planning, requirements specifications, gap tracking, and subsystem
 | [MakaMek-MVP-Gap-Analysis(0.42.27).md](MakaMek-MVP-Gap-Analysis%280.42.27%29.md) | Completion tracking | Gap analysis against MVP requirements as of version 0.42.27, identifying remaining work |
 | [bot-player-system-prd.md](bot-player-system-prd.md) | Subsystem planning | Product Requirements Document for the AI bot player subsystem |
 | [roads-pavement-bridges-prd.md](roads-pavement-bridges-prd.md) | Feature planning | Product Requirements Document for road, pavement, and bridge terrain mechanics including skid PSR and bridge CF collapse |
+| [physical-attacks-prd.md](physical-attacks-prd.md) | Feature planning | Initial implementation plan for the staged BattleMech physical-attacks vertical slice |
+| [physical-attacks-next-slices.md](physical-attacks-next-slices.md) | Feature planning | Acceptance criteria still owed by the Push, Charge, DFA, physical-weapon, and piloting-consequence slices |
 | [network-prd.md](network-prd.md) | Subsystem planning | Product Requirements Document (draft) for moving from LAN peer-host to a cloud relay-hub model enabling internet and web multiplayer at minimal cost |
