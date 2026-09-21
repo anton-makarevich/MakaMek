@@ -61,7 +61,7 @@ jobs:
 
       - name: Post coverage comment
         if: steps.resolve.outcome == 'success'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           number: ${{ steps.resolve.outputs.pr_number }}
           header: ${{ github.event.workflow_run.name }}
