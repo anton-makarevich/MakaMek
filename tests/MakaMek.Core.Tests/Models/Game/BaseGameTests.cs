@@ -1954,6 +1954,92 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAcceptWeaponAttackDeclarationWithNoTargets()
+    {
+        // Arrange: declaring no targets is how a unit says it will not attack.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = []
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAcceptWeaponAttackDeclarationWithNullTargets()
+    {
+        // Arrange: a payload deserialized without the field at all.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = null!
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithNullTarget()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = [null!]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithNullWeapon()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = null!
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithEmptyAssignments()
     {
         // Arrange

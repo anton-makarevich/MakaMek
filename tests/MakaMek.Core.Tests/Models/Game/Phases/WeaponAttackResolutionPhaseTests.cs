@@ -119,9 +119,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_ShouldSkipWeaponTargetsWithoutAssignments()
+    public void Enter_ShouldResolveNoAttacks_WhenDeclarationsHadNoAssignments()
     {
-        // Arrange
+        // Arrange: DeclareWeaponAttack drops targets it cannot match to a mounted weapon, so a
+        // declaration with no slot assignments never reaches the resolution phase at all.
         SetMap();
         var weapon = new TestWeapon();
         var part = _player1Unit1.Parts[0];

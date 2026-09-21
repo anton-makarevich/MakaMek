@@ -80,11 +80,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 var weaponTargets = unit.DeclaredWeaponTargets ?? [];
                 foreach (var weaponTarget in weaponTargets)
                 {
-                    // A malformed/stale declaration must not abort the entire resolution phase.
-                    if (weaponTarget is null || weaponTarget.Weapon is null ||
-                        weaponTarget.Weapon.Assignments is not { Count: > 0 })
-                        continue;
-
                     var primaryAssignment = weaponTarget.Weapon.Assignments[0];
                     var weapon = unit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot);
                     var targetUnit = allUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
