@@ -18,11 +18,11 @@ public record struct PhysicalAttackCommand : IClientUnitCommand
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.TargetUnitId);
 
-        if (unit == null || target == null) return string.Empty;
+        if (player == null || unit == null || target == null) return string.Empty;
 
         var localizedTemplate = localizationService.GetString("Command_PhysicalAttack");
         return string.Format(localizedTemplate,
-            player?.Name,
+            player.Name,
             unit.Model,
             target.Model,
             AttackType);
