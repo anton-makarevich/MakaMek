@@ -2,9 +2,9 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
-using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MakaMek.Avalonia.Tests.TestHelpers;
 using Shouldly;
 using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 
@@ -33,10 +33,10 @@ public class ActionButtonTests
             try
             {
                 var rendered = Rendered(button);
-                var point = CentreOf(window, rendered);
-                HitLandsOn(window, point, rendered).ShouldBeTrue("the click must land on the button");
+                var point = window.CentreOf(rendered);
+                window.HitLandsOn(point, rendered).ShouldBeTrue("the click must land on the button");
 
-                Click(window, point);
+                window.Click(point);
 
                 command.Executions.ShouldBe(1);
             }
@@ -59,13 +59,13 @@ public class ActionButtonTests
                 // Take the point while the button is still live, so the click below is known to be
                 // aimed at it - otherwise "nothing happened" could just mean "nothing was there".
                 var rendered = Rendered(button);
-                var point = CentreOf(window, rendered);
-                HitLandsOn(window, point, rendered).ShouldBeTrue();
+                var point = window.CentreOf(rendered);
+                window.HitLandsOn(point, rendered).ShouldBeTrue();
 
                 button.IsEnabled = false;
-                Settle(window);
+                window.Settle();
 
-                Click(window, point);
+                window.Click(point);
 
                 command.Executions.ShouldBe(0);
             }
@@ -86,14 +86,14 @@ public class ActionButtonTests
             try
             {
                 var rendered = Rendered(button);
-                var point = CentreOf(window, rendered);
+                var point = window.CentreOf(rendered);
 
-                Click(window, point);
+                window.Click(point);
 
                 command.Executions.ShouldBe(0);
                 // A command that cannot execute disables the button, which also takes it out of
                 // hit testing - the click falls through to whatever is behind it.
-                HitLandsOn(window, point, rendered).ShouldBeFalse();
+                window.HitLandsOn(point, rendered).ShouldBeFalse();
             }
             finally
             {
@@ -118,7 +118,7 @@ public class ActionButtonTests
             Content = button
         };
         window.Show();
-        Settle(window);
+        window.Settle();
         return (window, button);
     }
 
@@ -129,43 +129,6 @@ public class ActionButtonTests
     /// </summary>
     private static Button Rendered(ActionButton button)
         => button.GetVisualDescendants().OfType<Button>().First();
-
-    /// <summary>
-    /// Whether a click at <paramref name="point"/> reaches <paramref name="target"/>. Hit testing
-    /// returns the innermost visual - for a templated button that is a Border inside it - so this
-    /// asks about containment rather than identity.
-    /// </summary>
-    private static bool HitLandsOn(Window window, Point point, Visual target)
-    {
-        if (window.InputHitTest(point) is not Visual hit) return false;
-        return hit == target || hit.GetVisualAncestors().Contains(target);
-    }
-
-    private static Point CentreOf(Window window, Visual visual)
-    {
-        var local = new Point(visual.Bounds.Width / 2, visual.Bounds.Height / 2);
-        return visual.TranslatePoint(local, window)!.Value;
-    }
-
-    private static void Click(Window window, Point point)
-    {
-        window.MouseDown(point, MouseButton.Left);
-        window.MouseUp(point, MouseButton.Left);
-        Dispatcher.UIThread.RunJobs();
-    }
-
-    /// <summary>
-    /// Runs layout to completion. Showing a window does not guarantee it, and every assertion here
-    /// is about where a control ended up, so stale bounds make the tests fail depending on what
-    /// else ran first.
-    /// </summary>
-    private static void Settle(Window window)
-    {
-        Dispatcher.UIThread.RunJobs();
-        window.UpdateLayout();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        Dispatcher.UIThread.RunJobs();
-    }
 
     private sealed class CountingCommand : ICommand
     {
