@@ -107,17 +107,12 @@
     </Style>
     
     <Style Selector="Border.turnStartBanner">
-        <Setter Property="Background" Value="{StaticResource OverlayTransparentBrush}"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 
-    <!-- TextBrush, not HighlightLightBrush as connectionBanner uses: OverlayTransparentBrush is a
-         light grey (#CCE0E0E0), and amber on it is about 1.5:1. That is survivable for a 12px
-         status line and not for a 20px announcement. -->
     <Style Selector="Border.turnStartBanner > TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>

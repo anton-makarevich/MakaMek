@@ -144,11 +144,13 @@
              TurnStartAnimation; it never intercepts input and is not a persistent label. -->
         <Border x:Name="TurnStartBanner"
                 Classes="turnStartBanner"
+                Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                 VerticalAlignment="Top"
                 Margin="60,92,60,0"
                 IsHitTestVisible="False"
                 Opacity="0">
-            <TextBlock Text="{Binding TurnStartLabel}"/>
+            <TextBlock Text="{Binding TurnStartLabel}"
+                       Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
         </Border>
 
         <Grid x:Name="MechList"

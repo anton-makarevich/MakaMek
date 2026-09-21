@@ -3,6 +3,7 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
@@ -46,12 +47,12 @@ public class TurnStartBannerTests
             var clicks = 0;
             map.ContentClicked += (_, _) => clicks++;
 
-            // Mid-announcement: the banner is fully opaque and covers this point. Its background
-            // comes from the turnStartBanner style rather than a binding, so it is a solid surface
-            // even without a view model - which matters, because a Border with no background is not
-            // hit-testable at all and would make this assertion pass without proving anything.
-            banner.Background.ShouldNotBeNull();
+            // Mid-announcement: the banner is fully opaque and covers this point. The tint comes
+            // from the view model in the real app; set a brush explicitly so the banner is a solid
+            // surface here — a Border with no background is not hit-testable at all, which would
+            // make this assertion pass without proving anything.
             banner.Opacity = 1;
+            banner.Background = Brushes.Red;
             Settle(window);
             var overBanner = banner.Bounds.Center;
 
