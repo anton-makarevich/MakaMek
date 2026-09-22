@@ -211,4 +211,4 @@ The interrupt handler chain models **independent hazard checks** where any one m
 
 ## Out of scope
 
-Approaches E (full `IAttackResolutionStep` pipeline) and F (unified cross-phase framework) from the refactoring analysis are intentionally out of scope. The current three-layer split (orchestrator → resolver → gates) provides the right balance of testability, readability, and extensibility for the foreseeable feature set. If future needs (such as AMS interception, additional physical-attack resolution rules, or phased resolution ordering) demand further decomposition, the pattern can be extended without breaking the existing layers.
+Approaches E (full `IAttackResolutionStep` pipeline) and F (unified cross-phase framework) from the refactoring analysis are intentionally out of scope. The current three-layer split (orchestrator → resolver → gates) provides the right balance of testability, readability, and extensibility for the foreseeable feature set. If future needs (such as AMS interception, physical attack integration, or phased resolution ordering) demand further decomposition, the pattern can be extended without breaking the existing layers.
