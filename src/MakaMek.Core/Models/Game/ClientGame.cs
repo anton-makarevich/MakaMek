@@ -57,6 +57,15 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     public bool IsDisposed => _isDisposed;
 
+    /// <inheritdoc />
+    public bool HasPendingCommands => !_pendingCommands.IsEmpty;
+
+    /// <inheritdoc />
+    public event Action? PendingCommandsChanged;
+
+    /// <inheritdoc />
+    public event Action? CommandTimedOut;
+
     protected override bool ShouldHandleCommand(IGameCommand command)
     {
         if (!base.ShouldHandleCommand(command)) return false;
@@ -285,6 +294,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             return false;
         }
 
+        PendingCommandsChanged?.Invoke();
+
         // Return the task that will be completed when the server responds
         CommandPublisher.PublishCommand(commandWithKey);
 
@@ -297,7 +308,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         {
             // Timeout: clean up and report failure
             tcs.TrySetResult(false);
-            _pendingCommands.TryRemove(idempotencyKey, out _);
+            CommandTimedOut?.Invoke();
+            if (_pendingCommands.TryRemove(idempotencyKey, out _))
+                PendingCommandsChanged?.Invoke();
             return false;
         }
     }
@@ -392,6 +405,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         if (_pendingCommands.TryRemove(idempotencyKey, out var pendingCommand))
         {
             pendingCommand.Tcs.TrySetResult(success);
+            PendingCommandsChanged?.Invoke();
         }
 
         if (success) return;
@@ -408,10 +422,22 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         // Unsubscribe from command publisher
         CommandPublisher.Unsubscribe(HandleCommand);
 
-        // Fail/cancel any pending waits to avoid hangs
-        foreach (var kv in _pendingCommands)
-            kv.Value.Tcs.TrySetCanceled();
-        _pendingCommands.Clear();
+        // Fail/cancel any pending waits to avoid hangs. Each entry is removed before it is
+        // cancelled, so a command registered concurrently with disposal is either cancelled here or
+        // left intact - clearing the whole dictionary afterwards would drop such an entry without
+        // ever completing its task, leaving the caller waiting for the timeout.
+        var cancelledAny = false;
+        foreach (var key in _pendingCommands.Keys)
+        {
+            if (!_pendingCommands.TryRemove(key, out var pendingCommand)) continue;
+            pendingCommand.Tcs.TrySetCanceled();
+            cancelledAny = true;
+        }
+
+        // Report what was actually removed rather than a count sampled before the loop, which a
+        // concurrent completion could already have made wrong.
+        if (cancelledAny)
+            PendingCommandsChanged?.Invoke();
 
         DisposeCommandResources();
     }
