@@ -1,15 +1,18 @@
 # Physical Attacks — Initial Implementation Plan
 
-> Status: the punch/kick vertical slice is the shipped scope. Push, charge, DFA, and physical-weapon
-> attacks remain intentionally unsupported until their movement, displacement, PSR/DSR, equipment,
-> and damage-transfer rules have dedicated acceptance criteria.
+> Status: **planned.** The punch/kick vertical slice is the proposed scope; none of it is on `main`
+> yet. Push, charge, DFA, and physical-weapon attacks stay out of scope until their movement,
+> displacement, PSR/DSR, equipment, and damage-transfer rules have dedicated acceptance criteria.
 
 ## Status
 
-Implemented vertical slice. The live phase order runs `WeaponAttackResolution → PhysicalAttack → Heat`.
-The current slice supports adjacent BattleMech punch and kick declarations, authoritative
-resolution, damage result broadcasting, and explicit pass handling. Push, charge, DFA, physical
-weapons, vehicles, and advanced physical-attack rules remain future slices.
+Proposed vertical slice, not yet implemented. `PhysicalAttackPhase` exists in the codebase but is
+not wired into `PhaseManager`, so nothing reaches it during a game. Once the slice lands the phase
+order becomes `WeaponAttackResolution → PhysicalAttack → Heat`.
+
+The slice covers adjacent BattleMech punch and kick declarations, authoritative resolution, damage
+result broadcasting, and explicit pass handling. Push, charge, DFA, physical weapons, vehicles, and
+advanced physical-attack rules remain future slices.
 
 ## Goal
 
@@ -60,8 +63,8 @@ roll-result contracts are complete.
 - Invalid commands do not mutate state or advance the active-unit counter.
 - A valid attack is resolved exactly once and is broadcast with its authoritative result.
 - Replayed client state produces the same visible result as the server state.
-- Existing Version 1 documentation remains a simplified baseline; the live application currently
-  enables this vertical slice by default.
+- Existing Version 1 documentation remains a simplified baseline; this vertical slice is intended
+  to be enabled by default once it lands.
 
 ## Decisions still needed from the creator
 
