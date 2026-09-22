@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
 using System.Text;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -9,7 +10,14 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// </summary>
 public record struct AmmoExplosionCommand : IGameCommand
 {
+    /// <summary>
+    /// Gets or sets the identifier of the game that originated the command.
+    /// </summary>
     public required Guid GameOriginId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time at which the command was created.
+    /// </summary>
     public DateTime Timestamp { get; set; }
 
     /// <summary>
@@ -27,6 +35,19 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// </summary>
     public required List<LocationCriticalHitsData> CriticalHits { get; init; }
 
+    /// <summary>
+    /// Gets the locations newly destroyed while applying the explosion, or <see langword="null"/> when no location was destroyed.
+    /// </summary>
+    public List<PartLocation>? DestroyedParts { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the explosion destroyed the unit.
+    /// </summary>
+    public bool UnitDestroyed { get; init; }
+
+    /// <summary>
+    /// Renders the heat check, explosion critical hits, and any destruction caused by the explosion for the game log.
+    /// </summary>
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var unitId = UnitId; // Copy to a local variable to avoid struct access issues
@@ -77,6 +98,24 @@ public record struct AmmoExplosionCommand : IGameCommand
         foreach (var criticalHitData in CriticalHits)
         {
             stringBuilder.Append(criticalHitData.Render(localizationService, unit));
+        }
+
+        if (DestroyedParts is { Count: > 0 })
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+            foreach (var location in DestroyedParts)
+            {
+                stringBuilder.AppendFormat(
+                    localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
+                    localizationService.GetString($"MechPart_{location}")).AppendLine();
+            }
+        }
+
+        if (UnitDestroyed)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
+                unit.Model).AppendLine();
         }
 
         return stringBuilder.ToString().TrimEnd();

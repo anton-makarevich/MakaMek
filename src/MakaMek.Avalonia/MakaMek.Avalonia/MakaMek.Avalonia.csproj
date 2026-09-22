@@ -18,10 +18,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Skia" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+        <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+        <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
