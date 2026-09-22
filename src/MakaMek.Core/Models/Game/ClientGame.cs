@@ -422,12 +422,21 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         // Unsubscribe from command publisher
         CommandPublisher.Unsubscribe(HandleCommand);
 
-        // Fail/cancel any pending waits to avoid hangs
-        var hadPendingCommands = HasPendingCommands;
-        foreach (var kv in _pendingCommands)
-            kv.Value.Tcs.TrySetCanceled();
-        _pendingCommands.Clear();
-        if (hadPendingCommands)
+        // Fail/cancel any pending waits to avoid hangs. Each entry is removed before it is
+        // cancelled, so a command registered concurrently with disposal is either cancelled here or
+        // left intact - clearing the whole dictionary afterwards would drop such an entry without
+        // ever completing its task, leaving the caller waiting for the timeout.
+        var cancelledAny = false;
+        foreach (var key in _pendingCommands.Keys)
+        {
+            if (!_pendingCommands.TryRemove(key, out var pendingCommand)) continue;
+            pendingCommand.Tcs.TrySetCanceled();
+            cancelledAny = true;
+        }
+
+        // Report what was actually removed rather than a count sampled before the loop, which a
+        // concurrent completion could already have made wrong.
+        if (cancelledAny)
             PendingCommandsChanged?.Invoke();
 
         DisposeCommandResources();
