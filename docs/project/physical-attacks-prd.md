@@ -159,7 +159,11 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - `PhysicalAttackDeclaration? DeclaredPhysicalAttack { get; }` — record carrying `AttackType`, optional limb (left/right arm for punch; which leg for kick is implied by target hex/orientation), and target id.
     - **Uniform, turn-scoped lifetime for all attack types** (punch/kick/club/push/physical weapon *and* Charge/DFA): declarations are stored on the unit when received and cleared only in `ResetTurnState()` at the end of the player's turn (`EndPhase.HandleTurnEndedCommand` → `BaseGame.OnTurnEnded`), the same path that clears `DeclaredWeaponTargets` (Unit.cs:513–516). Phase-level `ResetPhaseState()` does **not** clear declarations — the same behavior that already lets weapon declarations survive the `WeaponsAttack → WeaponAttackResolution` transition (Unit.cs:490–495 clears only `TotalPhaseDamage` and the weapons cache). This makes Charge/DFA declarations declared during Movement survive `Movement → WeaponsAttack → WeaponAttackResolution` automatically, with no per-attack-type special casing.
 
-1.2. **Fired-weapons-per-location tracking.** Currently `Unit.FireWeapon` only consumes ammo; there is no per-turn record of *where* weapons were fired. Add `IReadOnlySet<PartLocation> FiredWeaponLocations` populated in `FireWeapon` and cleared in **`ResetTurnState()`** (turn end — same scope as declarations, since physical attacks in the same turn must still see which limbs fired during the Weapons Attack phase). Physical attack eligibility (punch arm, kicking leg, push arms) is validated against this set.
+1.2. **Fired-weapons tracking — per-weapon flag, not a unit-level collection.** There is currently no "has fired this turn" state anywhere: `Unit.FireWeapon` (Unit.cs:836) only consumes ammo (and early-returns for weapons that don't require ammo), and `Component` carries no fired flag (`IsActive`, `Hits`, `HasExploded` exist; nothing turn-scoped). Add a turn-scoped `HasFiredThisTurn` flag on the **`Weapon` component**:
+    - Set in `Unit.FireWeapon` (the hook already called server-side by `WeaponAttackResolutionPhase.FinalizeAttackResolution` at Unit.cs:836/WeaponAttackResolutionPhase.cs:176) **before** the ammo-handling early-returns, so energy/non-ammo weapons are marked too.
+    - Cleared in `ResetTurnState()` — the unit's turn-level reset already clears `DeclaredWeaponTargets` there, so the flag lives in exactly the same lifecycle; `ResetTurnState()` (or a `Component.ResetTurnState()` hook) iterates mounted weapons.
+    - No new unit-level `FiredWeaponLocations` collection is needed: physical-attack eligibility derives fired limbs via a unit helper, e.g. `GetFiredWeaponLocations()` = `GetAllComponents<Weapon>().Where(w => w.HasFiredThisTurn).SelectMany(w => w.GetLocations())` (a weapon's `SlotAssignments` give its mount locations). Physical attack eligibility (punch arm, kicking leg, push arms) queries this derivation.
+    - Clients do not need the flag (server is authoritative); UI shows fired weapons from resolution commands as today.
 
 1.3. `PhysicalAttackCommand` is extended with the fields needed for validation:
     - `PartLocation? AttackerLimb` — required for punch (LeftArm/RightArm), optional for kick (leg selected by attack geometry), not used for push.
@@ -254,7 +258,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - Target is a standing 'Mech, not performing Charge/DFA (M3 interplay).
     - Target in the hex **directly in front of the attacker's feet** (attacker facing, not torso twist — use `Unit.Facing`, ignoring any twist).
     - Attacker and target at the exact same elevation.
-    - Attacker has both arms; no arm weapons fired (`FiredWeaponLocations`).
+    - Attacker has both arms; no arm weapons fired (derived from `Weapon.HasFiredThisTurn`, R1.2).
     - +2 per damaged shoulder actuator (not a blocker).
     - One displacement per target per turn: maintain a per-phase set of displaced target ids (Charge/DFA/Push); a second displacement declaration is rejected.
 
@@ -358,13 +362,14 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 | `PhysicalAttackBaseModifier`, `ChargePilotingDifferenceModifier`, `DfaJumpModifier`, `PushDamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
 | `PilotingSkillRollType.*` | enum + context records (new) | kick/push/charge/DFA PSRs |
 | `IRulesProvider.GetPunchHitLocation / GetKickHitLocation` | interface (extend) | TotalWarfareRulesProvider implementation |
-| `IUnit.HasDeclaredPhysicalAttack / DeclaredPhysicalAttack / FiredWeaponLocations` | unit state (new) | turn-scoped reset (`ResetTurnState()`), mirroring weapon declarations |
+| `Weapon.HasFiredThisTurn` | component flag (new) | per-weapon turn-scoped fired marker, set in `FireWeapon`, cleared in `ResetTurnState()` (R1.2) |
+| `IUnit.HasDeclaredPhysicalAttack / DeclaredPhysicalAttack` | unit state (new) | turn-scoped reset (`ResetTurnState()`), mirroring weapon declarations |
 
 ---
 
 ## Testing Requirements
 
-- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths), and **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay).
+- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions via `Weapon.HasFiredThisTurn`, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths), and **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay).
 - Presentation tests in `tests/MakaMek.Presentation.Tests` for `PhysicalAttackState` step machine and eligibility computation, mirroring existing `WeaponsAttackState` tests.
 - No Avalonia tests (per repo convention — logic lives in Core/Presentation).
 - Coverage: new Core code must be covered per the `coverage-check` skill / CI gates.
