@@ -26,6 +26,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private record PendingCommand(TaskCompletionSource<bool> Tcs, string CommandType);
 
     private readonly ConcurrentDictionary<Guid, PendingCommand> _pendingCommands = new();
+    private readonly Lock _pendingCommandsSync = new();
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
     private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
@@ -286,13 +287,29 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         // Create a new task completion source for this command
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var pendingCommand = new PendingCommand(tcs, typeof(T).Name);
-        if (!_pendingCommands.TryAdd(idempotencyKey, pendingCommand))
+
+        // Register under the same lock Dispose uses for cleanup so disposal and
+        // registration are serialized: once disposal begins no new command can be
+        // added, and a command that registers first is always cancelled by Dispose.
+        var registered = false;
+        Task<bool>? existingTask = null;
+        lock (_pendingCommandsSync)
         {
-            if (_pendingCommands.TryGetValue(idempotencyKey, out var existingPending))
-                return await existingPending.Tcs.Task.ConfigureAwait(false);
+            if (_isDisposed) return false;
+
+            if (_pendingCommands.TryAdd(idempotencyKey, pendingCommand))
+            {
+                registered = true;
+            }
+            else if (_pendingCommands.TryGetValue(idempotencyKey, out var existingPending))
+            {
+                existingTask = existingPending.Tcs.Task;
+            }
             // Key was removed between TryAdd failure and lookup; treat as not pending.
-            return false;
         }
+
+        if (existingTask != null) return await existingTask.ConfigureAwait(false);
+        if (!registered) return false;
 
         PendingCommandsChanged?.Invoke();
 
@@ -422,16 +439,21 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         // Unsubscribe from command publisher
         CommandPublisher.Unsubscribe(HandleCommand);
 
-        // Fail/cancel any pending waits to avoid hangs. Each entry is removed before it is
-        // cancelled, so a command registered concurrently with disposal is either cancelled here or
-        // left intact - clearing the whole dictionary afterwards would drop such an entry without
-        // ever completing its task, leaving the caller waiting for the timeout.
+        // Fail/cancel any pending waits to avoid hangs. Registration in
+        // SendClientCommand is synchronized with this cleanup, so no command can be
+        // added after disposal begins. Each entry is removed before it is cancelled,
+        // so a command registered concurrently with disposal is either cancelled here
+        // or left intact - clearing the whole dictionary afterwards would drop such an
+        // entry without ever completing its task, leaving the caller waiting for the timeout.
         var cancelledAny = false;
-        foreach (var key in _pendingCommands.Keys)
+        lock (_pendingCommandsSync)
         {
-            if (!_pendingCommands.TryRemove(key, out var pendingCommand)) continue;
-            pendingCommand.Tcs.TrySetCanceled();
-            cancelledAny = true;
+            foreach (var key in _pendingCommands.Keys)
+            {
+                if (!_pendingCommands.TryRemove(key, out var pendingCommand)) continue;
+                pendingCommand.Tcs.TrySetCanceled();
+                cancelledAny = true;
+            }
         }
 
         // Report what was actually removed rather than a count sampled before the loop, which a

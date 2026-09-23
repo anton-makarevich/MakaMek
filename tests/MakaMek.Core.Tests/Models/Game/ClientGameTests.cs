@@ -3063,6 +3063,32 @@ public class ClientGameTests
         await Should.ThrowAsync<TaskCanceledException>(() => task)
             .WaitAsync(TimeSpan.FromSeconds(5));
     }
+
+    [Fact]
+    public async Task SendClientCommand_ShouldNotRegisterOrPublish_WhenGameDisposed()
+    {
+        // Arrange: the game is disposed with no commands in flight - disposal must
+        // reject later submissions instead of registering them after cleanup, which
+        // would leave an uncancelled task hanging until the ack timeout.
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _commandPublisher.ClearReceivedCalls();
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
+        _sut.Dispose();
+
+        // Act
+        var result = await _sut.JoinGameWithUnits(player, [unitData], [])
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert: rejected, neither tracked as pending nor published, no change reported.
+        result.ShouldBeFalse();
+        _sut.HasPendingCommands.ShouldBeFalse();
+        pendingStateChanges.ShouldBe(0);
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
+    }
     
     [Fact]
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesNotAcknowledge()
