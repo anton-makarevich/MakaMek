@@ -270,13 +270,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             attempt,
             command.GetPayloadHash());
 
-        // Check if this command is already pending
-        if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCmd))
-        {
-            // Return the existing task
-            return await pendingCmd.Tcs.Task.ConfigureAwait(false);
-        }
-
         // Assign the idempotency key to the command
         var commandWithKey = command with
         {
