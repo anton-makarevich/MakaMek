@@ -154,12 +154,12 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 
 **Files:** `src/MakaMek.Core/Models/Units/IUnit.cs`, `Unit.cs`, `Mechs/Mech.cs`, `UnitWeaponAttackState.cs` (pattern reference)
 
-1.1. Add a physical-attack declaration state to `IUnit`/`Unit`, analogous to `HasDeclaredWeaponAttack` / `DeclaredWeaponTargets`:
+1.1. Add a physical-attack declaration state to `IUnit`/`Unit`, exactly mirroring the weapon-attack declaration lifecycle (`DeclaredWeaponTargets`):
     - `bool HasDeclaredPhysicalAttack { get; }`
     - `PhysicalAttackDeclaration? DeclaredPhysicalAttack { get; }` — record carrying `AttackType`, optional limb (left/right arm for punch; which leg for kick is implied by target hex/orientation), and target id.
-    - Cleared in `ResetPhaseState()` (which already runs on each phase transition).
+    - **Uniform, turn-scoped lifetime for all attack types** (punch/kick/club/push/physical weapon *and* Charge/DFA): declarations are stored on the unit when received and cleared only in `ResetTurnState()` at the end of the player's turn (`EndPhase.HandleTurnEndedCommand` → `BaseGame.OnTurnEnded`), the same path that clears `DeclaredWeaponTargets` (Unit.cs:513–516). Phase-level `ResetPhaseState()` does **not** clear declarations — the same behavior that already lets weapon declarations survive the `WeaponsAttack → WeaponAttackResolution` transition (Unit.cs:490–495 clears only `TotalPhaseDamage` and the weapons cache). This makes Charge/DFA declarations declared during Movement survive `Movement → WeaponsAttack → WeaponAttackResolution` automatically, with no per-attack-type special casing.
 
-1.2. **Fired-weapons-per-location tracking.** Currently `Unit.FireWeapon` only consumes ammo; there is no per-turn record of *where* weapons were fired. Add `IReadOnlySet<PartLocation> FiredWeaponLocations` populated in `FireWeapon` and cleared in `ResetPhaseState()`. Physical attack eligibility (punch arm, kicking leg, push arms) is validated against this set.
+1.2. **Fired-weapons-per-location tracking.** Currently `Unit.FireWeapon` only consumes ammo; there is no per-turn record of *where* weapons were fired. Add `IReadOnlySet<PartLocation> FiredWeaponLocations` populated in `FireWeapon` and cleared in **`ResetTurnState()`** (turn end — same scope as declarations, since physical attacks in the same turn must still see which limbs fired during the Weapons Attack phase). Physical attack eligibility (punch arm, kicking leg, push arms) is validated against this set.
 
 1.3. `PhysicalAttackCommand` is extended with the fields needed for validation:
     - `PartLocation? AttackerLimb` — required for punch (LeftArm/RightArm), optional for kick (leg selected by attack geometry), not used for push.
@@ -174,6 +174,13 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - Invalid commands return an `ErrorCommand` (existing idempotency-aware pattern used by `MovementPhase`).
 
 1.5. A skipped declaration is supported: a unit can end its physical attack step without declaring (UI "skip" action sends no command; turn order advances via the existing `HandleUnitAction` unit counter). An explicit `SkipPhysicalAttackCommand` is **not** required if the turn-advance logic tolerates zero declarations — see Open Questions.
+
+1.6. **Movement-phase declaration flow (authoritative on the server).** Charge/DFA declarations are sent to the server **immediately as part of the movement command** and stored in server game state at declaration time; they reach the `PhysicalAttackResolutionPhase` through this state — persistence across phases comes for free from the uniform turn-scoped lifetime (R1.1), with no extra clearing logic:
+
+    - **Server:** `MovementPhase` validates and applies the declaration when the move command is processed (attacker state + target validity at declaration time), stores it on the unit, and broadcasts it. The server state is the single source of truth; the `PhysicalAttackResolutionPhase` reads declarations from this state, never from re-sent client input.
+    - **Clients:** `ClientGame` mirrors the declaration from the broadcast for display purposes (e.g. show the unit as charging/DFA during the Weapons Attack phase, block weapon firing for that unit, highlight the intended target). Clients do not need to re-validate; server data is authoritative.
+    - **Voiding rules:** the server clears a pending Charge/DFA declaration without resolution when it becomes invalid before the physical phase: attacker destroyed, shut down, prone, or skidded/fell during later phases; target destroyed; or (charge) the move was rejected/rolled back. A charge whose target is no longer in the destination hex degrades per Open Question 6. Voiding is communicated to clients as part of the resolution/log commands, not by re-sending unit state.
+    - **Single attack limit interplay:** a unit with a pending Charge/DFA declaration cannot declare a physical-phase attack (and vice versa) — the check reads the declaration state on the unit, so no phase-local tracking dictionaries are needed.
 
 ### R2 — Physical To-Hit Calculation (M1)
 
@@ -262,11 +269,12 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 
 **Files:** `Phases/MovementPhase.cs`, `Data/Game/Commands/Client/MoveUnitCommand.cs` (extension), `Mechanics/PhysicalAttack/*`
 
-6.1. **Declaration during Movement Phase.** A charge/DFA is declared as part of the unit's movement:
-    - Extend `MoveUnitCommand` (or add a sibling command) with an optional `ChargeTargetId`/`DfaTargetId` and the executed movement path (already serialized for movement).
+6.1. **Declaration during Movement Phase, sent immediately.** A charge/DFA is declared as part of the unit's movement:
+    - Extend `MoveUnitCommand` (or add a sibling command) with an optional `ChargeTargetId`/`DfaTargetId` and the executed movement path (already serialized for movement). The declaration is validated, applied, and broadcast **at the moment the move command is processed** — not deferred to the physical phase.
+    - The server stores the declaration on the unit; because declaration state is cleared only at turn end (R1.1), it survives the `Movement → WeaponsAttack → WeaponAttackResolution` phase transitions with no special handling, and is resolved (or voided, R1.6) by the `PhysicalAttackResolutionPhase`.
     - `HexesMoved` for charge damage = hexes traversed **before entering the target's hex** (path data is retained on the unit's `MovementTaken` / command).
     - Target must be in the hex the movement path terminates in (DFA: jump path ending on the target hex).
-    - Units that declared Charge/DFA cannot fire weapons this turn and cannot perform physical-phase attacks.
+    - Units with a pending Charge/DFA declaration cannot fire weapons this turn and cannot perform physical-phase attacks; the weapons-phase UI and server validation both read the persistent declaration state (R1.6).
 
 6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard target movement/terrain modifiers do not apply to the charge impact roll beyond the piloting-difference rule per the rules doc.
 
@@ -343,20 +351,20 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 | `PhysicalAttackType` | enum | exists; M4 adds `PhysicalWeapon`, M5 adds `Club` |
 | `PhaseNames` | enum | add `PhysicalAttackResolution` |
 | `PhysicalAttackCommand` | client command | extend with limb, validation |
-| `PhysicalAttackDeclaration` | record (new, Core) | attacker declaration state |
+| `PhysicalAttackDeclaration` | record (new, Core) | attacker declaration state; turn-scoped reset via `ResetTurnState()`, same lifecycle as `DeclaredWeaponTargets` (R1.1) |
 | `PhysicalAttackResolutionCommand` | server command (new) | resolution broadcast |
 | `ClubItem` (source type, carried-by state, hex presence) | record/service (new, Core) | improvised club pickup/drop lifecycle |
 | `PhysicalAttackScenario` / `PhysicalAttackContext` | records (new, Mechanics) | to-hit + resolution inputs |
 | `PhysicalAttackBaseModifier`, `ChargePilotingDifferenceModifier`, `DfaJumpModifier`, `PushDamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
 | `PilotingSkillRollType.*` | enum + context records (new) | kick/push/charge/DFA PSRs |
 | `IRulesProvider.GetPunchHitLocation / GetKickHitLocation` | interface (extend) | TotalWarfareRulesProvider implementation |
-| `IUnit.HasDeclaredPhysicalAttack / DeclaredPhysicalAttack / FiredWeaponLocations` | unit state (new) | reset per phase |
+| `IUnit.HasDeclaredPhysicalAttack / DeclaredPhysicalAttack / FiredWeaponLocations` | unit state (new) | turn-scoped reset (`ResetTurnState()`), mirroring weapon declarations |
 
 ---
 
 ## Testing Requirements
 
-- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths).
+- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths), and **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay).
 - Presentation tests in `tests/MakaMek.Presentation.Tests` for `PhysicalAttackState` step machine and eligibility computation, mirroring existing `WeaponsAttackState` tests.
 - No Avalonia tests (per repo convention — logic lives in Core/Presentation).
 - Coverage: new Core code must be covered per the `coverage-check` skill / CI gates.
@@ -377,8 +385,10 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 - [ ] One displacement per target per turn is enforced.
 
 **M3**
-- [ ] Charge/DFA can be declared with movement; damage, displacement, and PSR modifiers (+2/+2, +4/+2) match the rules doc; miss outcomes (side-hex landing / DFA auto-fall with target choice displacement) behave as specified.
+- [ ] Charge/DFA can be declared with movement; the declaration is broadcast immediately and persists on both server and clients across the Weapons Attack and Weapon Attack Resolution phases (weapon firing is blocked for that unit meanwhile) using the same turn-scoped lifecycle as weapon declarations.
+- [ ] Damage, displacement, and PSR modifiers (+2/+2, +4/+2) match the rules doc; miss outcomes (side-hex landing / DFA auto-fall with target choice displacement) behave as specified.
 - [ ] Charging/DFA units cannot fire weapons or perform physical-phase attacks that turn.
+- [ ] Declarations are voided per R1.6 when the attacker or target becomes invalid before resolution (unit destroyed/prone/shut down, target destroyed); voided declarations clear on clients via the log commands.
 
 **M4**
 - [ ] Hatchet/sword attacks with correct modifiers, damage, and hit locations; weapon-arm firing restriction enforced.
