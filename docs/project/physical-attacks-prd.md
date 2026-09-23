@@ -186,6 +186,13 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - **Voiding rules:** the server clears a pending Charge/DFA declaration without resolution when it becomes invalid before the physical phase: attacker destroyed, shut down, prone, or skidded/fell during later phases; target destroyed; or (charge) the move was rejected/rolled back. A charge whose target is no longer in the destination hex degrades per Open Question 6. Voiding is communicated to clients as part of the resolution/log commands, not by re-sending unit state.
     - **Single attack limit interplay:** a unit with a pending Charge/DFA declaration cannot declare a physical-phase attack (and vice versa) — the check reads the declaration state on the unit, so no phase-local tracking dictionaries are needed.
 
+1.7. **Turn-order skipping for players without physical-attack options.** In the initial version, the server activates the Physical Attack declaration phase only for players who have at least one unit with a *theoretical* physical attack option (a potential target, regardless of to-hit odds). A player with no theoretical possibility to declare is skipped in this phase's turn order entirely — never set as `ActivePlayer`, no empty player step, no client prompt:
+
+    - The same eligibility predicate service introduced for UI action availability (R8.1) powers this check, so there is one definition of "potential physical attack option": standing 'Mech, not destroyed/shut down/prone/skidding, no pending Charge/DFA declaration, and at least one adjacent enemy 'Mech reachable by any currently-eligible attack type (punch/kick arc + elevation checks; push/club/physical-weapon rules as their milestones land).
+    - `PhysicalAttackPhase.Enter()` builds its `TurnOrder` from `Game.InitiativeOrder` filtered to eligible players (instead of passing the unfiltered initiative order to `TurnOrder.CalculateOrder` as `MainGamePhase` does by default) — the check re-runs at `Enter()` so late units-losses during weapon resolution are reflected.
+    - If **no** player has any eligible unit, the phase transitions immediately to resolution (which then transitions straight to Heat) — no `ChangeActivePlayerCommand` is broadcast.
+    - Later, this skipping becomes configurable via game settings (e.g. "always prompt physical attack phase" for stricter rules fidelity); in v1 skipping is unconditional and not user-configurable.
+
 ### R2 — Physical To-Hit Calculation (M1)
 
 **Files:** new `Models/Game/Mechanics/PhysicalAttack/` folder; `Data/Game/Mechanics/AttackScenario.cs`; `Rules/IRulesProvider.cs`, `TotalWarfareRulesProvider.cs`
@@ -327,7 +334,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 8.1. `PhysicalAttackState : IUiState` mirroring `WeaponsAttackState`:
 
     - Steps: `SelectingUnit → ActionSelection → TargetSelection` (punch/kick/push do not need a weapons-configuration step).
-    - Action selection offers available attack types for the selected unit (computed from eligibility rules in R1); unavailable types are hidden, not disabled, with a reason label where useful.
+    - Action selection offers available attack types for the selected unit (computed from the shared eligibility predicate service, R1.7/R1.4); unavailable types are hidden, not disabled, with a reason label where useful.
     - Target selection highlights valid target hexes (same adjacency/arc/elevation rules as validation).
     - To-hit preview (number + modifier breakdown) shown for the highlighted target — via the R2.4 preview API.
     - "Skip" advances the turn order without a command.
@@ -369,7 +376,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 
 ## Testing Requirements
 
-- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions via `Weapon.HasFiredThisTurn`, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths), and **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay).
+- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions), eligibility validation (single-attack limit, limb weapon restrictions via `Weapon.HasFiredThisTurn`, actuator damage rules), push displacement matrix (elevation, facing, blocked destination, mutual pushes), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss paths), **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay), and **declaration-phase turn-order skipping** (players without potential physical-attack options are never activated; all-players-ineligible → immediate transition).
 - Presentation tests in `tests/MakaMek.Presentation.Tests` for `PhysicalAttackState` step machine and eligibility computation, mirroring existing `WeaponsAttackState` tests.
 - No Avalonia tests (per repo convention — logic lives in Core/Presentation).
 - Coverage: new Core code must be covered per the `coverage-check` skill / CI gates.
@@ -384,6 +391,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 - [ ] Units with fired arm/leg weapons cannot punch/kick with those limbs; hip/shoulder damage rules enforced.
 - [ ] Kick hit → target PSR; kick miss → attacker PSR; falls apply standard fall damage and criticals.
 - [ ] Turn order alternates correctly including skipped units; no physical attack → phase completes without commands.
+- [ ] Players with no unit having a theoretical physical-attack option are skipped in this phase (never activated, no `ChangeActivePlayerCommand`); if no player qualifies, the phase transitions straight through to Heat.
 
 **M2**
 - [ ] Push meets all §4 rules-doc requirements; displacement + attacker advance work at 0 MP; blocked destination keeps both units in place but still triggers the target PSR.
