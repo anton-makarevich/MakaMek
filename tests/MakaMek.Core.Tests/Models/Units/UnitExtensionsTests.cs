@@ -702,6 +702,24 @@ public class UnitExtensionsTests
     }
 
     [Fact]
+    public void GetTacticalRole_WithRulesProvider_ShouldClassifyFromTheProvidedRules()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk, rulesProvider).Returns(6);
+
+        // Act
+        var result = unit.GetTacticalRole(rulesProvider);
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Scout);
+        // The overload must read movement through the provider, not the legacy default-rules path.
+        unit.DidNotReceive().GetMovementPoints(Arg.Any<MovementType>());
+    }
+
+    [Fact]
     public void GetTacticalRole_WhenUnitHasHighWalkMP_ReturnsScout()
     {
         // Arrange
