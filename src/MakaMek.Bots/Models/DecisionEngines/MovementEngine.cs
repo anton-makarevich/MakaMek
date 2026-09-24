@@ -90,7 +90,8 @@ public class MovementEngine : IBotDecisionEngine
             var bestCandidate = scoredUnits.First();
             unitToMove = bestCandidate.Unit;
 
-            _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name, unitToMove.GetTacticalRole(), bestCandidate.Priority);
+            _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name,
+                unitToMove.GetTacticalRole(_clientGame.RulesProvider), bestCandidate.Priority);
 
             // 5. Execute Move for a selected unit
             await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState, settings);
@@ -114,7 +115,7 @@ public class MovementEngine : IBotDecisionEngine
         double priority = 0;
 
         // 1. Role Score
-        var role = unit.GetTacticalRole();
+        var role = unit.GetTacticalRole(_clientGame.RulesProvider);
         
         // Handle Fallen/Prone units
         if (unit is Mech { IsProne: true })
