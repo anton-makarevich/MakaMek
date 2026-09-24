@@ -34,6 +34,7 @@ Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI 
 - The version should only be incremented once per PR
 - Test-only, docs-only, or infra-only PRs do not require a version bump.
 - Agents may only bump the **patch** segment (e.g. `0.63.10` → `0.63.11`). Never change Major or Minor without explicit human approval.
+- Commit messages follow Conventional Commits] (`feat`/`fix`/`docs`/`refactor`/`chore`/`build`, imperative subject).
 
 ## Architecture
 

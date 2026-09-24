@@ -20,8 +20,19 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
+    /// <summary>
+    /// Calculates and applies critical hits, including the newly destroyed locations and unit-destruction state caused by them.
+    /// </summary>
+    /// <param name="unit">The unit receiving the critical hits.</param>
+    /// <param name="hitLocationsData">The structure-damage locations that require critical-hit resolution.</param>
+    /// <returns>A command containing the applied results and destruction metadata, or <see langword="null"/> when no critical hits occurred.</returns>
     public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
+        var destroyedPartsBefore = unit.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = unit.IsDestroyed;
         var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(unit, hitLocationsData);
 
         // If no critical hits occurred, no need to send a command
@@ -29,11 +40,18 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             return null;
 
         // Send critical hits resolution command
+        var newlyDestroyedParts = unit.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
             TargetId = unit.Id,
-            CriticalHits = allCriticalHitsData
+            CriticalHits = allCriticalHitsData,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && unit.IsDestroyed
         };
     }
     

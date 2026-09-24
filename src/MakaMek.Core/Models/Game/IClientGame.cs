@@ -15,6 +15,21 @@ public interface IClientGame:IGame
     bool IsDisposed { get; }
 
     /// <summary>
+    /// Gets whether one or more local commands are awaiting server acknowledgement.
+    /// </summary>
+    bool HasPendingCommands { get; }
+
+    /// <summary>
+    /// Raised whenever the set of commands awaiting acknowledgement changes.
+    /// </summary>
+    event Action? PendingCommandsChanged;
+
+    /// <summary>
+    /// Raised when a command does not receive server acknowledgement before the timeout.
+    /// </summary>
+    event Action? CommandTimedOut;
+
+    /// <summary>
     /// Gets the id of the server game this client is bound to,
     /// or null when the client processes all commands (standalone mode).
     /// </summary>

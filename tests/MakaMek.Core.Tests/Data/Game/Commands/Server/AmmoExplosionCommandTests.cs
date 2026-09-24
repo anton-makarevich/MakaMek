@@ -266,6 +266,23 @@ public class AmmoExplosionCommandTests
     }
 
     [Fact]
+    public void Render_ShouldShowDestroyedPartsAndUnitDestroyed_WhenExplosionOccurs()
+    {
+        // Heat explosions use the same destruction vocabulary as weapon resolution messages.
+        var command = CreateCommand() with
+        {
+            DestroyedParts = [PartLocation.CenterTorso],
+            UnitDestroyed = true
+        };
+
+        var result = command.Render(_localizationService, _game);
+
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("Center Torso destroyed");
+        result.ShouldContain($"{_testMech.Model} has been destroyed!");
+    }
+
+    [Fact]
     public void Render_ShouldNotShowExplosionDetails_WhenNoExplosionsExist()
     {
         // Arrange
