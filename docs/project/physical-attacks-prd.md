@@ -1,0 +1,425 @@
+# Physical Attacks — Product Requirements Document
+
+**Date:** 2026-09-23
+**Status:** Draft (feature spec for refinement into GitHub issues)
+
+---
+
+## Executive Summary
+
+This document specifies the requirements for implementing 'Mech physical attacks (punch, kick, club, push, charge, DFA, physical weapons) in MakaMek. Physical attacks reuse the proven two-phase declaration/resolution architecture of weapon attacks but use the **Piloting Skill** as the base to-hit value and follow BattleTech rules that differ meaningfully in timing (Charge/DFA are declared during Movement), damage (tonnage-derived), hit locations (dedicated Punch/Kick tables), and PSR handling.
+
+The implementation extends the existing phase pipeline (`WeaponsAttack → WeaponAttackResolution → **PhysicalAttack** → Heat`), adds a `PhysicalAttackResolutionPhase` modeled on the Weapon-Attack-Resolution-Pattern, and reuses existing mechanics (to-hit modifiers, PSR contexts, fall processing, displacement) wherever possible.
+
+Work is split into milestones so that each can be refined into independently-shippable issues:
+- **M1** — Punch & Kick (core mechanics + resolution)
+- **M2** — Push (displacement + advance)
+- **M3** — Charge & DFA (Movement-phase declaration)
+- **M4** — Physical weapons (hatchet/sword)
+- **M5** — Club (improvised objects)
+
+---
+
+## Background — BattleTech Rules Reference
+
+The authoritative rules source for this feature is [`docs/rules/physical-attacks.md`](../rules/physical-attacks.md). Key rules the implementation must satisfy:
+
+1. **Phase timing** — Punch, Kick, Push are declared and resolved in the **Physical Attack Phase** (after Weapon Attack Resolution, before Heat). **Charge and DFA are declared during the Movement Phase** (they dictate movement) but resolved in the Physical Attack Phase.
+2. **Base to-hit** — attacker's **Piloting Skill** (not Gunnery). Movement and terrain modifiers apply as usual. **Heat and sensor-damage modifiers never apply** to physical attacks.
+3. **Single attack limit** — a 'Mech may perform only **one type** of physical attack per turn.
+4. **Damage & hit locations:**
+
+| Attack | Base Mod | Damage | Hit Location |
+|--------|----------|--------|--------------|
+| Punch | +0 | ⌈Tonnage/10⌉ | Punch table (per arm; both arms only in the forward arc — side arcs restrict to the matching arm) |
+| Kick | −2 | ⌈Tonnage/5⌉ | Kick table (legs); PSR for target on hit, PSR for attacker on miss |
+| Club | −1 | ⌈Tonnage/5⌉ | Standard table; improvised object (severed limb, tree, girder); both arms with undamaged shoulders **and hands**, no arm weapons fired from either arm |
+| Push | −1 | 0 | Displacement + target PSR (see §4 of rules doc) |
+| Physical weapon (hatchet/sword) | −1 / −2 | ⌈Tonnage/5⌉ / ⌈Tonnage/10⌉ + 1 | Standard table; weapon arm only; optional punch/kick table with +4 |
+| Charge | +0 | ⌈Tonnage/10⌉ × hexes moved (5-pt clusters); attacker takes ⌈target tonnage/10⌉ | Displaces target; both PSR (+2) on hit |
+| DFA | +0 | ⌈Attacker tonnage/10⌉ × 3 to target (punch table); attacker takes ⌈tonnage/5⌉ to legs on hit | Attacker PSR +4, target PSR +2 on hit; attacker auto-falls on miss |
+
+5. **Weapon-firing restrictions** — a limb with weapons fired during the Weapon Attack Phase cannot punch/kick; a kicking leg's weapons cannot fire that turn; push requires both arms with no arm weapons fired. **Club** requires undamaged shoulder **and hand** actuators in both arms and no arm weapons fired from either arm (carrying a club occupies both hands). **Physical weapons** (hatchet/sword) restrict only the single weapon arm.
+6. **Actuator damage** — punch blocked by damaged **shoulder** actuator; club blocked by damaged shoulder or hand actuator in either arm; push is allowed but adds **+2 per damaged shoulder**.
+7. **Push specifics** — target must be a standing 'Mech at the exact same elevation in the hex directly in front of the attacker's **feet** (not torso twist); attacker advances into the vacated hex at 0 MP; pushed target PSRs or falls; blocked destination → no movement but PSR still occurs; one displacement (Charge/DFA/Push) per target per turn; mutual pushes resolved per rules.
+8. **Eligibility** — prone 'Mechs cannot perform standard physical attacks (punching vehicles / thrashing infantry is out of scope — no such unit types yet); only 'Mechs are attackers and targets in v1.
+9. **Punch arcs & arm restriction** — a punch can target any adjacent 'Mech in the attacker's forward, left-side, or right-side arc. A target in the left side arc can only be punched by the **left** arm, a target in the right side arc only by the **right** arm; a target in the forward arc can be punched by one or both arms (each arm a separate attack). The punch hit-location table column (**Left Side / Front-Rear / Right Side**) is determined by the **attack direction relative to the target's facing** — where a straightedge from attacker to target hex centers enters the target's hex — *not* by the attacker's arc: a side-arc punch entering the target's front/rear rolls on the Front-Rear column.
+10. **Torso vs feet orientation** — upper-body attack arcs (punch, club, physical weapon) follow the **torso** orientation: a torso twist declared with weapon attacks rotates the forward/side punch arcs through the Physical Attack Phase. Kicks and pushes follow the **feet** orientation (torso twist ignored).
+11. **Charge declaration & target validity** — a charge may only be declared during the Movement Phase against a target that has **already completed its movement**, so a target can never "move away in a later declaration". The MP to enter the target hex is spent at declaration. If the charge target is removed before resolution (fallen prone, destroyed, or displaced), the charge **automatically fails** (no to-hit roll); if the target was displaced and another valid unit now occupies the hex, the attacker may hit that unit instead with an additional **+1 to-hit modifier**.
+12. **Club carry duration** — a club may be carried across **multiple turns**: on the turn a 'Mech picks it up it **cannot fire weapons or make physical attacks**, and thereafter it is carried as long as both hands/shoulders remain available and no arm weapons are fired. Girders and severed limbs are **reusable** after successful hits; uprooted trees **break after one successful hit**.
+
+---
+
+## Current State (Gap)
+
+What already exists:
+
+| Item | Status |
+|------|--------|
+| `PhaseNames.PhysicalAttack` | Exists but **not wired** — `BattleTechPhaseManager.GetNextPhase` maps `WeaponAttackResolution → Heat` directly (`src/MakaMek.Core/Models/Game/Phases/BattleTechPhaseManager.cs:23`) |
+| `PhysicalAttackPhase` | Skeleton only: accepts `PhysicalAttackCommand`, broadcasts it; calls `Game.OnPhysicalAttack` which logs "Physical attacks are not implemented" (`src/MakaMek.Core/Models/Game/BaseGame.cs:368`) |
+| `PhysicalAttackCommand` | Declared (`PhysicalAttackType` + attacker/target ids) but has no arm/limb payload and no server-side validation |
+| `PhysicalAttackType` enum | `Punch, Kick, Push, Charge, DFA` (`src/MakaMek.Core/Models/Game/PhysicalAttackType.cs`) |
+| Resolution mechanics | **None** — no physical to-hit calculation, no punch/kick hit-location tables, no tonnage-derived damage, no physical PSR contexts |
+| UI / UiStates | **None** — no `PhysicalAttackState`; `BattleMapViewModel` transitions do not handle the phase |
+| Bots | No physical-attack decision engine |
+
+What is missing and must be built is detailed in the requirements below.
+
+---
+
+## Scope
+
+### In Scope
+
+| # | Capability |
+|---|-----------|
+| 1 | Phase pipeline wiring: `WeaponAttackResolution → PhysicalAttack → Heat` |
+| 2 | `PhysicalAttackResolutionPhase` orchestrator following the Weapon-Attack-Resolution-Pattern (attack queue → gates → resolvers) |
+| 3 | Physical to-hit calculation (Piloting base, per-type modifiers, no heat/sensor modifiers, movement + terrain modifiers) |
+| 4 | Punch and Kick: eligibility, damage, punch/kick hit-location tables, hit/miss PSRs |
+| 5 | Push: displacement, attacker advance, target PSR, blocked-destination rules, mutual pushes |
+| 6 | Charge & DFA: declaration during Movement Phase, path-based damage, displacement, PSRs, fall-on-miss handling |
+| 7 | Per-turn "one physical attack type" and weapon-firing restrictions tracking on units |
+| 8 | `PhysicalAttackResolutionCommand` + related server commands (fall, displacement, dice) broadcast to clients |
+| 9 | New `PhysicalAttackState` UI state with to-hit preview and target highlighting; DFA-miss target-displacement selection (candidate-hex highlight + client confirmation) |
+| 10 | Localization for all new commands, modifiers, and UI labels |
+| 11 | Physical weapons (hatchet already exists as a component; sword to be added) |
+| 12 | Club: improvised-object attack with pickup mechanic and cross-turn carry |
+
+### Out of Scope (v1)
+
+- Vehicles, ProtoMechs, infantry, battle armor as attackers or targets (includes vehicle ramming, 'Mech thrashing, and punching a vehicle in the attacker's hex)
+- Prone 'Mech melee special attacks
+- Retractable blade / salvage arm interactions (components do not exist yet)
+- Bot decision engines for physical attacks (follow-up PRD)
+- Club sourcing beyond severed limbs (tree uprooting and girder salvage from destroyed buildings require terrain/destruction features not yet present)
+
+---
+
+## Milestones
+
+Each milestone is intended to become a small set of GitHub issues.
+
+### M1 — Punch & Kick (foundation)
+
+Delivers the phase wiring, unit-state tracking, to-hit calculation, damage, hit-location tables, resolution phase, and client broadcast. Punch/Kick only. This milestone makes physical attacks *playable* (locally) for the two most common attack types.
+
+### M2 — Push
+
+Displacement mechanics, attacker advance, push PSR, target-elevation/facing validation, mutual-push resolution.
+
+### M3 — Charge & DFA
+
+Movement-phase declaration UX, damage from path length, displacement of the target, attacker collision damage, dual PSRs, miss outcomes (attacker lands aside / DFA attacker auto-falls), and the player-selected DFA-miss target displacement (candidate-hex highlight + confirmation).
+
+### M4 — Physical weapons
+
+Hatchet and sword as declared attacks with the standard hit-location table.
+
+### M5 — Club
+
+Club as a standalone attack mode using **improvised battlefield objects**. Requires a club pickup/drop mechanic; v1 supports picking up severed 'Mech limbs (arms/legs blown off by critical hits) lying in the attacker's hex. Tree and girder sources are deferred (see Out of Scope) but the data model keeps the door open for them.
+
+> M3 depends on M1 (phase wiring). M2 depends on M1. M4 is independent of M2/M3. M5 depends on M1 (and benefits from critical-hit limb-blown-off data used by `CriticalHitsResolutionCommand`).
+
+---
+
+## Architecture Overview
+
+The feature follows the documented architecture patterns:
+
+- **Two-phase flow** — declaration phase (`MainGamePhase` with turn-order alternation) + resolution phase (server-driven, no player input). This mirrors `WeaponsAttackPhase` → `WeaponAttackResolutionPhase`.
+- **Weapon-Attack-Resolution-Pattern** — `PhysicalAttackResolutionPhase` is a phase-as-orchestrator that builds an attack queue (`BuildPhysicalAttackQueue()`), applies pre-attack **gates** (`IAttackResolutionGate`), and delegates resolution to mechanics services. See `docs/architecture/Weapon-Attack-Resolution-Pattern.md`.
+- **Commands as the only state changes** — declaration via `PhysicalAttackCommand` (client), resolution via new `PhysicalAttackResolutionCommand` (server), displacement via existing `DisplaceUnitCommand`, falls via existing `MechFallCommand`, dice via existing `DiceRolledCommand`. DFA-miss target displacement is a mid-resolution interaction: the server broadcasts the candidate hexes (`PhysicalAttackDisplacementCandidatesCommand`), the client highlights them and confirms via `SelectPhysicalAttackDisplacementCommand`; the server auto-resolves when exactly one candidate exists (R6.4).
+- **Mechanics as calculator services** — a new `IPhysicalAttackResolver` in `Models/Game/Mechanics/` mirrors `IWeaponAttackResolver`; to-hit via a new physical-attack calculator built on `ToHitCalculator`'s modifier pipeline; PSRs via existing `IPilotingSkillCalculator` + `IFallProcessor`.
+- **Source generators** — new `RollModifier` subclasses and `PilotingSkillRollContext` records are picked up automatically by the generated registries (`RollModifierTypeResolverGenerator`, `PilotingSkillRollContextTypeResolverGenerator`). Do not hand-maintain switches. New command types are likewise auto-registered.
+- **Presentation layer** — new `PhysicalAttackState : IUiState` in `MakaMek.Presentation/UiStates` mirroring `WeaponsAttackState`'s step machine; `BattleMapViewModel.TransitionToState` gains a `PhaseNames.PhysicalAttack` case.
+
+### Phase Wiring
+
+**File:** `src/MakaMek.Core/Models/Game/Phases/BattleTechPhaseManager.cs`
+
+```
+PhaseNames.WeaponAttackResolution => new PhysicalAttackPhase(game),
+PhaseNames.PhysicalAttack => new PhysicalAttackResolutionPhase(game),
+PhaseNames.PhysicalAttackResolution => new HeatPhase(game),
+```
+
+Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase` stays a declaration phase (existing skeleton, strengthened with validation). All new `PhysicalAttackResolution*` behavior is introduced in M1.
+
+> **Note:** the existing `PhysicalAttackPhase` maps 1:1 to the declaration half. A separate `PhysicalAttackResolutionPhase` keeps the orchestrator/resolver code out of the player-driven phase, exactly as weapons do.
+
+---
+
+## Detailed Requirements
+
+### R1 — Unit State & Declaration Validation (M1)
+
+**Files:** `src/MakaMek.Core/Models/Units/IUnit.cs`, `Unit.cs`, `Mechs/Mech.cs`, `UnitWeaponAttackState.cs` (pattern reference)
+
+1.1. Add a physical-attack declaration state to `IUnit`/`Unit`, exactly mirroring the weapon-attack declaration lifecycle (`DeclaredWeaponTargets`):
+    - `bool HasDeclaredPhysicalAttack { get; }`
+    - `PhysicalAttackDeclaration? DeclaredPhysicalAttack { get; }` — record carrying `AttackType`, selected limb(s) (one or both arms for a punch; which leg for kick is implied by target hex/orientation), and target id.
+    - **Uniform, turn-scoped lifetime for all attack types** (punch/kick/club/push/physical weapon *and* Charge/DFA): declarations are stored on the unit when received and cleared only in `ResetTurnState()` at the end of the player's turn (`EndPhase.HandleTurnEndedCommand` → `BaseGame.OnTurnEnded`), the same path that clears `DeclaredWeaponTargets` (Unit.cs:513–516). Phase-level `ResetPhaseState()` does **not** clear declarations — the same behavior that already lets weapon declarations survive the `WeaponsAttack → WeaponAttackResolution` transition (Unit.cs:490–495 clears only `TotalPhaseDamage` and the weapons cache). This makes Charge/DFA declarations declared during Movement survive `Movement → WeaponsAttack → WeaponAttackResolution` automatically, with no per-attack-type special casing.
+
+1.2. **Fired-weapons tracking — per-weapon flag, not a unit-level collection.** There is currently no "has fired this turn" state anywhere: `Unit.FireWeapon` (Unit.cs:836) only consumes ammo (and early-returns for weapons that don't require ammo), and `Component` carries no fired flag (`IsActive`, `Hits`, `HasExploded` exist; nothing turn-scoped). Add a turn-scoped `HasFiredThisTurn` flag on the **`Weapon` component**:
+    - Set in `Unit.FireWeapon` (the hook already called server-side by `WeaponAttackResolutionPhase.FinalizeAttackResolution` at Unit.cs:836/WeaponAttackResolutionPhase.cs:176) **before** the ammo-handling early-returns, so energy/non-ammo weapons are marked too.
+    - Cleared in `ResetTurnState()` — the unit's turn-level reset already clears `DeclaredWeaponTargets` there, so the flag lives in exactly the same lifecycle; `ResetTurnState()` (or a `Component.ResetTurnState()` hook) iterates mounted weapons.
+    - No new unit-level `FiredWeaponLocations` collection is needed: physical-attack eligibility derives fired limbs via a unit helper, e.g. `GetFiredWeaponLocations()` = `GetAllComponents<Weapon>().Where(w => w.HasFiredThisTurn).SelectMany(w => w.GetLocations())` (a weapon's `SlotAssignments` give its mount locations). Physical attack eligibility (punch arm, kicking leg, push arms) queries this derivation.
+    - Clients do not need the flag (server is authoritative); UI shows fired weapons from resolution commands as today.
+
+1.3. `PhysicalAttackCommand` is extended with the fields needed for validation:
+    - `IReadOnlyList<PartLocation> AttackerLimbs` — required for punch and holds the selected arm(s) (each declared arm is enqueued as a separate resolution item). A target in a side arc restricts the selection to the matching arm (left arc → left arm, right arc → right arm); both arms are selectable only for a forward-arc target. Not used for push; kick's leg is implied by attack geometry.
+    - Kept a client unit command (`IClientUnitCommand`) with `IdempotencyKey`.
+
+1.4. Server-side validation in `PhysicalAttackPhase.HandleCommand` (via `ServerGame.OnPhysicalAttack`):
+    - command originates from the active player of the step (`PhaseStepState.ActivePlayer`),
+    - attacker is a Mech, not prone, not destroyed, not shut down,
+    - attacker has not yet declared a physical attack this turn (single attack limit),
+    - attack type is eligible per M1 (punch/kick) rules: limb weapons not fired, punching arm's shoulder actuator intact (both for a two-arm punch), hip actuators intact + leg weapons not fired (kick), attacker not skidding, punch arm(s) valid for the target's arc (forward → one or both arms; side arc → only the matching arm; punch arcs follow the torso twist — see Background item 10),
+    - target is a valid enemy unit (adjacent 'Mech; adjacency and arc checks per attack type are validated again at resolution time against current positions).
+    - Invalid commands return an `ErrorCommand` (existing idempotency-aware pattern used by `MovementPhase`).
+
+1.5. Skipping works without any `SkipPhysicalAttackCommand`. Two distinct cases:
+
+    - **Players with no physical-attack option** are skipped by the phase's turn-order filter (R1.7): they are never set as `ActivePlayer`, so no `ActivePlayerChanged` is broadcast for them — that silence *is* the skip signal.
+    - **A player with options who chooses not to declare** simply ends its step through the normal turn-advance path, sending no command; the `HandleUnitAction` unit counter moves on.
+
+1.6. **Movement-phase declaration flow (authoritative on the server).** Charge/DFA declarations are sent to the server **immediately as part of the movement command** and stored in server game state at declaration time; they reach the `PhysicalAttackResolutionPhase` through this state — persistence across phases comes for free from the uniform turn-scoped lifetime (R1.1), with no extra clearing logic:
+
+    - **Server:** `MovementPhase` validates and applies the declaration when the move command is processed (attacker state + target validity at declaration time), stores it on the unit, and broadcasts it. The server state is the single source of truth; the `PhysicalAttackResolutionPhase` reads declarations from this state, never from re-sent client input.
+    - **Clients:** `ClientGame` mirrors the declaration from the broadcast for display purposes (e.g. show the unit as charging/DFA during the Weapons Attack phase, block weapon firing for that unit, highlight the intended target). Clients do not need to re-validate; server data is authoritative.
+    - **Voiding rules:** a pending Charge/DFA declaration is cleared **without resolution** only when there is nothing left to resolve — the **attacker is destroyed** before the physical phase, or (charge) the move was rejected/rolled back. **Every other invalidation resolves in the physical phase as an automatic failure** (no to-hit roll, no collision damage, no charge PSRs):
+      - **Attacker-side:** the attacker is shut down (or its pilot knocked unconscious), fell prone during a later phase, or was displaced/pushed out of position before its charge resolves → the declared charge automatically fails; a pavement fall that skids toward the destination hex is resolved as an **unintentional charge** under standard skidding rules rather than as this declared charge. Damage dealt in the Weapon Attack Phase that only costs the attacker MP or inflicts actuator/gyro crits does **not** stop the charge — the movement points were already spent at declaration, and any PSRs that do occur apply that damage's normal modifiers.
+      - **Target-side:** the target falls prone, is destroyed, or otherwise no longer occupies the destination hex at resolution → automatic failure, and the attacker stays in the target hex (the MP to enter it was already spent). This is distinct from the displacement rule: if the target was displaced by an earlier-resolved physical attack and another valid unit now occupies the hex, the attacker may instead hit that unit with an additional **+1 to-hit modifier**; if no valid target remains in the hex, automatic failure as above. There is no "degrade to a normal move" fallback (Background item 11). Voiding is communicated to clients as part of the resolution/log commands, not by re-sending unit state.
+    - **Single attack limit interplay:** a unit with a pending Charge/DFA declaration cannot declare a physical-phase attack (and vice versa) — the check reads the declaration state on the unit, so no phase-local tracking dictionaries are needed.
+
+1.7. **Turn-order skipping for players without physical-attack options.** In the initial version, the server activates the Physical Attack declaration phase only for players who have at least one unit with a *theoretical* physical attack option (a potential target, regardless of to-hit odds). A player with no theoretical possibility to declare is skipped in this phase's turn order entirely — never set as `ActivePlayer`, no empty player step, no client prompt, and **no `ActivePlayerChanged` is broadcast for the skipped player** (the active-player transition jumps straight to the next eligible player; this silence is the skip mechanism — there is no explicit `SkipPhysicalAttackCommand`):
+
+    - The same eligibility predicate service introduced for UI action availability (R9.1) powers this check, so there is one definition of "potential physical attack option": standing 'Mech, not destroyed/shut down/prone/skidding, no pending Charge/DFA declaration, and at least one adjacent enemy 'Mech reachable by any currently-eligible attack type (punch/kick arc + elevation checks; push/club/physical-weapon rules as their milestones land).
+    - `PhysicalAttackPhase.Enter()` builds its `TurnOrder` from `Game.InitiativeOrder` filtered to eligible players (instead of passing the unfiltered initiative order to `TurnOrder.CalculateOrder` as `MainGamePhase` does by default) — the check re-runs at `Enter()` so late units-losses during weapon resolution are reflected.
+    - If **no** player has any eligible unit, the phase transitions immediately to resolution (which then transitions straight to Heat) — no `ChangeActivePlayerCommand` is broadcast.
+    - Later, this skipping becomes configurable via game settings (e.g. "always prompt physical attack phase" for stricter rules fidelity); in v1 skipping is unconditional and not user-configurable.
+
+### R2 — Physical To-Hit Calculation (M1)
+
+**Files:** new `Models/Game/Mechanics/PhysicalAttack/` folder; `Data/Game/Mechanics/AttackScenario.cs`; `Rules/IRulesProvider.cs`, `TotalWarfareRulesProvider.cs`
+
+2.1. Introduce a physical-attack scenario record (`PhysicalAttackScenario`) analogous to `AttackScenario` but keyed on **Piloting Skill** (`AttackerPiloting`) and `PhysicalAttackType`. It excludes heat and sensor modifiers by construction.
+
+2.2. New calculator interface `IPhysicalAttackCalculator` with `GetToHitNumber(...)` / `GetModifierBreakdown(...)` returning `ToHitBreakdown` (reused record). Implementation composes existing `RollModifier` instances:
+
+    - New modifiers (each a `RollModifier` subclass, auto-registered by the source generator):
+      - `PhysicalAttackBaseModifier` (attack-type base: Punch +0, Kick −2, Club −1, Push −1, Physical weapon −1/−2, Charge +0, DFA +0)
+      - `ChargePilotingDifferenceModifier` (relative piloting skill, M3)
+      - `DfaJumpModifier` (M3)
+      - `PushDamagedShoulderModifier` (+2 per damaged shoulder, M2)
+    - Reused modifiers where rules allow: `TargetMovementModifier`, `TerrainRollModifier` (attacker movement/terrain modifiers follow the standard movement tables — physical attacks use the attacker's executed movement type).
+
+2.3. Extend `IRulesProvider` with the physical hit-location tables:
+    - `PartLocation GetPunchHitLocation(int diceResult, HitDirection attackDirection)`
+    - `PartLocation GetKickHitLocation(int diceResult, HitDirection attackDirection)`
+    Implemented in `TotalWarfareRulesProvider` per the classic tables. Both tables have **three columns — Left Side / Front-Rear / Right Side**; the column is chosen from the attack direction *relative to the target's facing* (where the attacker→target straightedge crosses the target's hex), **not** from the attacker's arc — a side-arc attack that enters the target's front or rear uses the Front-Rear column (Background item 9). Punch rolls: 3–4 Right Arm, 5–6 Right Torso, 7 CT, 8–9 Left Torso, 10–11 Left Arm, 12 Head, 2 = CT critical. Kick rolls (ranges preserved): on the **Left Side** the attacker's side is the target's left, so the **left leg is the near leg** — 2–8 Left Leg (near), 9–12 Right Leg (far); on the **Right Side** the **right leg is the near leg** — 2–8 Right Leg (near), 9–12 Left Leg (far); from **Front or Rear** there is no near/far leg and both use the same Front-Rear column — 2–8 Right Leg, 9–12 Left Leg. Both Front and Rear are valid kick directions (the kick table treats them identically); the kicker's feet orientation (Background item 10) constrains which hexes are valid kick targets, it does not change the column once the target is in a forward-arc hex.
+
+2.4. To-hit preview API must be exposed for UI/bot use without mutating state (same approach as `GetModifierBreakdown` overloads used by bots).
+
+### R3 — Damage & Hit Location Resolution (M1)
+
+**Files:** new `Models/Game/Mechanics/PhysicalAttack/IPhysicalAttackResolver.cs`, `PhysicalAttackResolver.cs`; `Data/Game/AttackResolutionData.cs`
+
+3.1. `IPhysicalAttackResolver.ResolveAttack(PhysicalAttackContext)` mirrors `IWeaponAttackResolver.ResolveAttack` and returns `AttackResolutionData` (reuse: `IsHit`, `HitLocationsData`, `AttackDirection`, dice/PSR roll data). New context record carries attacker, target, attack type, limb, and map.
+
+3.2. Damage values computed from attacker tonnage:
+    - Punch: ⌈tonnage/10⌉ per arm punch
+    - Kick: ⌈tonnage/5⌉
+    - Applied through the same damage pipeline as weapon hits (`target.ApplyDamage(hitLocations, attackDirection)`), so armor→internal→destruction transfer, destroyed-part tracking, and critical-hit generation follow existing `Mechanics.DamageTransferCalculator` / `ICriticalHitsCalculator` behavior.
+
+3.3. Hit location:
+    - Punch → `GetPunchHitLocation`. The table column comes from the attack direction relative to the target's facing (R2.3); each declared arm is a separate roll in the queue (both arms only for a forward-arc target, matching arm only for a side-arc target).
+    - Kick → `GetKickHitLocation`.
+
+3.4. On a **miss**, no damage and no target PSR. Kick-specific miss PSR (attacker falls) is handled by R4.
+
+### R4 — Physical Attack Resolution Phase (M1)
+
+**Files:** new `Phases/PhysicalAttackResolutionPhase.cs`; reuses `Mechanics/Mechs/Falling/*`, `Mechanics/Movement/Actions/*`
+
+4.1. `PhysicalAttackResolutionPhase : GamePhase` with `Enter()` orchestration:
+
+    - Build queue from all units with `HasDeclaredPhysicalAttack`, in initiative order, one queue item per declared attack (punch arms enqueue separately).
+    - Pre-attack gates (new `IAttackResolutionGate` implementations in `Mechanics/PhysicalAttack/`):
+      - `PhysicalAttackTargetValidityGate` — re-validates target alive and attack-specific constraints at resolution time (adjacency, arc — including the punch side-arm restriction and torso-twist-rotated arcs, Background item 10 —, elevation; a standing target for Push).
+      - `AttackerProneGate` — attacker that became prone during weapon attack resolution cannot perform the physical attack.
+      - `AttackerDestroyedGate`.
+    - Resolve each queued attack via `IPhysicalAttackResolver`; publish `PhysicalAttackResolutionCommand` per attack (mirrors `WeaponAttackResolutionCommand` fields: player, attacker, target, attack type, limb, resolution data).
+    - **Simultaneous damage principle:** all declared attacks are resolved in queue order and their results accumulated; damage is applied to all affected units simultaneously at the end of the phase (as the rules doc requires — a declared attack is never skipped because an earlier one destroyed its target), and all resulting PSRs are rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
+
+4.2. **End-of-phase PSR collection** (reuse and generalize the accumulated-damage approach):
+    - Track per-target component hits and destroyed parts (for damage-caused fall PSRs) exactly like `WeaponAttackResolutionPhase.CalculateEndOfPhasePsrs`.
+    - Track attack-specific PSR requirements generated during resolution: kick hit → target PSR; kick miss → attacker PSR; push hit → target PSR. Process these after damage-fall PSRs, in initiative order, publishing `MechFallCommand` + follow-up `CriticalHitsResolutionCommand` and consciousness rolls through the existing `IFallProcessor.ProcessMovementAttempt` path with **new PSR contexts**:
+      - `PilotingSkillRollType.PhysicalAttackPush` (M2)
+      - `PilotingSkillRollType.PhysicalAttackKick` (kick hit/miss; modifier context distinguishes attacker/target)
+      - M3: `ChargeImpact`, `DfaLanding`, `DfaMissFall`
+
+4.3. Phase transition: after all resolutions and PSRs, `Game.TransitionToNextPhase(Name)` → Heat. The phase's `Enter()` must handle the "no declarations" case by transitioning immediately (no attacks possible).
+
+4.4. Client rendering: `ClientGame` applies `PhysicalAttackResolutionCommand` data (display-only, same pattern as weapon resolution: no re-computation of damage on clients — server data is authoritative).
+
+### R5 — Displacement: Push (M2)
+
+**Files:** reuses `Data/Game/Commands/Server/DisplaceUnitCommand.cs`, `Mechanics/Movement/Actions/DisplaceUnitAction.cs`; new push validation helpers
+
+5.1. Push validation at declaration *and* resolution:
+    - Target is a standing 'Mech, not performing Charge/DFA (M3 interplay).
+    - Target in the hex **directly in front of the attacker's feet** (attacker facing, not torso twist — use `Unit.Facing`, ignoring any twist).
+    - Attacker and target at the exact same elevation.
+    - Attacker has both arms; no arm weapons fired (derived from `Weapon.HasFiredThisTurn`, R1.2).
+    - +2 per damaged shoulder actuator (not a blocker).
+    - One displacement per target per turn: maintain a per-phase set of displaced target ids (Charge/DFA/Push); a second displacement declaration is rejected.
+
+5.2. On hit (damage 0):
+    - Target displaced 1 hex directly away (`DisplaceUnitAction`), attacker moves into the vacated hex at 0 MP cost (server-side position update via existing displacement/position command path).
+    - Blocked/prohibited destination (prohibited terrain, or blocked by elevation) → **neither unit moves**, but the target PSR still occurs. Being pushed more than 2 levels down is allowed and results in an automatic fall.
+    - Target PSR via `PhysicalAttackPush` roll context; fall handled by `IFallProcessor`.
+
+5.3. Mutual pushes: if both sides declared pushes against each other and both hit — neither moves, both PSR. If only one hits — standard push. If both miss — nothing. Implement as a post-resolution interaction check in the phase orchestrator (the attack queue detects reciprocal push pairs before displacement application).
+
+### R6 — Charge & DFA (M3)
+
+**Files:** `Phases/MovementPhase.cs`, `Data/Game/Commands/Client/MoveUnitCommand.cs` (extension), `Mechanics/PhysicalAttack/*`
+
+6.1. **Declaration during Movement Phase, sent immediately.** A charge/DFA is declared as part of the unit's movement:
+    - Extend `MoveUnitCommand` (or add a sibling command) with an optional `ChargeTargetId`/`DfaTargetId` and the executed movement path (already serialized for movement). The declaration is validated, applied, and broadcast **at the moment the move command is processed** — not deferred to the physical phase.
+    - The server stores the declaration on the unit; because declaration state is cleared only at turn end (R1.1), it survives the `Movement → WeaponsAttack → WeaponAttackResolution` phase transitions with no special handling, and is resolved (or voided, R1.6) by the `PhysicalAttackResolutionPhase`.
+    - `HexesMoved` for charge damage = hexes traversed **before entering the target's hex** (path data is retained on the unit's `MovementTaken` / command).
+    - Target must have **already completed its movement** (a unit may only charge a target earlier in the movement order) and be in the hex the movement path terminates in (DFA: jump path ending on the target hex).
+    - Units with a pending Charge/DFA declaration cannot fire weapons this turn and cannot perform physical-phase attacks; the weapons-phase UI and server validation both read the persistent declaration state (R1.6).
+
+6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
+
+6.3. **Damage:** in 5-point clusters (`⌈Tonnage/10⌉ × hexesMoved` for charge target; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
+
+6.4. **Outcomes:**
+    - Charge hit: target displaced to an adjacent valid hex (existing displacement rules), attacker occupies target hex; target PSR (+2), attacker PSR (+2).
+    - Charge miss: attacker occupies hex left/right of its forward arc (alternating/nearest-first selection), no damage, no PSRs.
+    - **Charge auto-fail:** the target is no longer in the destination hex at resolution (fallen prone, destroyed, displaced) → no to-hit roll, no damage, no PSRs; the attacker stays in the target hex (MP was already spent at declaration). If a different valid unit now occupies the hex, the attacker may attack it at **+1 to-hit** instead (Background item 11).
+    - DFA hit: attacker lands in target hex, target displaced; target PSR (+2), attacker PSR (+4); attacker takes ⌈own tonnage/5⌉ to legs.
+    - DFA miss: attacker automatically falls (2-level fall, rear-direction damage, standard fall damage pipeline). The target's displacement is **player-selected, not auto-chosen**: the server computes the adjacent passable hexes and broadcasts them (`PhysicalAttackDisplacementCandidatesCommand`); the client highlights the candidates in the UI and returns a selection-confirmation command (`SelectPhysicalAttackDisplacementCommand`). The server auto-resolves only when **exactly one** candidate hex exists (all others blocked/unpassable).
+    - DFA collision with target destroyed → attacker falls into the hex.
+
+6.5. Displacement uses the existing `DisplaceUnitCommand` pipeline so network propagation and rendering come for free.
+
+### R7 — Physical Weapons (M4)
+
+7.1. Sword component (`Models/Units/Components/Weapons/Melee/Sword.cs`) following `Hatchet`; range bracket data as needed for any incidental behavior is not used by melee attacks.
+
+7.2. Physical weapon attack declared like punch/kick; to-hit base modifier hatchet −1 / sword −2; damage ⌈tonnage/5⌉ (hatchet), ⌈tonnage/10⌉ + 1 (sword); hit location via standard table; weapons on the weapon-arm cannot fire.
+
+7.3. The punch/kick-table option (+4 to-hit modifier, rolling on the punch/kick hit-location table instead of the standard table) **ships in M4**. It is a UI toggle when the 'Mech has a physical weapon; the scenario record carries the flag and the `PhysicalAttackBaseModifier` composes the +4.
+
+### R8 — Club (M5)
+
+**Files:** `Models/Units/Components/Weapons/Melee/` (new `Club.cs` improvised-item class), `Mechs/Mech.cs` (carrying state), `CriticalHitsCalculator` (limb removal hooks), `PhysicalAttackState` (pickup UI)
+
+8.1. **Club is a distinct attack mode, not a physical-weapon variant.** `PhysicalAttackType.Club` is added as its own enum value; its eligibility, damage, and hit-location rules are separate from hatchet/sword.
+
+8.2. **Club item model:**
+    - New `Club` improvised item (not a mounted weapon): `Id`, `SourceType` (SeveredLimb / Tree / Girder — only `SeveredLimb` in v1), `SourcePartLocation` (limb it came from), carried-by reference.
+    - When an arm or leg is blown off by a critical hit (`IsBlownOff` in `CriticalHitsResolutionCommand`), the severed limb becomes a club item present in the hex at the target's location.
+    - A 'Mech in the same hex as a club item can **pick it up** (0-MP action per classic rules); carrying occupies **both hands** — one club per 'Mech, and the 'Mech cannot punch, push, or use physical weapons while carrying. On the turn of pickup the 'Mech **cannot fire weapons or make physical attacks** (Background item 12).
+    - The club is **carried across turns** as long as both hands/shoulders remain available and no arm weapons are fired; it is dropped back into the attacker's hex when the attacker falls, a carrying arm is destroyed, or the 'Mech dies. Reusability depends on source: girders and severed limbs are reused after a successful hit, while uprooted trees break after one successful hit (Background item 12).
+
+8.3. **Attack rules:**
+    - To-hit base −1, damage ⌈tonnage/5⌉, hit location via the **standard** hit-location table (no punch/kick-table option).
+    - Eligibility: undamaged shoulder **and hand** actuators in **both** arms; no arm weapons fired from either arm; attacker standing; target is an adjacent enemy 'Mech.
+    - Unlike hatchet/sword, the club is not tied to a specific arm — it swings with both.
+
+8.4. The swing resolves like a punch-family attack in the resolution queue (single queue item; no per-arm splits).
+
+### R9 — UI (M1 for punch/kick; M2/M3/M5 extend)
+
+**Files:** `src/MakaMek.Presentation/UiStates/PhysicalAttackState.cs` (new), `PhysicalAttackStep.cs` (new), `ViewModels/BattleMapViewModel.cs`
+
+9.1. `PhysicalAttackState : IUiState` mirroring `WeaponsAttackState`:
+
+    - Steps: `SelectingUnit → ActionSelection → TargetSelection` (punch/kick/push do not need a weapons-configuration step).
+    - Action selection offers available attack types for the selected unit (computed from the shared eligibility predicate service, R1.7/R1.4); unavailable types are hidden, not disabled, with a reason label where useful.
+    - Target selection highlights valid target hexes (same adjacency/arc/elevation rules as validation).
+    - To-hit preview (number + modifier breakdown) shown for the highlighted target — via the R2.4 preview API.
+    - "Skip" advances the turn order without a command.
+
+9.2. `BattleMapViewModel` transition map gains `PhaseNames.PhysicalAttack → new PhysicalAttackState(this)` (and `PhysicalAttackResolution` behaves like `WeaponAttackResolution` — passive watching, no `IUiState`).
+
+9.3. Resolution display: game-log rendering of `PhysicalAttackResolutionCommand` (localized), to-hit/dice/PSR entries consistent with weapon resolution rendering.
+
+9.4. All user-facing strings localized in `MakaMek.Localization` (command render strings, modifier names, UI labels) following existing `Command_WeaponAttack*` conventions.
+
+### R10 — Network & Serialization (M1)
+
+10.1. All new/extended commands implement `IGameCommand` serialization used by the transport layer; `PhysicalAttackCommand` idempotency key semantics match other client commands.
+
+10.2. `ServerGame` publishes: declaration (`PhysicalAttackCommand`), resolution (`PhysicalAttackResolutionCommand`), DFA-miss displacement candidates (`PhysicalAttackDisplacementCandidatesCommand`), plus existing fall/displacement/critical-hit/consciousness commands. Command order in the log must match the chronology used by `WeaponAttackResolutionPhase` (resolution → criticals → consciousness → PSR falls); the DFA-miss candidate/confirmation pair is interleaved at the point the miss is resolved.
+
+10.3. SignalR transport needs no changes — commands are generic records on the wire; the generated command registry handles dispatch.
+
+---
+
+## Data Model Summary
+
+| Type | Kind | Change |
+|------|------|--------|
+| `PhysicalAttackType` | enum | exists; M4 adds `PhysicalWeapon`, M5 adds `Club` |
+| `PhaseNames` | enum | add `PhysicalAttackResolution` |
+| `PhysicalAttackCommand` | client command | extend with selected punch arm(s), validation |
+| `PhysicalAttackDeclaration` | record (new, Core) | attacker declaration state; turn-scoped reset via `ResetTurnState()`, same lifecycle as `DeclaredWeaponTargets` (R1.1) |
+| `PhysicalAttackResolutionCommand` | server command (new) | resolution broadcast |
+| `PhysicalAttackDisplacementCandidatesCommand` + `SelectPhysicalAttackDisplacementCommand` | commands (new, M3) | DFA-miss target-displacement selection (R6.4): server broadcasts candidate hexes, client highlights and confirms; auto-resolve when a single candidate exists |
+| `ClubItem` (source type, carried-by state, hex presence) | record/service (new, Core) | improvised club pickup / carry-across-turns / drop lifecycle; reusable vs single-use by source type (Background item 12) |
+| `PhysicalAttackScenario` / `PhysicalAttackContext` | records (new, Mechanics) | to-hit + resolution inputs |
+| `PhysicalAttackBaseModifier`, `ChargePilotingDifferenceModifier`, `DfaJumpModifier`, `PushDamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
+| `PilotingSkillRollType.*` | enum + context records (new) | kick/push/charge/DFA PSRs |
+| `IRulesProvider.GetPunchHitLocation / GetKickHitLocation` | interface (extend) | TotalWarfareRulesProvider implementation |
+| `Weapon.HasFiredThisTurn` | component flag (new) | per-weapon turn-scoped fired marker, set in `FireWeapon`, cleared in `ResetTurnState()` (R1.2) |
+| `IUnit.HasDeclaredPhysicalAttack / DeclaredPhysicalAttack` | unit state (new) | turn-scoped reset (`ResetTurnState()`), mirroring weapon declarations |
+
+---
+
+## Testing Requirements
+
+- Unit tests in `tests/MakaMek.Core.Tests` for: to-hit breakdowns per attack type (piloting base, no heat/sensor modifiers, movement/terrain applied), damage math (rounding, charge clusters, hexes-moved counting), punch/kick hit-location tables (all 2–12 results × directions, punch-table column determined by target-facing side, side-arc arm restriction), eligibility validation (single-attack limit, limb weapon restrictions via `Weapon.HasFiredThisTurn`, actuator damage rules, punch-arm/target-arc correspondence), push displacement matrix (elevation, facing, blocked destination, mutual pushes), club carry lifecycle (pickup-turn firing/physical-attack ban, cross-turn carry, drop conditions, reusable vs single-use by source type), PSR contexts and end-of-phase PSR ordering, charge/DFA outcomes (hit/miss/auto-fail paths, charge replacement target at +1, DFA-miss target-displacement selection with single-candidate auto-resolve), **turn-scoped declaration lifecycle** (declarations survive phase transitions; cleared uniformly at turn end via `ResetTurnState()`; voiding of invalid Charge/DFA declarations; single-attack-limit interplay), and **declaration-phase turn-order skipping** (players without potential physical-attack options are never activated; all-players-ineligible → immediate transition).
+- Presentation tests in `tests/MakaMek.Presentation.Tests` for `PhysicalAttackState` step machine and eligibility computation, mirroring existing `WeaponsAttackState` tests.
+- No Avalonia tests (per repo convention — logic lives in Core/Presentation).
+- Coverage: new Core code must be covered per the `coverage-check` skill / CI gates.
+
+---
+
+## Acceptance Criteria
+
+**M1**
+- [ ] Phase order is `… WeaponAttackResolution → PhysicalAttack → PhysicalAttackResolution → Heat` and existing turn flow is unaffected.
+- [ ] A standing 'Mech can punch (either arm) and kick an adjacent enemy 'Mech with correct to-hit number, damage, and hit locations; damage appears on the client simultaneously with the log entry.
+- [ ] Units with fired arm/leg weapons cannot punch/kick with those limbs; hip/shoulder damage rules enforced.
+- [ ] Kick hit → target PSR; kick miss → attacker PSR; falls apply standard fall damage and criticals.
+- [ ] Turn order alternates correctly including skipped units; no physical attack → phase completes without commands.
+- [ ] Players with no unit having a theoretical physical-attack option are skipped in this phase (never activated, no `ChangeActivePlayerCommand`); if no player qualifies, the phase transitions straight through to Heat.
+
+**M2**
+- [ ] Push meets all §4 rules-doc requirements; displacement + attacker advance work at 0 MP; blocked destination keeps both units in place but still triggers the target PSR.
+- [ ] One displacement per target per turn is enforced.
+
+**M3**
+- [ ] Charge/DFA can be declared with movement; the declaration is broadcast immediately and persists on both server and clients across the Weapons Attack and Weapon Attack Resolution phases (weapon firing is blocked for that unit meanwhile) using the same turn-scoped lifecycle as weapon declarations.
+- [ ] Damage, displacement, and PSR modifiers (+2/+2, +4/+2) match the rules doc; miss outcomes (side-hex landing / DFA auto-fall) behave as specified, and the DFA-miss target displacement is player-selected via highlighted candidates (server auto-resolves only when a single candidate exists).
+- [ ] A charge whose target leaves the destination hex before resolution automatically fails (or hits a replacement unit at +1) — no "degrade to a normal move" fallback.
+- [ ] Charging/DFA units cannot fire weapons or perform physical-phase attacks that turn.
+- [ ] Declarations are voided per R1.6 only when the attacker is destroyed or the charge move is rejected — attacker shut down/prone and target-side invalidation (prone, destroyed, absent from the destination hex) all resolve as automatic failures (R6.4); voided declarations clear on clients via the log commands.
+
+**M4**
+- [ ] Hatchet/sword attacks with correct modifiers, damage, and hit locations; weapon-arm firing restriction enforced; the punch/kick-table option (+4) is selectable and applies the punch/kick table.
+
+**M5**
+- [ ] A blown-off arm/leg appears as a club item in the target's hex and can be picked up by a 'Mech in that hex.
+- [ ] Club attack uses Piloting −1, ⌈tonnage/5⌉ damage, standard hit-location table.
+- [ ] Both-arm eligibility (undamaged shoulders + hands) and no-arm-weapons-fired rules enforced; carrying a club disables punch/push/physical-weapon attacks.
+- [ ] The club is carried across turns (the pickup turn forbids firing/physical attacks) and reused for subsequent hits; it is dropped on fall, carrying-arm destruction, or death, and becomes available in that hex again.

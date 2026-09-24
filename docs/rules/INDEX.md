@@ -9,3 +9,4 @@ BattleTech game rules implementation documentation. This category contains only 
 | [Overview.md](Overview.md) | Overview of BattleTech rules coverage implemented in MakaMek and scope decisions |
 | [Version1.md](Version1.md) | Detailed specification of the Version 1 ruleset implemented in the game |
 | [roads-and-bridges.md](roads-and-bridges.md) | Summarized rules around paved areas, roads and bridges |
+| [physical-attacks.md](physical-attacks.md) | Declaration & resolution of physical attacks (punch, kick, club, push, physical weapons, charge, DFA) plus kick leg-per-leg firing restrictions |

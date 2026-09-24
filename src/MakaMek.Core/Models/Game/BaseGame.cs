@@ -130,9 +130,14 @@ public abstract class BaseGame : IGame
         BattleMap = map;
     }
 
-    internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
+    /// <summary>
+    /// Adds a player to the game when the join command passes validation.
+    /// </summary>
+    /// <param name="joinGameCommand">The player join request to process.</param>
+    /// <returns><see langword="true"/> when a new player was added; otherwise, <see langword="false"/>.</returns>
+    internal bool OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
-        if (!ValidateJoinCommand(joinGameCommand).IsValid) return;
+        if (!ValidateJoinCommand(joinGameCommand).IsValid) return false;
         
         var controlType = GetLocalPlayerControlType(joinGameCommand.PlayerId) ?? PlayerControlType.Remote;
         var player = new Player(joinGameCommand.PlayerId,
@@ -158,6 +163,7 @@ public abstract class BaseGame : IGame
 
         player.Status = PlayerStatus.Joined;
         _players.Add(player);
+        return true;
     }
     
     protected virtual void OnPlayerLeft(PlayerLeftCommand command)
