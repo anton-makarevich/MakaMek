@@ -30,6 +30,35 @@ public class TotalWarfareRulesProviderTests
         _sut.GetMovementCost(terrainType, height).ShouldBe(expected);
     }
 
+    [Fact]
+    public void GetMovementCost_ShouldThrow_WhenTerrainTypeIsUnknown()
+    {
+        var unknownTerrain = (MakaMekTerrains)999;
+
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetMovementCost(unknownTerrain, 0));
+
+        exception.ParamName.ShouldBe("terrainType");
+    }
+
+    [Fact]
+    public void GetMovementCost_ShouldAgreeWithTheDefaultProvider_ForEveryDefinedTerrain()
+    {
+        // DefaultMovementCostProvider stands in for the rules provider on standalone maps,
+        // so the two tables must not drift apart.
+        var defaultProvider = new DefaultMovementCostProvider();
+
+        foreach (var terrain in Enum.GetValues<MakaMekTerrains>())
+        {
+            foreach (var height in new[] { 0, -1, -2, 1 })
+            {
+                defaultProvider.GetMovementCost(terrain, height)
+                    .ShouldBe(_sut.GetMovementCost(terrain, height),
+                        $"{terrain} at height {height}");
+            }
+        }
+    }
+
     [Theory]
     [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
     [InlineData(25, 3, 8, 6, 6, 4, 4, 6, 6)]
