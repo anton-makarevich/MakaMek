@@ -2856,6 +2856,8 @@ public class ClientGameTests
         };
 
         _commandPublisher.ClearReceivedCalls();
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
 
         // Act
         var deployTask = _sut.DeployUnit(deployCommand);
@@ -2865,6 +2867,8 @@ public class ClientGameTests
 
         capturedCommand.ShouldNotBeNull("Command should have been published");
         capturedCommand.Value.IdempotencyKey.ShouldNotBeNull();
+        _sut.HasPendingCommands.ShouldBeTrue();
+        pendingStateChanges.ShouldBe(1);
 
         // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
         var rebroadcastCommand = capturedCommand.Value with { GameOriginId = Guid.NewGuid() };
@@ -2876,6 +2880,93 @@ public class ClientGameTests
 
         var result = await deployTask;
         result.ShouldBeTrue();
+        _sut.HasPendingCommands.ShouldBeFalse();
+        pendingStateChanges.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Dispose_ShouldRaisePendingCommandsChanged_WhenCommandsWereStillPending()
+    {
+        // Arrange: a command in flight that the server never answers.
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData], []).SafeFireAndForget();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        _commandPublisher.ClearReceivedCalls();
+        _sut.DeployUnit(new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0
+        }).SafeFireAndForget();
+        await WaitForPublishedCommand<DeployUnitCommand>(_commandPublisher);
+        _sut.HasPendingCommands.ShouldBeTrue();
+
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
+
+        // Act
+        _sut.Dispose();
+
+        // Assert: disposing cancels the outstanding waits, which is a change worth reporting.
+        pendingStateChanges.ShouldBe(1);
+        _sut.HasPendingCommands.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Dispose_ShouldNotRaisePendingCommandsChanged_WhenNothingWasPending()
+    {
+        // Arrange
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
+        _sut.HasPendingCommands.ShouldBeFalse();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert: the notification exists to report a change, and nothing changed.
+        pendingStateChanges.ShouldBe(0);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreErrorForUnknownKey_WithoutNotifying()
+    {
+        // Arrange: an error naming a command this client never sent - a stale or rebroadcast
+        // rejection - must not be reported as a change to the pending set.
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
+
+        // Act
+        Should.NotThrow(() => _sut.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.DuplicateCommand
+        }));
+
+        // Assert
+        pendingStateChanges.ShouldBe(0);
+        _sut.HasPendingCommands.ShouldBeFalse();
     }
 
     [Fact]
@@ -2972,11 +3063,77 @@ public class ClientGameTests
         await Should.ThrowAsync<TaskCanceledException>(() => task)
             .WaitAsync(TimeSpan.FromSeconds(5));
     }
+
+    [Fact]
+    public async Task SendClientCommand_ShouldNotRegisterOrPublish_WhenGameDisposed()
+    {
+        // Arrange: the game is disposed with no commands in flight - disposal must
+        // reject later submissions instead of registering them after cleanup, which
+        // would leave an uncancelled task hanging until the ack timeout.
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _commandPublisher.ClearReceivedCalls();
+        var pendingStateChanges = 0;
+        _sut.PendingCommandsChanged += () => pendingStateChanges++;
+        _sut.Dispose();
+
+        // Act
+        var result = await _sut.JoinGameWithUnits(player, [unitData], [])
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert: rejected, neither tracked as pending nor published, no change reported.
+        result.ShouldBeFalse();
+        _sut.HasPendingCommands.ShouldBeFalse();
+        pendingStateChanges.ShouldBe(0);
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
+    }
     
+    [Fact]
+    public async Task SendClientCommand_ShouldReturnExistingTask_WhenSameCommandReSubmittedWhilePending()
+    {
+        // Arrange: the idempotency key is constant, so submitting the same action again
+        // while the first attempt is still awaiting acknowledgement must be deduplicated
+        // instead of being published and tracked a second time.
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var firstTask = _sut.JoinGameWithUnits(player, [unitData], []);
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act: submit the same command again while the first is still pending.
+        var secondTask = _sut.JoinGameWithUnits(player, [unitData], []);
+
+        // Assert: no second publish, the command is still tracked exactly once.
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
+        _sut.HasPendingCommands.ShouldBeTrue();
+
+        // Complete the pending command the way a server rebroadcast would.
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        // Assert: both submissions share the same outcome and nothing is left pending.
+        (await firstTask.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBeTrue();
+        (await secondTask.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBeTrue();
+        _sut.HasPendingCommands.ShouldBeFalse();
+    }
+
     [Fact]
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesNotAcknowledge()
     {
         // Arrange
+        var timeoutNotifications = 0;
+        _sut.CommandTimedOut += () => timeoutNotifications++;
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
@@ -2985,6 +3142,8 @@ public class ClientGameTests
         
         var result = await task;
         result.ShouldBeFalse();
+        timeoutNotifications.ShouldBe(1);
+        _sut.HasPendingCommands.ShouldBeFalse();
     }
     
     [Fact]
