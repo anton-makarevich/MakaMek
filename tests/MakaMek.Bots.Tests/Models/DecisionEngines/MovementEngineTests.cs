@@ -811,18 +811,29 @@ public class MovementEngineTests
         unit.GetAvailableComponents<Weapon>().Returns([lrm20]);
     }
 
+    /// <summary>
+    /// Stubs both movement-point overloads with the same value. The engine reads movement through the
+    /// rules provider, so stubbing only the legacy overload leaves the mock reporting zero there and
+    /// every unit classifying the same way.
+    /// </summary>
+    private static void StubMovementPoints(IUnit unit, MovementType movementType, int points)
+    {
+        unit.GetMovementPoints(movementType).Returns(points);
+        unit.GetMovementPoints(movementType, Arg.Any<IRulesProvider>()).Returns(points);
+    }
+
     private static void ConfigureScout(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
-        unit.GetMovementPoints(MovementType.Walk).Returns(7);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 7);
+        StubMovementPoints(unit, MovementType.Jump, 0);
     }
     
     private static void ConfigureBrawler(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
-        unit.GetMovementPoints(MovementType.Walk).Returns(3);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 3);
+        StubMovementPoints(unit, MovementType.Jump, 0);
     }
 
     private static IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false, Guid? id = null)
@@ -832,14 +843,9 @@ public class MovementEngineTests
         unit.HasMoved.Returns(hasMoved);
         unit.IsImmobile.Returns(isImmobile);
         unit.IsDeployed.Returns(isDeployed);
-        unit.GetMovementPoints(MovementType.Walk).Returns(4);
-        unit.GetMovementPoints(MovementType.Run).Returns(6);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
-        // The engine reads movement through the rules provider now, so the mock has to answer that
-        // overload too; left unstubbed it reports zero and every unit stands still.
-        unit.GetMovementPoints(MovementType.Walk, Arg.Any<IRulesProvider>()).Returns(4);
-        unit.GetMovementPoints(MovementType.Run, Arg.Any<IRulesProvider>()).Returns(6);
-        unit.GetMovementPoints(MovementType.Jump, Arg.Any<IRulesProvider>()).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 4);
+        StubMovementPoints(unit, MovementType.Run, 6);
+        StubMovementPoints(unit, MovementType.Jump, 0);
         unit.GetAvailableComponents<Weapon>().Returns([]);
         
         // Mock status
