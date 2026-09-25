@@ -270,6 +270,77 @@ public class ClientGameTests
     }
 
     [Fact]
+    public void RollInitiative_ShouldPublishRollDiceCommand_WhenItIsThePlayersTurn()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        // Registers the player as local, which CanActivePlayerAct requires
+        _sut.JoinGameWithUnits(player, [unitData], []);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+        _sut.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Initiative
+        });
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.RollInitiative(new RollDiceCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id
+        });
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<RollDiceCommand>(cmd =>
+            cmd.PlayerId == player.Id && cmd.GameOriginId == _sut.Id));
+    }
+
+    [Fact]
+    public void RollInitiative_ShouldNotPublish_WhenItIsNotThePlayersTurn()
+    {
+        // Arrange - the player has joined but is not the active player
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.RollInitiative(new RollDiceCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id
+        });
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<RollDiceCommand>());
+    }
+
+    [Fact]
     public void ChangePhase_ShouldProcessCommand()
     {
         // Arrange

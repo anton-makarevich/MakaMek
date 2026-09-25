@@ -47,6 +47,7 @@ public interface IClientGame:IGame
     void HandleCommand(IGameCommand command);
     Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments);
     Task<bool> SetPlayerReady(UpdatePlayerStatusCommand readyCommand);
+    Task<bool> RollInitiative(RollDiceCommand command);
     Task<bool> DeployUnit(DeployUnitCommand command);
     Task<bool> MoveUnit(MoveUnitCommand command);
     Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command);

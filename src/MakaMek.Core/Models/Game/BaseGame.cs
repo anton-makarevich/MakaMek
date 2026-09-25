@@ -464,6 +464,7 @@ public abstract class BaseGame : IGame
         {
             JoinGameCommand joinGameCommand => ValidateJoinCommand(joinGameCommand),
             UpdatePlayerStatusCommand playerStateCommand => ValidatePlayer(playerStateCommand),
+            RollDiceCommand => CommandValidationResult.Valid(),
             DeployUnitCommand deployUnitCommand => ValidateDeployCommand(deployUnitCommand),
             TurnIncrementedCommand turnIncrementedCommand => ValidateTurnIncrementedCommand(turnIncrementedCommand),
             SetBattleMapCommand => CommandValidationResult.Valid(),

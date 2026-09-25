@@ -343,6 +343,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     
     public Task<bool> SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
 
+    /// <summary>
+    /// Sends the active human player's initiative roll to the authoritative game.
+    /// </summary>
+    /// <param name="command">Initiative roll request for the active player.</param>
+    /// <returns>Whether the server acknowledged the request.</returns>
+    public Task<bool> RollInitiative(RollDiceCommand command) => SendPlayerAction(command);
+
     public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
 
     public Task<bool> MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
