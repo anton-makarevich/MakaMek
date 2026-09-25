@@ -52,7 +52,7 @@ public class ApplyFallActionTests : GamePhaseTestsBase
 
         var result = sut.Process(Game);
 
-        MockCriticalHitsCalculator.DidNotReceive().CalculateAndApplyCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
         result.Count.ShouldBe(1);
     }
 
