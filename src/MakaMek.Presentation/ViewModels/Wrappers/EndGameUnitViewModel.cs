@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Localization;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -10,13 +11,25 @@ public class EndGameUnitViewModel
 {
     private readonly IUnit _unit;
 
-    public EndGameUnitViewModel(IUnit unit)
+    public EndGameUnitViewModel(IUnit unit, ILocalizationService? localizationService = null)
     {
         _unit = unit;
         UnitData = unit.ToData();
+        PilotData = unit.Pilot?.ToData();
+        CardViewModel = new UnitViewModel(UnitData, PilotData, localizationService);
     }
 
     public UnitData UnitData { get; }
+
+    /// <summary>
+    /// Gets the snapshot of the pilot assigned to the unit, if any
+    /// </summary>
+    public PilotData? PilotData { get; }
+
+    /// <summary>
+    /// Gets the card view model shared with the unit card control
+    /// </summary>
+    public UnitViewModel CardViewModel { get; }
 
     /// <summary>
     /// Gets the unit's name
