@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -37,6 +38,9 @@ public class MovementEngineTests
     {
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.BattleMap.Returns(_battleMap);
+        // A real game always carries a real rules provider, and the engine now reads movement through
+        // it. Left as an auto-substitute it reports zero movement, so every unit scores identically.
+        _clientGame.RulesProvider.Returns(new TotalWarfareRulesProvider());
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
@@ -831,6 +835,11 @@ public class MovementEngineTests
         unit.GetMovementPoints(MovementType.Walk).Returns(4);
         unit.GetMovementPoints(MovementType.Run).Returns(6);
         unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        // The engine reads movement through the rules provider now, so the mock has to answer that
+        // overload too; left unstubbed it reports zero and every unit stands still.
+        unit.GetMovementPoints(MovementType.Walk, Arg.Any<IRulesProvider>()).Returns(4);
+        unit.GetMovementPoints(MovementType.Run, Arg.Any<IRulesProvider>()).Returns(6);
+        unit.GetMovementPoints(MovementType.Jump, Arg.Any<IRulesProvider>()).Returns(0);
         unit.GetAvailableComponents<Weapon>().Returns([]);
         
         // Mock status
