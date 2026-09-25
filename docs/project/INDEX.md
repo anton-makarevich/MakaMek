@@ -11,3 +11,4 @@ Project-level planning, requirements specifications, gap tracking, and subsystem
 | [bot-player-system-prd.md](bot-player-system-prd.md) | Subsystem planning | Product Requirements Document for the AI bot player subsystem |
 | [roads-pavement-bridges-prd.md](roads-pavement-bridges-prd.md) | Feature planning | Product Requirements Document for road, pavement, and bridge terrain mechanics including skid PSR and bridge CF collapse |
 | [network-prd.md](network-prd.md) | Subsystem planning | Product Requirements Document (draft) for moving from LAN peer-host to a cloud relay-hub model enabling internet and web multiplayer at minimal cost |
+| [physical-attacks-prd.md](physical-attacks-prd.md) | Feature planning | Product Requirements Document (draft) for implementing 'Mech physical attacks (punch, kick, push, charge, DFA) across the phase pipeline, mechanics, and UI |
