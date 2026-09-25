@@ -72,7 +72,7 @@ public class CriticalHitsCalculatorTests
             ]);
 
         // Act
-        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo).CriticalHits;
 
         // Assert
         result.Count.ShouldBe(1);
@@ -116,7 +116,7 @@ public class CriticalHitsCalculatorTests
         );
 
         // Act
-        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo).CriticalHits;
 
         // Assert
         result.Count.ShouldBe(2);
@@ -152,7 +152,7 @@ public class CriticalHitsCalculatorTests
         // Don't mount it to any part, so MountedAtSlots will be empty
 
         // Act
-        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo).CriticalHits;
 
         // Assert
         result.ShouldBeEmpty(); // Should return null when the component has no mounted slots
@@ -173,7 +173,7 @@ public class CriticalHitsCalculatorTests
         centerTorso.TryAddComponent(ammo).ShouldBeTrue();
 
         // Act
-        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo).CriticalHits;
 
         // Assert
         result.ShouldBeEmpty();
@@ -506,7 +506,7 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
-    public void CalculateAndApplyCriticalHits_ShouldNotCalculateCriticalHits_ForAlreadyDestroyedLocation()
+    public void CalculateCriticalHits_ShouldNotCalculateCriticalHits_ForAlreadyDestroyedLocation()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -524,7 +524,7 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(2)); // Hit engine slot
 
         // Act
-        var result = _sut.CalculateAndApplyCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -534,7 +534,7 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
-    public void CalculateAndApplyCriticalHits_ShouldReportNewlyDestroyedParts_WhenExplosionDestroysLocation()
+    public void CalculateCriticalHits_ShouldReportNewlyDestroyedParts_WhenExplosionDestroysLocation()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -560,42 +560,37 @@ public class CriticalHitsCalculatorTests
             .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)]);
 
         // Act
-        var result = _sut.CalculateAndApplyCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
         result.DestroyedParts.ShouldNotBeNull();
         result.DestroyedParts!.ShouldContain(PartLocation.LeftTorso);
         result.UnitDestroyed.ShouldBeFalse();
-        testUnit.Parts[PartLocation.LeftTorso].IsDestroyed.ShouldBeTrue();
+        // The authoritative unit must be left untouched; the destruction is reported, not applied.
+        testUnit.Parts[PartLocation.LeftTorso].IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]
-    public void CalculateAndApplyCriticalHits_ShouldReturnNull_WhenUnitDoesNotProvideCriticalHitsData()
+    public void CalculateCriticalHits_ShouldReturnNull_WhenNoLocationProducesCriticalHitsData()
     {
-        // Arrange
+        // Arrange — the only location carrying structure damage is already destroyed, so no location
+        // yields critical-hit data. (This used to stub IUnit.CalculateCriticalHitsData on a mock, which
+        // no longer works: the calculator resolves against a clone, so the stub is never consulted.)
         var testUnit = CreateTestMech();
-        var mockUnit = Substitute.For<IUnit>();
-        mockUnit.Parts.Returns(new Dictionary<PartLocation, UnitPart>
-        {
-            [PartLocation.CenterTorso] = testUnit.Parts[PartLocation.CenterTorso]
-        });
-        mockUnit.CalculateCriticalHitsData(
-                Arg.Any<PartLocation>(),
-                Arg.Any<IDiceRoller>(),
-                Arg.Any<IDamageTransferCalculator>())
-            .Returns((LocationCriticalHitsData?)null);
+        testUnit.Parts[PartLocation.LeftArm].ApplyDamage(10, HitDirection.Front);
+        testUnit.Parts[PartLocation.LeftArm].IsDestroyed.ShouldBeTrue();
 
         List<LocationDamageData> hitLocationsData = [
-            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+            CreateLocationDamageData(PartLocation.LeftArm, 0, 2)
         ];
 
         // Act
-        var result = _sut.CalculateAndApplyCriticalHits(mockUnit, hitLocationsData);
+        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
 
         // Assert
-        result.ShouldBeNull(); // No critical hits data provided by the unit
-        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+        result.ShouldBeNull();
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for a destroyed location
     }
 
     [Fact]

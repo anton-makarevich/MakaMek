@@ -33,12 +33,13 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     }
     
     /// <summary>
-    /// Calculates and applies critical hits, including the newly destroyed locations and unit-destruction state caused by them.
+    /// Calculates critical hits without mutating the authoritative unit, including the newly destroyed
+    /// locations and unit-destruction state they would cause.
     /// </summary>
-    /// <param name="unit">The unit receiving the critical hits.</param>
+    /// <param name="unit">The unit receiving the critical-hit effects.</param>
     /// <param name="hitLocationsData">The structure-damage locations that require critical-hit resolution.</param>
-    /// <returns>A command containing the applied results and destruction metadata, or <see langword="null"/> when no critical hits occurred.</returns>
-    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
+    /// <returns>A command containing the calculated results and destruction metadata, or <see langword="null"/> when no critical hits occurred.</returns>
+    public CriticalHitsResolutionCommand? CalculateCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
         if (!hitLocationsData.Any(damage => damage.StructureDamage > 0))
             return null;
@@ -56,8 +57,9 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         if (allCriticalHitsData.Count == 0)
             return null;
 
-        // Send critical hits resolution command
-        var newlyDestroyedParts = unit.Parts.Values
+        // The authoritative unit is deliberately left untouched, so the destruction metadata must be
+        // read from the simulation copy the critical hits were actually applied to.
+        var newlyDestroyedParts = simulationUnit.Parts.Values
             .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
             .Select(part => part.Location)
             .ToList();
@@ -68,24 +70,24 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             TargetId = unit.Id,
             CriticalHits = allCriticalHitsData,
             DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
-            UnitDestroyed = !wasDestroyedBefore && unit.IsDestroyed
+            UnitDestroyed = !wasDestroyedBefore && simulationUnit.IsDestroyed
         };
     }
     
-    public List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
+    public HeatExplosionResolution CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent) // only ammo can explode from heat
     {
         var explosionDamage = explodingComponent.GetExplosionDamage();
-        if (explosionDamage <= 0) return []; //no possible damage, no explosion
+        if (explosionDamage <= 0) return HeatExplosionResolution.None; //no possible damage, no explosion
         
         var location = explodingComponent.FirstMountPartLocation;
-        if (!location.HasValue) return [];
+        if (!location.HasValue) return HeatExplosionResolution.None;
 
         // Ensure the component has a resolvable slot
         var slots = explodingComponent.MountedAtFirstLocationSlots;
         if (slots.Length == 0)
-            return [];
+            return HeatExplosionResolution.None;
         
         var explosionDamageData = _damageTransferCalculator
             .CalculateExplosionDamage(unit, location.Value, explosionDamage);
@@ -99,11 +101,17 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             ExplosionDamageDistribution = explosionDamageData.ToArray()
         };
         
+        var destroyedPartsBefore = unit.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = unit.IsDestroyed;
+
         var simulationUnit = unit.CloneUnit(_mechFactory);
         var explosionConsequences =
             ProcessAndApplyCriticalHitsDamage(simulationUnit, explosionDamageData.ToList());
 
-        return new List<LocationCriticalHitsData>
+        var criticalHits = new List<LocationCriticalHitsData>
         {
             new(
             location.Value,
@@ -113,6 +121,18 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             false // Not blown off
         )}
             .Concat(explosionConsequences).ToList();
+
+        // Read the destruction off the simulation copy: the authoritative unit is only damaged later,
+        // when the resulting command is handled.
+        var newlyDestroyedParts = simulationUnit.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
+        return new HeatExplosionResolution(
+            criticalHits,
+            newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            !wasDestroyedBefore && simulationUnit.IsDestroyed);
     }
     
     private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(IUnit unit, List<LocationDamageData> hitLocationsData)

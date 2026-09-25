@@ -16,12 +16,16 @@ public interface ICriticalHitsCalculator
     CriticalHitsResolutionCommand? CalculateCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData);
 
     /// <summary>
-    /// Calculates critical hits for heat-induced component explosion
+    /// Calculates critical hits for a heat-induced component explosion without mutating the supplied unit.
     /// </summary>
     /// <param name="unit">The owning unit receiving the explosion effects</param>
     /// <param name="explodingComponent">The component that exploded due to heat</param>
-    /// <returns>Critical-hit data beginning at the component's location</returns>
-    List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
+    /// <returns>
+    /// The critical-hit data beginning at the component's location, together with the destruction the
+    /// explosion causes. The destruction is reported rather than applied, so it cannot be read back
+    /// off <paramref name="unit"/>.
+    /// </returns>
+    HeatExplosionResolution CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent);
 }

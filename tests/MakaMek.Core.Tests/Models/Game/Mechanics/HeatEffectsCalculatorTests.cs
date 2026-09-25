@@ -170,7 +170,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -209,7 +209,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -244,7 +244,7 @@ public class HeatEffectsCalculatorTests
             ],false);
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
                 Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -294,11 +294,11 @@ public class HeatEffectsCalculatorTests
     {
         // Arrange
         var damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
-        // Use the real critical hits calculator so the explosion damage is actually applied
+        // Use the real critical hits calculator so the explosion is actually simulated
         var sut = new HeatEffectsCalculator(
             _rulesProvider,
             _diceRoller,
-            new CriticalHitsCalculator(_diceRoller, damageTransferCalculator));
+            new CriticalHitsCalculator(_diceRoller, damageTransferCalculator, CreateMechFactory()));
 
         var mech = CreateTestMech();
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
@@ -351,7 +351,9 @@ public class HeatEffectsCalculatorTests
         result.Value.DestroyedParts.ShouldNotBeNull();
         result.Value.DestroyedParts!.ShouldContain(PartLocation.RightTorso);
         result.Value.UnitDestroyed.ShouldBeFalse();
-        mech.Parts[PartLocation.RightTorso].IsDestroyed.ShouldBeTrue();
+        // The calculator simulates rather than applies: the mech is damaged later, when the
+        // AmmoExplosionCommand is handled, so it must still be intact here.
+        mech.Parts[PartLocation.RightTorso].IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]
@@ -485,13 +487,18 @@ public class HeatEffectsCalculatorTests
         _diceRoller.Received(1).Roll2D6();
     }
 
-    private static Mech CreateTestMech()
+    private static MechFactory CreateMechFactory()
     {
-        var mechData = MechFactoryTests.CreateDummyMechData();
         return new MechFactory(
             new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
-            Substitute.For<ILocalizationService>()).Create(mechData);
+            Substitute.For<ILocalizationService>());
+    }
+
+    private static Mech CreateTestMech()
+    {
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        return CreateMechFactory().Create(mechData);
     }
 
     private static void SetMechHeat(Mech mech, int heatLevel)
