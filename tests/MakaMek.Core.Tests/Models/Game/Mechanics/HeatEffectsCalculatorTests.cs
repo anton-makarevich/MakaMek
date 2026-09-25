@@ -187,6 +187,34 @@ public class HeatEffectsCalculatorTests
     }
 
     [Fact]
+    public void CheckForHeatAmmoExplosion_ShouldCopyCriticalHitDestructionMetadata()
+    {
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+
+        var mech = CreateTestMechWithAmmo();
+        SetMechHeat(mech, 25);
+        _diceRoller.Roll2D6().Returns([new DiceResult(2), new DiceResult(3)]);
+
+        var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
+                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+            ], false);
+        _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
+                Arg.Any<Unit>(), Arg.Any<Ammo>())
+            .Returns(new HeatExplosionResolution(
+                [criticalHits],
+                [PartLocation.RightTorso],
+                true));
+
+        var result = _sut.CheckForHeatAmmoExplosion(mech);
+
+        result.ShouldNotBeNull();
+        result.Value.DestroyedParts.ShouldBe([PartLocation.RightTorso]);
+        result.Value.UnitDestroyed.ShouldBeTrue();
+        mech.IsDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
     public void CheckForHeatAmmoExplosion_ShouldSelectMostDestructiveAmmo()
     {
         // Arrange

@@ -1,9 +1,11 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -179,6 +181,31 @@ public class CriticalHitsCalculatorTests
         result.ShouldBeEmpty();
         _mockDamageTransferCalculator.DidNotReceive().CalculateExplosionDamage(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>());
         _mockDiceRoller.DidNotReceive().Roll2D6();
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForHeatExplosion_ShouldNotReportPreexistingDestroyedParts()
+    {
+        var testUnit = CreateTestMech();
+        var leftArm = testUnit.Parts[PartLocation.LeftArm];
+        leftArm.ApplyDamage(10, HitDirection.Front);
+        leftArm.IsDestroyed.ShouldBeTrue();
+
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(location => location == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 0, 0, false)]);
+
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+
+        result.CriticalHits.ShouldNotBeEmpty();
+        result.DestroyedParts.ShouldBeNull();
+        result.UnitDestroyed.ShouldBeFalse();
+        testUnit.Parts[PartLocation.LeftArm].IsDestroyed.ShouldBeTrue();
     }
 
     // Tests moved from WeaponAttackResolutionPhaseTests - testing critical hits logic directly
@@ -572,6 +599,36 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
+    public void CalculateCriticalHits_ShouldReportUnitDestroyed_WhenExplosionDestroysUnit()
+    {
+        var testUnit = CreateTestMech();
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
+
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2)
+        ];
+
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]);
+        _mockDiceRoller.RollD6().Returns(new DiceResult(5));
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d > 0))
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 0, 1000, false)]);
+
+        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+
+        result.ShouldNotBeNull();
+        result.UnitDestroyed.ShouldBeTrue();
+        result.DestroyedParts.ShouldNotBeNull();
+        result.DestroyedParts.ShouldContain(PartLocation.CenterTorso);
+        testUnit.IsDestroyed.ShouldBeFalse();
+        testUnit.Parts[PartLocation.CenterTorso].IsDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
     public void CalculateCriticalHits_ShouldReturnNull_WhenNoLocationProducesCriticalHitsData()
     {
         // Arrange — the only location carrying structure damage is already destroyed, so no location
@@ -591,6 +648,28 @@ public class CriticalHitsCalculatorTests
         // Assert
         result.ShouldBeNull();
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for a destroyed location
+    }
+
+    [Fact]
+    public void CalculateCriticalHits_ShouldReturnNull_WhenMechProvidesNoCriticalHitsData()
+    {
+        var testUnit = CreateTestMech();
+        var simulationSource = (Mech)CreateTestMech();
+        var simulationUnit = new NullCriticalHitsMech(simulationSource);
+        var mechFactory = Substitute.For<IMechFactory>();
+        mechFactory.Create(Arg.Any<UnitData>()).Returns(simulationUnit);
+        var calculator = new CriticalHitsCalculator(
+            _mockDiceRoller,
+            _mockDamageTransferCalculator,
+            mechFactory);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 0, 2)
+        ];
+
+        var result = calculator.CalculateCriticalHits(testUnit, hitLocationsData);
+
+        result.ShouldBeNull();
+        _mockDiceRoller.DidNotReceive().Roll2D6();
     }
 
     [Fact]
@@ -626,5 +705,18 @@ public class CriticalHitsCalculatorTests
         result.CriticalHits.ShouldNotContain(ch => ch.Location == PartLocation.CenterTorso);
         result.CriticalHits.ShouldNotContain(ch => ch.Location == PartLocation.RightArm);
         _mockDiceRoller.Received(2).Roll2D6(); // Only for locations with structure damage
+    }
+
+    private sealed class NullCriticalHitsMech : Mech
+    {
+        public NullCriticalHitsMech(Mech source)
+            : base(source.Chassis, source.Model, source.Tonnage, source.Parts.Values, id: source.Id, name: source.Name)
+        {
+        }
+
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(
+            PartLocation location,
+            IDiceRoller diceRoller,
+            IDamageTransferCalculator damageTransferCalculator) => null;
     }
 }
