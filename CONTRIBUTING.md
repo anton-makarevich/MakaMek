@@ -26,7 +26,7 @@ Tool and dev-workflow dependencies are managed with [mise](https://mise.jdx.dev/
 
 - The `[tools]` section pins exact versions of CLI tools the project relies on (`gh`, `pulumi`, `uv`) so every contributor gets the same environment. Run `mise install` after cloning to install them.
 - The `[tasks.*]` sections define project bootstrap tasks, which are the preferred way to set up the agent/dev tooling:
-  - `mise run install-skills` — installs all agent skills (local + third-party) into `.agents/skills` using the skills.sh CLI.
+  - `mise run install-skills` — installs all agent skills (local + third-party) into `.agents/skills` and `.claude/skills` using the skills.sh CLI.
   - `mise run install-serena` — installs the Serena MCP server (via `uv tool install`).
   - `mise run update-serena` — updates the Serena MCP server.
   - `mise run install-devtools` — installs/updates the Avalonia Developer Tools global dotnet tool (`avdt`) required for F12 DevTools in the desktop app.

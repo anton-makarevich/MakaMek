@@ -4,14 +4,14 @@
 "uv" = "0.12.0"
 
 [tasks.install-skills]
-description = "Installs all skills (local + third-party) to .agents/skills via the skills.sh CLI"
+description = "Installs all skills (local + third-party) to .agents/skills and .claude/skills via the skills.sh CLI"
 run = [
-  "npx -y skills add ./skills --dir .agents/skills -y",
-  "npx -y skills add https://github.com/atherio-danp/cde-dotnetcc/tree/main/.claude/skills --skill dotnet-performance-review --agent claude-code --dir .agents/skills -y",
-  "npx -y skills add https://github.com/vercel-labs/skills --skill find-skills --agent claude-code --dir .agents/skills -y",
-  "npx -y skills add https://github.com/mattpocock/skills --skill tdd --skill triage --agent claude-code --dir .agents/skills -y",
-  "npx -y skills add https://github.com/anton-makarevich/MagicalYatzyXF/skills --agent claude-code --dir .agents/skills -y",
-  "npx -y skills add https://github.com/anthropics/skills --skill skill-creator --agent claude-code --dir .agents/skills -y"
+  "npx -y skills add ./skills --agent claude-code opencode -y",
+  "npx -y skills add https://github.com/atherio-danp/cde-dotnetcc/tree/main/.claude/skills --skill dotnet-performance-review --agent claude-code opencode -y",
+  "npx -y skills add https://github.com/vercel-labs/skills --skill find-skills --agent claude-code opencode -y",
+  "npx -y skills add https://github.com/mattpocock/skills --skill tdd --skill triage --skill to-tickets --agent claude-code opencode -y",
+  "npx -y skills add https://github.com/anton-makarevich/MagicalYatzyXF/skills --agent claude-code opencode -y",
+  "npx -y skills add https://github.com/anthropics/skills --skill skill-creator --agent claude-code opencode -y"
 ]
 
 [tasks.install-serena]
