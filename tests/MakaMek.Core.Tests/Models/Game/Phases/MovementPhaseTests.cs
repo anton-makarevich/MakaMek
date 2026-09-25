@@ -664,7 +664,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 false)]
         };
 
-        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
+        MockCriticalHitsCalculator.CalculateCriticalHits(
                 Arg.Is<Unit>(u => u.Id == unit.Id),
                 Arg.Any<List<LocationDamageData>>())
             .Returns(fallCriticalHitsCommand);
@@ -682,7 +682,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Verify that critical hits calculator was called with structure damage
-        MockCriticalHitsCalculator.Received().CalculateAndApplyCriticalHits(
+        MockCriticalHitsCalculator.Received().CalculateCriticalHits(
             Arg.Is<Unit>(u => u.Id == unit.Id),
             Arg.Is<List<LocationDamageData>>(list =>
                 list.Any(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0)));
@@ -760,7 +760,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Verify that critical hits calculator was not called since no structure damage
-        MockCriticalHitsCalculator.DidNotReceive().CalculateAndApplyCriticalHits(
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHits(
             Arg.Any<Unit>(),
             Arg.Any<List<LocationDamageData>>());
 
