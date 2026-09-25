@@ -92,6 +92,31 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
+    public void CalculateCriticalHitsForHeatExplosion_ShouldApplyForcedExplosionBeforeResolvingConsequences()
+    {
+        var testUnit = CreateTestMech();
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(location => location == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 0, 1000, false)]);
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
+
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+
+        result.CriticalHits.Count.ShouldBe(1);
+        result.CriticalHits[0].Roll.ShouldBeEmpty();
+        result.DestroyedParts.ShouldNotBeNull();
+        result.DestroyedParts.ShouldContain(PartLocation.CenterTorso);
+        result.UnitDestroyed.ShouldBeTrue();
+        testUnit.Parts[PartLocation.CenterTorso].IsDestroyed.ShouldBeFalse();
+        _mockDiceRoller.DidNotReceive().Roll2D6();
+    }
+
+    [Fact]
     public void CalculateCriticalHitsForHeatExplosion_ShouldReturnMultipleCriticalHits_WhenExplosionDamageCausedMoreCrits()
     {
         // Arrange

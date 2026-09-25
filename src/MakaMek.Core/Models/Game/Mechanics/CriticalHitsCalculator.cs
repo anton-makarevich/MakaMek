@@ -100,6 +100,14 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             ExplosionDamage = explosionDamage,
             ExplosionDamageDistribution = explosionDamageData.ToArray()
         };
+
+        var forcedCriticalHit = new LocationCriticalHitsData(
+            location.Value,
+            [], // No roll for forced critical hit
+            1, // One forced critical hit
+            [componentHitData],
+            false // Not blown off
+        );
         
         var destroyedPartsBefore = unit.Parts.Values
             .Where(part => part.IsDestroyed)
@@ -108,18 +116,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var wasDestroyedBefore = unit.IsDestroyed;
 
         var simulationUnit = unit.CloneUnit(_mechFactory);
+        simulationUnit.ApplyCriticalHits([forcedCriticalHit]);
         var explosionConsequences =
             ProcessAndApplyCriticalHitsDamage(simulationUnit, explosionDamageData.ToList());
 
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-            location.Value,
-            [], // No roll for forced critical hit
-            1, // One forced critical hit
-            [componentHitData],
-            false // Not blown off
-        )}
+        var criticalHits = new List<LocationCriticalHitsData> { forcedCriticalHit }
             .Concat(explosionConsequences).ToList();
 
         // Read the destruction off the simulation copy: the authoritative unit is only damaged later,

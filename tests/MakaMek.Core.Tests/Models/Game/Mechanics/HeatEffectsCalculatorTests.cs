@@ -357,12 +357,12 @@ public class HeatEffectsCalculatorTests
         // Second roll: slot 3 -> slot 8 (the chain ammo)
         _diceRoller.RollD6().Returns(new DiceResult(5), new DiceResult(3));
 
-        // The heat explosion damages the left torso...
+        // The initial blast damages, but does not destroy, the left torso so the chain ammo can still be hit.
         damageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Any<int>())
-            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)]);
+            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 1, false)]);
         // ...and the critical hit on the left torso ammo damages the right torso enough to destroy it
         damageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
