@@ -167,13 +167,18 @@ public class HexRenderControl : Control
             if (!_boundaryPenCache.ContainsKey(key))
             {
                 var (highlightPen, _) = GetHighlightPenAndFill(boundary.HighlightType);
-                _boundaryPenCache[key] = new Pen(
-                    highlightPen?.Brush ?? _whiteHighlightBrush,
-                    boundary.Thickness);
+                _boundaryPenCache[key] = new Pen(highlightPen?.Brush, boundary.Thickness);
             }
         }
         InvalidateVisual();
     }
+
+    /// <summary>
+    /// The pen this control will draw the given boundary outline with. Test seam: the pen is
+    /// resolved from themed resources when the outlines are set, not when they are drawn.
+    /// </summary>
+    internal Pen BoundaryPenFor(HighlightBoundaryOutline boundary) =>
+        _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
 
     public void UpdateConfiguration(HexRenderConfiguration configuration)
     {
