@@ -66,6 +66,21 @@ public class EndGamePlayerViewModelTests
         sut.Units[1].ShouldBeOfType<EndGameUnitViewModel>();
     }
 
+    [Fact]
+    public void Units_ShouldPassLocalizationServiceToUnitCards()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Human);
+        player.AddUnit(CreateMech());
+        _localizationService.GetString("UnitItem_NoPilot").Returns("No Pilot");
+
+        // Act
+        var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
+
+        // Assert
+        sut.Units[0].CardViewModel.PilotName.ShouldBe("No Pilot");
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
