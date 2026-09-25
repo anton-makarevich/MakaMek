@@ -2772,6 +2772,214 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void ProcessCommand_EchoedStandupThenFailedFall_ShouldNotThrow_AndKeepMovementStateUsable()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position, null);
+        unit.SetProne();
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        _sut.SelectedUnit.ShouldBe(unit);
+        var action = movementState.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        action.OnExecute();
+        _sut.DirectionSelectedCommand.Execute(HexDirection.Top);
+
+        var standupEcho = new TryStandupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            PlayerId = player.Id,
+            NewFacing = HexDirection.Top,
+            MovementTypeAfterStandup = MovementType.Walk,
+            IdempotencyKey = _idempotencyKey
+        };
+
+        var failedFall = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(2),
+                HitDirection.Front),
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+                DiceResults = [2, 3],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+
+        // Act & Assert - the sequence from the crash log: echoed command then failed standup fall
+        Should.NotThrow(() =>
+        {
+            game.HandleCommand(standupEcho);
+            game.HandleCommand(failedFall);
+        });
+
+        unit.IsProne.ShouldBeTrue();
+        var state = _sut.CurrentState as MovementState;
+        state.ShouldNotBeNull();
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
+    public void ProcessCommand_FailedStandupFallAfterStateRefresh_ShouldNotThrow_AndResumeMovementForFallenUnit()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position, null);
+        unit.SetProne();
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        var action = movementState.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        action.OnExecute();
+        _sut.DirectionSelectedCommand.Execute(HexDirection.Top);
+
+        // a phase-step update recreates the movement state before the fall result arrives
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var failedFall = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(2),
+                HitDirection.Front),
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+                DiceResults = [2, 3],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => game.HandleCommand(failedFall));
+
+        var state = _sut.CurrentState as MovementState;
+        state.ShouldNotBeNull();
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
     {
         // Arrange
