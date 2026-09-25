@@ -506,6 +506,99 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
+    public void CalculateAndApplyCriticalHits_ShouldNotCalculateCriticalHits_ForAlreadyDestroyedLocation()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        // Destroy the left arm before the critical hits resolution
+        testUnit.Parts[PartLocation.LeftArm].ApplyDamage(10, HitDirection.Front);
+        testUnit.Parts[PartLocation.LeftArm].IsDestroyed.ShouldBeTrue();
+
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.LeftArm, 0, 2),  // Structure damage on already destroyed location
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage on intact location
+        ];
+
+        // Setup dice roller for the intact location critical hit check
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8 for 1 crit
+        _mockDiceRoller.RollD6().Returns(new DiceResult(2)); // Hit engine slot
+
+        // Act
+        var result = _sut.CalculateAndApplyCriticalHits(testUnit, hitLocationsData);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.CriticalHits.Count.ShouldBe(1); // Only the intact location gets critical hits
+        result.CriticalHits[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.DestroyedParts.ShouldBeNull(); // No new parts destroyed
+    }
+
+    [Fact]
+    public void CalculateAndApplyCriticalHits_ShouldReportNewlyDestroyedParts_WhenExplosionDestroysLocation()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
+
+        // Add an explodable ammo component
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
+
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
+
+        // Setup dice roller to hit the ammo component
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8 for 1 crit
+        _mockDiceRoller.RollD6().Returns(new DiceResult(5)); // Hit ammo slot (10)
+
+        // Setup explosion damage large enough to destroy the left torso
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d > 0))
+            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)]);
+
+        // Act
+        var result = _sut.CalculateAndApplyCriticalHits(testUnit, hitLocationsData);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.DestroyedParts.ShouldNotBeNull();
+        result.DestroyedParts!.ShouldContain(PartLocation.LeftTorso);
+        result.UnitDestroyed.ShouldBeFalse();
+        testUnit.Parts[PartLocation.LeftTorso].IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CalculateAndApplyCriticalHits_ShouldReturnNull_WhenUnitDoesNotProvideCriticalHitsData()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var mockUnit = Substitute.For<IUnit>();
+        mockUnit.Parts.Returns(new Dictionary<PartLocation, UnitPart>
+        {
+            [PartLocation.CenterTorso] = testUnit.Parts[PartLocation.CenterTorso]
+        });
+        mockUnit.CalculateCriticalHitsData(
+                Arg.Any<PartLocation>(),
+                Arg.Any<IDiceRoller>(),
+                Arg.Any<IDamageTransferCalculator>())
+            .Returns((LocationCriticalHitsData?)null);
+
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
+
+        // Act
+        var result = _sut.CalculateAndApplyCriticalHits(mockUnit, hitLocationsData);
+
+        // Assert
+        result.ShouldBeNull(); // No critical hits data provided by the unit
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+    }
+
+    [Fact]
     public void CalculateCriticalHits_ShouldOnlyProcessStructureDamageLocations_WhenMultipleHitLocations()
     {
         // Arrange

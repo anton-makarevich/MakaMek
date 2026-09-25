@@ -180,6 +180,11 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return _rulesProvider.GetHeatAmmoExplosionAvoidNumber(heatLevel);
     }
 
+    /// <summary>
+    /// Checks for a heat-triggered ammo explosion and includes any destruction caused by the resulting critical hits.
+    /// </summary>
+    /// <param name="mech">The mech whose heat and ammunition are evaluated.</param>
+    /// <returns>An ammo-explosion command when an eligible check occurs, or <see langword="null"/> when no check is required.</returns>
     public AmmoExplosionCommand? CheckForHeatAmmoExplosion(Mech mech)
     {
         var currentHeat = mech.CurrentHeat;
@@ -210,6 +215,11 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         };
 
         List<LocationCriticalHitsData> explosionDamage = [];
+        var destroyedPartsBefore = mech.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = mech.IsDestroyed;
 
         if (explosionOccurs)
         {
@@ -218,11 +228,18 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             explosionDamage = ProcessAmmoExplosion(mech, selectedAmmo);
         }
 
+        var newlyDestroyedParts = mech.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new AmmoExplosionCommand
         {
             UnitId = mech.Id,
             AvoidExplosionRoll = avoidExplosionRollData,
             CriticalHits = explosionDamage,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && mech.IsDestroyed,
             GameOriginId = Guid.Empty
         };
     }

@@ -33,16 +33,22 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     }
     
     /// <summary>
-    /// Calculates critical hits without mutating the authoritative unit.
+    /// Calculates and applies critical hits, including the newly destroyed locations and unit-destruction state caused by them.
     /// </summary>
-    /// <param name="unit">The unit receiving the critical-hit effects.</param>
-    /// <param name="hitLocationsData">The locations and structure damage requiring critical-hit resolution.</param>
-    /// <returns>A command containing the calculated critical hits, or <see langword="null"/> when none apply.</returns>
-    public CriticalHitsResolutionCommand? CalculateCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
+    /// <param name="unit">The unit receiving the critical hits.</param>
+    /// <param name="hitLocationsData">The structure-damage locations that require critical-hit resolution.</param>
+    /// <returns>A command containing the applied results and destruction metadata, or <see langword="null"/> when no critical hits occurred.</returns>
+    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
         if (!hitLocationsData.Any(damage => damage.StructureDamage > 0))
             return null;
-
+        
+        var destroyedPartsBefore = unit.Parts.Values
+            .Where(part => part.IsDestroyed)
+            .Select(part => part.Location)
+            .ToHashSet();
+        var wasDestroyedBefore = unit.IsDestroyed;
+        
         var simulationUnit = unit.CloneUnit(_mechFactory);
         var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(simulationUnit, hitLocationsData);
 
@@ -51,11 +57,18 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             return null;
 
         // Send critical hits resolution command
+        var newlyDestroyedParts = unit.Parts.Values
+            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
+            .Select(part => part.Location)
+            .ToList();
+
         return new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
             TargetId = unit.Id,
-            CriticalHits = allCriticalHitsData
+            CriticalHits = allCriticalHitsData,
+            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
+            UnitDestroyed = !wasDestroyedBefore && unit.IsDestroyed
         };
     }
     

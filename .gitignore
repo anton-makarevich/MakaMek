@@ -289,3 +289,9 @@ skills-lock.json
 
 # Cloudflare Wrangler
 .wrangler/
+
+# macOS
+.DS_Store
+
+# Local drafts
+.scratch
