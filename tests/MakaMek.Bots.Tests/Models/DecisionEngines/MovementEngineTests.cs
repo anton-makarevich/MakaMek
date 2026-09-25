@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -37,6 +38,9 @@ public class MovementEngineTests
     {
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.BattleMap.Returns(_battleMap);
+        // A real game always carries a real rules provider, and the engine now reads movement through
+        // it. Left as an auto-substitute it reports zero movement, so every unit scores identically.
+        _clientGame.RulesProvider.Returns(new TotalWarfareRulesProvider());
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
@@ -807,18 +811,29 @@ public class MovementEngineTests
         unit.GetAvailableComponents<Weapon>().Returns([lrm20]);
     }
 
+    /// <summary>
+    /// Stubs both movement-point overloads with the same value. The engine reads movement through the
+    /// rules provider, so stubbing only the legacy overload leaves the mock reporting zero there and
+    /// every unit classifying the same way.
+    /// </summary>
+    private static void StubMovementPoints(IUnit unit, MovementType movementType, int points)
+    {
+        unit.GetMovementPoints(movementType).Returns(points);
+        unit.GetMovementPoints(movementType, Arg.Any<IRulesProvider>()).Returns(points);
+    }
+
     private static void ConfigureScout(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
-        unit.GetMovementPoints(MovementType.Walk).Returns(7);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 7);
+        StubMovementPoints(unit, MovementType.Jump, 0);
     }
     
     private static void ConfigureBrawler(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
-        unit.GetMovementPoints(MovementType.Walk).Returns(3);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 3);
+        StubMovementPoints(unit, MovementType.Jump, 0);
     }
 
     private static IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false, Guid? id = null)
@@ -828,9 +843,9 @@ public class MovementEngineTests
         unit.HasMoved.Returns(hasMoved);
         unit.IsImmobile.Returns(isImmobile);
         unit.IsDeployed.Returns(isDeployed);
-        unit.GetMovementPoints(MovementType.Walk).Returns(4);
-        unit.GetMovementPoints(MovementType.Run).Returns(6);
-        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        StubMovementPoints(unit, MovementType.Walk, 4);
+        StubMovementPoints(unit, MovementType.Run, 6);
+        StubMovementPoints(unit, MovementType.Jump, 0);
         unit.GetAvailableComponents<Weapon>().Returns([]);
         
         // Mock status

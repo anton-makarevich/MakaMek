@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -34,6 +35,7 @@ public class MovementState : IUiState
     private IMovementStep _step;
 
     public IClientGame? Game => _viewModel.Game;
+    private IRulesProvider RulesProvider => Game!.RulesProvider;
 
     public bool CanSelectUnit(IUnit? unit)
     {
@@ -117,7 +119,7 @@ public class MovementState : IUiState
     private int GetRemainingMovementPoints()
     {
         if (_selectedPath == null || _selectedUnit == null) return 0;
-        return Math.Max(0, _selectedUnit.GetMovementPoints(_selectedPath.MovementType) - _selectedPath.TotalCost);
+        return Math.Max(0, _selectedUnit.GetMovementPoints(_selectedPath.MovementType, RulesProvider) - _selectedPath.TotalCost);
     }
 
     public IUnit? SelectedUnit
@@ -373,7 +375,7 @@ public class MovementState : IUiState
 
     private StateAction CreateProneFacingChangeAction(Mech mech)
     {
-        var availableMp = mech.GetMovementPoints(MovementType.Walk);
+        var availableMp = mech.GetMovementPoints(MovementType.Walk, RulesProvider);
         return new StateAction(
             string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
             true,
@@ -389,7 +391,7 @@ public class MovementState : IUiState
         return string.Format(
             _viewModel.LocalizationService.GetString("Action_MovementPoints"),
             _viewModel.LocalizationService.GetString(typeKey),
-            _selectedUnit!.GetMovementPoints(movementType)) + probabilityText;
+            _selectedUnit!.GetMovementPoints(movementType, RulesProvider)) + probabilityText;
     }
 
     // TODO that should be a part of UnitPresentationExtensions
@@ -422,7 +424,7 @@ public class MovementState : IUiState
             CreateStayProneAction()
         };
 
-        if (!mech.CanStandup()) return lockedProneActions;
+        if (!mech.CanStandup(RulesProvider)) return lockedProneActions;
 
         var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
         lockedProneActions.Add(new StateAction(
@@ -430,7 +432,7 @@ public class MovementState : IUiState
             true,
             () => AttemptStandup(lockedType)));
 
-        if (mech.CanChangeFacingWhileProne())
+        if (mech.CanChangeFacingWhileProne(RulesProvider))
             lockedProneActions.Add(CreateProneFacingChangeAction(mech));
 
         return lockedProneActions;
@@ -445,7 +447,7 @@ public class MovementState : IUiState
 
         if (mech.IsImmobile) return proneActions;
 
-        if (mech.CanStandup())
+        if (mech.CanStandup(RulesProvider))
         {
             var probabilityText = GetPsrProbabilityText(mech, PilotingSkillRollType.StandupAttempt);
 
@@ -473,7 +475,7 @@ public class MovementState : IUiState
             }
         }
 
-        if (mech.CanChangeFacingWhileProne())
+                if (mech.CanChangeFacingWhileProne(RulesProvider))
             proneActions.Add(CreateProneFacingChangeAction(mech));
 
         return proneActions;
@@ -494,7 +496,7 @@ public class MovementState : IUiState
         actions.Add(new StateAction(
             string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
                 _viewModel.LocalizationService.GetString("MovementType_Walk"),
-                _selectedUnit.GetMovementPoints(MovementType.Walk)),
+                _selectedUnit.GetMovementPoints(MovementType.Walk, RulesProvider)),
             true,
             () => HandleMovementTypeSelection(MovementType.Walk)));
 
@@ -503,13 +505,13 @@ public class MovementState : IUiState
             actions.Add(new StateAction(
                 string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
                     _viewModel.LocalizationService.GetString("MovementType_Run"),
-                    _selectedUnit.GetMovementPoints(MovementType.Run)),
+                    _selectedUnit.GetMovementPoints(MovementType.Run, RulesProvider)),
                 true,
                 () => HandleMovementTypeSelection(MovementType.Run)));
         }
 
         if (_selectedUnit is not Mech { CanJump: true }) return actions;
-        var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
+        var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump, RulesProvider);
 
         var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
             _viewModel.LocalizationService.GetString("MovementType_Jump"),
@@ -602,7 +604,7 @@ public class MovementState : IUiState
             if (_selectedPath?.MovementType == null ||
                 _selectedUnit is not Mech { IsProne: false, Position: not null } mech) return;
 
-            if (mech.GetMovementPoints(_selectedPath.MovementType) < 1)
+            if (mech.GetMovementPoints(_selectedPath.MovementType, RulesProvider) < 1)
             {
                 // No more movement possible, just confirm
                 CompleteMovement();
@@ -654,7 +656,7 @@ public class MovementState : IUiState
             
             _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
 
-            if (!mech.CanStandup())
+            if (!mech.CanStandup(RulesProvider))
             {
                 _builder.SetUnit(_selectedUnit);
                 _builder.SetMovementPath(_selectedPath);
@@ -675,7 +677,7 @@ public class MovementState : IUiState
         if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
         if (mech.Position == null || !mech.IsProne) return;
 
-        _movementPoints = mech.GetMovementPoints(MovementType.Walk);
+        _movementPoints = mech.GetMovementPoints(MovementType.Walk, RulesProvider);
 
         // Calculate maximum rotation steps based on available movement points
         var maxRotateSteps = Math.Min(3, _movementPoints);

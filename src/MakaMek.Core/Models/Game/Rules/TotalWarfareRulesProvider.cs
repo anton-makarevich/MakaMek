@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -403,6 +404,35 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <inheritdoc />
+    public int GetHeatMovementPenalty(int heatLevel) => heatLevel switch
+    {
+        < 5 => 0,
+        < 10 => 1,
+        < 15 => 2,
+        < 20 => 3,
+        < 25 => 4,
+        _ => 5
+    };
+
+    /// <inheritdoc />
+    public int GetHeatAttackPenalty(int heatLevel) => heatLevel switch
+    {
+        < 8 => 0,
+        < 13 => 1,
+        < 17 => 2,
+        < 24 => 3,
+        _ => 4
+    };
+
+    /// <inheritdoc />
+    public int GetLifeSupportPilotDamage(int heatLevel) => heatLevel switch
+    {
+        < 15 => 0,
+        < 26 => 1,
+        _ => 2
+    };
+
     public int GetPilotingSkillRollModifier(PilotingSkillRollType psrType)
     {
         return psrType switch
@@ -476,6 +506,12 @@ public class TotalWarfareRulesProvider : IRulesProvider
     {
         return ProneFiringModifier; // +2 modifier for firing while prone
     }
+
+    /// <inheritdoc />
+    public int GetSkiddingAttackerModifier() => SkiddingAttackerModifier.DefaultValue;
+
+    /// <inheritdoc />
+    public int GetSkiddingTargetModifier() => SkiddingTargetModifier.DefaultValue;
 
     public int GetHeatAmmoExplosionAvoidNumber(int heatLevel)
     {
@@ -576,4 +612,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
             _ => 6        // 25+ hexes
         };
     }
+
+    /// <inheritdoc />
+    public int GetFallingLevelsModifier(int levelsFallen) => Math.Max(0, levelsFallen - 1);
 }
