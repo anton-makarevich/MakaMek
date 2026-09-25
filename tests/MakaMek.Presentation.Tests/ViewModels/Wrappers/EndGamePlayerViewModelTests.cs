@@ -72,13 +72,13 @@ public class EndGamePlayerViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Human);
         player.AddUnit(CreateMech());
-        _localizationService.GetString("UnitItem_NoPilot").Returns("No Pilot");
+        _localizationService.GetString("UnitItem_NoPilot").Returns("Sin Piloto");
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
 
         // Assert
-        sut.Units[0].CardViewModel.PilotName.ShouldBe("No Pilot");
+        sut.Units[0].CardViewModel.PilotName.ShouldBe("Sin Piloto");
     }
 
     [Theory]
