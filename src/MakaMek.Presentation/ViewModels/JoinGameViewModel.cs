@@ -86,6 +86,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
         JoinRoomCommand = new AsyncCommand(JoinRoom, (_) => CanJoin);
+        RetryConnectionCommand = new AsyncCommand(RetryConnection, (_) => CanRetryConnection);
     }
 
     public override void AttachHandlers()
@@ -420,6 +421,42 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
     /// </summary>
     public bool IsConnectionBannerVisible => IsConnected && ConnectionStatus.IsConnectionDegraded;
 
+    /// <summary>
+    /// Gets whether the connection banner should offer a retry action.
+    /// </summary>
+    public bool CanRetryConnection => !IsJoining
+                                      && _gameConnector.CanReconnect
+                                      && ConnectionStatus.IsConnectionDegraded;
+
+    /// <summary>
+    /// Retries the most recent connection without discarding its endpoint or session.
+    /// </summary>
+    public ICommand RetryConnectionCommand { get; }
+
+    private async Task RetryConnection()
+    {
+        if (!CanRetryConnection) return;
+
+        IsJoining = true;
+        JoinError = null;
+        try
+        {
+            await _gameConnector.Reconnect();
+            if (!_gameConnector.IsConnected)
+                JoinError = GetJoinErrorText(_gameConnector.OnlineError);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrying connection");
+            JoinError = GetJoinErrorText(_gameConnector.OnlineError);
+        }
+        finally
+        {
+            IsJoining = false;
+            RefreshConnectionState();
+        }
+    }
+
     private void SubscribeToOnlineStatus()
     {
         ConnectionStatus.Subscribe(_gameConnector.OnlineConnectionStatus, DispatcherService.Scheduler);
@@ -436,6 +473,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         {
             NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
             NotifyPropertyChanged(nameof(CanPublishCommands));
+            (RetryConnectionCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -456,6 +494,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         NotifyPropertyChanged(nameof(JoinedRoomInfoText));
         NotifyPropertyChanged(nameof(CanPublishCommands));
         NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
+        NotifyPropertyChanged(nameof(CanRetryConnection));
+        (RetryConnectionCommand as AsyncCommand)?.RaiseCanExecuteChanged();
     }
 
     private async Task JoinRoom()
