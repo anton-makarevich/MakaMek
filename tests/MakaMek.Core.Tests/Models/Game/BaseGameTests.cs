@@ -1167,6 +1167,43 @@ public sealed class BaseGameTests : BaseGame
         // Assert
         result.IsValid.ShouldBeTrue();
     }
+
+    [Fact]
+    public void OnCriticalHitsResolution_AppliesCriticalHitsToAuthoritativeUnit()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        OnPlayerJoined(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Id,
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        });
+
+        var command = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Id,
+            TargetId = unitData.Id!.Value,
+            CriticalHits =
+            [
+                new LocationCriticalHitsData(
+                    PartLocation.CenterTorso,
+                    [4, 5],
+                    1,
+                    [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+                    false)
+            ]
+        };
+
+        OnCriticalHitsResolution(command);
+
+        var unit = Players.SelectMany(p => p.Units).Single(u => u.Id == unitData.Id.Value);
+        unit.Parts[PartLocation.CenterTorso].HitSlots.ShouldContain(1);
+    }
     
     [Fact]
     public void ValidateCommand_ShouldReturnTrue_WhenGameEndedCommand()

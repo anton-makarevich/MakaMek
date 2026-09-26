@@ -19,8 +19,10 @@ public class EndGamePlayerViewModel
         _localizationService = localizationService;
 
         // Create view models for all units
-        Units = new ObservableCollection<EndGameUnitViewModel>(
-            player.Units.Select(u => new EndGameUnitViewModel(u)));
+        Units =
+        [
+            .. player.Units.Select(u => new EndGameUnitViewModel(u, localizationService))
+        ];
     }
 
     /// <summary>

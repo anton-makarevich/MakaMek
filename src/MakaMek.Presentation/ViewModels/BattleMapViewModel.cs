@@ -33,9 +33,9 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// Border outline rendering data for a highlighted hex.
 /// </summary>
 /// <param name="EdgeMask">The 6-bit edge mask to draw.</param>
-/// <param name="Color">The outline color string.</param>
+/// <param name="HighlightType">The highlight the outline belongs to; the renderer resolves its themed brush.</param>
 /// <param name="Thickness">The outline stroke thickness.</param>
-public sealed record HighlightBoundaryOutline(byte EdgeMask, string Color, double Thickness);
+public sealed record HighlightBoundaryOutline(byte EdgeMask, IHexHighlightType HighlightType, double Thickness);
 
 public class BattleMapViewModel : BaseViewModel, IDisposable
 {
@@ -612,19 +612,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         else
         {
             // Group coordinates by highlight type for boundary computation
-            var groups = new Dictionary<Type, (string Color, HashSet<HexCoordinates> Coords)>();
+            var groups = new Dictionary<Type, (IHexHighlightType Highlight, HashSet<HexCoordinates> Coords)>();
             foreach (var (coord, highlight) in perHexHighlights)
             {
                 var highlightType = highlight.GetType();
                 if (!groups.TryGetValue(highlightType, out _))
-                    groups[highlightType] = (GetBoundaryOutlineColor(highlight), []);
+                    groups[highlightType] = (highlight, []);
                 groups[highlightType].Coords.Add(coord);
             }
 
             var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
-            foreach (var (color, coords) in groups.Values)
+            foreach (var (highlight, coords) in groups.Values)
             {
-                var outliner = ComputeBoundaryOutlines(coords, color);
+                var outliner = ComputeBoundaryOutlines(coords, highlight);
                 // Sets are disjoint per type, so simple addition is safe
                 foreach (var (coord, outline) in outliner)
                     merged[coord] = outline;
@@ -686,8 +686,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return;
         }
 
-        var outlineColor = GetBoundaryOutlineColor(highlightType);
-        var newOutlines = ComputeBoundaryOutlines(coordinates, outlineColor);
+        var newOutlines = ComputeBoundaryOutlines(coordinates, highlightType);
         var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>(_highlightBoundaryOutlines);
         foreach (var (coord, outline) in newOutlines)
             merged[coord] = outline;
@@ -696,7 +695,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     private Dictionary<HexCoordinates, HighlightBoundaryOutline> ComputeBoundaryOutlines(
-        IReadOnlySet<HexCoordinates> coordinates, string color)
+        IReadOnlySet<HexCoordinates> coordinates, IHexHighlightType highlightType)
     {
         const double outlineThickness = 2;
         return coordinates
@@ -706,7 +705,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 Mask = TerrainBitmaskService!.ComputeBoundaryMask(c, coordinates)
             })
             .Where(x => x.Mask != 0)
-            .ToDictionary(x => x.Coordinates, x => new HighlightBoundaryOutline(x.Mask, color, outlineThickness));
+            .ToDictionary(x => x.Coordinates, x => new HighlightBoundaryOutline(x.Mask, highlightType, outlineThickness));
     }
 
     private void RemoveHighlightBoundaryOutlines(IReadOnlySet<HexCoordinates> coordinates)
@@ -727,9 +726,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _highlightBoundaryOutlines = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
         NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
     }
-
-    private static string GetBoundaryOutlineColor(IHexHighlightType highlightType) =>
-        highlightType.BoundaryOutlineColor;
 
     public List<IUnit> UnitsToDeploy
     {
