@@ -1,9 +1,11 @@
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -20,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -108,6 +111,369 @@ public class BattleMapViewModelTests
         var setter = property.GetSetMethod(true)
             ?? throw new MissingMethodException(nameof(BattleMapViewModel), "set_CurrentState");
         setter.Invoke(sut, [state]);
+    }
+
+    [Fact]
+    public void InitiativeState_ActiveLocalPlayer_IsNotAskedToRoll()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [unitData], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        _game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Initiative
+        });
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+
+        var state = new InitiativeState(_sut);
+        _commandPublisher.ClearReceivedCalls();
+
+        // Initiative is rolled on the server, so even the active local player gets no prompt here.
+        state.IsActionRequired.ShouldBeFalse();
+        ((IUiState)state).ExecutePlayerAction();
+
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<RollDiceCommand>());
+    }
+
+    /// <summary>
+    /// Joins a player to the client game so it appears in Players and AlivePlayers.
+    /// </summary>
+    private Player JoinPlayer(string name, string tint, PlayerControlType controlType = PlayerControlType.Human)
+    {
+        var player = new Player(Guid.NewGuid(), name, controlType, tint);
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        return player;
+    }
+
+    private void SetPhase(PhaseNames phase)
+        => _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = phase });
+
+    private void SetActivePlayer(Guid playerId, int unitsToPlay = 0)
+        => _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitsToPlay = unitsToPlay
+        });
+
+    private void RollInitiative(Guid playerId, int roll)
+        => _game.HandleCommand(new DiceRolledCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            Roll = roll
+        });
+
+    /// <summary>
+    /// Joins an opposing player the local client never registered, so it is absent from LocalPlayers.
+    /// </summary>
+    private Player JoinRemotePlayer(string name, string tint)
+    {
+        var remote = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        return remote;
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public void TurnGuidanceLabel_ReportsRemainingUnits_WhileUnitsAreStillToPlay(PhaseNames phase)
+    {
+        _localizationService.GetString("BattleMap_UnitsRemaining").Returns("{0} units left");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(phase);
+        SetActivePlayer(player.Id, unitsToPlay: 3);
+
+        _sut.TurnGuidanceLabel.ShouldBe("3 units left");
+    }
+
+    [Fact]
+    public void TurnGuidanceLabel_ExplainsTheEndPhase()
+    {
+        _localizationService.GetString("BattleMap_EndTurnGuidance").Returns("End your turn");
+        SetPhase(PhaseNames.End);
+
+        _sut.TurnGuidanceLabel.ShouldBe("End your turn");
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Initiative)]
+    [InlineData(PhaseNames.Heat)]
+    public void TurnGuidanceLabel_IsEmpty_WhenThePhaseNeedsNoGuidance(PhaseNames phase)
+    {
+        SetPhase(phase);
+
+        _sut.TurnGuidanceLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsProgress_WhileRollsAreBeingCollected()
+    {
+        _localizationService.GetString("BattleMap_InitiativeProgress").Returns("{0} of {1} rolled");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Initiative);
+
+        _sut.IsInitiativeStatusVisible.ShouldBeTrue();
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+
+        RollInitiative(player.Id, 8);
+
+        _sut.InitiativeStatusLabel.ShouldBe("1 of 1 rolled");
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsTheWinner_OnceThePhaseHasMovedOn()
+    {
+        _localizationService.GetString("BattleMap_InitiativeWinner").Returns("{0} won with {1}");
+        var winner = JoinPlayer("Winner", "#FF0000");
+        var loser = JoinPlayer("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+
+        SetPhase(PhaseNames.Movement);
+
+        _sut.IsInitiativeResultVisible.ShouldBeTrue();
+        _sut.IsInitiativeStatusVisible.ShouldBeTrue();
+        _sut.InitiativeOutcomeLabel.ShouldBe("Winner won with 10");
+        _sut.InitiativeStatusLabel.ShouldBe("Winner won with 10");
+        _sut.InitiativeWinnerTint.ShouldBe("#FF0000");
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsNoWinner_WhenTheHighestRollIsTied()
+    {
+        var first = JoinPlayer("First", "#FF0000");
+        var second = JoinPlayer("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(first.Id, 7);
+        RollInitiative(second.Id, 7);
+        SetPhase(PhaseNames.Movement);
+
+        // A tie has no single winner, so the banner shows nothing and falls back to the active tint.
+        _sut.InitiativeOutcomeLabel.ShouldBeEmpty();
+        _sut.InitiativeWinnerTint.ShouldBe(_sut.ActivePlayerTint);
+    }
+
+    [Fact]
+    public void InitiativeStatus_IsHidden_BeforeAnyRollHappens()
+    {
+        SetPhase(PhaseNames.Movement);
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+        _sut.IsInitiativeStatusVisible.ShouldBeFalse();
+        _sut.InitiativeOutcomeLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void InitiativeRolls_AreClearedWhenTheTurnIncrements()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(player.Id, 9);
+        SetPhase(PhaseNames.Movement);
+        _sut.IsInitiativeResultVisible.ShouldBeTrue();
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 2 });
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InitiativeRolls_AreIgnoredOutsideTheInitiativePhase()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+
+        RollInitiative(player.Id, 11);
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_IsEmpty_WhenNoPlayerIsActive()
+    {
+        _sut.TurnActionStatusLabel.ShouldBeEmpty();
+        _sut.IsTurnActionPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_NamesTheOpponent_WhenWeAreNotActive()
+    {
+        _localizationService.GetString("BattleMap_WaitingForPlayer").Returns("Waiting for {0}");
+        JoinPlayer("Player1", "#FF0000");
+        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(remote.Id);
+
+        _sut.TurnActionStatusLabel.ShouldBe("Waiting for Opponent");
+        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_ShowsTheCurrentAction_WhenWeMayAct()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(player.Id, unitsToPlay: 1);
+
+        _sut.TurnActionStatusLabel.ShouldBe(_sut.ActionInfoLabel);
+    }
+
+    [Fact]
+    public void ActiveUnitLabel_NamesTheSelectedUnit()
+    {
+        _localizationService.GetString("BattleMap_ActiveUnit").Returns("Active: {0}");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(player.Id, unitsToPlay: 1);
+
+        _sut.ActiveUnitLabel.ShouldBeEmpty();
+
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(_sut.Units.First());
+        SetCurrentState(_sut, state);
+
+        _sut.ActiveUnitLabel.ShouldBe($"Active: {_sut.Units.First().Name}");
+        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandlePlayerAction_InEndState_AsksForConfirmationBeforeExecuting()
+    {
+        _localizationService.GetString("BattleMap_ConfirmEndTurn").Returns("Confirm end turn");
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+
+        // First press only arms the confirmation
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe("Confirm end turn");
+
+        // Second press clears it and hands the action to the state
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe(endState.PlayerActionLabel);
+    }
+
+    [Fact]
+    public void CancelPlayerActionConfirmation_ClearsAPendingConfirmation()
+    {
+        _localizationService.GetString("BattleMap_ConfirmEndTurn").Returns("Confirm end turn");
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe("Confirm end turn");
+
+        _sut.CancelPlayerActionConfirmation();
+
+        _sut.PlayerActionLabel.ShouldBe(endState.PlayerActionLabel);
+    }
+
+    [Fact]
+    public void CancelPlayerActionConfirmation_DoesNothing_WhenNoConfirmationIsPending()
+    {
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+
+        _sut.CancelPlayerActionConfirmation();
+
+        changed.ShouldNotContain(nameof(BattleMapViewModel.PlayerActionLabel));
+    }
+
+    [Fact]
+    public void HandlePlayerAction_OutsideEndState_ExecutesImmediately()
+    {
+        var state = Substitute.For<IUiState>();
+        SetCurrentState(_sut, state);
+
+        _sut.HandlePlayerAction();
+
+        state.Received(1).ExecutePlayerAction();
+    }
+
+    [Fact]
+    public void RejectedCommand_ShowsFeedbackThatTheNextAcceptedCommandClears()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+
+        _sut.CommandFeedbackLabel.ShouldBe("Rejected: Validation failed");
+
+        // Any subsequent accepted command clears the banner
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CommandFeedback_IsCleared_WhenTheGameIsReplaced()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+        _sut.CommandFeedbackLabel.ShouldNotBeNull();
+
+        // A rejection from a finished game must not carry into the next one.
+        _sut.Game = null;
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
     }
 
     [Fact]
@@ -515,6 +881,30 @@ public class BattleMapViewModelTests
         _sut.CommandLog.Count.ShouldBe(2);
         _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Render(_localizationService,clientGame));
         _sut.CommandLog.Last().ShouldBeEquivalentTo(phaseCommand.Render(_localizationService,clientGame));
+    }
+
+    [Fact]
+    public void ErrorCommand_ShouldExposeImmediateFeedbackOutsideCommandLog()
+    {
+        // Arrange
+        var clientGame = CreateClientGame();
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Action rejected: {0}");
+        _sut.Game = clientGame;
+
+        // Act
+        clientGame.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = null,
+            ErrorCode = ErrorCode.ValidationFailed,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        _sut.IsCommandFeedbackVisible.ShouldBeTrue();
+        _sut.CommandFeedbackLabel.ShouldBe("Action rejected: Validation failed");
+        _sut.CommandLog.ShouldContain("Validation failed");
     }
 
     [Fact]
@@ -1432,6 +1822,57 @@ public class BattleMapViewModelTests
         // Assert
         items.ShouldNotBeEmpty();
         items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
+    }
+
+    [Fact]
+    public void AttackSelectionSummary_ReportsSelectedWeaponCosts()
+    {
+        // Arrange
+        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var laser = new MediumLaser();
+        var machineGun = new MachineGun();
+        attacker.Parts[PartLocation.LeftArm].TryAddComponent(laser, [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(machineGun, [1]).ShouldBeTrue();
+
+        var laserVm = CreateWeaponSelectionItem(laser, remainingAmmoShots: -1);
+        var machineGunVm = CreateWeaponSelectionItem(machineGun, remainingAmmoShots: 3);
+        laserVm.IsSelected = true;
+        machineGunVm.IsSelected = true;
+        _sut.WeaponSelectionItems.Add(laserVm);
+        _sut.WeaponSelectionItems.Add(machineGunVm);
+        _localizationService.GetString("WeaponSelection_AttackSummary")
+            .Returns("Selected: {0} weapon(s) · Heat +{1} · Ammo -{2}");
+
+        // Act
+        var count = _sut.SelectedAttackWeaponCount;
+        var heat = _sut.SelectedAttackHeat;
+        var ammo = _sut.SelectedAttackAmmo;
+
+        // Assert
+        count.ShouldBe(2);
+        heat.ShouldBe(laser.Heat + machineGun.Heat);
+        ammo.ShouldBe(1);
+        _sut.AttackSelectionSummaryText.ShouldBe(
+            $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
+    }
+
+    private WeaponSelectionViewModel CreateWeaponSelectionItem(
+        Weapon weapon,
+        int remainingAmmoShots)
+    {
+        var item = new WeaponSelectionViewModel(
+            weapon,
+            isInRange: true,
+            isSelected: false,
+            isEnabled: true,
+            target: null,
+            onSelectionChanged: (_, _) => { },
+            onAimedShotRequest: _ => { },
+            localizationService: _localizationService,
+            toHitCalculator: Substitute.For<IToHitCalculator>(),
+            remainingAmmoShots);
+        item.ModifiersBreakdown = CreateTestBreakdown(5);
+        return item;
     }
 
     [Fact]
@@ -3131,7 +3572,8 @@ public class BattleMapViewModelTests
                 Distance = 5,
                 WeaponName = "Test"
             },
-            TerrainModifiers = []
+            TerrainModifiers = [],
+            FiringArc = FiringArc.Front
         };
     }
 
