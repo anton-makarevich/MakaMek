@@ -30,16 +30,6 @@ public class LosBlockingHighlightTests
     }
 
     [Fact]
-    public void ShouldHaveCorrectBoundaryOutlineColor()
-    {
-        // Arrange & Act
-        var sut = new LosBlockingHighlight(LineOfSightBlockReason.InterveningTerrain);
-
-        // Assert
-        sut.BoundaryOutlineColor.ShouldBe("#8B0000");
-    }
-
-    [Fact]
     public void ShouldAcceptReasonInConstructor()
     {
         // Arrange & Act

@@ -632,7 +632,7 @@ public class BattleMapViewModelTests
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(2);
         viewModel.HighlightBoundaryOutlines[centerCoords].EdgeMask.ShouldBe((byte)0b111110);
         viewModel.HighlightBoundaryOutlines[topCoords].EdgeMask.ShouldBe((byte)0b110111);
-        viewModel.HighlightBoundaryOutlines[centerCoords].Color.ShouldBe("#00BFFF");
+        viewModel.HighlightBoundaryOutlines[centerCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
         game.BattleMap!.GetHex(centerCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(topCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
     }
@@ -679,9 +679,9 @@ public class BattleMapViewModelTests
 
         // Assert
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
-        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
-        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
-        viewModel.HighlightBoundaryOutlines[attackTopCoords].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[movementCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackTopCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
         game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackTopCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
@@ -711,9 +711,9 @@ public class BattleMapViewModelTests
 
         // Assert
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
-        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
-        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
-        viewModel.HighlightBoundaryOutlines[attackNeighbour].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[movementCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackNeighbour].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
         game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackNeighbour)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
