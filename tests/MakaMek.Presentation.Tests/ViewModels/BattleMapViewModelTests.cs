@@ -1,9 +1,11 @@
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -20,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -108,6 +111,114 @@ public class BattleMapViewModelTests
         var setter = property.GetSetMethod(true)
             ?? throw new MissingMethodException(nameof(BattleMapViewModel), "set_CurrentState");
         setter.Invoke(sut, [state]);
+    }
+
+    /// <summary>
+    /// Joins a player to the client game so it appears in Players and AlivePlayers.
+    /// </summary>
+    private Player JoinPlayer(string name, string tint, PlayerControlType controlType = PlayerControlType.Human)
+    {
+        var player = new Player(Guid.NewGuid(), name, controlType, tint);
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        return player;
+    }
+
+    private void SetPhase(PhaseNames phase)
+        => _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = phase });
+
+    private void SetActivePlayer(Guid playerId, int unitsToPlay = 0)
+        => _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitsToPlay = unitsToPlay
+        });
+
+    private void RollInitiative(Guid playerId, int roll)
+        => _game.HandleCommand(new DiceRolledCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            Roll = roll
+        });
+
+    /// <summary>
+    /// Joins an opposing player the local client never registered, so it is absent from LocalPlayers.
+    /// </summary>
+    private Player JoinRemotePlayer(string name, string tint)
+    {
+        var remote = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        return remote;
+    }
+
+    [Fact]
+    public void HandlePlayerAction_OutsideEndState_ExecutesImmediately()
+    {
+        var state = Substitute.For<IUiState>();
+        SetCurrentState(_sut, state);
+
+        _sut.HandlePlayerAction();
+
+        state.Received(1).ExecutePlayerAction();
+    }
+
+    [Fact]
+    public void RejectedCommand_ShowsFeedbackThatTheNextAcceptedCommandClears()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+
+        _sut.CommandFeedbackLabel.ShouldBe("Rejected: Validation failed");
+
+        // Any subsequent accepted command clears the banner
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CommandFeedback_IsCleared_WhenTheGameIsReplaced()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+        _sut.CommandFeedbackLabel.ShouldNotBeNull();
+
+        // A rejection from a finished game must not carry into the next one.
+        _sut.Game = null;
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
     }
 
     [Fact]
@@ -515,6 +626,30 @@ public class BattleMapViewModelTests
         _sut.CommandLog.Count.ShouldBe(2);
         _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Render(_localizationService,clientGame));
         _sut.CommandLog.Last().ShouldBeEquivalentTo(phaseCommand.Render(_localizationService,clientGame));
+    }
+
+    [Fact]
+    public void ErrorCommand_ShouldExposeImmediateFeedbackOutsideCommandLog()
+    {
+        // Arrange
+        var clientGame = CreateClientGame();
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Action rejected: {0}");
+        _sut.Game = clientGame;
+
+        // Act
+        clientGame.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = null,
+            ErrorCode = ErrorCode.ValidationFailed,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        _sut.IsCommandFeedbackVisible.ShouldBeTrue();
+        _sut.CommandFeedbackLabel.ShouldBe("Action rejected: Validation failed");
+        _sut.CommandLog.ShouldContain("Validation failed");
     }
 
     [Fact]
@@ -1432,6 +1567,25 @@ public class BattleMapViewModelTests
         // Assert
         items.ShouldNotBeEmpty();
         items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
+    }
+
+    private WeaponSelectionViewModel CreateWeaponSelectionItem(
+        Weapon weapon,
+        int remainingAmmoShots)
+    {
+        var item = new WeaponSelectionViewModel(
+            weapon,
+            isInRange: true,
+            isSelected: false,
+            isEnabled: true,
+            target: null,
+            onSelectionChanged: (_, _) => { },
+            onAimedShotRequest: _ => { },
+            localizationService: _localizationService,
+            toHitCalculator: Substitute.For<IToHitCalculator>(),
+            remainingAmmoShots);
+        item.ModifiersBreakdown = CreateTestBreakdown(5);
+        return item;
     }
 
     [Fact]
@@ -3131,7 +3285,8 @@ public class BattleMapViewModelTests
                 Distance = 5,
                 WeaponName = "Test"
             },
-            TerrainModifiers = []
+            TerrainModifiers = [],
+            FiringArc = FiringArc.Front
         };
     }
 
