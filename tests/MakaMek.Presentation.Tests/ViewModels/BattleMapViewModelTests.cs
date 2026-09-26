@@ -207,6 +207,39 @@ public class BattleMapViewModelTests
         return remote;
     }
 
+    [Theory]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public void TurnGuidanceLabel_ReportsRemainingUnits_WhileUnitsAreStillToPlay(PhaseNames phase)
+    {
+        _localizationService.GetString("BattleMap_UnitsRemaining").Returns("{0} units left");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(phase);
+        SetActivePlayer(player.Id, unitsToPlay: 3);
+
+        _sut.TurnGuidanceLabel.ShouldBe("3 units left");
+    }
+
+    [Fact]
+    public void TurnGuidanceLabel_ExplainsTheEndPhase()
+    {
+        _localizationService.GetString("BattleMap_EndTurnGuidance").Returns("End your turn");
+        SetPhase(PhaseNames.End);
+
+        _sut.TurnGuidanceLabel.ShouldBe("End your turn");
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Initiative)]
+    [InlineData(PhaseNames.Heat)]
+    public void TurnGuidanceLabel_IsEmpty_WhenThePhaseNeedsNoGuidance(PhaseNames phase)
+    {
+        SetPhase(phase);
+
+        _sut.TurnGuidanceLabel.ShouldBeEmpty();
+    }
+
     [Fact]
     public void InitiativeStatus_ReportsProgress_WhileRollsAreBeingCollected()
     {
@@ -289,6 +322,107 @@ public class BattleMapViewModelTests
         RollInitiative(player.Id, 11);
 
         _sut.IsInitiativeResultVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_IsEmpty_WhenNoPlayerIsActive()
+    {
+        _sut.TurnActionStatusLabel.ShouldBeEmpty();
+        _sut.IsTurnActionPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_NamesTheOpponent_WhenWeAreNotActive()
+    {
+        _localizationService.GetString("BattleMap_WaitingForPlayer").Returns("Waiting for {0}");
+        JoinPlayer("Player1", "#FF0000");
+        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(remote.Id);
+
+        _sut.TurnActionStatusLabel.ShouldBe("Waiting for Opponent");
+        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TurnActionStatusLabel_ShowsTheCurrentAction_WhenWeMayAct()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(player.Id, unitsToPlay: 1);
+
+        _sut.TurnActionStatusLabel.ShouldBe(_sut.ActionInfoLabel);
+    }
+
+    [Fact]
+    public void ActiveUnitLabel_NamesTheSelectedUnit()
+    {
+        _localizationService.GetString("BattleMap_ActiveUnit").Returns("Active: {0}");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer(player.Id, unitsToPlay: 1);
+
+        _sut.ActiveUnitLabel.ShouldBeEmpty();
+
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(_sut.Units.First());
+        SetCurrentState(_sut, state);
+
+        _sut.ActiveUnitLabel.ShouldBe($"Active: {_sut.Units.First().Name}");
+        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandlePlayerAction_InEndState_AsksForConfirmationBeforeExecuting()
+    {
+        _localizationService.GetString("BattleMap_ConfirmEndTurn").Returns("Confirm end turn");
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+
+        // First press only arms the confirmation
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe("Confirm end turn");
+
+        // Second press clears it and hands the action to the state
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe(endState.PlayerActionLabel);
+    }
+
+    [Fact]
+    public void CancelPlayerActionConfirmation_ClearsAPendingConfirmation()
+    {
+        _localizationService.GetString("BattleMap_ConfirmEndTurn").Returns("Confirm end turn");
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+        _sut.HandlePlayerAction();
+        _sut.PlayerActionLabel.ShouldBe("Confirm end turn");
+
+        _sut.CancelPlayerActionConfirmation();
+
+        _sut.PlayerActionLabel.ShouldBe(endState.PlayerActionLabel);
+    }
+
+    [Fact]
+    public void CancelPlayerActionConfirmation_DoesNothing_WhenNoConfirmationIsPending()
+    {
+        var endState = new EndState(_sut);
+        SetCurrentState(_sut, endState);
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+
+        _sut.CancelPlayerActionConfirmation();
+
+        changed.ShouldNotContain(nameof(BattleMapViewModel.PlayerActionLabel));
     }
 
     [Fact]
@@ -1688,6 +1822,38 @@ public class BattleMapViewModelTests
         // Assert
         items.ShouldNotBeEmpty();
         items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
+    }
+
+    [Fact]
+    public void AttackSelectionSummary_ReportsSelectedWeaponCosts()
+    {
+        // Arrange
+        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var laser = new MediumLaser();
+        var machineGun = new MachineGun();
+        attacker.Parts[PartLocation.LeftArm].TryAddComponent(laser, [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(machineGun, [1]).ShouldBeTrue();
+
+        var laserVm = CreateWeaponSelectionItem(laser, remainingAmmoShots: -1);
+        var machineGunVm = CreateWeaponSelectionItem(machineGun, remainingAmmoShots: 3);
+        laserVm.IsSelected = true;
+        machineGunVm.IsSelected = true;
+        _sut.WeaponSelectionItems.Add(laserVm);
+        _sut.WeaponSelectionItems.Add(machineGunVm);
+        _localizationService.GetString("WeaponSelection_AttackSummary")
+            .Returns("Selected: {0} weapon(s) · Heat +{1} · Ammo -{2}");
+
+        // Act
+        var count = _sut.SelectedAttackWeaponCount;
+        var heat = _sut.SelectedAttackHeat;
+        var ammo = _sut.SelectedAttackAmmo;
+
+        // Assert
+        count.ShouldBe(2);
+        heat.ShouldBe(laser.Heat + machineGun.Heat);
+        ammo.ShouldBe(1);
+        _sut.AttackSelectionSummaryText.ShouldBe(
+            $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
     }
 
     private WeaponSelectionViewModel CreateWeaponSelectionItem(
