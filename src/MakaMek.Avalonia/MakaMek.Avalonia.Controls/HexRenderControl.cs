@@ -36,7 +36,7 @@ public class HexRenderControl : Control
     private readonly Dictionary<HexCoordinates, FormattedText> _coordLabelCache = new();
     private readonly Dictionary<HexCoordinates, FormattedText?> _terrainLabelCache = new();
     private readonly Dictionary<HexCoordinates, List<IHexHighlightType>> _sortedHighlightsCache = new();
-    private readonly Dictionary<(string Color, double Thickness), Pen> _boundaryPenCache = new();
+    private readonly Dictionary<(Type HighlightType, double Thickness), Pen> _boundaryPenCache = new();
 
     private readonly Pen _whiteOutlinePen;
     private readonly Pen _whiteHighlightPen;
@@ -163,12 +163,22 @@ public class HexRenderControl : Control
         _boundaryPenCache.Clear();
         foreach (var (_, boundary) in _boundaryOutlines)
         {
-            var key = (boundary.Color, boundary.Thickness);
+            var key = (boundary.HighlightType.GetType(), boundary.Thickness);
             if (!_boundaryPenCache.ContainsKey(key))
-                _boundaryPenCache[key] = new Pen(ParseBrush(boundary.Color), boundary.Thickness);
+            {
+                var (highlightPen, _) = GetHighlightPenAndFill(boundary.HighlightType);
+                _boundaryPenCache[key] = new Pen(highlightPen?.Brush, boundary.Thickness);
+            }
         }
         InvalidateVisual();
     }
+
+    /// <summary>
+    /// The pen this control will draw the given boundary outline with. Test seam: the pen is
+    /// resolved from themed resources when the outlines are set, not when they are drawn.
+    /// </summary>
+    internal Pen BoundaryPenFor(HighlightBoundaryOutline boundary) =>
+        _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
 
     public void UpdateConfiguration(HexRenderConfiguration configuration)
     {
@@ -498,7 +508,7 @@ public class HexRenderControl : Control
 
             using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
             {
-                var bp = _boundaryPenCache[(boundary.Color, boundary.Thickness)];
+                var bp = _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
                 for (var i = 0; i < allDirections.Length; i++)
                 {
                     if ((boundary.EdgeMask & (1 << i)) == 0) continue;
@@ -536,13 +546,6 @@ public class HexRenderControl : Control
             LosBlockingHighlight => _losBlockingHighlight,
             _ => (_whiteHighlightPen, null)
         };
-    }
-
-    private static IBrush ParseBrush(string colorHex)
-    {
-        if (Color.TryParse(colorHex, out var color))
-            return new SolidColorBrush(color);
-        return Brushes.White;
     }
 
     private static IBrush FindBrush(IAvaloniaResourcesLocator? locator, string key, IBrush fallback)

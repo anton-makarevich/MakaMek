@@ -96,9 +96,12 @@
                                                         x:DataType="wrappers:EndGameUnitViewModel">
                                                         <StackPanel>
                                                             <controls:UnitItemControl
-                                                                DataContext="{Binding UnitData}"
-                                                                PlayerTint="{Binding $parent[ItemsControl].DataContext.Tint}"
-                                                                IsRemoveButtonVisible="False"/>
+                                                                DataContext="{Binding CardViewModel}"
+                                                                PlayerTint="{Binding $parent[ItemsControl].((wrappers:EndGamePlayerViewModel)DataContext).Tint}"
+                                                                InfoCommand="{Binding $parent[UserControl].((viewModels:EndGameViewModel)DataContext).ShowUnitInfoCommand}"
+                                                                InfoCommandParameter="{Binding $parent[StackPanel].DataContext}"
+                                                                IsRemoveButtonVisible="False"
+                                                                CanEditUnitName="False"/>
                                                             <TextBlock 
                                                                 Classes="bodySmall"
                                                                 HorizontalAlignment="Center"
