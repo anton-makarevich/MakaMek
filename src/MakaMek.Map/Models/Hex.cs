@@ -13,6 +13,7 @@ namespace Sanet.MakaMek.Map.Models;
 /// </summary>
 public class Hex : IDisposable
 {
+    private static readonly IMovementCostProvider DefaultMovementCostProvider = new DefaultMovementCostProvider();
     public HexCoordinates Coordinates { get; }
     public int Level { get; internal set; }
     private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
@@ -84,8 +85,18 @@ public class Hex : IDisposable
     /// considering road/paved connections. Returns both the hex entry cost
     /// and the additional terrain-specific cost.
     /// </summary>
-    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    /// <param name="fromHex">The hex being exited.</param>
+    /// <param name="fromSurface">The surface being exited.</param>
+    /// <param name="toSurface">The destination surface being entered.</param>
+    /// <param name="movementCostProvider">The rules used to resolve terrain costs; defaults to classic standalone-map rules.</param>
+    /// <returns>The entry and terrain movement-cost breakdown.</returns>
+    public IEnumerable<MovementCost> GetEnterMovementCost(
+        Hex fromHex,
+        HexSurface fromSurface,
+        HexSurface toSurface,
+        IMovementCostProvider? movementCostProvider = null)
     {
+        movementCostProvider ??= DefaultMovementCostProvider;
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
         bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
@@ -104,7 +115,9 @@ public class Hex : IDisposable
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
             var terrainCost = new TerrainMovementCost
             {
-                TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
+                TerrainId = toRoad.Id,
+                Value = movementCostProvider.GetMovementCost(toRoad.Id, toRoad.Height),
+                Depth = this.GetWaterDepth()
             };
             return [hexEntry, terrainCost];
         }
@@ -114,7 +127,7 @@ public class Hex : IDisposable
             .Select(t => new TerrainMovementCost
             {
                 TerrainId = t.Id,
-                Value = t.MovementCost,
+                Value = movementCostProvider.GetMovementCost(t.Id, t.Height),
                 Depth = this.GetWaterDepth()
             }).ToList();
 

@@ -103,6 +103,12 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void SetBattleMap_AttachesTheGameRulesProviderToTheMap()
+    {
+        BattleMap!.MovementCostProvider.ShouldBeSameAs(RulesProviderInstance);
+    }
+
+    [Fact]
     public void SetBattleMap_AllowsRepeatedUpdates_WhileInStartPhase()
     {
         // Arrange
