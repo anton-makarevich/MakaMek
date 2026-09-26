@@ -113,6 +113,43 @@ public class BattleMapViewModelTests
         setter.Invoke(sut, [state]);
     }
 
+    [Fact]
+    public void InitiativeState_ActiveLocalPlayer_IsNotAskedToRoll()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [unitData], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        _game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Initiative
+        });
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+
+        var state = new InitiativeState(_sut);
+        _commandPublisher.ClearReceivedCalls();
+
+        // Initiative is rolled on the server, so even the active local player gets no prompt here.
+        state.IsActionRequired.ShouldBeFalse();
+        ((IUiState)state).ExecutePlayerAction();
+
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<RollDiceCommand>());
+    }
+
     /// <summary>
     /// Joins a player to the client game so it appears in Players and AlivePlayers.
     /// </summary>
@@ -168,6 +205,90 @@ public class BattleMapViewModelTests
             IdempotencyKey = Guid.NewGuid()
         });
         return remote;
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsProgress_WhileRollsAreBeingCollected()
+    {
+        _localizationService.GetString("BattleMap_InitiativeProgress").Returns("{0} of {1} rolled");
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Initiative);
+
+        _sut.IsInitiativeStatusVisible.ShouldBeTrue();
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+
+        RollInitiative(player.Id, 8);
+
+        _sut.InitiativeStatusLabel.ShouldBe("1 of 1 rolled");
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsTheWinner_OnceThePhaseHasMovedOn()
+    {
+        _localizationService.GetString("BattleMap_InitiativeWinner").Returns("{0} won with {1}");
+        var winner = JoinPlayer("Winner", "#FF0000");
+        var loser = JoinPlayer("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+
+        SetPhase(PhaseNames.Movement);
+
+        _sut.IsInitiativeResultVisible.ShouldBeTrue();
+        _sut.IsInitiativeStatusVisible.ShouldBeTrue();
+        _sut.InitiativeOutcomeLabel.ShouldBe("Winner won with 10");
+        _sut.InitiativeStatusLabel.ShouldBe("Winner won with 10");
+        _sut.InitiativeWinnerTint.ShouldBe("#FF0000");
+    }
+
+    [Fact]
+    public void InitiativeStatus_ReportsNoWinner_WhenTheHighestRollIsTied()
+    {
+        var first = JoinPlayer("First", "#FF0000");
+        var second = JoinPlayer("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(first.Id, 7);
+        RollInitiative(second.Id, 7);
+        SetPhase(PhaseNames.Movement);
+
+        // A tie has no single winner, so the banner shows nothing and falls back to the active tint.
+        _sut.InitiativeOutcomeLabel.ShouldBeEmpty();
+        _sut.InitiativeWinnerTint.ShouldBe(_sut.ActivePlayerTint);
+    }
+
+    [Fact]
+    public void InitiativeStatus_IsHidden_BeforeAnyRollHappens()
+    {
+        SetPhase(PhaseNames.Movement);
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+        _sut.IsInitiativeStatusVisible.ShouldBeFalse();
+        _sut.InitiativeOutcomeLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void InitiativeRolls_AreClearedWhenTheTurnIncrements()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(player.Id, 9);
+        SetPhase(PhaseNames.Movement);
+        _sut.IsInitiativeResultVisible.ShouldBeTrue();
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 2 });
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void InitiativeRolls_AreIgnoredOutsideTheInitiativePhase()
+    {
+        var player = JoinPlayer("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+
+        RollInitiative(player.Id, 11);
+
+        _sut.IsInitiativeResultVisible.ShouldBeFalse();
     }
 
     [Fact]

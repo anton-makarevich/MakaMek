@@ -51,6 +51,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+    private readonly Dictionary<Guid, int> _initiativeRolls = [];
     private IClientGame? _commandFeedbackGame;
 
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
@@ -424,6 +425,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         switch (command)
         {
+            case TurnIncrementedCommand:
+                _initiativeRolls.Clear();
+                break;
+            case DiceRolledCommand diceRolledCommand when Game.TurnPhase == PhaseNames.Initiative:
+                _initiativeRolls[diceRolledCommand.PlayerId] = diceRolledCommand.Roll;
+                break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
                 break;
@@ -447,6 +454,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // HexRenderControl re-renders via TerrainsChanged subscription
                 break;
         }
+
+        // Initiative does not publish PhaseStepChanges, so promote the state when
+        // the server assigns the next player to roll.
+        if (Game?.TurnPhase == PhaseNames.Initiative && command is ChangeActivePlayerCommand)
+            UpdateGamePhase();
 
         NotifyStateChanged();
     }
@@ -553,6 +565,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var phase = Game.TurnPhase;
         switch (phase)
         {
+            case PhaseNames.Initiative when phaseState.ActivePlayer != null:
+                TransitionToState(new InitiativeState(this));
+                break;
             case PhaseNames.Deployment when phaseState.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
@@ -609,6 +624,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(TurnPhaseName));
         NotifyPropertyChanged(nameof(ActivePlayerName));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
+        NotifyPropertyChanged(nameof(IsInitiativeResultVisible));
+        NotifyPropertyChanged(nameof(InitiativeOutcomeLabel));
+        NotifyPropertyChanged(nameof(InitiativeWinnerTint));
+        NotifyPropertyChanged(nameof(IsInitiativeStatusVisible));
+        NotifyPropertyChanged(nameof(InitiativeStatusLabel));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
         NotifyPropertyChanged(nameof(IsCommandFeedbackVisible));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
@@ -798,6 +818,68 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
+
+    /// <summary>
+    /// Gets whether the completed initiative result should be shown in the turn banner.
+    /// </summary>
+    public bool IsInitiativeResultVisible => _initiativeRolls.Count > 0
+                                              && Game?.TurnPhase is not null and not PhaseNames.Initiative;
+
+    /// <summary>
+    /// Gets whether the turn banner should explain initiative while it is rolling or after it resolves.
+    /// </summary>
+    public bool IsInitiativeStatusVisible => Game?.TurnPhase == PhaseNames.Initiative || IsInitiativeResultVisible;
+
+    /// <summary>
+    /// Gets the current initiative progress or the resolved winner summary.
+    /// </summary>
+    public string InitiativeStatusLabel
+    {
+        get
+        {
+            if (Game?.TurnPhase == PhaseNames.Initiative)
+            {
+                return string.Format(_localizationService.GetString("BattleMap_InitiativeProgress"),
+                    _initiativeRolls.Count, Game.AlivePlayers.Count);
+            }
+
+            return InitiativeOutcomeLabel;
+        }
+    }
+
+    /// <summary>
+    /// Gets the localized summary identifying the player who won initiative this turn.
+    /// </summary>
+    public string InitiativeOutcomeLabel
+    {
+        get
+        {
+            var winner = GetInitiativeWinner();
+            return winner == null
+                ? string.Empty
+                : string.Format(_localizationService.GetString("BattleMap_InitiativeWinner"), winner.Name,
+                    _initiativeRolls[winner.Id]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the tint of the player who won initiative, for visual reinforcement.
+    /// </summary>
+    public string InitiativeWinnerTint => GetInitiativeWinner()?.Tint ?? ActivePlayerTint;
+
+    private IPlayer? GetInitiativeWinner()
+    {
+        if (_initiativeRolls.Count == 0 || Game == null) return null;
+
+        var highestRoll = _initiativeRolls.Values.Max();
+        var winners = _initiativeRolls
+            .Where(result => result.Value == highestRoll)
+            .Select(result => Game.Players.FirstOrDefault(player => player.Id == result.Key))
+            .OfType<IPlayer>()
+            .ToList();
+
+        return winners.Count == 1 ? winners[0] : null;
+    }
 
     public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
