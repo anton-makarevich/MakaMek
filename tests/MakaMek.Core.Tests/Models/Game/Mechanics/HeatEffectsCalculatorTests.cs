@@ -170,7 +170,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -184,6 +184,34 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidExplosionRoll.DiceResults.ShouldBe([2, 3]);
         result.Value.CriticalHits.ShouldNotBeNull();
         result.Value.CriticalHits.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CheckForHeatAmmoExplosion_ShouldCopyCriticalHitDestructionMetadata()
+    {
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+
+        var mech = CreateTestMechWithAmmo();
+        SetMechHeat(mech, 25);
+        _diceRoller.Roll2D6().Returns([new DiceResult(2), new DiceResult(3)]);
+
+        var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
+                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+            ], false);
+        _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
+                Arg.Any<Unit>(), Arg.Any<Ammo>())
+            .Returns(new HeatExplosionResolution(
+                [criticalHits],
+                [PartLocation.RightTorso],
+                true));
+
+        var result = _sut.CheckForHeatAmmoExplosion(mech);
+
+        result.ShouldNotBeNull();
+        result.Value.DestroyedParts.ShouldBe([PartLocation.RightTorso]);
+        result.Value.UnitDestroyed.ShouldBeTrue();
+        mech.IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]
@@ -209,7 +237,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -244,7 +272,7 @@ public class HeatEffectsCalculatorTests
             ],false);
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
                 Arg.Any<Ammo>())
-            .Returns([criticalHits]);
+            .Returns(new HeatExplosionResolution([criticalHits], null, false));
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -294,11 +322,11 @@ public class HeatEffectsCalculatorTests
     {
         // Arrange
         var damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
-        // Use the real critical hits calculator so the explosion damage is actually applied
+        // Use the real critical hits calculator so the explosion is actually simulated
         var sut = new HeatEffectsCalculator(
             _rulesProvider,
             _diceRoller,
-            new CriticalHitsCalculator(_diceRoller, damageTransferCalculator));
+            new CriticalHitsCalculator(_diceRoller, damageTransferCalculator, CreateMechFactory()));
 
         var mech = CreateTestMech();
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
@@ -329,12 +357,12 @@ public class HeatEffectsCalculatorTests
         // Second roll: slot 3 -> slot 8 (the chain ammo)
         _diceRoller.RollD6().Returns(new DiceResult(5), new DiceResult(3));
 
-        // The heat explosion damages the left torso...
+        // The initial blast damages, but does not destroy, the left torso so the chain ammo can still be hit.
         damageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Any<int>())
-            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)]);
+            .Returns([new LocationDamageData(PartLocation.LeftTorso, 0, 1, false)]);
         // ...and the critical hit on the left torso ammo damages the right torso enough to destroy it
         damageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
@@ -351,7 +379,9 @@ public class HeatEffectsCalculatorTests
         result.Value.DestroyedParts.ShouldNotBeNull();
         result.Value.DestroyedParts!.ShouldContain(PartLocation.RightTorso);
         result.Value.UnitDestroyed.ShouldBeFalse();
-        mech.Parts[PartLocation.RightTorso].IsDestroyed.ShouldBeTrue();
+        // The calculator simulates rather than applies: the mech is damaged later, when the
+        // AmmoExplosionCommand is handled, so it must still be intact here.
+        mech.Parts[PartLocation.RightTorso].IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]
@@ -485,13 +515,18 @@ public class HeatEffectsCalculatorTests
         _diceRoller.Received(1).Roll2D6();
     }
 
-    private static Mech CreateTestMech()
+    private static MechFactory CreateMechFactory()
     {
-        var mechData = MechFactoryTests.CreateDummyMechData();
         return new MechFactory(
             new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
-            Substitute.For<ILocalizationService>()).Create(mechData);
+            Substitute.For<ILocalizationService>());
+    }
+
+    private static Mech CreateTestMech()
+    {
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        return CreateMechFactory().Create(mechData);
     }
 
     private static void SetMechHeat(Mech mech, int heatLevel)
