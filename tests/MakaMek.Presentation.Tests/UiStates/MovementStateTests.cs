@@ -4,10 +4,12 @@ using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -1987,20 +1989,21 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void ResumeMovementAfterFall_ShouldThrow_WhenUnitIsNotProneMech()
+    public void ResumeMovementAfterFall_ShouldIgnoreUnit_WhenUnitIsNotProneMech()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
         unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         _sut.HandleUnitSelectionFromList(unit);
+        var stepBefore = _sut.CurrentMovementStep;
 
-        // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(unit.Id))
-            .Message.ShouldBe("Unit is not prone after fall or no movement path");
+        // Act & Assert - no crash, state unchanged
+        Should.NotThrow(() => _sut.ResumeMovementAfterFall(unit.Id));
+        _sut.CurrentMovementStep.ShouldBe(stepBefore);
     }
 
     [Fact]
-    public void ResumeMovementAfterFall_ShouldThrow_WhenSelectedPathIsNull()
+    public void ResumeMovementAfterFall_ShouldRebuildPath_WhenSelectedPathIsNull()
     {
         // Arrange
         var mech = _unit1 as Mech;
@@ -2008,9 +2011,9 @@ public class MovementStateTests
         mech.SetProne();
         _sut.HandleUnitSelectionFromList(mech);
 
-        // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall(mech.Id))
-            .Message.ShouldBe("Unit is not prone after fall or no movement path");
+        // Act & Assert - path is rebuilt at the mech position, no exception
+        Should.NotThrow(() => _sut.ResumeMovementAfterFall(mech.Id));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
     }
 
     [Fact]
@@ -2651,6 +2654,152 @@ public class MovementStateTests
 
         _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.MovementType == MovementType.Walk && cmd.UnitId == proneMech.Id));
+    }
+
+    private static MechFallCommand CreateStandupFallCommand(Mech mech) => new()
+    {
+        GameOriginId = Guid.NewGuid(),
+        UnitId = mech.Id,
+        LevelsFallen = 0,
+        WasJumping = false,
+        DamageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([], 0),
+            new DiceResult(1),
+            HitDirection.Front),
+        FallPilotingSkillRoll = new PilotingSkillRollData
+        {
+            RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+            DiceResults = [2, 3],
+            IsSuccessful = false,
+            PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+        }
+    };
+
+    private void ApplyFailedStandupFall(Mech mech)
+    {
+        // mirrors BaseGame.OnMechFalling for a failed standup attempt
+        mech.RegisterStandupAttempt();
+        mech.ApplyFall(CreateStandupFallCommand(mech));
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_FailedStandupSequence_ShouldResumeWithoutThrowing()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var mech = _battleMapViewModel.Units.First() as Mech;
+        mech!.Deploy(position, null);
+        mech.AssignPilot(_pilot);
+        mech.SetProne();
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
+        _sut.HandleFacingSelection(HexDirection.BottomLeft);
+        _game.Received(1).TryStandupUnit(Arg.Any<TryStandupCommand>());
+
+        ApplyFailedStandupFall(mech);
+
+        Should.NotThrow(() => _sut.ResumeMovementAfterFall(mech.Id));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        mech.IsProne.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_RepeatedFalls_ShouldResumeWithoutThrowing()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.AssignPilot(_pilot);
+        mech.SetProne();
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        // fall #1 during movement
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        _sut.ResumeMovementAfterFall(mech.Id);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+
+        // standup attempt fails -> fall #2
+        _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        _game.Received(1).TryStandupUnit(Arg.Any<TryStandupCommand>());
+
+        ApplyFailedStandupFall(mech);
+
+        Should.NotThrow(() => _sut.ResumeMovementAfterFall(mech.Id));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldNotThrow_WhenMovementStateWasRecreatedAfterStandup()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _battleMapViewModel.Units.First() as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        mech.AssignPilot(_pilot);
+        mech.SetProne();
+        _pilotingSkillCalculator.GetPsrBreakdown(mech, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] });
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk")).OnExecute();
+        _sut.HandleFacingSelection(HexDirection.BottomLeft);
+
+        // a phase-step refresh replaced the state: no selected unit, no movement path
+        ApplyFailedStandupFall(mech);
+        var freshState = new MovementState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(freshState, _battleMapViewModel);
+
+        Should.NotThrow(() => freshState.ResumeMovementAfterFall(mech.Id));
+        freshState.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        _battleMapViewModel.SelectedUnit.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldIgnoreFall_WhenUnitBelongsToAnotherPlayer()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
+        var allyData = MechFactoryTests.CreateDummyMechData();
+        allyData.Id = Guid.NewGuid();
+        var foreignMech = mechFactory.Create(allyData);
+        foreignMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        foreignMech.SetProne();
+        var foreignPlayer = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
+        foreignPlayer.AddUnit(foreignMech);
+        _game.Players.Returns(new List<IPlayer> { _player, foreignPlayer });
+        _game.AlivePlayers.Returns(new List<IPlayer> { _player, foreignPlayer });
+
+        var freshState = new MovementState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(freshState, _battleMapViewModel);
+
+        Should.NotThrow(() => freshState.ResumeMovementAfterFall(foreignMech.Id));
+        freshState.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        ((IUiState)freshState).SelectedUnit.ShouldBe(null);
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldCompleteMovement_WhenFalledMechIsNotProne()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        _sut.HandleUnitSelectionFromList(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        Should.NotThrow(() => _sut.ResumeMovementAfterFall(mech.Id));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
     }
 }
 
