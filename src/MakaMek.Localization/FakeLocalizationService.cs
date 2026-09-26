@@ -338,6 +338,7 @@ public class FakeLocalizationService : ILocalizationService
         ["BattleMap_Turn"] = "TURN",
         ["BattleMap_Phase"] = "PHASE",
         ["BattleMap_ActivePlayer"] = "ACTIVE PLAYER",
+        ["BattleMap_YourTurn"] = "YOUR TURN",
         ["BattleMap_SelectUnitToDeploy"] = "Select a Unit to deploy",
         ["BattleMap_SelectTargetLocation"] = "Select Target Location",
         ["BattleMap_ResetMap"] = "Reset Map",

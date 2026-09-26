@@ -93,6 +93,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
         _localizationService.GetString("MovementType_Run").Returns("Run");
         _localizationService.GetString("Phase_Deployment").Returns("Deployment");
+        _localizationService.GetString("BattleMap_YourTurn").Returns("Your turn");
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
@@ -147,6 +148,130 @@ public class BattleMapViewModelTests
         });
         _sut.ActivePlayerName.ShouldBe("Player1");
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
+    }
+
+    /// <summary>
+    /// Joins a player to the game. Local players are also registered with <see cref="ClientGame"/>
+    /// through JoinGameWithUnits; remote players only arrive as a broadcast join.
+    /// </summary>
+    private Player JoinPlayer(string name, string tint, bool isLocal = true)
+    {
+        var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        if (isLocal) _game.JoinGameWithUnits(player, [], []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Units = [],
+            Tint = player.Tint,
+            PilotAssignments = []
+        });
+        return player;
+    }
+
+    private void SetActivePlayer(Guid playerId) => _game.HandleCommand(new ChangeActivePlayerCommand
+    {
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = playerId,
+        UnitsToPlay = 0
+    });
+
+    [Fact]
+    public void IsLocalPlayerTurn_ShouldTrackWhoIsActive_AndNotifyOnChange()
+    {
+        // Arrange
+        var localPlayer = JoinPlayer("Local", "#FF0000");
+        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+        var propertyChanged = new List<string?>();
+        _sut.PropertyChanged += (_, args) => propertyChanged.Add(args.PropertyName);
+
+        // Act: the local player becomes active.
+        SetActivePlayer(localPlayer.Id);
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeTrue();
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+
+        // Act: a remote player becomes active.
+        propertyChanged.Clear();
+        SetActivePlayer(remotePlayer.Id);
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeFalse();
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+    }
+
+    [Fact]
+    public void TurnStartLabel_ShouldBeLocalized()
+    {
+        _sut.TurnStartLabel.ShouldBe("Your turn");
+    }
+
+    [Fact]
+    public void PlayTurnStartAnimation_ShouldFireOnce_WhenTheTurnBecomesOurs()
+    {
+        // Arrange
+        var plays = 0;
+        _sut.PlayTurnStartAnimation = () => plays++;
+        var player = JoinPlayer("Local", "#FF0000");
+
+        // Act
+        SetActivePlayer(player.Id);
+
+        // Assert
+        plays.ShouldBe(1);
+
+        // Act: further notifications during the same turn must not replay it.
+        _sut.NotifyStateChanged();
+        _sut.NotifyStateChanged();
+
+        // Assert
+        plays.ShouldBe(1);
+    }
+
+    [Fact]
+    public void PlayTurnStartAnimation_ShouldNotFire_WhenTheTurnPassesToAnOpponent()
+    {
+        // Arrange
+        var plays = 0;
+        _sut.PlayTurnStartAnimation = () => plays++;
+        JoinPlayer("Local", "#FF0000");
+        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+
+        // Act
+        SetActivePlayer(remotePlayer.Id);
+
+        // Assert
+        plays.ShouldBe(0);
+    }
+
+    [Fact]
+    public void PlayTurnStartAnimation_ShouldFireAgain_WhenTheTurnComesBackToUs()
+    {
+        // Arrange
+        var plays = 0;
+        _sut.PlayTurnStartAnimation = () => plays++;
+        var localPlayer = JoinPlayer("Local", "#FF0000");
+        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+
+        // Act
+        SetActivePlayer(localPlayer.Id);
+        plays.ShouldBe(1);
+        SetActivePlayer(remotePlayer.Id);
+        SetActivePlayer(localPlayer.Id);
+
+        // Assert
+        plays.ShouldBe(2);
+    }
+
+    [Fact]
+    public void PlayTurnStartAnimation_ShouldNotThrow_WhenTheViewHasAttachedNoCallback()
+    {
+        // The view model is constructed before the view wires up its callbacks.
+        var player = JoinPlayer("Local", "#FF0000");
+
+        Should.NotThrow(() => SetActivePlayer(player.Id));
     }
 
     [Fact]
@@ -2126,6 +2251,16 @@ public class BattleMapViewModelTests
             WeaponTargets = [weaponTargetData1, weaponTargetData2],
             GameOriginId = Guid.NewGuid()
         };
+
+        // Malformed assignment data should be ignored by the presentation layer.
+        game.HandleCommand(weaponAttackCommand with
+        {
+            WeaponTargets = [weaponTargetData1 with
+            {
+                Weapon = weaponTargetData1.Weapon with { Assignments = [] }
+            }]
+        });
+        _sut.WeaponAttacks.ShouldBeEmpty();
         
         game.HandleCommand(weaponAttackCommand);
         
@@ -2148,6 +2283,13 @@ public class BattleMapViewModelTests
                 ExternalHeat: 0),
             GameOriginId = Guid.NewGuid()
         };
+
+        // A malformed resolution must not abort processing or remove an unrelated attack.
+        game.HandleCommand(resolutionCommand with
+        {
+            WeaponData = resolutionCommand.WeaponData with { Assignments = [] }
+        });
+        _sut.WeaponAttacks.Count.ShouldBe(2);
         
         // Act
         game.HandleCommand(resolutionCommand);

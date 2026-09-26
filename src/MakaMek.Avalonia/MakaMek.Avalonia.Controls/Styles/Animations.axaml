@@ -10,4 +10,21 @@
             <Setter Property="Opacity" Value="0.0" />
         </KeyFrame>
     </Animation>
+
+    <!-- Turn-start announcement: fades in, holds, fades out. Runs on the banner's Opacity only,
+         so the element stays laid out and collapsed to invisible between turns. -->
+    <Animation Duration="0:0:1.6" FillMode="Forward" x:Key="TurnStartAnimation" x:SetterTargetType="Border">
+        <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0.0" />
+        </KeyFrame>
+        <KeyFrame Cue="15%">
+            <Setter Property="Opacity" Value="1.0" />
+        </KeyFrame>
+        <KeyFrame Cue="65%">
+            <Setter Property="Opacity" Value="1.0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="0.0" />
+        </KeyFrame>
+    </Animation>
 </ResourceDictionary>
