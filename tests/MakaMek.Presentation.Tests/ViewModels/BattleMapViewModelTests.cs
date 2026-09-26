@@ -437,6 +437,176 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public async Task ViewportCommands_InvokeTheCallbacksSuppliedByTheView()
+    {
+        var invoked = new List<string>();
+        _sut.ZoomIn = () => invoked.Add(nameof(_sut.ZoomIn));
+        _sut.ZoomOut = () => invoked.Add(nameof(_sut.ZoomOut));
+        _sut.FitMap = () => invoked.Add(nameof(_sut.FitMap));
+
+        await ((AsyncCommand)_sut.ZoomInCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.ZoomOutCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.FitMapCommand).ExecuteAsync();
+
+        invoked.ShouldBe([nameof(_sut.ZoomIn), nameof(_sut.ZoomOut), nameof(_sut.FitMap)]);
+    }
+
+    [Fact]
+    public async Task ViewportCommands_AreSafe_WhenTheViewSuppliedNoCallbacks()
+    {
+        // The view models are constructed before the view attaches its viewport callbacks.
+        await Should.NotThrowAsync(((AsyncCommand)_sut.ZoomInCommand).ExecuteAsync());
+        await Should.NotThrowAsync(((AsyncCommand)_sut.ZoomOutCommand).ExecuteAsync());
+        await Should.NotThrowAsync(((AsyncCommand)_sut.FitMapCommand).ExecuteAsync());
+    }
+
+    [Fact]
+    public void LocalUnits_IsEmpty_BeforeAnyLocalPlayerJoins()
+    {
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LocalUnits_ContainsOnlyOurOwnUnits()
+    {
+        JoinPlayer("Player1", "#FF0000");
+        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+
+        _sut.LocalUnits.Count().ShouldBe(1);
+        _sut.IsSquadStatusBarVisible.ShouldBeTrue();
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_CyclesThroughTheSquadAndFocusesEachUnit()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player,
+            [MechFactoryTests.CreateDummyMechData(), MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = unit => focused.Add(unit);
+        var squad = _sut.LocalUnits.ToList();
+        squad.Count.ShouldBe(2);
+
+        await _sut.SelectNextAvailableUnit();
+        focused.Count.ShouldBe(1);
+        focused[0].ShouldBe(squad[0]);
+
+        await _sut.SelectNextAvailableUnit();
+        focused.Count.ShouldBe(2);
+
+        // The third call wraps back around to the start of the squad
+        await _sut.SelectNextAvailableUnit();
+        focused.Count.ShouldBe(3);
+        focused[2].ShouldBe(focused[0]);
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_DoesNothing_WhenTheSquadIsEmpty()
+    {
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = unit => focused.Add(unit);
+
+        await _sut.SelectNextAvailableUnit();
+
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task NextAvailableUnitCommand_AdvancesTheSquadSelection()
+    {
+        JoinPlayer("Player1", "#FF0000");
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = unit => focused.Add(unit);
+
+        await ((AsyncCommand)_sut.NextAvailableUnitCommand).ExecuteAsync();
+
+        focused.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task FocusUnitCommand_InvokesTheViewCallbackForTheGivenUnit()
+    {
+        JoinPlayer("Player1", "#FF0000");
+        var unit = _sut.Units.First();
+        IUnit? focused = null;
+        _sut.FocusUnit = u => focused = u;
+
+        await ((AsyncCommand<IUnit>)_sut.FocusUnitCommand).ExecuteAsync(unit);
+
+        focused.ShouldBe(unit);
+    }
+
+    [Fact]
+    public async Task FocusUnitCommand_IgnoresANullUnit()
+    {
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = unit => focused.Add(unit);
+
+        await ((AsyncCommand<IUnit>)_sut.FocusUnitCommand).ExecuteAsync(null!);
+
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task InspectUnitCommand_OpensTheRecordSheetForTheGivenUnit()
+    {
+        JoinPlayer("Player1", "#FF0000");
+        var unit = _sut.Units.First();
+
+        await ((AsyncCommand<IUnit>)_sut.InspectUnitCommand).ExecuteAsync(unit);
+
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task InspectUnitCommand_IgnoresANullUnit()
+    {
+        await Should.NotThrowAsync(((AsyncCommand<IUnit>)_sut.InspectUnitCommand).ExecuteAsync(null!));
+
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToggleRecordSheetPin_FlipsThePinAndNotifies()
+    {
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+        _sut.IsRecordSheetPinned.ShouldBeFalse();
+
+        _sut.ToggleRecordSheetPin();
+
+        _sut.IsRecordSheetPinned.ShouldBeTrue();
+        changed.ShouldContain(nameof(BattleMapViewModel.IsRecordSheetPinned));
+
+        _sut.ToggleRecordSheetPin();
+
+        _sut.IsRecordSheetPinned.ShouldBeFalse();
+    }
+
+    [Fact]
     public void RejectedCommand_ShowsFeedbackThatTheNextAcceptedCommandClears()
     {
         _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
@@ -1288,6 +1458,64 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void OpeningCommandLog_ShouldCloseMapSettingsAndRecordSheet()
+    {
+        _sut.IsMapSettingsPanelVisible = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleCommandLog();
+
+        _sut.IsCommandLogExpanded.ShouldBeTrue();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningMapSettings_ShouldCloseCommandLogAndRecordSheet()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleMapSettings();
+
+        _sut.IsMapSettingsPanelVisible.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningRecordSheet_ShouldCloseUtilityPanels()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsMapSettingsPanelVisible = true;
+
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.IsRecordSheetExpanded.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ShowingDirectionSelector_ShouldCloseUtilityPanels()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsMapSettingsPanelVisible = true;
+        _sut.IsRecordSheetExpanded = true;
+        var position = new HexCoordinates(2, 3);
+
+        _sut.ShowDirectionSelector(position, [HexDirection.Top, HexDirection.Bottom]);
+
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+        _sut.DirectionSelectorPosition.ShouldBe(position);
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+    }
+
+    [Fact]
     public void MovementPhase_WithActivePlayer_ShouldShowCorrectActionLabel()
     {
         // Arrange
@@ -1606,6 +1834,23 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void InspectUnit_OpensDrawer_WithoutChangingPhaseSelection()
+    {
+        var mockState = Substitute.For<IUiState>();
+        var selectedUnit = new Mech("Selected", "SEL-1", 20, []);
+        var inspectedUnit = new Mech("Inspected", "INS-1", 50, []);
+        mockState.SelectedUnit.Returns(selectedUnit);
+        SetCurrentState(_sut, mockState);
+
+        _sut.InspectUnit(inspectedUnit);
+
+        _sut.SelectedUnit.ShouldBe(selectedUnit);
+        _sut.InspectedUnit.ShouldBe(inspectedUnit);
+        _sut.IsRecordSheetExpanded.ShouldBeTrue();
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
     public void IsRecordSheetPanelVisible_HasSelectedUnitNotExpanded_ReturnsFalse()
     {
         var mockState = Substitute.For<IUiState>();
@@ -1764,6 +2009,18 @@ public class BattleMapViewModelTests
 
         // Assert
         items.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ToggleMapControlsDrawer_TogglesDrawerVisibility()
+    {
+        _sut.IsMapControlsDrawerOpen.ShouldBeFalse();
+
+        _sut.ToggleMapControlsDrawer();
+        _sut.IsMapControlsDrawerOpen.ShouldBeTrue();
+
+        _sut.ToggleMapControlsDrawer();
+        _sut.IsMapControlsDrawerOpen.ShouldBeFalse();
     }
 
     [Fact]
