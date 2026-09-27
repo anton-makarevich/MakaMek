@@ -110,6 +110,21 @@ public class WeaponAttackDeclarationCommandTests
     }
 
     [Fact]
+    public void Render_ReturnsNoAttacksMessage_WhenWeaponTargetsIsNull()
+    {
+        // Command validation accepts a null target list as "no attacks", so rendering has to
+        // agree with it. The command is a record struct, so a null list is reachable.
+        var command = CreateCommand() with { WeaponTargets = null! };
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"{_player1.Name}'s {_attacker.Model} declares no attacks");
+    }
+
+    [Fact]
     public void Render_SkipsInvalidTargets_WhenTargetNotFound()
     {
         // Arrange

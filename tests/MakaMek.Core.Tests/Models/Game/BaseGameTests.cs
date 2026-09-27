@@ -1991,6 +1991,190 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAcceptWeaponAttackDeclarationWithNoTargets()
+    {
+        // Arrange: declaring no targets is how a unit says it will not attack.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = []
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAcceptWeaponAttackDeclarationWithNullTargets()
+    {
+        // Arrange: a payload deserialized without the field at all.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = null!
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAcceptWellFormedWeaponAttackDeclaration()
+    {
+        // Arrange: the ordinary case - a real weapon, mounted, aimed at something.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = new ComponentData
+                    {
+                        Name = "Test Weapon",
+                        Type = MakaMekComponent.MachineGun,
+                        Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
+                    }
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithNullAssignments()
+    {
+        // Arrange: the other half of "no usable slot assignment" - absent rather than empty.
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = new ComponentData
+                    {
+                        Name = "Test Weapon",
+                        Type = MakaMekComponent.MachineGun,
+                        Assignments = null!
+                    }
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithNullTarget()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets = [null!]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithNullWeapon()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = null!
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldRejectWeaponAttackDeclarationWithEmptyAssignments()
+    {
+        // Arrange
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true,
+                    Weapon = new ComponentData
+                    {
+                        Name = "Test Weapon",
+                        Type = MakaMekComponent.MachineGun,
+                        Assignments = []
+                    }
+                }
+            ]
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeFalse();
+        result.ErrorCode.ShouldBe(ErrorCode.ValidationFailed);
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateHeatUpdatedCommand()
     {
         // Arrange
