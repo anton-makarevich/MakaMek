@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
@@ -143,7 +144,7 @@ public class TurnNotificationBanner : TemplatedControl
     private void PumpAsync()
     {
         if (_isAnnouncing) return;
-        _ = AnnounceQueueAsync();
+        AnnounceQueueAsync().SafeFireAndForget();
     }
 
     private async Task AnnounceQueueAsync()
@@ -155,15 +156,28 @@ public class TurnNotificationBanner : TemplatedControl
             while (Notifications?.FirstOrDefault() is { } notification)
             {
                 Current = notification;
-                await AnimateAsync();
+                try
+                {
+                    await AnimateAsync();
+                }
+                catch (Exception)
+                {
+                    // A failed animation must not leave the banner on screen or stop the rest of
+                    // the queue, so hide it and treat this notification as announced.
+                    Opacity = 0;
+                }
                 Current = null;
 
-                // The source removes it, which is what advances the queue. If it does not, stop
-                // rather than announce the same thing forever.
-                var before = Notifications?.FirstOrDefault();
                 if (ShownCommand?.CanExecute(notification) == true)
                     ShownCommand.Execute(notification);
-                if (ReferenceEquals(Notifications?.FirstOrDefault(), before)) break;
+
+                // The source removes it, which is what advances the queue. Look for the announced
+                // object anywhere in the queue rather than just at the head: a higher priority
+                // notification arriving mid-announcement is inserted ahead of it, so comparing
+                // heads would read as "nothing was removed". Compare by reference because
+                // TurnNotification has value equality and an equal record may be queued too.
+                if (Notifications?.Any(queued => ReferenceEquals(queued, notification)) == true)
+                    break;
             }
         }
         finally

@@ -143,6 +143,74 @@ public class TurnNotificationBannerTests
     });
 
     [Fact]
+    public Task Announcement_InsertedAheadOfTheDisplayedOne_IsStillAnnounced() => Dispatch(() =>
+    {
+        // Notifications are queued by priority, so a new turn arriving while a phase is being
+        // announced is inserted ahead of it. The queue head is then unchanged by the removal, so
+        // the banner must not read that as "nothing was removed" and stop.
+        var notifications = new ObservableCollection<TurnNotification>();
+        var shown = new List<string>();
+        var banner = CreateBanner(notifications, shown);
+
+        banner.AnimationOverride = () =>
+        {
+            if (shown.Count == 0)
+                notifications.Insert(0, Turn);
+            return Task.CompletedTask;
+        };
+
+        notifications.Add(Phase);
+        Dispatcher.UIThread.RunJobs();
+
+        shown.ShouldBe(["MOVEMENT PHASE", "TURN 2"]);
+        notifications.ShouldBeEmpty();
+    });
+
+    [Fact]
+    public Task Announcement_ThatFailsToAnimate_HidesTheBannerAndKeepsGoing() => Dispatch(() =>
+    {
+        // A broken animation must not strand the banner on screen or stop the queue.
+        var notifications = new ObservableCollection<TurnNotification>();
+        var shown = new List<string>();
+        var banner = CreateBanner(notifications, shown);
+
+        banner.AnimationOverride = () =>
+        {
+            banner.Opacity = 1;
+            if (shown.Count == 0)
+                throw new InvalidOperationException("animation failed");
+            return Task.CompletedTask;
+        };
+
+        notifications.Add(Turn);
+        notifications.Add(Phase);
+        Dispatcher.UIThread.RunJobs();
+
+        shown.ShouldBe(["TURN 2", "MOVEMENT PHASE"], "the failed announcement is skipped, not retried");
+        notifications.ShouldBeEmpty();
+        banner.Current.ShouldBeNull();
+    });
+
+    [Fact]
+    public Task Announcement_ThatFailsToAnimate_LeavesTheBannerInvisible() => Dispatch(() =>
+    {
+        var notifications = new ObservableCollection<TurnNotification>();
+        var shown = new List<string>();
+        var banner = CreateBanner(notifications, shown);
+
+        banner.AnimationOverride = () =>
+        {
+            banner.Opacity = 1;
+            throw new InvalidOperationException("animation failed");
+        };
+
+        notifications.Add(Turn);
+        Dispatcher.UIThread.RunJobs();
+
+        banner.Opacity.ShouldBe(0, "a failed animation must not leave the banner on screen");
+    });
+
+    [Fact]
     public Task Banner_StopsAnnouncing_WhenNothingRemovesTheNotification() => Dispatch(() =>
     {
         // A source that ignores ShownCommand must not put the banner in an endless loop.
