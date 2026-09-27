@@ -158,7 +158,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null,
         ICommandPublisher? commandPublisher = null,
-        ILogger<ConnectionStatusViewModel>? connectionLogger = null)
+        ILogger? connectionLogger = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
