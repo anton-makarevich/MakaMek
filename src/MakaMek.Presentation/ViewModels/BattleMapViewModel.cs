@@ -177,6 +177,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
+        {
+            if (notification != null)
+                TurnNotifications.Remove(notification);
+            return Task.CompletedTask;
+        });
         SurfaceSelectedCommand = new AsyncCommand<HexSurface>(surface =>
         {
             SurfaceSelector?.SelectSurface(surface);
@@ -375,6 +381,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         switch (command)
         {
+            case TurnIncrementedCommand turnCommand:
+                AnnounceTurn(turnCommand.TurnNumber);
+                break;
+            case ChangePhaseCommand phaseCommand:
+                AnnouncePhase(phaseCommand.Phase);
+                break;
+            case ChangeActivePlayerCommand:
+                AnnounceActivePlayer();
+                break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
                 break;
@@ -565,7 +580,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public void NotifyStateChanged()
     {
-        AnnounceTurnStartIfItJustBecameOurs();
         NotifyPropertyChanged(nameof(Turn));
         NotifyPropertyChanged(nameof(TurnPhaseName));
         NotifyPropertyChanged(nameof(ActivePlayerName));
@@ -766,28 +780,72 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         && Game.LocalPlayers.Contains(playerId);
 
     /// <summary>
-    /// Text of the banner announcing that the local player's turn has begun.
+    /// Pending state-change announcements, in the order they should be shown. The banner control
+    /// animates them one at a time and reports each one back through
+    /// <see cref="TurnNotificationShownCommand"/>, which is what removes it.
     /// </summary>
-    public string TurnStartLabel => _localizationService.GetString("BattleMap_YourTurn");
+    public ObservableCollection<TurnNotification> TurnNotifications { get; } = [];
 
     /// <summary>
-    /// Callback assigned by the map view to play the turn-start announcement.
-    /// Deliberately not a status-bar label: the active player is already named there.
+    /// Invoked by the banner once a notification has finished animating.
     /// </summary>
-    public Action? PlayTurnStartAnimation { get; set; }
+    public ICommand TurnNotificationShownCommand { get; }
 
-    private bool _wasLocalPlayerTurn;
+    private Guid? _announcedActivePlayerId;
 
     /// <summary>
-    /// Fires the turn-start announcement once, on the transition into the local player's turn,
-    /// rather than on every notification raised while that turn is already in progress.
+    /// Queues an announcement, keeping simultaneous ones in <see cref="TurnNotificationKind"/>
+    /// order so a new turn always reads turn, then phase, then whose turn it is, whatever order
+    /// the server's commands arrive in.
     /// </summary>
-    private void AnnounceTurnStartIfItJustBecameOurs()
+    private void Announce(TurnNotification notification)
     {
-        var isOurTurn = IsLocalPlayerTurn;
-        if (isOurTurn && !_wasLocalPlayerTurn)
-            PlayTurnStartAnimation?.Invoke();
-        _wasLocalPlayerTurn = isOurTurn;
+        var index = 0;
+        while (index < TurnNotifications.Count && TurnNotifications[index].Kind <= notification.Kind)
+            index++;
+        TurnNotifications.Insert(index, notification);
+    }
+
+    private void AnnounceTurn(int turnNumber) => Announce(new TurnNotification(
+        TurnNotificationKind.Turn,
+        string.Format(_localizationService.GetString("BattleMap_Notification_Turn"), turnNumber)
+            .ToUpperInvariant(),
+        ActivePlayerTint));
+
+    /// <summary>
+    /// Announces a phase change, skipping the resolution phases: they are book-keeping steps
+    /// rather than phases a player acts in.
+    /// </summary>
+    private void AnnouncePhase(PhaseNames phase)
+    {
+        if (phase.ToString().EndsWith("AttackResolution", StringComparison.Ordinal)) return;
+
+        Announce(new TurnNotification(
+            TurnNotificationKind.Phase,
+            string.Format(_localizationService.GetString("BattleMap_Notification_Phase"),
+                _localizationService.GetString($"Phase_{phase}")).ToUpperInvariant(),
+            ActivePlayerTint));
+    }
+
+    /// <summary>
+    /// Announces whose turn it is, once per change. Re-announcing the same player is suppressed:
+    /// several commands can arrive while one player is still active.
+    /// </summary>
+    private void AnnounceActivePlayer()
+    {
+        if (Game?.PhaseStepState?.ActivePlayer is not { } activePlayer) return;
+        if (_announcedActivePlayerId == activePlayer.Id) return;
+        _announcedActivePlayerId = activePlayer.Id;
+
+        var text = IsLocalPlayerTurn
+            ? _localizationService.GetString("BattleMap_Notification_YourTurn")
+            : string.Format(_localizationService.GetString("BattleMap_Notification_PlayersTurn"),
+                activePlayer.Name);
+
+        Announce(new TurnNotification(
+            TurnNotificationKind.ActivePlayer,
+            text.ToUpperInvariant(),
+            activePlayer.Tint));
     }
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";

@@ -140,18 +140,11 @@
                 VerticalAlignment="Top"
                 Margin="60,56,60,0"/>
 
-        <!-- Transient "YOUR TURN" announcement. Starts invisible and is faded in and out by
-             TurnStartAnimation; it never intercepts input and is not a persistent label. -->
-        <Border x:Name="TurnStartBanner"
-                Classes="turnStartBanner"
-                Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
+        <templatedControls:TurnNotificationBanner
+                Notifications="{Binding TurnNotifications}"
+                ShownCommand="{Binding TurnNotificationShownCommand}"
                 VerticalAlignment="Top"
-                Margin="60,92,60,0"
-                IsHitTestVisible="False"
-                Opacity="0">
-            <TextBlock Text="{Binding TurnStartLabel}"
-                       Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-        </Border>
+                Margin="60,92,60,0"/>
 
         <Grid x:Name="MechList"
               Background="{StaticResource SecondaryBrush}"

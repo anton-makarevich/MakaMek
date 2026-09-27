@@ -203,75 +203,132 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void TurnStartLabel_ShouldBeLocalized()
+    public void TurnNotifications_AnnounceANewTurn()
     {
-        _sut.TurnStartLabel.ShouldBe("Your turn");
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+
+        _sut.Game!.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 3
+        });
+
+        var notification = _sut.TurnNotifications.ShouldHaveSingleItem();
+        notification.Kind.ShouldBe(TurnNotificationKind.Turn);
+        notification.Text.ShouldBe("TURN 3", "the localized string is lower case; the VM shapes it");
     }
 
     [Fact]
-    public void PlayTurnStartAnimation_ShouldFireOnce_WhenTheTurnBecomesOurs()
+    public void TurnNotifications_AnnounceAPhaseChange()
     {
-        // Arrange
-        var plays = 0;
-        _sut.PlayTurnStartAnimation = () => plays++;
+        _localizationService.GetString("BattleMap_Notification_Phase").Returns("{0} phase");
+        _localizationService.GetString("Phase_Movement").Returns("Movement");
+
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Movement
+        });
+
+        _sut.TurnNotifications.ShouldHaveSingleItem().Text.ShouldBe("MOVEMENT PHASE");
+    }
+
+    [Fact]
+    public void TurnNotifications_SayNothingAboutResolutionPhases()
+    {
+        // Resolution phases are book-keeping steps rather than phases a player acts in.
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.WeaponAttackResolution
+        });
+
+        _sut.TurnNotifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceOurOwnTurn()
+    {
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
         var player = JoinPlayer("Local", "#FF0000");
 
-        // Act
         SetActivePlayer(player.Id);
 
-        // Assert
-        plays.ShouldBe(1);
-
-        // Act: further notifications during the same turn must not replay it.
-        _sut.NotifyStateChanged();
-        _sut.NotifyStateChanged();
-
-        // Assert
-        plays.ShouldBe(1);
+        var notification = _sut.TurnNotifications.Last();
+        notification.Kind.ShouldBe(TurnNotificationKind.ActivePlayer);
+        notification.Text.ShouldBe("YOUR TURN");
+        notification.Tint.ShouldBe("#FF0000");
     }
 
     [Fact]
-    public void PlayTurnStartAnimation_ShouldNotFire_WhenTheTurnPassesToAnOpponent()
+    public void TurnNotifications_NameTheOpponentWhoseTurnItIs()
     {
-        // Arrange
-        var plays = 0;
-        _sut.PlayTurnStartAnimation = () => plays++;
+        _localizationService.GetString("BattleMap_Notification_PlayersTurn").Returns("{0}'s turn");
         JoinPlayer("Local", "#FF0000");
         var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
 
-        // Act
         SetActivePlayer(remotePlayer.Id);
 
-        // Assert
-        plays.ShouldBe(0);
+        _sut.TurnNotifications.Last().Text.ShouldBe("REMOTE'S TURN");
     }
 
     [Fact]
-    public void PlayTurnStartAnimation_ShouldFireAgain_WhenTheTurnComesBackToUs()
+    public void TurnNotifications_DoNotRepeatTheSameActivePlayer()
     {
-        // Arrange
-        var plays = 0;
-        _sut.PlayTurnStartAnimation = () => plays++;
-        var localPlayer = JoinPlayer("Local", "#FF0000");
-        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
-
-        // Act
-        SetActivePlayer(localPlayer.Id);
-        plays.ShouldBe(1);
-        SetActivePlayer(remotePlayer.Id);
-        SetActivePlayer(localPlayer.Id);
-
-        // Assert
-        plays.ShouldBe(2);
-    }
-
-    [Fact]
-    public void PlayTurnStartAnimation_ShouldNotThrow_WhenTheViewHasAttachedNoCallback()
-    {
-        // The view model is constructed before the view wires up its callbacks.
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
         var player = JoinPlayer("Local", "#FF0000");
 
-        Should.NotThrow(() => SetActivePlayer(player.Id));
+        SetActivePlayer(player.Id);
+        SetActivePlayer(player.Id);
+        _sut.NotifyStateChanged();
+
+        _sut.TurnNotifications.Count(n => n.Kind == TurnNotificationKind.ActivePlayer)
+            .ShouldBe(1, "several commands can arrive while one player is still active");
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceASimultaneousTurnStartInOrder()
+    {
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+        _localizationService.GetString("BattleMap_Notification_Phase").Returns("{0} phase");
+        _localizationService.GetString("Phase_Movement").Returns("Movement");
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
+        var player = JoinPlayer("Local", "#FF0000");
+
+        // Arrive in an awkward order: whose turn it is, then the phase, then the turn itself.
+        SetActivePlayer(player.Id);
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Movement
+        });
+        _sut.Game.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 2
+        });
+
+        _sut.TurnNotifications.Select(n => n.Kind).ShouldBe([
+            TurnNotificationKind.Turn,
+            TurnNotificationKind.Phase,
+            TurnNotificationKind.ActivePlayer
+        ]);
+    }
+
+    [Fact]
+    public void TurnNotificationShownCommand_RemovesTheNotificationItWasGiven()
+    {
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+        _sut.Game!.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 4
+        });
+        var notification = _sut.TurnNotifications.ShouldHaveSingleItem();
+
+        _sut.TurnNotificationShownCommand.Execute(notification);
+
+        _sut.TurnNotifications.ShouldBeEmpty();
     }
 
     [Fact]

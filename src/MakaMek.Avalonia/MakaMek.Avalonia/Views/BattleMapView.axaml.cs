@@ -26,7 +26,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
     private readonly AvaloniaResourcesLocator _resourcesLocator = new();
-    private static readonly TimeSpan TurnStartBannerFallbackDuration = TimeSpan.FromSeconds(1.6);
 
     public BattleMapView()
     {
@@ -152,30 +151,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel == null) return;
         ViewModel.CaptureMap = CaptureViewMap;
         ViewModel.CenterMap = () => MapCanvas.CenterMap();
-        ViewModel.PlayTurnStartAnimation = () => AnimateTurnStartBanner().SafeFireAndForget();
         if (ViewModel.Game is not { } game) return;
         RenderMap(game);
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
-    }
-
-    /// <summary>
-    /// Fades the turn-start banner in and out. Mirrors the damage-label animation in
-    /// <see cref="UnitControl"/>, including its fallback for a missing animation resource.
-    /// </summary>
-    private async Task AnimateTurnStartBanner()
-    {
-        if (_resourcesLocator.TryFindResource("TurnStartAnimation") is Animation animation)
-        {
-            await animation.RunAsync(TurnStartBanner);
-        }
-        else
-        {
-            // Fallback in case the animation resource isn't found
-            TurnStartBanner.Opacity = 1;
-            await Task.Delay(TurnStartBannerFallbackDuration);
-        }
-
-        TurnStartBanner.Opacity = 0;
     }
 
     private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureViewMap()

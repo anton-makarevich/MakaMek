@@ -106,13 +106,13 @@
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
     
-    <Style Selector="Border.turnStartBanner">
+    <Style Selector="Border.turnNotificationBanner">
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 
-    <Style Selector="Border.turnStartBanner > TextBlock">
+    <Style Selector="Border.turnNotificationBanner > TextBlock">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
