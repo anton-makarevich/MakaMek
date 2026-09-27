@@ -1,0 +1,20 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls">
+
+    <Style Selector="controls|TurnNotificationBanner">
+        <!-- Nothing is being announced at rest, so the banner is invisible and never takes input. -->
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Classes="turnNotificationBanner"
+                        Background="{TemplateBinding CurrentTint, Converter={StaticResource HexColorToBrushConverter}}">
+                    <TextBlock Text="{TemplateBinding CurrentText}"
+                               Foreground="{TemplateBinding CurrentTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

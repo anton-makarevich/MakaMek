@@ -1,9 +1,27 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls">
     <!-- Animation for damage labels defined as a resource -->
     <Animation Duration="0:0:5" FillMode="Forward" x:Key="DamageLabelAnimation" x:SetterTargetType="TextBlock">
         <!-- Opacity animation from 1.0 to 0.0 -->
         <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="1.0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="0.0" />
+        </KeyFrame>
+    </Animation>
+
+    <!-- Turn-start announcement: fades in, holds, fades out. Runs on the banner's Opacity only,
+         so the element stays laid out and collapsed to invisible between turns. -->
+    <Animation Duration="0:0:1.6" FillMode="Forward" x:Key="TurnNotificationAnimation" x:SetterTargetType="controls:TurnNotificationBanner">
+        <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0.0" />
+        </KeyFrame>
+        <KeyFrame Cue="15%">
+            <Setter Property="Opacity" Value="1.0" />
+        </KeyFrame>
+        <KeyFrame Cue="65%">
             <Setter Property="Opacity" Value="1.0" />
         </KeyFrame>
         <KeyFrame Cue="100%">
