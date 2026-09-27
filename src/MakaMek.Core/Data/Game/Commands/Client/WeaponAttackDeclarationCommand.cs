@@ -25,7 +25,9 @@ public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
 
         if (attacker == null || player == null) return string.Empty;
 
-        if (WeaponTargets.Count == 0)
+        // A null list means the same thing as an empty one: the unit declared no attacks. The
+        // command is a record struct, so a default instance reaches here with a null list.
+        if (WeaponTargets is not { Count: > 0 })
         {
             var noAttacksTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks");
             return string.Format(noAttacksTemplate, player.Name, attacker.Model);
