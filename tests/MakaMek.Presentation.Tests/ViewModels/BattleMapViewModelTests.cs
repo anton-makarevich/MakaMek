@@ -265,35 +265,12 @@ public class BattleMapViewModelTests
     /// Joins a player to the game. Local players are also registered with <see cref="ClientGame"/>
     /// through JoinGameWithUnits; remote players only arrive as a broadcast join.
     /// </summary>
-    private Player JoinPlayer(string name, string tint, bool isLocal = true)
-    {
-        var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
-        if (isLocal) _game.JoinGameWithUnits(player, [], []);
-        _game.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            Units = [],
-            Tint = player.Tint,
-            PilotAssignments = []
-        });
-        return player;
-    }
-
-    private void SetActivePlayer(Guid playerId) => _game.HandleCommand(new ChangeActivePlayerCommand
-    {
-        GameOriginId = Guid.NewGuid(),
-        PlayerId = playerId,
-        UnitsToPlay = 0
-    });
-
     [Fact]
     public void IsLocalPlayerTurn_ShouldTrackWhoIsActive_AndNotifyOnChange()
     {
         // Arrange
         var localPlayer = JoinPlayer("Local", "#FF0000");
-        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+        var remotePlayer = JoinRemotePlayer("Remote", "#0000FF");
         var propertyChanged = new List<string?>();
         _sut.PropertyChanged += (_, args) => propertyChanged.Add(args.PropertyName);
 
@@ -376,7 +353,7 @@ public class BattleMapViewModelTests
     {
         _localizationService.GetString("BattleMap_Notification_PlayersTurn").Returns("{0}'s turn");
         JoinPlayer("Local", "#FF0000");
-        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+        var remotePlayer = JoinRemotePlayer("Remote", "#0000FF");
 
         SetActivePlayer(remotePlayer.Id);
 
