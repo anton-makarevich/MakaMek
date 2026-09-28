@@ -4,6 +4,7 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -176,6 +177,165 @@ public class BattleMapViewModelTests
         PlayerId = playerId,
         UnitsToPlay = 0
     });
+
+    /// <summary>
+    /// Joins a local player that owns a unit, so it counts towards <see cref="IGame.AlivePlayers"/>.
+    /// JoinPlayer deliberately joins without units, which leaves the player unable to act.
+    /// </summary>
+    private Player JoinPlayerWithUnit(string name, string tint)
+    {
+        var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        return player;
+    }
+
+    private void SetPhase(PhaseNames phase)
+        => _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = phase });
+
+    private void RollInitiative(Guid playerId, int roll)
+        => _game.HandleCommand(new DiceRolledCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            Roll = roll
+        });
+
+    private List<TurnNotification> InitiativeAnnouncements() => _sut.TurnNotifications
+        .Where(notification => notification.Kind == TurnNotificationKind.Initiative)
+        .ToList();
+
+    [Fact]
+    public void InitiativeWinner_IsAnnounced_OnceEveryPlayerHasRolled()
+    {
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner")
+            .Returns("{0} won with {1}");
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+
+        // The result is an announcement, not a label, so it does not wait for the phase to move on.
+        var announcement = InitiativeAnnouncements().ShouldHaveSingleItem();
+        announcement.Text.ShouldBe("WINNER WON WITH 10");
+        announcement.Tint.ShouldBe("#FF0000");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsNotAnnounced_WhileAnyRollIsMissing()
+    {
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        JoinPlayerWithUnit("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+
+        RollInitiative(first.Id, 8);
+
+        InitiativeAnnouncements().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsNotAnnounced_WhenTheHighestRollIsTied()
+    {
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var second = JoinPlayerWithUnit("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+
+        RollInitiative(first.Id, 7);
+        RollInitiative(second.Id, 7);
+
+        InitiativeAnnouncements().ShouldBeEmpty("a tie has no winner to announce");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsAnnounced_AfterATieIsRerolled()
+    {
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner")
+            .Returns("{0} won with {1}");
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var second = JoinPlayerWithUnit("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(first.Id, 7);
+        RollInitiative(second.Id, 7);
+
+        // A tie is re-rolled server side, so the replacement rolls arrive for the same players.
+        RollInitiative(first.Id, 9);
+        RollInitiative(second.Id, 5);
+
+        InitiativeAnnouncements().ShouldHaveSingleItem().Text.ShouldBe("FIRST WON WITH 9");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsAnnouncedOnce_WhenTheSameRollsArriveAgain()
+    {
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+
+        RollInitiative(loser.Id, 4);
+
+        InitiativeAnnouncements().ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsAnnouncedAgain_OnTheNextTurn()
+    {
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 2 });
+        RollInitiative(winner.Id, 11);
+        RollInitiative(loser.Id, 3);
+
+        InitiativeAnnouncements().Count.ShouldBe(2, "each turn has its own initiative result");
+    }
+
+    [Fact]
+    public void InitiativeRolls_AreIgnoredOutsideTheInitiativePhase()
+    {
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+        SetPhase(PhaseNames.Movement);
+
+        RollInitiative(player.Id, 11);
+
+        InitiativeAnnouncements().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void InitiativeAnnouncement_ComesAfterTheTurnAndBeforeThePhase()
+    {
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        _sut.TurnNotifications.Clear();
+
+        // All three land before anything has been shown, so the queue has to order them itself.
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 2 });
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+        SetPhase(PhaseNames.Movement);
+
+        _sut.TurnNotifications.Select(notification => notification.Kind).ShouldBe(
+        [
+            TurnNotificationKind.Turn,
+            TurnNotificationKind.Initiative,
+            TurnNotificationKind.Phase
+        ]);
+    }
 
     [Fact]
     public void IsLocalPlayerTurn_ShouldTrackWhoIsActive_AndNotifyOnChange()

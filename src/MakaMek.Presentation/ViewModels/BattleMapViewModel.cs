@@ -51,6 +51,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+    private readonly Dictionary<Guid, int> _initiativeRolls = [];
+    private Guid? _announcedInitiativeWinnerId;
 
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
@@ -382,6 +384,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         switch (command)
         {
             case TurnIncrementedCommand turnCommand:
+                _initiativeRolls.Clear();
+                _announcedInitiativeWinnerId = null;
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
@@ -389,6 +393,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case ChangeActivePlayerCommand:
                 AnnounceActivePlayer();
+                break;
+            case DiceRolledCommand diceRolledCommand when Game.TurnPhase == PhaseNames.Initiative:
+                _initiativeRolls[diceRolledCommand.PlayerId] = diceRolledCommand.Roll;
+                AnnounceInitiativeWinner();
                 break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
@@ -413,6 +421,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // HexRenderControl re-renders via TerrainsChanged subscription
                 break;
         }
+
+        // Initiative does not publish PhaseStepChanges, so promote the state when
+        // the server assigns the next player to roll.
+        if (Game?.TurnPhase == PhaseNames.Initiative && command is ChangeActivePlayerCommand)
+            UpdateGamePhase();
 
         NotifyStateChanged();
     }
@@ -528,6 +541,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var phase = Game.TurnPhase;
         switch (phase)
         {
+            case PhaseNames.Initiative when phaseState.ActivePlayer != null:
+                TransitionToState(new InitiativeState(this));
+                break;
             case PhaseNames.Deployment when phaseState.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
@@ -849,6 +865,39 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
+
+    /// <summary>
+    /// Announces who won initiative once every player has rolled and one of them is clear of the
+    /// rest. A tie is re-rolled server side, so this runs again when the re-rolls land.
+    /// </summary>
+    private void AnnounceInitiativeWinner()
+    {
+        if (Game == null || _initiativeRolls.Count < Game.AlivePlayers.Count) return;
+
+        var winner = GetInitiativeWinner();
+        if (winner == null || _announcedInitiativeWinnerId == winner.Id) return;
+
+        _announcedInitiativeWinnerId = winner.Id;
+        Announce(new TurnNotification(
+            TurnNotificationKind.Initiative,
+            string.Format(_localizationService.GetString("BattleMap_Notification_InitiativeWinner"),
+                winner.Name, _initiativeRolls[winner.Id]).ToUpperInvariant(),
+            winner.Tint));
+    }
+
+    private IPlayer? GetInitiativeWinner()
+    {
+        if (_initiativeRolls.Count == 0 || Game == null) return null;
+
+        var highestRoll = _initiativeRolls.Values.Max();
+        var winners = _initiativeRolls
+            .Where(result => result.Value == highestRoll)
+            .Select(result => Game.Players.FirstOrDefault(player => player.Id == result.Key))
+            .OfType<IPlayer>()
+            .ToList();
+
+        return winners.Count == 1 ? winners[0] : null;
+    }
 
     public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
