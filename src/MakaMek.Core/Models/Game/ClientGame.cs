@@ -67,6 +67,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// <inheritdoc />
     public event Action? CommandTimedOut;
 
+    /// <inheritdoc />
+    public event Action<ErrorCode>? CommandRejectedLocally;
+
     protected override bool ShouldHandleCommand(IGameCommand command)
     {
         if (!base.ShouldHandleCommand(command)) return false;
@@ -252,6 +255,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 validationResult.ErrorCode,
                 command.PlayerId,
                 command.GameOriginId);
+            // An invalid result normally carries a code; fall back rather than stay silent.
+            CommandRejectedLocally?.Invoke(validationResult.ErrorCode ?? ErrorCode.ValidationFailed);
             return false;
         }
         
