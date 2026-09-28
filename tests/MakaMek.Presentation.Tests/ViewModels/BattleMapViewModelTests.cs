@@ -3416,11 +3416,13 @@ public class BattleMapViewModelTests
         });
 
         _sut.CommandFeedbackLabel.ShouldBe("Rejected: Validation failed");
+        _sut.IsCommandFeedbackVisible.ShouldBeTrue();
 
         // Any subsequent accepted command clears the banner
         _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
 
         _sut.CommandFeedbackLabel.ShouldBeNull();
+        _sut.IsCommandFeedbackVisible.ShouldBeFalse();
     }
 
     [Fact]
