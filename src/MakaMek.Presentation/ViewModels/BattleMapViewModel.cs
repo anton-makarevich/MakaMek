@@ -406,16 +406,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
-        if (_commandFeedbackGame != null)
-        {
-            _commandFeedbackGame.CommandTimedOut -= OnCommandTimedOut;
-        }
-        _commandFeedbackGame = null;
+        UnsubscribeFromCommandFeedback();
 
         if (Game is null) return;
 
         _commandFeedbackGame = Game;
         _commandFeedbackGame.CommandTimedOut += OnCommandTimedOut;
+        _commandFeedbackGame.CommandRejectedLocally += OnCommandRejectedLocally;
 
         _commandSubscription = Game.Commands
             .ObserveOn(_dispatcherService.Scheduler)
@@ -433,6 +430,34 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 UpdateGamePhase();
                 NotifyStateChanged();
             });
+    }
+
+    /// <summary>
+    /// Detaches the game event behind the command feedback. Safe to call more than once, and
+    /// called from every teardown path so a detached view model never outlives its subscription.
+    /// </summary>
+    private void UnsubscribeFromCommandFeedback()
+    {
+        if (_commandFeedbackGame != null)
+        {
+            _commandFeedbackGame.CommandTimedOut -= OnCommandTimedOut;
+            _commandFeedbackGame.CommandRejectedLocally -= OnCommandRejectedLocally;
+        }
+        _commandFeedbackGame = null;
+    }
+
+    /// <summary>
+    /// Reports a command the client refused to send. These never reach the server, so no
+    /// <see cref="ErrorCommand"/> comes back and this is the only way the player sees them.
+    /// </summary>
+    private void OnCommandRejectedLocally(ErrorCode errorCode)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            CommandFeedbackLabel = string.Format(
+                _localizationService.GetString("BattleMap_CommandRejected"),
+                _localizationService.GetString($"Command_Error_{errorCode}"));
+        });
     }
 
     private void OnCommandTimedOut()
@@ -1330,11 +1355,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         ConnectionStatus.Dispose();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
-        if (_commandFeedbackGame != null)
-        {
-            _commandFeedbackGame.CommandTimedOut -= OnCommandTimedOut;
-            _commandFeedbackGame = null;
-        }
+        UnsubscribeFromCommandFeedback();
         if (Game is { IsDisposed: false })
         {
             Game.Dispose();
@@ -1366,6 +1387,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         base.DetachHandlers();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        UnsubscribeFromCommandFeedback();
         ConnectionStatus.Subscribe(null, Scheduler);
     }
 
