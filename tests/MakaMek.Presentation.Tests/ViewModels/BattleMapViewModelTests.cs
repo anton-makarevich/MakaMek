@@ -3464,7 +3464,7 @@ public class BattleMapViewModelTests
 
     /// <summary>
     /// Makes a player active with units still to play. SetActivePlayer leaves UnitsToPlay at zero,
-    /// which the guidance labels read as "nothing left to do".
+    /// which the guidance labels read as nothing left to do.
     /// </summary>
     private void SetActivePlayerWithUnits(Guid playerId, int unitsToPlay)
         => _game.HandleCommand(new ChangeActivePlayerCommand
@@ -3474,13 +3474,52 @@ public class BattleMapViewModelTests
             UnitsToPlay = unitsToPlay
         });
 
+    /// <summary>
+    /// Joins a local player that owns a unit. JoinPlayer joins without units on purpose, which
+    /// leaves nothing in Units for the labels under test to name.
+    /// </summary>
+    private Player JoinPlayerWithUnit(string name, string tint)
+    {
+        var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        return player;
+    }
+
+    private WeaponSelectionViewModel CreateWeaponSelectionItem(
+        Weapon weapon,
+        int remainingAmmoShots)
+    {
+        var item = new WeaponSelectionViewModel(
+            weapon,
+            isInRange: true,
+            isSelected: false,
+            isEnabled: true,
+            target: null,
+            onSelectionChanged: (_, _) => { },
+            onAimedShotRequest: _ => { },
+            localizationService: _localizationService,
+            toHitCalculator: Substitute.For<IToHitCalculator>(),
+            remainingAmmoShots);
+        item.ModifiersBreakdown = CreateTestBreakdown(5) with { FiringArc = FiringArc.Front };
+        return item;
+    }
+
     [Theory]
     [InlineData(PhaseNames.Movement)]
     [InlineData(PhaseNames.WeaponsAttack)]
     public void TurnGuidanceLabel_ReportsRemainingUnits_WhileUnitsAreStillToPlay(PhaseNames phase)
     {
         _localizationService.GetString("BattleMap_UnitsRemaining").Returns("{0} units left");
-        var player = JoinPlayer("Player1", "#FF0000");
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
         SetPhase(phase);
         SetActivePlayerWithUnits(player.Id, 3);
 
@@ -3518,7 +3557,7 @@ public class BattleMapViewModelTests
     public void TurnActionStatusLabel_NamesTheOpponent_WhenWeAreNotActive()
     {
         _localizationService.GetString("BattleMap_WaitingForPlayer").Returns("Waiting for {0}");
-        JoinPlayer("Player1", "#FF0000");
+        JoinPlayerWithUnit("Player1", "#FF0000");
         var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
         _game.HandleCommand(new JoinGameCommand
         {
@@ -3540,7 +3579,7 @@ public class BattleMapViewModelTests
     [Fact]
     public void TurnActionStatusLabel_ShowsTheCurrentAction_WhenWeMayAct()
     {
-        var player = JoinPlayer("Player1", "#FF0000");
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
         SetPhase(PhaseNames.Movement);
         SetActivePlayerWithUnits(player.Id, 1);
 
@@ -3551,7 +3590,7 @@ public class BattleMapViewModelTests
     public void ActiveUnitLabel_NamesTheSelectedUnit()
     {
         _localizationService.GetString("BattleMap_ActiveUnit").Returns("Active: {0}");
-        var player = JoinPlayer("Player1", "#FF0000");
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
         SetPhase(PhaseNames.Movement);
         SetActivePlayerWithUnits(player.Id, 1);
 
@@ -3595,25 +3634,6 @@ public class BattleMapViewModelTests
         ammo.ShouldBe(1);
         _sut.AttackSelectionSummaryText.ShouldBe(
             $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
-    }
-
-    private WeaponSelectionViewModel CreateWeaponSelectionItem(
-        Weapon weapon,
-        int remainingAmmoShots)
-    {
-        var item = new WeaponSelectionViewModel(
-            weapon,
-            isInRange: true,
-            isSelected: false,
-            isEnabled: true,
-            target: null,
-            onSelectionChanged: (_, _) => { },
-            onAimedShotRequest: _ => { },
-            localizationService: _localizationService,
-            toHitCalculator: Substitute.For<IToHitCalculator>(),
-            remainingAmmoShots);
-        item.ModifiersBreakdown = CreateTestBreakdown(5);
-        return item;
     }
 
     private ClientGame CreateClientGame()
