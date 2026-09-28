@@ -1766,6 +1766,9 @@ public class BattleMapViewModelTests
 
         // In the attack state but with nothing chosen yet, so the cost summary stays hidden.
         _sut.IsAttackSelectionSummaryVisible.ShouldBeFalse();
+
+        // The firing-arc legend follows the attacker, which this state has.
+        _sut.IsAttackOverlayVisible.ShouldBeTrue();
     }
 
     [Fact]
@@ -3703,14 +3706,30 @@ public class BattleMapViewModelTests
         await Should.NotThrowAsync(((AsyncCommand)_sut.ZoomInCommand).ExecuteAsync());
         await Should.NotThrowAsync(((AsyncCommand)_sut.ZoomOutCommand).ExecuteAsync());
         await Should.NotThrowAsync(((AsyncCommand)_sut.FitMapCommand).ExecuteAsync());
+
+        JoinPlayerWithUnit("Player1", "#FF0000");
+        var unit = _sut.LocalUnits.First();
+        await Should.NotThrowAsync(((AsyncCommand<IUnit>)_sut.FocusUnitCommand).ExecuteAsync(unit));
+
+        // Each command is created once and reused, so the view binds to a stable instance.
+        _sut.ZoomInCommand.ShouldBeSameAs(_sut.ZoomInCommand);
+        _sut.ZoomOutCommand.ShouldBeSameAs(_sut.ZoomOutCommand);
+        _sut.FitMapCommand.ShouldBeSameAs(_sut.FitMapCommand);
     }
 
     [Fact]
     public void LocalUnits_IsEmpty_BeforeAnyLocalPlayerJoins()
     {
+        _sut.IsAttackOverlayVisible.ShouldBeFalse("nothing is attacking outside the attack state");
         _sut.LocalUnits.ShouldBeEmpty();
         _sut.IsSquadStatusBarVisible.ShouldBeFalse();
         _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+
+        // And before a game is attached at all, which is how the map is first built.
+        _sut.Game = null;
+
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
     }
 
     [Fact]
@@ -3766,6 +3785,81 @@ public class BattleMapViewModelTests
         await _sut.SelectNextAvailableUnit();
         focused.Count.ShouldBe(3);
         focused[2].ShouldBe(focused[0]);
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_SkipsShutdownUnits_AndSelectsWhenTheStateAllowsIt()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player,
+            [
+                MechFactoryTests.CreateDummyMechData(),
+                MechFactoryTests.CreateDummyMechData(),
+                MechFactoryTests.CreateDummyMechData()
+            ], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+
+        var squad = _sut.LocalUnits.ToList();
+        ((Unit)squad[0]).Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        typeof(Unit).GetProperty("Status")!.SetValue(squad[1], UnitStatus.Destroyed);
+
+        // Neither a shutdown nor a wrecked unit is somewhere to navigate to, so only the third counts.
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+
+        // A state that allows selection takes the unit. SelectedUnit is read back from the state,
+        // so it is stubbed rather than asserted on the view model.
+        var state = Substitute.For<IUiState>();
+        state.CanSelectUnit(Arg.Any<IUnit>()).Returns(true);
+        state.SelectedUnit.Returns((IUnit?)null);
+        SetCurrentState(_sut, state);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = unit => focused.Add(unit);
+
+        await _sut.SelectNextAvailableUnit();
+
+        focused.ShouldHaveSingleItem().ShouldBe(squad[2], "the shutdown and wrecked units are skipped");
+
+        // With a unit already selected the cycle starts from it instead of the top of the squad.
+        state.SelectedUnit.Returns(squad[2]);
+        await _sut.SelectNextAvailableUnit();
+
+        focused.Count.ShouldBe(2);
+        focused[1].ShouldBe(squad[2], "it is the only one available, so the cycle stays on it");
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_StillInspects_WhenTheStateRefusesSelectionAndNoViewIsAttached()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+        JoinGameCommand? sentJoinCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
+                    sentJoinCommand = joinCommand;
+            });
+        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        sentJoinCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+
+        // A phase that will not take a selection, and no view to centre the map either.
+        var state = Substitute.For<IUiState>();
+        state.CanSelectUnit(Arg.Any<IUnit>()).Returns(false);
+        SetCurrentState(_sut, state);
+        _sut.FocusUnit = null;
+
+        await Should.NotThrowAsync(_sut.SelectNextAvailableUnit());
+
+        _sut.InspectedUnit.ShouldBe(_sut.LocalUnits.First(),
+            "the drawer still opens even when the unit cannot be selected");
     }
 
     [Fact]
