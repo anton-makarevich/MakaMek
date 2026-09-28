@@ -1762,6 +1762,9 @@ public class BattleMapViewModelTests
         
         // Act & Assert
         _sut.IsWeaponSelectionVisible.ShouldBeTrue();
+
+        // In the attack state but with nothing chosen yet, so the cost summary stays hidden.
+        _sut.IsAttackSelectionSummaryVisible.ShouldBeFalse();
     }
 
     [Fact]
@@ -3549,6 +3552,35 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void TurnLabels_AreEmpty_WhenThereIsNoGame()
+    {
+        // The battle map is built before a game is attached, so every label has to cope with it.
+        _sut.Game = null;
+
+        _sut.TurnGuidanceLabel.ShouldBeEmpty();
+        _sut.TurnActionStatusLabel.ShouldBeEmpty();
+        _sut.ActiveUnitLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectedAttackAmmo_CountsOnlyTheSelectedWeaponsThatNeedAmmo()
+    {
+        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var selectedWithAmmo = new MachineGun();
+        var unselectedWithAmmo = new MachineGun();
+        attacker.Parts[PartLocation.LeftArm].TryAddComponent(selectedWithAmmo, [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(unselectedWithAmmo, [1]).ShouldBeTrue();
+
+        var selected = CreateWeaponSelectionItem(selectedWithAmmo, remainingAmmoShots: 3);
+        var unselected = CreateWeaponSelectionItem(unselectedWithAmmo, remainingAmmoShots: 3);
+        selected.IsSelected = true;
+        _sut.WeaponSelectionItems.Add(selected);
+        _sut.WeaponSelectionItems.Add(unselected);
+
+        _sut.SelectedAttackAmmo.ShouldBe(1, "an unselected weapon costs no ammo");
+    }
+
+    [Fact]
     public void TurnActionStatusLabel_IsEmpty_WhenNoPlayerIsActive()
     {
         _sut.TurnActionStatusLabel.ShouldBeEmpty();
@@ -3636,6 +3668,16 @@ public class BattleMapViewModelTests
         ammo.ShouldBe(1);
         _sut.AttackSelectionSummaryText.ShouldBe(
             $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
+        _sut.IsAttackSelectionSummaryVisible.ShouldBeFalse(
+            "the summary only shows while an attack is being declared");
+
+        // Now in the attack state with those weapons still selected, so it shows.
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayerWithUnits(player.Id, 1);
+        SetCurrentState(_sut, new WeaponsAttackState(_sut));
+
+        _sut.IsAttackSelectionSummaryVisible.ShouldBeTrue();
     }
 
     private ClientGame CreateClientGame()
