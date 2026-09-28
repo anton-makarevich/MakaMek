@@ -396,7 +396,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case DiceRolledCommand diceRolledCommand when Game.TurnPhase == PhaseNames.Initiative:
                 _initiativeRolls[diceRolledCommand.PlayerId] = diceRolledCommand.Roll;
-                AnnounceInitiativeWinner();
+                AnnounceInitiativeWinner(Game);
                 break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
@@ -870,11 +870,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// Announces who won initiative once every player has rolled and one of them is clear of the
     /// rest. A tie is re-rolled server side, so this runs again when the re-rolls land.
     /// </summary>
-    private void AnnounceInitiativeWinner()
+    private void AnnounceInitiativeWinner(IClientGame game)
     {
-        if (Game == null || _initiativeRolls.Count < Game.AlivePlayers.Count) return;
+        if (_initiativeRolls.Count < game.AlivePlayers.Count) return;
 
-        var winner = GetInitiativeWinner();
+        var winner = GetInitiativeWinner(game);
         if (winner == null || _announcedInitiativeWinnerId == winner.Id) return;
 
         _announcedInitiativeWinnerId = winner.Id;
@@ -885,14 +885,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             winner.Tint));
     }
 
-    private IPlayer? GetInitiativeWinner()
+    /// <summary>
+    /// The single highest roller, or null when the highest roll is tied. Only called once a roll
+    /// has been recorded, so the roll set is never empty here.
+    /// </summary>
+    private IPlayer? GetInitiativeWinner(IClientGame game)
     {
-        if (_initiativeRolls.Count == 0 || Game == null) return null;
-
         var highestRoll = _initiativeRolls.Values.Max();
         var winners = _initiativeRolls
             .Where(result => result.Value == highestRoll)
-            .Select(result => Game.Players.FirstOrDefault(player => player.Id == result.Key))
+            .Select(result => game.Players.FirstOrDefault(player => player.Id == result.Key))
             .OfType<IPlayer>()
             .ToList();
 
