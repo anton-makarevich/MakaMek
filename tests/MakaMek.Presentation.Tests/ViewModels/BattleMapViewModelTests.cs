@@ -93,6 +93,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
         _localizationService.GetString("MovementType_Run").Returns("Run");
         _localizationService.GetString("Phase_Deployment").Returns("Deployment");
+        _localizationService.GetString("BattleMap_YourTurn").Returns("Your turn");
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
@@ -147,6 +148,187 @@ public class BattleMapViewModelTests
         });
         _sut.ActivePlayerName.ShouldBe("Player1");
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
+    }
+
+    /// <summary>
+    /// Joins a player to the game. Local players are also registered with <see cref="ClientGame"/>
+    /// through JoinGameWithUnits; remote players only arrive as a broadcast join.
+    /// </summary>
+    private Player JoinPlayer(string name, string tint, bool isLocal = true)
+    {
+        var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
+        if (isLocal) _game.JoinGameWithUnits(player, [], []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Units = [],
+            Tint = player.Tint,
+            PilotAssignments = []
+        });
+        return player;
+    }
+
+    private void SetActivePlayer(Guid playerId) => _game.HandleCommand(new ChangeActivePlayerCommand
+    {
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = playerId,
+        UnitsToPlay = 0
+    });
+
+    [Fact]
+    public void IsLocalPlayerTurn_ShouldTrackWhoIsActive_AndNotifyOnChange()
+    {
+        // Arrange
+        var localPlayer = JoinPlayer("Local", "#FF0000");
+        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+        var propertyChanged = new List<string?>();
+        _sut.PropertyChanged += (_, args) => propertyChanged.Add(args.PropertyName);
+
+        // Act: the local player becomes active.
+        SetActivePlayer(localPlayer.Id);
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeTrue();
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+
+        // Act: a remote player becomes active.
+        propertyChanged.Clear();
+        SetActivePlayer(remotePlayer.Id);
+
+        // Assert
+        _sut.IsLocalPlayerTurn.ShouldBeFalse();
+        propertyChanged.ShouldContain(nameof(BattleMapViewModel.IsLocalPlayerTurn));
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceANewTurn()
+    {
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+
+        _sut.Game!.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 3
+        });
+
+        var notification = _sut.TurnNotifications.ShouldHaveSingleItem();
+        notification.Kind.ShouldBe(TurnNotificationKind.Turn);
+        notification.Text.ShouldBe("TURN 3", "the localized string is lower case; the VM shapes it");
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceAPhaseChange()
+    {
+        _localizationService.GetString("BattleMap_Notification_Phase").Returns("{0} phase");
+        _localizationService.GetString("Phase_Movement").Returns("Movement");
+
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Movement
+        });
+
+        _sut.TurnNotifications.ShouldHaveSingleItem().Text.ShouldBe("MOVEMENT PHASE");
+    }
+
+    [Fact]
+    public void TurnNotifications_SayNothingAboutResolutionPhases()
+    {
+        // Resolution phases are book-keeping steps rather than phases a player acts in.
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.WeaponAttackResolution
+        });
+
+        _sut.TurnNotifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceOurOwnTurn()
+    {
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
+        var player = JoinPlayer("Local", "#FF0000");
+
+        SetActivePlayer(player.Id);
+
+        var notification = _sut.TurnNotifications.Last();
+        notification.Kind.ShouldBe(TurnNotificationKind.ActivePlayer);
+        notification.Text.ShouldBe("YOUR TURN");
+        notification.Tint.ShouldBe("#FF0000");
+    }
+
+    [Fact]
+    public void TurnNotifications_NameTheOpponentWhoseTurnItIs()
+    {
+        _localizationService.GetString("BattleMap_Notification_PlayersTurn").Returns("{0}'s turn");
+        JoinPlayer("Local", "#FF0000");
+        var remotePlayer = JoinPlayer("Remote", "#0000FF", isLocal: false);
+
+        SetActivePlayer(remotePlayer.Id);
+
+        _sut.TurnNotifications.Last().Text.ShouldBe("REMOTE'S TURN");
+    }
+
+    [Fact]
+    public void TurnNotifications_DoNotRepeatTheSameActivePlayer()
+    {
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
+        var player = JoinPlayer("Local", "#FF0000");
+
+        SetActivePlayer(player.Id);
+        SetActivePlayer(player.Id);
+        _sut.NotifyStateChanged();
+
+        _sut.TurnNotifications.Count(n => n.Kind == TurnNotificationKind.ActivePlayer)
+            .ShouldBe(1, "several commands can arrive while one player is still active");
+    }
+
+    [Fact]
+    public void TurnNotifications_AnnounceASimultaneousTurnStartInOrder()
+    {
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+        _localizationService.GetString("BattleMap_Notification_Phase").Returns("{0} phase");
+        _localizationService.GetString("Phase_Movement").Returns("Movement");
+        _localizationService.GetString("BattleMap_Notification_YourTurn").Returns("your turn");
+        var player = JoinPlayer("Local", "#FF0000");
+
+        // Arrive in an awkward order: whose turn it is, then the phase, then the turn itself.
+        SetActivePlayer(player.Id);
+        _sut.Game!.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Movement
+        });
+        _sut.Game.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 2
+        });
+
+        _sut.TurnNotifications.Select(n => n.Kind).ShouldBe([
+            TurnNotificationKind.Turn,
+            TurnNotificationKind.Phase,
+            TurnNotificationKind.ActivePlayer
+        ]);
+    }
+
+    [Fact]
+    public void TurnNotificationShownCommand_RemovesTheNotificationItWasGiven()
+    {
+        _localizationService.GetString("BattleMap_Notification_Turn").Returns("turn {0}");
+        _sut.Game!.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 4
+        });
+        var notification = _sut.TurnNotifications.ShouldHaveSingleItem();
+
+        _sut.TurnNotificationShownCommand.Execute(notification);
+
+        _sut.TurnNotifications.ShouldBeEmpty();
     }
 
     [Fact]
@@ -222,7 +404,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
-        var endGameViewModel = new EndGameViewModel(_localizationService);
+        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory);
         navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -632,7 +814,7 @@ public class BattleMapViewModelTests
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(2);
         viewModel.HighlightBoundaryOutlines[centerCoords].EdgeMask.ShouldBe((byte)0b111110);
         viewModel.HighlightBoundaryOutlines[topCoords].EdgeMask.ShouldBe((byte)0b110111);
-        viewModel.HighlightBoundaryOutlines[centerCoords].Color.ShouldBe("#00BFFF");
+        viewModel.HighlightBoundaryOutlines[centerCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
         game.BattleMap!.GetHex(centerCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(topCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
     }
@@ -679,9 +861,9 @@ public class BattleMapViewModelTests
 
         // Assert
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
-        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
-        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
-        viewModel.HighlightBoundaryOutlines[attackTopCoords].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[movementCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackTopCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
         game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackTopCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
@@ -711,9 +893,9 @@ public class BattleMapViewModelTests
 
         // Assert
         viewModel.HighlightBoundaryOutlines.Count.ShouldBe(3);
-        viewModel.HighlightBoundaryOutlines[movementCoords].Color.ShouldBe("#00BFFF");
-        viewModel.HighlightBoundaryOutlines[attackCoords].Color.ShouldBe("#FFB347");
-        viewModel.HighlightBoundaryOutlines[attackNeighbour].Color.ShouldBe("#FFB347");
+        viewModel.HighlightBoundaryOutlines[movementCoords].HighlightType.ShouldBeOfType<MovementReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackCoords].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
+        viewModel.HighlightBoundaryOutlines[attackNeighbour].HighlightType.ShouldBeOfType<AttackReachableHighlight>();
         game.BattleMap!.GetHex(movementCoords)!.HasHighlight<MovementReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackCoords)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
         game.BattleMap.GetHex(attackNeighbour)!.HasHighlight<AttackReachableHighlight>().ShouldBeTrue();
@@ -2126,6 +2308,16 @@ public class BattleMapViewModelTests
             WeaponTargets = [weaponTargetData1, weaponTargetData2],
             GameOriginId = Guid.NewGuid()
         };
+
+        // Malformed assignment data should be ignored by the presentation layer.
+        game.HandleCommand(weaponAttackCommand with
+        {
+            WeaponTargets = [weaponTargetData1 with
+            {
+                Weapon = weaponTargetData1.Weapon with { Assignments = [] }
+            }]
+        });
+        _sut.WeaponAttacks.ShouldBeEmpty();
         
         game.HandleCommand(weaponAttackCommand);
         
@@ -2148,6 +2340,13 @@ public class BattleMapViewModelTests
                 ExternalHeat: 0),
             GameOriginId = Guid.NewGuid()
         };
+
+        // A malformed resolution must not abort processing or remove an unrelated attack.
+        game.HandleCommand(resolutionCommand with
+        {
+            WeaponData = resolutionCommand.WeaponData with { Assignments = [] }
+        });
+        _sut.WeaponAttacks.Count.ShouldBe(2);
         
         // Act
         game.HandleCommand(resolutionCommand);
@@ -2772,6 +2971,214 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void ProcessCommand_EchoedStandupThenFailedFall_ShouldNotThrow_AndKeepMovementStateUsable()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position, null);
+        unit.SetProne();
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        _sut.SelectedUnit.ShouldBe(unit);
+        var action = movementState.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        action.OnExecute();
+        _sut.DirectionSelectedCommand.Execute(HexDirection.Top);
+
+        var standupEcho = new TryStandupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            PlayerId = player.Id,
+            NewFacing = HexDirection.Top,
+            MovementTypeAfterStandup = MovementType.Walk,
+            IdempotencyKey = _idempotencyKey
+        };
+
+        var failedFall = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(2),
+                HitDirection.Front),
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+                DiceResults = [2, 3],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+
+        // Act & Assert - the sequence from the crash log: echoed command then failed standup fall
+        Should.NotThrow(() =>
+        {
+            game.HandleCommand(standupEcho);
+            game.HandleCommand(failedFall);
+        });
+
+        unit.IsProne.ShouldBeTrue();
+        var state = _sut.CurrentState as MovementState;
+        state.ShouldNotBeNull();
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
+    public void ProcessCommand_FailedStandupFallAfterStateRefresh_ShouldNotThrow_AndResumeMovementForFallenUnit()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position, null);
+        unit.SetProne();
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt))
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        var action = movementState.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        action.OnExecute();
+        _sut.DirectionSelectedCommand.Execute(HexDirection.Top);
+
+        // a phase-step update recreates the movement state before the fall result arrives
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        var failedFall = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(2),
+                HitDirection.Front),
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt),
+                DiceResults = [2, 3],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+
+        // Act & Assert
+        Should.NotThrow(() => game.HandleCommand(failedFall));
+
+        var state = _sut.CurrentState as MovementState;
+        state.ShouldNotBeNull();
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
+
+    [Fact]
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
     {
         // Arrange
@@ -3139,7 +3546,7 @@ public class BattleMapViewModelTests
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = game;
         var navigationService = Substitute.For<INavigationService>();
-        var endGameViewModel = new EndGameViewModel(_localizationService);
+        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory);
         navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         _sut.SetNavigationService(navigationService);
 

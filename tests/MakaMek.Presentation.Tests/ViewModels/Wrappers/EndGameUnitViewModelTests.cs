@@ -106,6 +106,70 @@ public class EndGameUnitViewModelTests
     }
 
     [Fact]
+    public void PilotData_ShouldBeCaptured_WhenUnitHasPilot()
+    {
+        // Arrange
+        var mech = CreateMech();
+        var pilot = new MechWarrior("Test", "Pilot");
+        typeof(Unit).GetProperty("Pilot")!.SetValue(mech, pilot);
+
+        // Act
+        var sut = new EndGameUnitViewModel(mech);
+
+        // Assert
+        sut.PilotData.ShouldNotBeNull();
+        sut.PilotData!.Value.FirstName.ShouldBe("Test");
+        sut.PilotData.Value.LastName.ShouldBe("Pilot");
+    }
+
+    [Fact]
+    public void PilotData_ShouldBeNull_WhenUnitHasNoPilot()
+    {
+        // Arrange
+        var mech = CreateMech();
+
+        // Act
+        var sut = new EndGameUnitViewModel(mech);
+
+        // Assert
+        sut.PilotData.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CardViewModel_ShouldExposeUnitName_WhenUnitHasNoPilot()
+    {
+        // Arrange
+        var mech = CreateMech();
+        var localizationService = Substitute.For<ILocalizationService>();
+        localizationService.GetString("UnitItem_NoPilot").Returns("No Pilot");
+
+        // Act
+        var sut = new EndGameUnitViewModel(mech, localizationService);
+
+        // Assert
+        sut.CardViewModel.ShouldNotBeNull();
+        sut.CardViewModel.UnitData.ShouldBe(sut.UnitData);
+        sut.CardViewModel.Chassis.ShouldBe(mech.Chassis);
+        sut.CardViewModel.Model.ShouldBe(mech.Model);
+        sut.CardViewModel.PilotName.ShouldBe("No Pilot");
+    }
+
+    [Fact]
+    public void CardViewModel_ShouldExposePilotName_WhenUnitHasPilot()
+    {
+        // Arrange
+        var mech = CreateMech();
+        var pilot = new MechWarrior("Test", "Pilot");
+        typeof(Unit).GetProperty("Pilot")!.SetValue(mech, pilot);
+
+        // Act
+        var sut = new EndGameUnitViewModel(mech, Substitute.For<ILocalizationService>());
+
+        // Assert
+        sut.CardViewModel.PilotName.ShouldBe("Test Pilot");
+    }
+
+    [Fact]
     public void IsPilotDead_ShouldBeTrue_WhenPilotIsDead()
     {
         // Arrange

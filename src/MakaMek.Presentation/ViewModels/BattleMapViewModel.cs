@@ -33,9 +33,9 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// Border outline rendering data for a highlighted hex.
 /// </summary>
 /// <param name="EdgeMask">The 6-bit edge mask to draw.</param>
-/// <param name="Color">The outline color string.</param>
+/// <param name="HighlightType">The highlight the outline belongs to; the renderer resolves its themed brush.</param>
 /// <param name="Thickness">The outline stroke thickness.</param>
-public sealed record HighlightBoundaryOutline(byte EdgeMask, string Color, double Thickness);
+public sealed record HighlightBoundaryOutline(byte EdgeMask, IHexHighlightType HighlightType, double Thickness);
 
 public class BattleMapViewModel : BaseViewModel, IDisposable
 {
@@ -158,7 +158,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null,
         ICommandPublisher? commandPublisher = null,
-        ILogger<ConnectionStatusViewModel>? connectionLogger = null)
+        ILogger? connectionLogger = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
@@ -177,6 +177,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
+        {
+            if (notification != null)
+                TurnNotifications.Remove(notification);
+            return Task.CompletedTask;
+        });
         SurfaceSelectedCommand = new AsyncCommand<HexSurface>(surface =>
         {
             SurfaceSelector?.SelectSurface(surface);
@@ -375,6 +381,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         switch (command)
         {
+            case TurnIncrementedCommand turnCommand:
+                AnnounceTurn(turnCommand.TurnNumber);
+                break;
+            case ChangePhaseCommand phaseCommand:
+                AnnouncePhase(phaseCommand.Phase);
+                break;
+            case ChangeActivePlayerCommand:
+                AnnounceActivePlayer();
+                break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
                 break;
@@ -433,6 +448,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var newAttacks = command.WeaponTargets
             .Select(wt =>
             {
+                var assignment = wt.Weapon.Assignments.FirstOrDefault();
+                if (assignment is null) return null;
+
                 var target = Game.Players
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
@@ -445,8 +463,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // Initial offset for new target
                 // Get the actual weapon from the attacker
                 var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
-                    wt.Weapon.Assignments.First().Location,
-                    wt.Weapon.Assignments.First().FirstSlot);
+                    assignment.Location,
+                    assignment.FirstSlot);
 
                 if (weapon == null) throw new Exception("The weapon is not found");
 
@@ -465,6 +483,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
                 return attack;
             })
+            .Where(attack => attack is not null)
+            .Select(attack => attack!)
             .ToList();
 
         WeaponAttacks.AddRange(newAttacks);
@@ -475,11 +495,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (Game == null || WeaponAttacks == null || !WeaponAttacks.Any()) return;
 
+        var assignment = command.WeaponData.Assignments.FirstOrDefault();
+        if (assignment is null) return;
+
         // Find and remove the attack that matches the weapon name and target ID
         var attacksToRemove = WeaponAttacks
             .Where(attack =>
-                attack.Weapon.SlotAssignments[0].Location == command.WeaponData.Assignments[0].Location
-                && attack.Weapon.SlotAssignments[0].FirstSlot == command.WeaponData.Assignments[0].FirstSlot
+                attack.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
+                && slotAssignment.Location == assignment.Location
+                && slotAssignment.FirstSlot == assignment.FirstSlot
                 && attack.TargetId == command.TargetId)
             .ToList();
 
@@ -559,6 +583,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(Turn));
         NotifyPropertyChanged(nameof(TurnPhaseName));
         NotifyPropertyChanged(nameof(ActivePlayerName));
+        NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
@@ -601,19 +626,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         else
         {
             // Group coordinates by highlight type for boundary computation
-            var groups = new Dictionary<Type, (string Color, HashSet<HexCoordinates> Coords)>();
+            var groups = new Dictionary<Type, (IHexHighlightType Highlight, HashSet<HexCoordinates> Coords)>();
             foreach (var (coord, highlight) in perHexHighlights)
             {
                 var highlightType = highlight.GetType();
                 if (!groups.TryGetValue(highlightType, out _))
-                    groups[highlightType] = (GetBoundaryOutlineColor(highlight), []);
+                    groups[highlightType] = (highlight, []);
                 groups[highlightType].Coords.Add(coord);
             }
 
             var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
-            foreach (var (color, coords) in groups.Values)
+            foreach (var (highlight, coords) in groups.Values)
             {
-                var outliner = ComputeBoundaryOutlines(coords, color);
+                var outliner = ComputeBoundaryOutlines(coords, highlight);
                 // Sets are disjoint per type, so simple addition is safe
                 foreach (var (coord, outline) in outliner)
                     merged[coord] = outline;
@@ -675,8 +700,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return;
         }
 
-        var outlineColor = GetBoundaryOutlineColor(highlightType);
-        var newOutlines = ComputeBoundaryOutlines(coordinates, outlineColor);
+        var newOutlines = ComputeBoundaryOutlines(coordinates, highlightType);
         var merged = new Dictionary<HexCoordinates, HighlightBoundaryOutline>(_highlightBoundaryOutlines);
         foreach (var (coord, outline) in newOutlines)
             merged[coord] = outline;
@@ -685,7 +709,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     private Dictionary<HexCoordinates, HighlightBoundaryOutline> ComputeBoundaryOutlines(
-        IReadOnlySet<HexCoordinates> coordinates, string color)
+        IReadOnlySet<HexCoordinates> coordinates, IHexHighlightType highlightType)
     {
         const double outlineThickness = 2;
         return coordinates
@@ -695,7 +719,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 Mask = TerrainBitmaskService!.ComputeBoundaryMask(c, coordinates)
             })
             .Where(x => x.Mask != 0)
-            .ToDictionary(x => x.Coordinates, x => new HighlightBoundaryOutline(x.Mask, color, outlineThickness));
+            .ToDictionary(x => x.Coordinates, x => new HighlightBoundaryOutline(x.Mask, highlightType, outlineThickness));
     }
 
     private void RemoveHighlightBoundaryOutlines(IReadOnlySet<HexCoordinates> coordinates)
@@ -716,9 +740,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _highlightBoundaryOutlines = new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
         NotifyPropertyChanged(nameof(HighlightBoundaryOutlines));
     }
-
-    private static string GetBoundaryOutlineColor(IHexHighlightType highlightType) =>
-        highlightType.BoundaryOutlineColor;
 
     public List<IUnit> UnitsToDeploy
     {
@@ -750,6 +771,82 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
+
+    /// <summary>
+    /// Indicates whether the active player is a local human player.
+    /// </summary>
+    public bool IsLocalPlayerTurn => Game is
+        { PhaseStepState.ActivePlayer: { Id: var playerId, ControlType: PlayerControlType.Human } }
+        && Game.LocalPlayers.Contains(playerId);
+
+    /// <summary>
+    /// Pending state-change announcements, in the order they should be shown. The banner control
+    /// animates them one at a time and reports each one back through
+    /// <see cref="TurnNotificationShownCommand"/>, which is what removes it.
+    /// </summary>
+    public ObservableCollection<TurnNotification> TurnNotifications { get; } = [];
+
+    /// <summary>
+    /// Invoked by the banner once a notification has finished animating.
+    /// </summary>
+    public ICommand TurnNotificationShownCommand { get; }
+
+    private Guid? _announcedActivePlayerId;
+
+    /// <summary>
+    /// Queues an announcement, keeping simultaneous ones in <see cref="TurnNotificationKind"/>
+    /// order so a new turn always reads turn, then phase, then whose turn it is, whatever order
+    /// the server's commands arrive in.
+    /// </summary>
+    private void Announce(TurnNotification notification)
+    {
+        var index = 0;
+        while (index < TurnNotifications.Count && TurnNotifications[index].Kind <= notification.Kind)
+            index++;
+        TurnNotifications.Insert(index, notification);
+    }
+
+    private void AnnounceTurn(int turnNumber) => Announce(new TurnNotification(
+        TurnNotificationKind.Turn,
+        string.Format(_localizationService.GetString("BattleMap_Notification_Turn"), turnNumber)
+            .ToUpperInvariant(),
+        ActivePlayerTint));
+
+    /// <summary>
+    /// Announces a phase change, skipping the resolution phases: they are book-keeping steps
+    /// rather than phases a player acts in.
+    /// </summary>
+    private void AnnouncePhase(PhaseNames phase)
+    {
+        if (phase.ToString().EndsWith("AttackResolution", StringComparison.Ordinal)) return;
+
+        Announce(new TurnNotification(
+            TurnNotificationKind.Phase,
+            string.Format(_localizationService.GetString("BattleMap_Notification_Phase"),
+                _localizationService.GetString($"Phase_{phase}")).ToUpperInvariant(),
+            ActivePlayerTint));
+    }
+
+    /// <summary>
+    /// Announces whose turn it is, once per change. Re-announcing the same player is suppressed:
+    /// several commands can arrive while one player is still active.
+    /// </summary>
+    private void AnnounceActivePlayer()
+    {
+        if (Game?.PhaseStepState?.ActivePlayer is not { } activePlayer) return;
+        if (_announcedActivePlayerId == activePlayer.Id) return;
+        _announcedActivePlayerId = activePlayer.Id;
+
+        var text = IsLocalPlayerTurn
+            ? _localizationService.GetString("BattleMap_Notification_YourTurn")
+            : string.Format(_localizationService.GetString("BattleMap_Notification_PlayersTurn"),
+                activePlayer.Name);
+
+        Announce(new TurnNotification(
+            TurnNotificationKind.ActivePlayer,
+            text.ToUpperInvariant(),
+            activePlayer.Tint));
+    }
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 

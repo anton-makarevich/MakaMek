@@ -29,6 +29,12 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Re-establishes the most recent LAN or online connection using its saved endpoint/session.
+    /// Returns false when there is no previous connection to retry or the attempt fails.
+    /// </summary>
+    Task<bool> Reconnect(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Leaves the current game connection, removing the client from an online room when
     /// joined through the relay. Best-effort and idempotent: failures are swallowed and
     /// calling this when nothing is connected is a no-op.
@@ -46,6 +52,11 @@ public interface IGameConnector : IDisposable, IAsyncDisposable
     /// Gets a value indicating whether the client is connected to a game server.
     /// </summary>
     bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets whether enough connection information is retained to attempt a reconnect.
+    /// </summary>
+    bool CanReconnect { get; }
 
     /// <summary>
     /// Gets the game id of the authoritative server host after a successful join.

@@ -2,6 +2,7 @@
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -15,6 +16,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -32,15 +34,15 @@ public class EndGameViewModelTests
         var localizationService = new FakeLocalizationService();
         _navigationService = Substitute.For<INavigationService>();
 
-        _sut = new EndGameViewModel(localizationService);
-        _sut.SetNavigationService(_navigationService);
-
         // Create a test game
         var rulesProvider = new TotalWarfareRulesProvider();
         _mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),
             localizationService);
+        _sut = new EndGameViewModel(localizationService, _mechFactory);
+        _sut.SetNavigationService(_navigationService);
+
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var toHitCalculator = Substitute.For<IToHitCalculator>();
         var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
@@ -65,6 +67,26 @@ public class EndGameViewModelTests
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
         return _mechFactory.Create(mechData);
+    }
+
+    private static Player CreatePlayer()
+    {
+        return new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+    }
+
+    private void JoinPlayer(Player player, UnitData unitData,
+        List<PilotAssignmentData>? pilotAssignments = null)
+    {
+        // Note: GameOriginId must be different from the game's ID for the command to be processed
+        _game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Tint = player.Tint,
+            Units = [unitData],
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = pilotAssignments ?? []
+        });
     }
 
     [Fact]
@@ -340,6 +362,56 @@ public class EndGameViewModelTests
 
         // Assert
         _sut.ReturnToMenuText.ShouldBe("Return to Menu");
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldShowReadOnlyUnitInfo_WhenUnitIsProvided()
+    {
+        // Arrange
+        var player = CreatePlayer();
+        var unitData = MechFactoryTests.CreateDummyMechData() with { Id = Guid.NewGuid() };
+        var pilotData = PilotData.CreateDefaultPilot("Test", "Pilot");
+        JoinPlayer(player, unitData,
+            [new PilotAssignmentData { UnitId = unitData.Id!.Value, PilotData = pilotData }]);
+        _sut.Initialize(_game, GameEndReason.Victory);
+        var unitVm = _sut.Players.Single().Units.Single();
+
+        // Act
+        await ((IAsyncCommand<EndGameUnitViewModel>)_sut.ShowUnitInfoCommand).ExecuteAsync(unitVm);
+
+        // Assert
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
+            Arg.Is<UnitInfoViewModel>(vm => !vm.CanEdit && vm.HasPilot));
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldShowUnitInfoWithoutPilot_WhenUnitHasNoPilot()
+    {
+        // Arrange
+        JoinPlayer(CreatePlayer(), MechFactoryTests.CreateDummyMechData());
+        _sut.Initialize(_game, GameEndReason.Victory);
+        var unitVm = _sut.Players.Single().Units.Single();
+
+        // Act
+        await ((IAsyncCommand<EndGameUnitViewModel>)_sut.ShowUnitInfoCommand).ExecuteAsync(unitVm);
+
+        // Assert
+        await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
+            Arg.Is<UnitInfoViewModel>(vm => !vm.CanEdit && !vm.HasPilot));
+    }
+
+    [Fact]
+    public async Task ShowUnitInfoCommand_ShouldNotNavigate_WhenParameterIsNull()
+    {
+        // Arrange
+        _sut.Initialize(_game, GameEndReason.Victory);
+
+        // Act
+        await ((IAsyncCommand<EndGameUnitViewModel>)_sut.ShowUnitInfoCommand).ExecuteAsync(null!);
+
+        // Assert
+        await _navigationService.DidNotReceiveWithAnyArgs()
+            .ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(null!);
     }
     
     [Fact]

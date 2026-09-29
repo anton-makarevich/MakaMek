@@ -24,6 +24,7 @@ public class GameConnector : IGameConnector
 
     private ITransportPublisher? _relayPublisher;
     private ITransportPublisher? _lanPublisher;
+    private string? _lanServerAddress;
     private string? _roomCode;
     private string? _sessionToken;
     private Guid? _deviceSessionId;
@@ -51,6 +52,9 @@ public class GameConnector : IGameConnector
 
     public bool IsConnected { get; private set; }
 
+    /// <inheritdoc />
+    public bool CanReconnect => _roomCode != null || _lanServerAddress != null;
+
     public Guid? ConnectedHostGameId { get; private set; }
 
     public RelayClientError? OnlineError { get; private set; }
@@ -77,6 +81,7 @@ public class GameConnector : IGameConnector
             _lanPublisher = null;
             adapter.AddPublisher(publisher);
             _lanPublisher = publisher;
+            _lanServerAddress = serverAddress;
 
             ConnectedHostGameId = null;
             IsConnected = true;
@@ -245,6 +250,26 @@ public class GameConnector : IGameConnector
     public Task Disconnect(CancellationToken cancellationToken = default) =>
         Teardown();
 
+    /// <summary>
+    /// Reuses the last successful LAN endpoint or online room session to establish a new publisher.
+    /// </summary>
+    public async Task<bool> Reconnect(CancellationToken cancellationToken = default)
+    {
+        if (_roomCode != null)
+        {
+            await JoinOnline(_roomCode, _sessionToken, cancellationToken);
+            return IsConnected;
+        }
+
+        if (_lanServerAddress != null)
+        {
+            await ConnectToLan(_lanServerAddress);
+            return IsConnected;
+        }
+
+        return false;
+    }
+
     private async Task RemoveRelayMembership(string roomCode, string sessionToken, Guid deviceSessionId)
     {
         if (_relayRoomClient == null) return;
@@ -285,6 +310,7 @@ public class GameConnector : IGameConnector
         _roomCode = null;
         _sessionToken = null;
         _deviceSessionId = null;
+        _lanServerAddress = null;
 
         await relayCleanupTask;
         await lanCleanupTask;

@@ -35,10 +35,11 @@ public class ApplySkidAction(Mech mech, MechSkidCommand command) : IGameAction
         if (locationsWithDamagedStructure.Count != 0)
         {
             var critCommand = game.CriticalHitsCalculator
-                .CalculateAndApplyCriticalHits(mech, locationsWithDamagedStructure);
+                .CalculateCriticalHits(mech, locationsWithDamagedStructure);
             if (critCommand != null)
             {
                 critCommand.GameOriginId = game.Id;
+                game.OnCriticalHitsResolution(critCommand);
                 commands.Add(critCommand);
             }
         }
