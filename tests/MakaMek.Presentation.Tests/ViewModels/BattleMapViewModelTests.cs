@@ -4,6 +4,7 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -3333,6 +3334,131 @@ public class BattleMapViewModelTests
             TerrainModifiers = []
         };
     }
+
+    [Fact]
+    public async Task LocallyRejectedCommand_ShowsFeedback()
+    {
+        // A command that fails client-side validation is never published, so no ErrorCommand comes
+        // back for it and this is the only way the player is told.
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+
+        // The player never joined, so the status update fails validation.
+        await _game.SetPlayerReady(new UpdatePlayerStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
+
+        _sut.CommandFeedbackLabel.ShouldBe("Rejected: Validation failed");
+    }
+
+    [Fact]
+    public async Task LocallyRejectedCommand_ShowsNoFeedback_AfterTheHandlersAreDetached()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+
+        _sut.DetachHandlers();
+        await _game.SetPlayerReady(new UpdatePlayerStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task TimedOutCommand_ShowsFeedback()
+    {
+        _localizationService.GetString("BattleMap_CommandTimedOut").Returns("No response from the server");
+        var game = CreateClientGameWithShortAckTimeout();
+        _sut.Game = game;
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+
+        // Nothing echoes the join back, so the acknowledgement times out.
+        await game.JoinGameWithUnits(player, [], []);
+
+        _sut.CommandFeedbackLabel.ShouldBe("No response from the server");
+    }
+
+    [Fact]
+    public async Task TimedOutCommand_ShowsNoFeedback_AfterTheHandlersAreDetached()
+    {
+        // DetachHandlers drops the command subscriptions, so the timeout event has to go with
+        // them. Left attached, a detached view model keeps reacting to a game it no longer shows.
+        _localizationService.GetString("BattleMap_CommandTimedOut").Returns("No response from the server");
+        var game = CreateClientGameWithShortAckTimeout();
+        _sut.Game = game;
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
+
+        _sut.DetachHandlers();
+        await game.JoinGameWithUnits(player, [], []);
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+    }
+
+    [Fact]
+    public void RejectedCommand_ShowsFeedbackThatTheNextAcceptedCommandClears()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+
+        _sut.CommandFeedbackLabel.ShouldBe("Rejected: Validation failed");
+        _sut.IsCommandFeedbackVisible.ShouldBeTrue();
+
+        // Any subsequent accepted command clears the banner
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+        _sut.IsCommandFeedbackVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CommandFeedback_IsCleared_WhenTheGameIsReplaced()
+    {
+        _localizationService.GetString("Command_Error_ValidationFailed").Returns("Validation failed");
+        _localizationService.GetString("BattleMap_CommandRejected").Returns("Rejected: {0}");
+        _game.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = Guid.NewGuid(),
+            ErrorCode = ErrorCode.ValidationFailed
+        });
+        _sut.CommandFeedbackLabel.ShouldNotBeNull();
+
+        // A rejection from a finished game must not carry into the next one.
+        _sut.Game = null;
+
+        _sut.CommandFeedbackLabel.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A client game whose acknowledgement timeout expires almost immediately, so a command that
+    /// is never acknowledged raises CommandTimedOut without the test waiting ten seconds.
+    /// </summary>
+    private ClientGame CreateClientGameWithShortAckTimeout() =>
+        new(new TotalWarfareRulesProvider(),
+            _mechFactory,
+            _commandPublisher,
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            _mapFactory,
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>(),
+            ackTimeoutMilliseconds: 20);
 
     private ClientGame CreateClientGame()
     {

@@ -13,6 +13,7 @@ public class ErrorCommandTest
     [InlineData(ErrorCode.DuplicateCommand)]
     [InlineData(ErrorCode.ValidationFailed)]
     [InlineData(ErrorCode.InvalidGameState)]
+    [InlineData(ErrorCode.UnknownError)]
     public void Render_ShouldFormatCorrectly(ErrorCode errorCode)
     {
         // Arrange
