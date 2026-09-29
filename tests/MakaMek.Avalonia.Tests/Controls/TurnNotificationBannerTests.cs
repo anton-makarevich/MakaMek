@@ -4,6 +4,7 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Logging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -33,6 +34,9 @@ public class TurnNotificationBannerTests
 
     private static readonly TurnNotification ActivePlayer =
         new(TurnNotificationKind.ActivePlayer, "YOUR TURN", "#00FF00");
+
+    private static readonly TurnNotification InitiativeWinner =
+        new(TurnNotificationKind.Initiative, "GRUNT WINS INITIATIVE WITH 12", "#FF0000");
 
     [Fact]
     public Task Banner_IsInvisibleAndNonInteractive_AtRest() => Dispatch(() =>
@@ -242,6 +246,26 @@ public class TurnNotificationBannerTests
     });
 
     [Fact]
+    public Task Announcement_LongerThanTheBanner_WrapsInsteadOfRunningOffTheEdge() => Dispatch(() =>
+    {
+        // Announcements are sentences, not labels, and the longest ones ("<name> wins initiative
+        // with <roll>") run past the width of a phone screen. Without wrapping the text is laid
+        // out on one line and spills out of the banner.
+        const double phoneWidth = 260;
+
+        var (longWindow, longText) = ShowHeldBanner(InitiativeWinner, phoneWidth);
+        var (shortWindow, shortText) = ShowHeldBanner(Turn, phoneWidth);
+
+        longText.Text.ShouldBe(InitiativeWinner.Text);
+        longText.Bounds.Height.ShouldBeGreaterThan(
+            shortText.Bounds.Height,
+            "a long announcement must take more lines than a short one on a phone-sized banner");
+
+        longWindow.Close();
+        shortWindow.Close();
+    });
+
+    [Fact]
     public Task Banner_KeepsAnnouncing_WhenTheShownCommandThrows() => Dispatch(() =>
     {
         // ShownCommand.Execute sits outside the animation try/catch, and the pump is started with
@@ -364,6 +388,33 @@ public class TurnNotificationBannerTests
 
     private static TurnNotificationBanner? FindBanner(BattleMapView view) =>
         view.GetVisualDescendants().OfType<TurnNotificationBanner>().FirstOrDefault();
+
+    /// <summary>
+    /// Shows a banner holding one announcement, placed the way <c>BattleMapView</c> places it, so
+    /// the laid out text can be measured. The animation is a task that never completes, which
+    /// keeps <c>Current</c> - and therefore the banner's text - set for the whole test.
+    /// </summary>
+    private static (Window Window, TextBlock Text) ShowHeldBanner(TurnNotification notification, double width)
+    {
+        var banner = new TurnNotificationBanner
+        {
+            AnimationOverride = () => new TaskCompletionSource().Task,
+            Margin = new Thickness(60, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+            Notifications = [notification]
+        };
+
+        var window = new Window
+        {
+            Width = width,
+            Height = 400,
+            Content = banner
+        };
+        window.Show();
+        Settle(window);
+
+        return (window, banner.GetVisualDescendants().OfType<TextBlock>().Single());
+    }
 
     private static (Window Window, BattleMapView View) ShowBattleMap()
     {
