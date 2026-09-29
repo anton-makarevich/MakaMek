@@ -6,7 +6,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
-public interface IRulesProvider
+public interface IRulesProvider : IMovementCostProvider
 {
     Dictionary<PartLocation, int> GetStructureValues(int tonnage);
 
