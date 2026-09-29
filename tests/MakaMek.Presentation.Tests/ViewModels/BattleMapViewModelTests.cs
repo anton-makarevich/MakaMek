@@ -214,6 +214,46 @@ public class BattleMapViewModelTests
         .ToList();
 
     [Fact]
+    public void InitiativeWinner_IsAnnounced_WhenTheRealServerSequenceIsReplayed()
+    {
+        // Replays exactly what InitiativePhase.AutoRollForAllPlayers publishes: an active-player
+        // change before each roll, then the phase move. The existing test sends only the two rolls,
+        // which is not what a running game looks like.
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner")
+            .Returns("{0} won with {1}");
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+        SetPhase(PhaseNames.Initiative);
+        SetActivePlayer(winner);
+        RollInitiative(winner.Id, 10);
+        SetActivePlayer(loser);
+        RollInitiative(loser.Id, 4);
+        SetPhase(PhaseNames.Movement);
+
+        // Position, not just presence. The first version of this test asserted only that an
+        // Initiative notification existed, which passed while the banner was being announced
+        // before the phase it reports on - the maintainer found that by playing the game.
+        _sut.TurnNotifications.Select(n => n.Kind).ShouldBe([
+            TurnNotificationKind.Turn,
+            TurnNotificationKind.Phase,        // initiative phase
+            TurnNotificationKind.Initiative,   // who won it
+            TurnNotificationKind.Phase,        // movement phase
+            TurnNotificationKind.ActivePlayer,
+            TurnNotificationKind.ActivePlayer
+        ]);
+    }
+
+    private void SetActivePlayer(Player player)
+        => _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+
+    [Fact]
     public void InitiativeWinner_IsAnnounced_OnceEveryPlayerHasRolled()
     {
         _localizationService.GetString("BattleMap_Notification_InitiativeWinner")

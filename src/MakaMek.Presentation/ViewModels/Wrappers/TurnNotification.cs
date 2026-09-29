@@ -1,16 +1,18 @@
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 /// <summary>
-/// The kind of state change a notification announces. The order of the members is the order
-/// simultaneous notifications are announced in, so a turn that starts with an initiative result,
-/// a new phase and a new active player always reads turn, who won initiative, then phase, then
-/// whose turn it is.
+/// The kind of state change a notification announces. Simultaneous notifications are announced in
+/// rank order, so a turn that starts with a new turn, a new phase and a new active player always
+/// reads turn, then phase, then whose turn it is.
+///
+/// Rank is not the member order: a phase and a result produced by that phase share a rank so they
+/// queue in arrival order. See BattleMapViewModel's announcement rank.
 /// </summary>
 public enum TurnNotificationKind
 {
     Turn,
-    Initiative,
     Phase,
+    Initiative,
     ActivePlayer
 }
 

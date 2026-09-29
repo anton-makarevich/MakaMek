@@ -891,11 +891,29 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     private void Announce(TurnNotification notification)
     {
+        var rank = AnnouncementRank(notification.Kind);
         var index = 0;
-        while (index < TurnNotifications.Count && TurnNotifications[index].Kind <= notification.Kind)
+        while (index < TurnNotifications.Count && AnnouncementRank(TurnNotifications[index].Kind) <= rank)
             index++;
         TurnNotifications.Insert(index, notification);
     }
+
+    /// <summary>
+    /// Where a notification sits relative to others queued at the same moment.
+    ///
+    /// A phase and a result of that phase share a rank deliberately. The initiative winner is only
+    /// known once the last roll lands, which is after the initiative phase has been announced and
+    /// before the movement phase is - and equal ranks queue in arrival order, so sharing a rank is
+    /// what puts the result between the two phase banners. Ranking it ahead of phases announced it
+    /// before the phase it reports on; ranking it behind them announced it after the next phase.
+    /// </summary>
+    private static int AnnouncementRank(TurnNotificationKind kind) => kind switch
+    {
+        TurnNotificationKind.Turn => 0,
+        TurnNotificationKind.Phase or TurnNotificationKind.Initiative => 1,
+        TurnNotificationKind.ActivePlayer => 2,
+        _ => 3
+    };
 
     private void AnnounceTurn(int turnNumber) => Announce(new TurnNotification(
         TurnNotificationKind.Turn,
