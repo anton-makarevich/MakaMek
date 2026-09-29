@@ -972,7 +972,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     private void ProcessInitiativeRoll(DiceRolledCommand command)
     {
-        if (Game?.Players.FirstOrDefault(player => player.Id == command.PlayerId) is not { } player) return;
+        if (Game?.Players.FirstOrDefault(p => p.Id == command.PlayerId) is not { } player) return;
 
         if (_initiativeOrder.HasPlayerRolledInCurrentRound(player))
         {
