@@ -51,6 +51,31 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+    /// <summary>
+    /// The latest roll of each player, kept only to report the roll that decided initiative.
+    /// </summary>
+    private readonly Dictionary<Guid, int> _initiativeRolls = [];
+    /// <summary>
+    /// The initiative rolls of the turn, re-rolls included, ordered the way the server orders them:
+    /// the first round settles who leads and a re-roll only breaks the tie it was called for.
+    /// </summary>
+    private readonly InitiativeOrder _initiativeOrder = new();
+    /// <summary>
+    /// The players whose roll decides the round being resolved: everyone alive for the first round,
+    /// the players tied at the previous highest roll for every re-roll after that.
+    /// </summary>
+    private IReadOnlyList<IPlayer> _initiativeRoundRollers = [];
+    private bool _initiativeWinnerAnnounced;
+
+    /// <summary>
+    /// The phase as of the command currently being processed, which is not the same thing as
+    /// <see cref="IClientGame.TurnPhase"/>. Commands are delivered through ObserveOn, so a handler
+    /// runs after the command arrived, and the server publishes a whole phase worth of commands in
+    /// one synchronous burst: by the time a deferred handler runs, the live phase has often moved
+    /// on. Anything in ProcessCommand that needs to know "which phase was this command part of"
+    /// must read this, not the game.
+    /// </summary>
+    private PhaseNames? _commandStreamPhase;
     private IClientGame? _commandFeedbackGame;
 
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
@@ -381,6 +406,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _commandFeedbackGame.CommandTimedOut += OnCommandTimedOut;
         _commandFeedbackGame.CommandRejectedLocally += OnCommandRejectedLocally;
 
+        _commandStreamPhase = Game.TurnPhase;
         _commandSubscription = Game.Commands
             .ObserveOn(_dispatcherService.Scheduler)
             .Subscribe(ProcessCommand);
@@ -456,13 +482,18 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         switch (command)
         {
             case TurnIncrementedCommand turnCommand:
+                ResetInitiativeTracking();
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
+                _commandStreamPhase = phaseCommand.Phase;
                 AnnouncePhase(phaseCommand.Phase);
                 break;
             case ChangeActivePlayerCommand:
                 AnnounceActivePlayer();
+                break;
+            case DiceRolledCommand diceRolledCommand when _commandStreamPhase == PhaseNames.Initiative:
+                ProcessInitiativeRoll(diceRolledCommand);
                 break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
@@ -487,6 +518,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // HexRenderControl re-renders via TerrainsChanged subscription
                 break;
         }
+
+        // Initiative does not publish PhaseStepChanges, so promote the state when
+        // the server assigns the next player to roll.
+        if (Game?.TurnPhase == PhaseNames.Initiative && command is ChangeActivePlayerCommand)
+            UpdateGamePhase();
 
         NotifyStateChanged();
     }
@@ -602,6 +638,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var phase = Game.TurnPhase;
         switch (phase)
         {
+            case PhaseNames.Initiative when phaseState.ActivePlayer != null:
+                TransitionToState(new InitiativeState(this));
+                break;
             case PhaseNames.Deployment when phaseState.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
@@ -875,8 +914,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     private void Announce(TurnNotification notification)
     {
+        var rank = notification.Kind.AnnouncementRank();
         var index = 0;
-        while (index < TurnNotifications.Count && TurnNotifications[index].Kind <= notification.Kind)
+        while (index < TurnNotifications.Count && TurnNotifications[index].Kind.AnnouncementRank() <= rank)
             index++;
         TurnNotifications.Insert(index, notification);
     }
@@ -924,6 +964,71 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
+
+    /// <summary>
+    /// Records a roll for the initiative banner. A player who has already rolled opens a re-roll:
+    /// the server only asks a player to roll twice when they tied the previous round's highest
+    /// roll, and that tie is the one this round decides.
+    /// </summary>
+    private void ProcessInitiativeRoll(DiceRolledCommand command)
+    {
+        if (Game?.Players.FirstOrDefault(p => p.Id == command.PlayerId) is not { } player) return;
+
+        if (_initiativeOrder.HasPlayerRolledInCurrentRound(player))
+        {
+            _initiativeRoundRollers = _initiativeOrder.GetTiedPlayers();
+            _initiativeOrder.StartNewRoll();
+        }
+        else if (!_initiativeOrder.HasPlayer(player))
+        {
+            _initiativeRoundRollers = Game.AlivePlayers;
+        }
+
+        _initiativeRolls[player.Id] = command.Roll;
+        _initiativeOrder.AddResult(player, command.Roll);
+
+        AnnounceInitiativeWinner();
+    }
+
+    /// <summary>
+    /// Announces who won initiative, once the round that decides it has been rolled in full and one
+    /// player is clear of the rest. A tie is re-rolled server side, so this runs again for the
+    /// re-rolls; a turn gets a single announcement because the phase moves on as soon as there is a
+    /// winner.
+    /// </summary>
+    private void AnnounceInitiativeWinner()
+    {
+        if (_initiativeWinnerAnnounced) return;
+        if (!_initiativeRoundRollers.All(_initiativeOrder.HasPlayerRolledInCurrentRound)) return;
+        if (GetInitiativeWinner() is not { } winner) return;
+
+        _initiativeWinnerAnnounced = true;
+        Announce(new TurnNotification(
+            TurnNotificationKind.Initiative,
+            string.Format(_localizationService.GetString("BattleMap_Notification_InitiativeWinner"),
+                winner.Name, _initiativeRolls[winner.Id]).ToUpperInvariant(),
+            winner.Tint));
+    }
+
+    /// <summary>
+    /// The player the server orders first, or null while the lead is still tied. The order settles
+    /// the winner of the first round and lets every re-roll break only the tie it was called for,
+    /// so a tie left in the round being rolled means another one is still to come. Only called once
+    /// a roll has been recorded, so the order is never empty here.
+    /// </summary>
+    private IPlayer? GetInitiativeWinner() =>
+        _initiativeOrder.HasTies() ? null : _initiativeOrder.GetOrderedPlayers().FirstOrDefault();
+
+    /// <summary>
+    /// Clears what the initiative phase of a turn collected, which no later turn can contribute to.
+    /// </summary>
+    private void ResetInitiativeTracking()
+    {
+        _initiativeRolls.Clear();
+        _initiativeOrder.Clear();
+        _initiativeRoundRollers = [];
+        _initiativeWinnerAnnounced = false;
+    }
 
     public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
