@@ -241,6 +241,28 @@ public class TurnNotificationBannerTests
         resourcesLocator.TryFindResource("TurnNotificationAnimation").ShouldBeOfType<Animation>();
     });
 
+    [Fact]
+    public Task Banner_KeepsAnnouncing_WhenTheShownCommandThrows() => Dispatch(() =>
+    {
+        // ShownCommand.Execute sits outside the animation try/catch, and the pump is started with
+        // SafeFireAndForget and no handler - so a throwing source would kill announcements for the
+        // rest of the session, silently. A second notification must still be announced.
+        var notifications = new ObservableCollection<TurnNotification> { Turn, Phase };
+        var played = new List<string>();
+        var banner = new TurnNotificationBanner();
+        banner.AnimationOverride = () => Task.CompletedTask;
+        banner.ShownCommand = new AsyncCommand<TurnNotification>(notification =>
+        {
+            played.Add(notification!.Text);
+            notifications.Remove(notification);
+            throw new InvalidOperationException("source blew up");
+        });
+        banner.Notifications = notifications;
+        Dispatcher.UIThread.RunJobs();
+
+        played.Count.ShouldBe(2, "a throwing source must not stop the queue");
+    });
+
     private static TurnNotificationBanner CreateBanner(
         ObservableCollection<TurnNotification> notifications, List<string> shown)
     {

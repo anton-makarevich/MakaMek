@@ -168,8 +168,18 @@ public class TurnNotificationBanner : TemplatedControl
                 }
                 Current = null;
 
-                if (ShownCommand?.CanExecute(notification) == true)
-                    ShownCommand.Execute(notification);
+                try
+                {
+                    if (ShownCommand?.CanExecute(notification) == true)
+                        ShownCommand.Execute(notification);
+                }
+                catch (Exception)
+                {
+                    // A source that throws while being told an announcement was shown must not
+                    // take the queue down with it. The pump is started with SafeFireAndForget and
+                    // no handler, so the exception would otherwise vanish and whatever is already
+                    // queued would sit there until an unrelated notification arrived.
+                }
 
                 // The source removes it, which is what advances the queue. Look for the announced
                 // object anywhere in the queue rather than just at the head: a higher priority

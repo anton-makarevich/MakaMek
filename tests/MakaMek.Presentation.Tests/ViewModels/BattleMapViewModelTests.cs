@@ -245,6 +245,76 @@ public class BattleMapViewModelTests
         ]);
     }
 
+    [Fact]
+    public void InitiativeWinner_IsAnnouncedAfterItsPhase_WhenATieIsRerolled()
+    {
+        // Replays the reroll path: every player rolls, ties, then the tied players roll again.
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var second = JoinPlayerWithUnit("Second", "#00FF00");
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+        SetPhase(PhaseNames.Initiative);
+        SetActivePlayer(first);
+        RollInitiative(first.Id, 7);
+        SetActivePlayer(second);
+        RollInitiative(second.Id, 7);          // tie - nothing to announce yet
+        InitiativeAnnouncements().ShouldBeEmpty();
+        SetActivePlayer(first);
+        RollInitiative(first.Id, 9);           // reroll breaks it
+        SetPhase(PhaseNames.Movement);
+
+        var kinds = _sut.TurnNotifications.Select(n => n.Kind).ToList();
+        kinds.IndexOf(TurnNotificationKind.Initiative)
+            .ShouldBeGreaterThan(kinds.IndexOf(TurnNotificationKind.Phase),
+                "the winner must follow the initiative phase banner, not precede it");
+        kinds.IndexOf(TurnNotificationKind.Initiative)
+            .ShouldBeLessThan(kinds.LastIndexOf(TurnNotificationKind.Phase),
+                "and must precede the movement phase banner");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsAnnouncedAfterItsPhase_WithThreePlayers()
+    {
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var a = JoinPlayerWithUnit("A", "#FF0000");
+        var b = JoinPlayerWithUnit("B", "#00FF00");
+        var c = JoinPlayerWithUnit("C", "#0000FF");
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+        SetPhase(PhaseNames.Initiative);
+        SetActivePlayer(a); RollInitiative(a.Id, 5);
+        SetActivePlayer(b); RollInitiative(b.Id, 11);
+        SetActivePlayer(c); RollInitiative(c.Id, 8);
+        SetPhase(PhaseNames.Movement);
+
+        var announcement = InitiativeAnnouncements().ShouldHaveSingleItem();
+        announcement.Text.ShouldBe("B WON WITH 11");
+        var kinds = _sut.TurnNotifications.Select(n => n.Kind).ToList();
+        kinds.IndexOf(TurnNotificationKind.Initiative)
+            .ShouldBeGreaterThan(kinds.IndexOf(TurnNotificationKind.Phase));
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsStillAnnounced_WhenEarlierBannersHaveAlreadyBeenShown()
+    {
+        // The banner control removes each notification once it has animated, so by the time the
+        // last roll lands the queue may be empty. The winner must still be announced.
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+        SetPhase(PhaseNames.Initiative);
+        SetActivePlayer(winner);
+        RollInitiative(winner.Id, 10);
+        _sut.TurnNotifications.Clear();        // everything queued so far has been shown
+        SetActivePlayer(loser);
+        RollInitiative(loser.Id, 4);
+
+        InitiativeAnnouncements().ShouldHaveSingleItem().Text.ShouldBe("WINNER WON WITH 10");
+    }
+
     private void SetActivePlayer(Player player)
         => _game.HandleCommand(new ChangeActivePlayerCommand
         {
