@@ -107,6 +107,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Command_Error_DuplicateCommand"] = "Duplicate command detected",
         ["Command_Error_ValidationFailed"] = "Validation failed",
         ["Command_Error_InvalidGameState"] = "Invalid game state",
+        ["Command_Error_UnknownError"] = "Unknown error",
         ["PilotingSkillRollType_GyroHit"] = "Gyro Hit",
         ["PilotingSkillRollType_GyroDestroyed"] = "Gyro Destroyed",
         ["PilotingSkillRollType_PilotDamageFromFall"] = "Pilot Damage From Fall",
