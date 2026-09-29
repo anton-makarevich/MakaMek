@@ -51,8 +51,21 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
+    /// <summary>
+    /// The latest roll of each player, kept only to report the roll that decided initiative.
+    /// </summary>
     private readonly Dictionary<Guid, int> _initiativeRolls = [];
-    private Guid? _announcedInitiativeWinnerId;
+    /// <summary>
+    /// The initiative rolls of the turn, re-rolls included, ordered the way the server orders them:
+    /// the first round settles who leads and a re-roll only breaks the tie it was called for.
+    /// </summary>
+    private readonly InitiativeOrder _initiativeOrder = new();
+    /// <summary>
+    /// The players whose roll decides the round being resolved: everyone alive for the first round,
+    /// the players tied at the previous highest roll for every re-roll after that.
+    /// </summary>
+    private IReadOnlyList<IPlayer> _initiativeRoundRollers = [];
+    private bool _initiativeWinnerAnnounced;
 
     /// <summary>
     /// The phase as of the command currently being processed, which is not the same thing as
@@ -469,8 +482,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         switch (command)
         {
             case TurnIncrementedCommand turnCommand:
-                _initiativeRolls.Clear();
-                _announcedInitiativeWinnerId = null;
+                ResetInitiativeTracking();
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
@@ -481,8 +493,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 AnnounceActivePlayer();
                 break;
             case DiceRolledCommand diceRolledCommand when _commandStreamPhase == PhaseNames.Initiative:
-                _initiativeRolls[diceRolledCommand.PlayerId] = diceRolledCommand.Roll;
-                AnnounceInitiativeWinner(Game);
+                ProcessInitiativeRoll(diceRolledCommand);
                 break;
             case WeaponAttackDeclarationCommand weaponCommand:
                 ProcessWeaponAttackDeclaration(weaponCommand);
@@ -955,17 +966,43 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 
     /// <summary>
-    /// Announces who won initiative once every player has rolled and one of them is clear of the
-    /// rest. A tie is re-rolled server side, so this runs again when the re-rolls land.
+    /// Records a roll for the initiative banner. A player who has already rolled opens a re-roll:
+    /// the server only asks a player to roll twice when they tied the previous round's highest
+    /// roll, and that tie is the one this round decides.
     /// </summary>
-    private void AnnounceInitiativeWinner(IClientGame game)
+    private void ProcessInitiativeRoll(DiceRolledCommand command)
     {
-        if (_initiativeRolls.Count < game.AlivePlayers.Count) return;
+        if (Game?.Players.FirstOrDefault(player => player.Id == command.PlayerId) is not { } player) return;
 
-        var winner = GetInitiativeWinner(game);
-        if (winner == null || _announcedInitiativeWinnerId == winner.Id) return;
+        if (_initiativeOrder.HasPlayerRolledInCurrentRound(player))
+        {
+            _initiativeRoundRollers = _initiativeOrder.GetTiedPlayers();
+            _initiativeOrder.StartNewRoll();
+        }
+        else if (!_initiativeOrder.HasPlayer(player))
+        {
+            _initiativeRoundRollers = Game.AlivePlayers;
+        }
 
-        _announcedInitiativeWinnerId = winner.Id;
+        _initiativeRolls[player.Id] = command.Roll;
+        _initiativeOrder.AddResult(player, command.Roll);
+
+        AnnounceInitiativeWinner();
+    }
+
+    /// <summary>
+    /// Announces who won initiative, once the round that decides it has been rolled in full and one
+    /// player is clear of the rest. A tie is re-rolled server side, so this runs again for the
+    /// re-rolls; a turn gets a single announcement because the phase moves on as soon as there is a
+    /// winner.
+    /// </summary>
+    private void AnnounceInitiativeWinner()
+    {
+        if (_initiativeWinnerAnnounced) return;
+        if (!_initiativeRoundRollers.All(_initiativeOrder.HasPlayerRolledInCurrentRound)) return;
+        if (GetInitiativeWinner() is not { } winner) return;
+
+        _initiativeWinnerAnnounced = true;
         Announce(new TurnNotification(
             TurnNotificationKind.Initiative,
             string.Format(_localizationService.GetString("BattleMap_Notification_InitiativeWinner"),
@@ -974,19 +1011,23 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
-    /// The single highest roller, or null when the highest roll is tied. Only called once a roll
-    /// has been recorded, so the roll set is never empty here.
+    /// The player the server orders first, or null while the lead is still tied. The order settles
+    /// the winner of the first round and lets every re-roll break only the tie it was called for,
+    /// so a tie left in the round being rolled means another one is still to come. Only called once
+    /// a roll has been recorded, so the order is never empty here.
     /// </summary>
-    private IPlayer? GetInitiativeWinner(IClientGame game)
-    {
-        var highestRoll = _initiativeRolls.Values.Max();
-        var winners = _initiativeRolls
-            .Where(result => result.Value == highestRoll)
-            .Select(result => game.Players.FirstOrDefault(player => player.Id == result.Key))
-            .OfType<IPlayer>()
-            .ToList();
+    private IPlayer? GetInitiativeWinner() =>
+        _initiativeOrder.HasTies() ? null : _initiativeOrder.GetOrderedPlayers().FirstOrDefault();
 
-        return winners.Count == 1 ? winners[0] : null;
+    /// <summary>
+    /// Clears what the initiative phase of a turn collected, which no later turn can contribute to.
+    /// </summary>
+    private void ResetInitiativeTracking()
+    {
+        _initiativeRolls.Clear();
+        _initiativeOrder.Clear();
+        _initiativeRoundRollers = [];
+        _initiativeWinnerAnnounced = false;
     }
 
     public bool AreActionsMenuOffMap => _platformService.IsMobile;

@@ -261,7 +261,9 @@ public class BattleMapViewModelTests
         RollInitiative(second.Id, 7);          // tie - nothing to announce yet
         InitiativeAnnouncements().ShouldBeEmpty();
         SetActivePlayer(first);
-        RollInitiative(first.Id, 9);           // reroll breaks it
+        RollInitiative(first.Id, 9);           // reroll, broken once the other tied player answers
+        SetActivePlayer(second);
+        RollInitiative(second.Id, 5);
         SetPhase(PhaseNames.Movement);
 
         var kinds = _sut.TurnNotifications.Select(n => n.Kind).ToList();
@@ -396,6 +398,73 @@ public class BattleMapViewModelTests
         RollInitiative(loser.Id, 4);
 
         InitiativeAnnouncements().ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsNotAnnounced_UntilEveryTiedPlayerHasRerolled()
+    {
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var second = JoinPlayerWithUnit("Second", "#00FF00");
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(first.Id, 7);
+        RollInitiative(second.Id, 7);
+
+        // Only one of the two tied players has re-rolled, so the round they tie-break is not over:
+        // the other one still has a say in who goes first.
+        RollInitiative(first.Id, 9);
+        InitiativeAnnouncements().ShouldBeEmpty("the tied player that has not re-rolled decides the round");
+
+        RollInitiative(second.Id, 5);
+        InitiativeAnnouncements().ShouldHaveSingleItem().Text.ShouldBe("FIRST WON WITH 9");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsTheTopReroller_NotAPlayerTheRerollLeftBehind()
+    {
+        // Only the players tied at the previous highest roll re-roll, so a player outside the tie
+        // keeps the roll it already had. Reading the re-rolls as if every player had re-rolled
+        // announced that player, who had in fact lost the round before the re-roll was called.
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var second = JoinPlayerWithUnit("Second", "#00FF00");
+        var leftBehind = JoinPlayerWithUnit("LeftBehind", "#0000FF");
+        SetPhase(PhaseNames.Initiative);
+
+        RollInitiative(first.Id, 10);
+        RollInitiative(second.Id, 10);       // first and second tie for the lead
+        RollInitiative(leftBehind.Id, 9);    // left behind, it is not in the re-roll
+        InitiativeAnnouncements().ShouldBeEmpty("the lead is tied, so there is no winner yet");
+
+        RollInitiative(first.Id, 2);
+        InitiativeAnnouncements().ShouldBeEmpty("the round is over only once both tied players re-rolled");
+
+        RollInitiative(second.Id, 3);
+
+        InitiativeAnnouncements().ShouldHaveSingleItem().Text.ShouldBe("SECOND WON WITH 3");
+    }
+
+    [Fact]
+    public void InitiativeWinner_IsAnnounced_OnEveryTurnItIsRolled()
+    {
+        _localizationService.GetString("BattleMap_Notification_InitiativeWinner").Returns("{0} won with {1}");
+        var winner = JoinPlayerWithUnit("Winner", "#FF0000");
+        var loser = JoinPlayerWithUnit("Loser", "#00FF00");
+
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 1 });
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 10);
+        RollInitiative(loser.Id, 4);
+        SetPhase(PhaseNames.Movement);
+
+        // The same player wins again: the turn increment is what allows a second announcement.
+        _game.HandleCommand(new TurnIncrementedCommand { GameOriginId = Guid.NewGuid(), TurnNumber = 2 });
+        SetPhase(PhaseNames.Initiative);
+        RollInitiative(winner.Id, 8);
+        RollInitiative(loser.Id, 3);
+
+        InitiativeAnnouncements().Select(notification => notification.Text)
+            .ShouldBe(["WINNER WON WITH 10", "WINNER WON WITH 8"]);
     }
 
     [Fact]
