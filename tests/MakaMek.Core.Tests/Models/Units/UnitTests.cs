@@ -5,6 +5,8 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -60,6 +62,46 @@ public class UnitTests
         {
             return [];
         }
+    }
+
+    /// <summary>
+    /// Overrides the legacy (parameterless) modifier members so the rules-provider overloads on the
+    /// base <see cref="Unit"/> can be shown to defer to them rather than returning their own defaults.
+    /// </summary>
+    private class LegacyModifierUnit()
+        : TestUnit("Legacy", "Unit", 20, [new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10)])
+    {
+        public static readonly HeatRollModifier Penalty = new() { HeatLevel = 14, Value = 3 };
+        public static readonly IReadOnlyList<RollModifier> Modifiers = [Penalty];
+
+        public override HeatRollModifier? AttackHeatPenalty => Penalty;
+        public override IReadOnlyList<RollModifier> MovementModifiers => Modifiers;
+    }
+
+    [Fact]
+    public void GetAttackHeatPenalty_WithRulesProvider_ShouldDeferToTheLegacyMember_OnTheBaseUnit()
+    {
+        var unit = new LegacyModifierUnit();
+
+        unit.GetAttackHeatPenalty(_rulesProvider).ShouldBeSameAs(LegacyModifierUnit.Penalty);
+    }
+
+    [Fact]
+    public void GetMovementModifiers_WithRulesProvider_ShouldDeferToTheLegacyMember_OnTheBaseUnit()
+    {
+        var unit = new LegacyModifierUnit();
+
+        unit.GetMovementModifiers(_rulesProvider).ShouldBeSameAs(LegacyModifierUnit.Modifiers);
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithRulesProvider_ShouldMatchTheLegacyOverload_WhenRulesAddNoPenalty()
+    {
+        var unit = CreateTestUnit(walkMp: 5);
+
+        unit.GetMovementPoints(MovementType.Walk, _rulesProvider).ShouldBe(5);
+        unit.GetMovementPoints(MovementType.Walk, _rulesProvider)
+            .ShouldBe(unit.GetMovementPoints(MovementType.Walk));
     }
 
     public class TestUnit(
