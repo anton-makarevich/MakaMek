@@ -47,7 +47,7 @@ jobs:
         uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net10.0-browser/publish/wwwroot
 

@@ -18,5 +18,7 @@ public enum ErrorCode
     /// <summary>
     /// Command is not allowed in the current game state
     /// </summary>
-    InvalidGameState
+    InvalidGameState,
+    
+    UnknownError
 }

@@ -53,6 +53,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
     private readonly Dictionary<Guid, int> _initiativeRolls = [];
     private Guid? _announcedInitiativeWinnerId;
+    private IClientGame? _commandFeedbackGame;
 
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
@@ -299,6 +300,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         get => _game;
         set
         {
+            CommandFeedbackLabel = null;
             SetProperty(ref _game, value);
             SubscribeToGameChanges();
         }
@@ -307,6 +309,26 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public ILocalizationService LocalizationService => _localizationService;
 
     public IReadOnlyCollection<string> CommandLog => _commandLog;
+
+    /// <summary>
+    /// Gets the latest server rejection message for display without opening the command log.
+    /// </summary>
+    public string? CommandFeedbackLabel
+    {
+        get;
+        private set
+        {
+            var changed = !string.Equals(field, value, StringComparison.Ordinal);
+            SetProperty(ref field, value);
+            if (changed)
+                NotifyPropertyChanged(nameof(IsCommandFeedbackVisible));
+        }
+    }
+
+    /// <summary>
+    /// Gets whether a command rejection should be shown in the turn-status area.
+    /// </summary>
+    public bool IsCommandFeedbackVisible => !string.IsNullOrWhiteSpace(CommandFeedbackLabel);
 
     public bool IsGameOver
     {
@@ -353,8 +375,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        UnsubscribeFromCommandFeedback();
 
         if (Game is null) return;
+
+        _commandFeedbackGame = Game;
+        _commandFeedbackGame.CommandTimedOut += OnCommandTimedOut;
+        _commandFeedbackGame.CommandRejectedLocally += OnCommandRejectedLocally;
 
         _commandSubscription = Game.Commands
             .ObserveOn(_dispatcherService.Scheduler)
@@ -374,12 +401,59 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             });
     }
 
+    /// <summary>
+    /// Detaches the game event behind the command feedback. Safe to call more than once, and
+    /// called from every teardown path so a detached view model never outlives its subscription.
+    /// </summary>
+    private void UnsubscribeFromCommandFeedback()
+    {
+        if (_commandFeedbackGame != null)
+        {
+            _commandFeedbackGame.CommandTimedOut -= OnCommandTimedOut;
+            _commandFeedbackGame.CommandRejectedLocally -= OnCommandRejectedLocally;
+        }
+        _commandFeedbackGame = null;
+    }
+
+    /// <summary>
+    /// Reports a command the client refused to send. These never reach the server, so no
+    /// <see cref="ErrorCommand"/> comes back and this is the only way the player sees them.
+    /// </summary>
+    private void OnCommandRejectedLocally(ErrorCode errorCode)
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            CommandFeedbackLabel = string.Format(
+                _localizationService.GetString("BattleMap_CommandRejected"),
+                _localizationService.GetString($"Command_Error_{errorCode}"));
+        });
+    }
+
+    private void OnCommandTimedOut()
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            CommandFeedbackLabel = _localizationService.GetString("BattleMap_CommandTimedOut");
+        });
+    }
+
     private void ProcessCommand(IGameCommand command)
     {
         if (Game == null) return;
         var formattedCommand = command.Render(_localizationService, Game);
         _commandLog.Add(formattedCommand);
         NotifyPropertyChanged(nameof(CommandLog));
+
+        if (command is ErrorCommand)
+        {
+            CommandFeedbackLabel = string.Format(
+                _localizationService.GetString("BattleMap_CommandRejected"),
+                formattedCommand);
+        }
+        else if (CommandFeedbackLabel != null)
+        {
+            CommandFeedbackLabel = null;
+        }
 
         switch (command)
         {
@@ -602,6 +676,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
+        NotifyPropertyChanged(nameof(IsCommandFeedbackVisible));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
@@ -1230,6 +1305,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         ConnectionStatus.Dispose();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        UnsubscribeFromCommandFeedback();
         if (Game is { IsDisposed: false })
         {
             Game.Dispose();
@@ -1261,6 +1337,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         base.DetachHandlers();
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
+        UnsubscribeFromCommandFeedback();
         ConnectionStatus.Subscribe(null, Scheduler);
     }
 

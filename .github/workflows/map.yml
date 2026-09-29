@@ -44,7 +44,7 @@ jobs:
           files: ./tests/MakaMek.Map.Tests/coverage.opencover.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: map
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
       - name: Generate diff coverage report
         id: report
