@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Logging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AsyncAwaitBestPractices.MVVM;
@@ -33,6 +34,9 @@ public class TurnNotificationBannerTests
 
     private static readonly TurnNotification ActivePlayer =
         new(TurnNotificationKind.ActivePlayer, "YOUR TURN", "#00FF00");
+
+    private static readonly TurnNotification InitiativeWinner =
+        new(TurnNotificationKind.Initiative, "GRUNT WINS INITIATIVE WITH 12", "#FF0000");
 
     [Fact]
     public Task Banner_IsInvisibleAndNonInteractive_AtRest() => Dispatch(() =>
@@ -241,6 +245,132 @@ public class TurnNotificationBannerTests
         resourcesLocator.TryFindResource("TurnNotificationAnimation").ShouldBeOfType<Animation>();
     });
 
+    [Fact]
+    public Task Announcement_LongerThanTheBanner_WrapsInsteadOfRunningOffTheEdge() => Dispatch(() =>
+    {
+        // Announcements are sentences, not labels, and the longest ones ("<name> wins initiative
+        // with <roll>") run past the width of a phone screen. Without wrapping the text is laid
+        // out on one line and spills out of the banner.
+        const double phoneWidth = 260;
+
+        var (longWindow, longText) = ShowHeldBanner(InitiativeWinner, phoneWidth);
+        var (shortWindow, shortText) = ShowHeldBanner(Turn, phoneWidth);
+
+        longText.Text.ShouldBe(InitiativeWinner.Text);
+        longText.Bounds.Height.ShouldBeGreaterThan(
+            shortText.Bounds.Height,
+            "a long announcement must take more lines than a short one on a phone-sized banner");
+
+        longWindow.Close();
+        shortWindow.Close();
+    });
+
+    [Fact]
+    public Task Banner_KeepsAnnouncing_WhenTheShownCommandThrows() => Dispatch(() =>
+    {
+        // ShownCommand.Execute sits outside the animation try/catch, and the pump is started with
+        // SafeFireAndForget and no handler - so a throwing source would kill announcements for the
+        // rest of the session, silently. A second notification must still be announced.
+        var notifications = new ObservableCollection<TurnNotification> { Turn, Phase };
+        var played = new List<string>();
+        var banner = new TurnNotificationBanner();
+        banner.AnimationOverride = () => Task.CompletedTask;
+        banner.ShownCommand = new AsyncCommand<TurnNotification>(notification =>
+        {
+            played.Add(notification!.Text);
+            notifications.Remove(notification);
+            throw new InvalidOperationException("source blew up");
+        });
+        banner.Notifications = notifications;
+        Dispatcher.UIThread.RunJobs();
+
+        played.Count.ShouldBe(2, "a throwing source must not stop the queue");
+    });
+
+    [Fact]
+    public Task FailedAnnouncement_IsLoggedRatherThanSwallowed() => Dispatch(() =>
+    {
+        // The banner swallows the animation failure so the queue keeps draining, which is exactly
+        // what makes it invisible. Avalonia's log sink is the only place it surfaces. Attaching
+        // the queue is what starts the pump, and the stubbed animation has nothing to await, so
+        // the whole announcement runs synchronously - the sink has to be in place before that.
+        var sink = CaptureLogs(() =>
+        {
+            var banner = new TurnNotificationBanner();
+            banner.AnimationOverride = () => throw new InvalidOperationException("animation failed");
+            banner.Notifications = [Turn];
+            Dispatcher.UIThread.RunJobs();
+        });
+
+        sink.ShouldHaveSingleItem();
+        sink[0].Level.ShouldBe(LogEventLevel.Error);
+        sink[0].Area.ShouldBe(nameof(TurnNotificationBanner));
+        sink[0].PropertyValues.ShouldContain("TURN 2", "the log entry says which notification failed");
+        sink[0].PropertyValues.OfType<Exception>().ShouldHaveSingleItem()
+            .Message.ShouldBe("animation failed", "the swallowed exception is carried through");
+    });
+
+    [Fact]
+    public Task ThrowingShownCommand_IsLoggedRatherThanSwallowed() => Dispatch(() =>
+    {
+        var sink = CaptureLogs(() =>
+        {
+            var banner = new TurnNotificationBanner();
+            banner.AnimationOverride = () => Task.CompletedTask;
+            banner.ShownCommand = new AsyncCommand<TurnNotification>(_ =>
+                throw new InvalidOperationException("source blew up"));
+            banner.Notifications = [Turn];
+            Dispatcher.UIThread.RunJobs();
+        });
+
+        sink.ShouldHaveSingleItem();
+        sink[0].Level.ShouldBe(LogEventLevel.Error);
+        sink[0].Area.ShouldBe(nameof(TurnNotificationBanner));
+        sink[0].PropertyValues.ShouldContain("TURN 2", "the log entry says which notification failed");
+        sink[0].PropertyValues.OfType<Exception>().ShouldHaveSingleItem()
+            .Message.ShouldBe("source blew up", "the swallowed exception is carried through");
+    });
+
+    /// <summary>
+    /// Runs <paramref name="action"/> with Avalonia's log sink replaced by a recorder, and returns
+    /// what the banner wrote. The sink is a process-wide static, so it is put back afterwards, and
+    /// its output is filtered by area because Avalonia routes its own property-change chatter
+    /// through the same static.
+    /// </summary>
+    private static List<LogEntry> CaptureLogs(Action action)
+    {
+        var previous = Logger.Sink;
+        var recorded = new RecordingLogSink();
+        Logger.Sink = recorded;
+        try
+        {
+            action();
+        }
+        finally
+        {
+            Logger.Sink = previous;
+        }
+
+        return recorded.Entries.Where(e => e.Area == nameof(TurnNotificationBanner)).ToList();
+    }
+
+    private sealed record LogEntry(LogEventLevel Level, string Area,
+        object?[] PropertyValues);
+
+    private sealed class RecordingLogSink : ILogSink
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public bool IsEnabled(LogEventLevel level, string area) => true;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate) =>
+            Entries.Add(new LogEntry(level, area, []));
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate,
+            params object?[] propertyValues) =>
+            Entries.Add(new LogEntry(level, area, propertyValues));
+    }
+
     private static TurnNotificationBanner CreateBanner(
         ObservableCollection<TurnNotification> notifications, List<string> shown)
     {
@@ -258,6 +388,33 @@ public class TurnNotificationBannerTests
 
     private static TurnNotificationBanner? FindBanner(BattleMapView view) =>
         view.GetVisualDescendants().OfType<TurnNotificationBanner>().FirstOrDefault();
+
+    /// <summary>
+    /// Shows a banner holding one announcement, placed the way <c>BattleMapView</c> places it, so
+    /// the laid out text can be measured. The animation is a task that never completes, which
+    /// keeps <c>Current</c> - and therefore the banner's text - set for the whole test.
+    /// </summary>
+    private static (Window Window, TextBlock Text) ShowHeldBanner(TurnNotification notification, double width)
+    {
+        var banner = new TurnNotificationBanner
+        {
+            AnimationOverride = () => new TaskCompletionSource().Task,
+            Margin = new Thickness(60, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+            Notifications = [notification]
+        };
+
+        var window = new Window
+        {
+            Width = width,
+            Height = 400,
+            Content = banner
+        };
+        window.Show();
+        Settle(window);
+
+        return (window, banner.GetVisualDescendants().OfType<TextBlock>().Single());
+    }
 
     private static (Window Window, BattleMapView View) ShowBattleMap()
     {

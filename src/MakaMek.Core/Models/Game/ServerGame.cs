@@ -150,12 +150,12 @@ public class ServerGame : BaseGame, IDisposable
             Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected - validation failed: {ErrorCode}",
                 command.GetType().Name,
                 failureIdempotencyKey?.ToString() ?? "none",
-                validationResult.ErrorCode ?? ErrorCode.ValidationFailed);
+                validationResult.ErrorCode ?? ErrorCode.UnknownError);
             var errorCommand = new ErrorCommand
             {
                 GameOriginId = Id,
                 IdempotencyKey = failureIdempotencyKey,
-                ErrorCode = validationResult.ErrorCode ?? ErrorCode.ValidationFailed,
+                ErrorCode = validationResult.ErrorCode ?? ErrorCode.UnknownError,
                 Timestamp = DateTime.UtcNow
             };
             CommandPublisher.PublishCommand(errorCommand);
