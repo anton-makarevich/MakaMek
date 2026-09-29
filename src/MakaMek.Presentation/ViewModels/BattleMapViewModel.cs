@@ -53,6 +53,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly PropertyChangedEventHandler? _hexConfigurationChangedHandler;
     private readonly Dictionary<Guid, int> _initiativeRolls = [];
     private Guid? _announcedInitiativeWinnerId;
+
+    /// <summary>
+    /// The phase as of the command currently being processed, which is not the same thing as
+    /// <see cref="IClientGame.TurnPhase"/>. Commands are delivered through ObserveOn, so a handler
+    /// runs after the command arrived, and the server publishes a whole phase worth of commands in
+    /// one synchronous burst: by the time a deferred handler runs, the live phase has often moved
+    /// on. Anything in ProcessCommand that needs to know "which phase was this command part of"
+    /// must read this, not the game.
+    /// </summary>
+    private PhaseNames? _commandStreamPhase;
     private IClientGame? _commandFeedbackGame;
 
     private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
@@ -383,6 +393,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _commandFeedbackGame.CommandTimedOut += OnCommandTimedOut;
         _commandFeedbackGame.CommandRejectedLocally += OnCommandRejectedLocally;
 
+        _commandStreamPhase = Game.TurnPhase;
         _commandSubscription = Game.Commands
             .ObserveOn(_dispatcherService.Scheduler)
             .Subscribe(ProcessCommand);
@@ -463,12 +474,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
+                _commandStreamPhase = phaseCommand.Phase;
                 AnnouncePhase(phaseCommand.Phase);
                 break;
             case ChangeActivePlayerCommand:
                 AnnounceActivePlayer();
                 break;
-            case DiceRolledCommand diceRolledCommand when Game.TurnPhase == PhaseNames.Initiative:
+            case DiceRolledCommand diceRolledCommand when _commandStreamPhase == PhaseNames.Initiative:
                 _initiativeRolls[diceRolledCommand.PlayerId] = diceRolledCommand.Roll;
                 AnnounceInitiativeWinner(Game);
                 break;
