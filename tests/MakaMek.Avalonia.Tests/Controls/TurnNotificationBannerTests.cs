@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Logging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AsyncAwaitBestPractices.MVVM;
@@ -262,6 +262,90 @@ public class TurnNotificationBannerTests
 
         played.Count.ShouldBe(2, "a throwing source must not stop the queue");
     });
+
+    [Fact]
+    public Task FailedAnnouncement_IsLoggedRatherThanSwallowed() => Dispatch(() =>
+    {
+        // The banner swallows the animation failure so the queue keeps draining, which is exactly
+        // what makes it invisible. Avalonia's log sink is the only place it surfaces. Attaching
+        // the queue is what starts the pump, and the stubbed animation has nothing to await, so
+        // the whole announcement runs synchronously - the sink has to be in place before that.
+        var sink = CaptureLogs(() =>
+        {
+            var banner = new TurnNotificationBanner();
+            banner.AnimationOverride = () => throw new InvalidOperationException("animation failed");
+            banner.Notifications = [Turn];
+            Dispatcher.UIThread.RunJobs();
+        });
+
+        sink.ShouldHaveSingleItem();
+        sink[0].Level.ShouldBe(LogEventLevel.Error);
+        sink[0].Area.ShouldBe(nameof(TurnNotificationBanner));
+        sink[0].PropertyValues.ShouldContain("TURN 2", "the log entry says which notification failed");
+        sink[0].PropertyValues.OfType<Exception>().ShouldHaveSingleItem()
+            .Message.ShouldBe("animation failed", "the swallowed exception is carried through");
+    });
+
+    [Fact]
+    public Task ThrowingShownCommand_IsLoggedRatherThanSwallowed() => Dispatch(() =>
+    {
+        var sink = CaptureLogs(() =>
+        {
+            var banner = new TurnNotificationBanner();
+            banner.AnimationOverride = () => Task.CompletedTask;
+            banner.ShownCommand = new AsyncCommand<TurnNotification>(_ =>
+                throw new InvalidOperationException("source blew up"));
+            banner.Notifications = [Turn];
+            Dispatcher.UIThread.RunJobs();
+        });
+
+        sink.ShouldHaveSingleItem();
+        sink[0].Level.ShouldBe(LogEventLevel.Error);
+        sink[0].Area.ShouldBe(nameof(TurnNotificationBanner));
+        sink[0].PropertyValues.ShouldContain("TURN 2", "the log entry says which notification failed");
+        sink[0].PropertyValues.OfType<Exception>().ShouldHaveSingleItem()
+            .Message.ShouldBe("source blew up", "the swallowed exception is carried through");
+    });
+
+    /// <summary>
+    /// Runs <paramref name="action"/> with Avalonia's log sink replaced by a recorder, and returns
+    /// what the banner wrote. The sink is a process-wide static, so it is put back afterwards, and
+    /// its output is filtered by area because Avalonia routes its own property-change chatter
+    /// through the same static.
+    /// </summary>
+    private static List<LogEntry> CaptureLogs(Action action)
+    {
+        var previous = Logger.Sink;
+        var recorded = new RecordingLogSink();
+        Logger.Sink = recorded;
+        try
+        {
+            action();
+        }
+        finally
+        {
+            Logger.Sink = previous;
+        }
+
+        return recorded.Entries.Where(e => e.Area == nameof(TurnNotificationBanner)).ToList();
+    }
+
+    private sealed record LogEntry(LogEventLevel Level, string Area,
+        object?[] PropertyValues);
+
+    private sealed class RecordingLogSink : ILogSink
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public bool IsEnabled(LogEventLevel level, string area) => true;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate) =>
+            Entries.Add(new LogEntry(level, area, []));
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate,
+            params object?[] propertyValues) =>
+            Entries.Add(new LogEntry(level, area, propertyValues));
+    }
 
     private static TurnNotificationBanner CreateBanner(
         ObservableCollection<TurnNotification> notifications, List<string> shown)

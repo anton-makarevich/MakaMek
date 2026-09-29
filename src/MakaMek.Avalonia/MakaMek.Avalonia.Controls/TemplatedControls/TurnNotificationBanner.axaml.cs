@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Logging;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
@@ -65,6 +66,8 @@ public class TurnNotificationBanner : TemplatedControl
     public static readonly StyledProperty<TimeSpan> FallbackDurationProperty =
         AvaloniaProperty.Register<TurnNotificationBanner, TimeSpan>(
             nameof(FallbackDuration), TimeSpan.FromMilliseconds(1200));
+
+    private const string LogArea = nameof(TurnNotificationBanner);
 
     private INotifyCollectionChanged? _observed;
     private bool _isAnnouncing;
@@ -138,6 +141,16 @@ public class TurnNotificationBanner : TemplatedControl
     private void OnNotificationsChanged(object? sender, NotifyCollectionChangedEventArgs e) => PumpAsync();
 
     /// <summary>
+    /// Reports a swallowed failure to Avalonia's log sink. The banner swallows exceptions so the
+    /// queue keeps draining, which is exactly what makes them invisible without this. The sink is
+    /// the static Avalonia points at the platform logger, so it needs no injection - which matters
+    /// because this control is built by XAML - and it is unset until a logger is installed, so
+    /// calling it from a unit test that never set one up is harmless.
+    /// </summary>
+    private void LogError(string messageTemplate, params object?[] propertyValues) =>
+        Logger.Sink?.Log(LogEventLevel.Error, LogArea, this, messageTemplate, propertyValues);
+
+    /// <summary>
     /// Announces queued notifications until the queue is empty. Re-entrant calls return
     /// immediately, so an announcement is never interrupted by the next arrival.
     /// </summary>
@@ -160,11 +173,13 @@ public class TurnNotificationBanner : TemplatedControl
                 {
                     await AnimateAsync();
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     // A failed animation must not leave the banner on screen or stop the rest of
                     // the queue, so hide it and treat this notification as announced.
                     Opacity = 0;
+                    LogError("Announcement animation failed for '{Text}'; the banner is hidden and " +
+                             "the queue continues. {Exception}", notification.Text, e);
                 }
                 Current = null;
 
@@ -173,12 +188,15 @@ public class TurnNotificationBanner : TemplatedControl
                     if (ShownCommand?.CanExecute(notification) == true)
                         ShownCommand.Execute(notification);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     // A source that throws while being told an announcement was shown must not
                     // take the queue down with it. The pump is started with SafeFireAndForget and
                     // no handler, so the exception would otherwise vanish and whatever is already
                     // queued would sit there until an unrelated notification arrived.
+                    LogError("The source of the '{Text}' announcement threw while being told the " +
+                             "announcement was shown; the queue continues but the notification is " +
+                             "still queued. {Exception}", notification.Text, e);
                 }
 
                 // The source removes it, which is what advances the queue. Look for the announced
