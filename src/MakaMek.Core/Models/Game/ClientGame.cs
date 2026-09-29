@@ -255,8 +255,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 validationResult.ErrorCode,
                 command.PlayerId,
                 command.GameOriginId);
-            // Invalid() always carries a code, so there is no fallback branch to leave untested.
-            CommandRejectedLocally?.Invoke(validationResult.ErrorCode!.Value);
+            CommandRejectedLocally?.Invoke(validationResult.ErrorCode ?? ErrorCode.UnknownError);
             return false;
         }
         

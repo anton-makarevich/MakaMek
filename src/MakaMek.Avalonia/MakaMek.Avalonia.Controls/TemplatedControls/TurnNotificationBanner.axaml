@@ -11,7 +11,11 @@
             <ControlTemplate>
                 <Border Classes="turnNotificationBanner"
                         Background="{TemplateBinding CurrentTint, Converter={StaticResource HexColorToBrushConverter}}">
+                    <!-- Wraps because announcements are sentences, not labels: a long one (an
+                         initiative winner's name) runs out of width on a narrow screen otherwise. -->
                     <TextBlock Text="{TemplateBinding CurrentText}"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
                                Foreground="{TemplateBinding CurrentTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
                 </Border>
             </ControlTemplate>
