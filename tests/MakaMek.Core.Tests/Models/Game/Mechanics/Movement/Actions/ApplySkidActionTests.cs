@@ -70,7 +70,7 @@ public class ApplySkidActionTests : GamePhaseTestsBase
 
         var result = sut.Process(Game);
 
-        MockCriticalHitsCalculator.DidNotReceive().CalculateAndApplyCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
         result.Count.ShouldBe(1);
     }
 
@@ -100,7 +100,7 @@ public class ApplySkidActionTests : GamePhaseTestsBase
 
         var result = sut.Process(Game);
 
-        MockCriticalHitsCalculator.DidNotReceive().CalculateAndApplyCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHits(Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>());
         result.Count.ShouldBe(1);
     }
 
@@ -132,7 +132,7 @@ public class ApplySkidActionTests : GamePhaseTestsBase
             TargetId = _unitId,
             CriticalHits = []
         };
-        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
+        MockCriticalHitsCalculator.CalculateCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
             .Returns(critCommand);
         var sut = new ApplySkidAction(_mech, command);
 
@@ -166,7 +166,7 @@ public class ApplySkidActionTests : GamePhaseTestsBase
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
         };
-        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
+        MockCriticalHitsCalculator.CalculateCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
             .Returns((CriticalHitsResolutionCommand?)null);
         var sut = new ApplySkidAction(_mech, command);
 
@@ -205,13 +205,13 @@ public class ApplySkidActionTests : GamePhaseTestsBase
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
         };
-        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
+        MockCriticalHitsCalculator.CalculateCriticalHits(_mech, Arg.Any<List<LocationDamageData>>())
             .Returns((CriticalHitsResolutionCommand?)null);
         var sut = new ApplySkidAction(_mech, command);
 
         sut.Process(Game);
 
-        MockCriticalHitsCalculator.Received(1).CalculateAndApplyCriticalHits(
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHits(
             _mech,
             Arg.Is<List<LocationDamageData>>(l => l.Count == 2));
     }

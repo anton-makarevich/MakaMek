@@ -214,32 +214,24 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             IsSuccessful = !explosionOccurs
         };
 
-        List<LocationCriticalHitsData> explosionDamage = [];
-        var destroyedPartsBefore = mech.Parts.Values
-            .Where(part => part.IsDestroyed)
-            .Select(part => part.Location)
-            .ToHashSet();
-        var wasDestroyedBefore = mech.IsDestroyed;
+        var explosion = HeatExplosionResolution.None;
 
         if (explosionOccurs)
         {
             // Select the most destructive ammo component to explode
             var selectedAmmo = SelectMostDestructiveAmmoComponent(explodableAmmo);
-            explosionDamage = ProcessAmmoExplosion(mech, selectedAmmo);
+            explosion = ProcessAmmoExplosion(mech, selectedAmmo);
         }
 
-        var newlyDestroyedParts = mech.Parts.Values
-            .Where(part => part.IsDestroyed && !destroyedPartsBefore.Contains(part.Location))
-            .Select(part => part.Location)
-            .ToList();
-
+        // The calculator simulates rather than applies, so the destruction it reports cannot be
+        // observed on the mech here — it arrives with the resolution instead.
         return new AmmoExplosionCommand
         {
             UnitId = mech.Id,
             AvoidExplosionRoll = avoidExplosionRollData,
-            CriticalHits = explosionDamage,
-            DestroyedParts = newlyDestroyedParts.Count > 0 ? newlyDestroyedParts : null,
-            UnitDestroyed = !wasDestroyedBefore && mech.IsDestroyed,
+            CriticalHits = explosion.CriticalHits,
+            DestroyedParts = explosion.DestroyedParts,
+            UnitDestroyed = explosion.UnitDestroyed,
             GameOriginId = Guid.Empty
         };
     }
@@ -271,7 +263,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return mostDestructiveAmmo[randomIndex % mostDestructiveAmmo.Count];
     }
 
-    private List<LocationCriticalHitsData> ProcessAmmoExplosion(Mech mech, Ammo ammoComponent)
+    private HeatExplosionResolution ProcessAmmoExplosion(Mech mech, Ammo ammoComponent)
     {
         // Location eligibility is ensured in GetExplodableAmmoComponents
         return _criticalHitsCalculator

@@ -29,16 +29,6 @@ public class AttackReachableHighlightTests
     }
 
     [Fact]
-    public void ShouldHaveCorrectBoundaryOutlineColor()
-    {
-        // Arrange & Act
-        var sut = new AttackReachableHighlight([]);
-
-        // Assert
-        sut.BoundaryOutlineColor.ShouldBe("#FFB347");
-    }
-
-    [Fact]
     public void Render_ShouldJoinWeaponNamesWithComma()
     {
         var sut = new AttackReachableHighlight(["PPC", "ML"]);

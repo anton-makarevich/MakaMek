@@ -1670,6 +1670,144 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public void CanRetryConnection_RequiresADegradedConnectionTheConnectorCanRecover()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _gameConnector.CanReconnect.Returns(true);
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+
+        // A healthy connection has nothing to retry
+        _sut.CanRetryConnection.ShouldBeFalse();
+
+        // Act - the session degrades
+        subject.OnNext(ConnectionStatus.Reconnecting);
+
+        // Assert
+        _sut.CanRetryConnection.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanRetryConnection_IsFalse_WhenTheConnectorCannotReconnect()
+    {
+        // Arrange
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _gameConnector.CanReconnect.Returns(false);
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+
+        // Act - degraded, but the connector has no endpoint to retry
+        subject.OnNext(ConnectionStatus.Reconnecting);
+
+        // Assert
+        _sut.ConnectionStatus.IsConnectionDegraded.ShouldBeTrue();
+        _sut.CanRetryConnection.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task RetryConnection_ReconnectsAndClearsTheError_WhenTheRetrySucceeds()
+    {
+        // Arrange
+        var subject = DegradeAReconnectableConnection();
+        _gameConnector.Reconnect().Returns(Task.FromResult(true));
+        _gameConnector.IsConnected.Returns(true);
+
+        // Act
+        await ((AsyncCommand)_sut.RetryConnectionCommand).ExecuteAsync();
+
+        // Assert
+        await _gameConnector.Received(1).Reconnect();
+        _sut.JoinError.ShouldBeNull();
+        // The gate reopens - the status subject still reports a degraded session, so the only way
+        // this can be true again is the in-flight flag having been cleared.
+        _sut.CanRetryConnection.ShouldBeTrue();
+        subject.Dispose();
+    }
+
+    [Fact]
+    public async Task RetryConnection_ShowsTheConnectorError_WhenTheRetryDoesNotConnect()
+    {
+        // Arrange
+        var subject = DegradeAReconnectableConnection();
+        _gameConnector.Reconnect().Returns(Task.FromResult(false));
+        _gameConnector.IsConnected.Returns(false);
+        _gameConnector.OnlineError.Returns(new RelayClientError(RelayClientErrorCode.NetworkError, "unused"));
+
+        // Act
+        await ((AsyncCommand)_sut.RetryConnectionCommand).ExecuteAsync();
+
+        // Assert
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_ConnectionFailed"));
+        _sut.CanRetryConnection.ShouldBeTrue("a failed retry must leave the player able to try again");
+        subject.Dispose();
+    }
+
+    [Fact]
+    public async Task RetryConnection_LogsAndReportsTheFailure_WhenReconnectThrows()
+    {
+        // Arrange
+        var subject = DegradeAReconnectableConnection();
+        _gameConnector.Reconnect().Returns<Task<bool>>(_ => throw new Exception("Simulated retry failure"));
+        _gameConnector.IsConnected.Returns(false);
+
+        // Act
+        await ((AsyncCommand)_sut.RetryConnectionCommand).ExecuteAsync();
+
+        // Assert
+        _sut.JoinError.ShouldBe(_localizationService.GetString("Join_Failed"));
+        _sut.CanRetryConnection.ShouldBeTrue("a thrown retry must leave the player able to try again");
+        VerifyLogged(
+            LogLevel.Error,
+            state => state.ToString()!.Contains("Error retrying connection"),
+            new Exception("Simulated retry failure"));
+        subject.Dispose();
+    }
+
+    [Fact]
+    public async Task RetryConnection_DoesNothing_WhenThereIsNothingToRetry()
+    {
+        // Arrange - connected and healthy, so the retry is not on offer
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _gameConnector.CanReconnect.Returns(true);
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        _sut.CanRetryConnection.ShouldBeFalse();
+
+        // Act
+        await ((AsyncCommand)_sut.RetryConnectionCommand).ExecuteAsync();
+
+        // Assert
+        await _gameConnector.DidNotReceive().Reconnect();
+        _sut.JoinError.ShouldBeNull();
+        subject.Dispose();
+    }
+
+    /// <summary>
+    /// Connects, then pushes the session into a degraded state the connector says it can recover,
+    /// which is the only state in which the retry is offered.
+    /// </summary>
+    private BehaviorSubject<ConnectionStatus> DegradeAReconnectableConnection()
+    {
+        _dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
+        _gameConnector.OnlineConnectionStatus.Returns(subject);
+        _gameConnector.CanReconnect.Returns(true);
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        subject.OnNext(ConnectionStatus.Reconnecting);
+        _sut.CanRetryConnection.ShouldBeTrue("the retry must be on offer before it is exercised");
+        _gameConnector.ClearReceivedCalls();
+        return subject;
+    }
+
+    [Fact]
     public async Task JoinRoom_WhenConnectionClosed_GatesCommandsUntilRecovered()
     {
         // Arrange

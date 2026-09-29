@@ -203,7 +203,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
         {
             var criticalHitsCommand = Game.CriticalHitsCalculator
-                .CalculateAndApplyCriticalHits(target,
+                .CalculateCriticalHits(target,
                     (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
                     .SelectMany(h => h.Damage).ToList());
 
@@ -211,6 +211,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             if (criticalHitsCommand != null)
             {
                 criticalHitsCommand.GameOriginId = Game.Id;
+                // The server transport does not loop commands back to the server game.
+                // Apply the authoritative result before publishing it to clients.
+                Game.OnCriticalHitsResolution(criticalHitsCommand);
                 Game.CommandPublisher.PublishCommand(criticalHitsCommand);
 
                 // Check for component hits that can cause a fall
@@ -285,10 +288,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (locationsWithDamagedStructure.Count != 0)
                 {
                     var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                        .CalculateAndApplyCriticalHits(targetMech, locationsWithDamagedStructure);
+                        .CalculateCriticalHits(targetMech, locationsWithDamagedStructure);
                     if (fallCriticalHitsCommand != null)
                     {
                         fallCriticalHitsCommand.GameOriginId = Game.Id;
+                        Game.OnCriticalHitsResolution(fallCriticalHitsCommand);
                         Game.CommandPublisher.PublishCommand(fallCriticalHitsCommand);
                     }
                 }

@@ -125,6 +125,69 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
+    public async Task Reconnect_AfterLanConnect_CreatesReplacementPublisher()
+    {
+        // Arrange
+        const string serverAddress = "http://localhost:2439/makamekhub";
+        var firstPublisher = Substitute.For<ITransportPublisher>();
+        var replacementPublisher = Substitute.For<ITransportPublisher>();
+        _transportFactory.CreateAndStartClientPublisher(serverAddress)
+            .Returns(Task.FromResult(firstPublisher), Task.FromResult(replacementPublisher));
+
+        await _sut.ConnectToLan(serverAddress);
+
+        // Act
+        var result = await _sut.Reconnect();
+
+        // Assert
+        result.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.CanReconnect.ShouldBeTrue();
+        await _transportFactory.Received(2).CreateAndStartClientPublisher(serverAddress);
+        _transportAdapter.Received(1).RemovePublisher(firstPublisher);
+        _transportAdapter.Received(1).AddPublisher(replacementPublisher);
+    }
+
+    [Fact]
+    public async Task Reconnect_AfterOnlineJoin_RejoinsTheSameRoomWithTheSavedSession()
+    {
+        // Arrange
+        const string roomCode = "ABCDEF";
+        const string sessionToken = "session-token";
+        await JoinOnlineAsync(_sut, roomCode);
+
+        // The retry reuses the token handed back by the first join, not a null token.
+        _relayRoomClient.Join(roomCode, sessionToken, Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", Guid.NewGuid(), Guid.NewGuid()));
+        var replacementPublisher = CreateRelayPublisher(roomCode, sessionToken);
+        _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ITransportPublisher>(replacementPublisher));
+
+        // Act
+        var result = await _sut.Reconnect();
+
+        // Assert
+        result.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.CanReconnect.ShouldBeTrue();
+        await _relayRoomClient.Received(1).Join(roomCode, sessionToken, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reconnect_WithNoPreviousConnection_ReturnsFalse()
+    {
+        // Arrange — nothing has been connected, so there is no endpoint to replay.
+        _sut.CanReconnect.ShouldBeFalse();
+
+        // Act
+        var result = await _sut.Reconnect();
+
+        // Assert
+        result.ShouldBeFalse();
+        _sut.IsConnected.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ConnectToLanAsync_Reconnect_RemovesOnlyPreviousLanPublisher()
     {
         // Arrange

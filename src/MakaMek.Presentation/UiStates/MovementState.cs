@@ -569,7 +569,8 @@ public class MovementState : IUiState
                 MovementTypeAfterStandup = _selectedPath.MovementType
             };
             
-            // Reset the movement state
+            // Hide the selectors; the movement path context is kept so that a fall from
+            // this failed standup attempt can resume movement (see ResumeMovementAfterFall)
             _viewModel.HideDirectionSelector();
             _viewModel.HideSurfaceSelector();
             _viewModel.NotifyStateChanged();
@@ -623,8 +624,10 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_selectedUnit == null || _selectedUnit.Id != unitId)
+            var activePlayerId = Game?.PhaseStepState?.ActivePlayer.Id;
+            if (_selectedUnit == null)
             {
+                // Selection may have been cleared by a state refresh; adopt the fallen unit if it is known
                 var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
                 if (fallenUnit == null)
                 {
@@ -632,27 +635,68 @@ public class MovementState : IUiState
                         "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
                     return;
                 }
+                if (fallenUnit.Owner?.Id != activePlayerId)
+                {
+                    Game?.Logger.LogWarning(
+                        "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+                    return;
+                }
                 _selectedUnit = fallenUnit;
                 _builder.SetUnit(fallenUnit);
             }
-            
-            if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
-            {
-                var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");
-                Game?.Logger.LogError(exception, "Unit is not prone after fall or no movement path");
-                throw exception;
-            }
-
-            if (unitId != mech.Id)
+            else if (_selectedUnit.Id != unitId)
             {
                 Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}.",
+                    "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
                     unitId,
-                    mech.Id);
+                    _selectedUnit.Id);
                 return;
             }
-            
-            _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
+
+            if (_selectedUnit.Owner?.Id != activePlayerId)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+                return;
+            }
+
+            if (_selectedUnit is not Mech mech)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall ignored: unit {UnitId} is not a mech", unitId);
+                return;
+            }
+
+            if (mech.Position == null || !mech.IsProne)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
+                    unitId,
+                    mech.Position == null ? "not positioned" : "not prone");
+                if (mech.Position != null)
+                {
+                    _builder.SetUnit(_selectedUnit);
+                    _builder.SetMovementPath(MovementPath.CreateSingleSegmentPath(mech.Position));
+                }
+                CompleteMovement();
+                return;
+            }
+
+            if (_selectedPath == null)
+            {
+                // The fall was processed by a state that lost its movement path (e.g. recreated after a
+                // phase-step update). Rebuild it at the mech's current position.
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
+                    unitId);
+                _selectedPath = MovementPath.CreateSingleSegmentPath(
+                    mech.Position,
+                    mech.MovementTaken?.MovementType ?? MovementType.Walk);
+            }
+            else
+            {
+                _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
+            }
 
             if (!mech.CanStandup())
             {
@@ -910,7 +954,6 @@ public class MovementState : IUiState
 
         public override void HandleFacingSelection(HexDirection direction)
         {
-            State.Game?.Logger.LogInformation("[TEMP] SelectingStandingUpDirectionStep.HandleFacingSelection: direction={Direction}", direction);
             State.CompleteStandupAttempt(direction);
         }
     }
