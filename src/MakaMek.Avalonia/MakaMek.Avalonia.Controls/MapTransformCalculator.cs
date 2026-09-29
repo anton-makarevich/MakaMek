@@ -59,8 +59,23 @@ public class MapTransformCalculator
     /// </summary>
     public Matrix Matrix => new(Scale, 0, 0, Scale, TranslateX, TranslateY);
 
+    /// <summary>
+    /// Set the current transform state.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when the scale is not finite and positive, or either translation is not finite.
+    /// </exception>
     public void SetTransform(double scale, double translateX, double translateY)
     {
+        if (!double.IsFinite(scale) || scale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be finite and positive.");
+
+        if (!double.IsFinite(translateX))
+            throw new ArgumentOutOfRangeException(nameof(translateX), "Translation must be finite.");
+
+        if (!double.IsFinite(translateY))
+            throw new ArgumentOutOfRangeException(nameof(translateY), "Translation must be finite.");
+
         Scale = scale;
         TranslateX = translateX;
         TranslateY = translateY;
@@ -86,6 +101,12 @@ public class MapTransformCalculator
     /// </summary>
     public bool ApplyZoom(double scaleFactor, Point originParent)
     {
+        if (!double.IsFinite(scaleFactor) || scaleFactor <= 0 ||
+            !double.IsFinite(originParent.X) || !double.IsFinite(originParent.Y))
+        {
+            return false;
+        }
+
         var currentScale = Scale;
         var newScale = Math.Clamp(currentScale * scaleFactor, MinScale, MaxScale);
         var actualFactor = newScale / currentScale;
