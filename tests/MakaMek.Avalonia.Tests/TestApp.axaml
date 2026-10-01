@@ -17,6 +17,7 @@
             <converters:CompactPanelLayoutConverter x:Key="CompactPanelLayoutConverter"/>
             <converters:SquadBarMarginConverter x:Key="SquadBarMarginConverter"/>
             <converters:RecordSheetMarginConverter x:Key="RecordSheetMarginConverter"/>
+            <converters:UtilityPanelMarginConverter x:Key="UtilityPanelMarginConverter"/>
             <converters:UnitEventBadgeConverter x:Key="UnitEventBadgeConverter"/>
             <!-- DI-injected converters (HubStatus*, ConnectionStatus*, ComponentStatusBackground,
                  SelectedItemToBrush, Consciousness*, ModifierToText, SegmentEventToText,

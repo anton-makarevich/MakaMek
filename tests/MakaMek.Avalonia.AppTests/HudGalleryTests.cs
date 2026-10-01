@@ -109,12 +109,18 @@ public class HudGalleryTests
         Add("action buttons", view.GetVisualDescendants().OfType<StackPanel>()
             .FirstOrDefault(sp => sp.Children.OfType<ItemsControl>()
                 .Any(c => c.Name == "MobileActionButtonsPanel")));
-        Add("record sheet", view.GetVisualDescendants().OfType<GamePanel>()
-            .FirstOrDefault(p => p.Name == "RecordSheetPanel"));
+        Add("record sheet", Rendered(view.GetVisualDescendants().OfType<GamePanel>()
+            .FirstOrDefault(p => p.Name == "RecordSheetPanel")));
         Add("turn status", view.GetVisualDescendants().OfType<Grid>()
             .FirstOrDefault(g => g.Name == "TurnStatus"));
         Add("drawer toggle", view.GetVisualDescendants().OfType<ActionButton>()
             .FirstOrDefault(a => a.Name == "MapControlsToggle"));
+
+        // The utility panels are mutually exclusive with the record sheet by design, so a clash
+        // here means that contract has come apart rather than the layout being tight.
+        foreach (var panel in view.GetVisualDescendants().OfType<GamePanel>()
+                     .Where(p => p.Name != "RecordSheetPanel"))
+            Add($"panel '{panel.Title}'", Rendered(panel));
 
         return found;
     }
@@ -142,6 +148,14 @@ public class HudGalleryTests
         return clashes;
     }
 
+    /// <summary>
+    /// What a GamePanel actually puts on screen. The control itself is a ContentControl with no
+    /// size of its own, so it stretches to the window while its template draws a bordered card in
+    /// one corner. Measuring the control makes it look like it covers everything.
+    /// </summary>
+    private static Visual? Rendered(GamePanel? panel) =>
+        panel?.GetVisualDescendants().OfType<Border>().FirstOrDefault();
+
     private static bool IsRelated(Visual a, Visual b) =>
         a.GetVisualAncestors().Contains(b) || b.GetVisualAncestors().Contains(a);
 
@@ -158,6 +172,8 @@ public class HudGalleryTests
             viewModel.InspectUnit(viewModel.LocalUnits.First());
             viewModel.ToggleRecordSheetPin();
         }),
+        new("command-log", viewModel => viewModel.ToggleCommandLog()),
+        new("map-settings", viewModel => viewModel.ToggleMapSettings()),
         new("acting-with-controls", viewModel =>
         {
             SetState(viewModel, ActingState());

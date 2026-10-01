@@ -434,6 +434,13 @@
             IsVisible="{Binding IsCommandLogExpanded}"
             Title="{extensions:Localize 'BattleMap_CommandLog'}"
             CloseCommand="{Binding ToggleCommandLog}">
+            <templatedControls:GamePanel.Margin>
+                <!-- GamePanel pins its card bottom right, where the squad bar already is. -->
+                <MultiBinding Converter="{StaticResource UtilityPanelMarginConverter}">
+                    <Binding ElementName="SquadBar" Path="IsVisible"/>
+                    <Binding ElementName="SquadBar" Path="Bounds.Height"/>
+                </MultiBinding>
+            </templatedControls:GamePanel.Margin>
             <ListBox
                 MaxHeight="360"
                 behaviors:AutoScrollBehavior.EnableListBoxAutoScroll="True"
@@ -454,6 +461,13 @@
             IsVisible="{Binding IsMapSettingsPanelVisible}"
             Title="{extensions:Localize 'BattleMap_Settings'}"
             CloseCommand="{Binding ToggleMapSettings}">
+            <templatedControls:GamePanel.Margin>
+                <!-- GamePanel pins its card bottom right, where the squad bar already is. -->
+                <MultiBinding Converter="{StaticResource UtilityPanelMarginConverter}">
+                    <Binding ElementName="SquadBar" Path="IsVisible"/>
+                    <Binding ElementName="SquadBar" Path="Bounds.Height"/>
+                </MultiBinding>
+            </templatedControls:GamePanel.Margin>
             <StackPanel Margin="{StaticResource PageMargin}" Spacing="10">
                 <CheckBox Content="{extensions:Localize 'BattleMap_ShowLabels'}"
                           IsChecked="{Binding HexConfiguration.ShowLabels}"
