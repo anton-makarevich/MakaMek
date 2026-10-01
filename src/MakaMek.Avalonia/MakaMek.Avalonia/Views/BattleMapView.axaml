@@ -304,16 +304,19 @@
 
         <!-- Persistent squad overview. The cards sit outside the drawer so round status stays
              visible while the map remains the primary workspace. -->
-        <ScrollViewer HorizontalAlignment="Stretch"
+        <ScrollViewer x:Name="SquadBar"
+                      HorizontalAlignment="Stretch"
                       VerticalAlignment="Bottom"
-                      Height="78"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Hidden"
+                      Height="95"
+                      HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled"
+                      behaviors:DragScrollBehavior.EnableHorizontalDragScroll="True"
                       IsVisible="{Binding IsSquadStatusBarVisible}">
             <ScrollViewer.Margin>
                 <!-- Full width, inset only by whatever the drawer is actually taking. -->
                 <MultiBinding Converter="{StaticResource SquadBarMarginConverter}">
                     <Binding Path="AreActionsMenuOffMap"/>
+                    <Binding ElementName="MapControlsDrawer" Path="IsVisible"/>
                     <Binding ElementName="MapControlsDrawer" Path="Bounds.Width"/>
                 </MultiBinding>
             </ScrollViewer.Margin>

@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
@@ -188,6 +190,30 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             UpdateWeaponAttacks();
         }
+        else if (e.PropertyName is nameof(ViewModel.SelectedUnit)
+                 or nameof(ViewModel.Attacker)
+                 or nameof(ViewModel.LocalUnits))
+        {
+            RevealUnitInSquadBar();
+        }
+    }
+
+    /// <summary>
+    /// Scrolls the squad bar to whichever card needs attention. The bar is otherwise left wherever
+    /// the player dragged it.
+    /// </summary>
+    private void RevealUnitInSquadBar()
+    {
+        if (ViewModel is null) return;
+
+        var unit = SquadBarReveal.UnitToReveal(ViewModel.LocalUnits, ViewModel.SelectedUnit ?? ViewModel.Attacker);
+        if (unit is null) return;
+
+        var card = SquadBar.GetVisualDescendants()
+            .OfType<UnitStatusBarItem>()
+            .FirstOrDefault(item => ReferenceEquals(item.DataContext, unit));
+
+        card?.BringIntoView();
     }
 
     private void UpdateMovementPath()

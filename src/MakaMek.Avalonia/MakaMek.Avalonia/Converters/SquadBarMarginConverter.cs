@@ -11,10 +11,12 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// Keeps the squad bar clear of the map controls drawer without leaving the rest of the bottom
 /// edge empty.
 ///
-/// The bar stretches the full width and insets on the right by however much the drawer actually
-/// occupies. A collapsed drawer measures zero, so the bar takes the whole width on its own. The
-/// inset reads the drawer's rendered width rather than a constant, so a longer translation of a
-/// button label cannot leave the two overlapping.
+/// The bar stretches the full width and insets on the right by however much the drawer occupies,
+/// but only while the drawer is actually showing. A hidden control keeps the bounds it was last
+/// arranged with, so width alone would hold the gap open after the drawer closed.
+///
+/// The inset reads the drawer's rendered width rather than a constant, so a longer translation of
+/// a button label cannot leave the two overlapping.
 /// </summary>
 public sealed class SquadBarMarginConverter : IMultiValueConverter
 {
@@ -26,16 +28,17 @@ public sealed class SquadBarMarginConverter : IMultiValueConverter
 
     public object Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (values.Count < 2) return AvaloniaProperty.UnsetValue;
+        if (values.Count < 3) return AvaloniaProperty.UnsetValue;
 
         var compact = values[0] is true;
-        var drawerWidth = values[1] is double width && double.IsFinite(width) && width > 0 ? width : 0;
+        var drawerShowing = values[1] is true;
+        var drawerWidth = values[2] is double width && double.IsFinite(width) && width > 0 ? width : 0;
 
         // On a compact layout the drawer sits at the top of the screen, so the bottom edge is the
         // bar's alone.
-        var right = compact ? Edge : drawerWidth > 0 ? drawerWidth + Gutter : Edge;
+        var reserve = !compact && drawerShowing && drawerWidth > 0;
 
-        return new Thickness(Edge, 0, right, Bottom);
+        return new Thickness(Edge, 0, reserve ? drawerWidth + Gutter : Edge, Bottom);
     }
 
     public object ConvertBack(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)

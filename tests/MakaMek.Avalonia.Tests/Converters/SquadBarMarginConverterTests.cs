@@ -10,14 +10,16 @@ public class SquadBarMarginConverterTests
 {
     private readonly SquadBarMarginConverter _sut = new();
 
-    private Thickness Convert(bool compact, object? drawerWidth) =>
-        (Thickness)_sut.Convert([compact, drawerWidth], typeof(Thickness), null, CultureInfo.InvariantCulture);
+    private Thickness Convert(bool compact, object? drawerWidth, bool showing = true) =>
+        (Thickness)_sut.Convert([compact, showing, drawerWidth], typeof(Thickness), null,
+            CultureInfo.InvariantCulture);
 
     [Fact]
     public void Convert_TakesTheWholeWidth_WhenTheDrawerIsClosed()
     {
-        // A collapsed drawer measures zero, so there is nothing to keep clear of.
-        Convert(false, 0d).Right.ShouldBe(12);
+        // A hidden control keeps the bounds it was last arranged with, so the width is still 145
+        // here. Visibility is what says the space is free again.
+        Convert(false, 145d, showing: false).Right.ShouldBe(12);
     }
 
     [Fact]
@@ -61,9 +63,9 @@ public class SquadBarMarginConverterTests
     }
 
     [Fact]
-    public void Convert_IsUnset_WithoutBothValues()
+    public void Convert_IsUnset_WithoutEveryValue()
     {
-        _sut.Convert([true], typeof(Thickness), null, CultureInfo.InvariantCulture)
+        _sut.Convert([true, true], typeof(Thickness), null, CultureInfo.InvariantCulture)
             .ShouldBe(AvaloniaProperty.UnsetValue);
     }
 
