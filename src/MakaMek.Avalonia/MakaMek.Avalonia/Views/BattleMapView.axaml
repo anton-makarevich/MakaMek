@@ -306,14 +306,19 @@
             ToolTip.Tip="{extensions:Localize 'BattleMap_MapControls'}"
             IconData="{StaticResource MapSettingsIcon}"/>
 
+        <!-- The action buttons and the squad bar share the bottom edge. They are stacked rather
+             than both pinned to it, because pinned they overlapped: the bar is 108 tall and the
+             buttons sat 20 off the bottom, inside it and over the middle cards. -->
+        <Grid VerticalAlignment="Bottom" RowDefinitions="Auto,Auto">
+
         <!-- Persistent squad overview. The cards sit outside the drawer so round status stays
              visible while the map remains the primary workspace.
 
              The height carries the 92pt card plus 16pt of scrollbar, so the scrollbar sits under
              the cards instead of across their damage bars when the squad overflows. -->
-        <ScrollViewer x:Name="SquadBar"
+        <ScrollViewer Grid.Row="1"
+                      x:Name="SquadBar"
                       HorizontalAlignment="Stretch"
-                      VerticalAlignment="Bottom"
                       Height="108"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled"
@@ -344,10 +349,10 @@
         </ScrollViewer>
 
         <StackPanel
+            Grid.Row="0"
             HorizontalAlignment="Center"
-            VerticalAlignment="Bottom"
             Spacing="4"
-            Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=actionMargin}">
+            Margin="0,0,0,8">
             
             <!-- Mobile Unit Action Buttons (fixed overlay, visible only on mobile) -->
             <ItemsControl x:Name="MobileActionButtonsPanel"
@@ -384,6 +389,8 @@
                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                     Content="{Binding PlayerActionLabel}"/>
         </StackPanel>
+
+        </Grid>
 
         <!-- Record Sheet Panel -->
         <templatedControls:GamePanel

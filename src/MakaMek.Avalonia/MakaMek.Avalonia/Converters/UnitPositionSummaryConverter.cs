@@ -25,7 +25,15 @@ public sealed class UnitPositionSummaryConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not HexPosition position) return _localizationService.GetString("UnitHud_PositionUnavailable");
-        return $"Q{position.Coordinates.Q}/R{position.Coordinates.R} • {position.Facing}";
+
+        // The facing is an enum, so printing it directly puts "TopRight" on a card whose other
+        // labels are all translated.
+        return string.Format(
+            culture,
+            _localizationService.GetString("UnitHud_PositionSummary"),
+            position.Coordinates.Q,
+            position.Coordinates.R,
+            _localizationService.GetString($"HexDirection_{position.Facing}"));
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

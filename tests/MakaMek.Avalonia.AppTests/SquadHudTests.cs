@@ -6,6 +6,7 @@ using global::Avalonia.Headless;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
 using NSubstitute;
+using global::Avalonia.Media;
 using global::Avalonia.Media.Imaging;
 using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
@@ -532,6 +533,61 @@ public class SquadHudTests
             card.RaiseEvent(Move(bar, card, 200));
             Settle(window);
             bar.Offset.X.ShouldBe(100, 0.5, "past the threshold it should follow the pointer");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+
+    /// <summary>
+    /// FitMap measured the canvas against itself. The canvas is given an explicit Width and Height
+    /// covering the whole board, so the ratio was always one and the command could not zoom out.
+    /// </summary>
+    [Fact]
+    public Task FitMap_ActuallyZoomsOut_WhenTheBoardIsBiggerThanTheWindow() => HarnessSession.Run(async () =>
+    {
+        var (window, view, viewModel) = await ShowBattleMapWithSquad(800, 450);
+        try
+        {
+            var canvas = view.GetVisualDescendants().OfType<HexMap>().First();
+            canvas.Width.ShouldBeGreaterThan(800, "the board should overflow this window");
+
+            await viewModel.FitMapCommand.ExecuteAsync();
+            Settle(window);
+
+            var matrix = (canvas.RenderTransform as MatrixTransform)?.Matrix;
+            matrix.ShouldNotBeNull();
+            matrix.Value.M11.ShouldBeLessThan(1.0,
+                "fitting a board wider than the window has to scale it down");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    /// <summary>
+    /// Both own the bottom edge. Pinned independently they overlapped: the bar is 108 tall and the
+    /// buttons sat 20 off the bottom, inside it and centred over the middle cards, where they
+    /// swallowed the clicks.
+    /// </summary>
+    [Fact]
+    public Task PlayerActionButtons_SitAboveTheSquadBar() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad(800, 450);
+        try
+        {
+            var bar = SquadBar(view);
+            var actions = view.GetVisualDescendants().OfType<StackPanel>()
+                .First(sp => sp.Children.OfType<ItemsControl>().Any(c => c.Name == "MobileActionButtonsPanel"));
+
+            var actionsBottom = (actions.TranslatePoint(new Point(0, actions.Bounds.Height), view)?.Y) ?? 0;
+            var barTop = (bar.TranslatePoint(new Point(0, 0), view)?.Y) ?? 0;
+
+            actionsBottom.ShouldBeLessThanOrEqualTo(barTop + 0.5,
+                $"the actions end at {actionsBottom} and the bar starts at {barTop}");
         }
         finally
         {

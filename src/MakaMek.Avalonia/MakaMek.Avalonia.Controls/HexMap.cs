@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
@@ -354,11 +355,22 @@ public class HexMap : Canvas
     }
 
     /// <summary>
+    /// What the player can actually see.
+    ///
+    /// Not this control's own bounds: the canvas is given an explicit Width and Height covering the
+    /// whole board, so it is arranged at the board's size and overflows its cell. Measuring against
+    /// itself makes the viewport and the content the same thing, which is how FitMap came to
+    /// compute a scale of exactly 1 whatever the window size.
+    /// </summary>
+    private Size Viewport => this.GetVisualParent()?.Bounds.Size ?? Bounds.Size;
+
+    /// <summary>
     /// Zooms around the center of the visible map viewport.
     /// </summary>
     public void Zoom(double scaleFactor)
     {
-        if (_calculator.ApplyZoom(scaleFactor, new Point(Bounds.Width / 2, Bounds.Height / 2)))
+        var viewport = Viewport;
+        if (_calculator.ApplyZoom(scaleFactor, new Point(viewport.Width / 2, viewport.Height / 2)))
             SyncTransform();
     }
 
@@ -367,13 +379,17 @@ public class HexMap : Canvas
     /// </summary>
     public void FitMap()
     {
-        if (Width <= 0 || Height <= 0 || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        var viewport = Viewport;
+        // Width and Height are NaN until the map has been rendered, and NaN fails none of the
+        // ordinary comparisons, so it would reach SetTransform and blank the map.
+        if (!double.IsFinite(Width) || !double.IsFinite(Height) || Width <= 0 || Height <= 0) return;
+        if (viewport.Width <= 0 || viewport.Height <= 0) return;
 
-        var scale = Math.Clamp(Math.Min(Bounds.Width / Width, Bounds.Height / Height), MinScale, MaxScale);
+        var scale = Math.Clamp(Math.Min(viewport.Width / Width, viewport.Height / Height), MinScale, MaxScale);
         _calculator.SetTransform(
             scale,
-            (Bounds.Width - Width * scale) / 2,
-            (Bounds.Height - Height * scale) / 2);
+            (viewport.Width - Width * scale) / 2,
+            (viewport.Height - Height * scale) / 2);
         SyncTransform();
     }
 
@@ -384,12 +400,13 @@ public class HexMap : Canvas
     /// <param name="coordinates">The map coordinates to bring into view.</param>
     public void CenterOnHex(HexCoordinates coordinates)
     {
+        var viewport = Viewport;
         var contentCenterX = coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2;
         var contentCenterY = coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2;
         _calculator.SetTransform(
             _calculator.Scale,
-            Bounds.Width / 2 - contentCenterX * _calculator.Scale,
-            Bounds.Height / 2 - contentCenterY * _calculator.Scale);
+            viewport.Width / 2 - contentCenterX * _calculator.Scale,
+            viewport.Height / 2 - contentCenterY * _calculator.Scale);
         SyncTransform();
     }
 

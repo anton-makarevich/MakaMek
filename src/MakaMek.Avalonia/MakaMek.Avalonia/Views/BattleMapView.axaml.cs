@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
@@ -209,11 +210,16 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var unit = SquadBarReveal.UnitToReveal(ViewModel.LocalUnits, ViewModel.SelectedUnit ?? ViewModel.Attacker);
         if (unit is null) return;
 
-        var card = SquadBar.GetVisualDescendants()
-            .OfType<UnitStatusBarItem>()
-            .FirstOrDefault(item => ReferenceEquals(item.DataContext, unit));
-
-        card?.BringIntoView();
+        // When the squad itself changed, the cards for it are created in the measure pass that
+        // follows this notification, so looking for one now finds nothing. Posting puts the search
+        // after layout.
+        Dispatcher.UIThread.Post(() =>
+        {
+            SquadBar.GetVisualDescendants()
+                .OfType<UnitStatusBarItem>()
+                .FirstOrDefault(item => ReferenceEquals(item.DataContext, unit))
+                ?.BringIntoView();
+        }, DispatcherPriority.Loaded);
     }
 
     private void UpdateMovementPath()

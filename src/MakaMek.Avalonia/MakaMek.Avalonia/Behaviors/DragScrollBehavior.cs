@@ -100,6 +100,14 @@ public static class DragScrollBehavior
         if (sender is not ScrollViewer scrollViewer) return;
         if (scrollViewer.GetValue(StateProperty) is not { } state) return;
 
+        // A press on the bar's own background takes no capture, so a button released outside the
+        // window leaves the state behind. Without this the next hover would drag with nothing held.
+        if (!e.GetCurrentPoint(scrollViewer).Properties.IsLeftButtonPressed)
+        {
+            scrollViewer.SetValue(StateProperty, null);
+            return;
+        }
+
         var travelled = e.GetPosition(scrollViewer).X - state.PointerX;
         if (!state.Dragging && Math.Abs(travelled) < DragThreshold) return;
 
