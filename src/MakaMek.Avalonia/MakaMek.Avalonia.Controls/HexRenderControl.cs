@@ -36,7 +36,7 @@ public class HexRenderControl : Control
     private readonly Dictionary<HexCoordinates, FormattedText> _coordLabelCache = new();
     private readonly Dictionary<HexCoordinates, FormattedText?> _terrainLabelCache = new();
     private readonly Dictionary<HexCoordinates, List<IHexHighlightType>> _sortedHighlightsCache = new();
-    private readonly Dictionary<(Type HighlightType, double Thickness), Pen> _boundaryPenCache = new();
+    private readonly Dictionary<(Type HighlightType, double Thickness, AttackRangeBand? Band), Pen> _boundaryPenCache = new();
 
     private readonly Pen _whiteOutlinePen;
     private readonly Pen _whiteHighlightPen;
@@ -173,7 +173,7 @@ public class HexRenderControl : Control
         _boundaryPenCache.Clear();
         foreach (var (_, boundary) in _boundaryOutlines)
         {
-            var key = (boundary.HighlightType.GetType(), boundary.Thickness);
+            var key = BoundaryPenKey(boundary);
             if (!_boundaryPenCache.ContainsKey(key))
             {
                 var (highlightPen, _) = GetHighlightPenAndFill(boundary.HighlightType);
@@ -188,7 +188,18 @@ public class HexRenderControl : Control
     /// resolved from themed resources when the outlines are set, not when they are drawn.
     /// </summary>
     internal Pen BoundaryPenFor(HighlightBoundaryOutline boundary) =>
-        _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
+        _boundaryPenCache[BoundaryPenKey(boundary)];
+
+    /// <summary>
+    /// One pen per highlight type and thickness, and per range band where there is one. Keyed on
+    /// type alone, the first attack boundary the dictionary happened to yield would have decided
+    /// the outline colour for every band on the map.
+    /// </summary>
+    private static (Type HighlightType, double Thickness, AttackRangeBand? Band) BoundaryPenKey(
+        HighlightBoundaryOutline boundary) =>
+        (boundary.HighlightType.GetType(),
+            boundary.Thickness,
+            boundary.HighlightType is AttackReachableHighlight attack ? attack.RangeBand : null);
 
     public void UpdateConfiguration(HexRenderConfiguration configuration)
     {
@@ -518,7 +529,7 @@ public class HexRenderControl : Control
 
             using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
             {
-                var bp = _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
+                var bp = _boundaryPenCache[BoundaryPenKey(boundary)];
                 for (var i = 0; i < allDirections.Length; i++)
                 {
                     if ((boundary.EdgeMask & (1 << i)) == 0) continue;
