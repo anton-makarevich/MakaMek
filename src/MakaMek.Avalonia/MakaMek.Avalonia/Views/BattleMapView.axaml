@@ -8,6 +8,7 @@
              xmlns:behaviors="using:Sanet.MakaMek.Avalonia.Behaviors"
              xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
              xmlns:uiStates="using:Sanet.MakaMek.Presentation.UiStates"
+             xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.BattleMapView"
@@ -53,7 +54,7 @@
         </mapControls:HexMap>
         
         <Grid x:Name="TurnStatus"
-            Height="50"
+            RowDefinitions="50,Auto"
             VerticalAlignment="Top"
             Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
@@ -64,6 +65,7 @@
                 IconData="{StaticResource CloseIcon}"
                 />
             <Grid Grid.Column="1"
+                  Grid.Row="0"
                   x:Name="TurnInfoPanel"
                   Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                   ColumnDefinitions="*,*,*">
@@ -120,18 +122,45 @@
                 <!-- Player Action Section -->
                 <Border Grid.Column="2" 
                         Classes="statusSection"
-                        IsVisible="{Binding IsUserActionLabelVisible}">
-                    <TextBlock Text="{Binding ActionInfoLabel}" 
-                             Classes="turnInfo"
-                             TextWrapping="Wrap"
-                             FontWeight="Bold"
-                             Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
-                             VerticalAlignment="Center"
-                             TextAlignment="Center"
-                             HorizontalAlignment="Center"/>
+                        IsVisible="{Binding IsTurnActionPanelVisible}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TurnActionStatusLabel}"
+                                 Classes="turnInfo"
+                                 TextWrapping="Wrap"
+                                 FontWeight="Bold"
+                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                                 VerticalAlignment="Center"
+                                 TextAlignment="Center"
+                                 HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding ActiveUnitLabel}"
+                                   Classes="turnInfoLabel"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                        <TextBlock Text="{Binding TurnGuidanceLabel}"
+                                   Classes="turnInfoLabel"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                    </StackPanel>
                 </Border>
             </Grid>
-            
+
+            <!-- Surfaces the rejection and timeout feedback from the client game. -->
+            <Border Grid.Row="1"
+                    Grid.Column="1"
+                    IsVisible="{Binding IsCommandFeedbackVisible}"
+                    Background="{StaticResource ErrorBrush}"
+                    Padding="10,4">
+                <TextBlock Text="{Binding CommandFeedbackLabel}"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextLightBrush}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"/>
+            </Border>
+
         </Grid>
 
         <templatedControls:ConnectionStatusBanner
@@ -184,15 +213,40 @@
             <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
         </templatedControls:GamePanel>
         
-        <StackPanel HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    Margin="{StaticResource PageMargin}"
-                    Spacing="10">
+        <StackPanel HorizontalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsHorizontal}"
+                    VerticalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsVertical}"
+                    Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsMargin}"
+                    Spacing="10"
+                    IsVisible="{Binding IsMapControlsDrawerOpen}">
+            <!-- Advances to the next living, non-shutdown squad member and centers the map. -->
+            <Button Classes="actionButtonText"
+                    IsVisible="{Binding IsNextAvailableUnitVisible}"
+                    Command="{Binding NextAvailableUnitCommand}"
+                    ToolTip.Tip="{extensions:Localize 'BattleMap_NextUnit'}"
+                    Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
+                    Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                    Content="{extensions:Localize 'BattleMap_NextUnit'}"/>
+
             <!-- Center Map Button -->
             <templatedControls:ActionButton
                 Command="{Binding CenterMapCommand}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="{StaticResource CenterMapIcon}"/>
+
+            <Button Classes="actionButtonText"
+                    Command="{Binding ZoomInCommand}"
+                    AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomIn'}"
+                    ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomIn'}"
+                    Content="+"/>
+            <Button Classes="actionButtonText"
+                    Command="{Binding ZoomOutCommand}"
+                    AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomOut'}"
+                    ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomOut'}"
+                    Content="-"/>
+            <Button Classes="actionButtonText"
+                    Command="{Binding FitMapCommand}"
+                    ToolTip.Tip="{extensions:Localize 'BattleMap_FitMap'}"
+                    Content="{extensions:Localize 'BattleMap_FitMap'}"/>
 
             <!-- Record Sheet Button -->
             <templatedControls:ActionButton
@@ -225,11 +279,46 @@
                     Content="{extensions:Localize 'BattleMap_ExportPdf'}"/>
         </StackPanel>
 
+        <templatedControls:ActionButton
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Margin="8"
+            Command="{Binding ToggleMapControlsDrawer}"
+            AutomationProperties.Name="{extensions:Localize 'BattleMap_MapControls'}"
+            ToolTip.Tip="{extensions:Localize 'BattleMap_MapControls'}"
+            IconData="{StaticResource MapSettingsIcon}"/>
+
+        <!-- Persistent squad overview. The cards sit outside the drawer so round status stays
+             visible while the map remains the primary workspace. -->
+        <ScrollViewer HorizontalAlignment="Left"
+                      VerticalAlignment="Bottom"
+                      MaxWidth="700"
+                      Height="78"
+                      Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=squadMargin}"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Hidden"
+                      IsVisible="{Binding IsSquadStatusBarVisible}">
+            <ItemsControl ItemsSource="{Binding LocalUnits}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="units:IUnit">
+                        <controls:UnitStatusBarItem
+                            InspectCommand="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).InspectUnitCommand}"
+                            FocusCommand="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).FocusUnitCommand}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
         <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Bottom"
             Spacing="4"
-            Margin="0,0,0,20">
+            Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=actionMargin}">
             
             <!-- Mobile Unit Action Buttons (fixed overlay, visible only on mobile) -->
             <ItemsControl x:Name="MobileActionButtonsPanel"
@@ -269,12 +358,22 @@
 
         <!-- Record Sheet Panel -->
         <templatedControls:GamePanel
+            x:Name="RecordSheetPanel"
             IsVisible="{Binding IsRecordSheetPanelVisible}"
-            Title="{Binding SelectedUnit.Name}"
-            CloseCommand="{Binding ToggleRecordSheet}">
+            Title="{Binding InspectedUnit.Name}"
+            CloseCommand="{Binding ToggleRecordSheet}"
+            HorizontalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=horizontal}"
+            VerticalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=vertical}"
+            Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=margin}"
+            MinHeight="0"
+            MaxWidth="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=maxWidth}"
+            MaxHeight="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=maxHeight}">
             <controls:UnitRecordSheet
-                Unit="{Binding SelectedUnit}"
+                Unit="{Binding InspectedUnit}"
                 HeatProjection="{Binding SelectedUnitHeatProjection}"
+                FocusCommand="{Binding FocusUnitCommand}"
+                PinCommand="{Binding ToggleRecordSheetPin}"
+                IsPinned="{Binding IsRecordSheetPinned}"
                 ShowHeatLevelPanel="True"
                 ShowEventsTab="True" />
         </templatedControls:GamePanel>

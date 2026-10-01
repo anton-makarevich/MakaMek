@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -19,6 +20,11 @@ namespace Sanet.MakaMek.Avalonia.Views;
 
 public partial class BattleMapView : BaseView<BattleMapViewModel>
 {
+    /// <summary>
+    /// Zoom applied per button press. The wheel uses its own, smaller step.
+    /// </summary>
+    private const double ZoomStep = 0.2;
+
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
@@ -148,9 +154,22 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel == null) return;
         ViewModel.CaptureMap = CaptureViewMap;
         ViewModel.CenterMap = () => MapCanvas.CenterMap();
+        ViewModel.ZoomIn = () => MapCanvas.Zoom(1 + ZoomStep);
+        ViewModel.ZoomOut = () => MapCanvas.Zoom(1 - ZoomStep);
+        ViewModel.FitMap = () => MapCanvas.FitMap();
+        ViewModel.FocusUnit = FocusUnitOnMap;
         if (ViewModel.Game is not { } game) return;
         RenderMap(game);
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    /// <summary>
+    /// Centers the map on a unit. A unit that has not deployed has no position to center on.
+    /// </summary>
+    private void FocusUnitOnMap(IUnit unit)
+    {
+        if (unit.Position is not { } position) return;
+        MapCanvas.CenterOnHex(position.Coordinates);
     }
 
     private async Task<(byte[] PngBytes, int WidthPixels, int HeightPixels)> CaptureViewMap()

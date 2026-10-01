@@ -110,9 +110,17 @@ public static class CoreServices
         services.AddSingleton<Converters.MovementBreakdownConverter>();
         services.AddSingleton<Converters.HubStatusTextConverter>();
         services.AddSingleton<Converters.ConnectionStatusTextConverter>();
+        services.AddSingleton<Converters.UnitActionHintConverter>();
+        services.AddSingleton<Converters.UnitMovementSummaryConverter>();
+        services.AddSingleton<Converters.UnitPositionSummaryConverter>();
+        services.AddSingleton<Converters.UnitResourceWarningConverter>();
+        services.AddSingleton<Converters.UnitStatusTextConverter>();
+        services.AddSingleton<Converters.DrawerPinTextConverter>();
 
         // Converters that consume IAvaloniaResourcesLocator
         services.AddSingleton<Converters.ComponentStatusBackgroundConverter>();
+        services.AddSingleton<Converters.UnitStatusToBrushConverter>();
+        services.AddSingleton<Converters.HeatRiskToBrushConverter>();
         services.AddSingleton<Converters.EventTypeToBackgroundConverter>();
         services.AddSingleton<Converters.ConsciousnessColorConverter>();
         services.AddSingleton<Converters.SelectedItemToBrushConverter>();

@@ -13,6 +13,10 @@
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
+            <converters:NullToBooleanConverter x:Key="NullToBooleanConverter"/>
+            <converters:UnitIntegrityPercentConverter x:Key="UnitIntegrityPercentConverter"/>
+            <converters:CompactPanelLayoutConverter x:Key="CompactPanelLayoutConverter"/>
+            <converters:UnitEventBadgeConverter x:Key="UnitEventBadgeConverter"/>
             <!-- DI-injected converters (HubStatus*, ConnectionStatus*, ComponentStatusBackground,
                  SelectedItemToBrush, Consciousness*, ModifierToText, SegmentEventToText,
                  MovementBreakdown, EventTypeToBackground) are intentionally omitted here;
