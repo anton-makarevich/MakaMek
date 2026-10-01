@@ -303,12 +303,15 @@
             IconData="{StaticResource MapSettingsIcon}"/>
 
         <!-- Persistent squad overview. The cards sit outside the drawer so round status stays
-             visible while the map remains the primary workspace. -->
+             visible while the map remains the primary workspace.
+
+             The height carries the 92pt card plus 16pt of scrollbar, so the scrollbar sits under
+             the cards instead of across their damage bars when the squad overflows. -->
         <ScrollViewer x:Name="SquadBar"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Bottom"
-                      Height="95"
-                      HorizontalScrollBarVisibility="Hidden"
+                      Height="108"
+                      HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled"
                       behaviors:DragScrollBehavior.EnableHorizontalDragScroll="True"
                       IsVisible="{Binding IsSquadStatusBarVisible}">
@@ -320,7 +323,7 @@
                     <Binding ElementName="MapControlsDrawer" Path="Bounds.Width"/>
                 </MultiBinding>
             </ScrollViewer.Margin>
-            <ItemsControl ItemsSource="{Binding LocalUnits}">
+            <ItemsControl ItemsSource="{Binding LocalUnits}" VerticalAlignment="Top">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" Spacing="6"/>
