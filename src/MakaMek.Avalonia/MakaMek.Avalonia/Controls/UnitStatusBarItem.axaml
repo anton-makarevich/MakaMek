@@ -54,27 +54,32 @@
                     Background="Transparent"
                     BorderThickness="0"
                     HorizontalContentAlignment="Stretch">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Text="{Binding Name}"
                                Classes="labelLarge"
                                Foreground="{StaticResource TextLightBrush}"
                                TextTrimming="CharacterEllipsis"/>
+                    <!-- What the unit is. -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding Class}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}"/>
                         <TextBlock Text="{Binding Tonnage, StringFormat={}{0}t}" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}"/>
+                        <TextBlock Text="{Binding CurrentHeat, StringFormat={extensions:Localize 'UnitHud_HeatValue'}}"
+                                   Classes="bodySmall"
+                                   Foreground="{Binding CurrentHeat, Converter={StaticResource HeatRiskToBrushConverter}}"/>
+                    </StackPanel>
+                    <!-- Where it is and how far it can go. These two together wanted 262pt on one
+                         line with the row above, which is more than any sensible card width. -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding Position, Converter={StaticResource UnitPositionSummaryConverter}}"
                                    Classes="bodySmall"
                                    Foreground="{StaticResource TextLightBrush}"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding CurrentHeat, StringFormat={extensions:Localize 'UnitHud_HeatValue'}}"
-                                   Classes="bodySmall"
-                                   Foreground="{Binding CurrentHeat, Converter={StaticResource HeatRiskToBrushConverter}}"/>
                         <TextBlock Text="{Binding ., Converter={StaticResource UnitMovementSummaryConverter}}"
                                    Classes="bodySmall"
                                    Foreground="{StaticResource TextLightBrush}"
                                    TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding Status, Converter={StaticResource UnitStatusTextConverter}}"
                                    Classes="bodySmall"
                                    Foreground="{StaticResource TextLightBrush}"/>
@@ -90,7 +95,7 @@
                                    Classes="bodySmall"
                                    Foreground="{StaticResource WarningBrush}"/>
                     </StackPanel>
-                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="5" Margin="0,3,0,0">
+                    <Grid Grid.Row="4" ColumnDefinitions="*,Auto,*,Auto" ColumnSpacing="5" Margin="0,3,0,0">
                         <ProgressBar Value="{Binding TotalCurrentArmor}" Maximum="{Binding TotalMaxArmor}" Height="5" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" Classes="bodySmall" Foreground="{StaticResource TextLightBrush}">
                             <TextBlock.Text>
