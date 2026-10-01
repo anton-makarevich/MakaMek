@@ -7,10 +7,11 @@
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitBasicInfoPanel"
              mc:Ignorable="d">
-    <StackPanel Orientation="Horizontal" Spacing="5">
-        <TextBlock Text="{Binding Class}" VerticalAlignment="Center"/>
-        <TextBlock Text="{Binding Tonnage}" VerticalAlignment="Center"/>
-        <TextBlock Text="{extensions:Localize 'UnitBasicInfo_TurnIndicator'}" VerticalAlignment="Center"/>
+    <!-- Wrap the summary on narrow panels so the status badge stays readable instead of being clipped. -->
+    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="4">
+        <TextBlock Text="{Binding Class}" Classes="labelLarge" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Tonnage}" Classes="labelLarge" VerticalAlignment="Center"/>
+        <TextBlock Text="{extensions:Localize 'UnitBasicInfo_TurnIndicator'}" Classes="labelLarge" VerticalAlignment="Center"/>
         <Border Background="{Binding Owner.Tint, Converter={StaticResource HexColorToBrushConverter}}"
                 VerticalAlignment="Center"
                 CornerRadius="4"
@@ -18,8 +19,8 @@
                 BorderThickness="1"
                 Padding="5,2">
             <TextBlock Text="{Binding Status}"
-                     Foreground="{Binding Owner.Tint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                       TextWrapping="Wrap"
+                       Foreground="{Binding Owner.Tint, Converter={StaticResource ContrastingForegroundConverter}}"/>
         </Border>
-    </StackPanel>
+    </WrapPanel>
 </UserControl>
-
