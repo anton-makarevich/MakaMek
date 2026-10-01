@@ -393,6 +393,7 @@ public class FakeLocalizationService : ILocalizationService
         ["UnitInfo_Save"] = "Save",
         ["UnitInfo_EditName"] = "Edit Name",
         ["Initiative_WaitingLabel"] = "Waiting for initiative rolls",
+        ["WeaponSelection_TargetOverlay"] = "{0}",
         ["Cancel"] = "Cancel",
         ["AvailableUnits_UnitInfo"] = "Unit Info",
         ["AboutView_Title"] = "About MakaMek",
