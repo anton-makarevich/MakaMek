@@ -538,6 +538,7 @@ public class FakeLocalizationService : ILocalizationService
         ["Players_JoinGame"] = "Join Game",
         ["Players_SetReady"] = "Set Ready",
         ["Players_Aggressiveness"] = "Aggressiveness",
+        ["Players_BattleValueBudget"] = "Battle Value budget (0 = unlimited)",
         ["Window_Title"] = "MakaMek",
         ["BattleMap_Notification_Turn"] = "turn {0}",
         ["BattleMap_Notification_Phase"] = "{0} phase",
