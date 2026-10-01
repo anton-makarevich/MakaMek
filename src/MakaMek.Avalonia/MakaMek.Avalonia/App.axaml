@@ -20,6 +20,7 @@
             <converters:SquadBarMarginConverter x:Key="SquadBarMarginConverter"/>
             <converters:RecordSheetMarginConverter x:Key="RecordSheetMarginConverter"/>
             <converters:UtilityPanelMarginConverter x:Key="UtilityPanelMarginConverter"/>
+            <converters:MapControlsMarginConverter x:Key="MapControlsMarginConverter"/>
             <converters:UnitEventBadgeConverter x:Key="UnitEventBadgeConverter"/>
             <!-- DI-injected converters (ModifierToTextConverter, ...ConnectionStatusBackgroundConverter)
                  are resolved from the service provider and added to Resources in App.axaml.cs. -->

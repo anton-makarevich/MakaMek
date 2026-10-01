@@ -219,8 +219,13 @@
         <StackPanel x:Name="MapControlsColumn"
                     HorizontalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsHorizontal}"
                     VerticalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsVertical}"
-                    Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsMargin}"
                     Spacing="10">
+            <StackPanel.Margin>
+                <MultiBinding Converter="{StaticResource MapControlsMarginConverter}">
+                    <Binding Path="AreActionsMenuOffMap"/>
+                    <Binding ElementName="TurnStatus" Path="Bounds.Height"/>
+                </MultiBinding>
+            </StackPanel.Margin>
 
         <StackPanel x:Name="MapControlsDrawer"
                     HorizontalAlignment="Right"
@@ -417,6 +422,7 @@
                     <Binding Path="AreActionsMenuOffMap"/>
                     <Binding ElementName="SquadBar" Path="IsVisible"/>
                     <Binding ElementName="SquadBar" Path="Bounds.Height"/>
+                    <Binding ElementName="TurnStatus" Path="Bounds.Height"/>
                 </MultiBinding>
             </templatedControls:GamePanel.Margin>
             <controls:UnitRecordSheet

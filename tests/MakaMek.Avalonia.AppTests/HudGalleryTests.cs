@@ -13,17 +13,21 @@ using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
 using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
@@ -64,10 +68,10 @@ public class HudGalleryTests
         {
             foreach (var state in GalleryStates)
             {
-                var (window, view, viewModel) = await ShowHud(width, height, mobile);
+                var (window, view, viewModel, localPlayerId) = await ShowHud(width, height, mobile);
                 try
                 {
-                    state.Apply(viewModel);
+                    await state.Apply(viewModel, localPlayerId);
                     Settle(window);
 
                     using var frame = window.CaptureRenderedFrame();
@@ -159,25 +163,27 @@ public class HudGalleryTests
     private static bool IsRelated(Visual a, Visual b) =>
         a.GetVisualAncestors().Contains(b) || b.GetVisualAncestors().Contains(a);
 
-    private sealed record GalleryState(string Name, Action<BattleMapViewModel> Apply);
+    private sealed record GalleryState(string Name, Func<BattleMapViewModel, Guid, Task> Apply);
 
     private static readonly GalleryState[] GalleryStates =
     [
-        new("base", _ => { }),
-        new("acting", viewModel => SetState(viewModel, ActingState())),
-        new("controls-open", viewModel => viewModel.ToggleMapControlsDrawer()),
-        new("record-sheet", viewModel => viewModel.InspectUnit(viewModel.LocalUnits.First())),
-        new("record-sheet-pinned", viewModel =>
+        new("base", (_, _) => Task.CompletedTask),
+        new("acting", (viewModel, _) => { SetState(viewModel, ActingState()); return Task.CompletedTask; }),
+        new("controls-open", (viewModel, _) => { viewModel.ToggleMapControlsDrawer(); return Task.CompletedTask; }),
+        new("record-sheet", (viewModel, _) => { viewModel.InspectUnit(viewModel.LocalUnits.First()); return Task.CompletedTask; }),
+        new("record-sheet-pinned", (viewModel, _) =>
         {
             viewModel.InspectUnit(viewModel.LocalUnits.First());
             viewModel.ToggleRecordSheetPin();
+            return Task.CompletedTask;
         }),
-        new("command-log", viewModel => viewModel.ToggleCommandLog()),
-        new("map-settings", viewModel => viewModel.ToggleMapSettings()),
-        new("acting-with-controls", viewModel =>
+        new("command-log", (viewModel, _) => { viewModel.ToggleCommandLog(); return Task.CompletedTask; }),
+        new("map-settings", (viewModel, _) => { viewModel.ToggleMapSettings(); return Task.CompletedTask; }),
+        new("acting-with-controls", (viewModel, _) =>
         {
             SetState(viewModel, ActingState());
             viewModel.ToggleMapControlsDrawer();
+            return Task.CompletedTask;
         })
     ];
 
@@ -205,7 +211,7 @@ public class HudGalleryTests
         viewModel.NotifySelectedUnitChanged();
     }
 
-    private static async Task<(Window Window, BattleMapView View, BattleMapViewModel ViewModel)>
+    private static async Task<(Window Window, BattleMapView View, BattleMapViewModel ViewModel, Guid LocalPlayerId)>
         ShowHud(int width, int height, bool mobile)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
@@ -215,33 +221,54 @@ public class HudGalleryTests
         var units = await LocalGameFixture.LoadBundledUnitsAsync(services);
         var player = new Player(Guid.NewGuid(), "Local", PlayerControlType.Human, "#4A90D9");
 
+        // An opponent, so the weapon selection panel has something to target. Its units are
+        // deployed a couple of hexes away, inside the range of anything the attacker carries.
+        var enemy = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Remote, "#C0504D");
+
         viewModel.Game = game;
         game.SetBattleMap(services.GetRequiredService<IBattleMapFactory>()
             .GenerateMap(12, 10, new SingleTerrainGenerator(12, 10, new ClearTerrain())));
-        game.JoinGameWithUnits(player, units.Take(4).ToList(), []);
-        game.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            Tint = player.Tint,
-            Units = units.Take(4).ToList(),
-            PilotAssignments = []
-        });
 
-        var hex = 1;
-        foreach (var unit in game.Players.SelectMany(p => p.Units))
+        // Bundled unit data carries no id until one is assigned, and the pilot assignments below
+        // have to name the same units the roster does.
+        List<UnitData> Roster(int skip, int take) => units
+            .Skip(skip).Take(take)
+            .Select(unit => unit with { Id = Guid.NewGuid() })
+            .ToList();
+
+        // A mech with no pilot is immobile and cannot fire, which leaves the whole squad greyed
+        // out and the weapon panel unreachable.
+        List<PilotAssignmentData> Pilots(List<UnitData> roster) => roster
+            .Select(unit => new PilotAssignmentData
+            {
+                UnitId = unit.Id!.Value,
+                PilotData = PilotData.CreateDefaultPilot("Test", "Pilot")
+            })
+            .ToList();
+
+        var localRoster = Roster(0, 4);
+        var enemyRoster = Roster(4, 2);
+
+        // JoinGameWithUnits is what marks the player as local, which is what the squad bar reads.
+        await game.JoinGameWithUnits(player, localRoster, Pilots(localRoster));
+
+        foreach (var (joining, roster) in new[] { (player, localRoster), (enemy, enemyRoster) })
         {
-            game.HandleCommand(new DeployUnitCommand
+            game.HandleCommand(new JoinGameCommand
             {
                 GameOriginId = Guid.NewGuid(),
-                PlayerId = player.Id,
-                UnitId = unit.Id,
-                Position = new HexCoordinates(hex, hex).ToData(),
-                Direction = 0
+                PlayerId = joining.Id,
+                PlayerName = joining.Name,
+                Tint = joining.Tint,
+                Units = roster,
+                PilotAssignments = Pilots(roster)
             });
-            hex++;
         }
+
+        // Facing north in a row, with the opponent directly ahead: a target off the firing arc is
+        // not selectable, so the weapon panel would never open.
+        Deploy(game, player.Id, startColumn: 3, row: 6);
+        Deploy(game, enemy.Id, startColumn: 3, row: 3);
 
         var view = new BattleMapView();
         ((IBaseView)view).ViewModel = viewModel;
@@ -249,7 +276,24 @@ public class HudGalleryTests
         var window = new Window { Width = width, Height = height, Content = view };
         window.Show();
         Settle(window);
-        return (window, view, viewModel);
+        return (window, view, viewModel, player.Id);
+    }
+
+    private static void Deploy(IClientGame game, Guid playerId, int startColumn, int row)
+    {
+        var column = startColumn;
+        foreach (var unit in game.Players.First(p => p.Id == playerId).Units)
+        {
+            game.HandleCommand(new DeployUnitCommand
+            {
+                GameOriginId = Guid.NewGuid(),
+                PlayerId = playerId,
+                UnitId = unit.Id,
+                Position = new HexCoordinates(column, row).ToData(),
+                Direction = 0
+            });
+            column++;
+        }
     }
 
     /// <summary>
@@ -269,7 +313,9 @@ public class HudGalleryTests
             services.GetRequiredService<IDispatcherService>(),
             services.GetRequiredService<IRulesProvider>(),
             platform,
-            terrainBitmaskService: services.GetService<ITerrainBitmaskService>());
+            terrainBitmaskService: services.GetService<ITerrainBitmaskService>(),
+            commandPublisher: services.GetService<ICommandPublisher>(),
+            connectionLogger: services.GetRequiredService<ILoggerFactory>().CreateLogger<BattleMapViewModel>());
     }
 
     private static ClientGame CreateClientGame(IServiceProvider services) => new(
@@ -282,7 +328,11 @@ public class HudGalleryTests
         services.GetRequiredService<IHeatEffectsCalculator>(),
         services.GetRequiredService<IBattleMapFactory>(),
         services.GetRequiredService<IHashService>(),
-        services.GetRequiredService<ILogger<ClientGame>>());
+        services.GetRequiredService<ILogger<ClientGame>>(),
+        // Nothing acknowledges a published command here, and a pending one blocks
+        // CanActivePlayerAct, which gates every selection the HUD depends on. A short timeout lets
+        // it clear instead.
+        ackTimeoutMilliseconds: 20);
 
     private static void Settle(Window window)
     {
@@ -302,4 +352,48 @@ public class HudGalleryTests
         frame.Save(Path.Combine(directory, fileName));
     }
 
+
+
+
+
+    /// <summary>Records a unit as having held its ground, so to-hit has a movement to read.</summary>
+    private static void StandStill(IClientGame game, Guid playerId, IUnit unit)
+    {
+        var position = unit.Position!;
+        game.HandleCommand(new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitId = unit.Id,
+            MovementType = MovementType.StandingStill,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = position.ToData(),
+                    To = position.ToData(),
+                    Costs = []
+                }
+            ]
+        });
+    }
+
+    /// <summary>
+    /// Lets the deferred command handlers run.
+    ///
+    /// Commands reach the subscription from off the UI thread, so draining the dispatcher is not
+    /// enough on its own and sleeping on it blocks the delivery being waited for. Awaiting yields
+    /// the thread, which is what lets them arrive.
+    /// </summary>
+    private static async Task Settle()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
 }

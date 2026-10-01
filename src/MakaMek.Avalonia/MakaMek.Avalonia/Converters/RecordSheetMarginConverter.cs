@@ -15,7 +15,9 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// needs 118, so the drawer was drawn across the top of the cards. The inset is taken from the
 /// bar's rendered height instead, and a hidden bar gives the drawer the whole edge.
 ///
-/// On a desktop layout the drawer is pinned top right and the bar is irrelevant.
+/// The top inset comes from the turn status bar for the same reason: it is 50 points with just
+/// the turn and phase on it, and taller once the guidance labels fill in, so a constant there was
+/// also wrong.
 /// </summary>
 public sealed class RecordSheetMarginConverter : IMultiValueConverter
 {
@@ -27,16 +29,20 @@ public sealed class RecordSheetMarginConverter : IMultiValueConverter
 
     public object Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (values.Count < 3) return AvaloniaProperty.UnsetValue;
+        if (values.Count < 4) return AvaloniaProperty.UnsetValue;
 
         var compact = values[0] is true;
-        if (!compact) return new Thickness(0, 60, 88, 80);
-
         var barShowing = values[1] is true;
-        var barHeight = values[2] is double height && double.IsFinite(height) && height > 0 ? height : 0;
+        var barHeight = Size(values[2]);
+        var top = Size(values[3]) + Gutter;
 
-        return new Thickness(8, 56, 8, barShowing && barHeight > 0 ? barHeight + Gutter : CompactBottom);
+        if (!compact) return new Thickness(0, top, 88, 80);
+
+        return new Thickness(8, top, 8, barShowing && barHeight > 0 ? barHeight + Gutter : CompactBottom);
     }
+
+    private static double Size(object? value) =>
+        value is double size && double.IsFinite(size) && size > 0 ? size : 0;
 
     public object ConvertBack(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
         => BindingOperations.DoNothing;
