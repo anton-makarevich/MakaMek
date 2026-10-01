@@ -193,6 +193,8 @@
   <data name="AttackDirection_Front" xml:space="preserve"><value>Front</value></data>
   <data name="AttackDirection_Rear" xml:space="preserve"><value>Rear</value></data>
   <data name="Modifier_GunnerySkill" xml:space="preserve"><value>Gunnery Skill: +{0}</value></data>
+  <data name="Modifier_PilotingSkill" xml:space="preserve"><value>Piloting Skill: +{0}</value></data>
+  <data name="Modifier_PhysicalAttackBase" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="Modifier_AttackerMovement" xml:space="preserve"><value>Attacker Movement ({0}): +{1}</value></data>
   <data name="Modifier_TargetMovement" xml:space="preserve"><value>Target Movement ({0} hexes): +{1}</value></data>
   <data name="Modifier_Range" xml:space="preserve"><value>{0} at {1} hexes ({2} range): +{3}</value></data>

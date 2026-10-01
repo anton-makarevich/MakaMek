@@ -217,6 +217,8 @@ public class LocalizationResourcesTests
     [InlineData("AttackDirection_Front", "Front")]
     [InlineData("AttackDirection_Rear", "Rear")]
     [InlineData("Modifier_GunnerySkill", "Gunnery Skill: +{0}")]
+    [InlineData("Modifier_PilotingSkill", "Piloting Skill: +{0}")]
+    [InlineData("Modifier_PhysicalAttackBase", "{0}: {1}")]
     [InlineData("Modifier_AttackerMovement", "Attacker Movement ({0}): +{1}")]
     [InlineData("Modifier_TargetMovement", "Target Movement ({0} hexes): +{1}")]
     [InlineData("Modifier_Range", "{0} at {1} hexes ({2} range): +{3}")]
