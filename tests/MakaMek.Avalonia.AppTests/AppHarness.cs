@@ -1,6 +1,8 @@
 using global::Avalonia;
 using global::Avalonia.Headless;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia;
 using Sanet.MakaMek.Avalonia.Desktop.DependencyInjection;
 using Sanet.MVVM.DI.Avalonia.Extensions;
@@ -31,7 +33,15 @@ public static class AppHarness
 {
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
-            .UseDependencyInjection(services => services.RegisterDesktopServices())
+            .UseDependencyInjection(services =>
+            {
+                services.RegisterDesktopServices();
+                // The configured terrain source is remote. Point it at the repository's own pack
+                // so the map draws real hexes under the HUD instead of white space.
+                services.AddSingleton<ITerrainAssetService>(sp =>
+                    LocalGameFixture.CreateLocalTerrainService(
+                        sp.GetRequiredService<ILoggerFactory>()));
+            })
             .WithInterFont()
             .UseSkia()
             // Real drawing, so CaptureRenderedFrame returns pixels rather than an empty surface.

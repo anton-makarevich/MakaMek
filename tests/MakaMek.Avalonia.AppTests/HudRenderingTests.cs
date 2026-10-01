@@ -268,4 +268,38 @@ public class HudRenderingTests
         }
     });
 
+
+
+    /// <summary>
+    /// The drawer and the toggle that opens it form one column. They did not: children stretch to
+    /// the panel's widest item, so each icon drew against the left edge of a 145pt box at x=943
+    /// while the toggle sat at x=1052.
+    /// </summary>
+    [Fact]
+    public Task MapControlsDrawer_LinesUpWithItsToggle() => HarnessSession.Run(() =>
+    {
+        var (window, view, viewModel) = ShowBattleMap();
+        try
+        {
+            viewModel.ToggleMapControlsDrawer();
+            Settle(window);
+
+            var lefts = view.GetVisualDescendants()
+                .OfType<ActionButton>()
+                .Where(b => b.IsEffectivelyVisible && b.Bounds.Width > 0)
+                .Select(b => b.TranslatePoint(new Point(0, 0), view)?.X)
+                .Where(x => x is not null)
+                // The leave-game button belongs to the top bar, not this column.
+                .Where(x => x > 100)
+                .Distinct()
+                .ToList();
+
+            lefts.Count.ShouldBe(1,
+                $"every map control should share one left edge, found {string.Join(", ", lefts)}");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
 }

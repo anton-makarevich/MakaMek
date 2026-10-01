@@ -20,6 +20,9 @@ using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Views;
 using Shouldly;
@@ -120,7 +123,7 @@ public class SquadHudTests
             var (window, _, viewModel) = await ShowBattleMapWithSquad(width, height);
             try
             {
-                Settle(window);
+                await SettleUntilTilesDecode(window);
                 using var bare = window.CaptureRenderedFrame();
                 Save(bare!, name);
 
@@ -137,7 +140,7 @@ public class SquadHudTests
     });
 
     private static async Task<(Window Window, BattleMapView View, BattleMapViewModel ViewModel)>
-        ShowBattleMapWithSquad(int width = 1280, int height = 800)
+        ShowBattleMapWithSquad(int width = 1280, int height = 800, bool deploy = true)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
         var viewModel = services.GetRequiredService<BattleMapViewModel>();
@@ -147,6 +150,8 @@ public class SquadHudTests
         var player = new Player(Guid.NewGuid(), "Local", PlayerControlType.Human, "#4A90D9");
 
         viewModel.Game = game;
+        game.SetBattleMap(services.GetRequiredService<IBattleMapFactory>()
+            .GenerateMap(12, 10, new SingleTerrainGenerator(12, 10, new ClearTerrain())));
         game.JoinGameWithUnits(player, units.Take(4).ToList(), []);
         game.HandleCommand(new JoinGameCommand
         {
@@ -157,6 +162,25 @@ public class SquadHudTests
             Units = units.Take(4).ToList(),
             PilotAssignments = []
         });
+
+        if (deploy)
+        {
+            // Undeployed units read as "Off map" and draw nothing, so the map underneath the HUD
+            // would stay empty. Put each one on its own hex.
+            var hex = 1;
+            foreach (var unit in game.Players.SelectMany(p => p.Units))
+            {
+                game.HandleCommand(new DeployUnitCommand
+                {
+                    GameOriginId = Guid.NewGuid(),
+                    PlayerId = player.Id,
+                    UnitId = unit.Id,
+                    Position = new HexCoordinates(hex, hex).ToData(),
+                    Direction = 0
+                });
+                hex++;
+            }
+        }
 
         var view = new BattleMapView();
         ((IBaseView)view).ViewModel = viewModel;
@@ -179,6 +203,22 @@ public class SquadHudTests
         services.GetRequiredService<IHashService>(),
         services.GetRequiredService<ILogger<ClientGame>>());
 
+    /// <summary>
+    /// Hex tiles are decoded off the UI thread, so a single settle captures the map before any of
+    /// them arrive. Pump the dispatcher a few times, yielding in between, so the screenshot shows
+    /// the terrain rather than bare canvas.
+    /// </summary>
+    private static async Task SettleUntilTilesDecode(Window window)
+    {
+        for (var i = 0; i < 25; i++)
+        {
+            Settle(window);
+            await Task.Delay(40);
+        }
+
+        Settle(window);
+    }
+
     private static void Settle(Window window)
     {
         Dispatcher.UIThread.RunJobs();
@@ -193,6 +233,8 @@ public class SquadHudTests
         Directory.CreateDirectory(directory);
         frame.Save(Path.Combine(directory, fileName));
     }
+
+
 
 
 }
