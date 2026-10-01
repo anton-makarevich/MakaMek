@@ -243,6 +243,7 @@
             <!-- Center Map Button -->
             <templatedControls:ActionButton
                 Command="{Binding CenterMapCommand}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_ResetMap'}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="{StaticResource CenterMapIcon}"/>
 
@@ -266,6 +267,7 @@
             <templatedControls:ActionButton
                 IsVisible="{Binding IsRecordSheetButtonVisible}"
                 Command="{Binding ToggleRecordSheet}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_UnitInfo'}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_UnitInfo'}"
                 IconData="{StaticResource RecordSheetIcon}"/>
 
@@ -273,6 +275,7 @@
             <templatedControls:ActionButton
                 IsVisible="{Binding !IsCommandLogExpanded}"
                 Command="{Binding ToggleCommandLog}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_Commands'}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_Commands'}"
                 IconData="{StaticResource CommandLogIcon}"/>
 
@@ -280,6 +283,7 @@
             <templatedControls:ActionButton
                 IsVisible="{Binding !IsMapSettingsPanelVisible}"
                 Command="{Binding ToggleMapSettings}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_MapSettings'}"
                 ToolTip.Tip="{extensions:Localize 'BattleMap_MapSettings'}"
                 IconData="{StaticResource MapSettingsIcon}"/>
 
