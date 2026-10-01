@@ -18,7 +18,6 @@ public sealed class CompactPanelLayoutConverter : IValueConverter
         {
             "horizontal" => compact ? HorizontalAlignment.Stretch : HorizontalAlignment.Right,
             "vertical" => compact ? VerticalAlignment.Bottom : VerticalAlignment.Top,
-            "margin" => compact ? new Thickness(8, 56, 8, 88) : new Thickness(0, 60, 88, 80),
             "controlsHorizontal" => HorizontalAlignment.Right,
             "controlsVertical" => compact ? VerticalAlignment.Top : VerticalAlignment.Bottom,
             "controlsMargin" => compact ? new Thickness(8, 60, 8, 0) : new Thickness(0, 0, 12, 20),
