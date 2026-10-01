@@ -20,7 +20,6 @@ public sealed class CompactPanelLayoutConverter : IValueConverter
             "vertical" => compact ? VerticalAlignment.Bottom : VerticalAlignment.Top,
             "controlsHorizontal" => HorizontalAlignment.Right,
             "controlsVertical" => compact ? VerticalAlignment.Top : VerticalAlignment.Bottom,
-            "controlsMargin" => compact ? new Thickness(8, 60, 8, 0) : new Thickness(0, 0, 12, 20),
             "squadMargin" => compact ? new Thickness(12, 0, 12, 10) : new Thickness(12, 0, 0, 10),
             "maxWidth" => compact ? 1000d : 420d,
             "maxHeight" => compact ? 500d : 620d,
