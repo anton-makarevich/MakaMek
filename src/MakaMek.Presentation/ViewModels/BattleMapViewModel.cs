@@ -773,6 +773,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
+    /// Replaces the attack highlight on one hex, so the band already drawn there can carry the
+    /// per target detail without the hex being highlighted twice.
+    /// </summary>
+    internal void UpdateAttackHighlight(HexCoordinates coordinates, AttackReachableHighlight highlight)
+    {
+        var hex = Game?.BattleMap?.GetHex(coordinates);
+        if (hex == null) return;
+
+        hex.RemoveHighlight<AttackReachableHighlight>();
+        hex.AddHighlight(highlight);
+    }
+
+    /// <summary>
     /// Removes a specific highlight type from the specified hexes
     /// </summary>
     /// <param name="coordinates">The hex coordinates to remove highlight from</param>

@@ -383,6 +383,7 @@ public class FakeLocalizationService : ILocalizationService
         ["WeaponSelection_Primary"] = "PRIMARY",
         ["WeaponSelection_SetPrimary"] = "Set Primary",
         ["WeaponSelection_AimedShot"] = "Aimed Shot",
+        ["WeaponSelection_TargetOverlay"] = "{0}",
         ["UnitItem_RemoveUnit"] = "Remove unit",
         ["UnitItem_Info"] = "Unit Info",
         ["UnitItem_EditName"] = "Edit unit name",
