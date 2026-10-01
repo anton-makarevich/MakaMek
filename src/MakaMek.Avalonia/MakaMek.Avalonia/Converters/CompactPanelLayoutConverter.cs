@@ -1,0 +1,32 @@
+using System;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Data.Converters;
+using Avalonia.Layout;
+
+namespace Sanet.MakaMek.Avalonia.Converters;
+
+/// <summary>
+/// Selects drawer layout values for mobile versus desktop battle-map presentation.
+/// </summary>
+public sealed class CompactPanelLayoutConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var compact = value is true;
+        return parameter?.ToString() switch
+        {
+            "horizontal" => compact ? HorizontalAlignment.Stretch : HorizontalAlignment.Right,
+            "vertical" => compact ? VerticalAlignment.Bottom : VerticalAlignment.Top,
+            "controlsHorizontal" => HorizontalAlignment.Right,
+            "controlsVertical" => compact ? VerticalAlignment.Top : VerticalAlignment.Bottom,
+            "squadMargin" => compact ? new Thickness(12, 0, 12, 10) : new Thickness(12, 0, 0, 10),
+            "maxWidth" => compact ? 1000d : 420d,
+            "maxHeight" => compact ? 500d : 620d,
+            _ => AvaloniaProperty.UnsetValue
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
