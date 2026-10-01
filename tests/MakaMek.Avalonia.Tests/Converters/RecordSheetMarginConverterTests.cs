@@ -10,8 +10,8 @@ public class RecordSheetMarginConverterTests
 {
     private readonly RecordSheetMarginConverter _sut = new();
 
-    private Thickness Convert(bool compact, bool barShowing, object? barHeight) =>
-        (Thickness)_sut.Convert([compact, barShowing, barHeight], typeof(Thickness), null,
+    private Thickness Convert(bool compact, bool barShowing, object? barHeight, double turnStatus = 50) =>
+        (Thickness)_sut.Convert([compact, barShowing, barHeight, turnStatus], typeof(Thickness), null,
             CultureInfo.InvariantCulture);
 
     [Fact]
@@ -38,16 +38,28 @@ public class RecordSheetMarginConverterTests
     }
 
     [Fact]
-    public void Convert_IgnoresTheBar_OnADesktopLayout()
+    public void Convert_IgnoresTheSquadBar_OnADesktopLayout()
     {
         // The drawer is pinned top right there, so the bottom edge is not shared.
         Convert(compact: false, barShowing: true, 108d).ShouldBe(new Thickness(0, 60, 88, 80));
     }
 
+    /// <summary>
+    /// The turn status bar is 50 points with the turn and phase on it and taller once the guidance
+    /// labels fill in, so a constant top inset put the drawer inside it.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Convert_ClearsTheTurnStatusBar(bool compact)
+    {
+        Convert(compact, barShowing: true, 108d, turnStatus: 75).Top.ShouldBe(85);
+    }
+
     [Fact]
     public void Convert_IsUnset_WithoutEveryValue()
     {
-        _sut.Convert([true, true], typeof(Thickness), null, CultureInfo.InvariantCulture)
+        _sut.Convert([true, true, 108d], typeof(Thickness), null, CultureInfo.InvariantCulture)
             .ShouldBe(AvaloniaProperty.UnsetValue);
     }
 

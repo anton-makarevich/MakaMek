@@ -17,7 +17,6 @@ public class CompactPanelLayoutConverterTests
         converter.Convert(true, typeof(object), "vertical", CultureInfo.InvariantCulture).ShouldBe(VerticalAlignment.Bottom);
         converter.Convert(true, typeof(object), "maxHeight", CultureInfo.InvariantCulture).ShouldBe(500d);
         converter.Convert(true, typeof(object), "controlsVertical", CultureInfo.InvariantCulture).ShouldBe(VerticalAlignment.Top);
-        converter.Convert(true, typeof(object), "controlsMargin", CultureInfo.InvariantCulture).ShouldBe(new Thickness(8, 60, 8, 0));
         converter.Convert(true, typeof(object), "squadMargin", CultureInfo.InvariantCulture).ShouldBe(new Thickness(12, 0, 12, 10));
     }
 
@@ -30,7 +29,6 @@ public class CompactPanelLayoutConverterTests
         converter.Convert(false, typeof(object), "vertical", CultureInfo.InvariantCulture).ShouldBe(VerticalAlignment.Top);
         converter.Convert(false, typeof(object), "maxWidth", CultureInfo.InvariantCulture).ShouldBe(420d);
         converter.Convert(false, typeof(object), "controlsVertical", CultureInfo.InvariantCulture).ShouldBe(VerticalAlignment.Bottom);
-        converter.Convert(false, typeof(object), "controlsMargin", CultureInfo.InvariantCulture).ShouldBe(new Thickness(0, 0, 12, 20));
         converter.Convert(false, typeof(object), "squadMargin", CultureInfo.InvariantCulture).ShouldBe(new Thickness(12, 0, 0, 10));
     }
 
