@@ -1,6 +1,10 @@
 using global::Avalonia;
 using global::Avalonia.Controls;
+using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Headless;
+using global::Avalonia.Input;
+using global::Avalonia.Interactivity;
+using NSubstitute;
 using global::Avalonia.Media.Imaging;
 using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
@@ -23,6 +27,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Views;
 using Shouldly;
@@ -131,6 +136,13 @@ public class SquadHudTests
                 Settle(window);
                 using var withDrawer = window.CaptureRenderedFrame();
                 Save(withDrawer!, name.Replace(".png", "-drawer.png"));
+
+                // The case where the squad bar has to give width back.
+                viewModel.ToggleRecordSheet();
+                viewModel.ToggleMapControlsDrawer();
+                Settle(window);
+                using var withControls = window.CaptureRenderedFrame();
+                Save(withControls!, name.Replace(".png", "-controls.png"));
             }
             finally
             {
@@ -237,4 +249,169 @@ public class SquadHudTests
 
 
 
+
+    /// <summary>
+    /// The bar was capped at 700 points, so a wide window showed a cut off card and then empty
+    /// bottom edge with the drawer sitting in it. It should use the width it has, and give back
+    /// only what the drawer needs while the drawer is open.
+    /// </summary>
+    [Fact]
+    public Task SquadBar_UsesTheFullWidth_AndYieldsOnlyToTheOpenDrawer() => HarnessSession.Run(async () =>
+    {
+        var (window, view, viewModel) = await ShowBattleMapWithSquad(1280, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            var drawer = view.GetVisualDescendants().OfType<StackPanel>()
+                .First(p => p.Name == "MapControlsDrawer");
+
+            var closedWidth = bar.Bounds.Width;
+            closedWidth.ShouldBeGreaterThan(1100,
+                $"a closed drawer should leave the bar the whole width, got {closedWidth}");
+
+            viewModel.ToggleMapControlsDrawer();
+            Settle(window);
+
+            var openWidth = bar.Bounds.Width;
+            openWidth.ShouldBeLessThan(closedWidth, "an open drawer should push the bar back");
+            drawer.Bounds.Width.ShouldBeGreaterThan(0);
+
+            // The bar must stop before the drawer starts, whatever the drawer measured.
+            var barRight = (bar.TranslatePoint(new Point(bar.Bounds.Width, 0), view)?.X) ?? 0;
+            var drawerLeft = (drawer.TranslatePoint(new Point(0, 0), view)?.X) ?? 0;
+            barRight.ShouldBeLessThanOrEqualTo(drawerLeft,
+                $"the bar ends at {barRight} and the drawer starts at {drawerLeft}");
+
+            viewModel.ToggleMapControlsDrawer();
+            Settle(window);
+            bar.Bounds.Width.ShouldBe(closedWidth, "closing it should give the width back");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    private static ScrollViewer SquadBar(BattleMapView view) =>
+        view.GetVisualDescendants()
+            .OfType<ScrollViewer>()
+            .First(sv => sv.GetVisualDescendants().OfType<UnitStatusBarItem>().Any());
+
+
+    [Fact]
+    public Task SquadCard_ShowsEveryFieldInFull() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad();
+        try
+        {
+            var card = view.GetVisualDescendants().OfType<UnitStatusBarItem>().First();
+            var clipped = card.GetVisualDescendants().OfType<TextBlock>()
+                .Where(t => !string.IsNullOrEmpty(t.Text))
+                .Where(t => t.Bounds.Width + 0.5 < t.DesiredSize.Width)
+                .Select(t => $"'{t.Text}' got {t.Bounds.Width:F0} of {t.DesiredSize.Width:F0}")
+                .ToList();
+
+            clipped.ShouldBeEmpty($"nothing on the card should be cut off: {string.Join("; ", clipped)}");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    [Fact]
+    public Task SquadBar_HidesItsScrollBar_ButStillScrolls() => HarnessSession.Run(async () =>
+    {
+        // Narrow enough that four cards cannot fit, so there is something to scroll.
+        var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            bar.HorizontalScrollBarVisibility.ShouldBe(ScrollBarVisibility.Hidden);
+            bar.Extent.Width.ShouldBeGreaterThan(bar.Viewport.Width, "the cards should overflow here");
+
+            bar.Offset.X.ShouldBe(0);
+
+            Wheel(bar, -1);
+            Settle(window);
+
+            bar.Offset.X.ShouldBeGreaterThan(0, "a wheel notch should move the strip sideways");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    [Fact]
+    public Task SquadBar_DoesNotScrollPastItsContent() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            var max = bar.Extent.Width - bar.Viewport.Width;
+
+            for (var i = 0; i < 50; i++) Wheel(bar, -1);
+            Settle(window);
+            bar.Offset.X.ShouldBe(max, 0.5, "it should stop at the last card");
+
+            for (var i = 0; i < 50; i++) Wheel(bar, 1);
+            Settle(window);
+            bar.Offset.X.ShouldBe(0, 0.5, "and at the first one going back");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    [Fact]
+    public Task SquadBar_BringsTheActiveUnitIntoView() => HarnessSession.Run(async () =>
+    {
+        var (window, view, viewModel) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            bar.Offset.X.ShouldBe(0);
+
+            var last = viewModel.LocalUnits.Last();
+            var state = Substitute.For<IUiState>();
+            state.SelectedUnit.Returns(last);
+            state.CanSelectUnit(Arg.Any<IUnit>()).Returns(true);
+            SetCurrentState(viewModel, state);
+            viewModel.NotifySelectedUnitChanged();
+            Settle(window);
+
+            bar.Offset.X.ShouldBeGreaterThan(0,
+                "the bar should have scrolled to the unit the player has to act with");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    private static void Wheel(ScrollViewer bar, double delta) =>
+        bar.RaiseEvent(new PointerWheelEventArgs(
+            bar,
+            new Pointer(0, PointerType.Mouse, true),
+            bar,
+            new Point(10, 10),
+            0,
+            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other),
+            KeyModifiers.None,
+            new Vector(0, delta))
+        {
+            RoutedEvent = InputElement.PointerWheelChangedEvent
+        });
+
+    /// <summary>
+    /// BattleMapViewModel takes its state through a private setter, the same way the presentation
+    /// tests drive it.
+    /// </summary>
+    private static void SetCurrentState(BattleMapViewModel viewModel, IUiState state) =>
+        typeof(BattleMapViewModel)
+            .GetProperty(nameof(BattleMapViewModel.CurrentState))!
+            .SetValue(viewModel, state);
 }
