@@ -1,6 +1,8 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
@@ -77,7 +79,20 @@ public static class DragScrollBehavior
         if (sender is not ScrollViewer scrollViewer) return;
         if (!e.GetCurrentPoint(scrollViewer).Properties.IsLeftButtonPressed) return;
 
+        // The scrollbar moves the strip itself. Panning as well would move it twice per drag.
+        if (IsOnScrollBar(e.Source as Visual)) return;
+
         scrollViewer.SetValue(StateProperty, new DragState(e.GetPosition(scrollViewer).X, scrollViewer.Offset.X));
+    }
+
+    private static bool IsOnScrollBar(Visual? source)
+    {
+        for (var visual = source; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is ScrollBar) return true;
+        }
+
+        return false;
     }
 
     private static void OnMoved(object? sender, PointerEventArgs e)
