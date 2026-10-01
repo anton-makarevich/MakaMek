@@ -1,6 +1,7 @@
 using global::Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
+using global::Avalonia.Layout;
 using global::Avalonia.Headless;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
@@ -320,22 +321,97 @@ public class SquadHudTests
     });
 
     [Fact]
-    public Task SquadBar_HidesItsScrollBar_ButStillScrolls() => HarnessSession.Run(async () =>
+    public Task SquadBar_ShowsItsScrollBar_OnlyWhenTheSquadOverflows() => HarnessSession.Run(async () =>
     {
-        // Narrow enough that four cards cannot fit, so there is something to scroll.
+        var (wide, wideView, _) = await ShowBattleMapWithSquad(1280, 800);
+        try
+        {
+            HorizontalScrollBar(SquadBar(wideView)).IsEffectivelyVisible
+                .ShouldBeFalse("four cards fit here, so there is nothing to scroll");
+        }
+        finally
+        {
+            wide.Close();
+        }
+
+        var (narrow, narrowView, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(narrowView);
+            bar.Extent.Width.ShouldBeGreaterThan(bar.Viewport.Width, "the cards should overflow here");
+            HorizontalScrollBar(bar).IsEffectivelyVisible
+                .ShouldBeTrue("the player needs to see there is more squad off to the side");
+        }
+        finally
+        {
+            narrow.Close();
+        }
+    });
+
+    [Fact]
+    public Task SquadBar_KeepsItsScrollBarClearOfTheCards() => HarnessSession.Run(async () =>
+    {
         var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
         try
         {
             var bar = SquadBar(view);
-            bar.HorizontalScrollBarVisibility.ShouldBe(ScrollBarVisibility.Hidden);
-            bar.Extent.Width.ShouldBeGreaterThan(bar.Viewport.Width, "the cards should overflow here");
+            var card = view.GetVisualDescendants().OfType<UnitStatusBarItem>().First();
+            var scrollBar = HorizontalScrollBar(bar);
 
+            var cardBottom = (card.TranslatePoint(new Point(0, card.Bounds.Height), bar)?.Y) ?? 0;
+            var scrollBarTop = (scrollBar.TranslatePoint(new Point(0, 0), bar)?.Y) ?? 0;
+
+            scrollBarTop.ShouldBeGreaterThanOrEqualTo(cardBottom - 0.5,
+                $"the scrollbar starts at {scrollBarTop} and the card ends at {cardBottom}, "
+                + "so it would be drawn across the damage bars");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    [Fact]
+    public Task SquadBar_ScrollsOnTheWheel() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
             bar.Offset.X.ShouldBe(0);
 
             Wheel(bar, -1);
             Settle(window);
 
             bar.Offset.X.ShouldBeGreaterThan(0, "a wheel notch should move the strip sideways");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    /// <summary>
+    /// The scrollbar scrolls the strip itself. Panning as well would move it twice per drag, so a
+    /// press that lands on the scrollbar must not start a pan.
+    /// </summary>
+    [Fact]
+    public Task SquadBar_DoesNotAlsoPan_WhenTheScrollBarIsDragged() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            var scrollBar = HorizontalScrollBar(bar);
+
+            // Leftward, which is the direction that has somewhere to go from a zero offset.
+            // Raised on the scrollbar so it tunnels through the bar the way real input does.
+            scrollBar.RaiseEvent(Press(bar, scrollBar, 300));
+            scrollBar.RaiseEvent(Move(bar, scrollBar, 100));
+            Settle(window);
+
+            bar.Offset.X.ShouldBe(0,
+                "the behavior should have left this drag to the scrollbar");
         }
         finally
         {
@@ -414,4 +490,52 @@ public class SquadHudTests
         typeof(BattleMapViewModel)
             .GetProperty(nameof(BattleMapViewModel.CurrentState))!
             .SetValue(viewModel, state);
+
+
+    private static ScrollBar HorizontalScrollBar(ScrollViewer bar) =>
+        bar.GetVisualDescendants().OfType<ScrollBar>()
+            .First(sb => sb.Orientation == Orientation.Horizontal);
+
+    private static PointerPressedEventArgs Press(ScrollViewer bar, Visual source, double x) =>
+        new(source, new Pointer(1, PointerType.Mouse, true), bar, new Point(x, 100),
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed),
+            KeyModifiers.None)
+        {
+            RoutedEvent = InputElement.PointerPressedEvent
+        };
+
+    private static PointerEventArgs Move(ScrollViewer bar, Visual source, double x) =>
+        new(InputElement.PointerMovedEvent, source, new Pointer(1, PointerType.Mouse, true), bar,
+            new Point(x, 100), 0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other),
+            KeyModifiers.None);
+
+    /// <summary>
+    /// Dragging the cards themselves pans the strip. The press has to travel past the threshold
+    /// first, so an ordinary click on a card is still a click.
+    /// </summary>
+    [Fact]
+    public Task SquadBar_PansWhenTheCardsAreDragged() => HarnessSession.Run(async () =>
+    {
+        var (window, view, _) = await ShowBattleMapWithSquad(620, 800);
+        try
+        {
+            var bar = SquadBar(view);
+            var card = view.GetVisualDescendants().OfType<UnitStatusBarItem>().First();
+
+            card.RaiseEvent(Press(bar, card, 300));
+            card.RaiseEvent(Move(bar, card, 298));
+            Settle(window);
+            bar.Offset.X.ShouldBe(0, "two points of travel is a click, not a drag");
+
+            card.RaiseEvent(Move(bar, card, 200));
+            Settle(window);
+            bar.Offset.X.ShouldBe(100, 0.5, "past the threshold it should follow the pointer");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
 }
