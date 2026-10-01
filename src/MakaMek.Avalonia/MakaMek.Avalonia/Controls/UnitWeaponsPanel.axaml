@@ -11,7 +11,7 @@
     <UserControl.Resources>
         <converters:WeaponRangeConverter x:Key="WeaponRangeConverter"/>
     </UserControl.Resources>
-    <!-- Headers -->
+    <!-- Keep the column headers aligned with each row to make weapon comparison fast. -->
     <Grid ColumnDefinitions="4*,2*,*,3*"
           RowDefinitions="Auto,*"
           Margin="5">
@@ -36,7 +36,7 @@
                                     <Border Margin="2">
                                         <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" 
                                               Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" TextWrapping="Wrap" VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
                                             <TextBlock Grid.Column="3" 
@@ -55,4 +55,3 @@
         </ListBox>
     </Grid>
 </UserControl>
-

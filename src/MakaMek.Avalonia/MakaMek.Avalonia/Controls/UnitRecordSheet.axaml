@@ -3,10 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitRecordSheet"
              x:Name="UnitRecordSheetControl">
+    <UserControl.Resources>
+        <converters:NullToBooleanConverter x:Key="NullToBooleanConverter"/>
+    </UserControl.Resources>
     <!-- All bindings in this file use #UnitRecordSheetControl element-name syntax
          against the control's own properties, so no root x:DataType is required. -->
     <Grid RowDefinitions="*,Auto">
@@ -20,6 +24,22 @@
                     <TextBox Text="{Binding #UnitRecordSheetControl.EditableName, Mode=TwoWay}"
                              IsVisible="{Binding #UnitRecordSheetControl.CanEdit}"
                              Margin="0,0,0,5"/>
+                    <!-- Only shown where the host supplies the commands, so the sheet keeps
+                         working unchanged outside the battle map drawer. -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
+                        <Button Classes="actionButtonText"
+                                IsVisible="{Binding #UnitRecordSheetControl.FocusCommand,
+                                    Converter={StaticResource NullToBooleanConverter}}"
+                                Command="{Binding #UnitRecordSheetControl.FocusCommand}"
+                                CommandParameter="{Binding #UnitRecordSheetControl.Unit}"
+                                Content="{extensions:Localize 'UnitHud_CenterOnMap'}"/>
+                        <Button Classes="actionButtonText"
+                                IsVisible="{Binding #UnitRecordSheetControl.PinCommand,
+                                    Converter={StaticResource NullToBooleanConverter}}"
+                                Command="{Binding #UnitRecordSheetControl.PinCommand}"
+                                Content="{Binding #UnitRecordSheetControl.IsPinned,
+                                    Converter={StaticResource DrawerPinTextConverter}}"/>
+                    </StackPanel>
                     <controls:UnitBasicInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />
                     <controls:UnitHeatLevelPanel DataContext="{Binding #UnitRecordSheetControl.HeatProjection}" IsVisible="{Binding #UnitRecordSheetControl.ShowHeatLevelPanel}" />
                     <controls:UnitMovementInfoPanel DataContext="{Binding #UnitRecordSheetControl.Unit}" />

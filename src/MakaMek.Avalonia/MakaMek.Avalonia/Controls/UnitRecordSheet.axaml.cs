@@ -40,6 +40,21 @@ public partial class UnitRecordSheet : UserControl
     public static readonly StyledProperty<ICommand?> CancelCommandProperty =
         AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(CancelCommand));
 
+    /// <summary>
+    /// Command used to center the map on the unit shown by this sheet.
+    /// </summary>
+    public static readonly StyledProperty<ICommand?> FocusCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(FocusCommand));
+
+    /// <summary>
+    /// Command used to pin or unpin the surrounding drawer.
+    /// </summary>
+    public static readonly StyledProperty<ICommand?> PinCommandProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, ICommand?>(nameof(PinCommand));
+
+    public static readonly StyledProperty<bool> IsPinnedProperty =
+        AvaloniaProperty.Register<UnitRecordSheet, bool>(nameof(IsPinned));
+
     public static readonly StyledProperty<string?> EditableNameProperty =
         AvaloniaProperty.Register<UnitRecordSheet, string?>(nameof(EditableName));
 
@@ -95,6 +110,33 @@ public partial class UnitRecordSheet : UserControl
     {
         get => GetValue(CancelCommandProperty);
         set => SetValue(CancelCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the command that locates the inspected unit on the map.
+    /// </summary>
+    public ICommand? FocusCommand
+    {
+        get => GetValue(FocusCommandProperty);
+        set => SetValue(FocusCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the command that toggles drawer pinning.
+    /// </summary>
+    public ICommand? PinCommand
+    {
+        get => GetValue(PinCommandProperty);
+        set => SetValue(PinCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the surrounding drawer is pinned open.
+    /// </summary>
+    public bool IsPinned
+    {
+        get => GetValue(IsPinnedProperty);
+        set => SetValue(IsPinnedProperty, value);
     }
 
     public string? EditableName

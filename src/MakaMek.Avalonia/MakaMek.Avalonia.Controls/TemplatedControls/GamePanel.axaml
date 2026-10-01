@@ -6,14 +6,17 @@
     </Design.PreviewWith>
 
     <Style Selector="controls|GamePanel">
+        <Setter Property="MinWidth" Value="300"/>
+        <Setter Property="MinHeight" Value="400"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{StaticResource BackgroundBrush}"
                         BorderBrush="{StaticResource PrimaryBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
-                        MinWidth="300"
-                        MinHeight="400"
+                        ClipToBounds="True"
+                        MinWidth="{TemplateBinding MinWidth}"
+                        MinHeight="{TemplateBinding MinHeight}"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
                         Margin="{StaticResource PageMargin}">
@@ -34,8 +37,10 @@
                                 Background="Transparent"/>
                         </Grid>
                         <!-- Content -->
-                        <ContentPresenter Grid.Row="1" 
-                                        Content="{TemplateBinding Content}"/>
+                        <ContentPresenter Grid.Row="1"
+                                          Content="{TemplateBinding Content}"
+                                          HorizontalContentAlignment="Stretch"
+                                          VerticalContentAlignment="Stretch"/>
                     </Grid>
                 </Border>
             </ControlTemplate>

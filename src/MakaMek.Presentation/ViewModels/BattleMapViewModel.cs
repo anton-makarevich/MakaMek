@@ -150,6 +150,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public void ShowSurfaceSelector(HexCoordinates position, SurfaceSelectorViewModel vm)
     {
+        CloseOverlayPanels();
+        CloseActionSelectors();
         SurfaceSelectorPosition = position;
         SurfaceSelector = vm;
         IsSurfaceSelectorVisible = true;
@@ -203,6 +205,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        InspectUnitCommand = new AsyncCommand<IUnit>(unit =>
+        {
+            if (unit != null)
+                InspectUnit(unit);
+            return Task.CompletedTask;
+        });
+        FocusUnitCommand = new AsyncCommand<IUnit>(unit =>
+        {
+            if (unit != null)
+                FocusUnit?.Invoke(unit);
+            return Task.CompletedTask;
+        });
+        NextAvailableUnitCommand = new AsyncCommand(SelectNextAvailableUnit);
         TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
         {
             if (notification != null)
@@ -367,6 +382,39 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
+    /// <summary>
+    /// Gets the number of weapons currently selected for the pending attack.
+    /// </summary>
+    public int SelectedAttackWeaponCount => WeaponSelectionItems.Count(weapon => weapon.IsSelected);
+
+    /// <summary>
+    /// Gets the heat that the currently selected weapons will generate.
+    /// </summary>
+    public int SelectedAttackHeat => WeaponSelectionItems
+        .Where(weapon => weapon.IsSelected)
+        .Sum(weapon => weapon.Weapon.Heat);
+
+    /// <summary>
+    /// Gets the number of ammunition shots consumed by the currently selected weapons.
+    /// </summary>
+    public int SelectedAttackAmmo => WeaponSelectionItems
+        .Count(weapon => weapon.IsSelected && weapon.RequiresAmmo);
+
+    /// <summary>
+    /// Gets whether the selected-attack summary should be shown.
+    /// </summary>
+    public bool IsAttackSelectionSummaryVisible =>
+        CurrentState is WeaponsAttackState && SelectedAttackWeaponCount > 0;
+
+    /// <summary>
+    /// Gets a compact summary of the selected attack's resource costs.
+    /// </summary>
+    public string AttackSelectionSummaryText => string.Format(
+        LocalizationService.GetString("WeaponSelection_AttackSummary"),
+        SelectedAttackWeaponCount,
+        SelectedAttackHeat,
+        SelectedAttackAmmo);
+
     public TargetSelectionViewModel? SelectedTarget
     {
         get;
@@ -458,6 +506,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _dispatcherService.RunOnUIThread(() =>
         {
             CommandFeedbackLabel = _localizationService.GetString("BattleMap_CommandTimedOut");
+            NotifyPropertyChanged(nameof(TurnActionStatusLabel));
+            NotifyPropertyChanged(nameof(IsTurnActionPanelVisible));
         });
     }
 
@@ -698,15 +748,28 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(ActivePlayerName));
         NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
+        NotifyPropertyChanged(nameof(TurnGuidanceLabel));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
+        NotifyPropertyChanged(nameof(IsTurnActionPanelVisible));
+        NotifyPropertyChanged(nameof(TurnActionStatusLabel));
+        NotifyPropertyChanged(nameof(ActiveUnitLabel));
         NotifyPropertyChanged(nameof(IsCommandFeedbackVisible));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
+        NotifyPropertyChanged(nameof(SelectedAttackWeaponCount));
+        NotifyPropertyChanged(nameof(SelectedAttackHeat));
+        NotifyPropertyChanged(nameof(SelectedAttackAmmo));
+        NotifyPropertyChanged(nameof(IsAttackSelectionSummaryVisible));
+        NotifyPropertyChanged(nameof(AttackSelectionSummaryText));
+        NotifyPropertyChanged(nameof(IsAttackOverlayVisible));
         NotifyPropertyChanged(nameof(Attacker));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
         NotifyPropertyChanged(nameof(AvailableActions));
+        NotifyPropertyChanged(nameof(LocalUnits));
+        NotifyPropertyChanged(nameof(IsSquadStatusBarVisible));
+        NotifyPropertyChanged(nameof(IsNextAvailableUnitVisible));
 
         // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
@@ -1030,6 +1093,25 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _initiativeWinnerAnnounced = false;
     }
 
+    /// <summary>
+    /// Gives the player the most useful next-step context for the current turn phase.
+    /// </summary>
+    public string TurnGuidanceLabel
+    {
+        get
+        {
+            var phase = Game?.TurnPhase;
+            var unitsToPlay = Game?.PhaseStepState?.UnitsToPlay ?? 0;
+            return phase switch
+            {
+                PhaseNames.Movement or PhaseNames.WeaponsAttack when unitsToPlay > 0 =>
+                    string.Format(_localizationService.GetString("BattleMap_UnitsRemaining"), unitsToPlay),
+                PhaseNames.End => _localizationService.GetString("BattleMap_EndTurnGuidance"),
+                _ => string.Empty
+            };
+        }
+    }
+
     public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
     /// <summary>
@@ -1058,6 +1140,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
+
+        // A pinned drawer holds whatever the player chose to inspect, so phase and
+        // step changes must not pull it back to the current selection.
+        if (IsRecordSheetExpanded && !IsRecordSheetPinned)
+            InspectedUnit = SelectedUnit;
 
         UpdateSelectedUnitEvents();
 
@@ -1095,6 +1182,44 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public string ActionInfoLabel => CurrentState.ActionLabel;
     public bool IsUserActionLabelVisible => CurrentState.IsActionRequired;
 
+    /// <summary>
+    /// Gets whether the turn-action panel has useful phase or command status to show.
+    /// </summary>
+    public bool IsTurnActionPanelVisible => !string.IsNullOrWhiteSpace(TurnActionStatusLabel)
+                                            || !string.IsNullOrWhiteSpace(ActiveUnitLabel)
+                                            || !string.IsNullOrWhiteSpace(TurnGuidanceLabel);
+
+    /// <summary>
+    /// Gets the primary action or the reason the player must wait before acting.
+    /// </summary>
+    public string TurnActionStatusLabel
+    {
+        get
+        {
+            if (Game is not { } game || game.PhaseStepState?.ActivePlayer is not { } activePlayer)
+                return string.Empty;
+
+            if (game.LocalPlayers.Contains(activePlayer.Id))
+                return ActionInfoLabel;
+
+            return string.Format(_localizationService.GetString("BattleMap_WaitingForPlayer"), activePlayer.Name);
+        }
+    }
+
+    /// <summary>
+    /// Gets the unit currently driving the active movement or attack action.
+    /// </summary>
+    public string ActiveUnitLabel
+    {
+        get
+        {
+            var unit = CurrentState.SelectedUnit ?? Attacker;
+            return unit == null
+                ? string.Empty
+                : string.Format(_localizationService.GetString("BattleMap_ActiveUnit"), unit.Name);
+        }
+    }
+
     public string PlayerActionLabel => CurrentState.PlayerActionLabel;
 
     public bool IsPlayerActionButtonVisible =>
@@ -1118,10 +1243,28 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         get;
         set
         {
+            if (value && !field)
+            {
+                CloseActionSelectors();
+                IsCommandLogExpanded = false;
+                IsMapSettingsPanelVisible = false;
+            }
+
             SetProperty(ref field, value);
+            if (value && InspectedUnit == null)
+                InspectedUnit = SelectedUnit;
             NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
         }
+    }
+
+    /// <summary>
+    /// Gets or sets whether the inspected-unit drawer should remain open until explicitly unpinned.
+    /// </summary>
+    public bool IsRecordSheetPinned
+    {
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public bool IsMapSettingsPanelVisible
@@ -1130,30 +1273,199 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         set => SetProperty(ref field, value);
     }
 
-    public bool IsRecordSheetButtonVisible => SelectedUnit != null && !IsRecordSheetExpanded;
-    public bool IsRecordSheetPanelVisible => SelectedUnit != null && IsRecordSheetExpanded;
+    /// <summary>
+    /// Gets or sets whether the map navigation and utility drawer is open.
+    /// </summary>
+    public bool IsMapControlsDrawerOpen
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
 
+    /// <summary>
+    /// Gets whether the firing-arc legend should be visible over the map.
+    /// </summary>
+    public bool IsAttackOverlayVisible => CurrentState is WeaponsAttackState && Attacker != null;
+
+    public bool IsRecordSheetButtonVisible => SelectedUnit != null && !IsRecordSheetExpanded;
+    public bool IsRecordSheetPanelVisible => InspectedUnit != null && IsRecordSheetExpanded;
+
+    /// <summary>
+    /// Gets the unit currently shown in the information drawer. This is separate from
+    /// <see cref="SelectedUnit"/> so browsing the squad bar does not change phase actions.
+    /// </summary>
+    public IUnit? InspectedUnit
+    {
+        get;
+        private set
+        {
+            SetProperty(ref field, value);
+            NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
+        }
+    }
+
+    /// <summary>
+    /// Gets the local player's living units for the persistent squad status bar.
+    /// </summary>
+    public IEnumerable<IUnit> LocalUnits => Game?.Players
+        .Where(player => Game.LocalPlayers.Contains(player.Id))
+        .SelectMany(player => player.Units) ?? [];
+
+    public bool IsSquadStatusBarVisible => LocalUnits.Any();
+
+    /// <summary>
+    /// Gets whether the squad contains a living, non-shutdown unit to navigate to.
+    /// </summary>
+    public bool IsNextAvailableUnitVisible => LocalUnits.Any(unit => !unit.IsOutOfCommission && !unit.IsShutdown);
+
+    /// <summary>
+    /// Selects, inspects, and centers the next available local unit in squad order.
+    /// </summary>
+    public Task SelectNextAvailableUnit()
+    {
+        var availableUnits = LocalUnits
+            .Where(unit => !unit.IsOutOfCommission && !unit.IsShutdown)
+            .ToList();
+        if (availableUnits.Count == 0) return Task.CompletedTask;
+
+        var currentIndex = SelectedUnit is { } selectedUnit
+            ? availableUnits.IndexOf(selectedUnit)
+            : -1;
+        var nextUnit = availableUnits[(currentIndex + 1) % availableUnits.Count];
+
+        if (CurrentState.CanSelectUnit(nextUnit))
+            SelectedUnit = nextUnit;
+        InspectUnit(nextUnit);
+        FocusUnit?.Invoke(nextUnit);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Opens the information drawer for a unit without changing the active phase selection.
+    /// </summary>
+    public void InspectUnit(IUnit unit)
+    {
+        ArgumentNullException.ThrowIfNull(unit);
+        InspectedUnit = unit;
+        IsRecordSheetExpanded = true;
+    }
+
+    /// <summary>
+    /// Closes the inspected-unit drawer when another overlay takes focus.
+    /// Opening a different panel is an explicit navigation choice, so it also
+    /// dismisses a pinned drawer without changing the pin preference.
+    /// </summary>
+    private void CloseRecordSheet()
+    {
+        if (!IsRecordSheetExpanded) return;
+
+        IsRecordSheetExpanded = false;
+        InspectedUnit = null;
+    }
+
+    /// <summary>
+    /// Ensures action selectors and utility panels have exclusive screen space.
+    /// </summary>
+    private void CloseOverlayPanels()
+    {
+        CloseRecordSheet();
+        IsCommandLogExpanded = false;
+        IsMapSettingsPanelVisible = false;
+    }
+
+    /// <summary>
+    /// Ensures only one map interaction selector is active at a time.
+    /// </summary>
+    private void CloseActionSelectors()
+    {
+        HideDirectionSelector();
+        HideSurfaceSelector();
+        HideAimedShotLocationSelector();
+    }
+
+    /// <summary>
+    /// Opens or closes the command log while keeping other overlays exclusive.
+    /// </summary>
     public void ToggleCommandLog()
     {
-        IsCommandLogExpanded = !IsCommandLogExpanded;
+        var shouldExpand = !IsCommandLogExpanded;
+        if (shouldExpand)
+        {
+            CloseActionSelectors();
+            CloseRecordSheet();
+            IsMapSettingsPanelVisible = false;
+        }
+
+        IsCommandLogExpanded = shouldExpand;
     }
 
     public void ToggleRecordSheet()
     {
+        if (IsRecordSheetExpanded && IsRecordSheetPinned) return;
+        if (!IsRecordSheetExpanded)
+            InspectedUnit = SelectedUnit;
+        else
+            InspectedUnit = null;
         IsRecordSheetExpanded = !IsRecordSheetExpanded;
     }
 
+    /// <summary>
+    /// Toggles protection against accidentally closing the inspected-unit drawer.
+    /// </summary>
+    public void ToggleRecordSheetPin()
+    {
+        IsRecordSheetPinned = !IsRecordSheetPinned;
+    }
+
+    /// <summary>
+    /// Opens or closes map settings while keeping other overlays exclusive.
+    /// </summary>
     public void ToggleMapSettings()
     {
-        IsMapSettingsPanelVisible = !IsMapSettingsPanelVisible;
+        var shouldShow = !IsMapSettingsPanelVisible;
+        if (shouldShow)
+        {
+            CloseActionSelectors();
+            CloseRecordSheet();
+            IsCommandLogExpanded = false;
+        }
+
+        IsMapSettingsPanelVisible = shouldShow;
+    }
+
+    /// <summary>
+    /// Opens or closes the map navigation and utility drawer.
+    /// </summary>
+    public void ToggleMapControlsDrawer()
+    {
+        IsMapControlsDrawerOpen = !IsMapControlsDrawerOpen;
     }
 
     public IEnumerable<IUnit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
+
+    public ICommand InspectUnitCommand { get; }
+
+    /// <summary>
+    /// Gets the command used by squad cards to center a unit on the map.
+    /// </summary>
+    public ICommand FocusUnitCommand { get; }
+
+    /// <summary>
+    /// Gets the command that advances to the next available local unit.
+    /// </summary>
+    public ICommand NextAvailableUnitCommand { get; }
+
+    /// <summary>
+    /// Callback assigned by the map view to pan to a unit without changing map zoom.
+    /// </summary>
+    public Action<IUnit>? FocusUnit { get; set; }
 
     public IUiState CurrentState { get; private set; }
 
     public void ShowDirectionSelector(HexCoordinates position, IEnumerable<HexDirection> availableDirections)
     {
+        CloseOverlayPanels();
+        CloseActionSelectors();
         DirectionSelectorPosition = position;
         AvailableDirections = availableDirections;
         IsDirectionSelectorVisible = true;
@@ -1212,6 +1524,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     public void ShowAimedShotLocationSelector(AimedShotLocationSelectorViewModel aimedShotLocationSelector)
     {
+        CloseOverlayPanels();
+        CloseActionSelectors();
         UnitPartSelector = aimedShotLocationSelector;
         IsUnitPartSelectorVisible = true;
     }
@@ -1243,9 +1557,36 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     public Action? CenterMap { get; set; }
 
+    /// <summary>Callback provided by the view to zoom in around the viewport center.</summary>
+    public Action? ZoomIn { get; set; }
+
+    /// <summary>Callback provided by the view to zoom out around the viewport center.</summary>
+    public Action? ZoomOut { get; set; }
+
+    /// <summary>Callback provided by the view to fit the complete map in the viewport.</summary>
+    public Action? FitMap { get; set; }
+
     public IAsyncCommand CenterMapCommand => field ??= new AsyncCommand(() =>
     {
         CenterMap?.Invoke();
+        return Task.CompletedTask;
+    });
+
+    public IAsyncCommand ZoomInCommand => field ??= new AsyncCommand(() =>
+    {
+        ZoomIn?.Invoke();
+        return Task.CompletedTask;
+    });
+
+    public IAsyncCommand ZoomOutCommand => field ??= new AsyncCommand(() =>
+    {
+        ZoomOut?.Invoke();
+        return Task.CompletedTask;
+    });
+
+    public IAsyncCommand FitMapCommand => field ??= new AsyncCommand(() =>
+    {
+        FitMap?.Invoke();
         return Task.CompletedTask;
     });
 

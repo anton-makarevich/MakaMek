@@ -606,6 +606,10 @@ public class FakeLocalizationServiceTests
     [InlineData("BattleMap_ShowLabels", "Show Labels")]
     [InlineData("BattleMap_ShowHexOutlines", "Show Hex Outlines")]
     [InlineData("BattleMap_ShowHexHighlightText", "Show Hex Highlight Text")]
+    [InlineData("BattleMap_ActiveUnit", "Unit: {0}")]
+    [InlineData("BattleMap_UnitsRemaining", "{0} unit(s) remaining to act")]
+    [InlineData("BattleMap_EndTurnGuidance", "Review your units, then end the turn")]
+    [InlineData("BattleMap_WaitingForPlayer", "Waiting for {0}")]
     public void GetString_BattleMap_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

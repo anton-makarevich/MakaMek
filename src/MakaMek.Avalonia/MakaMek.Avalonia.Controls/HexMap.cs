@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
@@ -350,6 +351,62 @@ public class HexMap : Canvas
     public void CenterMap()
     {
         _calculator.Center();
+        SyncTransform();
+    }
+
+    /// <summary>
+    /// What the player can actually see.
+    ///
+    /// Not this control's own bounds: the canvas is given an explicit Width and Height covering the
+    /// whole board, so it is arranged at the board's size and overflows its cell. Measuring against
+    /// itself makes the viewport and the content the same thing, which is how FitMap came to
+    /// compute a scale of exactly 1 whatever the window size.
+    /// </summary>
+    private Size Viewport => this.GetVisualParent()?.Bounds.Size ?? Bounds.Size;
+
+    /// <summary>
+    /// Zooms around the center of the visible map viewport.
+    /// </summary>
+    public void Zoom(double scaleFactor)
+    {
+        var viewport = Viewport;
+        if (_calculator.ApplyZoom(scaleFactor, new Point(viewport.Width / 2, viewport.Height / 2)))
+            SyncTransform();
+    }
+
+    /// <summary>
+    /// Fits the complete rendered map within the visible viewport.
+    /// </summary>
+    public void FitMap()
+    {
+        var viewport = Viewport;
+        // Width and Height are NaN until the map has been rendered, and NaN fails none of the
+        // ordinary comparisons, so it would reach SetTransform and blank the map.
+        if (!double.IsFinite(Width) || !double.IsFinite(Height) || Width <= 0 || Height <= 0) return;
+        if (viewport.Width <= 0 || viewport.Height <= 0) return;
+
+        var scale = Math.Clamp(Math.Min(viewport.Width / Width, viewport.Height / Height), MinScale, MaxScale);
+        _calculator.SetTransform(
+            scale,
+            (viewport.Width - Width * scale) / 2,
+            (viewport.Height - Height * scale) / 2);
+        SyncTransform();
+    }
+
+    /// <summary>
+    /// Pans the map so the specified hex is centered in the visible viewport,
+    /// preserving the current zoom level.
+    /// </summary>
+    /// <param name="coordinates">The map coordinates to bring into view.</param>
+    public void CenterOnHex(HexCoordinates coordinates)
+    {
+        var viewport = Viewport;
+        var contentCenterX = coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2;
+        var contentCenterY = coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2;
+        _calculator.SetTransform(
+            _calculator.Scale,
+            viewport.Width / 2 - contentCenterX * _calculator.Scale,
+            viewport.Height / 2 - contentCenterY * _calculator.Scale);
         SyncTransform();
     }
 
