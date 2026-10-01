@@ -14,9 +14,6 @@ public class UnitActionHintConverterTests
         var service = Substitute.For<ILocalizationService>();
         service.GetString(Arg.Any<string>()).Returns(call => call.Arg<string>() switch
         {
-            "UnitHud_ActionOutOfAction" => "Out of action",
-            "UnitHud_ActionShutdown" => "Shutdown",
-            "UnitHud_ActionImmobile" => "Immobile",
             "UnitHud_ActionWeaponsOnline" => "Weapons online",
             "UnitHud_ActionWeaponsUnavailable" => "Weapons unavailable",
             _ => "Unavailable"
@@ -24,13 +21,17 @@ public class UnitActionHintConverterTests
         return service;
     }
 
+    /// <summary>
+    /// The states the status label already names come back empty, because the card showed them
+    /// twice otherwise. Only weapon readiness is this converter's to report.
+    /// </summary>
     [Theory]
-    [InlineData(UnitStatus.Destroyed, false, "Out of action")]
-    [InlineData(UnitStatus.Shutdown, true, "Shutdown")]
-    [InlineData(UnitStatus.Immobile, true, "Immobile")]
+    [InlineData(UnitStatus.Destroyed, false, "")]
+    [InlineData(UnitStatus.Shutdown, true, "")]
+    [InlineData(UnitStatus.Immobile, true, "")]
     [InlineData(UnitStatus.Active, true, "Weapons online")]
     [InlineData(UnitStatus.Active, false, "Weapons unavailable")]
-    public void Convert_ReturnsHighestPriorityTacticalHint(UnitStatus status, bool canFire, string expected)
+    public void Convert_ReportsOnlyWhatTheStatusLabelDoesNot(UnitStatus status, bool canFire, string expected)
     {
         var unit = Substitute.For<IUnit>();
         unit.Status.Returns(status);
@@ -43,6 +44,12 @@ public class UnitActionHintConverterTests
 
         result.ShouldBe(expected);
     }
+
+    [Fact]
+    public void Convert_ReturnsEmpty_ForSomethingThatIsNotAUnit()
+        => new UnitActionHintConverter(Localization())
+            .Convert("not a unit", typeof(string), null, CultureInfo.InvariantCulture)
+            .ShouldBe(string.Empty);
 
     [Fact]
     public void ConvertBack_IsNotSupported()

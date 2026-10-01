@@ -233,20 +233,21 @@
                 ToolTip.Tip="{extensions:Localize 'BattleMap_ResetMap'}"
                 IconData="{StaticResource CenterMapIcon}"/>
 
-            <Button Classes="actionButtonText"
-                    Command="{Binding ZoomInCommand}"
-                    AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomIn'}"
-                    ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomIn'}"
-                    Content="+"/>
-            <Button Classes="actionButtonText"
-                    Command="{Binding ZoomOutCommand}"
-                    AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomOut'}"
-                    ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomOut'}"
-                    Content="-"/>
-            <Button Classes="actionButtonText"
-                    Command="{Binding FitMapCommand}"
-                    ToolTip.Tip="{extensions:Localize 'BattleMap_FitMap'}"
-                    Content="{extensions:Localize 'BattleMap_FitMap'}"/>
+            <templatedControls:ActionButton
+                Command="{Binding ZoomInCommand}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomIn'}"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomIn'}"
+                IconData="{StaticResource ZoomInIcon}"/>
+            <templatedControls:ActionButton
+                Command="{Binding ZoomOutCommand}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_ZoomOut'}"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_ZoomOut'}"
+                IconData="{StaticResource ZoomOutIcon}"/>
+            <templatedControls:ActionButton
+                Command="{Binding FitMapCommand}"
+                AutomationProperties.Name="{extensions:Localize 'BattleMap_FitMap'}"
+                ToolTip.Tip="{extensions:Localize 'BattleMap_FitMap'}"
+                IconData="{StaticResource FitMapIcon}"/>
 
             <!-- Record Sheet Button -->
             <templatedControls:ActionButton

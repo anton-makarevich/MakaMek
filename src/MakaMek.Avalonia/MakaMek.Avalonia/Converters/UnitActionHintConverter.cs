@@ -7,7 +7,8 @@ using Sanet.MakaMek.Localization;
 namespace Sanet.MakaMek.Avalonia.Converters;
 
 /// <summary>
-/// Converts a unit's current availability into a compact tactical hint for the squad HUD.
+/// Reports whether a unit can shoot, for the squad HUD. States that the status label
+/// already names are left to it rather than repeated.
 /// </summary>
 public sealed class UnitActionHintConverter : IValueConverter
 {
@@ -24,10 +25,12 @@ public sealed class UnitActionHintConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not IUnit unit) return _localizationService.GetString("UnitHud_ActionUnavailable");
-        if (unit.IsDestroyed) return _localizationService.GetString("UnitHud_ActionOutOfAction");
-        if (unit.IsShutdown) return _localizationService.GetString("UnitHud_ActionShutdown");
-        if (unit.IsImmobile) return _localizationService.GetString("UnitHud_ActionImmobile");
+        // Destroyed, shut down and immobile are already spelled out by the status label beside
+        // this one. Repeating them put the same word on the card twice, so the hint stays quiet
+        // and only reports the one thing status does not cover: whether the unit can shoot.
+        if (value is not IUnit unit) return string.Empty;
+        if (unit.IsDestroyed || unit.IsShutdown || unit.IsImmobile) return string.Empty;
+
         return _localizationService.GetString(unit.CanFireWeapons
             ? "UnitHud_ActionWeaponsOnline"
             : "UnitHud_ActionWeaponsUnavailable");
