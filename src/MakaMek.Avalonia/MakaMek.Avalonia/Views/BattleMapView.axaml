@@ -213,10 +213,17 @@
             <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
         </templatedControls:GamePanel>
         
-        <StackPanel x:Name="MapControlsDrawer"
+        <!-- The toggle lives in the same column as the controls it opens. Positioned separately it
+             collided with them: the column is bottom aligned on desktop and top aligned when
+             compact, so there is no one place beside it that is clear in both. -->
+        <StackPanel x:Name="MapControlsColumn"
                     HorizontalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsHorizontal}"
                     VerticalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsVertical}"
                     Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=controlsMargin}"
+                    Spacing="10">
+
+        <StackPanel x:Name="MapControlsDrawer"
+                    HorizontalAlignment="Right"
                     Spacing="10"
                     IsVisible="{Binding IsMapControlsDrawerOpen}">
             <!-- Children stretch to the panel's widest item and would otherwise draw their 40pt
@@ -298,13 +305,14 @@
         </StackPanel>
 
         <templatedControls:ActionButton
+            x:Name="MapControlsToggle"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Margin="0,0,12,0"
             Command="{Binding ToggleMapControlsDrawer}"
             AutomationProperties.Name="{extensions:Localize 'BattleMap_MapControls'}"
             ToolTip.Tip="{extensions:Localize 'BattleMap_MapControls'}"
             IconData="{StaticResource MapSettingsIcon}"/>
+
+        </StackPanel>
 
         <!-- The action buttons and the squad bar share the bottom edge. They are stacked rather
              than both pinned to it, because pinned they overlapped: the bar is 108 tall and the
@@ -328,8 +336,8 @@
                 <!-- Full width, inset only by whatever the drawer is actually taking. -->
                 <MultiBinding Converter="{StaticResource SquadBarMarginConverter}">
                     <Binding Path="AreActionsMenuOffMap"/>
-                    <Binding ElementName="MapControlsDrawer" Path="IsVisible"/>
-                    <Binding ElementName="MapControlsDrawer" Path="Bounds.Width"/>
+                    <Binding ElementName="MapControlsColumn" Path="IsVisible"/>
+                    <Binding ElementName="MapControlsColumn" Path="Bounds.Width"/>
                 </MultiBinding>
             </ScrollViewer.Margin>
             <ItemsControl ItemsSource="{Binding LocalUnits}" VerticalAlignment="Top">
@@ -400,10 +408,17 @@
             CloseCommand="{Binding ToggleRecordSheet}"
             HorizontalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=horizontal}"
             VerticalAlignment="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=vertical}"
-            Margin="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=margin}"
             MinHeight="0"
             MaxWidth="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=maxWidth}"
             MaxHeight="{Binding AreActionsMenuOffMap, Converter={StaticResource CompactPanelLayoutConverter}, ConverterParameter=maxHeight}">
+            <templatedControls:GamePanel.Margin>
+                <!-- Clears the squad bar on a compact layout, where both own the bottom edge. -->
+                <MultiBinding Converter="{StaticResource RecordSheetMarginConverter}">
+                    <Binding Path="AreActionsMenuOffMap"/>
+                    <Binding ElementName="SquadBar" Path="IsVisible"/>
+                    <Binding ElementName="SquadBar" Path="Bounds.Height"/>
+                </MultiBinding>
+            </templatedControls:GamePanel.Margin>
             <controls:UnitRecordSheet
                 Unit="{Binding InspectedUnit}"
                 HeatProjection="{Binding SelectedUnitHeatProjection}"
