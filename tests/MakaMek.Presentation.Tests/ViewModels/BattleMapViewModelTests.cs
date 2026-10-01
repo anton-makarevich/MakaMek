@@ -4336,6 +4336,89 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PinnedDrawer_KeepsTheInspectedUnit_WhenTheSelectionChanges()
+    {
+        var mockState = Substitute.For<IUiState>();
+        var inspectedUnit = new Mech("Inspected", "INS-1", 50, []);
+        SetCurrentState(_sut, mockState);
+        _sut.InspectUnit(inspectedUnit);
+        _sut.ToggleRecordSheetPin();
+
+        // A phase or step change pushes a different unit through the selection
+        mockState.SelectedUnit.Returns(new Mech("Selected", "SEL-1", 20, []));
+        _sut.NotifySelectedUnitChanged();
+
+        _sut.InspectedUnit.ShouldBe(inspectedUnit);
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void PinnedDrawer_StaysPopulated_WhenTheSelectionIsCleared()
+    {
+        var mockState = Substitute.For<IUiState>();
+        var inspectedUnit = new Mech("Inspected", "INS-1", 50, []);
+        SetCurrentState(_sut, mockState);
+        _sut.InspectUnit(inspectedUnit);
+        _sut.ToggleRecordSheetPin();
+
+        mockState.SelectedUnit.Returns((IUnit?)null);
+        _sut.NotifySelectedUnitChanged();
+
+        _sut.InspectedUnit.ShouldBe(inspectedUnit);
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UnpinnedDrawer_FollowsTheSelection()
+    {
+        var mockState = Substitute.For<IUiState>();
+        var selectedUnit = new Mech("Selected", "SEL-1", 20, []);
+        SetCurrentState(_sut, mockState);
+        _sut.InspectUnit(new Mech("Inspected", "INS-1", 50, []));
+        _sut.IsRecordSheetPinned.ShouldBeFalse();
+
+        mockState.SelectedUnit.Returns(selectedUnit);
+        _sut.NotifySelectedUnitChanged();
+
+        _sut.InspectedUnit.ShouldBe(selectedUnit);
+    }
+
+    [Fact]
+    public void OpeningRecordSheet_ShouldCloseActionSelectors()
+    {
+        _sut.ShowDirectionSelector(new HexCoordinates(2, 3), [HexDirection.Top]);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.IsDirectionSelectorVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningCommandLog_ShouldCloseActionSelectors()
+    {
+        _sut.ShowDirectionSelector(new HexCoordinates(2, 3), [HexDirection.Top]);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        _sut.ToggleCommandLog();
+
+        _sut.IsCommandLogExpanded.ShouldBeTrue();
+        _sut.IsDirectionSelectorVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningMapSettings_ShouldCloseActionSelectors()
+    {
+        _sut.ShowDirectionSelector(new HexCoordinates(2, 3), [HexDirection.Top]);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        _sut.ToggleMapSettings();
+
+        _sut.IsMapSettingsPanelVisible.ShouldBeTrue();
+        _sut.IsDirectionSelectorVisible.ShouldBeFalse();
+    }
+
+    [Fact]
     public void ToggleMapControlsDrawer_TogglesDrawerVisibility()
     {
         _sut.IsMapControlsDrawerOpen.ShouldBeFalse();

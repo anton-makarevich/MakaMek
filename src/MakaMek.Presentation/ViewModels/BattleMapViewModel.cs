@@ -1141,7 +1141,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
 
-        if (IsRecordSheetExpanded)
+        // A pinned drawer holds whatever the player chose to inspect, so phase and
+        // step changes must not pull it back to the current selection.
+        if (IsRecordSheetExpanded && !IsRecordSheetPinned)
             InspectedUnit = SelectedUnit;
 
         UpdateSelectedUnitEvents();
@@ -1243,6 +1245,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             if (value && !field)
             {
+                CloseActionSelectors();
                 IsCommandLogExpanded = false;
                 IsMapSettingsPanelVisible = false;
             }
@@ -1388,6 +1391,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var shouldExpand = !IsCommandLogExpanded;
         if (shouldExpand)
         {
+            CloseActionSelectors();
             CloseRecordSheet();
             IsMapSettingsPanelVisible = false;
         }
@@ -1421,6 +1425,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var shouldShow = !IsMapSettingsPanelVisible;
         if (shouldShow)
         {
+            CloseActionSelectors();
             CloseRecordSheet();
             IsCommandLogExpanded = false;
         }

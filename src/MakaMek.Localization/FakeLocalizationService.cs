@@ -396,6 +396,7 @@ public class FakeLocalizationService : ILocalizationService
         ["BattleMap_ActiveUnit"] = "Unit: {0}",
         ["BattleMap_UnitsRemaining"] = "{0} unit(s) remaining to act",
         ["BattleMap_EndTurnGuidance"] = "Review your units, then end the turn",
+        ["BattleMap_WaitingForPlayer"] = "Waiting for {0}",
         ["Initiative_WaitingLabel"] = "Waiting for initiative rolls",
         ["Cancel"] = "Cancel",
         ["AvailableUnits_UnitInfo"] = "Unit Info",
