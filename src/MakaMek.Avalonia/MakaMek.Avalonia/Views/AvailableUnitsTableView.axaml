@@ -4,156 +4,179 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
              xmlns:viewModels="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Sanet.MakaMek.Avalonia.Views.AvailableUnitsTableView"
+             x:Name="Root"
              x:DataType="viewModels:AvailableUnitsTableViewModel">
-    
-    <!-- Centered dialog panel -->
-    <templatedControls:GamePanel
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Title="{extensions:Localize 'AvailableUnits_Title'}"
-        CloseCommand="{Binding CancelCommand}">
-        
-        <Border Padding="5">
-            <Grid RowDefinitions="Auto,*,Auto">
-                <!-- Filter Controls -->
-                <Grid Grid.Row="0"
-                      ColumnDefinitions="Auto,*"
-                      Margin="0,0,0,10">
-                    <TextBlock Grid.Column="0"
-                               Text="{extensions:Localize 'AvailableUnits_Class'}"
-                               Classes="label"
-                               VerticalAlignment="Center"
-                               Margin="0,0,10,0"/>
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding WeightClassFilters}"
-                              SelectedItem="{Binding SelectedWeightClassFilterString, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" Classes="body"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </Grid>
-                
-                <!-- Units Table -->
-                <Border Grid.Row="1"
-                        BorderBrush="{StaticResource PrimaryBrush}"
-                        BorderThickness="1"
-                        CornerRadius="4">
-                    <Grid RowDefinitions="Auto,*">
-                        <!-- Table Header -->
-                        <Grid Grid.Row="0"
-                              ColumnDefinitions="2*,2*,*"
-                              Background="{StaticResource PrimaryBrush}"
-                              Height="30">
-                            <!-- Chassis -->
-                            <Button Grid.Column="0"
-                                    Command="{Binding SortByNameCommand}"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <TextBlock Text="{extensions:Localize 'AvailableUnits_Chassis'}"
-                                               Classes="label"
-                                               Foreground="{StaticResource HighlightLightBrush}"
-                                               FontWeight="Bold"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding NameSortIndicator}"
-                                               Classes="label"
-                                               Foreground="{StaticResource HighlightLightBrush}"
-                                               FontWeight="Bold"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-                            <TextBlock Grid.Column="1"
-                                       Text="{extensions:Localize 'AvailableUnits_Model'}"
-                                       Classes="label"
-                                       Foreground="{StaticResource HighlightLightBrush}"
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Center"
-                                       Margin="10,0"/>
-                            <!-- Tonnage Column Header -->
-                            <Button Grid.Column="2"
-                                    Command="{Binding SortByTonnageCommand}"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <TextBlock Text="{extensions:Localize 'AvailableUnits_Mass'}"
-                                               Classes="label"
-                                               Foreground="{StaticResource HighlightLightBrush}"
-                                               FontWeight="Bold"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding TonnageSortIndicator}"
-                                               Classes="label"
-                                               Foreground="{StaticResource HighlightLightBrush}"
-                                               FontWeight="Bold"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-                        </Grid>
+    <UserControl.Resources>
+        <converters:NullToBooleanConverter x:Key="NullToBooleanConverter"/>
+    </UserControl.Resources>
 
-                        <!-- Table Content -->
-                        <ScrollViewer Grid.Row="1"
-                                      HorizontalScrollBarVisibility="Auto"
-                                      VerticalScrollBarVisibility="Auto">
-                            <ListBox ItemsSource="{Binding FilteredAvailableUnits}"
-                                     SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
-                                     Background="Transparent"
-                                     BorderThickness="0">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnDefinitions="2*,2*,*"
-                                              MinHeight="30">
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding Chassis}"
-                                                       Classes="body"
-                                                       VerticalAlignment="Center"
-                                                       Margin="10,5"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding Model}"
-                                                       Classes="body"
-                                                       VerticalAlignment="Center"
-                                                       Margin="10,5"/>
-                                            <TextBlock Grid.Column="2"
-                                                       Text="{Binding Mass}"
-                                                       Classes="body"
-                                                       VerticalAlignment="Center"
-                                                       Margin="10,5"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </ScrollViewer>
+    <!-- The selection dialog keeps the decision-critical preview beside the roster;
+         players should not have to open a second dialog just to compare mechs. -->
+    <templatedControls:GamePanel HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 Title="{extensions:Localize 'AvailableUnits_Title'}"
+                                 CloseCommand="{Binding CancelCommand}">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+            <Grid Grid.Row="0" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10">
+                <TextBox Grid.Column="0" Text="{Binding SearchText, Mode=TwoWay}"
+                         PlaceholderText="{extensions:Localize 'AvailableUnits_Search'}"
+                         AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_Search'}"
+                         Classes="body" Margin="0,0,6,0"/>
+                <Button Grid.Column="1" Content="×"
+                        ToolTip.Tip="{extensions:Localize 'AvailableUnits_ClearSearch'}"
+                        AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_ClearSearch'}"
+                        Command="{Binding ClearSearchCommand}" IsEnabled="{Binding HasSearchText}"
+                        Classes="secondary" Margin="0,0,8,0"/>
+                <ComboBox Grid.Column="2" ItemsSource="{Binding WeightClassFilters}"
+                          SelectedItem="{Binding SelectedWeightClassFilterString, Mode=TwoWay}"
+                          AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_Filter'}"
+                          MinWidth="145">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{Binding}" Classes="body"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="4"
+                            IsVisible="{Binding IsBattleValueLimitEnabled}" Margin="0,6,0,0">
+                    <TextBlock Text="{extensions:Localize 'AvailableUnits_BattleValueRemaining'}"
+                               Classes="bodySmall" Opacity="0.8"/>
+                    <TextBlock Text="{Binding RemainingBattleValue}" Classes="bodySmall" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="2*,3*" ColumnSpacing="12">
+                <Border Grid.Column="0" Classes="card" Padding="0"
+                        AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_Roster'}">
+                    <Grid RowDefinitions="Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto"
+                              Background="{StaticResource PrimaryBrush}">
+                            <TextBlock Text="{extensions:Localize 'AvailableUnits_Roster'}"
+                                       Margin="12,8,0,8"
+                                       Classes="h4" Foreground="{StaticResource HighlightLightBrush}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                                        Margin="0,8,12,8">
+                                <TextBlock Text="{Binding FilteredUnitCount}"
+                                           Classes="h4" Foreground="{StaticResource HighlightLightBrush}"/>
+                                <TextBlock Text="{extensions:Localize 'AvailableUnits_AvailableLabel'}"
+                                           Classes="bodySmall" VerticalAlignment="Center"
+                                           Foreground="{StaticResource HighlightLightBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Grid Grid.Row="1">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ListBox ItemsSource="{Binding FilteredAvailableUnits}"
+                                         SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                         Background="Transparent" BorderThickness="0" Padding="6">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="card" Padding="10" Margin="0,0,0,6">
+                                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                    <TextBlock Text="{Binding Chassis}" Classes="h4"
+                                                               FontWeight="SemiBold"/>
+                                                    <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}"
+                                                            CornerRadius="10" Padding="8,2">
+                                                        <TextBlock Text="{Binding Mass, StringFormat={}{0}t}"
+                                                                   Classes="bodySmall"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Row="1" Text="{Binding Model}"
+                                                               Classes="bodySmall" Opacity="0.8" Margin="0,3,0,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </ScrollViewer>
+                            <Border IsVisible="{Binding HasNoResults}" Background="{StaticResource SurfaceBrush}"
+                                    Padding="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="{extensions:Localize 'AvailableUnits_NoResults'}"
+                                           Classes="body" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </Border>
 
-                <!-- Action Buttons -->
-                <StackPanel Grid.Row="2"
-                            Orientation="Horizontal"
-                            Spacing="10"
-                            HorizontalAlignment="Right"
-                            Margin="0,10,0,0">
-                    <Button IsVisible="{Binding CanShowUnitInfo}"
-                            Content="{extensions:Localize 'AvailableUnits_UnitInfo'}"
-                            Command="{Binding ShowUnitInfoCommand}"
-                            Classes="secondary"/>
-                    <Button Content="{extensions:Localize 'Cancel'}"
-                            Command="{Binding CancelCommand}"
-                            Classes="primary"/>
-                    <Button Content="{extensions:Localize 'AvailableUnits_AddUnit'}"
-                            Command="{Binding AddUnitCommand}"
-                            IsEnabled="{Binding CanAddUnit}"
-                            Classes="primary"/>
-                </StackPanel>
+                <Border Grid.Column="1" Classes="card" Padding="16"
+                        IsVisible="{Binding HasSelection}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel DataContext="{Binding SelectedUnitPreview}" Spacing="10">
+                            <StackPanel>
+                                <TextBlock Text="{Binding DisplayName}" Classes="h2"/>
+                                <TextBlock Text="{Binding WeightClass}" Classes="body" Opacity="0.8"/>
+                                <TextBlock Text="{Binding Era}" Classes="bodySmall" Opacity="0.75"/>
+                                <TextBlock Text="{Binding BattleValue, StringFormat={}BV {0}}"
+                                           Classes="h4"/>
+                            </StackPanel>
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
+                                  ColumnSpacing="8" RowSpacing="8">
+                                <Border Classes="card" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_Movement'}"
+                                                   Classes="bodySmall" Opacity="0.75"/>
+                                        <TextBlock Text="{Binding MovementSummary}" Classes="h4"/>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_MovementLegend'}"
+                                                   Classes="bodySmall" Opacity="0.65"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Classes="card" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_Weapons'}"
+                                                   Classes="bodySmall" Opacity="0.75"/>
+                                        <TextBlock Text="{Binding WeaponCount}" Classes="h4"/>
+                                        <TextBlock Text="{Binding TotalWeaponDamage, StringFormat={}{0} total damage}"
+                                                   Classes="bodySmall" Opacity="0.65"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Row="1" Classes="card" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_Armor'}"
+                                                   Classes="bodySmall" Opacity="0.75"/>
+                                        <TextBlock Text="{Binding ArmorSummary}" Classes="h4"/>
+                                        <ProgressBar Value="{Binding ArmorPercent}" Maximum="100"
+                                                     Height="6" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_Structure'}"
+                                                   Classes="bodySmall" Opacity="0.75"/>
+                                        <TextBlock Text="{Binding StructureSummary}" Classes="h4"/>
+                                        <ProgressBar Value="{Binding StructurePercent}" Maximum="100"
+                                                     Height="6" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="card" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Text="{extensions:Localize 'AvailableUnits_Heat'}"
+                                                   Classes="bodySmall" Opacity="0.75"/>
+                                        <TextBlock Text="{Binding HeatSummary}" Classes="h4"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Button Content="{extensions:Localize 'AvailableUnits_UnitInfo'}"
+                                    Command="{Binding #Root.DataContext.ShowUnitInfoCommand}"
+                                    Classes="secondary" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+                <Border Grid.Column="1" Classes="card" Padding="20"
+                        IsVisible="{Binding HasNoSelection}" Background="{StaticResource SurfaceBrush}">
+                    <TextBlock Text="{extensions:Localize 'AvailableUnits_SelectPrompt'}"
+                               Classes="body" TextWrapping="Wrap" HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
             </Grid>
-        </Border>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10"
+                        HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Content="{extensions:Localize 'Cancel'}"
+                        Command="{Binding CancelCommand}" Classes="secondary"/>
+                <Button Content="{extensions:Localize 'AvailableUnits_AddUnit'}"
+                        Command="{Binding AddUnitCommand}" IsEnabled="{Binding CanAddUnit}"
+                        Classes="primary"/>
+            </StackPanel>
+        </Grid>
     </templatedControls:GamePanel>
 </UserControl>
-
