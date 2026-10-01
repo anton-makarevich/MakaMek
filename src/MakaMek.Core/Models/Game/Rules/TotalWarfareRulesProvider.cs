@@ -247,6 +247,57 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return isFrontArc ? 1 : 2; // +1 for front arc, +2 for other arcs
     }
 
+    /// <summary>
+    /// Punch Location Table. The column comes from where the attack enters the target's hex
+    /// relative to the target's facing, so a side-arc punch that enters the front or rear rolls
+    /// on the front/rear column.
+    ///
+    /// Only the front/rear column is specified in #1501 and the rules summary in
+    /// docs/rules/physical-attacks.md names the table without giving its rows, so the two side
+    /// columns are not implemented rather than guessed. See the note on the PR.
+    /// </summary>
+    public PartLocation GetPunchHitLocation(int diceResult, HitDirection attackDirection)
+    {
+        if (diceResult is < 2 or > 12)
+            throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result");
+
+        return attackDirection switch
+        {
+            HitDirection.Front or HitDirection.Rear => diceResult switch
+            {
+                2 => PartLocation.CenterTorso, // Critical hit
+                3 or 4 => PartLocation.RightArm,
+                5 or 6 => PartLocation.RightTorso,
+                7 => PartLocation.CenterTorso,
+                8 or 9 => PartLocation.LeftTorso,
+                10 or 11 => PartLocation.LeftArm,
+                _ => PartLocation.Head
+            },
+            _ => throw new NotSupportedException(
+                "The left and right columns of the Punch Location Table are not specified yet: "
+                + "#1501 gives only the front/rear column and docs/rules/physical-attacks.md "
+                + "names the table without its rows.")
+        };
+    }
+
+    /// <summary>
+    /// Kick Location Table. A kick always strikes a leg. On the side columns the near leg is the
+    /// one on the struck side; the front/rear column reads right then left.
+    /// </summary>
+    public PartLocation GetKickHitLocation(int diceResult, HitDirection attackDirection)
+    {
+        if (diceResult is < 2 or > 12)
+            throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result");
+
+        var near = diceResult <= 8;
+        return attackDirection switch
+        {
+            HitDirection.Left => near ? PartLocation.LeftLeg : PartLocation.RightLeg,
+            HitDirection.Right => near ? PartLocation.RightLeg : PartLocation.LeftLeg,
+            _ => near ? PartLocation.RightLeg : PartLocation.LeftLeg
+        };
+    }
+
     public PartLocation GetHitLocation(int diceResult, HitDirection attackDirection)
     {
         // Classic BattleTech hit location tables based on the attack direction
