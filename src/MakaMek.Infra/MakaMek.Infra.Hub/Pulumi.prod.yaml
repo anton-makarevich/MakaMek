@@ -9,3 +9,6 @@ config:
   # cross-origin (CORS allowlist handled by Caddy).
   makamek-hub-infra:allowedOrigins: https://anton-makarevich.github.io https://makamek.pages.dev https://play.makamek.net https://play-early.makamek.nl
   makamek-hub-infra:ociTenancyOcid: ocid1.tenancy.oc1..aaaaaaaadoydjfu3bu54445co73cfbov2wsnaij3anqwcz7z2mvpkrddzp6q
+  # Relay hub image tag to deploy. Pinned so a deploy never silently picks up an
+  # untested `latest`; bump it deliberately when adopting a new Sanet.Transport release.
+  makamek-hub-infra:imageTag: 1.8.0
