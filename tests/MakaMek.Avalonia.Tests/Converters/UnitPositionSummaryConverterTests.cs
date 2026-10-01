@@ -13,6 +13,9 @@ public class UnitPositionSummaryConverterTests
     {
         var service = Substitute.For<ILocalizationService>();
         service.GetString("UnitHud_PositionUnavailable").Returns("Off map");
+        service.GetString("UnitHud_PositionSummary").Returns("Q{0}/R{1} · {2}");
+        service.GetString("HexDirection_BottomRight").Returns("SE");
+        service.GetString("HexDirection_Top").Returns("N");
         return service;
     }
 
@@ -23,7 +26,21 @@ public class UnitPositionSummaryConverterTests
 
         var result = new UnitPositionSummaryConverter(Localization()).Convert(position, typeof(string), null, CultureInfo.InvariantCulture);
 
-        result.ShouldBe("Q3/R5 • BottomRight");
+        result.ShouldBe("Q3/R5 · SE");
+    }
+
+    /// <summary>
+    /// The facing is an enum. Printed directly it put "BottomRight" on a card whose other labels
+    /// are all translated.
+    /// </summary>
+    [Fact]
+    public void Convert_TranslatesTheFacing_RatherThanPrintingTheEnum()
+    {
+        var result = new UnitPositionSummaryConverter(Localization())
+            .Convert(new HexPosition(1, 1, HexDirection.Top), typeof(string), null, CultureInfo.InvariantCulture);
+
+        result.ShouldBe("Q1/R1 · N");
+        result.ToString().ShouldNotContain("Top");
     }
 
     [Fact]
