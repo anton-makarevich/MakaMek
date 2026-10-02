@@ -1,0 +1,76 @@
+name: Publish NuGet
+
+# Single entry point for pushing packages to nuget.org, using NuGet Trusted
+# Publishing (OIDC) instead of a long-lived API key. See #1549.
+#
+# Each module workflow packs its own package after its tests pass and uploads
+# it as a `nuget-*` artifact; this workflow collects that artifact and pushes
+# it. Centralising the push here means exactly ONE trusted publishing policy on
+# nuget.org, because a policy is bound to a workflow *filename* (not to a
+# package), and the policy owner (`NUGET_USER`) covers all MakaMek packages.
+#
+# NOTE: `workflows:` below matches each workflow's `name:` field, not its
+# filename. Renaming one of those names silently stops that package from being
+# published - update this list in the same PR.
+
+permissions:
+  contents: read
+
+on:
+  workflow_run:
+    workflows:
+      - MakaMek Core Library
+      - MakaMek Map Library
+      - MakaMek Localization Library
+      - MakaMek Assets Library
+      - MakaMek Bots Library
+      - MakaMek Presentation Library
+      - MakaMek Services Library
+      - MakaMek Avalonia Controls Library
+      - MakaMek Services Avalonia Library
+      - MakaMek Services Avalonia Browser Library
+      - MakaMek Avalonia Library
+    types:
+      - completed
+
+jobs:
+  publish-nuget:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write # OIDC token exchange
+    # This event also fires for pull_request runs, which run in the context of
+    # the default branch with full secrets - including runs from forks. Only
+    # act on successful pushes (main / v* tags) that produced an artifact.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: nuget-*
+          path: nuget
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      # Deliberately last: the exchanged API key is only valid for one hour, so
+      # it is requested immediately before the push rather than up front.
+      - name: NuGet login (OIDC to temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push packages to NuGet
+        shell: bash
+        run: |
+          if ! compgen -G "nuget/*.nupkg" > /dev/null; then
+            echo "::error::No .nupkg found in the downloaded artifact"
+            exit 1
+          fi
+          dotnet nuget push nuget/*.nupkg \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
