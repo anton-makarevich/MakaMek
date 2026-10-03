@@ -42,10 +42,39 @@ jobs:
     # This event also fires for pull_request runs, which run in the context of
     # the default branch with full secrets - including runs from forks. Only
     # act on successful pushes (main / v* tags) that produced an artifact.
+    #
+    # `head_repository` and `head_branch` are checked here *and* re-checked by
+    # the step below. A `workflow_run` job gets the OIDC token regardless of
+    # who triggered the source run, so an untrusted run must never reach the
+    # download/push steps.
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.head_branch == 'main' ||
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     steps:
+      # Defence in depth, and the precise check: the `if:` above allowlists the
+      # ref *class*, this rejects a malformed release tag before anything is
+      # fetched. Values go through `env:` rather than being interpolated into
+      # the script, so a crafted ref name cannot inject shell.
+      - name: Verify triggering run is a trusted release ref
+        shell: bash
+        env:
+          HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_REF: ${{ github.event.workflow_run.head_branch }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "$HEAD_REPOSITORY" != "$EXPECTED_REPOSITORY" ]]; then
+            echo "::error::Refusing to publish: triggering run is from '$HEAD_REPOSITORY', not '$EXPECTED_REPOSITORY'"
+            exit 1
+          fi
+          if [[ "$HEAD_REF" != "main" && ! "$HEAD_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.].*)?$ ]]; then
+            echo "::error::Refusing to publish: '$HEAD_REF' is neither 'main' nor a v<major>.<minor>.<patch> release tag"
+            exit 1
+          fi
+          echo "Publishing from $HEAD_REPOSITORY@$HEAD_REF"
+
       - name: Download package artifact
         uses: actions/download-artifact@v8
         with:
