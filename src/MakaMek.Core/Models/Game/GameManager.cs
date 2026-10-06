@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
@@ -221,13 +222,13 @@ public class GameManager : IGameManager
         var gameId = _serverGame!.Id;
 
         var createResult = await _relayRoomClient.Create(
-            gameId,
+            RelayGameInfoFactory.Create(gameId),
             cancellationToken,
             relayOptions);
         if (!createResult.Success
             || createResult.RoomCode is null
             || createResult.SessionToken is null
-            || createResult.HostGameId is null)
+            || createResult.GameInfo is null)
         {
             OnlineError = createResult.Error
                 ?? new RelayClientError(
@@ -298,9 +299,10 @@ public class GameManager : IGameManager
             _onlineSessionToken = createResult.SessionToken;
             _onlineRelayOptions = relayOptions;
             _logger.LogInformation(
-                "Hosted relay room {RoomCode} for game {GameId}; relay publisher connected",
+                "Hosted relay room {RoomCode} for game {GameId} {GameVersion}; relay publisher connected",
                 createResult.RoomCode,
-                gameId);
+                createResult.GameInfo.HostId,
+                createResult.GameInfo.Version);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

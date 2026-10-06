@@ -30,6 +30,12 @@ public interface IClientGame:IGame
     event Action? CommandTimedOut;
 
     /// <summary>
+    /// Raised when a command fails local validation and is never sent, with the reason. Nothing
+    /// reaches the server on this path, so there is no <see cref="ErrorCommand"/> to report it.
+    /// </summary>
+    event Action<ErrorCode>? CommandRejectedLocally;
+
+    /// <summary>
     /// Gets the id of the server game this client is bound to,
     /// or null when the client processes all commands (standalone mode).
     /// </summary>
