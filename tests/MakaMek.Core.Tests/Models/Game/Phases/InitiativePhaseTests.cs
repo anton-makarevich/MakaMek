@@ -1,5 +1,6 @@
 using NSubstitute;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -371,4 +372,30 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // After a tie is detected, should only activate players with tied rolls (player1 and player4)
         game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
     }
+    [Fact]
+    public void AutoRoll_PublishesActivePlayerChangesAndRollsBeforeThePhaseMove()
+    {
+        // The presentation layer's initiative banner depends on this exact order: every roll has to
+        // arrive while the phase is still Initiative, and the phase move has to come last. That
+        // assumption was previously only encoded in a hand-written replay in the Presentation
+        // tests, which could have been wrong about the real server.
+        Game.IsAutoRoll = true;
+        SetupDiceRolls(8, 5);
+        var published = new List<string>();
+        CommandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(call => published.Add(call.Arg<IGameCommand>().GetType().Name));
+
+        _sut.Enter();
+
+        // Rolls precede the phase change, so TurnPhase is still Initiative when they are handled.
+        var lastRoll = published.FindLastIndex(name => name == nameof(DiceRolledCommand));
+        var phaseMove = published.FindIndex(name => name == nameof(ChangePhaseCommand));
+        lastRoll.ShouldBeGreaterThanOrEqualTo(0, $"no rolls were published: {string.Join(", ", published)}");
+        published.Count(name => name == nameof(DiceRolledCommand)).ShouldBe(2);
+        if (phaseMove >= 0)
+            lastRoll.ShouldBeLessThan(phaseMove, "a roll arriving after the phase move would be ignored");
+        published.ShouldContain(nameof(ChangeActivePlayerCommand),
+            "the server activates each roller, which the banner queue has to order around");
+    }
+
 }

@@ -435,6 +435,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_Error_DuplicateCommand", "Duplicate command detected")]
     [InlineData("Command_Error_ValidationFailed", "Validation failed")]
     [InlineData("Command_Error_InvalidGameState", "Invalid game state")]
+    [InlineData("Command_Error_UnknownError", "Unknown error")]
     public void GetString_ErrorCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
