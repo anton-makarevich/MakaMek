@@ -67,6 +67,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// <inheritdoc />
     public event Action? CommandTimedOut;
 
+    /// <inheritdoc />
+    public event Action<ErrorCode>? CommandRejectedLocally;
+
     protected override bool ShouldHandleCommand(IGameCommand command)
     {
         if (!base.ShouldHandleCommand(command)) return false;
@@ -252,6 +255,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 validationResult.ErrorCode,
                 command.PlayerId,
                 command.GameOriginId);
+            CommandRejectedLocally?.Invoke(validationResult.ErrorCode ?? ErrorCode.UnknownError);
             return false;
         }
         

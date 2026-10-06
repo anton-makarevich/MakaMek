@@ -235,6 +235,27 @@ public class ClientGameTests
         // Assert
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<UpdatePlayerStatusCommand>());
     }
+
+    [Fact]
+    public async Task SetPlayerReady_ShouldRaiseCommandRejectedLocally_WhenPlayerIsNotInGame()
+    {
+        // Nothing is published and no ErrorCommand comes back on this path, so the event is the
+        // only signal a caller can react to.
+        ErrorCode? reported = null;
+        _sut.CommandRejectedLocally += code => reported = code;
+        var readyCommand = new UpdatePlayerStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready,
+            PlayerId = Guid.NewGuid()
+        };
+
+        // Act
+        await _sut.SetPlayerReady(readyCommand);
+
+        // Assert
+        reported.ShouldBe(ErrorCode.ValidationFailed);
+    }
     
     [Fact]
     public void SetPlayerReady_ShouldPublishPlayerStatusCommand_WhenCalled_AndPlayerIsInGame()

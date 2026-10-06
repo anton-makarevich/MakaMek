@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
+using Sanet.Transport.Relay.Contracts;
 using Sanet.Transport.Rx;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.Transport;
@@ -92,7 +94,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -158,7 +160,8 @@ public class GameConnectorTests : IDisposable
 
         // The retry reuses the token handed back by the first join, not a null token.
         _relayRoomClient.Join(roomCode, sessionToken, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", Guid.NewGuid(), Guid.NewGuid()));
+            .Returns(RoomSessionResult.Succeeded(
+                roomCode, sessionToken, "Client", Guid.NewGuid(), RelayGameInfoFactory.Create(Guid.NewGuid())));
         var replacementPublisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(replacementPublisher));
@@ -323,7 +326,7 @@ public class GameConnectorTests : IDisposable
     public async Task JoinOnlineAsync_WhenJoinResultMissingSessionToken_SetsUnknownError()
     {
         // Arrange
-        var joinResult = new RoomSessionResult(true, "ABCDEF", null, "Client", Guid.NewGuid(), Guid.NewGuid(), null);
+        var joinResult = new RoomSessionResult(true, "ABCDEF", null, "Client", Guid.NewGuid(), RelayGameInfoFactory.Create(Guid.NewGuid()), null);
         _relayRoomClient.Join("ABCDEF", Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(joinResult);
 
@@ -337,6 +340,82 @@ public class GameConnectorTests : IDisposable
     }
 
     [Fact]
+    public async Task JoinOnlineAsync_WhenJoinResultMissingGameInfo_SetsErrorAndDoesNotConnect()
+    {
+        // Arrange - a success response without the echoed game identity cannot be trusted
+        var deviceSessionId = Guid.NewGuid();
+        _relayRoomClient.Join("ABCDEF", Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new RoomSessionResult(true, "ABCDEF", "session-token", "Client", deviceSessionId, null, null));
+
+        // Act
+        await _sut.JoinOnline("ABCDEF", sessionToken: null);
+
+        // Assert
+        _sut.OnlineError.ShouldNotBeNull();
+        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.ConnectedHostGameId.ShouldBeNull();
+        await _relayPublisherFactory.DidNotReceive().Create(
+            Arg.Any<RelayPublisherOptions>(), Arg.Any<CancellationToken>());
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+        await _relayRoomClient.Received(1).RemoveMember("ABCDEF", "session-token", deviceSessionId);
+    }
+
+    [Fact]
+    public async Task JoinOnlineAsync_WhenGameInfoHostIdIsEmpty_SetsErrorAndDoesNotConnect()
+    {
+        // Arrange - the hub requires a non-empty host game id, so an empty one is not ours
+        _relayRoomClient.Join("ABCDEF", Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(
+                "ABCDEF",
+                "session-token",
+                "Client",
+                Guid.NewGuid(),
+                new RoomGameInfo(Guid.Empty, RelayGameInfoFactory.GameTitle, RelayGameInfoFactory.GameVersion)));
+
+        // Act
+        await _sut.JoinOnline("ABCDEF", sessionToken: null);
+
+        // Assert
+        _sut.OnlineError.ShouldNotBeNull();
+        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.ConnectedHostGameId.ShouldBeNull();
+        await _relayPublisherFactory.DidNotReceive().Create(
+            Arg.Any<RelayPublisherOptions>(), Arg.Any<CancellationToken>());
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Theory]
+    [InlineData("makamek")]
+    [InlineData("MAKAMEK")]
+    [InlineData("MakaMek2")]
+    [InlineData("SomeOtherGame")]
+    public async Task JoinOnlineAsync_WhenGameInfoTitleIsNotMakaMek_SetsErrorAndDoesNotConnect(string gameTitle)
+    {
+        // Arrange - one hub serves many games, so a foreign room must be refused
+        _relayRoomClient.Join("ABCDEF", Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(RoomSessionResult.Succeeded(
+                "ABCDEF",
+                "session-token",
+                "Client",
+                Guid.NewGuid(),
+                new RoomGameInfo(Guid.NewGuid(), gameTitle, RelayGameInfoFactory.GameVersion)));
+
+        // Act
+        await _sut.JoinOnline("ABCDEF", sessionToken: null);
+
+        // Assert
+        _sut.OnlineError.ShouldNotBeNull();
+        _sut.OnlineError!.Code.ShouldBe(RelayClientErrorCode.Unknown);
+        _sut.IsConnected.ShouldBeFalse();
+        _sut.ConnectedHostGameId.ShouldBeNull();
+        await _relayPublisherFactory.DidNotReceive().Create(
+            Arg.Any<RelayPublisherOptions>(), Arg.Any<CancellationToken>());
+        _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
+    }
+
+    [Fact]
     public async Task JoinOnlineAsync_WhenRelayTicketFails_SetsErrorAndCleansUpMembership()
     {
         // Arrange
@@ -345,7 +424,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var ticketError = new RelayClientError(RelayClientErrorCode.Unknown, "No ticket");
         _relayRoomClient.GetRelayTicket(roomCode, sessionToken, Arg.Any<CancellationToken>(), Arg.Any<RelayClientOptions?>())
             .Returns(RelayTicketResult.Failed(ticketError));
@@ -371,7 +450,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -397,7 +476,7 @@ public class GameConnectorTests : IDisposable
         var secondPublisher = CreateRelayPublisher("BBBBBB", RelayTicketValue);
         _relayRoomClient.Join("BBBBBB", sessionToken: null, Arg.Any<CancellationToken>())
             .Returns(RoomSessionResult.Succeeded(
-                "BBBBBB", "session-token", "Client", Guid.NewGuid(), Guid.NewGuid()));
+                "BBBBBB", "session-token", "Client", Guid.NewGuid(), RelayGameInfoFactory.Create(Guid.NewGuid())));
         _relayPublisherFactory.Create(RelayOptions("BBBBBB"), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(secondPublisher));
 
@@ -418,7 +497,7 @@ public class GameConnectorTests : IDisposable
         // Arrange
         var deviceSessionId = Guid.NewGuid();
         _relayRoomClient.Join("ABCDEF", sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded("ABCDEF", "session-token", "Client", deviceSessionId, Guid.NewGuid()));
+            .Returns(RoomSessionResult.Succeeded("ABCDEF", "session-token", "Client", deviceSessionId, RelayGameInfoFactory.Create(Guid.NewGuid())));
         _relayPublisherFactory.Create(Arg.Any<RelayPublisherOptions>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("boom"));
 
@@ -441,7 +520,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
 
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
@@ -470,7 +549,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = Substitute.For<ITransportPublisher>();
         publisher.When(x => x.DisposeAsync())
             .Throw(new InvalidOperationException("dispose boom"));
@@ -521,7 +600,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         using var cts = new CancellationTokenSource();
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
@@ -549,7 +628,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         using var cts = new CancellationTokenSource();
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
@@ -588,7 +667,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -632,7 +711,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -816,7 +895,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -884,7 +963,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -925,7 +1004,7 @@ public class GameConnectorTests : IDisposable
         const string sessionToken = "session-token";
         var hostGameId = Guid.NewGuid();
         _relayRoomClient.Join(roomCode, sessionToken: null, Arg.Any<CancellationToken>())
-            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, hostGameId));
+            .Returns(RoomSessionResult.Succeeded(roomCode, sessionToken, "Client", deviceSessionId, RelayGameInfoFactory.Create(hostGameId)));
         var publisher = CreateRelayPublisher(roomCode, sessionToken);
         _relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(publisher));
@@ -1086,7 +1165,7 @@ public class GameConnectorTests : IDisposable
         var firstPublisher = await JoinOnlineAsync(sut, "AAAAAA");
         _relayRoomClient.Join("BBBBBB", sessionToken: null, Arg.Any<CancellationToken>())
             .Returns(RoomSessionResult.Succeeded(
-                "BBBBBB", "session-token", "Client", Guid.NewGuid(), Guid.NewGuid()));
+                "BBBBBB", "session-token", "Client", Guid.NewGuid(), RelayGameInfoFactory.Create(Guid.NewGuid())));
         var secondPublisher = CreateRelayPublisher("BBBBBB", RelayTicketValue);
         _relayPublisherFactory.Create(RelayOptions("BBBBBB"), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ITransportPublisher>(secondPublisher));
