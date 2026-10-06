@@ -3,6 +3,7 @@ using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Factories;
 using Sanet.Transport.SignalR.Client.Relay;
@@ -137,7 +138,7 @@ public class GameConnector : IGameConnector
         try
         {
             var joinResult = await _relayRoomClient.Join(roomCode, sessionToken, cancellationToken);
-            if (!joinResult.Success || joinResult.SessionToken is null || joinResult.HostGameId is null)
+            if (!joinResult.Success || joinResult.SessionToken is null)
             {
                 OnlineError = joinResult.Error
                     ?? new RelayClientError(
@@ -145,7 +146,27 @@ public class GameConnector : IGameConnector
                         "The relay did not return the values required to join.");
                 return;
             }
-            
+
+            // One hub serves rooms for many games, so a room is only ours when it carries our
+            // title and a real host game instance to attribute the host's commands to.
+            var gameInfo = joinResult.GameInfo;
+            if (gameInfo is null
+                || gameInfo.HostId == Guid.Empty
+                || !string.Equals(gameInfo.Id, RelayGameInfoFactory.GameTitle, StringComparison.Ordinal))
+            {
+                OnlineError = new RelayClientError(
+                    RelayClientErrorCode.Unknown,
+                    "The room was not created by a compatible MakaMek game.");
+                _logger.LogWarning(
+                    "Refusing relay room {RoomCode}: it reported game {GameId} hosted by {HostGameId}",
+                    roomCode,
+                    gameInfo?.Id,
+                    gameInfo?.HostId);
+                if (joinResult.DeviceSessionId is { } refusedDeviceId)
+                    await RemoveRelayMembership(roomCode, joinResult.SessionToken, refusedDeviceId);
+                return;
+            }
+
             successfulSessionToken = joinResult.SessionToken;
             successfulDeviceSessionId = joinResult.DeviceSessionId;
 
@@ -194,13 +215,15 @@ public class GameConnector : IGameConnector
             _sessionToken = joinResult.SessionToken;
             _deviceSessionId = joinResult.DeviceSessionId;
 
-            ConnectedHostGameId = joinResult.HostGameId;
+            ConnectedHostGameId = gameInfo.HostId;
             IsConnected = true;
             _forwarder?.Start(_commandPublisher.Adapter);
             _logger.LogInformation(
-                "Joined relay room {RoomCode} connected to host game {HostGameId}",
+                "Joined relay room {RoomCode} for game {GameId} {GameVersion}, connected to host game {HostGameId}",
                 roomCode,
-                joinResult.HostGameId.Value);
+                gameInfo.Id,
+                gameInfo.Version,
+                gameInfo.HostId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
