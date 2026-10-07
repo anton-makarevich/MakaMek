@@ -1,8 +1,8 @@
-using global::Avalonia;
-using global::Avalonia.Controls;
-using global::Avalonia.Headless;
-using global::Avalonia.Threading;
-using global::Avalonia.VisualTree;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia;
 using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Services;
 
 namespace MakaMek.Avalonia.AppTests;
 

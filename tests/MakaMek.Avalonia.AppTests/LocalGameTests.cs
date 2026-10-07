@@ -1,6 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
-using global::Avalonia;
-using global::Avalonia.Headless;
+using Avalonia;
 using Sanet.MakaMek.Avalonia;
 using Shouldly;
 

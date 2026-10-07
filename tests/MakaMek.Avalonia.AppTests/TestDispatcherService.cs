@@ -1,5 +1,5 @@
 using System.Reactive.Concurrency;
-using global::Avalonia.Threading;
+using Avalonia.Threading;
 using Sanet.MakaMek.Services;
 
 namespace MakaMek.Avalonia.AppTests;
