@@ -2628,4 +2628,26 @@ var gameManager = CreateGameManagerWithConnectionStatus(subject);
         sut.ConnectionStatus.IsConnectionDegraded.ShouldBeFalse();
         sut.IsConnectionBannerVisible.ShouldBeFalse();
     }
+
+    [Fact]
+    public void BattleValueLimit_ShouldRoundTripAndNotify()
+    {
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+
+        _sut.BattleValueLimit = 6000;
+
+        _sut.BattleValueLimit.ShouldBe(6000);
+        changed.ShouldContain(nameof(_sut.BattleValueLimit));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    public void BattleValueLimit_ShouldClampNegativeValuesToUnrestricted(int limit)
+    {
+        _sut.BattleValueLimit = limit;
+
+        _sut.BattleValueLimit.ShouldBe(0);
+    }
 }
