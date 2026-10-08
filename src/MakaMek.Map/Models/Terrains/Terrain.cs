@@ -25,12 +25,6 @@ public abstract class Terrain
     public abstract int InterveningFactor { get; }
 
     /// <summary>
-    /// Additional movement cost for entering a hex with this terrain, beyond the base 1 MP hex entry cost.
-    /// This represents the terrain-specific penalty applied on top of the standard entry cost.
-    /// </summary>
-    public abstract int MovementCost { get; }
-
-    /// <summary>
     /// Converts this terrain to a serializable data transfer object.
     /// Default implementation returns data with just the terrain type (no height).
     /// Override for terrains with variable properties like water depth.
