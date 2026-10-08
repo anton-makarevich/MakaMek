@@ -1,4 +1,4 @@
-using global::Avalonia.Headless;
+using Avalonia.Headless;
 
 namespace MakaMek.Avalonia.AppTests;
 

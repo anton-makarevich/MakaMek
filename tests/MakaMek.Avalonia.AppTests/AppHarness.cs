@@ -1,5 +1,5 @@
-using global::Avalonia;
-using global::Avalonia.Headless;
+using Avalonia;
+using Avalonia.Headless;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;

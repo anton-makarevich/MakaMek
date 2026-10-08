@@ -9,9 +9,11 @@ on:
   pull_request:
     paths:
       - 'src/MakaMek.Avalonia/**'
+      - 'src/MakaMek.Assets/**'
       - 'src/MakaMek.Presentation/**'
       - 'src/MakaMek.Core/**'
       - 'src/MakaMek.SourceGenerators/**'
+      - 'data/**'
       - 'tests/MakaMek.Avalonia.AppTests/**'
       - '.github/workflows/apptests-avalonia.yml'
 

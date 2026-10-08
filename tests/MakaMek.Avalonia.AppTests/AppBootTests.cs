@@ -1,9 +1,7 @@
-using global::Avalonia;
-using global::Avalonia.Controls;
-using global::Avalonia.Media.Imaging;
-using global::Avalonia.Headless;
-using global::Avalonia.Threading;
-using Microsoft.Extensions.DependencyInjection;
+using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Headless;
+using Avalonia.Threading;
 using Sanet.MakaMek.Avalonia;
 using Shouldly;
 

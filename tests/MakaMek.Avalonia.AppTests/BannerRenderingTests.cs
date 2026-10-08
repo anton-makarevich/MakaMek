@@ -1,8 +1,8 @@
-using global::Avalonia;
-using global::Avalonia.Controls;
-using global::Avalonia.Headless;
-using global::Avalonia.Threading;
-using global::Avalonia.VisualTree;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia;
 using Sanet.MakaMek.Avalonia.Controls.TemplatedControls;
@@ -84,7 +84,12 @@ public class BannerRenderingTests
     private static (Window Window, BattleMapView View, BattleMapViewModel ViewModel) ShowBattleMap()
     {
         var services = ((App)Application.Current!).ServiceProvider!;
-        var viewModel = services.GetRequiredService<BattleMapViewModel>();
+        // Not GetRequiredService: the graph's IDispatcherService is AvaloniaDispatcherService,
+        // whose Scheduler is the static AvaloniaScheduler.Instance bound to the first test's
+        // dispatcher. Per-test isolation recreates the dispatcher, so the second test would
+        // subscribe through a dead scheduler and silently receive nothing.
+        var viewModel = ActivatorUtilities.CreateInstance<BattleMapViewModel>(
+            services, new TestDispatcherService());
         var view = new BattleMapView { DataContext = viewModel };
         var window = new Window { Width = 1100, Height = 700, Content = view };
         window.Show();
