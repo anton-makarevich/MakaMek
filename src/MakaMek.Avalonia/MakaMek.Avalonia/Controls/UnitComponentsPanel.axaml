@@ -12,6 +12,7 @@
         <converters:SlotsRangeConverter x:Key="SlotsRangeConverter"/>
         <converters:ComponentHitsConverter x:Key="ComponentHitsConverter"/>
     </UserControl.Resources>
+    <!-- Components use a stable four-column rhythm so status and damage remain scannable. -->
     <Grid ColumnDefinitions="6*,2*,2*,3*" RowDefinitions="Auto,*" Margin="5">
         <TextBlock Grid.Column="0" Text="{extensions:Localize 'UnitComponents_Component'}" Classes="h4"/>
         <TextBlock Grid.Row="0" Grid.Column="1" Text="{extensions:Localize 'UnitComponents_Slots'}" Classes="h4" Margin="5,0"/>
@@ -62,4 +63,3 @@
         </ListBox>
     </Grid>
 </UserControl>
-
