@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
@@ -123,6 +124,17 @@ public static class UnitExtensions
         }
         
         public UnitTacticalRole GetTacticalRole()
+            => unit.GetTacticalRoleCore(movementType => unit.GetMovementPoints(movementType));
+
+        /// <summary>
+        /// Classifies a unit for bot tactics using movement values from the active rules provider.
+        /// </summary>
+        /// <param name="rulesProvider">The active rules provider.</param>
+        /// <returns>The tactical role inferred from equipment and movement capability.</returns>
+        public UnitTacticalRole GetTacticalRole(IRulesProvider rulesProvider)
+            => unit.GetTacticalRoleCore(movementType => unit.GetMovementPoints(movementType, rulesProvider));
+
+        private UnitTacticalRole GetTacticalRoleCore(Func<MovementType, int> getMovementPoints)
         {
             // 1. Check for LRM Boat
             // Logic: Has 20+ LRM tubes
@@ -135,8 +147,8 @@ public static class UnitExtensions
                 return UnitTacticalRole.LrmBoat;
             }
 
-            var walkMp = unit.GetMovementPoints(MovementType.Walk);
-            var jumpMp = unit.GetMovementPoints(MovementType.Jump);
+            var walkMp = getMovementPoints(MovementType.Walk);
+            var jumpMp = getMovementPoints(MovementType.Jump);
 
             // 2. Scout
             if (walkMp >= 6)

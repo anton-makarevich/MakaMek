@@ -68,7 +68,8 @@ public class MovementTools
                 unit,
                 moveType,
                 occupiedHexes,
-                friendlyPositions);
+                friendlyPositions,
+                game.RulesProvider);
 
             foreach (var coordinates in reachabilityData.AllReachableCoordinates)
             {
@@ -77,7 +78,7 @@ public class MovementTools
                     unit.Position,
                     coordinates,
                     moveType,
-                    unit.GetMovementPoints(moveType),
+                    unit.GetMovementPoints(moveType, game.RulesProvider),
                     reachabilityData,
                     unit.Height,
                     unit.MaxLevelChangeForward,
@@ -169,7 +170,8 @@ public class MovementTools
                 unit,
                 movementType,
                 occupiedHexes,
-                friendlyPositions);
+                friendlyPositions,
+                game.RulesProvider);
 
         if (!reachabilityData.IsHexReachable(targetHex.Coordinates))
              throw new InvalidOperationException("Target hex is not reachable.");
@@ -178,7 +180,7 @@ public class MovementTools
                     unit.Position,
                     targetHex.Coordinates,
                     movementType,
-                    unit.GetMovementPoints(movementType),
+                    unit.GetMovementPoints(movementType, game.RulesProvider),
                     reachabilityData,
                     unit.Height,
                     unit.MaxLevelChangeForward,
