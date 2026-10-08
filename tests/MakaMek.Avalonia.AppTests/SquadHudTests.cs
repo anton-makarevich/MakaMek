@@ -157,7 +157,8 @@ public class SquadHudTests
         ShowBattleMapWithSquad(int width = 1280, int height = 800, bool deploy = true)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
-        var viewModel = services.GetRequiredService<BattleMapViewModel>();
+        var viewModel = ActivatorUtilities.CreateInstance<BattleMapViewModel>(
+            services, new TestDispatcherService());
         var game = CreateClientGame(services);
 
         var units = await LocalGameFixture.LoadBundledUnitsAsync(services);

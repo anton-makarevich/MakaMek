@@ -195,7 +195,8 @@ public class HudRenderingTests
         int height = 700)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
-        var viewModel = services.GetRequiredService<BattleMapViewModel>();
+        var viewModel = ActivatorUtilities.CreateInstance<BattleMapViewModel>(
+            services, new TestDispatcherService());
         var view = new BattleMapView();
         ((IBaseView)view).ViewModel = viewModel;
         view.DataContext = viewModel;

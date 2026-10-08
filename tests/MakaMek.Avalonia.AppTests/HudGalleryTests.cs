@@ -215,7 +215,9 @@ public class HudGalleryTests
         ShowHud(int width, int height, bool mobile)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
-        var viewModel = mobile ? MobileViewModel(services) : services.GetRequiredService<BattleMapViewModel>();
+        var viewModel = mobile
+            ? MobileViewModel(services)
+            : ActivatorUtilities.CreateInstance<BattleMapViewModel>(services, new TestDispatcherService());
 
         var game = CreateClientGame(services);
         var units = await LocalGameFixture.LoadBundledUnitsAsync(services);
@@ -310,7 +312,7 @@ public class HudGalleryTests
             services.GetRequiredService<IImageService>(),
             services.GetRequiredService<ITerrainAssetService>(),
             services.GetRequiredService<ILocalizationService>(),
-            services.GetRequiredService<IDispatcherService>(),
+            new TestDispatcherService(),
             services.GetRequiredService<IRulesProvider>(),
             platform,
             terrainBitmaskService: services.GetService<ITerrainBitmaskService>(),
