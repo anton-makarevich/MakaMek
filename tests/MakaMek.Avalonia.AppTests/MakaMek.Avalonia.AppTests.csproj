@@ -5,20 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <AssemblyName>Sanet.MakaMek.Assets.Tests</AssemblyName>
-    <RootNamespace>Sanet.MakaMek.Assets.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.1.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="coverlet.msbuild" Version="10.1.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
+    <PackageReference Include="Avalonia.Headless" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
@@ -34,12 +24,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MakaMek.Assets\MakaMek.Assets.csproj" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The Desktop head is referenced for RegisterDesktopServices: booting the real App means
+       booting the real service graph, not a test-shaped subset of it. -->
   <ItemGroup>
-    <None Remove="Resources\SHD-2D.mmux" />
-    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
+    <ProjectReference Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia.Desktop\MakaMek.Avalonia.Desktop.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,42 @@
+name: MakaMek Avalonia App Tests
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    paths:
+      - 'src/MakaMek.Avalonia/**'
+      - 'src/MakaMek.Assets/**'
+      - 'src/MakaMek.Presentation/**'
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'data/**'
+      - 'tests/MakaMek.Avalonia.AppTests/**'
+      - '.github/workflows/apptests-avalonia.yml'
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # No coverage collection. These tests boot the app and draw with Skia, so what they assert
+      # is pixels and visual tree shape, and the presentation logic underneath is already measured
+      # by the Presentation workflow.
+      - name: Run Avalonia app tests
+        run: dotnet test tests/MakaMek.Avalonia.AppTests/MakaMek.Avalonia.AppTests.csproj
