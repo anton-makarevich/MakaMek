@@ -203,12 +203,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
-        SelectUnitCommand = new AsyncCommand<IUnit>(unit =>
-        {
-            if (unit != null)
-                SelectedUnit = unit;
-            return Task.CompletedTask;
-        });
         NextAvailableUnitCommand = new AsyncCommand(SelectNextAvailableUnit);
         TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
         {
@@ -374,39 +368,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
-    /// <summary>
-    /// Gets the number of weapons currently selected for the pending attack.
-    /// </summary>
-    public int SelectedAttackWeaponCount => WeaponSelectionItems.Count(weapon => weapon.IsSelected);
-
-    /// <summary>
-    /// Gets the heat that the currently selected weapons will generate.
-    /// </summary>
-    public int SelectedAttackHeat => WeaponSelectionItems
-        .Where(weapon => weapon.IsSelected)
-        .Sum(weapon => weapon.Weapon.Heat);
-
-    /// <summary>
-    /// Gets the number of ammunition shots consumed by the currently selected weapons.
-    /// </summary>
-    public int SelectedAttackAmmo => WeaponSelectionItems
-        .Count(weapon => weapon.IsSelected && weapon.RequiresAmmo);
-
-    /// <summary>
-    /// Gets whether the selected-attack summary should be shown.
-    /// </summary>
-    public bool IsAttackSelectionSummaryVisible =>
-        CurrentState is WeaponsAttackState && SelectedAttackWeaponCount > 0;
-
-    /// <summary>
-    /// Gets a compact summary of the selected attack's resource costs.
-    /// </summary>
-    public string AttackSelectionSummaryText => string.Format(
-        LocalizationService.GetString("WeaponSelection_AttackSummary"),
-        SelectedAttackWeaponCount,
-        SelectedAttackHeat,
-        SelectedAttackAmmo);
-
     public TargetSelectionViewModel? SelectedTarget
     {
         get;
@@ -498,8 +459,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _dispatcherService.RunOnUIThread(() =>
         {
             CommandFeedbackLabel = _localizationService.GetString("BattleMap_CommandTimedOut");
-            NotifyPropertyChanged(nameof(TurnActionStatusLabel));
-            NotifyPropertyChanged(nameof(IsTurnActionPanelVisible));
         });
     }
 
@@ -740,20 +699,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(ActivePlayerName));
         NotifyPropertyChanged(nameof(IsLocalPlayerTurn));
         NotifyPropertyChanged(nameof(ActivePlayerTint));
-        NotifyPropertyChanged(nameof(TurnGuidanceLabel));
         NotifyPropertyChanged(nameof(ActionInfoLabel));
-        NotifyPropertyChanged(nameof(IsTurnActionPanelVisible));
-        NotifyPropertyChanged(nameof(TurnActionStatusLabel));
-        NotifyPropertyChanged(nameof(ActiveUnitLabel));
         NotifyPropertyChanged(nameof(IsCommandFeedbackVisible));
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
-        NotifyPropertyChanged(nameof(SelectedAttackWeaponCount));
-        NotifyPropertyChanged(nameof(SelectedAttackHeat));
-        NotifyPropertyChanged(nameof(SelectedAttackAmmo));
-        NotifyPropertyChanged(nameof(IsAttackSelectionSummaryVisible));
-        NotifyPropertyChanged(nameof(AttackSelectionSummaryText));
         NotifyPropertyChanged(nameof(IsAttackOverlayVisible));
         NotifyPropertyChanged(nameof(Attacker));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
@@ -1085,25 +1035,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _initiativeWinnerAnnounced = false;
     }
 
-    /// <summary>
-    /// Gives the player the most useful next-step context for the current turn phase.
-    /// </summary>
-    public string TurnGuidanceLabel
-    {
-        get
-        {
-            var phase = Game?.TurnPhase;
-            var unitsToPlay = Game?.PhaseStepState?.UnitsToPlay ?? 0;
-            return phase switch
-            {
-                PhaseNames.Movement or PhaseNames.WeaponsAttack when unitsToPlay > 0 =>
-                    string.Format(_localizationService.GetString("BattleMap_UnitsRemaining"), unitsToPlay),
-                PhaseNames.End => _localizationService.GetString("BattleMap_EndTurnGuidance"),
-                _ => string.Empty
-            };
-        }
-    }
-
     public bool AreActionsMenuOffMap => _platformService.IsMobile;
 
     /// <summary>
@@ -1169,44 +1100,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public string ActionInfoLabel => CurrentState.ActionLabel;
     public bool IsUserActionLabelVisible => CurrentState.IsActionRequired;
-
-    /// <summary>
-    /// Gets whether the turn-action panel has useful phase or command status to show.
-    /// </summary>
-    public bool IsTurnActionPanelVisible => !string.IsNullOrWhiteSpace(TurnActionStatusLabel)
-                                            || !string.IsNullOrWhiteSpace(ActiveUnitLabel)
-                                            || !string.IsNullOrWhiteSpace(TurnGuidanceLabel);
-
-    /// <summary>
-    /// Gets the primary action or the reason the player must wait before acting.
-    /// </summary>
-    public string TurnActionStatusLabel
-    {
-        get
-        {
-            if (Game is not { } game || game.PhaseStepState?.ActivePlayer is not { } activePlayer)
-                return string.Empty;
-
-            if (game.LocalPlayers.Contains(activePlayer.Id))
-                return ActionInfoLabel;
-
-            return string.Format(_localizationService.GetString("BattleMap_WaitingForPlayer"), activePlayer.Name);
-        }
-    }
-
-    /// <summary>
-    /// Gets the unit currently driving the active movement or attack action.
-    /// </summary>
-    public string ActiveUnitLabel
-    {
-        get
-        {
-            var unit = CurrentState.SelectedUnit ?? Attacker;
-            return unit == null
-                ? string.Empty
-                : string.Format(_localizationService.GetString("BattleMap_ActiveUnit"), unit.Name);
-        }
-    }
 
     public string PlayerActionLabel => CurrentState.PlayerActionLabel;
 
@@ -1353,11 +1246,6 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     public IEnumerable<IUnit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
-
-    /// <summary>
-    /// Gets the command used by squad cards to select a unit through the current phase.
-    /// </summary>
-    public ICommand SelectUnitCommand { get; }
 
     /// <summary>
     /// Gets the command that advances to the next available local unit.

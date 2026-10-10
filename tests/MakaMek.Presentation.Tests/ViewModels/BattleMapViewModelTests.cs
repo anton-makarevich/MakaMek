@@ -22,7 +22,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -2104,9 +2103,6 @@ public class BattleMapViewModelTests
         // Act & Assert
         _sut.IsWeaponSelectionVisible.ShouldBeTrue();
 
-        // In the attack state but with nothing chosen yet, so the cost summary stays hidden.
-        _sut.IsAttackSelectionSummaryVisible.ShouldBeFalse();
-
         // The firing-arc legend follows the attacker, which this state has.
         _sut.IsAttackOverlayVisible.ShouldBeTrue();
     }
@@ -3809,8 +3805,7 @@ public class BattleMapViewModelTests
             ackTimeoutMilliseconds: 20);
 
     /// <summary>
-    /// Makes a player active with units still to play. SetActivePlayer leaves UnitsToPlay at zero,
-    /// which the guidance labels read as nothing left to do.
+    /// Makes a player active with units still to play. SetActivePlayer leaves UnitsToPlay at zero.
     /// </summary>
     private void SetActivePlayerWithUnits(Guid playerId, int unitsToPlay)
         => _game.HandleCommand(new ChangeActivePlayerCommand
@@ -3819,187 +3814,6 @@ public class BattleMapViewModelTests
             PlayerId = playerId,
             UnitsToPlay = unitsToPlay
         });
-
-    private WeaponSelectionViewModel CreateWeaponSelectionItem(
-        Weapon weapon,
-        int remainingAmmoShots)
-    {
-        var item = new WeaponSelectionViewModel(
-            weapon,
-            isInRange: true,
-            isSelected: false,
-            isEnabled: true,
-            target: null,
-            onSelectionChanged: (_, _) => { },
-            onAimedShotRequest: _ => { },
-            localizationService: _localizationService,
-            toHitCalculator: Substitute.For<IToHitCalculator>(),
-            remainingAmmoShots);
-        item.ModifiersBreakdown = CreateTestBreakdown(5) with { FiringArc = FiringArc.Front };
-        return item;
-    }
-
-    [Theory]
-    [InlineData(PhaseNames.Movement)]
-    [InlineData(PhaseNames.WeaponsAttack)]
-    public void TurnGuidanceLabel_ReportsRemainingUnits_WhileUnitsAreStillToPlay(PhaseNames phase)
-    {
-        _localizationService.GetString("BattleMap_UnitsRemaining").Returns("{0} units left");
-        var player = JoinPlayerWithUnit("Player1", "#FF0000");
-        SetPhase(phase);
-        SetActivePlayerWithUnits(player.Id, 3);
-
-        _sut.TurnGuidanceLabel.ShouldBe("3 units left");
-    }
-
-    [Fact]
-    public void TurnGuidanceLabel_ExplainsTheEndPhase()
-    {
-        _localizationService.GetString("BattleMap_EndTurnGuidance").Returns("End your turn");
-        SetPhase(PhaseNames.End);
-
-        _sut.TurnGuidanceLabel.ShouldBe("End your turn");
-    }
-
-    [Theory]
-    [InlineData(PhaseNames.Deployment)]
-    [InlineData(PhaseNames.Initiative)]
-    [InlineData(PhaseNames.Heat)]
-    public void TurnGuidanceLabel_IsEmpty_WhenThePhaseNeedsNoGuidance(PhaseNames phase)
-    {
-        SetPhase(phase);
-
-        _sut.TurnGuidanceLabel.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void TurnLabels_AreEmpty_WhenThereIsNoGame()
-    {
-        // The battle map is built before a game is attached, so every label has to cope with it.
-        _sut.Game = null;
-
-        _sut.TurnGuidanceLabel.ShouldBeEmpty();
-        _sut.TurnActionStatusLabel.ShouldBeEmpty();
-        _sut.ActiveUnitLabel.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void SelectedAttackAmmo_CountsOnlyTheSelectedWeaponsThatNeedAmmo()
-    {
-        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
-        var selectedWithAmmo = new MachineGun();
-        var unselectedWithAmmo = new MachineGun();
-        attacker.Parts[PartLocation.LeftArm].TryAddComponent(selectedWithAmmo, [1]).ShouldBeTrue();
-        attacker.Parts[PartLocation.RightArm].TryAddComponent(unselectedWithAmmo, [1]).ShouldBeTrue();
-
-        var selected = CreateWeaponSelectionItem(selectedWithAmmo, remainingAmmoShots: 3);
-        var unselected = CreateWeaponSelectionItem(unselectedWithAmmo, remainingAmmoShots: 3);
-        selected.IsSelected = true;
-        _sut.WeaponSelectionItems.Add(selected);
-        _sut.WeaponSelectionItems.Add(unselected);
-
-        _sut.SelectedAttackAmmo.ShouldBe(1, "an unselected weapon costs no ammo");
-    }
-
-    [Fact]
-    public void TurnActionStatusLabel_IsEmpty_WhenNoPlayerIsActive()
-    {
-        _sut.TurnActionStatusLabel.ShouldBeEmpty();
-        _sut.IsTurnActionPanelVisible.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void TurnActionStatusLabel_NamesTheOpponent_WhenWeAreNotActive()
-    {
-        _localizationService.GetString("BattleMap_WaitingForPlayer").Returns("Waiting for {0}");
-        JoinPlayerWithUnit("Player1", "#FF0000");
-        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
-        _game.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = remote.Id,
-            PlayerName = remote.Name,
-            Units = [],
-            Tint = remote.Tint,
-            PilotAssignments = [],
-            IdempotencyKey = Guid.NewGuid()
-        });
-        SetPhase(PhaseNames.Movement);
-        SetActivePlayer(remote.Id);
-
-        _sut.TurnActionStatusLabel.ShouldBe("Waiting for Opponent");
-        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void TurnActionStatusLabel_ShowsTheCurrentAction_WhenWeMayAct()
-    {
-        var player = JoinPlayerWithUnit("Player1", "#FF0000");
-        SetPhase(PhaseNames.Movement);
-        SetActivePlayerWithUnits(player.Id, 1);
-
-        _sut.TurnActionStatusLabel.ShouldBe(_sut.ActionInfoLabel);
-    }
-
-    [Fact]
-    public void ActiveUnitLabel_NamesTheSelectedUnit()
-    {
-        _localizationService.GetString("BattleMap_ActiveUnit").Returns("Active: {0}");
-        var player = JoinPlayerWithUnit("Player1", "#FF0000");
-        SetPhase(PhaseNames.Movement);
-        SetActivePlayerWithUnits(player.Id, 1);
-
-        _sut.ActiveUnitLabel.ShouldBeEmpty();
-
-        var state = Substitute.For<IUiState>();
-        state.SelectedUnit.Returns(_sut.Units.First());
-        SetCurrentState(_sut, state);
-
-        _sut.ActiveUnitLabel.ShouldBe($"Active: {_sut.Units.First().Name}");
-        _sut.IsTurnActionPanelVisible.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void AttackSelectionSummary_ReportsSelectedWeaponCosts()
-    {
-        // Arrange
-        var attacker = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
-        var laser = new MediumLaser();
-        var machineGun = new MachineGun();
-        attacker.Parts[PartLocation.LeftArm].TryAddComponent(laser, [1]).ShouldBeTrue();
-        attacker.Parts[PartLocation.RightArm].TryAddComponent(machineGun, [1]).ShouldBeTrue();
-
-        var laserVm = CreateWeaponSelectionItem(laser, remainingAmmoShots: -1);
-        var machineGunVm = CreateWeaponSelectionItem(machineGun, remainingAmmoShots: 3);
-        laserVm.IsSelected = true;
-        machineGunVm.IsSelected = true;
-        _sut.WeaponSelectionItems.Add(laserVm);
-        _sut.WeaponSelectionItems.Add(machineGunVm);
-        _localizationService.GetString("WeaponSelection_AttackSummary")
-            .Returns("Selected: {0} weapon(s) · Heat +{1} · Ammo -{2}");
-
-        // Act
-        var count = _sut.SelectedAttackWeaponCount;
-        var heat = _sut.SelectedAttackHeat;
-        var ammo = _sut.SelectedAttackAmmo;
-
-        // Assert
-        count.ShouldBe(2);
-        heat.ShouldBe(laser.Heat + machineGun.Heat);
-        ammo.ShouldBe(1);
-        _sut.AttackSelectionSummaryText.ShouldBe(
-            $"Selected: 2 weapon(s) · Heat +{heat} · Ammo -1");
-        _sut.IsAttackSelectionSummaryVisible.ShouldBeFalse(
-            "the summary only shows while an attack is being declared");
-
-        // Now in the attack state with those weapons still selected, so it shows.
-        var player = JoinPlayerWithUnit("Player1", "#FF0000");
-        SetPhase(PhaseNames.WeaponsAttack);
-        SetActivePlayerWithUnits(player.Id, 1);
-        SetCurrentState(_sut, new WeaponsAttackState(_sut));
-
-        _sut.IsAttackSelectionSummaryVisible.ShouldBeTrue();
-    }
 
     private List<IUnit> SetUpSquadNavigation(PhaseNames phase, int unitCount = 1)
     {
@@ -4019,7 +3833,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public async Task SelectUnitCommand_UsesPhaseSelectionAndUpdatesSelectedUnitDetails_WithoutOpeningSheetOrPanning()
+    public void SelectedUnit_UsesPhaseSelectionAndUpdatesSelectedUnitDetails_WithoutOpeningSheetOrPanning()
     {
         var unit = SetUpSquadNavigation(PhaseNames.End).Single();
         _sut.CurrentState.ShouldBeOfType<EndState>();
@@ -4029,7 +3843,7 @@ public class BattleMapViewModelTests
         var changed = new List<string>();
         _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
 
-        await ((AsyncCommand<IUnit>)_sut.SelectUnitCommand).ExecuteAsync(unit);
+        _sut.SelectedUnit = unit;
 
         _sut.SelectedUnit.ShouldBe(unit);
         _sut.CurrentState.SelectedUnit.ShouldBe(unit);
@@ -4041,34 +3855,10 @@ public class BattleMapViewModelTests
         _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
         _sut.IsRecordSheetButtonVisible.ShouldBeTrue();
         focused.ShouldBeEmpty();
-        _sut.SelectUnitCommand.ShouldBeSameAs(_sut.SelectUnitCommand);
     }
 
     [Fact]
-    public async Task SelectUnitCommand_IgnoresNull_AndPreservesSelectionAndDetails()
-    {
-        var unit = SetUpSquadNavigation(PhaseNames.End).Single();
-        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
-        _sut.SelectedUnit = unit;
-        _sut.IsRecordSheetExpanded = true;
-        var events = _sut.SelectedUnitEvents;
-        var focused = new List<IUnit>();
-        _sut.FocusUnit = focused.Add;
-        var changed = new List<string>();
-        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
-
-        await ((AsyncCommand<IUnit>)_sut.SelectUnitCommand).ExecuteAsync(null!);
-
-        _sut.SelectedUnit.ShouldBe(unit);
-        _sut.SelectedUnitEvents.ShouldBeSameAs(events);
-        _sut.SelectedUnitHeatProjection.Unit.ShouldBe(unit);
-        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
-        changed.ShouldBeEmpty();
-        focused.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task SelectUnitCommand_WhenCanSelectUnitRejects_DoesNotChangeSelectionDetailsOrPan()
+    public void SelectedUnit_WhenCanSelectUnitRejects_DoesNotChangeSelectionDetailsOrPan()
     {
         var squad = SetUpSquadNavigation(PhaseNames.End, 2);
         squad[0].AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
@@ -4084,7 +3874,7 @@ public class BattleMapViewModelTests
         var changed = new List<string>();
         _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
 
-        await ((AsyncCommand<IUnit>)_sut.SelectUnitCommand).ExecuteAsync(squad[1]);
+        _sut.SelectedUnit = squad[1];
 
         state.DidNotReceive().HandleUnitSelectionFromList(Arg.Any<IUnit>());
         _sut.SelectedUnit.ShouldBe(squad[0]);
@@ -4096,7 +3886,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public async Task SelectUnitCommand_WhenWeaponsPhaseHandlerRejectsOwner_DoesNotChangeSelectionOrPan()
+    public void SelectedUnit_WhenWeaponsPhaseHandlerRejectsOwner_DoesNotChangeSelectionOrPan()
     {
         var first = JoinPlayerWithUnit("First", "#FF0000");
         var active = JoinPlayerWithUnit("Active", "#00FF00");
@@ -4110,7 +3900,7 @@ public class BattleMapViewModelTests
         _sut.FocusUnit = focused.Add;
         _sut.CurrentState.CanSelectUnit(rejectedUnit).ShouldBeTrue();
 
-        await ((AsyncCommand<IUnit>)_sut.SelectUnitCommand).ExecuteAsync(rejectedUnit);
+        _sut.SelectedUnit = rejectedUnit;
 
         _sut.CurrentState.ShouldBeOfType<WeaponsAttackState>().CurrentStep
             .ShouldBe(WeaponsAttackStep.ActionSelection);
@@ -4122,7 +3912,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public async Task RecordSheet_FollowsSelectedUnit_AndBecomesInvisibleWhenSelectionIsCleared()
+    public void RecordSheet_FollowsSelectedUnit_AndBecomesInvisibleWhenSelectionIsCleared()
     {
         var squad = SetUpSquadNavigation(PhaseNames.End, 2);
         squad[0].AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
@@ -4131,7 +3921,7 @@ public class BattleMapViewModelTests
         _sut.ToggleRecordSheet();
         _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
 
-        await ((AsyncCommand<IUnit>)_sut.SelectUnitCommand).ExecuteAsync(squad[1]);
+        _sut.SelectedUnit = squad[1];
 
         _sut.SelectedUnit.ShouldBe(squad[1]);
         _sut.SelectedUnitHeatProjection.Unit.ShouldBe(squad[1]);
