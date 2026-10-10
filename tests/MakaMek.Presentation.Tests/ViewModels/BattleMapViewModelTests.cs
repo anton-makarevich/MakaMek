@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
@@ -182,7 +183,7 @@ public class BattleMapViewModelTests
     /// Joins a local player that owns a unit, so it counts towards <see cref="IGame.AlivePlayers"/>.
     /// JoinPlayer deliberately joins without units, which leaves the player unable to act.
     /// </summary>
-    private Player JoinPlayerWithUnit(string name, string tint)
+    private Player JoinPlayerWithUnit(string name, string tint, int unitCount = 1)
     {
         var player = new Player(Guid.NewGuid(), name, PlayerControlType.Human, tint);
         JoinGameCommand? sentJoinCommand = null;
@@ -192,7 +193,9 @@ public class BattleMapViewModelTests
                 if (callInfo.Arg<IGameCommand>() is JoinGameCommand joinCommand)
                     sentJoinCommand = joinCommand;
             });
-        _game.JoinGameWithUnits(player, [MechFactoryTests.CreateDummyMechData()], []);
+        _game.JoinGameWithUnits(player,
+            Enumerable.Range(0, unitCount)
+                .Select(_ => MechFactoryTests.CreateDummyMechData() with { Id = Guid.NewGuid() }).ToList(), []);
         sentJoinCommand.ShouldNotBeNull();
         _game.HandleCommand(sentJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
         return player;
@@ -2099,6 +2102,9 @@ public class BattleMapViewModelTests
         
         // Act & Assert
         _sut.IsWeaponSelectionVisible.ShouldBeTrue();
+
+        // The firing-arc legend follows the attacker, which this state has.
+        _sut.IsAttackOverlayVisible.ShouldBeTrue();
     }
 
     [Fact]
@@ -3797,6 +3803,661 @@ public class BattleMapViewModelTests
             _hashService,
             Substitute.For<ILogger<ClientGame>>(),
             ackTimeoutMilliseconds: 20);
+
+    /// <summary>
+    /// Makes a player active with units still to play. SetActivePlayer leaves UnitsToPlay at zero.
+    /// </summary>
+    private void SetActivePlayerWithUnits(Guid playerId, int unitsToPlay)
+        => _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitsToPlay = unitsToPlay
+        });
+
+    private List<IUnit> SetUpSquadNavigation(PhaseNames phase, int unitCount = 1)
+    {
+        var player = JoinPlayerWithUnit("Player1", "#FF0000", unitCount);
+        _game.SetBattleMap(BattleMapFactory.GenerateMap(4, 5,
+            new SingleTerrainGenerator(4, 5, new ClearTerrain())));
+        SetPhase(phase);
+        SetActivePlayerWithUnits(player.Id, unitCount);
+        var squad = _sut.LocalUnits.ToList();
+        foreach (var unit in squad)
+        {
+            var pilot = Substitute.For<IPilot>();
+            pilot.IsConscious.Returns(true);
+            unit.AssignPilot(pilot);
+        }
+        return squad;
+    }
+
+    [Fact]
+    public void SelectedUnit_UsesPhaseSelectionAndUpdatesSelectedUnitDetails_WithoutOpeningSheetOrPanning()
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.End).Single();
+        _sut.CurrentState.ShouldBeOfType<EndState>();
+        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+
+        _sut.SelectedUnit = unit;
+
+        _sut.SelectedUnit.ShouldBe(unit);
+        _sut.CurrentState.SelectedUnit.ShouldBe(unit);
+        _sut.SelectedUnitEvents.ShouldHaveSingleItem().Type.ShouldBe(UiEventType.ArmorDamage);
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBe(unit);
+        changed.ShouldContain(nameof(BattleMapViewModel.SelectedUnit));
+        changed.ShouldContain(nameof(BattleMapViewModel.IsRecordSheetPanelVisible));
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetButtonVisible.ShouldBeTrue();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectedUnit_WhenCanSelectUnitRejects_DoesNotChangeSelectionDetailsOrPan()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        squad[0].AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(squad[0]);
+        state.CanSelectUnit(squad[1]).Returns(false);
+        SetCurrentState(_sut, state);
+        _sut.NotifySelectedUnitChanged();
+        _sut.IsRecordSheetExpanded = true;
+        var events = _sut.SelectedUnitEvents;
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        var changed = new List<string>();
+        _sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName!);
+
+        _sut.SelectedUnit = squad[1];
+
+        state.DidNotReceive().HandleUnitSelectionFromList(Arg.Any<IUnit>());
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        _sut.SelectedUnitEvents.ShouldBeSameAs(events);
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBe(squad[0]);
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+        changed.ShouldBeEmpty();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectedUnit_WhenWeaponsPhaseHandlerRejectsOwner_DoesNotChangeSelectionOrPan()
+    {
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var active = JoinPlayerWithUnit("Active", "#00FF00");
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayerWithUnits(active.Id, 1);
+        var unit = _sut.LocalUnits.Single(u => u.Owner!.Id == active.Id);
+        var rejectedUnit = _sut.LocalUnits.Single(u => u.Owner!.Id == first.Id);
+        _sut.SelectedUnit = unit;
+        _sut.IsRecordSheetExpanded = true;
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        _sut.CurrentState.CanSelectUnit(rejectedUnit).ShouldBeTrue();
+
+        _sut.SelectedUnit = rejectedUnit;
+
+        _sut.CurrentState.ShouldBeOfType<WeaponsAttackState>().CurrentStep
+            .ShouldBe(WeaponsAttackStep.ActionSelection);
+        _sut.SelectedUnit.ShouldBe(unit);
+        _sut.Attacker.ShouldBe(unit);
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBe(unit);
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RecordSheet_FollowsSelectedUnit_AndBecomesInvisibleWhenSelectionIsCleared()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        squad[0].AddEvent(new UiEvent(UiEventType.ArmorDamage, "10"));
+        squad[1].AddEvent(new UiEvent(UiEventType.Explosion, "Ammo"));
+        _sut.SelectedUnit = squad[0];
+        _sut.ToggleRecordSheet();
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+
+        _sut.SelectedUnit = squad[1];
+
+        _sut.SelectedUnit.ShouldBe(squad[1]);
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBe(squad[1]);
+        _sut.SelectedUnitEvents.ShouldHaveSingleItem().Type.ShouldBe(UiEventType.Explosion);
+        _sut.IsRecordSheetPanelVisible.ShouldBeTrue();
+
+        _sut.SelectedUnit = null;
+
+        _sut.SelectedUnit.ShouldBeNull();
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBeNull();
+        _sut.SelectedUnitEvents.ShouldBeEmpty();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetButtonVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LocalUnits_IsEmpty_BeforeAnyLocalPlayerJoins()
+    {
+        _sut.IsAttackOverlayVisible.ShouldBeFalse("nothing is attacking outside the attack state");
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+
+        // And before a game is attached at all, which is how the map is first built.
+        _sut.Game = null;
+
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LocalUnits_ContainsOnlyOurOwnUnits()
+    {
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        SetPhase(PhaseNames.End);
+        SetActivePlayer(player.Id);
+
+        _sut.LocalUnits.Count().ShouldBe(1);
+        _sut.IsSquadStatusBarVisible.ShouldBeTrue();
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_CyclesThroughTheSquadAndFocusesEachUnit()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        _sut.CurrentState.ShouldBeOfType<EndState>();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+
+        await ((AsyncCommand)_sut.NextAvailableUnitCommand).ExecuteAsync();
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+
+        await _sut.SelectNextAvailableUnit();
+        _sut.SelectedUnit.ShouldBe(squad[1]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+
+        await _sut.SelectNextAvailableUnit();
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        focused.ShouldBe([squad[0], squad[1], squad[0]]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_InEndState_BrowsesCompletedUnitsDuringRemotePlayersTurn()
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.End).Single();
+        var position = new HexPosition(1, 1, HexDirection.Bottom);
+        unit.Deploy(position, null);
+        unit.Move(MovementPath.CreateSingleSegmentPath(position), null, true);
+        unit.DeclareWeaponAttack([]);
+        var remote = JoinPlayer("Opponent", "#00FF00", false);
+        SetActivePlayer(remote.Id);
+        _sut.CurrentState.ShouldBeOfType<EndState>();
+        _sut.CurrentState.CanHumanPlayerAct().ShouldBeFalse();
+        _sut.CurrentState.IsActiveHumanPlayer().ShouldBeFalse();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+        _sut.SelectedUnit.ShouldBe(unit);
+        focused.ShouldHaveSingleItem().ShouldBe(unit);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_WhenMovementHandlerLosesPermission_DoesNotFocusRejectedUnit()
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.Movement).Single();
+        var game = Substitute.For<IClientGame>();
+        var alivePlayers = _game.AlivePlayers;
+        game.Players.Returns(_game.Players);
+        game.AlivePlayers.Returns(alivePlayers);
+        game.LocalPlayers.Returns(_game.LocalPlayers);
+        game.PhaseStepState.Returns(_game.PhaseStepState);
+        game.TurnPhase.Returns(PhaseNames.Movement);
+        game.BattleMap.Returns(_game.BattleMap);
+        game.Commands.Returns(_game.Commands);
+        game.TurnChanges.Returns(_game.TurnChanges);
+        game.PhaseChanges.Returns(_game.PhaseChanges);
+        game.PhaseStepChanges.Returns(_game.PhaseStepChanges);
+        game.CanActivePlayerAct.Returns(true);
+        _sut.Game = game;
+        var state = new MovementState(_sut);
+        SetCurrentState(_sut, state);
+        state.CanSelectUnit(unit).ShouldBeTrue();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        // Availability allows the candidate, but the real movement handler must
+        // reject it if permission disappears before the selection is applied.
+        game.CanActivePlayerAct.Returns(true, false);
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBeNull();
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        _sut.SelectedUnitHeatProjection.Unit.ShouldBeNull();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_SkipsShutdownAndOutOfCommissionUnits()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 3);
+        squad[0].Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        squad[1].Parts[PartLocation.Head].BlowOff().ShouldBeTrue();
+        squad[1].UpdateDestroyedStatus();
+        squad[0].IsShutdown.ShouldBeTrue();
+        squad[1].IsOutOfCommission.ShouldBeTrue();
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(squad[2]);
+        focused.ShouldHaveSingleItem().ShouldBe(squad[2]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+
+        squad[2].Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(squad[2]);
+        focused.ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [InlineData("NoGame")]
+    [InlineData("Idle")]
+    [InlineData("EmptySquad")]
+    public async Task SelectNextAvailableUnit_WithoutNavigableGameState_DoesNothing(string scenario)
+    {
+        if (scenario != "EmptySquad") SetUpSquadNavigation(PhaseNames.End);
+        if (scenario == "NoGame") _sut.Game = null;
+        else SetCurrentState(_sut, new IdleState());
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBeNull();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public async Task SelectNextAvailableUnit_WhenActivePlayerIsRemote_DoesNotNavigate(PhaseNames phase)
+    {
+        SetUpSquadNavigation(phase);
+        var remote = new Player(Guid.NewGuid(), "Opponent", PlayerControlType.Human, "#00FF00");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = remote.Id,
+            PlayerName = remote.Name,
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = remote.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        SetActivePlayerWithUnits(remote.Id, 1);
+        _sut.CurrentState.CanHumanPlayerAct().ShouldBeFalse();
+        _sut.CurrentState.IsActiveHumanPlayer().ShouldBeFalse();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBeNull();
+        focused.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public async Task SelectNextAvailableUnit_WhenCommandIsPending_DoesNotNavigate(PhaseNames phase)
+    {
+        var unit = SetUpSquadNavigation(phase).Single();
+        var state = _sut.CurrentState;
+        var command = new UpdatePlayerStatusCommand
+        {
+            GameOriginId = _game.Id,
+            PlayerId = unit.Owner!.Id,
+            PlayerStatus = PlayerStatus.Ready
+        };
+        var pendingCommand = _game.SetPlayerReady(command);
+        pendingCommand.IsCompleted.ShouldBeFalse();
+        state.CanHumanPlayerAct().ShouldBeFalse();
+        state.IsActiveHumanPlayer().ShouldBeTrue();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBeNull();
+        focused.ShouldBeEmpty();
+
+        // Acknowledge the command so the test does not leave a timeout running.
+        _game.HandleCommand(command with { GameOriginId = Guid.NewGuid(), IdempotencyKey = _idempotencyKey });
+        (await pendingCommand).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public async Task SelectNextAvailableUnit_SkipsUnitsThatCompletedThePhase(PhaseNames phase)
+    {
+        var squad = SetUpSquadNavigation(phase, 2);
+        var position = new HexPosition(1, 1, HexDirection.Bottom);
+        squad[0].Deploy(position, null);
+        if (phase != PhaseNames.Deployment)
+            squad[1].Deploy(new HexPosition(2, 1, HexDirection.Bottom), null);
+        if (phase == PhaseNames.Movement)
+            squad[0].Move(MovementPath.CreateSingleSegmentPath(position), null, true);
+        if (phase == PhaseNames.WeaponsAttack)
+            squad[0].DeclareWeaponAttack([]);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(squad[1]);
+        focused.ShouldHaveSingleItem().ShouldBe(squad[1]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+
+        if (phase == PhaseNames.Deployment)
+            squad[1].Deploy(new HexPosition(2, 1, HexDirection.Bottom), null);
+        if (phase == PhaseNames.Movement)
+            squad[1].Move(MovementPath.CreateSingleSegmentPath(squad[1].Position!), null, true);
+        if (phase == PhaseNames.WeaponsAttack)
+            squad[1].DeclareWeaponAttack([]);
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        await _sut.SelectNextAvailableUnit();
+        focused.ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [InlineData(PhaseNames.Deployment)]
+    [InlineData(PhaseNames.Movement)]
+    [InlineData(PhaseNames.WeaponsAttack)]
+    public async Task SelectNextAvailableUnit_WithMultipleLocalPlayers_SelectsOnlyTheActiveOwnersUnit(PhaseNames phase)
+    {
+        var first = JoinPlayerWithUnit("First", "#FF0000");
+        var active = JoinPlayerWithUnit("Active", "#00FF00");
+        SetPhase(phase);
+        SetActivePlayerWithUnits(active.Id, 1);
+        var unit = _sut.LocalUnits.Single(u => u.Owner!.Id == active.Id);
+        _sut.LocalUnits.Count().ShouldBe(2);
+        _game.LocalPlayers.ShouldContain(first.Id);
+        _game.LocalPlayers.ShouldContain(active.Id);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(unit);
+        focused.ShouldHaveSingleItem().ShouldBe(unit);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_DuringDeployment_DoesNotReplaceUnfinishedSelection()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.Deployment, 2);
+        _sut.SelectedUnit = squad[0];
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        squad.ShouldAllBe(unit => !unit.IsDeployed);
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_WhenMovementSelectionIsLocked_DoesNotSelectAnotherUnit()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.Movement, 2);
+        var mech = squad[0].ShouldBeOfType<Mech>();
+        mech.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
+        _sut.SelectedUnit = mech;
+        var state = _sut.CurrentState.ShouldBeOfType<MovementState>();
+        state.HandleMovementTypeSelection(MovementType.Walk);
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!, MovementType.Walk), null, false);
+        mech.SetProne();
+        state.ResumeMovementAfterFall(mech.Id);
+        state.CanSelectUnit(squad[1]).ShouldBeFalse();
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBe(mech);
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+        squad[1].HasMoved.ShouldBeFalse();
+        squad[1].IsShutdown.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_WhenOnlySelectedMovementUnitIsAvailable_PreservesUnfinishedMovement()
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.Movement).Single();
+        unit.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
+        _sut.SelectedUnit = unit;
+        var state = _sut.CurrentState.ShouldBeOfType<MovementState>();
+        state.HandleMovementTypeSelection(MovementType.Walk);
+        state.HandleHexSelection(_game.BattleMap!.GetHex(new HexCoordinates(1, 2))!);
+        state.HandleFacingSelection(HexDirection.Bottom);
+        state.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+        var path = _sut.MovementPath;
+        path.ShouldNotBeNull();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(unit);
+        state.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+        _sut.MovementPath.ShouldBeSameAs(path);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+        unit.HasMoved.ShouldBeFalse();
+        focused.ShouldHaveSingleItem().ShouldBe(unit);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<MoveUnitCommand>());
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_WhenOnlySelectedAttackerIsAvailable_PreservesUnfinishedAttack()
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.WeaponsAttack).Single();
+        unit.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
+        unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        _sut.SelectedUnit = unit;
+        var state = _sut.CurrentState.ShouldBeOfType<WeaponsAttackState>();
+        state.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        var weapon = _sut.WeaponSelectionItems.ShouldHaveSingleItem();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.Attacker.ShouldBe(unit);
+        _sut.SelectedUnit.ShouldBe(unit);
+        state.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _sut.WeaponSelectionItems.ShouldHaveSingleItem().ShouldBeSameAs(weapon);
+        unit.HasDeclaredWeaponAttack.ShouldBeFalse();
+        focused.ShouldHaveSingleItem().ShouldBe(unit);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackDeclarationCommand>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelectNextAvailableUnit_DuringWeaponsConfigurationOrTargetSelection_DoesNotNavigate(bool selectingTarget)
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.WeaponsAttack).Single();
+        unit.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
+        unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+        _localizationService.GetString("Action_TurnTorso").Returns("Rotate torso");
+        _sut.SelectedUnit = unit;
+        var state = _sut.CurrentState.ShouldBeOfType<WeaponsAttackState>();
+        var actionLabel = selectingTarget ? "Select Target" : "Rotate torso";
+        _sut.AvailableActions.Single(action => action.Label == actionLabel).OnExecute();
+        var step = selectingTarget ? WeaponsAttackStep.TargetSelection : WeaponsAttackStep.WeaponsConfiguration;
+        state.CurrentStep.ShouldBe(step);
+        var selectedUnit = _sut.SelectedUnit;
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBe(selectedUnit);
+        _sut.Attacker.ShouldBe(unit);
+        state.CurrentStep.ShouldBe(step);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void OpeningCommandLog_ShouldCloseMapSettingsAndRecordSheet()
+    {
+        _sut.IsMapSettingsPanelVisible = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleCommandLog();
+
+        _sut.IsCommandLogExpanded.ShouldBeTrue();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningMapSettings_ShouldCloseCommandLogAndRecordSheet()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.ToggleMapSettings();
+
+        _sut.IsMapSettingsPanelVisible.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.IsRecordSheetPanelVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OpeningRecordSheet_ShouldCloseUtilityPanels()
+    {
+        _sut.IsCommandLogExpanded = true;
+        _sut.IsMapSettingsPanelVisible = true;
+
+        _sut.IsRecordSheetExpanded = true;
+
+        _sut.IsRecordSheetExpanded.ShouldBeTrue();
+        _sut.IsCommandLogExpanded.ShouldBeFalse();
+        _sut.IsMapSettingsPanelVisible.ShouldBeFalse();
+    }
+
+    private void OpenUtilityPanel(string panel)
+    {
+        switch (panel)
+        {
+            case "RecordSheet":
+                _sut.IsRecordSheetExpanded = true;
+                break;
+            case "CommandLog":
+                _sut.ToggleCommandLog();
+                break;
+            case "MapSettings":
+                _sut.ToggleMapSettings();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(panel));
+        }
+    }
+
+    [Theory]
+    [InlineData("RecordSheet")]
+    [InlineData("CommandLog")]
+    [InlineData("MapSettings")]
+    public void OpeningUtilityPanel_DuringMovementDirectionSelection_AllowsMovementToContinue(string panel)
+    {
+        var unit = SetUpSquadNavigation(PhaseNames.Movement).Single();
+        unit.Deploy(new HexPosition(1, 1, HexDirection.Bottom), null);
+        _sut.SelectedUnit = unit;
+        var state = _sut.CurrentState.ShouldBeOfType<MovementState>();
+        state.HandleMovementTypeSelection(MovementType.Walk);
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(targetHex);
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingDirection);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        OpenUtilityPanel(panel);
+
+        state.CurrentMovementStep.ShouldBe(MovementStep.SelectingDirection);
+        _sut.IsDirectionSelectorVisible.ShouldBeTrue();
+        _sut.SelectedUnit.ShouldBe(unit);
+        unit.HasMoved.ShouldBeFalse();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<MoveUnitCommand>());
+
+        state.HandleFacingSelection(HexDirection.Bottom);
+        MoveUnitCommand? sentCommand = null;
+        _commandPublisher.When(publisher => publisher.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(callInfo =>
+            {
+                if (callInfo.Arg<IGameCommand>() is MoveUnitCommand command)
+                    sentCommand = command;
+            });
+        _sut.HandlePlayerAction();
+
+        state.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(command =>
+            command.UnitId == unit.Id && command.MovementType == MovementType.Walk &&
+            command.MovementPath.Last().To.Coordinates.Q == 1 &&
+            command.MovementPath.Last().To.Coordinates.R == 2));
+        sentCommand.ShouldNotBeNull();
+        _game.HandleCommand(sentCommand.Value with { GameOriginId = Guid.NewGuid() });
+        unit.HasMoved.ShouldBeTrue();
+    }
 
     private ClientGame CreateClientGame()
     {
