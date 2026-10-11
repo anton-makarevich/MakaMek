@@ -177,12 +177,6 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
-    <!-- Flat Button (no background or border, for an icon that sits inside other content) -->
-    <Style Selector="Button.flat">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-    </Style>
-
     <!-- Action Text Button (consistent text-based action button for in-map and overlay use) -->
     <Style Selector="Button.actionButtonText">
         <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>

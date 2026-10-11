@@ -115,7 +115,7 @@
                                     Text="{Binding HitProbabilityText}" 
                                     Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"
                                     />
-                                <Button Classes="flat"
+                                <Button Classes="cardAction"
                                     Grid.Column="4"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
@@ -135,7 +135,7 @@
                                 </Button>
 
                                 <!-- Aimed Shot Button -->
-                                <Button Classes="flat" Grid.Column="1"
+                                <Button Classes="cardAction" Grid.Column="1"
                                         Grid.Row="0"
                                         Grid.RowSpan="3"
                                         VerticalAlignment="Center"

@@ -90,7 +90,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button Classes="flat" HorizontalAlignment="Right">
+                <Button Classes="cardAction" HorizontalAlignment="Right">
                     <Button.Content>
                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05A;"/>
                     </Button.Content>
