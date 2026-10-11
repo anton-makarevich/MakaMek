@@ -135,6 +135,6 @@ public class HexRenderControlBoundaryTests
     {
         public int RenderOrder => 42;
         public string Name => nameof(UnknownHighlight);
-        public string Render(Sanet.MakaMek.Localization.ILocalizationService localizationService) => Name;
+        public string Render(Sanet.Localization.ILocalizationService localizationService) => Name;
     }
 }

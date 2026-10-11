@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Localization;
+﻿using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Shouldly;
@@ -7,7 +8,7 @@ namespace Sanet.MakaMek.Map.Tests.Models.Highlights;
 
 public class MovementReachableHighlightTests
 {
-    private readonly FakeLocalizationService _localization = new();
+    private readonly ILocalizationService _localization = TestLocalizationService.Create();
 
     [Fact]
     public void ShouldHaveCorrectRenderOrder()

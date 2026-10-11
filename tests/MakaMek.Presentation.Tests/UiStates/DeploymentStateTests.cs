@@ -15,7 +15,8 @@ using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.UiStates;
@@ -35,7 +36,7 @@ public class DeploymentStateTests
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
 

@@ -1,5 +1,6 @@
 using AsyncAwaitBestPractices.MVVM;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
@@ -7,7 +8,7 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
 public class AddHubViewModelTests
 {
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
 
     private AddHubViewModel CreateSut() => new(_localizationService);
 

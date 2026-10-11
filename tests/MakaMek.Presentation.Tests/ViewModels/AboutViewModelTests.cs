@@ -1,7 +1,8 @@
 ﻿using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MVVM.Core.Services;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
@@ -16,7 +17,7 @@ public class AboutViewModelTests
     public AboutViewModelTests()
     {
         _externalNavigationService = Substitute.For<IExternalNavigationService>();
-        _localizationService = new FakeLocalizationService();
+        _localizationService = TestLocalizationService.Create();
 
         _sut = new AboutViewModel(_externalNavigationService, _localizationService);
     }

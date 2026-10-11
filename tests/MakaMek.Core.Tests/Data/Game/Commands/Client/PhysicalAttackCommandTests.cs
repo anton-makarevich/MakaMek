@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -6,7 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Client;
@@ -15,7 +16,7 @@ public class PhysicalAttackCommandTests
 {
     // The real service is used rather than a substitute: when Command_PhysicalAttack was
     // missing, GetString returned the key itself and a stubbed service would have hidden it.
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Player _attackingPlayer = new(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
     private readonly Player _defendingPlayer = new(Guid.NewGuid(), "Player 2", PlayerControlType.Human);
