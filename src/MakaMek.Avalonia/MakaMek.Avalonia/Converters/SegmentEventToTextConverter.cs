@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Avalonia.Converters;

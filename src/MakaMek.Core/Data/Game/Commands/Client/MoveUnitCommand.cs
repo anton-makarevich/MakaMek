@@ -1,6 +1,6 @@
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
