@@ -41,6 +41,10 @@ public class LocalizationResourcesTests
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game")]
     [InlineData("Command_SetBattleMap", "Battle map has been set")]
     [InlineData("Command_BridgeCollapsed", "{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})")]
+    [InlineData("Command_HullBreach_Header", "{0} hull breached!")]
+    [InlineData("Command_HullBreach_Automatic", "{0} automatic hull breach")]
+    [InlineData("Command_HullBreach_Roll", "{0} hull breach (roll {1})")]
+    [InlineData("Command_HullBreach_EngineDamage", "Engine hit for {0} damage")]
     [InlineData("Command_DisplaceUnit", "{0} displaced from {1} to {2}")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
@@ -239,6 +243,7 @@ public class LocalizationResourcesTests
     [InlineData("Modifier_WaterDepth", "Water Depth ({0}): {1}")]
     [InlineData("Modifier_SkidDistance", "Skid ({0} hexes moved): {1}")]
     [InlineData("WeaponRestriction_NotAvailable", "Weapon not available")]
+    [InlineData("WeaponRestriction_Underwater", "Cannot fire underwater")]
     [InlineData("WeaponRestriction_PartialCoverLegs", "Cannot fire leg weapons while in partial cover")]
     [InlineData("WeaponRestriction_ProneLegs", "Cannot fire leg weapons while prone")]
     [InlineData("WeaponRestriction_ProneOtherArm", "Only one arm can fire while prone")]

@@ -121,6 +121,10 @@
   <data name="Command_RequestGameLobbyStatus" xml:space="preserve"><value>Client {0} requested game lobby status for game</value></data>
   <data name="Command_SetBattleMap" xml:space="preserve"><value>Battle map has been set</value></data>
   <data name="Command_BridgeCollapsed" xml:space="preserve"><value>{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})</value></data>
+  <data name="Command_HullBreach_Header" xml:space="preserve"><value>{0} hull breached!</value></data>
+  <data name="Command_HullBreach_Automatic" xml:space="preserve"><value>{0} automatic hull breach</value></data>
+  <data name="Command_HullBreach_Roll" xml:space="preserve"><value>{0} hull breach (roll {1})</value></data>
+  <data name="Command_HullBreach_EngineDamage" xml:space="preserve"><value>Engine hit for {0} damage</value></data>
   <data name="Command_DisplaceUnit" xml:space="preserve"><value>{0} displaced from {1} to {2}</value></data>
   <data name="Terrain_Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Terrain_LightWoods" xml:space="preserve"><value>Light Woods</value></data>
@@ -215,6 +219,7 @@
   <data name="Modifier_WaterDepth" xml:space="preserve"><value>Water Depth ({0}): {1}</value></data>
   <data name="Modifier_SkidDistance" xml:space="preserve"><value>Skid ({0} hexes moved): {1}</value></data>
   <data name="WeaponRestriction_NotAvailable" xml:space="preserve"><value>Weapon not available</value></data>
+  <data name="WeaponRestriction_Underwater" xml:space="preserve"><value>Cannot fire underwater</value></data>
   <data name="WeaponRestriction_PartialCoverLegs" xml:space="preserve"><value>Cannot fire leg weapons while in partial cover</value></data>
   <data name="WeaponRestriction_ProneLegs" xml:space="preserve"><value>Cannot fire leg weapons while prone</value></data>
   <data name="WeaponRestriction_ProneOtherArm" xml:space="preserve"><value>Only one arm can fire while prone</value></data>
