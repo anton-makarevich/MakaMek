@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
-             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              xmlns:controls="using:Sanet.MakaMek.Avalonia.Controls"
              xmlns:wrappers="using:Sanet.MakaMek.Presentation.ViewModels.Wrappers"
              xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
@@ -12,10 +11,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Controls.WeaponSelectionPanel"
              x:DataType="viewModels1:BattleMapViewModel"
              x:CompileBindings="True">
-    <UserControl.Resources>
-        <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
-        <!-- DI-injected converters are resolved from Application.Resources (App.axaml.cs) -->
-    </UserControl.Resources>
     
     <templatedControls:GamePanel
         IsVisible="{Binding IsWeaponSelectionVisible}"
@@ -120,15 +115,13 @@
                                     Text="{Binding HitProbabilityText}" 
                                     Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"
                                     />
-                                <Button
+                                <Button Classes="flat"
                                     Grid.Column="4"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
                                     VerticalAlignment="Center"
                                     Margin="2,0,0,0" 
-                                    IsVisible="{Binding AttackPossibilityDescription, Converter={StaticResource StringNotEmptyToBoolConverter}}"
-                                    Background="Transparent" 
-                                    BorderThickness="0">
+                                    IsVisible="{Binding AttackPossibilityDescription, Converter={StaticResource StringNotEmptyToBoolConverter}}">
                                     <Button.Content>
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05A;" />
                                     </Button.Content>
@@ -142,7 +135,7 @@
                                 </Button>
 
                                 <!-- Aimed Shot Button -->
-                                <Button Grid.Column="1"
+                                <Button Classes="flat" Grid.Column="1"
                                         Grid.Row="0"
                                         Grid.RowSpan="3"
                                         VerticalAlignment="Center"
@@ -150,8 +143,6 @@
                                         IsVisible="{Binding IsAimedShotAvailable}"
                                         Command="{Binding ShowAimedShotSelector}"
                                         CommandParameter="{Binding Weapon}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
                                         ToolTip.Tip="{extensions:Localize 'WeaponSelection_AimedShot'}">
                                     <Button.Content>
                                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05B;" />

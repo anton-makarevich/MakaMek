@@ -3,16 +3,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
-             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitMovementInfoPanel"
              mc:Ignorable="d"
              >
-    <UserControl.Resources>
-        <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
-        <!-- DI-injected converters are resolved from Application.Resources (App.axaml.cs) -->
-    </UserControl.Resources>
     <StackPanel  Spacing="5" Orientation="Vertical">
         <Border
             IsVisible="{Binding !HasMoved}"
@@ -95,9 +90,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button HorizontalAlignment="Right"
-                        Background="Transparent"
-                        BorderThickness="0">
+                <Button Classes="flat" HorizontalAlignment="Right">
                     <Button.Content>
                         <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05A;"/>
                     </Button.Content>
