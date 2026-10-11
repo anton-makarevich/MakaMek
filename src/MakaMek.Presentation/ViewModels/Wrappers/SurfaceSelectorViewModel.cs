@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MVVM.Core.ViewModels;

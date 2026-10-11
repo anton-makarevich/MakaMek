@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units;
 using System.Text;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game;
 

@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Converters;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;

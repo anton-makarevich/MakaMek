@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 

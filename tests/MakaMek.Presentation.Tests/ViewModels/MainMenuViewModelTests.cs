@@ -11,7 +11,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Map.Services;
@@ -147,7 +147,8 @@ public class MainMenuViewModelTests
             Substitute.For<IMechFactory>(),
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IMapPreviewRenderer>(),
-            Substitute.For<IClipboardService>()
+            Substitute.For<IClipboardService>(),
+            _localizationService
         );
         _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);
 

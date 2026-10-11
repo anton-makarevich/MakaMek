@@ -6,7 +6,8 @@ using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Transport.SignalR.Client.Relay;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -23,7 +24,7 @@ public class SettingsViewModelTests
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
     private readonly IRelayRoomClient _relayRoomClient = Substitute.For<IRelayRoomClient>();
     private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider = Substitute.For<IAssetProviderConfigurationProvider>();
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private ILogger<SettingsViewModel> _logger = null!;
     private SettingsViewModel _sut = null!;

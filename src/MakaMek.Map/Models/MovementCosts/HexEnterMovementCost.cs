@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Map.Models.MovementCosts;
 
