@@ -6,7 +6,8 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
@@ -20,7 +21,7 @@ public class PilotConsciousnessRollCommandTests
 
     public PilotConsciousnessRollCommandTests()
     {
-        _localizationService = new FakeLocalizationService();
+        _localizationService = TestLocalizationService.Create();
         
         _game = Substitute.For<IGame>();
         var pilot = Substitute.For<IPilot>();

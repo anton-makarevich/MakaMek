@@ -21,7 +21,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;

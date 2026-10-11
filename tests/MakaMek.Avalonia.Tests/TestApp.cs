@@ -3,7 +3,7 @@ using Avalonia.Markup.Xaml;
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.Controls.Services;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace MakaMek.Avalonia.Tests;
 

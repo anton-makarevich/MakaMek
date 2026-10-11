@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
