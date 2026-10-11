@@ -18,15 +18,13 @@
     <Button Command="{Binding #SquadTile.SelectCommand}"
             CommandParameter="{Binding}"
             AutomationProperties.Name="{Binding Name}"
+            Classes="cardAction"
             Padding="0"
-            Background="Transparent"
-            BorderThickness="0"
             HorizontalContentAlignment="Stretch">
         <Border Background="{StaticResource SurfaceBrush}"
-                Classes="tile"
+                Classes="card tile"
                 Classes.active="{Binding #SquadTile.IsActive}"
                 BorderThickness="2"
-                CornerRadius="5"
                 Padding="6,4"
                 Width="150">
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
@@ -54,13 +52,11 @@
                                    TextTrimming="CharacterEllipsis"/>
                         <!-- Pilot health: a full bar that injuries eat into from the left. -->
                         <ProgressBar x:Name="PilotInjuries"
+                                     Classes="thin"
                                      Value="{Binding Pilot.Injuries}"
                                      Maximum="{Binding Pilot.Health}"
                                      Foreground="{StaticResource ErrorBrush}"
-                                     Background="{StaticResource SuccessBrush}"
-                                     Height="4"
-                                     MinHeight="0"
-                                     MinWidth="0"/>
+                                     Background="{StaticResource SuccessBrush}"/>
                     </StackPanel>
                 </Grid>
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
@@ -90,20 +86,14 @@
                 </StackPanel>
                 <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="4">
                     <ProgressBar x:Name="Armor"
-                                 Classes="mechArmor"
+                                 Classes="thin mechArmor"
                                  Value="{Binding TotalCurrentArmor}"
-                                 Maximum="{Binding TotalMaxArmor}"
-                                 Height="4"
-                                 MinHeight="0"
-                                 MinWidth="0"/>
+                                 Maximum="{Binding TotalMaxArmor}"/>
                     <ProgressBar x:Name="Structure"
                                  Grid.Column="1"
-                                 Classes="mechStructure"
+                                 Classes="thin mechStructure"
                                  Value="{Binding TotalCurrentStructure}"
-                                 Maximum="{Binding TotalMaxStructure}"
-                                 Height="4"
-                                 MinHeight="0"
-                                 MinWidth="0"/>
+                                 Maximum="{Binding TotalMaxStructure}"/>
                 </Grid>
             </Grid>
         </Border>

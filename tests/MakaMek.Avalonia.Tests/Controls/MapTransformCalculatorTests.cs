@@ -233,6 +233,33 @@ public class MapTransformCalculatorTests
     }
 
     [Fact]
+    public void CenterOn_ShouldPutTheContentPointInTheMiddleOfTheViewport()
+    {
+        // Arrange
+        _sut.SetTransform(1.5, 10, 20);
+        var content = new Point(200, 100);
+
+        // Act
+        _sut.CenterOn(content, new Size(800, 600));
+
+        // Assert
+        _sut.LocalToParent(content).ShouldBe(new Point(400, 300));
+    }
+
+    [Fact]
+    public void CenterOn_ShouldKeepTheScale()
+    {
+        // Arrange
+        _sut.SetTransform(1.5, 10, 20);
+
+        // Act
+        _sut.CenterOn(new Point(200, 100), new Size(800, 600));
+
+        // Assert
+        _sut.Scale.ShouldBe(1.5);
+    }
+
+    [Fact]
     public void ResetZoom_ShouldResetScaleButKeepTranslation()
     {
         // Arrange

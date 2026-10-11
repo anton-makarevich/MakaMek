@@ -12,6 +12,7 @@ using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -245,17 +246,9 @@ public class SquadBarTests
         return (window, view, viewModel);
     }
 
-    private static ClientGame CreateClientGame(IServiceProvider services) => new(
-        services.GetRequiredService<IRulesProvider>(),
-        services.GetRequiredService<IMechFactory>(),
-        services.GetRequiredService<ICommandPublisher>(),
-        services.GetRequiredService<IToHitCalculator>(),
-        services.GetRequiredService<IPilotingSkillCalculator>(),
-        services.GetRequiredService<IConsciousnessCalculator>(),
-        services.GetRequiredService<IHeatEffectsCalculator>(),
-        services.GetRequiredService<IBattleMapFactory>(),
-        services.GetRequiredService<IHashService>(),
-        services.GetRequiredService<ILogger<ClientGame>>());
+    private static ClientGame CreateClientGame(IServiceProvider services) =>
+        services.GetRequiredService<IGameFactory>()
+            .CreateClientGame(services.GetRequiredService<ICommandPublisher>());
 
     private static void Settle(Window window)
     {

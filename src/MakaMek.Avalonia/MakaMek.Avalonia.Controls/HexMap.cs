@@ -362,12 +362,10 @@ public class HexMap : Canvas
         // Not this control's own bounds: the canvas is sized to the whole board and overflows its
         // cell, so what the player can see is the parent's size.
         var viewport = this.GetVisualParent()?.Bounds.Size ?? Bounds.Size;
-        var contentCenterX = coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2;
-        var contentCenterY = coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2;
-        _calculator.SetTransform(
-            _calculator.Scale,
-            viewport.Width / 2 - contentCenterX * _calculator.Scale,
-            viewport.Height / 2 - contentCenterY * _calculator.Scale);
+        var hexCenter = new Point(
+            coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
+            coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
+        _calculator.CenterOn(hexCenter, viewport);
         SyncTransform();
     }
 
