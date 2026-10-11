@@ -3,7 +3,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Logging;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Logging;

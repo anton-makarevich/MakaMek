@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Localization;
+﻿using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 

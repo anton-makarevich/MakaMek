@@ -1,7 +1,7 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 

@@ -1,10 +1,23 @@
+using Sanet.Localization;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.TestHelpers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Localization.Tests;
 
-public class FakeLocalizationServiceTests
+public class LocalizationResourcesTests
 {
+    [Fact]
+    public void Create_RegistersResourceLocalizationService_WithEmbeddedStrings()
+    {
+        var localizationService = TestLocalizationService.Create();
+
+        localizationService.ShouldBeOfType<ResourceLocalizationService>();
+        typeof(LocalizationResourcesAnchor).Assembly.GetManifestResourceNames()
+            .ShouldContain($"{LocalizationResourcesAnchor.ResourceBaseName}.resources");
+        localizationService.GetString("Window_Title").ShouldBe("MakaMek");
+    }
+
     [Theory]
     [InlineData("Command_JoinGame", "{0} has joined game with {1} units")]
     [InlineData("Command_PlayerLeft", "{0} has left the game")]
@@ -32,7 +45,7 @@ public class FakeLocalizationServiceTests
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -51,7 +64,7 @@ public class FakeLocalizationServiceTests
     public void GetString_WeaponCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -91,7 +104,7 @@ public class FakeLocalizationServiceTests
     public void GetString_WeaponAttackResolution_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -112,7 +125,7 @@ public class FakeLocalizationServiceTests
     public void GetString_CriticalHitsResolution_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -129,7 +142,7 @@ public class FakeLocalizationServiceTests
     public void GetString_GameEnded_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -186,6 +199,9 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
     [InlineData("PilotingSkillRollType_RubbleEntry", "Rubble Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
+    [InlineData("PilotingSkillRollType_CliffFall", "Cliff Fall")]
+    [InlineData("PilotingSkillRollType_CliffFall_WithLevels", "{0} ({1} levels)")]
+    [InlineData("PilotingSkillRollType_SkidCheck_CliffFall", " + cliff fall ({0} levels)")]
     [InlineData("Command_MechSkid_Base", "{0} skidded {1} hexes (skid damage)")]
     [InlineData("PilotingSkillRollType_BridgeCollapse", "Bridge Collapse")]
     [InlineData("PilotingSkillRollType_BridgeCollapse_WithHeight", "{0} (Height: {1})")]
@@ -359,7 +375,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Commands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -375,12 +391,14 @@ public class FakeLocalizationServiceTests
     [InlineData("Pilot_Status_Unconscious", "UNCONSCIOUS")]
     // Generic action keys
     [InlineData("Cancel", "Cancel")]
+    [InlineData("Initiative_WaitingLabel", "Waiting for initiative rolls")]
+    [InlineData("AvailableUnits_UnitInfo", "Unit Info")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_MiscellaneousKeys_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -405,7 +423,7 @@ public class FakeLocalizationServiceTests
     public void GetString_HeatShutdownRestartCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -422,7 +440,7 @@ public class FakeLocalizationServiceTests
     public void GetString_AmmoExplosion_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -439,7 +457,7 @@ public class FakeLocalizationServiceTests
     public void GetString_ErrorCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -466,7 +484,7 @@ public class FakeLocalizationServiceTests
     public void GetString_MainMenuLoadingMessages_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -483,7 +501,7 @@ public class FakeLocalizationServiceTests
     public void GetString_HeatProjection_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -504,7 +522,7 @@ public class FakeLocalizationServiceTests
     public void GetString_EndGame_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -524,7 +542,7 @@ public class FakeLocalizationServiceTests
     public void GetString_About_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -546,7 +564,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Dialogs_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -563,7 +581,7 @@ public class FakeLocalizationServiceTests
     public void GetString_ConnectFragment_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -582,7 +600,7 @@ public class FakeLocalizationServiceTests
     public void GetString_ConnectionStatus_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -606,10 +624,19 @@ public class FakeLocalizationServiceTests
     [InlineData("BattleMap_ShowLabels", "Show Labels")]
     [InlineData("BattleMap_ShowHexOutlines", "Show Hex Outlines")]
     [InlineData("BattleMap_ShowHexHighlightText", "Show Hex Highlight Text")]
+    [InlineData("BattleMap_ExportPdf", "Export Map as PDF")]
+    [InlineData("BattleMap_ExportPdfDialogTitle", "Export Map as PDF")]
+    [InlineData("BattleMap_CommandRejected", "Action rejected: {0}")]
+    [InlineData("BattleMap_CommandTimedOut", "No response from the server")]
+    [InlineData("BattleMap_Notification_Turn", "turn {0}")]
+    [InlineData("BattleMap_Notification_Phase", "{0} phase")]
+    [InlineData("BattleMap_Notification_YourTurn", "your turn")]
+    [InlineData("BattleMap_Notification_PlayersTurn", "{0}'s turn")]
+    [InlineData("BattleMap_Notification_InitiativeWinner", "{0} wins initiative with {1}")]
     public void GetString_BattleMap_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -623,7 +650,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitBasicInfo_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -640,7 +667,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitComponents_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -659,7 +686,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitMovement_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -684,7 +711,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitPilot_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -701,7 +728,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitWeapons_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -718,7 +745,7 @@ public class FakeLocalizationServiceTests
     public void GetString_WeaponSelection_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -736,7 +763,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitItem_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -751,7 +778,7 @@ public class FakeLocalizationServiceTests
     public void GetString_UnitInfo_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -775,7 +802,7 @@ public class FakeLocalizationServiceTests
     public void GetString_AboutView_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -825,7 +852,7 @@ public class FakeLocalizationServiceTests
     public void GetString_SettingsView_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -844,7 +871,7 @@ public class FakeLocalizationServiceTests
     public void GetString_AvailableUnits_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -858,7 +885,7 @@ public class FakeLocalizationServiceTests
     public void GetString_JoinGame_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -875,7 +902,7 @@ public class FakeLocalizationServiceTests
     public void GetString_MainMenu_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -893,7 +920,7 @@ public class FakeLocalizationServiceTests
     public void GetString_StartNewGame_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -906,6 +933,8 @@ public class FakeLocalizationServiceTests
     [InlineData("MapConfig_SelectMap", "Select Map")]
     [InlineData("MapConfig_LoadMap", "Load Map from File")]
     [InlineData("MapConfig_GenerateMap", "Generate Map")]
+    [InlineData("MapConfig_MapSize", "Map Size")]
+    [InlineData("MapConfig_TerrainGeneration", "Terrain Generation")]
     [InlineData("MapConfig_Width", "Map Width")]
     [InlineData("MapConfig_Height", "Map Height")]
     [InlineData("MapConfig_ForestCoverage", "Forest Coverage")]
@@ -933,7 +962,7 @@ public class FakeLocalizationServiceTests
     public void GetString_MapConfig_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -950,7 +979,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Network_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -971,10 +1000,12 @@ public class FakeLocalizationServiceTests
     [InlineData("Hosting_Starting", "Starting hosted game...")]
     [InlineData("Hosting_RoomReady", "Game is running — share the room code above")]
     [InlineData("Hosting_Failed", "Failed to start the hosted game.")]
+    [InlineData("Hosting_LanEnabled", "Multiplayer enabled on LAN")]
+    [InlineData("Network_EnableMultiplayer", "Enable Multiplayer")]
     public void GetString_NetworkHosting_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -1004,7 +1035,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Join_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -1026,7 +1057,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Players_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -1040,7 +1071,7 @@ public class FakeLocalizationServiceTests
     public void GetString_Window_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
 
         // Act
         var result = localizationService.GetString(key);
@@ -1062,7 +1093,7 @@ public class FakeLocalizationServiceTests
     public void GetString_PhaseNames_ReturnsExpectedString(PhaseNames phase, string expected)
     {
         // Arrange
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
         var key = $"Phase_{phase}";
 
         // Act

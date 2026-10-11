@@ -1,0 +1,609 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Command_JoinGame" xml:space="preserve"><value>{0} has joined game with {1} units</value></data>
+  <data name="Command_PlayerLeft" xml:space="preserve"><value>{0} has left the game</value></data>
+  <data name="Command_MoveUnit" xml:space="preserve"><value>{0} moved {1} to {2} facing {3} using {4}</value></data>
+  <data name="Command_MoveUnit_Completed" xml:space="preserve"><value>Movement completed</value></data>
+  <data name="Command_MoveUnit_Incomplete" xml:space="preserve"><value>Movement was interrupted</value></data>
+  <data name="Command_DeployUnit" xml:space="preserve"><value>{0} deployed {1} to {2} facing {3}</value></data>
+  <data name="Command_TryStandup" xml:space="preserve"><value>{0} attempts to stand up {1}</value></data>
+  <data name="Command_MechStandup" xml:space="preserve"><value>{0} Mech stood up successfully. {1}</value></data>
+  <data name="Command_RollDice" xml:space="preserve"><value>{0} rolls</value></data>
+  <data name="Command_DiceRolled" xml:space="preserve"><value>{0} rolled {1}</value></data>
+  <data name="Command_UpdatePlayerStatus" xml:space="preserve"><value>{0}'s status is {1}</value></data>
+  <data name="Command_ChangePhase" xml:space="preserve"><value>Game changed phase to {0}</value></data>
+  <data name="Command_StartPhase" xml:space="preserve"><value>Phase {0} started</value></data>
+  <data name="Command_ChangeActivePlayer" xml:space="preserve"><value>{0}'s turn</value></data>
+  <data name="Command_ChangeActivePlayerUnits" xml:space="preserve"><value>{0}'s turn to play {1} units</value></data>
+  <data name="Command_WeaponConfiguration_TorsoRotation" xml:space="preserve"><value>{0}'s {1} rotates torso to face {2}</value></data>
+  <data name="Command_WeaponConfiguration_ArmsFlip" xml:space="preserve"><value>{0}'s {1} flips arms {2}</value></data>
+  <data name="Command_WeaponAttackDeclaration_NoAttacks" xml:space="preserve"><value>{0}'s {1} declares no attacks</value></data>
+  <data name="Command_WeaponAttackDeclaration_Header" xml:space="preserve"><value>{0}'s {1} declares attacks:</value></data>
+  <data name="Command_WeaponAttackDeclaration_WeaponLine" xml:space="preserve"><value>- {0} targeting {1}'s {2}</value></data>
+  <data name="Command_WeaponAttackResolution" xml:space="preserve"><value>{0}'s {1} attacks with {2} targeting {3}'s {4}. To hit number: {5}</value></data>
+  <data name="Command_WeaponAttackResolution_Hit" xml:space="preserve"><value>{0}'s {1} hits {3}'s {4} with {2} (Target: {5}, Roll: {6})</value></data>
+  <data name="Command_WeaponAttackResolution_Miss" xml:space="preserve"><value>{0}'s {1} misses {3}'s {4} with {2} (Target: {5}, Roll: {6})</value></data>
+  <data name="Command_WeaponAttackResolution_Direction" xml:space="preserve"><value>Attack Direction: {0}</value></data>
+  <data name="Command_WeaponAttackResolution_TotalDamage" xml:space="preserve"><value>Total Damage: {0}</value></data>
+  <data name="Command_WeaponAttackResolution_MissilesHit" xml:space="preserve"><value>Missiles Hit: {0}</value></data>
+  <data name="Command_WeaponAttackResolution_ClusterRoll" xml:space="preserve"><value>Cluster Roll: {0}</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocations" xml:space="preserve"><value>Hit Locations:</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocation" xml:space="preserve"><value>{0} (Roll: {2}): {1} damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocation_ArmorAndStructure" xml:space="preserve"><value>{0} (Roll: {3}): {1} armor, {2} structure damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocation_ArmorOnly" xml:space="preserve"><value>{0} (Roll: {2}): {1} armor damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocation_StructureOnly" xml:space="preserve"><value>{0} (Roll: {2}): {1} structure damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationTransfer" xml:space="preserve"><value>{0} (Roll: {3}) → {1}: {2} damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationTransfer_ArmorAndStructure" xml:space="preserve"><value>{0} (Roll: {4}) → {1}: {2} armor, {3} structure damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationTransfer_ArmorOnly" xml:space="preserve"><value>{0} (Roll: {3}) → {1}: {2} armor damage</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationTransfer_StructureOnly" xml:space="preserve"><value>{0} (Roll: {3}) → {1}: {2} structure damage</value></data>
+  <data name="Command_WeaponAttackResolution_AimedShotSuccessful" xml:space="preserve"><value>Aimed Shot targeting {0} succeeded, Roll: {1}</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure" xml:space="preserve"><value>  Excess damage {1} armor, {2} structure transferred to {0}</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly" xml:space="preserve"><value>  Excess damage {1} armor transferred to {0}</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly" xml:space="preserve"><value>  Excess damage {1} structure transferred to {0}</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorAndStructure" xml:space="preserve"><value>  {0}: {1} armor, {2} structure</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorOnly" xml:space="preserve"><value>  {0}: {1} armor</value></data>
+  <data name="Command_WeaponAttackResolution_HitLocationExplosionDamage_StructureOnly" xml:space="preserve"><value>  {0}: {1} structure</value></data>
+  <data name="Command_WeaponAttackResolution_AimedShotFailed" xml:space="preserve"><value>Aimed Shot targeting {0} failed, Roll: {1}</value></data>
+  <data name="Command_WeaponAttackResolution_DamageAbsorbedByTerrain" xml:space="preserve"><value>Damage absorbed by terrain at {0}: {1}</value></data>
+  <data name="Command_CriticalHitsResolution_Header" xml:space="preserve"><value>{0} suffered structure damage and requires critical hit rolls</value></data>
+  <data name="Command_CriticalHitsResolution_Location" xml:space="preserve"><value>Critical hits in {0}:</value></data>
+  <data name="Command_CriticalHitsResolution_CritRoll" xml:space="preserve"><value>Critical Roll: {0}</value></data>
+  <data name="Command_CriticalHitsResolution_BlownOff" xml:space="preserve"><value>Critical hit in {0}, location blown off</value></data>
+  <data name="Command_CriticalHitsResolution_NumCrits" xml:space="preserve"><value>Number of critical hits: {0}</value></data>
+  <data name="Command_CriticalHitsResolution_CriticalHit" xml:space="preserve"><value>Critical hit in slot {0}: {1}</value></data>
+  <data name="Command_CriticalHitsResolution_Explosion" xml:space="preserve"><value>{0} exploded, damage: {1}</value></data>
+  <data name="Command_CriticalHitsResolution_ExplosionDamageDistribution" xml:space="preserve"><value>Explosion damage distribution:</value></data>
+  <data name="Command_WeaponAttackResolution_DestroyedParts" xml:space="preserve"><value>Destroyed parts:</value></data>
+  <data name="Command_WeaponAttackResolution_DestroyedPart" xml:space="preserve"><value>- {0} destroyed</value></data>
+  <data name="Command_WeaponAttackResolution_UnitDestroyed" xml:space="preserve"><value>{0} has been destroyed!</value></data>
+  <data name="Command_TurnEnded" xml:space="preserve"><value>{0} has ended their turn</value></data>
+  <data name="Command_ShutdownUnit" xml:space="preserve"><value>{0} requests to shut down {1}</value></data>
+  <data name="Command_StartupUnit" xml:space="preserve"><value>{0} requests to start up {1}</value></data>
+  <data name="Command_TurnIncremented" xml:space="preserve"><value>Turn {0} has started</value></data>
+  <data name="Command_RequestGameLobbyStatus" xml:space="preserve"><value>Client {0} requested game lobby status for game</value></data>
+  <data name="Command_SetBattleMap" xml:space="preserve"><value>Battle map has been set</value></data>
+  <data name="Command_BridgeCollapsed" xml:space="preserve"><value>{0} collapsed bridge at hex {1} (CF: {2}, Tonnage: {3})</value></data>
+  <data name="Command_DisplaceUnit" xml:space="preserve"><value>{0} displaced from {1} to {2}</value></data>
+  <data name="Terrain_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Terrain_LightWoods" xml:space="preserve"><value>Light Woods</value></data>
+  <data name="Terrain_HeavyWoods" xml:space="preserve"><value>Heavy Woods</value></data>
+  <data name="Terrain_Rough" xml:space="preserve"><value>Rough</value></data>
+  <data name="Terrain_Water" xml:space="preserve"><value>Water</value></data>
+  <data name="Terrain_Road" xml:space="preserve"><value>Road</value></data>
+  <data name="Terrain_Pavement" xml:space="preserve"><value>Pavement</value></data>
+  <data name="Terrain_Bridge" xml:space="preserve"><value>Bridge</value></data>
+  <data name="Terrain_Rubble" xml:space="preserve"><value>Rubble</value></data>
+  <data name="Direction_Forward" xml:space="preserve"><value>forward</value></data>
+  <data name="Direction_Backward" xml:space="preserve"><value>backward</value></data>
+  <data name="MovementCost_Terrain" xml:space="preserve"><value>{0}, {1} MP</value></data>
+  <data name="MovementCost_Terrain_Water" xml:space="preserve"><value>{0} (depth {1}), {2} MP</value></data>
+  <data name="MovementCost_Rotation" xml:space="preserve"><value>rotated {0} side(s), {1} MP</value></data>
+  <data name="MovementCost_ElevationChange" xml:space="preserve"><value>elevation change ({0:+#;-#;0}), {1} MP</value></data>
+  <data name="MovementCost_Jump" xml:space="preserve"><value>jump, {0} MP</value></data>
+  <data name="MovementCost_StandUpAttempt" xml:space="preserve"><value>stand up attempt, {0} MP</value></data>
+  <data name="MovementCost_HexEnter" xml:space="preserve"><value>entered hex, {0} MP</value></data>
+  <data name="Command_MechSkid_Base" xml:space="preserve"><value>{0} skidded {1} hexes (skid damage)</value></data>
+  <data name="Command_MechFalling_PsrIntro" xml:space="preserve"><value>{0} may fall</value></data>
+  <data name="Command_MechFalling_Base" xml:space="preserve"><value>{0} fell</value></data>
+  <data name="Command_MechFalling_Levels" xml:space="preserve"><value> {0} level(s)</value></data>
+  <data name="Command_MechFalling_Jumping" xml:space="preserve"><value> while jumping</value></data>
+  <data name="Command_MechFalling_Damage" xml:space="preserve"><value> and took {0} damage</value></data>
+  <data name="Command_MechFalling_PilotInjury" xml:space="preserve"><value>Pilot was injured</value></data>
+  <data name="Command_PilotingSkillRoll_Success" xml:space="preserve"><value>{0} roll succeeded</value></data>
+  <data name="Command_PilotingSkillRoll_Failure" xml:space="preserve"><value>{0} roll failed</value></data>
+  <data name="Command_PilotingSkillRoll_ImpossibleRoll" xml:space="preserve"><value>{0} roll is impossible</value></data>
+  <data name="Command_PilotingSkillRoll_BasePilotingSkill" xml:space="preserve"><value>Base Piloting Skill: {0}</value></data>
+  <data name="Command_PilotingSkillRoll_Modifiers" xml:space="preserve"><value>Modifiers:</value></data>
+  <data name="Command_PilotingSkillRoll_TotalTargetNumber" xml:space="preserve"><value>Total Target Number: {0}</value></data>
+  <data name="Command_RollResult" xml:space="preserve"><value>Roll Result: {0}</value></data>
+  <data name="Command_GameEnded_Unknown" xml:space="preserve"><value>Game aborted</value></data>
+  <data name="Command_GameEnded_Victory" xml:space="preserve"><value>Game ended: Victory</value></data>
+  <data name="Command_GameEnded_PlayersLeft" xml:space="preserve"><value>Players left. Game ended</value></data>
+  <data name="Command_GameEnded_HostDisconnected" xml:space="preserve"><value>Host disconnected. Game ended</value></data>
+  <data name="Command_Error_DuplicateCommand" xml:space="preserve"><value>Duplicate command detected</value></data>
+  <data name="Command_Error_ValidationFailed" xml:space="preserve"><value>Validation failed</value></data>
+  <data name="Command_Error_InvalidGameState" xml:space="preserve"><value>Invalid game state</value></data>
+  <data name="Command_Error_UnknownError" xml:space="preserve"><value>Unknown error</value></data>
+  <data name="PilotingSkillRollType_GyroHit" xml:space="preserve"><value>Gyro Hit</value></data>
+  <data name="PilotingSkillRollType_GyroDestroyed" xml:space="preserve"><value>Gyro Destroyed</value></data>
+  <data name="PilotingSkillRollType_PilotDamageFromFall" xml:space="preserve"><value>Pilot Damage From Fall</value></data>
+  <data name="PilotingSkillRollType_LowerLegActuatorHit" xml:space="preserve"><value>Lower Leg Actuator Hit</value></data>
+  <data name="PilotingSkillRollType_UpperLegActuatorHit" xml:space="preserve"><value>Upper Leg Actuator Hit</value></data>
+  <data name="PilotingSkillRollType_HeavyDamage" xml:space="preserve"><value>Heavy Damage</value></data>
+  <data name="PilotingSkillRollType_HipActuatorHit" xml:space="preserve"><value>Hip Actuator Hit</value></data>
+  <data name="PilotingSkillRollType_FootActuatorHit" xml:space="preserve"><value>Foot Actuator Hit</value></data>
+  <data name="PilotingSkillRollType_LegDestroyed" xml:space="preserve"><value>Leg Destroyed</value></data>
+  <data name="PilotingSkillRollType_StandupAttempt" xml:space="preserve"><value>Standup Attempt</value></data>
+  <data name="PilotingSkillRollType_JumpWithDamage" xml:space="preserve"><value>Jump with damage</value></data>
+  <data name="PilotingSkillRollType_WaterEntry" xml:space="preserve"><value>Water Entry</value></data>
+  <data name="PilotingSkillRollType_SkidCheck" xml:space="preserve"><value>Skid Check</value></data>
+  <data name="PilotingSkillRollType_RubbleEntry" xml:space="preserve"><value>Rubble Entry</value></data>
+  <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
+  <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
+  <data name="PilotingSkillRollType_CliffFall" xml:space="preserve"><value>Cliff Fall</value></data>
+  <data name="PilotingSkillRollType_CliffFall_WithLevels" xml:space="preserve"><value>{0} ({1} levels)</value></data>
+  <data name="PilotingSkillRollType_SkidCheck_CliffFall" xml:space="preserve"><value> + cliff fall ({0} levels)</value></data>
+  <data name="PilotingSkillRollType_WaterEntry_WithDepth" xml:space="preserve"><value>{0} (Depth {1})</value></data>
+  <data name="PilotingSkillRollType_BridgeCollapse_WithHeight" xml:space="preserve"><value>{0} (Height: {1})</value></data>
+  <data name="PilotingSkillRollType_PilotDamageFromFall_WithLevels" xml:space="preserve"><value>{0} ({1} levels)</value></data>
+  <data name="AttackDirection_Left" xml:space="preserve"><value>Left</value></data>
+  <data name="AttackDirection_Right" xml:space="preserve"><value>Right</value></data>
+  <data name="AttackDirection_Front" xml:space="preserve"><value>Front</value></data>
+  <data name="AttackDirection_Rear" xml:space="preserve"><value>Rear</value></data>
+  <data name="Modifier_GunnerySkill" xml:space="preserve"><value>Gunnery Skill: +{0}</value></data>
+  <data name="Modifier_AttackerMovement" xml:space="preserve"><value>Attacker Movement ({0}): +{1}</value></data>
+  <data name="Modifier_TargetMovement" xml:space="preserve"><value>Target Movement ({0} hexes): +{1}</value></data>
+  <data name="Modifier_Range" xml:space="preserve"><value>{0} at {1} hexes ({2} range): +{3}</value></data>
+  <data name="Modifier_Heat" xml:space="preserve"><value>Heat ({0}) Attack Modifier: +{1}</value></data>
+  <data name="Modifier_Terrain" xml:space="preserve"><value>{0} at {1}: +{2}</value></data>
+  <data name="Modifier_DamagedGyro" xml:space="preserve"><value>Damaged Gyro ({0} {1}): +{2}</value></data>
+  <data name="Modifier_HeavyDamage" xml:space="preserve"><value>Heavy Damage ({0} points): +{1}</value></data>
+  <data name="Modifier_FallingLevels" xml:space="preserve"><value>Falling ({0} {1}): +{2}</value></data>
+  <data name="Modifier_LowerLegActuatorHit" xml:space="preserve"><value>Lower Leg Actuator Hit: +{0}</value></data>
+  <data name="Modifier_HipActuatorHit" xml:space="preserve"><value>Hip Actuator Hit: +{0}</value></data>
+  <data name="Modifier_FootActuatorHit" xml:space="preserve"><value>Foot Actuator Hit: +{0}</value></data>
+  <data name="Modifier_UpperLegActuatorHit" xml:space="preserve"><value>Upper Leg Actuator Hit: +{0}</value></data>
+  <data name="Modifier_LegDestroyed" xml:space="preserve"><value>Leg Destroyed: +{0}</value></data>
+  <data name="Modifier_SensorHit" xml:space="preserve"><value>Sensor Hit: +{0}</value></data>
+  <data name="Modifier_AimedShotHead" xml:space="preserve"><value>Aimed Shot ({0}): +{1}</value></data>
+  <data name="Modifier_AimedShotBodyPart" xml:space="preserve"><value>Aimed Shot ({0}): {1}</value></data>
+  <data name="Modifier_ShoulderActuatorHit" xml:space="preserve"><value>{0} Shoulder Destroyed: +{1}</value></data>
+  <data name="Modifier_UpperArmActuatorHit" xml:space="preserve"><value>{0} Upper Arm Actuator Destroyed: +{1}</value></data>
+  <data name="Modifier_LowerArmActuatorHit" xml:space="preserve"><value>{0} Lower Arm Actuator Destroyed: +{1}</value></data>
+  <data name="Modifier_SkiddingTarget" xml:space="preserve"><value>Skidding Target: +{0}</value></data>
+  <data name="Modifier_SkiddingAttacker" xml:space="preserve"><value>Skidding Attacker: +{0}</value></data>
+  <data name="Modifier_ProneFiring" xml:space="preserve"><value>Prone Firing: +{0}</value></data>
+  <data name="Modifier_PartialCover" xml:space="preserve"><value>Partial Cover: +{0}</value></data>
+  <data name="Modifier_WaterDepth" xml:space="preserve"><value>Water Depth ({0}): {1}</value></data>
+  <data name="Modifier_SkidDistance" xml:space="preserve"><value>Skid ({0} hexes moved): {1}</value></data>
+  <data name="WeaponRestriction_NotAvailable" xml:space="preserve"><value>Weapon not available</value></data>
+  <data name="WeaponRestriction_PartialCoverLegs" xml:space="preserve"><value>Cannot fire leg weapons while in partial cover</value></data>
+  <data name="WeaponRestriction_ProneLegs" xml:space="preserve"><value>Cannot fire leg weapons while prone</value></data>
+  <data name="WeaponRestriction_ProneOtherArm" xml:space="preserve"><value>Only one arm can fire while prone</value></data>
+  <data name="Hits" xml:space="preserve"><value>Hits</value></data>
+  <data name="Levels" xml:space="preserve"><value>Levels</value></data>
+  <data name="Attack_NoLineOfSight" xml:space="preserve"><value>No LOS</value></data>
+  <data name="Attack_TargetNumber" xml:space="preserve"><value>Target ToHit Number</value></data>
+  <data name="Attack_OutOfRange" xml:space="preserve"><value>Target out of range</value></data>
+  <data name="Attack_NoModifiersCalculated" xml:space="preserve"><value>Attack modifiers not calculated</value></data>
+  <data name="Attack_Targeting" xml:space="preserve"><value>Already targeting {0}</value></data>
+  <data name="Attack_NoAmmo" xml:space="preserve"><value>No ammunition</value></data>
+  <data name="Attack_WeaponDestroyed" xml:space="preserve"><value>Weapon is destroyed</value></data>
+  <data name="Attack_LocationDestroyed" xml:space="preserve"><value>Location is destroyed</value></data>
+  <data name="Attack_OutsideFiringArc" xml:space="preserve"><value>Outside firing arc</value></data>
+  <data name="Attack_ImpossibleToHit" xml:space="preserve"><value>Impossible to hit</value></data>
+  <data name="Attack_SecondaryTargetFrontArc" xml:space="preserve"><value>Secondary target (front arc): +{0}</value></data>
+  <data name="Attack_SecondaryTargetOtherArc" xml:space="preserve"><value>Secondary target (other arc): +{0}</value></data>
+  <data name="Action_SelectUnitToDeploy" xml:space="preserve"><value>Select Unit</value></data>
+  <data name="Action_SelectDeploymentHex" xml:space="preserve"><value>Select Hex</value></data>
+  <data name="Action_SelectUnitToFire" xml:space="preserve"><value>Select unit to fire weapons</value></data>
+  <data name="Action_SelectAction" xml:space="preserve"><value>Select action</value></data>
+  <data name="Action_ConfigureWeapons" xml:space="preserve"><value>Configure weapons</value></data>
+  <data name="Action_SelectTarget" xml:space="preserve"><value>Select Target</value></data>
+  <data name="Action_TurnTorso" xml:space="preserve"><value>Turn Torso</value></data>
+  <data name="Action_SkipAttack" xml:space="preserve"><value>Skip Attack</value></data>
+  <data name="Action_DeclareAttack" xml:space="preserve"><value>Declare Attack</value></data>
+  <data name="Action_SelectUnitToMove" xml:space="preserve"><value>Select unit to move</value></data>
+  <data name="Action_SelectMovementType" xml:space="preserve"><value>Select movement type</value></data>
+  <data name="Action_SelectTargetHex" xml:space="preserve"><value>Select target hex</value></data>
+  <data name="Action_SelectFacingDirection" xml:space="preserve"><value>Select facing direction</value></data>
+  <data name="Action_SelectSurface" xml:space="preserve"><value>Select surface</value></data>
+  <data name="Surface_Bridge" xml:space="preserve"><value>On the bridge</value></data>
+  <data name="Surface_Ground" xml:space="preserve"><value>Ground</value></data>
+  <data name="Surface_Option_WithCost" xml:space="preserve"><value>{0} — {1} MP</value></data>
+  <data name="BattleMap_SelectSurface_Title" xml:space="preserve"><value>Select destination surface</value></data>
+  <data name="Action_MoveUnit" xml:space="preserve"><value>Move Unit</value></data>
+  <data name="Action_ConfirmMovement" xml:space="preserve"><value>Confirm movement</value></data>
+  <data name="Action_ConfirmOrSelectNextHex" xml:space="preserve"><value>Confirm or select next hex</value></data>
+  <data name="Action_StandStill" xml:space="preserve"><value>Stand Still</value></data>
+  <data name="Action_StayProne" xml:space="preserve"><value>Stay Prone</value></data>
+  <data name="Action_AttemptStandup" xml:space="preserve"><value>Attempt Standup</value></data>
+  <data name="Action_ChangeFacing" xml:space="preserve"><value>Change Facing | MP: {0}</value></data>
+  <data name="Action_MovementPoints" xml:space="preserve"><value>{0} | MP: {1}</value></data>
+  <data name="MovementType_Walk" xml:space="preserve"><value>Walk</value></data>
+  <data name="MovementType_Run" xml:space="preserve"><value>Run</value></data>
+  <data name="MovementType_Jump" xml:space="preserve"><value>Jump</value></data>
+  <data name="HexHighlight_LosBlocked_Elevation" xml:space="preserve"><value>Elevation at {0}</value></data>
+  <data name="HexHighlight_LosBlocked_InterveningTerrain" xml:space="preserve"><value>Terrain at {0}</value></data>
+  <data name="HexHighlight_LosBlocked_InvalidCoordinates" xml:space="preserve"><value>Invalid coordinates</value></data>
+  <data name="HexHighlight_LosBlocked_WaterSubmersion" xml:space="preserve"><value>Water submersion</value></data>
+  <data name="Command_HeatUpdated_Header" xml:space="preserve"><value>Heat update for {0} (Previous: {1})</value></data>
+  <data name="Command_HeatUpdated_Sources" xml:space="preserve"><value>Heat sources:</value></data>
+  <data name="Command_HeatUpdated_MovementHeat" xml:space="preserve"><value>+ {0} movement ({1} MP): {2} heat</value></data>
+  <data name="Command_HeatUpdated_WeaponHeat" xml:space="preserve"><value>+ Firing {0}: {1} heat</value></data>
+  <data name="Command_HeatUpdated_ExternalHeat" xml:space="preserve"><value>+ External heat from {0}: {1} heat</value></data>
+  <data name="Command_HeatUpdated_ExternalHeat_Lost" xml:space="preserve"><value>- Wasted {0} points of external heat</value></data>
+  <data name="Command_HeatUpdated_TotalGenerated" xml:space="preserve"><value>Total heat generated: {0}</value></data>
+  <data name="Command_HeatUpdated_Dissipation" xml:space="preserve"><value>- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat</value></data>
+  <data name="Command_HeatUpdated_WaterDissipation" xml:space="preserve"><value>- Water cooling bonus: -{0} heat</value></data>
+  <data name="Command_PilotConsciousnessRoll_Consciousness" xml:space="preserve"><value>consciousness</value></data>
+  <data name="Command_PilotConsciousnessRoll_Recovery" xml:space="preserve"><value>consciousness recovery</value></data>
+  <data name="Command_PilotConsciousnessRoll_Success" xml:space="preserve"><value>{0} {1} roll succeeded</value></data>
+  <data name="Command_PilotConsciousnessRoll_Failure" xml:space="preserve"><value>{0} {1} roll failed</value></data>
+  <data name="Command_PilotConsciousnessRoll_ConsciousnessNumber" xml:space="preserve"><value>Consciousness Number: {0}</value></data>
+  <data name="StartPhase_ActionLabel" xml:space="preserve"><value>Ready to play</value></data>
+  <data name="StartPhase_PlayerActionLabel" xml:space="preserve"><value>Ready</value></data>
+  <data name="EndPhase_ActionLabel" xml:space="preserve"><value>End your turn</value></data>
+  <data name="EndPhase_PlayerActionLabel" xml:space="preserve"><value>End Turn</value></data>
+  <data name="EndPhase_EndGameLabel" xml:space="preserve"><value>End Game</value></data>
+  <data name="Action_Shutdown" xml:space="preserve"><value>Shutdown</value></data>
+  <data name="Action_Startup" xml:space="preserve"><value>Startup</value></data>
+  <data name="MechPart_LeftArm" xml:space="preserve"><value>Left Arm</value></data>
+  <data name="MechPart_RightArm" xml:space="preserve"><value>Right Arm</value></data>
+  <data name="MechPart_LeftTorso" xml:space="preserve"><value>Left Torso</value></data>
+  <data name="MechPart_RightTorso" xml:space="preserve"><value>Right Torso</value></data>
+  <data name="MechPart_CenterTorso" xml:space="preserve"><value>Center Torso</value></data>
+  <data name="MechPart_Head" xml:space="preserve"><value>Head</value></data>
+  <data name="MechPart_LeftLeg" xml:space="preserve"><value>Left Leg</value></data>
+  <data name="MechPart_RightLeg" xml:space="preserve"><value>Right Leg</value></data>
+  <data name="MechPart_LeftArm_Short" xml:space="preserve"><value>LA</value></data>
+  <data name="MechPart_RightArm_Short" xml:space="preserve"><value>RA</value></data>
+  <data name="MechPart_LeftTorso_Short" xml:space="preserve"><value>LT</value></data>
+  <data name="MechPart_RightTorso_Short" xml:space="preserve"><value>RT</value></data>
+  <data name="MechPart_CenterTorso_Short" xml:space="preserve"><value>CT</value></data>
+  <data name="MechPart_Head_Short" xml:space="preserve"><value>H</value></data>
+  <data name="MechPart_LeftLeg_Short" xml:space="preserve"><value>LL</value></data>
+  <data name="MechPart_RightLeg_Short" xml:space="preserve"><value>RL</value></data>
+  <data name="SegmentEvent_Fall" xml:space="preserve"><value>Fall</value></data>
+  <data name="SegmentEvent_StandupAttempt" xml:space="preserve"><value>Standup</value></data>
+  <data name="SegmentEvent_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
+  <data name="Events_Unit_ArmorDamage" xml:space="preserve"><value>Damage at {0}|-{1}</value></data>
+  <data name="Events_Unit_StructureDamage" xml:space="preserve"><value>Damage at {0}|-{1}</value></data>
+  <data name="Events_Unit_Explosion" xml:space="preserve"><value>{0} exploded</value></data>
+  <data name="Events_Unit_CriticalHit" xml:space="preserve"><value>Critical Hit at {0}</value></data>
+  <data name="Events_Unit_ComponentDestroyed" xml:space="preserve"><value>{0} destroyed</value></data>
+  <data name="Events_Unit_LocationDestroyed" xml:space="preserve"><value>{0} destroyed</value></data>
+  <data name="Events_Unit_UnitDestroyed" xml:space="preserve"><value>{0} has been destroyed!</value></data>
+  <data name="Events_Unit_PilotDamage" xml:space="preserve"><value>{0} took damage | -{1}</value></data>
+  <data name="Events_Unit_PilotDead" xml:space="preserve"><value>{0} was killed</value></data>
+  <data name="Events_Unit_PilotUnconscious" xml:space="preserve"><value>{0} fell unconscious</value></data>
+  <data name="Events_Unit_PilotRecovered" xml:space="preserve"><value>{0} regained consciousness</value></data>
+  <data name="Penalty_FootActuatorMovement" xml:space="preserve"><value>{0} destroyed foot actuator(s) | -{1} MP</value></data>
+  <data name="Penalty_HeatMovement" xml:space="preserve"><value>Heat ({0}) MP Penalty | -{1} MP</value></data>
+  <data name="Penalty_EngineHeat" xml:space="preserve"><value>Engine Heat Penalty ({0} hits): +{1} heat/turn</value></data>
+  <data name="Penalty_LowerLegActuatorMovement" xml:space="preserve"><value>{0} destroyed lower leg actuator(s) | -{1} MP</value></data>
+  <data name="Penalty_UpperLegActuatorMovement" xml:space="preserve"><value>{0} destroyed upper leg actuator(s) | -{1} MP</value></data>
+  <data name="Penalty_LegDestroyed_Single" xml:space="preserve"><value>Leg destroyed | -{0} MP</value></data>
+  <data name="Penalty_LegDestroyed_Both" xml:space="preserve"><value>Both legs destroyed | No movement</value></data>
+  <data name="Penalty_HipDestroyed_Single" xml:space="preserve"><value>Hip destroyed | -{0} MP</value></data>
+  <data name="Penalty_HipDestroyed_Both" xml:space="preserve"><value>Both hips destroyed | No movement</value></data>
+  <data name="Command_MechRestart_Automatic" xml:space="preserve"><value>{0} automatically restarted (heat level {1})</value></data>
+  <data name="Command_MechRestart_Successful" xml:space="preserve"><value>{0} successfully restarted (heat level {1})</value></data>
+  <data name="Command_MechRestart_Failed" xml:space="preserve"><value>{0} failed to restart (heat level {1})</value></data>
+  <data name="Command_MechRestart_Impossible" xml:space="preserve"><value>{0} cannot restart (heat level {1})</value></data>
+  <data name="Command_MechRestart_Generic" xml:space="preserve"><value>{0} restart attempt</value></data>
+  <data name="Command_AvoidNumber" xml:space="preserve"><value>Avoid Number: {0}</value></data>
+  <data name="Command_MechShutdown_Avoided" xml:space="preserve"><value>{0} avoided shutdown (heat level {1})</value></data>
+  <data name="Command_MechShutdown_AutomaticHeat" xml:space="preserve"><value>{0} automatically shut down due to excessive heat (level {1})</value></data>
+  <data name="Command_MechShutdown_UnconsciousPilot" xml:space="preserve"><value>{0} shut down due to unconscious pilot (heat level {1})</value></data>
+  <data name="Command_MechShutdown_FailedRoll" xml:space="preserve"><value>{0} shut down due to heat (level {1})</value></data>
+  <data name="Command_MechShutdown_Voluntary" xml:space="preserve"><value>{0} voluntarily shut down</value></data>
+  <data name="Command_MechShutdown_Generic" xml:space="preserve"><value>{0} shut down</value></data>
+  <data name="Pilot_Status_Unknown" xml:space="preserve"><value>UNKNOWN</value></data>
+  <data name="Pilot_Status_Conscious" xml:space="preserve"><value>CONSCIOUS</value></data>
+  <data name="Pilot_Status_Unconscious" xml:space="preserve"><value>UNCONSCIOUS</value></data>
+  <data name="Command_AmmoExplosion_Avoided" xml:space="preserve"><value>{0} avoided ammo explosion due to heat</value></data>
+  <data name="Command_AmmoExplosion_Failed" xml:space="preserve"><value>{0} suffered ammo explosion due to heat</value></data>
+  <data name="Command_AmmoExplosion_RollDetails" xml:space="preserve"><value>Heat level: {0}, Roll: {1} vs {2}</value></data>
+  <data name="Command_AmmoExplosion_CriticalHits" xml:space="preserve"><value>Explosion caused critical hits:</value></data>
+  <data name="MainMenu_Loading_Content" xml:space="preserve"><value>Loading content...</value></data>
+  <data name="MainMenu_Loading_Units" xml:space="preserve"><value>Loading units...</value></data>
+  <data name="MainMenu_Loading_Biomes" xml:space="preserve"><value>Loading biomes...</value></data>
+  <data name="MainMenu_Loading_UnitsProgress" xml:space="preserve"><value>Loading units {0}/{1}</value></data>
+  <data name="MainMenu_Loading_BiomesProgress" xml:space="preserve"><value>Loading biomes {0}/{1}</value></data>
+  <data name="MainMenu_Loading_NoUnitsFound" xml:space="preserve"><value>No units found</value></data>
+  <data name="MainMenu_Loading_NoBiomesFound" xml:space="preserve"><value>No biomes found</value></data>
+  <data name="MainMenu_Loading_UnitsLoaded" xml:space="preserve"><value>Loaded {0} units</value></data>
+  <data name="MainMenu_Loading_BiomesLoaded" xml:space="preserve"><value>Loaded {0} biomes</value></data>
+  <data name="MainMenu_Loading_UnitsError" xml:space="preserve"><value>Error loading units: {0}</value></data>
+  <data name="MainMenu_Loading_BiomesError" xml:space="preserve"><value>Error loading biomes: {0}</value></data>
+  <data name="MainMenu_Loading_NoItemsFound" xml:space="preserve"><value>No items found</value></data>
+  <data name="MainMenu_Loading_ItemsLoaded" xml:space="preserve"><value>Loaded {0} items</value></data>
+  <data name="MainMenu_Loading_Error" xml:space="preserve"><value>Error loading content: {0}</value></data>
+  <data name="HeatProjection_ProjectionText" xml:space="preserve"><value>Heat: {0} → {1}</value></data>
+  <data name="HeatProjection_CurrentHeatText" xml:space="preserve"><value>Heat: {0}</value></data>
+  <data name="HeatProjection_DissipationText" xml:space="preserve"><value>Dissipation: {0}</value></data>
+  <data name="HeatProjection_DissipationWithWaterText" xml:space="preserve"><value>Dissipation: {0} (+{1} water)</value></data>
+  <data name="EndGame_Victory_Title" xml:space="preserve"><value>Victory!</value></data>
+  <data name="EndGame_Title" xml:space="preserve"><value>Game Over</value></data>
+  <data name="EndGame_Victory_Subtitle" xml:space="preserve"><value>{0} is victorious!</value></data>
+  <data name="EndGame_Draw_Subtitle" xml:space="preserve"><value>The battle ended in a draw</value></data>
+  <data name="EndGame_PlayersLeft_Subtitle" xml:space="preserve"><value>All players have left the game</value></data>
+  <data name="EndGame_HostDisconnected_Subtitle" xml:space="preserve"><value>The host disconnected from the game</value></data>
+  <data name="EndGame_ReturnToMenu" xml:space="preserve"><value>Return to Menu</value></data>
+  <data name="EndGame_Victor_Badge" xml:space="preserve"><value>VICTOR</value></data>
+  <data name="About_GameDescription" xml:space="preserve"><value>MakaMek is an open-source tactical combat game that follows Classic BattleTech rules. The game is inspired by another computer implementation of BattleTech called MegaMek but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.</value></data>
+  <data name="About_MegaMekAttribution" xml:space="preserve"><value>Some art and assets used in this project—specifically unit and terrain images—are taken from the MegaMek Data Repository. These materials are used as-is without any modifications and are distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.</value></data>
+  <data name="About_ContactStatement" xml:space="preserve"><value>If there are any problems using any in-game material, or you have any questions, please feel free to contact me.</value></data>
+  <data name="About_FreeAndOpenSourceStatement" xml:space="preserve"><value>This game is free, open source, not affiliated with any copyright or trademark holders and distributed under the GPLv3 license.</value></data>
+  <data name="About_TrademarkNotice1" xml:space="preserve"><value>MechWarrior and BattleMech are registered trademarks of The Topps Company, Inc.</value></data>
+  <data name="About_TrademarkNotice2" xml:space="preserve"><value>Microsoft holds the license for MechWarrior computer games. This game is NOT affiliated with Microsoft.</value></data>
+  <data name="About_GameContentRulesNotice" xml:space="preserve"><value>This game follows Microsoft's "Game Content Usage Rules".</value></data>
+  <data name="Dialog_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Dialog_No" xml:space="preserve"><value>No</value></data>
+  <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Dialog_LeaveGame_Title" xml:space="preserve"><value>Leave Game</value></data>
+  <data name="Dialog_LeaveGame_Message" xml:space="preserve"><value>WARNING: This action ends the game for all players</value></data>
+  <data name="Dialog_HostDisconnected_Title" xml:space="preserve"><value>Host Disconnected</value></data>
+  <data name="Dialog_HostDisconnected_Message" xml:space="preserve"><value>The host disconnected from the game and the game was interrupted.</value></data>
+  <data name="Dialog_GameInterrupted_Title" xml:space="preserve"><value>Game Interrupted</value></data>
+  <data name="Dialog_GameInterrupted_Message" xml:space="preserve"><value>The game was interrupted and can no longer continue.</value></data>
+  <data name="ConnectFragment_ServerAddress" xml:space="preserve"><value>Server Address:</value></data>
+  <data name="ConnectFragment_EnterServerIP" xml:space="preserve"><value>Enter Server IP</value></data>
+  <data name="ConnectFragment_Connect" xml:space="preserve"><value>Connect</value></data>
+  <data name="ConnectFragment_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="BattleMap_Turn" xml:space="preserve"><value>TURN</value></data>
+  <data name="BattleMap_Phase" xml:space="preserve"><value>PHASE</value></data>
+  <data name="BattleMap_ActivePlayer" xml:space="preserve"><value>ACTIVE PLAYER</value></data>
+  <data name="BattleMap_SelectUnitToDeploy" xml:space="preserve"><value>Select a Unit to deploy</value></data>
+  <data name="BattleMap_SelectTargetLocation" xml:space="preserve"><value>Select Target Location</value></data>
+  <data name="BattleMap_ResetMap" xml:space="preserve"><value>Reset Map</value></data>
+  <data name="BattleMap_UnitInfo" xml:space="preserve"><value>Unit Info</value></data>
+  <data name="BattleMap_Commands" xml:space="preserve"><value>Commands</value></data>
+  <data name="BattleMap_MapSettings" xml:space="preserve"><value>Map Settings</value></data>
+  <data name="BattleMap_CommandLog" xml:space="preserve"><value>Command Log</value></data>
+  <data name="BattleMap_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="BattleMap_ShowLabels" xml:space="preserve"><value>Show Labels</value></data>
+  <data name="BattleMap_ShowHexOutlines" xml:space="preserve"><value>Show Hex Outlines</value></data>
+  <data name="BattleMap_ShowHexHighlightText" xml:space="preserve"><value>Show Hex Highlight Text</value></data>
+  <data name="BattleMap_ExportPdf" xml:space="preserve"><value>Export Map as PDF</value></data>
+  <data name="BattleMap_ExportPdfDialogTitle" xml:space="preserve"><value>Export Map as PDF</value></data>
+  <data name="BattleMap_CommandRejected" xml:space="preserve"><value>Action rejected: {0}</value></data>
+  <data name="BattleMap_CommandTimedOut" xml:space="preserve"><value>No response from the server</value></data>
+  <data name="UnitBasicInfo_TurnIndicator" xml:space="preserve"><value>T</value></data>
+  <data name="UnitComponents_Component" xml:space="preserve"><value>Component</value></data>
+  <data name="UnitComponents_Slots" xml:space="preserve"><value>Slots</value></data>
+  <data name="UnitComponents_Hits" xml:space="preserve"><value>Hits</value></data>
+  <data name="UnitComponents_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="UnitMovement_WalkMP" xml:space="preserve"><value>Walk MP</value></data>
+  <data name="UnitMovement_RunMP" xml:space="preserve"><value>Run MP</value></data>
+  <data name="UnitMovement_JumpMP" xml:space="preserve"><value>Jump MP</value></data>
+  <data name="UnitMovement_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="UnitMovement_Points" xml:space="preserve"><value>Points</value></data>
+  <data name="UnitMovement_Traversed" xml:space="preserve"><value>Traversed</value></data>
+  <data name="UnitPilot_PilotInformation" xml:space="preserve"><value>Pilot Information</value></data>
+  <data name="UnitPilot_Name" xml:space="preserve"><value>Name:</value></data>
+  <data name="UnitPilot_Skills" xml:space="preserve"><value>Skills</value></data>
+  <data name="UnitPilot_Gunnery" xml:space="preserve"><value>Gunnery:</value></data>
+  <data name="UnitPilot_Piloting" xml:space="preserve"><value>Piloting:</value></data>
+  <data name="UnitPilot_SkillsHint" xml:space="preserve"><value>Lower is better (0 = Elite, 7 = Green)</value></data>
+  <data name="UnitPilot_HealthStatus" xml:space="preserve"><value>Health Status</value></data>
+  <data name="UnitPilot_Injuries" xml:space="preserve"><value>Injuries: {0}/{1}</value></data>
+  <data name="UnitPilot_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="UnitPilot_Dead" xml:space="preserve"><value>DEAD</value></data>
+  <data name="UnitWeapons_Weapon" xml:space="preserve"><value>Weapon</value></data>
+  <data name="UnitWeapons_Damage" xml:space="preserve"><value>DMG</value></data>
+  <data name="UnitWeapons_Heat" xml:space="preserve"><value>HT</value></data>
+  <data name="UnitWeapons_Range" xml:space="preserve"><value>Range</value></data>
+  <data name="WeaponSelection_SelectWeapons" xml:space="preserve"><value>Select weapons to attack</value></data>
+  <data name="WeaponSelection_Primary" xml:space="preserve"><value>PRIMARY</value></data>
+  <data name="WeaponSelection_SetPrimary" xml:space="preserve"><value>Set Primary</value></data>
+  <data name="WeaponSelection_AimedShot" xml:space="preserve"><value>Aimed Shot</value></data>
+  <data name="UnitItem_RemoveUnit" xml:space="preserve"><value>Remove unit</value></data>
+  <data name="UnitItem_Info" xml:space="preserve"><value>Unit Info</value></data>
+  <data name="UnitItem_EditName" xml:space="preserve"><value>Edit unit name</value></data>
+  <data name="UnitItem_SaveName" xml:space="preserve"><value>Save name</value></data>
+  <data name="UnitItem_NoPilot" xml:space="preserve"><value>No Pilot</value></data>
+  <data name="UnitPilot_FirstName" xml:space="preserve"><value>First Name:</value></data>
+  <data name="UnitPilot_LastName" xml:space="preserve"><value>Last Name:</value></data>
+  <data name="UnitInfo_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="UnitInfo_EditName" xml:space="preserve"><value>Edit Name</value></data>
+  <data name="Initiative_WaitingLabel" xml:space="preserve"><value>Waiting for initiative rolls</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="AvailableUnits_UnitInfo" xml:space="preserve"><value>Unit Info</value></data>
+  <data name="AboutView_Title" xml:space="preserve"><value>About MakaMek</value></data>
+  <data name="AboutView_AboutTheGame" xml:space="preserve"><value>About the Game</value></data>
+  <data name="AboutView_VisitGitHub" xml:space="preserve"><value>Visit GitHub Repository</value></data>
+  <data name="AboutView_AssetAttribution" xml:space="preserve"><value>Assets Attribution</value></data>
+  <data name="AboutView_VisitMegaMek" xml:space="preserve"><value>Visit MegaMek Website</value></data>
+  <data name="AboutView_Contact" xml:space="preserve"><value>Contact</value></data>
+  <data name="AboutView_SendEmail" xml:space="preserve"><value>Send Email</value></data>
+  <data name="AboutView_License" xml:space="preserve"><value>License</value></data>
+  <data name="AboutView_TrademarkNotices" xml:space="preserve"><value>Trademark Notices</value></data>
+  <data name="AboutView_ViewContentRules" xml:space="preserve"><value>View Game Content Usage Rules</value></data>
+  <data name="AboutView_SourceCode" xml:space="preserve"><value>Source Code</value></data>
+  <data name="SettingsView_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_Data_SectionTitle" xml:space="preserve"><value>Data</value></data>
+  <data name="Settings_Data_ClearCache" xml:space="preserve"><value>Clear Cache</value></data>
+  <data name="Settings_Data_Clearing" xml:space="preserve"><value>Clearing cache...</value></data>
+  <data name="Settings_Data_Cleared" xml:space="preserve"><value>Cache cleared successfully</value></data>
+  <data name="Settings_Data_Reloaded" xml:space="preserve"><value>Assets reloaded</value></data>
+  <data name="Settings_Data_Providers_SectionTitle" xml:space="preserve"><value>Asset Providers</value></data>
+  <data name="Settings_Data_Providers_Add" xml:space="preserve"><value>Add Provider</value></data>
+  <data name="Settings_Data_Providers_AddDialogTitle" xml:space="preserve"><value>Add Provider</value></data>
+  <data name="Settings_Data_Providers_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Settings_Data_Providers_AssetType" xml:space="preserve"><value>Asset Type</value></data>
+  <data name="Settings_Data_Providers_UrlOrPath" xml:space="preserve"><value>URL or Path</value></data>
+  <data name="Settings_Data_Providers_UrlOrPathRequired" xml:space="preserve"><value>URL or path is required.</value></data>
+  <data name="Settings_Data_Providers_Count" xml:space="preserve"><value>{0} items</value></data>
+  <data name="Settings_Data_Providers_Reload" xml:space="preserve"><value>Reload Assets</value></data>
+  <data name="Settings_Data_Providers_Activate" xml:space="preserve"><value>Active</value></data>
+  <data name="Settings_Data_Providers_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Settings_Data_Providers_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Settings_Data_Providers_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Settings_Data_Providers_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Settings_Hub_SectionTitle" xml:space="preserve"><value>Relay Hub</value></data>
+  <data name="Settings_Hub_Select" xml:space="preserve"><value>Active hub</value></data>
+  <data name="Settings_Hub_AddHub" xml:space="preserve"><value>Add Hub</value></data>
+  <data name="Settings_Hub_AddDialogTitle" xml:space="preserve"><value>Add Hub</value></data>
+  <data name="Settings_Hub_UrlRequired" xml:space="preserve"><value>Hub URL is required.</value></data>
+  <data name="Settings_Hub_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Settings_Hub_Url" xml:space="preserve"><value>Hub URL</value></data>
+  <data name="Settings_Hub_ApiKey" xml:space="preserve"><value>API Key</value></data>
+  <data name="Settings_Hub_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Settings_Hub_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Settings_Hub_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Settings_Hub_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Settings_Hub_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Hub_Status_Online" xml:space="preserve"><value>Online</value></data>
+  <data name="Hub_Status_Offline" xml:space="preserve"><value>Offline</value></data>
+  <data name="Hub_Status_Checking" xml:space="preserve"><value>Checking...</value></data>
+  <data name="Hub_Status_Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Connection_Status_Connecting" xml:space="preserve"><value>Connecting...</value></data>
+  <data name="Connection_Status_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Connection_Status_NotConnected" xml:space="preserve"><value>Not connected</value></data>
+  <data name="Connection_Status_Reconnecting" xml:space="preserve"><value>Reconnecting...</value></data>
+  <data name="Connection_Status_Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="Connection_Status_Closed" xml:space="preserve"><value>Connection closed</value></data>
+  <data name="AvailableUnits_Title" xml:space="preserve"><value>Available Units</value></data>
+  <data name="AvailableUnits_Class" xml:space="preserve"><value>Class:</value></data>
+  <data name="AvailableUnits_Chassis" xml:space="preserve"><value>Chassis</value></data>
+  <data name="AvailableUnits_Model" xml:space="preserve"><value>Model</value></data>
+  <data name="AvailableUnits_Mass" xml:space="preserve"><value>Mass</value></data>
+  <data name="AvailableUnits_AddUnit" xml:space="preserve"><value>Add Unit</value></data>
+  <data name="JoinGame_Title" xml:space="preserve"><value>Join Game</value></data>
+  <data name="MainMenu_StartNewGame" xml:space="preserve"><value>Start New Game</value></data>
+  <data name="MainMenu_JoinGame" xml:space="preserve"><value>Join Game</value></data>
+  <data name="MainMenu_About" xml:space="preserve"><value>About</value></data>
+  <data name="MainMenu_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="StartNewGame_Title" xml:space="preserve"><value>Start New Game</value></data>
+  <data name="StartNewGame_Players" xml:space="preserve"><value>Players</value></data>
+  <data name="StartNewGame_Map" xml:space="preserve"><value>Map</value></data>
+  <data name="StartNewGame_Network" xml:space="preserve"><value>Network</value></data>
+  <data name="StartNewGame_StartGame" xml:space="preserve"><value>Start Game</value></data>
+  <data name="MapConfig_SelectMap" xml:space="preserve"><value>Select Map</value></data>
+  <data name="MapConfig_LoadMap" xml:space="preserve"><value>Load Map from File</value></data>
+  <data name="MapConfig_GenerateMap" xml:space="preserve"><value>Generate Map</value></data>
+  <data name="MapConfig_MapSize" xml:space="preserve"><value>Map Size</value></data>
+  <data name="MapConfig_TerrainGeneration" xml:space="preserve"><value>Terrain Generation</value></data>
+  <data name="MapConfig_Width" xml:space="preserve"><value>Map Width</value></data>
+  <data name="MapConfig_Height" xml:space="preserve"><value>Map Height</value></data>
+  <data name="MapConfig_ForestCoverage" xml:space="preserve"><value>Forest Coverage</value></data>
+  <data name="MapConfig_LightWoods" xml:space="preserve"><value>Light Woods Percentage</value></data>
+  <data name="MapConfig_HillCoverage" xml:space="preserve"><value>Hill Coverage</value></data>
+  <data name="MapConfig_MaxElevation" xml:space="preserve"><value>Max Elevation</value></data>
+  <data name="MapConfig_Width_Formatted" xml:space="preserve"><value>Width: {0} hexes</value></data>
+  <data name="MapConfig_Height_Formatted" xml:space="preserve"><value>Height: {0} hexes</value></data>
+  <data name="MapConfig_ForestCoverage_Formatted" xml:space="preserve"><value>Forest Coverage: {0}%</value></data>
+  <data name="MapConfig_LightWoods_Formatted" xml:space="preserve"><value>Light Woods: {0}%</value></data>
+  <data name="MapConfig_HillCoverage_Formatted" xml:space="preserve"><value>Hill Coverage: {0}%</value></data>
+  <data name="MapConfig_MaxElevation_Formatted" xml:space="preserve"><value>Max Elevation: {0}</value></data>
+  <data name="MapConfig_RoughTerrain" xml:space="preserve"><value>Rough Terrain Coverage</value></data>
+  <data name="MapConfig_RoughCoverage_Formatted" xml:space="preserve"><value>Rough Coverage: {0}%</value></data>
+  <data name="MapConfig_LakeCoverage" xml:space="preserve"><value>Lake Coverage</value></data>
+  <data name="MapConfig_LakeMaxDepth" xml:space="preserve"><value>Max Lake Depth</value></data>
+  <data name="MapConfig_LakeCoverage_Formatted" xml:space="preserve"><value>Lake Coverage: {0}%</value></data>
+  <data name="MapConfig_LakeMaxDepth_Formatted" xml:space="preserve"><value>Max Lake Depth: {0}</value></data>
+  <data name="MapConfig_RiverCount" xml:space="preserve"><value>River Count</value></data>
+  <data name="MapConfig_RiverCount_Formatted" xml:space="preserve"><value>Rivers: {0}</value></data>
+  <data name="MapConfig_RoadCount" xml:space="preserve"><value>Road Count</value></data>
+  <data name="MapConfig_RoadCount_Formatted" xml:space="preserve"><value>Roads: {0}</value></data>
+  <data name="MapConfig_ExportMap" xml:space="preserve"><value>Export Map</value></data>
+  <data name="EditMap_ExportMapDialogTitle" xml:space="preserve"><value>Export Map File</value></data>
+  <data name="Network_NetworkSettings" xml:space="preserve"><value>Network Settings</value></data>
+  <data name="Network_Multiplayer" xml:space="preserve"><value>Multiplayer</value></data>
+  <data name="Network_ServerAddress" xml:space="preserve"><value>Server Address</value></data>
+  <data name="Network_ShareAddress" xml:space="preserve"><value>Share this address with other players to connect</value></data>
+  <data name="Network_HostMode" xml:space="preserve"><value>Host Mode</value></data>
+  <data name="Network_HostModeLan" xml:space="preserve"><value>On LAN</value></data>
+  <data name="Network_HostModeOnline" xml:space="preserve"><value>Online</value></data>
+  <data name="Network_RoomCode" xml:space="preserve"><value>Room Code</value></data>
+  <data name="Network_Hub" xml:space="preserve"><value>Hub</value></data>
+  <data name="Network_CopyRoomCode" xml:space="preserve"><value>Copy</value></data>
+  <data name="Network_CopyRoomCode_Success" xml:space="preserve"><value>Copied to clipboard</value></data>
+  <data name="Network_CopyRoomCode_Failed" xml:space="preserve"><value>Copy failed</value></data>
+  <data name="Hosting_Starting" xml:space="preserve"><value>Starting hosted game...</value></data>
+  <data name="Hosting_RoomReady" xml:space="preserve"><value>Game is running — share the room code above</value></data>
+  <data name="Hosting_Failed" xml:space="preserve"><value>Failed to start the hosted game.</value></data>
+  <data name="Hosting_LanEnabled" xml:space="preserve"><value>Multiplayer enabled on LAN</value></data>
+  <data name="Network_EnableMultiplayer" xml:space="preserve"><value>Enable Multiplayer</value></data>
+  <data name="Join_Mode" xml:space="preserve"><value>Join Mode</value></data>
+  <data name="Join_EnterRoomCode" xml:space="preserve"><value>Enter Room Code</value></data>
+  <data name="Join_JoinButton" xml:space="preserve"><value>Join Game</value></data>
+  <data name="Join_Connecting" xml:space="preserve"><value>Connecting to game...</value></data>
+  <data name="Join_Failed" xml:space="preserve"><value>Failed to join the game.</value></data>
+  <data name="Join_InvalidCode" xml:space="preserve"><value>Room code not found. Check the code and try again.</value></data>
+  <data name="Join_RoomExpired" xml:space="preserve"><value>This room has expired.</value></data>
+  <data name="Join_HostNotReady" xml:space="preserve"><value>The host is not ready for players yet.</value></data>
+  <data name="Join_RoomFull" xml:space="preserve"><value>This room is full.</value></data>
+  <data name="Join_HubAtCapacity" xml:space="preserve"><value>The server is at capacity. Please try again later.</value></data>
+  <data name="Join_RateLimited" xml:space="preserve"><value>Too many attempts. Please try again later.</value></data>
+  <data name="Join_ConnectionFailed" xml:space="preserve"><value>Failed to connect. Please check your connection and try again.</value></data>
+  <data name="Join_ConfigurationError" xml:space="preserve"><value>Online joining is not available on this device.</value></data>
+  <data name="Join_ConnectedHeading" xml:space="preserve"><value>Connected</value></data>
+  <data name="Join_LobbyMapPreview" xml:space="preserve"><value>Lobby Map</value></data>
+  <data name="Join_RoomJoinedInfo" xml:space="preserve"><value>Room: {0}</value></data>
+  <data name="Join_ServerConnectedInfo" xml:space="preserve"><value>Server: {0}</value></data>
+  <data name="Players_AddPlayer" xml:space="preserve"><value>Add Player</value></data>
+  <data name="Players_AddBot" xml:space="preserve"><value>Add Bot</value></data>
+  <data name="Players_EditName" xml:space="preserve"><value>Edit player name</value></data>
+  <data name="Players_SaveName" xml:space="preserve"><value>Save name</value></data>
+  <data name="Players_RemovePlayer" xml:space="preserve"><value>Remove player</value></data>
+  <data name="Players_AddUnit" xml:space="preserve"><value>Add Unit</value></data>
+  <data name="Players_JoinGame" xml:space="preserve"><value>Join Game</value></data>
+  <data name="Players_SetReady" xml:space="preserve"><value>Set Ready</value></data>
+  <data name="Players_Aggressiveness" xml:space="preserve"><value>Aggressiveness</value></data>
+  <data name="Window_Title" xml:space="preserve"><value>MakaMek</value></data>
+  <data name="BattleMap_Notification_Turn" xml:space="preserve"><value>turn {0}</value></data>
+  <data name="BattleMap_Notification_Phase" xml:space="preserve"><value>{0} phase</value></data>
+  <data name="BattleMap_Notification_YourTurn" xml:space="preserve"><value>your turn</value></data>
+  <data name="BattleMap_Notification_PlayersTurn" xml:space="preserve"><value>{0}'s turn</value></data>
+  <data name="BattleMap_Notification_InitiativeWinner" xml:space="preserve"><value>{0} wins initiative with {1}</value></data>
+  <data name="Phase_Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Phase_Deployment" xml:space="preserve"><value>Deployment</value></data>
+  <data name="Phase_Initiative" xml:space="preserve"><value>Initiative</value></data>
+  <data name="Phase_Movement" xml:space="preserve"><value>Movement</value></data>
+  <data name="Phase_WeaponsAttack" xml:space="preserve"><value>Weapon Attack</value></data>
+  <data name="Phase_WeaponAttackResolution" xml:space="preserve"><value>Weapon Attack Resolution</value></data>
+  <data name="Phase_PhysicalAttack" xml:space="preserve"><value>Physical Attack</value></data>
+  <data name="Phase_Heat" xml:space="preserve"><value>Heat</value></data>
+  <data name="Phase_End" xml:space="preserve"><value>End</value></data>
+</root>

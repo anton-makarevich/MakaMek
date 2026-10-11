@@ -3,7 +3,7 @@ using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Shouldly;
 using System.Globalization;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
