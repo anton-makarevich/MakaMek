@@ -509,6 +509,23 @@
   <data name="AvailableUnits_Model" xml:space="preserve"><value>Model</value></data>
   <data name="AvailableUnits_Mass" xml:space="preserve"><value>Mass</value></data>
   <data name="AvailableUnits_AddUnit" xml:space="preserve"><value>Add Unit</value></data>
+  <data name="AvailableUnits_Search" xml:space="preserve"><value>Search chassis or model…</value></data>
+  <data name="AvailableUnits_ClearSearch" xml:space="preserve"><value>Clear search</value></data>
+  <data name="AvailableUnits_A11y_Search" xml:space="preserve"><value>Search available mechs</value></data>
+  <data name="AvailableUnits_A11y_ClearSearch" xml:space="preserve"><value>Clear mech search</value></data>
+  <data name="AvailableUnits_A11y_Filter" xml:space="preserve"><value>Filter mechs by weight class</value></data>
+  <data name="AvailableUnits_A11y_Roster" xml:space="preserve"><value>Available mech roster</value></data>
+  <data name="AvailableUnits_Roster" xml:space="preserve"><value>Available mechs</value></data>
+  <data name="AvailableUnits_AvailableLabel" xml:space="preserve"><value>available</value></data>
+  <data name="AvailableUnits_NoResults" xml:space="preserve"><value>No mechs match these filters.</value></data>
+  <data name="AvailableUnits_SelectPrompt" xml:space="preserve"><value>Select a mech to compare its battlefield profile.</value></data>
+  <data name="AvailableUnits_Movement" xml:space="preserve"><value>Movement</value></data>
+  <data name="AvailableUnits_MovementLegend" xml:space="preserve"><value>Walk / Run / Jump</value></data>
+  <data name="AvailableUnits_Weapons" xml:space="preserve"><value>Weapons</value></data>
+  <data name="AvailableUnits_Armor" xml:space="preserve"><value>Armor</value></data>
+  <data name="AvailableUnits_Structure" xml:space="preserve"><value>Structure</value></data>
+  <data name="AvailableUnits_Heat" xml:space="preserve"><value>Heat</value></data>
+  <data name="AvailableUnits_BattleValueRemaining" xml:space="preserve"><value>BV remaining</value></data>
   <data name="JoinGame_Title" xml:space="preserve"><value>Join Game</value></data>
   <data name="MainMenu_StartNewGame" xml:space="preserve"><value>Start New Game</value></data>
   <data name="MainMenu_JoinGame" xml:space="preserve"><value>Join Game</value></data>

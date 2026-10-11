@@ -868,6 +868,23 @@ public class LocalizationResourcesTests
     [InlineData("AvailableUnits_Model", "Model")]
     [InlineData("AvailableUnits_Mass", "Mass")]
     [InlineData("AvailableUnits_AddUnit", "Add Unit")]
+    [InlineData("AvailableUnits_Search", "Search chassis or model…")]
+    [InlineData("AvailableUnits_ClearSearch", "Clear search")]
+    [InlineData("AvailableUnits_A11y_Search", "Search available mechs")]
+    [InlineData("AvailableUnits_A11y_ClearSearch", "Clear mech search")]
+    [InlineData("AvailableUnits_A11y_Filter", "Filter mechs by weight class")]
+    [InlineData("AvailableUnits_A11y_Roster", "Available mech roster")]
+    [InlineData("AvailableUnits_Roster", "Available mechs")]
+    [InlineData("AvailableUnits_AvailableLabel", "available")]
+    [InlineData("AvailableUnits_NoResults", "No mechs match these filters.")]
+    [InlineData("AvailableUnits_SelectPrompt", "Select a mech to compare its battlefield profile.")]
+    [InlineData("AvailableUnits_Movement", "Movement")]
+    [InlineData("AvailableUnits_MovementLegend", "Walk / Run / Jump")]
+    [InlineData("AvailableUnits_Weapons", "Weapons")]
+    [InlineData("AvailableUnits_Armor", "Armor")]
+    [InlineData("AvailableUnits_Structure", "Structure")]
+    [InlineData("AvailableUnits_Heat", "Heat")]
+    [InlineData("AvailableUnits_BattleValueRemaining", "BV remaining")]
     public void GetString_AvailableUnits_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -1054,6 +1071,7 @@ public class LocalizationResourcesTests
     [InlineData("Players_JoinGame", "Join Game")]
     [InlineData("Players_SetReady", "Set Ready")]
     [InlineData("Players_Aggressiveness", "Aggressiveness")]
+    [InlineData("Players_BattleValueBudget", "Battle Value budget (0 = unlimited)")]
     public void GetString_Players_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
