@@ -204,6 +204,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
         NextAvailableUnitCommand = new AsyncCommand(SelectNextAvailableUnit);
+        SelectSquadUnitCommand = new AsyncCommand<IUnit>(unit =>
+        {
+            SelectSquadUnit(unit);
+            return Task.CompletedTask;
+        });
         TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
         {
             if (notification != null)
@@ -1211,6 +1216,17 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
+    /// Selects a unit from the squad bar under the current state's own selection rules,
+    /// without opening the record sheet or moving the map.
+    /// </summary>
+    public void SelectSquadUnit(IUnit? unit)
+    {
+        // Reselecting the same unit would restart its unfinished movement or attack.
+        if (unit == null || unit == SelectedUnit) return;
+        SelectedUnit = unit;
+    }
+
+    /// <summary>
     /// Opens or closes the command log while keeping other utility panels exclusive.
     /// </summary>
     public void ToggleCommandLog()
@@ -1251,6 +1267,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// Gets the command that advances to the next available local unit.
     /// </summary>
     public ICommand NextAvailableUnitCommand { get; }
+
+    /// <summary>
+    /// Gets the command that selects the unit of a clicked squad tile.
+    /// </summary>
+    public ICommand SelectSquadUnitCommand { get; }
 
     /// <summary>
     /// Callback used after successful next-unit navigation, without adding a separate map control.

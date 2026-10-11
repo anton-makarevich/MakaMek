@@ -3912,6 +3912,75 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public async Task SelectSquadUnitCommand_SelectsTheUnit_WithoutOpeningSheetOrPanning()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await ((AsyncCommand<IUnit>)_sut.SelectSquadUnitCommand).ExecuteAsync(squad[1]);
+
+        _sut.SelectedUnit.ShouldBe(squad[1]);
+        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectSquadUnit_WhenTheUnitIsAlreadySelected_DoesNotSelectItAgain()
+    {
+        // Selecting again is not a no-op for the states: it restarts an unfinished move or attack.
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(squad[0]);
+        state.CanSelectUnit(Arg.Any<IUnit>()).Returns(true);
+        SetCurrentState(_sut, state);
+
+        _sut.SelectSquadUnit(squad[0]);
+
+        state.DidNotReceive().HandleUnitSelectionFromList(Arg.Any<IUnit?>());
+    }
+
+    [Fact]
+    public void SelectSquadUnit_WhenAnotherUnitIsSelected_HandsTheNewUnitToTheState()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(squad[0]);
+        state.CanSelectUnit(Arg.Any<IUnit>()).Returns(true);
+        SetCurrentState(_sut, state);
+
+        _sut.SelectSquadUnit(squad[1]);
+
+        state.Received(1).HandleUnitSelectionFromList(squad[1]);
+    }
+
+    [Fact]
+    public void SelectSquadUnit_WhenTheStateRefusesTheUnit_KeepsTheSelection()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        var state = Substitute.For<IUiState>();
+        state.SelectedUnit.Returns(squad[0]);
+        state.CanSelectUnit(squad[1]).Returns(false);
+        SetCurrentState(_sut, state);
+
+        _sut.SelectSquadUnit(squad[1]);
+
+        state.DidNotReceive().HandleUnitSelectionFromList(Arg.Any<IUnit?>());
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+    }
+
+    [Fact]
+    public void SelectSquadUnit_WithNoUnit_DoesNotClearTheSelection()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        _sut.SelectedUnit = squad[0];
+
+        _sut.SelectSquadUnit(null);
+
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+    }
+
+    [Fact]
     public void RecordSheet_FollowsSelectedUnit_AndBecomesInvisibleWhenSelectionIsCleared()
     {
         var squad = SetUpSquadNavigation(PhaseNames.End, 2);
