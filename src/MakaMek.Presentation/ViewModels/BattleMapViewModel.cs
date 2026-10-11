@@ -203,6 +203,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         LeaveGameCommand = new AsyncCommand(LeaveGame);
+        NextAvailableUnitCommand = new AsyncCommand(SelectNextAvailableUnit);
         TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
         {
             if (notification != null)
@@ -703,10 +704,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(IsUserActionLabelVisible));
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
+        NotifyPropertyChanged(nameof(IsAttackOverlayVisible));
         NotifyPropertyChanged(nameof(Attacker));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
         NotifyPropertyChanged(nameof(AvailableActions));
+        NotifyPropertyChanged(nameof(LocalUnits));
+        NotifyPropertyChanged(nameof(IsSquadStatusBarVisible));
+        NotifyPropertyChanged(nameof(IsNextAvailableUnitVisible));
 
         // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
@@ -1058,6 +1063,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
+        NotifyPropertyChanged(nameof(IsNextAvailableUnitVisible));
 
         UpdateSelectedUnitEvents();
 
@@ -1118,6 +1124,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         get;
         set
         {
+            if (value && !field)
+            {
+                IsCommandLogExpanded = false;
+                IsMapSettingsPanelVisible = false;
+            }
+
             SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
@@ -1130,12 +1142,87 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         set => SetProperty(ref field, value);
     }
 
+    /// <summary>
+    /// Gets whether the firing-arc legend should be visible over the map.
+    /// </summary>
+    public bool IsAttackOverlayVisible => CurrentState is WeaponsAttackState && Attacker != null;
+
     public bool IsRecordSheetButtonVisible => SelectedUnit != null && !IsRecordSheetExpanded;
     public bool IsRecordSheetPanelVisible => SelectedUnit != null && IsRecordSheetExpanded;
 
+    /// <summary>
+    /// Gets all local players' units for the squad status bar, including unavailable units.
+    /// </summary>
+    public IEnumerable<IUnit> LocalUnits => Game?.Players
+        .Where(player => Game.LocalPlayers.Contains(player.Id))
+        .SelectMany(player => player.Units) ?? [];
+
+    public bool IsSquadStatusBarVisible => LocalUnits.Any();
+
+    /// <summary>
+    /// Gets whether a local unit is available for selection in the current phase.
+    /// </summary>
+    public bool IsNextAvailableUnitVisible => LocalUnits.Any(IsUnitAvailableForNavigation);
+
+    private bool IsUnitAvailableForNavigation(IUnit unit)
+    {
+        if (unit.IsOutOfCommission || unit.IsShutdown || !CurrentState.CanSelectUnit(unit))
+            return false;
+
+        // The end phase permits browsing. Action phases must also respect the active
+        // player's turn and completed actions; target selection is not squad navigation.
+        if (CurrentState is EndState) return true;
+        if (!CurrentState.CanHumanPlayerAct() || !CurrentState.IsActiveHumanPlayer()
+            || unit.Owner?.Id != Game?.PhaseStepState?.ActivePlayer.Id)
+            return false;
+
+        return CurrentState switch
+        {
+            DeploymentState => SelectedUnit == null && !unit.IsDeployed,
+            MovementState => !unit.HasMoved,
+            WeaponsAttackState weapons =>
+                weapons.CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection
+                && !unit.HasDeclaredWeaponAttack,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Selects the next available local unit in squad order without opening the record sheet.
+    /// </summary>
+    public Task SelectNextAvailableUnit()
+    {
+        var availableUnits = LocalUnits
+            .Where(IsUnitAvailableForNavigation)
+            .ToList();
+        if (availableUnits.Count == 0) return Task.CompletedTask;
+
+        var currentIndex = SelectedUnit is { } selectedUnit
+            ? availableUnits.IndexOf(selectedUnit)
+            : -1;
+        var nextUnit = availableUnits[(currentIndex + 1) % availableUnits.Count];
+
+        // Reselecting the same unit would restart its unfinished movement or attack.
+        if (SelectedUnit != nextUnit)
+            SelectedUnit = nextUnit;
+        if (SelectedUnit == nextUnit)
+            FocusUnit?.Invoke(nextUnit);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Opens or closes the command log while keeping other utility panels exclusive.
+    /// </summary>
     public void ToggleCommandLog()
     {
-        IsCommandLogExpanded = !IsCommandLogExpanded;
+        var shouldExpand = !IsCommandLogExpanded;
+        if (shouldExpand)
+        {
+            IsRecordSheetExpanded = false;
+            IsMapSettingsPanelVisible = false;
+        }
+
+        IsCommandLogExpanded = shouldExpand;
     }
 
     public void ToggleRecordSheet()
@@ -1143,12 +1230,32 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IsRecordSheetExpanded = !IsRecordSheetExpanded;
     }
 
+    /// <summary>
+    /// Opens or closes map settings while keeping other utility panels exclusive.
+    /// </summary>
     public void ToggleMapSettings()
     {
-        IsMapSettingsPanelVisible = !IsMapSettingsPanelVisible;
+        var shouldShow = !IsMapSettingsPanelVisible;
+        if (shouldShow)
+        {
+            IsRecordSheetExpanded = false;
+            IsCommandLogExpanded = false;
+        }
+
+        IsMapSettingsPanelVisible = shouldShow;
     }
 
     public IEnumerable<IUnit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
+
+    /// <summary>
+    /// Gets the command that advances to the next available local unit.
+    /// </summary>
+    public ICommand NextAvailableUnitCommand { get; }
+
+    /// <summary>
+    /// Callback used after successful next-unit navigation, without adding a separate map control.
+    /// </summary>
+    public Action<IUnit>? FocusUnit { get; set; }
 
     public IUiState CurrentState { get; private set; }
 

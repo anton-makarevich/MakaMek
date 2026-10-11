@@ -37,6 +37,7 @@
   <Folder Name="/Tests/">
     <Project Path="tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj" />
     <Project Path="tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj" />
+    <Project Path="tests/MakaMek.Avalonia.AppTests/MakaMek.Avalonia.AppTests.csproj" />
     <Project Path="tests/MakaMek.Presentation.Tests/MakaMek.Presentation.Tests.csproj" />
     <Project Path="tests/MakaMek.Bots.Tests/MakaMek.Bots.Tests.csproj" />
     <Project Path="tests/MakaMek.Map.Tests/MakaMek.Map.Tests.csproj" />
