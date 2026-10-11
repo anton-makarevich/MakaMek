@@ -6,7 +6,7 @@ using Avalonia.Markup.Xaml;
 using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace MakaMek.Avalonia.Tests.Extensions;
 

@@ -17,7 +17,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Logger;
@@ -64,7 +64,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         IBattleMapFactory mapFactory,
         IMapPreviewRenderer mapPreviewRenderer,
         IClipboardService clipboardService,
-        ILocalizationService? localizationService = null)
+        ILocalizationService localizationService)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -75,7 +75,7 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             logger)
     {
         _gameConnector = gameConnector;
-        _localizationService = localizationService ?? new FakeLocalizationService();
+        _localizationService = localizationService;
         _clipboardService = clipboardService;
         _mapFactory = mapFactory;
         _mapPreviewRenderer = mapPreviewRenderer;

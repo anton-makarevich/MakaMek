@@ -13,7 +13,7 @@ using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -31,7 +31,7 @@ public class EndGameViewModelTests
 
     public EndGameViewModelTests()
     {
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
         _navigationService = Substitute.For<INavigationService>();
 
         // Create a test game

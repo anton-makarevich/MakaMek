@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Transport.SignalR.Client.Relay;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;

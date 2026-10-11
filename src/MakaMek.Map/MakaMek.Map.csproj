@@ -18,11 +18,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Sanet.Localization" Version="0.1.0" />
         <PackageReference Include="System.Reactive" Version="7.0.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\MakaMek.Localization\MakaMek.Localization.csproj" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->
