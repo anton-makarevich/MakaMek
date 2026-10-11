@@ -61,35 +61,6 @@ public class UnitSelectionPreviewViewModelTests
         new UnitSelectionPreviewViewModel(UnitData(), unit).WeightClass.ShouldBe("Assault");
     }
 
-    [Theory]
-    [InlineData("era")]
-    [InlineData("Era")]
-    [InlineData("introduction-era")]
-    [InlineData("Introduction-Era")]
-    public void Era_IsReadFromEitherAttributeKey_CaseInsensitively(string key)
-    {
-        var data = UnitData(additionalAttributes: new Dictionary<string, string> { [key] = "Succession Wars" });
-
-        new UnitSelectionPreviewViewModel(data, Unit()).Era.ShouldBe("Succession Wars");
-    }
-
-    [Fact]
-    public void Era_WhenNoEraAttributeIsPresent_ShowsAPlaceholder()
-    {
-        var data = UnitData(additionalAttributes: new Dictionary<string, string> { ["source"] = "TRO 3025" });
-
-        new UnitSelectionPreviewViewModel(data, Unit()).Era.ShouldBe("—");
-    }
-
-    [Fact]
-    public void Era_WhenAttributesAreMissingEntirely_ShowsAPlaceholder()
-    {
-        // A default UnitData has no attribute dictionary at all.
-        var sut = new UnitSelectionPreviewViewModel(default, Unit());
-
-        sut.Era.ShouldBe("—");
-    }
-
     [Fact]
     public void UnitFacts_AreProjectedFromTheConstructedUnit()
     {
@@ -110,11 +81,10 @@ public class UnitSelectionPreviewViewModelTests
         sut.JumpingPoints.ShouldBe(5);
         sut.MovementSummary.ShouldBe("5 / 8 / 5");
         sut.HeatDissipation.ShouldBe(12);
-        sut.HeatSummary.ShouldBe("12 heat sinks");
     }
 
     [Fact]
-    public void ArmorAndStructure_AreReportedAsFullOnAnUndamagedUnit()
+    public void ArmorAndStructure_ComeFromTheConstructedUnit()
     {
         var unit = Unit();
         unit.TotalMaxArmor.Returns(160);
@@ -123,24 +93,7 @@ public class UnitSelectionPreviewViewModelTests
         var sut = new UnitSelectionPreviewViewModel(UnitData(), unit);
 
         sut.MaxArmor.ShouldBe(160);
-        sut.ArmorPercent.ShouldBe(100);
-        sut.ArmorSummary.ShouldBe("160 armor");
         sut.MaxStructure.ShouldBe(90);
-        sut.StructurePercent.ShouldBe(100);
-        sut.StructureSummary.ShouldBe("90 structure");
-    }
-
-    [Fact]
-    public void ArmorAndStructurePercent_AreZeroWhenTheUnitHasNone()
-    {
-        var unit = Unit();
-        unit.TotalMaxArmor.Returns(0);
-        unit.TotalMaxStructure.Returns(0);
-
-        var sut = new UnitSelectionPreviewViewModel(UnitData(), unit);
-
-        sut.ArmorPercent.ShouldBe(0);
-        sut.StructurePercent.ShouldBe(0);
     }
 
     [Fact]

@@ -885,6 +885,10 @@ public class LocalizationResourcesTests
     [InlineData("AvailableUnits_Structure", "Structure")]
     [InlineData("AvailableUnits_Heat", "Heat")]
     [InlineData("AvailableUnits_BattleValueRemaining", "BV remaining")]
+    [InlineData("AvailableUnits_Tonnage", "{0}t")]
+    [InlineData("AvailableUnits_BattleValue", "BV {0}")]
+    [InlineData("AvailableUnits_TotalDamage", "{0} total damage")]
+    [InlineData("AvailableUnits_HeatDissipation", "{0} dissipation")]
     public void GetString_AvailableUnits_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

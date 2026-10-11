@@ -360,7 +360,8 @@ public abstract class NewGameViewModel : BaseViewModel
             AvailableUnits,
             _mechFactory,
             BattleValueLimit,
-            playerVm.GetUnitsData());
+            playerVm.GetUnitsData(),
+            logger: _logger);
         tableViewModel.SetNavigationService(NavigationService);
 
         // Show the dialog and wait for a result

@@ -625,21 +625,6 @@ public class AvailableUnitsTableViewModelTests
     }
 
     [Fact]
-    public void SearchText_ShouldMatchEraMetadata()
-    {
-        var unit = CreateTestUnits()[0] with
-        {
-            AdditionalAttributes = new Dictionary<string, string> { ["era"] = "Succession Wars" }
-        };
-        var sut = new AvailableUnitsTableViewModel([unit], _mechFactory)
-        {
-            SearchText = "succession"
-        };
-
-        sut.FilteredAvailableUnits.Single().ShouldBe(unit);
-    }
-
-    [Fact]
     public void BattleValueLimit_ShouldFilterUnitsUsingRemainingBudget()
     {
         var units = CreateTestUnits();
@@ -700,31 +685,14 @@ public class AvailableUnitsTableViewModelTests
         var sut = new AvailableUnitsTableViewModel(units, _mechFactory);
 
         sut.HasSelection.ShouldBeFalse();
-        sut.HasNoSelection.ShouldBeTrue();
 
         sut.SelectedUnit = units[0];
 
         sut.HasSelection.ShouldBeTrue();
-        sut.HasNoSelection.ShouldBeFalse();
 
         sut.SelectedUnit = null;
 
         sut.HasSelection.ShouldBeFalse();
-        sut.HasNoSelection.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void SearchText_ShouldIgnoreUnitsWithoutAttributeMetadata()
-    {
-        // A unit imported without an attribute dictionary must not break era matching.
-        var units = CreateTestUnits();
-        units[0] = units[0] with { AdditionalAttributes = null! };
-        var sut = new AvailableUnitsTableViewModel(units, _mechFactory)
-        {
-            SearchText = "Succession"
-        };
-
-        sut.FilteredAvailableUnits.ShouldNotContain(units[0]);
     }
 
     [Fact]
@@ -809,11 +777,23 @@ public class AvailableUnitsTableViewModelTests
         sut.SelectedUnitPreview!.DisplayName.ShouldBe("Atlas AS7-D");
         sut.SelectedUnitPreview.WeightClass.ShouldBe("Assault");
         sut.SelectedUnitPreview.Tonnage.ShouldBe(100);
-        sut.SelectedUnitPreview.ArmorSummary.ShouldContain("armor");
-        sut.SelectedUnitPreview.StructureSummary.ShouldContain("structure");
-        sut.SelectedUnitPreview.ArmorPercent.ShouldBe(100);
-        sut.SelectedUnitPreview.StructurePercent.ShouldBe(100);
+        sut.SelectedUnitPreview.MaxArmor.ShouldBe(realUnit.TotalMaxArmor);
+        sut.SelectedUnitPreview.MaxStructure.ShouldBe(realUnit.TotalMaxStructure);
         sut.SelectedUnitPreview.WeaponCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void BattleValueLimit_ShouldBuildEachUnitOnce_HoweverOftenTheRosterIsRead()
+    {
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units, _mechFactory, 1000);
+
+        _ = sut.FilteredAvailableUnits.ToList();
+        _ = sut.FilteredUnitCount;
+        _ = sut.HasNoResults;
+
+        foreach (var unit in units)
+            _mechFactory.Received(1).Create(unit);
     }
 
     private static List<UnitData> CreateTestUnits()

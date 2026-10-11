@@ -24,12 +24,6 @@ public sealed class UnitSelectionPreviewViewModel
         ? $"{UnitData.Chassis} {UnitData.Model}"
         : UnitData.Name!;
     public string WeightClass => _unit.Class.ToString();
-    public string Era => UnitData.AdditionalAttributes is null
-        ? "—"
-        : UnitData.AdditionalAttributes.FirstOrDefault(attribute =>
-              attribute.Key.Equals("era", StringComparison.OrdinalIgnoreCase)
-              || attribute.Key.Equals("introduction-era", StringComparison.OrdinalIgnoreCase)).Value
-          ?? "—";
     public int Tonnage => _unit.Tonnage;
     public int BattleValue => _unit.CalculateBattleValue();
     public int WalkingPoints => _unit.AvailableWalkingPoints;
@@ -37,13 +31,8 @@ public sealed class UnitSelectionPreviewViewModel
     public int JumpingPoints => _unit.AvailableJumpingPoints;
     public string MovementSummary => $"{WalkingPoints} / {RunningPoints} / {JumpingPoints}";
     public int MaxArmor => _unit.TotalMaxArmor;
-    public double ArmorPercent => MaxArmor == 0 ? 0 : 100;
-    public string ArmorSummary => $"{MaxArmor} armor";
     public int MaxStructure => _unit.TotalMaxStructure;
-    public double StructurePercent => MaxStructure == 0 ? 0 : 100;
-    public string StructureSummary => $"{MaxStructure} structure";
     public int HeatDissipation => _unit.HeatDissipation;
-    public string HeatSummary => $"{HeatDissipation} heat sinks";
     public int WeaponCount => _unit.GetAvailableWeapons().Count;
     public int TotalWeaponDamage => _unit.GetAvailableWeapons().Sum(weapon => weapon.Damage);
 }

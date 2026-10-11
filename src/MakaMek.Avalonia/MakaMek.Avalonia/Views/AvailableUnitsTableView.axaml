@@ -4,16 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
              xmlns:viewModels="using:Sanet.MakaMek.Presentation.ViewModels"
-             xmlns:converters="using:Sanet.MakaMek.Avalonia.Converters"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Sanet.MakaMek.Avalonia.Views.AvailableUnitsTableView"
              x:Name="Root"
              x:DataType="viewModels:AvailableUnitsTableViewModel">
-    <UserControl.Resources>
-        <converters:NullToBooleanConverter x:Key="NullToBooleanConverter"/>
-    </UserControl.Resources>
-
     <!-- The selection dialog keeps the decision-critical preview beside the roster;
          players should not have to open a second dialog just to compare mechs. -->
     <templatedControls:GamePanel HorizontalAlignment="Center"
@@ -26,11 +21,13 @@
                          PlaceholderText="{extensions:Localize 'AvailableUnits_Search'}"
                          AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_Search'}"
                          Classes="body" Margin="0,0,6,0"/>
-                <Button Grid.Column="1" Content="×"
+                <Button Grid.Column="1"
                         ToolTip.Tip="{extensions:Localize 'AvailableUnits_ClearSearch'}"
                         AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_ClearSearch'}"
                         Command="{Binding ClearSearchCommand}" IsEnabled="{Binding HasSearchText}"
-                        Classes="secondary" Margin="0,0,8,0"/>
+                        Classes="secondary inlineIcon" Margin="0,0,8,0">
+                    <TextBlock Text="&#xf00d;"/>
+                </Button>
                 <ComboBox Grid.Column="2" ItemsSource="{Binding WeightClassFilters}"
                           SelectedItem="{Binding SelectedWeightClassFilterString, Mode=TwoWay}"
                           AutomationProperties.Name="{extensions:Localize 'AvailableUnits_A11y_Filter'}"
@@ -78,7 +75,7 @@
                                                                FontWeight="SemiBold"/>
                                                     <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}"
                                                             CornerRadius="10" Padding="8,2">
-                                                        <TextBlock Text="{Binding Mass, StringFormat={}{0}t}"
+                                                        <TextBlock Text="{Binding Mass, StringFormat={extensions:Localize 'AvailableUnits_Tonnage'}}"
                                                                    Classes="bodySmall"/>
                                                     </Border>
                                                     <TextBlock Grid.Row="1" Text="{Binding Model}"
@@ -105,8 +102,7 @@
                             <StackPanel>
                                 <TextBlock Text="{Binding DisplayName}" Classes="h2"/>
                                 <TextBlock Text="{Binding WeightClass}" Classes="body" Opacity="0.8"/>
-                                <TextBlock Text="{Binding Era}" Classes="bodySmall" Opacity="0.75"/>
-                                <TextBlock Text="{Binding BattleValue, StringFormat={}BV {0}}"
+                                <TextBlock Text="{Binding BattleValue, StringFormat={extensions:Localize 'AvailableUnits_BattleValue'}}"
                                            Classes="h4"/>
                             </StackPanel>
                             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto"
@@ -125,7 +121,7 @@
                                         <TextBlock Text="{extensions:Localize 'AvailableUnits_Weapons'}"
                                                    Classes="bodySmall" Opacity="0.75"/>
                                         <TextBlock Text="{Binding WeaponCount}" Classes="h4"/>
-                                        <TextBlock Text="{Binding TotalWeaponDamage, StringFormat={}{0} total damage}"
+                                        <TextBlock Text="{Binding TotalWeaponDamage, StringFormat={extensions:Localize 'AvailableUnits_TotalDamage'}}"
                                                    Classes="bodySmall" Opacity="0.65"/>
                                     </StackPanel>
                                 </Border>
@@ -133,25 +129,22 @@
                                     <StackPanel>
                                         <TextBlock Text="{extensions:Localize 'AvailableUnits_Armor'}"
                                                    Classes="bodySmall" Opacity="0.75"/>
-                                        <TextBlock Text="{Binding ArmorSummary}" Classes="h4"/>
-                                        <ProgressBar Value="{Binding ArmorPercent}" Maximum="100"
-                                                     Height="6" Margin="0,6,0,0"/>
+                                        <TextBlock Text="{Binding MaxArmor}" Classes="h4"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="10">
                                     <StackPanel>
                                         <TextBlock Text="{extensions:Localize 'AvailableUnits_Structure'}"
                                                    Classes="bodySmall" Opacity="0.75"/>
-                                        <TextBlock Text="{Binding StructureSummary}" Classes="h4"/>
-                                        <ProgressBar Value="{Binding StructurePercent}" Maximum="100"
-                                                     Height="6" Margin="0,6,0,0"/>
+                                        <TextBlock Text="{Binding MaxStructure}" Classes="h4"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="card" Padding="10">
                                     <StackPanel>
                                         <TextBlock Text="{extensions:Localize 'AvailableUnits_Heat'}"
                                                    Classes="bodySmall" Opacity="0.75"/>
-                                        <TextBlock Text="{Binding HeatSummary}" Classes="h4"/>
+                                        <TextBlock Text="{Binding HeatDissipation, StringFormat={extensions:Localize 'AvailableUnits_HeatDissipation'}}"
+                                                   Classes="h4"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -162,7 +155,7 @@
                     </ScrollViewer>
                 </Border>
                 <Border Grid.Column="1" Classes="card" Padding="20"
-                        IsVisible="{Binding HasNoSelection}" Background="{StaticResource SurfaceBrush}">
+                        IsVisible="{Binding !HasSelection}" Background="{StaticResource SurfaceBrush}">
                     <TextBlock Text="{extensions:Localize 'AvailableUnits_SelectPrompt'}"
                                Classes="body" TextWrapping="Wrap" HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>

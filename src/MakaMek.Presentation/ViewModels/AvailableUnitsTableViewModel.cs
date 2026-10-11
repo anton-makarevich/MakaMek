@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -17,6 +17,8 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     private readonly ObservableCollection<UnitData> _availableUnits;
     private readonly TaskCompletionSource<UnitSelectionResult> _resultTaskCompletionSource = new();
     private readonly IMechFactory _mechFactory;
+    private readonly ILogger? _logger;
+    private readonly Dictionary<(string Chassis, string Model), int> _battleValues = [];
     private UnitData? _selectedUnit;
     private WeightClass? _selectedWeightClassFilter; // Default is `all` so no filtering
     private bool _showAllClasses;
@@ -35,10 +37,11 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     }
 
     public AvailableUnitsTableViewModel(IList<UnitData> availableUnits, IMechFactory mechFactory,
-        int battleValueLimit = 0, IEnumerable<UnitData>? selectedUnits = null)
+        int battleValueLimit = 0, IEnumerable<UnitData>? selectedUnits = null, ILogger? logger = null)
     {
         _availableUnits = new ObservableCollection<UnitData>(availableUnits);
         _mechFactory = mechFactory;
+        _logger = logger;
         _battleValueLimit = Math.Max(0, battleValueLimit);
         _usedBattleValue = _battleValueLimit > 0
             ? selectedUnits?.Sum(GetBattleValue) ?? 0
@@ -72,8 +75,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
                 var search = _searchText.Trim();
                 filtered = filtered.Where(u => u.Chassis.Contains(search, StringComparison.OrdinalIgnoreCase)
                     || u.Model.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    || (u.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                    || GetEra(u).Contains(search, StringComparison.OrdinalIgnoreCase));
+                    || (u.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
             }
 
             if (_battleValueLimit > 0)
@@ -137,7 +139,6 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
             NotifyPropertyChanged(nameof(CanShowUnitInfo));
             NotifyPropertyChanged(nameof(SelectedUnitPreview));
             NotifyPropertyChanged(nameof(HasSelection));
-            NotifyPropertyChanged(nameof(HasNoSelection));
             (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             (ShowUnitInfoCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
@@ -191,9 +192,6 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
 
     /// <summary>Gets whether the preview pane has a selected mech to display.</summary>
     public bool HasSelection => _selectedUnit.HasValue;
-
-    /// <summary>Gets whether the preview pane should show its selection prompt.</summary>
-    public bool HasNoSelection => !HasSelection;
 
     /// <summary>Gets whether the search box currently contains text.</summary>
     public bool HasSearchText => !string.IsNullOrWhiteSpace(_searchText);
@@ -319,25 +317,24 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
 
     private int GetBattleValue(UnitData unit)
     {
+        // The roster filter asks for every unit on every read, and each answer builds a mech.
+        var key = (unit.Chassis, unit.Model);
+        if (_battleValues.TryGetValue(key, out var cached)) return cached;
+
+        int value;
         try
         {
-            return Math.Max(0, _mechFactory.Create(unit).CalculateBattleValue());
+            value = Math.Max(0, _mechFactory.Create(unit).CalculateBattleValue());
         }
         catch (Exception exception)
         {
-            Debug.WriteLine($"Unable to calculate Battle Value for {unit.Chassis} {unit.Model}: {exception}");
-            return int.MaxValue;
+            _logger?.LogWarning(exception, "Unable to calculate Battle Value for {Chassis} {Model}",
+                unit.Chassis, unit.Model);
+            value = int.MaxValue;
         }
-    }
 
-    private static string GetEra(UnitData unit)
-    {
-        if (unit.AdditionalAttributes is null)
-            return string.Empty;
-
-        return unit.AdditionalAttributes.FirstOrDefault(attribute =>
-            attribute.Key.Equals("era", StringComparison.OrdinalIgnoreCase)
-            || attribute.Key.Equals("introduction-era", StringComparison.OrdinalIgnoreCase)).Value ?? string.Empty;
+        _battleValues[key] = value;
+        return value;
     }
 
     private Task AddUnit()
