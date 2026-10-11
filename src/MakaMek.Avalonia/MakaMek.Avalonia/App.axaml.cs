@@ -14,7 +14,7 @@ using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.Settings;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;

@@ -25,12 +25,13 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 using System.Reactive.Concurrency;
@@ -829,7 +830,8 @@ public class JoinGameViewModelTests
             _mechFactory,
             _mapFactory,
             _mapPreviewRenderer,
-            _clipboardService);
+            _clipboardService,
+            _localizationService);
         sut.AttachHandlers();
 
         // Act
@@ -859,7 +861,8 @@ public class JoinGameViewModelTests
             _mechFactory,
             _mapFactory,
             _mapPreviewRenderer,
-            _clipboardService);
+            _clipboardService,
+            _localizationService);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();
@@ -1432,6 +1435,22 @@ public class JoinGameViewModelTests
         _sut.IsConnected.ShouldBeFalse();
         _sut.JoinedRoomInfoText.ShouldBeEmpty();
         raisedEvents.ShouldContain(nameof(JoinGameViewModel.JoinedRoomInfoText));
+    }
+
+    [Fact]
+    public async Task JoinedRoomInfoText_UsesExplicitResourceLocalization_AfterOnlineJoin()
+    {
+        // Arrange
+        var sut = CreateSut(TestLocalizationService.Create());
+        sut.IsOnlineMode = true;
+        sut.RoomCode = "ABCDEF";
+        EnableOnlineJoin();
+
+        // Act
+        await ((AsyncCommand)sut.JoinRoomCommand).ExecuteAsync();
+
+        // Assert
+        sut.JoinedRoomInfoText.ShouldBe("Room: ABCDEF");
     }
 
     [Fact]

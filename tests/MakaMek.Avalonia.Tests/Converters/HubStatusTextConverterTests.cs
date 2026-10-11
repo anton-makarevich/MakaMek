@@ -2,7 +2,7 @@ using System.Globalization;
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.Transport.SignalR.Client.Relay;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;

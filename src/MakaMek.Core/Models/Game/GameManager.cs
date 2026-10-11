@@ -7,7 +7,7 @@ using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
 using Sanet.Transport.Rx;

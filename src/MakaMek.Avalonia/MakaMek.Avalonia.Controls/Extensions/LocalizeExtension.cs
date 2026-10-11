@@ -2,7 +2,7 @@
 using Avalonia.Markup.Xaml;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Avalonia.Controls.Extensions;
 

@@ -21,7 +21,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia.Browser" Version="$(AvaloniaVersion)" />
-        <PackageReference Include="Sanet.MVVM.ExternalNavigation.Browser" Version="1.6.0" />
+        <PackageReference Include="Sanet.MVVM.ExternalNavigation.Browser" Version="1.7.0" />
     </ItemGroup>
 
     <ItemGroup>

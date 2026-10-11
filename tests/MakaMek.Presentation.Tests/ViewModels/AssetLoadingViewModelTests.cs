@@ -3,7 +3,7 @@ using NSubstitute;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Shouldly;
