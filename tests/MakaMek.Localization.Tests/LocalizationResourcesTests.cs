@@ -742,6 +742,7 @@ public class LocalizationResourcesTests
     [InlineData("WeaponSelection_Primary", "PRIMARY")]
     [InlineData("WeaponSelection_SetPrimary", "Set Primary")]
     [InlineData("WeaponSelection_AimedShot", "Aimed Shot")]
+    [InlineData("WeaponSelection_TargetOverlay", "{0}")]
     public void GetString_WeaponSelection_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
