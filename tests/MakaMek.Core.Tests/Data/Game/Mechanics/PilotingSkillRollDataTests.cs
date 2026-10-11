@@ -1,14 +1,15 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Mechanics;
 
 public class PilotingSkillRollDataTests
 {
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
     
     private PilotingSkillRollData CreateSuccessfulCommand()
     {

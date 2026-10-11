@@ -3,7 +3,8 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Data;
 using Shouldly;
 
@@ -11,7 +12,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game;
 
 public class LocationHitDataTests
 {
-    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
 
     public LocationHitDataTests()
     {
