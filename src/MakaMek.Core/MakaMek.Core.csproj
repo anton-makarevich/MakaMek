@@ -20,6 +20,7 @@
       <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
       <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
       <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
+      <PackageReference Include="Sanet.Localization" Version="0.1.0" />
       <PackageReference Include="Sanet.Transport.Rx" Version="1.8.0" />
       <PackageReference Include="Sanet.Transport.SignalR.Client" Version="1.8.0" />
       <PackageReference Include="Sanet.Transport.SignalR.Client.Relay" Version="1.8.0" />
@@ -27,7 +28,6 @@
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\MakaMek.Localization\MakaMek.Localization.csproj" />
       <ProjectReference Include="..\MakaMek.Map\MakaMek.Map.csproj" />
       <ProjectReference Include="..\MakaMek.Services\MakaMek.Services.csproj" />
       <ProjectReference Include="..\MakaMek.SourceGenerators\MakaMek.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

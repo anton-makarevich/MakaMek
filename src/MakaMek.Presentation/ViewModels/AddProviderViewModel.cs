@@ -1,7 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Assets.Configuration;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 

@@ -4,7 +4,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Localization;
+using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -20,7 +20,7 @@ public class HeatProjectionViewModelTests
 
     public HeatProjectionViewModelTests()
     {
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
         var rulesProvider = new TotalWarfareRulesProvider();
         _sut = new HeatProjectionViewModel(localizationService, rulesProvider);
 
@@ -414,7 +414,7 @@ public class HeatProjectionViewModelTests
     private static Mech CreateWaterDeployedMech()
     {
         var rulesProvider = new TotalWarfareRulesProvider();
-        var localizationService = new FakeLocalizationService();
+        var localizationService = TestLocalizationService.Create();
         var mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),

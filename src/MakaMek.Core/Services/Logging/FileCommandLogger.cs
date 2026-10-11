@@ -2,7 +2,7 @@
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Services.Logging;
 

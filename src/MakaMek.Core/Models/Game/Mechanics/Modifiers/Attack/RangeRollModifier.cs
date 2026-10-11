@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 

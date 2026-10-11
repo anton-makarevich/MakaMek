@@ -1,7 +1,7 @@
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Localization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
