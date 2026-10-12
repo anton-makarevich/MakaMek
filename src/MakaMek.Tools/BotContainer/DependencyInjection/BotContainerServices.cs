@@ -1,5 +1,6 @@
 using ModelContextProtocol.Protocol;
 using Sanet.Localization;
+using Sanet.Localization.Providers;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
@@ -67,8 +68,9 @@ public static class BotContainerServices
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
         // Localization
-        services.AddLocalization(typeof(LocalizationResourcesAnchor).Assembly,
-            LocalizationResourcesAnchor.ResourceBaseName);
+        services.AddLocalization(new EmbeddedResourcesProvider(
+            typeof(LocalizationResourcesAnchor).Assembly,
+            LocalizationResourcesAnchor.ResourceBaseName));
 
         // Transport
         services.AddSingleton<RxTransportPublisher>(); // For local loopback logic
