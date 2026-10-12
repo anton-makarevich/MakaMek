@@ -52,6 +52,13 @@ public interface ITerrainBitmaskService
     CanonicalBitmaskResult CanonicalizeRawMask(byte rawMask);
 
     /// <summary>
+    /// Computes the raw 6-bit road connectivity mask for the hex at <paramref name="coordinates"/>.
+    /// Road and bridge neighbours both count, and a direction only connects when the two road
+    /// surfaces are less than two levels apart.
+    /// </summary>
+    byte ComputeRoadConnectivityMask(IBattleMap map, HexCoordinates coordinates);
+
+    /// <summary>
     /// Computes a <see cref="HexRenderData"/> for the hex at <paramref name="coordinates"/>,
     /// including edge data, water bitmask, and road/bridge bitmask.
     /// </summary>
