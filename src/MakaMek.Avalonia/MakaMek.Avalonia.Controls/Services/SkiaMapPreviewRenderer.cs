@@ -101,8 +101,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
 
                     if (hex.HasTerrain(MakaMekTerrains.Road) || hex.HasTerrain(MakaMekTerrains.Bridge))
                     {
-                        var mask = (byte)(_bitmaskService.ComputeRawBitmask(map, coordinates, MakaMekTerrains.Road) 
-                                          | _bitmaskService.ComputeRawBitmask(map, coordinates, MakaMekTerrains.Bridge));
+                        var mask = _bitmaskService.ComputeRoadConnectivityMask(map, coordinates);
                         for (var i = 0; i < 6; i++)
                         {
                             if ((mask & (1 << i)) == 0) continue;
