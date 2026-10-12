@@ -44,7 +44,7 @@ public class LocalizationResourcesTests
     [InlineData("Command_HullBreach_Header", "{0} hull breached!")]
     [InlineData("Command_HullBreach_Automatic", "{0} automatic hull breach")]
     [InlineData("Command_HullBreach_Roll", "{0} hull breach (roll {1})")]
-    [InlineData("Command_HullBreach_EngineDamage", "Engine hit for {0} damage")]
+    [InlineData("Command_HullBreach_EngineDamage", "Number of engine hits: {0}")]
     [InlineData("Command_DisplaceUnit", "{0} displaced from {1} to {2}")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {

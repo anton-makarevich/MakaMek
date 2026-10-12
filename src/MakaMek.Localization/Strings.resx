@@ -124,7 +124,7 @@
   <data name="Command_HullBreach_Header" xml:space="preserve"><value>{0} hull breached!</value></data>
   <data name="Command_HullBreach_Automatic" xml:space="preserve"><value>{0} automatic hull breach</value></data>
   <data name="Command_HullBreach_Roll" xml:space="preserve"><value>{0} hull breach (roll {1})</value></data>
-  <data name="Command_HullBreach_EngineDamage" xml:space="preserve"><value>Engine hit for {0} damage</value></data>
+  <data name="Command_HullBreach_EngineDamage" xml:space="preserve"><value>Number of engine hits: {0}</value></data>
   <data name="Command_DisplaceUnit" xml:space="preserve"><value>{0} displaced from {1} to {2}</value></data>
   <data name="Terrain_Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Terrain_LightWoods" xml:space="preserve"><value>Light Woods</value></data>
