@@ -53,12 +53,9 @@
                     <StackPanel Grid.Row="2" Margin="{StaticResource PageMargin}">
                         <Grid>
                             <TextBlock Text="{extensions:Localize 'Network_NetworkSettings'}" Classes="h2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <Button Command="{Binding ToggleNetworkSection}"
-                                    Background="Transparent"
-                                    BorderThickness="0"
+                            <Button Classes="cardAction" Command="{Binding ToggleNetworkSection}"
                                     HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Cursor="Hand">
+                                    VerticalAlignment="Center">
                                 <Grid>
                                     <PathIcon Data="{StaticResource ChevronUpIcon}" IsVisible="{Binding !IsNetworkSectionExpanded}"/>
                                     <PathIcon Data="{StaticResource ChevronDownIcon}" IsVisible="{Binding IsNetworkSectionExpanded}"/>
