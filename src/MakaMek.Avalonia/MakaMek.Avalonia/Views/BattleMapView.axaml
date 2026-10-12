@@ -67,6 +67,7 @@
             <Grid Grid.Column="1"
                   x:Name="TurnInfoPanel"
                   Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
+                  TextElement.Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                   ColumnDefinitions="*,*,*">
                 <!-- Turn Info Section -->
                 <Border Grid.Column="0" 
@@ -75,28 +76,24 @@
                         <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Turn'}"
                                      Classes="turnInfoLabel"
-                                     HorizontalAlignment="Center"
-                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                     HorizontalAlignment="Center"/>
                             <TextBlock Text="{Binding Turn}"
                                      Classes="turnInfo"
                                      FontWeight="Bold" 
-                                     HorizontalAlignment="Center"
-                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                     HorizontalAlignment="Center"/>
                         </StackPanel>
                         
                         <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
                             <TextBlock Text="{extensions:Localize 'BattleMap_Phase'}"
                                      Classes="turnInfoLabel"
-                                     HorizontalAlignment="Center"
-                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                     HorizontalAlignment="Center"/>
                             <TextBlock Text="{Binding TurnPhaseName}"
                                      Classes="turnInfo"
                                      FontWeight="Bold" 
                                      TextWrapping="Wrap"
                                      TextAlignment="Center"
                                      VerticalAlignment="Center"
-                                     HorizontalAlignment="Center"
-                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                     HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -108,13 +105,11 @@
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <TextBlock Text="{extensions:Localize 'BattleMap_ActivePlayer'}"
                                  Classes="turnInfoLabel"
-                                 HorizontalAlignment="Center"
-                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                 HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding ActivePlayerName}"
                                  Classes="turnInfo"
                                  FontWeight="Bold" 
-                                 HorizontalAlignment="Center"
-                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                                 HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
                 
@@ -126,7 +121,6 @@
                              Classes="turnInfo"
                              TextWrapping="Wrap"
                              FontWeight="Bold"
-                             Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                              VerticalAlignment="Center"
                              TextAlignment="Center"
                              HorizontalAlignment="Center"/>
