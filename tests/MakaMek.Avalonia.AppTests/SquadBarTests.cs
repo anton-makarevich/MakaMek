@@ -187,6 +187,12 @@ public class SquadBarTests
             var tiles = Tiles(view);
             var units = viewModel.LocalUnits.ToList();
             units.Select(unit => unit.Facing).Distinct().Count().ShouldBe(4, "the fixture faces each unit differently");
+            // The images are decoded off the UI thread, and the tint is cut from them.
+            for (var i = 0; i < 100 && tiles.Any(tile => tile.FindControl<Image>("UnitImage")!.Source == null); i++)
+            {
+                await Task.Delay(50);
+                Settle(window);
+            }
 
             for (var i = 0; i < tiles.Count; i++)
             {
