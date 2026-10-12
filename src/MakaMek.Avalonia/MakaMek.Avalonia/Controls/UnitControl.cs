@@ -460,7 +460,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 UiEventType.StructureDamage =>
                     _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                     ?? new SolidColorBrush(Colors.Orange),
-                _ => _resourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
+                _ => _resourcesLocator.TryFindResource("DestroyedBrush") as SolidColorBrush
                      ?? new SolidColorBrush(Colors.Red)
             };
         }
