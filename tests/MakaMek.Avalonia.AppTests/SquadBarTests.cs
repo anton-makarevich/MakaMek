@@ -132,6 +132,18 @@ public class SquadBarTests
             var selected = viewModel.SelectedUnit.ShouldNotBeNull();
             selected.ShouldBe(viewModel.LocalUnits.First());
             (map.RenderTransform?.Value == before).ShouldBeFalse("the view wires FocusUnit to the map");
+
+            // The transform centres the map on the selected unit: its hex centre, run through the
+            // map's render transform, lands in the middle of the visual parent's viewport (the parent
+            // clips the oversized canvas, so it is the visible viewport).
+            var position = selected.Position.ShouldNotBeNull("the selected unit is deployed");
+            var hexCentre = new Point(
+                position.Coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
+                position.Coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
+            var rendered = map.RenderTransform!.Value.Transform(hexCentre);
+            var viewport = map.GetVisualParent()!.Bounds.Size;
+            rendered.X.ShouldBe(viewport.Width / 2, 0.01, "the selected unit is centred horizontally");
+            rendered.Y.ShouldBe(viewport.Height / 2, 0.01, "the selected unit is centred vertically");
         }
         finally
         {
