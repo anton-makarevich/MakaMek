@@ -2,18 +2,21 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Views;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
@@ -105,10 +108,15 @@ public class SquadBarTests
             var third = viewModel.LocalUnits.ElementAt(2);
             Tiles(view).ShouldAllBe(tile => !tile.IsActive);
 
+            var map = view.FindControl<HexMap>("MapCanvas").ShouldNotBeNull();
+            var before = map.RenderTransform?.Value;
+
             Click(window, Tiles(view)[2]);
 
             viewModel.SelectedUnit.ShouldBe(third);
             viewModel.IsRecordSheetExpanded.ShouldBeFalse("a tile click selects, it does not open the sheet");
+            (map.RenderTransform?.Value == before).ShouldBeFalse("a tile click brings its unit into view");
+            ShouldBeCentredOn(map, third);
             // Asked again: the bar rebuilds its tiles whenever LocalUnits is raised.
             Tiles(view).Select(tile => tile.IsActive).ShouldBe([false, false, true, false]);
         }
@@ -132,18 +140,65 @@ public class SquadBarTests
             var selected = viewModel.SelectedUnit.ShouldNotBeNull();
             selected.ShouldBe(viewModel.LocalUnits.First());
             (map.RenderTransform?.Value == before).ShouldBeFalse("the view wires FocusUnit to the map");
+            ShouldBeCentredOn(map, selected);
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
 
-            // The transform centres the map on the selected unit: its hex centre, run through the
-            // map's render transform, lands in the middle of the visual parent's viewport (the parent
-            // clips the oversized canvas, so it is the visible viewport).
-            var position = selected.Position.ShouldNotBeNull("the selected unit is deployed");
-            var hexCentre = new Point(
-                position.Coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
-                position.Coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
-            var rendered = map.RenderTransform!.Value.Transform(hexCentre);
-            var viewport = map.GetVisualParent()!.Bounds.Size;
-            rendered.X.ShouldBe(viewport.Width / 2, 0.01, "the selected unit is centred horizontally");
-            rendered.Y.ShouldBe(viewport.Height / 2, 0.01, "the selected unit is centred vertically");
+    [Fact]
+    public Task TileOfAnUnavailableUnit_IsDisabledAndGreyed() => HarnessSession.Run(async () =>
+    {
+        var (window, view, viewModel) = await ShowBattleMapWithSquad();
+        try
+        {
+            var second = viewModel.LocalUnits.ElementAt(1);
+            second.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+            viewModel.NotifyStateChanged();
+            Settle(window);
+
+            var tiles = Tiles(view);
+            tiles.Select(tile => tile.GetVisualDescendants().OfType<Button>().First().IsEffectivelyEnabled)
+                .ShouldBe([true, false, true, true]);
+            tiles.Select(tile => tile.GetVisualDescendants().OfType<Border>()
+                    .First(border => border.Classes.Contains("tile")).Opacity)
+                .ShouldBe([1, 0.45, 1, 1]);
+            tiles.Select(tile => tile.FindControl<global::Avalonia.Controls.Shapes.Path>("NotOperationalMark")!.IsVisible)
+                .ShouldBe([false, true, false, false], "the bar rebuilds its tiles when the state changes");
+
+            Click(window, tiles[1]);
+
+            viewModel.SelectedUnit.ShouldBeNull("a disabled tile does not select its unit");
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    [Fact]
+    public Task TileIcon_IsTintedAndTurned_LikeTheUnitOnTheMap() => HarnessSession.Run(async () =>
+    {
+        var (window, view, viewModel) = await ShowBattleMapWithSquad();
+        try
+        {
+            var tiles = Tiles(view);
+            var units = viewModel.LocalUnits.ToList();
+            units.Select(unit => unit.Facing).Distinct().Count().ShouldBe(4, "the fixture faces each unit differently");
+
+            for (var i = 0; i < tiles.Count; i++)
+            {
+                var icon = tiles[i].FindControl<Panel>("UnitIcon").ShouldNotBeNull();
+                icon.RenderTransform.ShouldBeOfType<RotateTransform>().Angle.ShouldBe((int)units[i].Facing!.Value * 60);
+
+                var tint = tiles[i].FindControl<Border>("UnitTint").ShouldNotBeNull();
+                tint.Background.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(Color.Parse(units[i].Owner!.Tint));
+                ReferenceEquals(tint.OpacityMask.ShouldBeOfType<ImageBrush>().Source,
+                        tiles[i].FindControl<Image>("UnitImage")!.Source.ShouldNotBeNull())
+                    .ShouldBeTrue("the tint is cut to the shape of the unit image");
+            }
         }
         finally
         {
@@ -175,6 +230,23 @@ public class SquadBarTests
 
     private static List<SquadUnitTile> Tiles(BattleMapView view) =>
         view.GetVisualDescendants().OfType<SquadUnitTile>().ToList();
+
+    /// <summary>
+    /// The transform centres the map on the unit: its hex centre, run through the map's render
+    /// transform, lands in the middle of the visual parent's viewport (the parent clips the
+    /// oversized canvas, so it is the visible viewport).
+    /// </summary>
+    private static void ShouldBeCentredOn(HexMap map, IUnit unit)
+    {
+        var position = unit.Position.ShouldNotBeNull("the unit is deployed");
+        var hexCentre = new Point(
+            position.Coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
+            position.Coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
+        var rendered = map.RenderTransform!.Value.Transform(hexCentre);
+        var viewport = map.GetVisualParent()!.Bounds.Size;
+        rendered.X.ShouldBe(viewport.Width / 2, 0.01, "the unit is centred horizontally");
+        rendered.Y.ShouldBe(viewport.Height / 2, 0.01, "the unit is centred vertically");
+    }
 
     private static void Click(Window window, Control control)
     {
@@ -220,7 +292,7 @@ public class SquadBarTests
                 PlayerId = player.Id,
                 UnitId = unit.Id,
                 Position = new HexCoordinates(hex + 3, hex + 2).ToData(),
-                Direction = 0
+                Direction = hex - 1
             });
             hex++;
         }

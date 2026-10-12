@@ -3893,7 +3893,7 @@ public class BattleMapViewModelTests
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayerWithUnits(active.Id, 1);
         var unit = _sut.LocalUnits.Single(u => u.Owner!.Id == active.Id);
-        var rejectedUnit = _sut.LocalUnits.Single(u => u.Owner!.Id == first.Id);
+        var rejectedUnit = _game.Players.Single(player => player.Id == first.Id).Units.Single();
         _sut.SelectedUnit = unit;
         _sut.IsRecordSheetExpanded = true;
         var focused = new List<IUnit>();
@@ -3912,7 +3912,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public async Task SelectSquadUnitCommand_SelectsTheUnit_WithoutOpeningSheetOrPanning()
+    public async Task SelectSquadUnitCommand_SelectsTheUnitAndFocusesIt_WithoutOpeningSheet()
     {
         var squad = SetUpSquadNavigation(PhaseNames.End, 2);
         var focused = new List<IUnit>();
@@ -3922,7 +3922,57 @@ public class BattleMapViewModelTests
 
         _sut.SelectedUnit.ShouldBe(squad[1]);
         _sut.IsRecordSheetExpanded.ShouldBeFalse();
-        focused.ShouldBeEmpty();
+        focused.ShouldHaveSingleItem().ShouldBe(squad[1]);
+    }
+
+    [Fact]
+    public void SelectSquadUnit_WhenTheUnitIsAlreadySelected_FocusesItAgain()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        _sut.SelectedUnit = squad[0];
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        _sut.SelectSquadUnit(squad[0]);
+
+        focused.ShouldHaveSingleItem().ShouldBe(squad[0]);
+    }
+
+    [Fact]
+    public void SelectSquadUnitCommand_CanExecute_OnlyForAnAvailableUnit()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.End, 2);
+        squad[0].Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        _sut.SelectSquadUnitCommand.CanExecute(squad[0]).ShouldBeFalse("a shutdown unit cannot be picked");
+        _sut.SelectSquadUnitCommand.CanExecute(squad[1]).ShouldBeTrue();
+        _sut.SelectSquadUnitCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SelectSquadUnitCommand_CanExecute_IsFalseForAUnitThatHasMoved()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.Movement, 2);
+        var position = new HexPosition(1, 1, HexDirection.Bottom);
+        squad[0].Deploy(position, null);
+        squad[1].Deploy(new HexPosition(2, 2, HexDirection.Bottom), null);
+        _sut.SelectSquadUnitCommand.CanExecute(squad[0]).ShouldBeTrue();
+        squad[0].Move(MovementPath.CreateSingleSegmentPath(position), null, true);
+
+        _sut.SelectSquadUnitCommand.CanExecute(squad[0]).ShouldBeFalse();
+        _sut.SelectSquadUnitCommand.CanExecute(squad[1]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void NotifyStateChanged_AsksTheSquadTilesToCheckAvailabilityAgain()
+    {
+        SetUpSquadNavigation(PhaseNames.End);
+        var raised = 0;
+        _sut.SelectSquadUnitCommand.CanExecuteChanged += (_, _) => raised++;
+
+        _sut.NotifyStateChanged();
+
+        raised.ShouldBe(1);
     }
 
     [Fact]
@@ -3965,8 +4015,14 @@ public class BattleMapViewModelTests
 
         _sut.SelectSquadUnit(squad[1]);
 
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        _sut.SelectSquadUnit(squad[1]);
+
         state.DidNotReceive().HandleUnitSelectionFromList(Arg.Any<IUnit?>());
         _sut.SelectedUnit.ShouldBe(squad[0]);
+        focused.ShouldBeEmpty("the map does not move to a unit that was not selected");
     }
 
     [Fact]
@@ -4069,27 +4125,70 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public async Task SelectNextAvailableUnit_InEndState_BrowsesCompletedUnitsDuringRemotePlayersTurn()
+    public async Task SquadBar_IsHidden_DuringARemotePlayersTurn()
     {
-        var unit = SetUpSquadNavigation(PhaseNames.End).Single();
-        var position = new HexPosition(1, 1, HexDirection.Bottom);
-        unit.Deploy(position, null);
-        unit.Move(MovementPath.CreateSingleSegmentPath(position), null, true);
-        unit.DeclareWeaponAttack([]);
+        SetUpSquadNavigation(PhaseNames.End);
         var remote = JoinPlayer("Opponent", "#00FF00", false);
         SetActivePlayer(remote.Id);
-        _sut.CurrentState.ShouldBeOfType<EndState>();
-        _sut.CurrentState.CanHumanPlayerAct().ShouldBeFalse();
         _sut.CurrentState.IsActiveHumanPlayer().ShouldBeFalse();
         var focused = new List<IUnit>();
         _sut.FocusUnit = focused.Add;
 
         await _sut.SelectNextAvailableUnit();
 
-        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
-        _sut.SelectedUnit.ShouldBe(unit);
-        focused.ShouldHaveSingleItem().ShouldBe(unit);
-        _sut.IsRecordSheetExpanded.ShouldBeFalse();
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+        _sut.SelectedUnit.ShouldBeNull();
+        focused.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SquadBar_IsHidden_DuringALocalBotsTurn()
+    {
+        SetUpSquadNavigation(PhaseNames.End);
+        var bot = new Player(Guid.NewGuid(), "Bot", PlayerControlType.Bot, "#00FF00");
+        _game.JoinGameWithUnits(bot, [MechFactoryTests.CreateDummyMechData() with { Id = Guid.NewGuid() }], []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = bot.Id,
+            PlayerName = bot.Name,
+            Units = [MechFactoryTests.CreateDummyMechData() with { Id = Guid.NewGuid() }],
+            Tint = bot.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        });
+        _game.LocalPlayers.ShouldContain(bot.Id);
+
+        SetActivePlayer(bot.Id);
+
+        _sut.LocalUnits.ShouldBeEmpty();
+        _sut.IsSquadStatusBarVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void LocalUnits_WithTwoLocalPlayers_ListsOnlyTheActivePlayersUnits()
+    {
+        var first = JoinPlayerWithUnit("Player1", "#FF0000", 2);
+        var second = JoinPlayerWithUnit("Player2", "#00FF00");
+        SetPhase(PhaseNames.End);
+
+        SetActivePlayer(first.Id);
+        _sut.LocalUnits.ShouldAllBe(unit => unit.Owner!.Id == first.Id);
+        _sut.LocalUnits.Count().ShouldBe(2);
+
+        SetActivePlayer(second.Id);
+        _sut.LocalUnits.ShouldHaveSingleItem().Owner!.Id.ShouldBe(second.Id);
+    }
+
+    [Fact]
+    public void LocalUnits_IsANewList_EachTimeItIsRead()
+    {
+        // The view rebuilds its tiles only when the bound value is a different object.
+        SetUpSquadNavigation(PhaseNames.End, 2);
+
+        _sut.LocalUnits.ShouldNotBeSameAs(_sut.LocalUnits);
     }
 
     [Fact]
@@ -4285,8 +4384,8 @@ public class BattleMapViewModelTests
         var active = JoinPlayerWithUnit("Active", "#00FF00");
         SetPhase(phase);
         SetActivePlayerWithUnits(active.Id, 1);
-        var unit = _sut.LocalUnits.Single(u => u.Owner!.Id == active.Id);
-        _sut.LocalUnits.Count().ShouldBe(2);
+        var unit = _sut.LocalUnits.ShouldHaveSingleItem();
+        unit.Owner!.Id.ShouldBe(active.Id);
         _game.LocalPlayers.ShouldContain(first.Id);
         _game.LocalPlayers.ShouldContain(active.Id);
         var focused = new List<IUnit>();

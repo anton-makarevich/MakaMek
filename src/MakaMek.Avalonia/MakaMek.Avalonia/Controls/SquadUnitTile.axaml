@@ -13,6 +13,16 @@
         <Style Selector="Border.tile.active">
             <Setter Property="BorderBrush" Value="{StaticResource HighlightBrush}"/>
         </Style>
+        <!-- A unit that cannot be picked now is greyed, unless it is the one being acted with. -->
+        <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button:disabled Border.tile">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+        <Style Selector="Button:disabled Border.tile.active">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
     </UserControl.Styles>
     <!-- For finding and identifying a unit quickly. Details belong to the record sheet. -->
     <Button Command="{Binding #SquadTile.SelectCommand}"
@@ -30,7 +40,11 @@
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
                     <Grid Width="44" Height="44">
-                        <Image x:Name="UnitImage" Stretch="Uniform"/>
+                        <!-- Tinted and turned like the unit's token on the map. -->
+                        <Panel x:Name="UnitIcon" RenderTransformOrigin="50%,50%">
+                            <Image x:Name="UnitImage" Stretch="Uniform"/>
+                            <Border x:Name="UnitTint" Opacity="0.7"/>
+                        </Panel>
                         <!-- Out of action: crossed out instead of described. -->
                         <Path x:Name="NotOperationalMark"
                               Data="M 6,6 L 38,38 M 38,6 L 6,38"

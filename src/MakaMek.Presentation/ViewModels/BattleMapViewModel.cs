@@ -208,7 +208,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         {
             SelectSquadUnit(unit);
             return Task.CompletedTask;
-        });
+        }, parameter => parameter is IUnit unit && IsUnitAvailableForNavigation(unit));
         TurnNotificationShownCommand = new AsyncCommand<TurnNotification>(notification =>
         {
             if (notification != null)
@@ -717,6 +717,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(LocalUnits));
         NotifyPropertyChanged(nameof(IsSquadStatusBarVisible));
         NotifyPropertyChanged(nameof(IsNextAvailableUnitVisible));
+        (SelectSquadUnitCommand as AsyncCommand<IUnit>)?.RaiseCanExecuteChanged();
 
         // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
@@ -1069,6 +1070,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
         NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
         NotifyPropertyChanged(nameof(IsNextAvailableUnitVisible));
+        (SelectSquadUnitCommand as AsyncCommand<IUnit>)?.RaiseCanExecuteChanged();
 
         UpdateSelectedUnitEvents();
 
@@ -1156,11 +1158,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public bool IsRecordSheetPanelVisible => SelectedUnit != null && IsRecordSheetExpanded;
 
     /// <summary>
-    /// Gets all local players' units for the squad status bar, including unavailable units.
+    /// Gets the units for the squad status bar: the active player's, including unavailable ones,
+    /// while that player is a local human. Empty on a remote player's or a bot's turn.
     /// </summary>
-    public IEnumerable<IUnit> LocalUnits => Game?.Players
-        .Where(player => Game.LocalPlayers.Contains(player.Id))
-        .SelectMany(player => player.Units) ?? [];
+    public IEnumerable<IUnit> LocalUnits => IsLocalPlayerTurn
+        // A new list each time: the bar rebuilds its tiles from it, which is how they refresh.
+        ? Game?.PhaseStepState?.ActivePlayer.Units.ToList() ?? []
+        : [];
 
     public bool IsSquadStatusBarVisible => LocalUnits.Any();
 
@@ -1216,14 +1220,17 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
-    /// Selects a unit from the squad bar under the current state's own selection rules,
-    /// without opening the record sheet or moving the map.
+    /// Selects a unit from the squad bar under the current state's own selection rules and
+    /// centers the map on it, without opening the record sheet.
     /// </summary>
     public void SelectSquadUnit(IUnit? unit)
     {
+        if (unit == null) return;
         // Reselecting the same unit would restart its unfinished movement or attack.
-        if (unit == null || unit == SelectedUnit) return;
-        SelectedUnit = unit;
+        if (SelectedUnit != unit)
+            SelectedUnit = unit;
+        if (SelectedUnit == unit)
+            FocusUnit?.Invoke(unit);
     }
 
     /// <summary>
@@ -1269,12 +1276,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public ICommand NextAvailableUnitCommand { get; }
 
     /// <summary>
-    /// Gets the command that selects the unit of a clicked squad tile.
+    /// Gets the command that selects the unit of a clicked squad tile. It cannot execute for a
+    /// unit that is not available, which is what disables that unit's tile.
     /// </summary>
     public ICommand SelectSquadUnitCommand { get; }
 
     /// <summary>
-    /// Callback used after successful next-unit navigation, without adding a separate map control.
+    /// Callback used after successful squad navigation, without adding a separate map control.
     /// </summary>
     public Action<IUnit>? FocusUnit { get; set; }
 

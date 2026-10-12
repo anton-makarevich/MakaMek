@@ -4,6 +4,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -51,7 +52,19 @@ public partial class SquadUnitTile : UserControl
         var serviceProvider = ((App?)Application.Current)?.ServiceProvider;
         _imageService = serviceProvider?.GetService<IImageService>() as IImageService<Bitmap>;
         _logger = serviceProvider?.GetService<ILogger<SquadUnitTile>>();
-        DataContextChanged += (_, _) => LoadUnitImage().SafeFireAndForget();
+        DataContextChanged += (_, _) =>
+        {
+            ShowFacing();
+            LoadUnitImage().SafeFireAndForget();
+        };
+    }
+
+    private void ShowFacing()
+    {
+        // A unit that has not deployed has no facing and stays upright.
+        UnitIcon.RenderTransform = DataContext is IUnit { Facing: { } facing }
+            ? new RotateTransform((int)facing * 60)
+            : null;
     }
 
     private async Task LoadUnitImage()
@@ -61,8 +74,11 @@ public partial class SquadUnitTile : UserControl
         {
             var image = await _imageService.GetImage("units/mechs", unit.Model.ToUpperInvariant());
             // The tile may have been handed another unit while the image was loading.
-            if (image != null && ReferenceEquals(DataContext, unit))
-                UnitImage.Source = image;
+            if (image == null || !ReferenceEquals(DataContext, unit)) return;
+            UnitImage.Source = image;
+            if (unit.Owner == null) return;
+            UnitTint.OpacityMask = new ImageBrush { Source = image, Stretch = Stretch.Uniform };
+            UnitTint.Background = new SolidColorBrush(Color.Parse(unit.Owner.Tint));
         }
         catch (Exception ex)
         {
