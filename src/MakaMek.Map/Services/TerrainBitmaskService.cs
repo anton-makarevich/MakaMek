@@ -115,12 +115,18 @@ public class TerrainBitmaskService : ITerrainBitmaskService
         CanonicalBitmaskResult? roadBitmask = null;
         if (!hex.HasTerrain(MakaMekTerrains.Road) && !hex.HasTerrain(MakaMekTerrains.Bridge))
             return new HexRenderData(hex, edges, waterBitmask, roadBitmask);
+        roadBitmask = CanonicalizeRawMask(ComputeRoadConnectivityMask(map, coordinates));
+
+        return new HexRenderData(hex, edges, waterBitmask, roadBitmask);
+    }
+
+    /// <inheritdoc />
+    public byte ComputeRoadConnectivityMask(IBattleMap map, HexCoordinates coordinates)
+    {
         var rawRoad = ComputeRawBitmask(map, coordinates, MakaMekTerrains.Road,
             (current, neighbor) => current.CanRoadConnectTo(neighbor));
         var rawBridge = ComputeRawBitmask(map, coordinates, MakaMekTerrains.Bridge,
             (current, neighbor) => current.CanRoadConnectTo(neighbor));
-        roadBitmask = CanonicalizeRawMask((byte)(rawRoad | rawBridge));
-
-        return new HexRenderData(hex, edges, waterBitmask, roadBitmask);
+        return (byte)(rawRoad | rawBridge);
     }
 }

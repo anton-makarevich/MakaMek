@@ -965,4 +965,92 @@ public class TerrainBitmaskServiceTests
         Should.Throw<ArgumentException>(() =>
             _sut.CreateHexRenderData(map, new HexCoordinates(2, 2)));
     }
+
+    // ── ComputeRoadConnectivityMask ──────────────────────────────────────────
+
+    [Fact]
+    public void ComputeRoadConnectivityMask_RoadAndBridgeNeighbors_SetsBothBits()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Road);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            Hex neighborHex;
+            switch (direction)
+            {
+                case HexDirection.Top:
+                    neighborHex = CreateHexWithTerrain(MakaMekTerrains.Road);
+                    break;
+                case HexDirection.TopRight:
+                    neighborHex = new Hex(new HexCoordinates(0, 0));
+                    neighborHex.AddTerrain(new BridgeTerrain());
+                    break;
+                default:
+                    neighborHex = CreateHexWithTerrain(MakaMekTerrains.Clear);
+                    break;
+            }
+
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        // Act
+        var result = _sut.ComputeRoadConnectivityMask(map, centerCoords);
+
+        // Assert
+        result.ShouldBe((byte)0b000011);
+    }
+
+    [Fact]
+    public void ComputeRoadConnectivityMask_NeighborTwoLevelsAway_DoesNotSetBit()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+
+        var centerHex = CreateHexWithTerrain(MakaMekTerrains.Road, level: 2);
+        map.GetHex(centerCoords).Returns(centerHex);
+
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            var neighborHex = direction == HexDirection.Top
+                ? CreateHexWithTerrain(MakaMekTerrains.Road, level: 0)
+                : CreateHexWithTerrain(MakaMekTerrains.Clear);
+            map.GetHex(neighborCoords).Returns(neighborHex);
+        }
+
+        // Act
+        var result = _sut.ComputeRoadConnectivityMask(map, centerCoords);
+
+        // Assert
+        result.ShouldBe((byte)0);
+    }
+
+    [Fact]
+    public void ComputeRoadConnectivityMask_NoRoadNeighbors_ReturnsZero()
+    {
+        // Arrange
+        var map = Substitute.For<IBattleMap>();
+        var centerCoords = new HexCoordinates(3, 3);
+
+        map.GetHex(centerCoords).Returns(CreateHexWithTerrain(MakaMekTerrains.Road));
+
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = centerCoords.GetNeighbour(direction);
+            map.GetHex(neighborCoords).Returns(CreateHexWithTerrain(MakaMekTerrains.Clear));
+        }
+
+        // Act
+        var result = _sut.ComputeRoadConnectivityMask(map, centerCoords);
+
+        // Assert
+        result.ShouldBe((byte)0);
+    }
 }
