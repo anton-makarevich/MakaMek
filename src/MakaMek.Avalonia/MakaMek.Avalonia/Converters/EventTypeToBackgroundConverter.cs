@@ -29,7 +29,7 @@ namespace Sanet.MakaMek.Avalonia.Converters
                                                ?? new SolidColorBrush(Colors.LightBlue),
                     UiEventType.StructureDamage => _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                                                   ?? new SolidColorBrush(Colors.Orange),
-                    _ => _resourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
+                    _ => _resourcesLocator.TryFindResource("DestroyedBrush") as SolidColorBrush
                                                 ?? new SolidColorBrush(Colors.Red)
                 };
             }
