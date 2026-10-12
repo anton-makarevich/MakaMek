@@ -12,7 +12,7 @@ public class LocalizationResourcesTests
     {
         var localizationService = TestLocalizationService.Create();
 
-        localizationService.ShouldBeOfType<ResourceLocalizationService>();
+        localizationService.ShouldBeOfType<LocalizationService>();
         typeof(LocalizationResourcesAnchor).Assembly.GetManifestResourceNames()
             .ShouldContain($"{LocalizationResourcesAnchor.ResourceBaseName}.resources");
         localizationService.GetString("Window_Title").ShouldBe("MakaMek");

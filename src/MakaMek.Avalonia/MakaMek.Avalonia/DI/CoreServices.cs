@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
+using Sanet.Localization.Providers;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Avalonia.Services;
@@ -101,8 +102,9 @@ public static class CoreServices
 
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
-        services.AddLocalization(typeof(LocalizationResourcesAnchor).Assembly,
-            LocalizationResourcesAnchor.ResourceBaseName);
+        services.AddLocalization(new EmbeddedResourcesProvider(
+            typeof(LocalizationResourcesAnchor).Assembly,
+            LocalizationResourcesAnchor.ResourceBaseName));
         services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
 
         // Converters that consume ILocalizationService

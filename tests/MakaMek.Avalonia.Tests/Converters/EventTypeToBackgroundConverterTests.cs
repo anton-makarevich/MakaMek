@@ -101,11 +101,11 @@ public class EventTypeToBackgroundConverterTests
     [InlineData(UiEventType.ComponentDestroyed)]
     [InlineData(UiEventType.LocationDestroyed)]
     [InlineData(UiEventType.UnitDestroyed)]
-    public void Convert_OtherEventTypes_ReturnsDestroyedColorBrush(UiEventType eventType)
+    public void Convert_OtherEventTypes_ReturnsDestroyedBrush(UiEventType eventType)
     {
         // Arrange
         var resourceBrush = new SolidColorBrush(Colors.DarkRed);
-        _resourcesLocator.TryFindResource("DestroyedColor").Returns(resourceBrush);
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(resourceBrush);
 
         // Act
         var result = _sut.Convert(eventType, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -125,7 +125,7 @@ public class EventTypeToBackgroundConverterTests
     {
         // Arrange
         var expectedBrush = new SolidColorBrush(Colors.Red);
-        _resourcesLocator.TryFindResource("DestroyedColor").Returns(null!);
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(null!);
 
         // Act
         var result = _sut.Convert(eventType, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
