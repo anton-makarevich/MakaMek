@@ -247,6 +247,22 @@ public class MapTransformCalculatorTests
     }
 
     [Fact]
+    public void CenterOn_ShouldAllowForWhereTheContentStartsInTheViewport()
+    {
+        // Arrange
+        _sut.SetTransform(1.5, 10, 20);
+        var content = new Point(200, 100);
+        var origin = new Point(-60, 40);
+
+        // Act
+        _sut.CenterOn(content, new Size(800, 600), origin);
+
+        // Assert
+        var inViewport = _sut.LocalToParent(content) + origin;
+        inViewport.ShouldBe(new Point(400, 300));
+    }
+
+    [Fact]
     public void CenterOn_ShouldKeepTheScale()
     {
         // Arrange

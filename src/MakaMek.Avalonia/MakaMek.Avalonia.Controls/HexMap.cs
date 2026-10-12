@@ -365,7 +365,8 @@ public class HexMap : Canvas
         var hexCenter = new Point(
             coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
             coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
-        _calculator.CenterOn(hexCenter, viewport);
+        // Layout centers the canvas in that cell, so its own origin is not the viewport's.
+        _calculator.CenterOn(hexCenter, viewport, Bounds.Position);
         SyncTransform();
     }
 

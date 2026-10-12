@@ -232,9 +232,9 @@ public class SquadBarTests
         view.GetVisualDescendants().OfType<SquadUnitTile>().ToList();
 
     /// <summary>
-    /// The transform centres the map on the unit: its hex centre, run through the map's render
-    /// transform, lands in the middle of the visual parent's viewport (the parent clips the
-    /// oversized canvas, so it is the visible viewport).
+    /// The unit's hex centre lands in the middle of the visual parent's viewport (the parent clips
+    /// the oversized canvas, so it is the visible viewport). Measured where the hex is drawn, which
+    /// takes in both the render transform and where layout put the canvas.
     /// </summary>
     private static void ShouldBeCentredOn(HexMap map, IUnit unit)
     {
@@ -242,8 +242,10 @@ public class SquadBarTests
         var hexCentre = new Point(
             position.Coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
             position.Coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
-        var rendered = map.RenderTransform!.Value.Transform(hexCentre);
-        var viewport = map.GetVisualParent()!.Bounds.Size;
+        var parent = map.GetVisualParent().ShouldNotBeNull();
+        var rendered = map.TranslatePoint(hexCentre, parent).ShouldNotBeNull();
+        var viewport = parent.Bounds.Size;
+        map.Bounds.Position.ShouldNotBe(default, "the fixture's canvas does not start at the viewport's corner");
         rendered.X.ShouldBe(viewport.Width / 2, 0.01, "the unit is centred horizontally");
         rendered.Y.ShouldBe(viewport.Height / 2, 0.01, "the unit is centred vertically");
     }
