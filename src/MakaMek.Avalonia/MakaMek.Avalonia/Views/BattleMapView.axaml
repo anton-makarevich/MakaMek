@@ -164,21 +164,6 @@
             </ListBox>
         </Grid>
         
-        <controls:WeaponSelectionPanel
-            x:Name="WeaponSelectionPanel"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"/>
-
-        <!-- Body Part Selector for Aimed Shots -->
-        <templatedControls:GamePanel
-            IsVisible="{Binding IsUnitPartSelectorVisible}"
-            Title="{extensions:Localize 'BattleMap_SelectTargetLocation'}"
-            CloseCommand="{Binding HideBodyPartSelectorCommand}"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center">
-            <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
-        </templatedControls:GamePanel>
-        
         <!-- The bottom edge: the squad bar along it, and the buttons that used to sit on the
              edge stacked above the bar so neither covers the other. -->
         <Grid RowDefinitions="*,Auto">
