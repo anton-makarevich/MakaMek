@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
@@ -350,6 +351,22 @@ public class HexMap : Canvas
     public void CenterMap()
     {
         _calculator.Center();
+        SyncTransform();
+    }
+
+    /// <summary>
+    /// Pans the map so the given hex is centered in the visible viewport, keeping the current zoom.
+    /// </summary>
+    public void CenterOnHex(HexCoordinates coordinates)
+    {
+        // Not this control's own bounds: the canvas is sized to the whole board and overflows its
+        // cell, so what the player can see is the parent's size.
+        var viewport = this.GetVisualParent()?.Bounds.Size ?? Bounds.Size;
+        var hexCenter = new Point(
+            coordinates.H + HexCoordinatesPixelExtensions.HexWidth / 2,
+            coordinates.V + HexCoordinatesPixelExtensions.HexHeight / 2);
+        // Layout centers the canvas in that cell, so its own origin is not the viewport's.
+        _calculator.CenterOn(hexCenter, viewport, Bounds.Position);
         SyncTransform();
     }
 
