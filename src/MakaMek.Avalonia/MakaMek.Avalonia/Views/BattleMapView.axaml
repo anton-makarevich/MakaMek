@@ -268,7 +268,7 @@
         <!-- Squad bar: one tile per local unit for getting to a unit quickly. -->
         <Border Grid.Row="1"
                 x:Name="SquadBar"
-                Background="{StaticResource OverlayBackgroundBrush}"
+                Background="{StaticResource OverlayTransparentBrush}"
                 Padding="6,4"
                 IsVisible="{Binding IsSquadStatusBarVisible}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
