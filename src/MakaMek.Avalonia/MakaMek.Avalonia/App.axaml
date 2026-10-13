@@ -15,6 +15,7 @@
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
             <converters:ActionToCommandConverter x:Key="ActionToCommandConverter"/>
             <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+            <converters:SquadTileActiveConverter x:Key="SquadTileActiveConverter"/>
             <!-- DI-injected converters (ModifierToTextConverter, ...ConnectionStatusBackgroundConverter)
                  are resolved from the service provider and added to Resources in App.axaml.cs. -->
 
