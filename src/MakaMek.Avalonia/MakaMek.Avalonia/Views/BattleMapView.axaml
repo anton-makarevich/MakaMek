@@ -164,21 +164,6 @@
             </ListBox>
         </Grid>
         
-        <controls:WeaponSelectionPanel
-            x:Name="WeaponSelectionPanel"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"/>
-
-        <!-- Body Part Selector for Aimed Shots -->
-        <templatedControls:GamePanel
-            IsVisible="{Binding IsUnitPartSelectorVisible}"
-            Title="{extensions:Localize 'BattleMap_SelectTargetLocation'}"
-            CloseCommand="{Binding HideBodyPartSelectorCommand}"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center">
-            <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
-        </templatedControls:GamePanel>
-        
         <!-- The bottom edge: the squad bar along it, and the buttons that used to sit on the
              edge stacked above the bar so neither covers the other. -->
         <Grid RowDefinitions="*,Auto">
@@ -265,6 +250,22 @@
                     Content="{Binding PlayerActionLabel}"/>
         </StackPanel>
 
+        <!-- Declared after the buttons along the bottom edge, so the panels cover the buttons
+             where they overlap. -->
+        <controls:WeaponSelectionPanel
+            x:Name="WeaponSelectionPanel"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"/>
+
+        <!-- Body Part Selector for Aimed Shots -->
+        <templatedControls:GamePanel
+            IsVisible="{Binding IsUnitPartSelectorVisible}"
+            Title="{extensions:Localize 'BattleMap_SelectTargetLocation'}"
+            CloseCommand="{Binding HideBodyPartSelectorCommand}"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center">
+            <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
+        </templatedControls:GamePanel>
         <!-- Squad bar: one tile per local unit for getting to a unit quickly. -->
         <Border Grid.Row="1"
                 x:Name="SquadBar"
