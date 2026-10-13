@@ -36,8 +36,12 @@ public static class AppHarness
             .UseDependencyInjection(services =>
             {
                 services.RegisterDesktopServices();
-                // The configured terrain source is remote. Point it at the repository's own pack
-                // so the map draws real hexes under the HUD instead of white space.
+                // The configured unit and terrain sources are remote. Point them at the
+                // repository's own packs so units load and tiles get their images locally,
+                // with no network.
+                services.AddSingleton<IUnitCachingService>(sp =>
+                    LocalGameFixture.CreateLocalUnitCachingService(
+                        sp.GetRequiredService<ILoggerFactory>()));
                 services.AddSingleton<ITerrainAssetService>(sp =>
                     LocalGameFixture.CreateLocalTerrainService(
                         sp.GetRequiredService<ILoggerFactory>()));
