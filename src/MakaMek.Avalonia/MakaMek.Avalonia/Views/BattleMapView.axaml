@@ -296,17 +296,6 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-                <Button Grid.Column="1"
-                        x:Name="NextUnitButton"
-                        Classes="actionButtonText"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding IsNextAvailableUnitVisible}"
-                        Command="{Binding NextAvailableUnitCommand}"
-                        Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
-                        Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
-                        ToolTip.Tip="{extensions:Localize 'BattleMap_NextUnit'}"
-                        AutomationProperties.Name="{extensions:Localize 'BattleMap_NextUnit'}"
-                        Content="{extensions:Localize 'BattleMap_NextUnitShort'}"/>
             </Grid>
         </Border>
         </Grid>
