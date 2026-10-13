@@ -23,6 +23,14 @@ public static class LocalGameFixture
     }
 
     /// <summary>
+    /// The repository's own unit pack, so the image service resolves tiles locally with no network.
+    /// </summary>
+    public static IUnitCachingService CreateLocalUnitCachingService(ILoggerFactory loggerFactory) =>
+        new UnitCachingService(
+            [new LocalFolderResourceStreamProvider(UnitsFolder(), "mmux", "bundled-units")],
+            loggerFactory);
+
+    /// <summary>
     /// The repository's own terrain pack, so the map renders real hexes with no network.
     /// </summary>
     public static ITerrainAssetService CreateLocalTerrainService(ILoggerFactory loggerFactory) =>
