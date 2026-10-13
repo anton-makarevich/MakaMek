@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.Localization.Providers;
@@ -46,7 +47,9 @@ public static class CoreServices
         // Unit caching service — providers are resolved lazily from IAssetProviderConfigurationProvider
         // on first cache access, so users can add/remove/toggle providers in Settings and the
         // changes take effect on the next asset load without a restart.
-        services.AddSingleton<IUnitCachingService>(sp =>
+        // TryAdd lets a host (e.g. the headless test harness) pre-register its own
+        // IUnitCachingService for this registration to defer to.
+        services.TryAddSingleton<IUnitCachingService>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var configProvider = sp.GetRequiredService<IAssetProviderConfigurationProvider>();
