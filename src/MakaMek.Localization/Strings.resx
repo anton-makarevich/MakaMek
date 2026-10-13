@@ -405,6 +405,10 @@
   <data name="BattleMap_UnitInfo" xml:space="preserve"><value>Unit Info</value></data>
   <data name="BattleMap_Commands" xml:space="preserve"><value>Commands</value></data>
   <data name="BattleMap_MapSettings" xml:space="preserve"><value>Map Settings</value></data>
+  <data name="BattleMap_SquadTonnage" xml:space="preserve"><value>{0}t</value></data>
+  <data name="BattleMap_SquadHeat" xml:space="preserve"><value>Heat {0}</value></data>
+  <data name="BattleMap_SquadMovement" xml:space="preserve"><value>MP {0}/{1}</value></data>
+  <data name="BattleMap_SquadJump" xml:space="preserve"><value>J{0}</value></data>
   <data name="BattleMap_CommandLog" xml:space="preserve"><value>Command Log</value></data>
   <data name="BattleMap_Settings" xml:space="preserve"><value>Settings</value></data>
   <data name="BattleMap_ShowLabels" xml:space="preserve"><value>Show Labels</value></data>

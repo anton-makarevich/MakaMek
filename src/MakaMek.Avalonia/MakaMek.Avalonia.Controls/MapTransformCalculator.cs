@@ -169,6 +169,15 @@ public class MapTransformCalculator
     public void Center() => SetTransform(1, 0, 0);
 
     /// <summary>
+    /// Pan so the given content point sits in the middle of the viewport, keeping the current scale.
+    /// <paramref name="origin"/> is where the untransformed content starts inside the viewport.
+    /// </summary>
+    public void CenterOn(Point content, Size viewport, Point origin = default) =>
+        SetTransform(Scale,
+            viewport.Width / 2 - origin.X - content.X * Scale,
+            viewport.Height / 2 - origin.Y - content.Y * Scale);
+
+    /// <summary>
     /// Reset scale to 1 while keeping the current translation.
     /// </summary>
     public void ResetZoom() => SetTransform(1, TranslateX, TranslateY);

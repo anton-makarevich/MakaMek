@@ -28,6 +28,13 @@
         <Setter Property="MinHeight" Value="0"/>
     </Style>
     
+    <!-- Thin bar, for a compact tile where the bar is read at a glance -->
+    <Style Selector="ProgressBar.thin">
+        <Setter Property="Height" Value="4"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="MinWidth" Value="0"/>
+    </Style>
+
     <!-- Destroyed part styles -->
     <Style Selector="ProgressBar.destroyed">
         <Setter Property="Background" Value="{StaticResource DestroyedBrush}"/>

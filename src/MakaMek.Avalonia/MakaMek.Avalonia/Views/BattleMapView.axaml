@@ -8,6 +8,7 @@
              xmlns:behaviors="using:Sanet.MakaMek.Avalonia.Behaviors"
              xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
              xmlns:uiStates="using:Sanet.MakaMek.Presentation.UiStates"
+             xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
              xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.BattleMapView"
@@ -178,6 +179,9 @@
             <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
         </templatedControls:GamePanel>
         
+        <!-- The bottom edge: the squad bar along it, and the buttons that used to sit on the
+             edge stacked above the bar so neither covers the other. -->
+        <Grid RowDefinitions="*,Auto">
         <StackPanel HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
                     Margin="{StaticResource PageMargin}"
@@ -260,6 +264,41 @@
                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                     Content="{Binding PlayerActionLabel}"/>
         </StackPanel>
+
+        <!-- Squad bar: one tile per local unit for getting to a unit quickly. -->
+        <Border Grid.Row="1"
+                x:Name="SquadBar"
+                Background="{StaticResource OverlayTransparentBrush}"
+                Padding="6,4"
+                IsVisible="{Binding IsSquadStatusBarVisible}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="SquadTiles" ItemsSource="{Binding LocalUnits}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="6"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="units:IUnit">
+                                <controls:SquadUnitTile
+                                    SelectCommand="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).SelectSquadUnitCommand}">
+                                    <controls:SquadUnitTile.IsActive>
+                                        <MultiBinding Converter="{StaticResource SquadTileActiveConverter}">
+                                            <Binding/>
+                                            <Binding Path="$parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).SelectedUnit"/>
+                                            <Binding Path="$parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).Attacker"/>
+                                        </MultiBinding>
+                                    </controls:SquadUnitTile.IsActive>
+                                </controls:SquadUnitTile>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        </Grid>
 
         <!-- Record Sheet Panel -->
         <templatedControls:GamePanel

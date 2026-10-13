@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:units="using:Sanet.MakaMek.Core.Models.Units"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.SquadUnitTile"
+             x:Name="SquadTile"
+             x:CompileBindings="True"
+             x:DataType="units:IUnit">
+    <UserControl.Styles>
+        <Style Selector="Border.tile">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.tile.active">
+            <Setter Property="BorderBrush" Value="{StaticResource HighlightBrush}"/>
+        </Style>
+        <!-- A unit that cannot be picked now is greyed, unless it is the one being acted with. -->
+        <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button:disabled Border.tile">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+        <Style Selector="Button:disabled Border.tile.active">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+    </UserControl.Styles>
+    <!-- For finding and identifying a unit quickly. Details belong to the record sheet. -->
+    <Button Command="{Binding #SquadTile.SelectCommand}"
+            CommandParameter="{Binding}"
+            AutomationProperties.Name="{Binding Name}"
+            Classes="cardAction"
+            Padding="0"
+            HorizontalContentAlignment="Stretch">
+        <Border Background="{StaticResource SurfaceBrush}"
+                Classes="card tile"
+                Classes.active="{Binding #SquadTile.IsActive}"
+                BorderThickness="2"
+                Padding="6,4"
+                Width="150">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                    <Grid Width="44" Height="44">
+                        <!-- Tinted and turned like the unit's token on the map. -->
+                        <Panel x:Name="UnitIcon" RenderTransformOrigin="50%,50%">
+                            <Image x:Name="UnitImage" Stretch="Uniform"/>
+                            <Border x:Name="UnitTint" Opacity="0.7"/>
+                        </Panel>
+                        <!-- Out of action: crossed out instead of described. -->
+                        <Path x:Name="NotOperationalMark"
+                              Data="M 6,6 L 38,38 M 38,6 L 6,38"
+                              Stroke="{StaticResource ErrorBrush}"
+                              StrokeThickness="4">
+                            <Path.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                                    <Binding Path="IsOutOfCommission"/>
+                                    <Binding Path="IsShutdown"/>
+                                </MultiBinding>
+                            </Path.IsVisible>
+                        </Path>
+                    </Grid>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock x:Name="PilotName"
+                                   Text="{Binding Pilot.Name}"
+                                   Classes="labelLarge"
+                                   Foreground="{StaticResource TextLightBrush}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <!-- Pilot health: a full bar that injuries eat into from the left. -->
+                        <ProgressBar x:Name="PilotInjuries"
+                                     Classes="thin"
+                                     Value="{Binding Pilot.Injuries}"
+                                     Maximum="{Binding Pilot.Health}"
+                                     Foreground="{StaticResource ErrorBrush}"
+                                     Background="{StaticResource SuccessBrush}"/>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
+                    <TextBlock x:Name="Tonnage"
+                               Text="{Binding Tonnage, StringFormat={extensions:Localize 'BattleMap_SquadTonnage'}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock x:Name="Heat"
+                               Text="{Binding CurrentHeat, StringFormat={extensions:Localize 'BattleMap_SquadHeat'}}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource TextLightBrush}"/>
+                    <TextBlock x:Name="Movement"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource TextLightBrush}">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{extensions:Localize 'BattleMap_SquadMovement'}">
+                                <Binding Path="AvailableWalkingPoints"/>
+                                <Binding Path="AvailableRunningPoints"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock x:Name="Jump"
+                               Text="{Binding AvailableJumpingPoints, StringFormat={extensions:Localize 'BattleMap_SquadJump'}}"
+                               IsVisible="{Binding AvailableJumpingPoints, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+                               Classes="bodySmall"
+                               Foreground="{StaticResource TextLightBrush}"/>
+                </StackPanel>
+                <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="4">
+                    <ProgressBar x:Name="Armor"
+                                 Classes="thin mechArmor"
+                                 Value="{Binding TotalCurrentArmor}"
+                                 Maximum="{Binding TotalMaxArmor}"/>
+                    <ProgressBar x:Name="Structure"
+                                 Grid.Column="1"
+                                 Classes="thin mechStructure"
+                                 Value="{Binding TotalCurrentStructure}"
+                                 Maximum="{Binding TotalMaxStructure}"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Button>
+</UserControl>
