@@ -148,6 +148,11 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (ViewModel == null) return;
         ViewModel.CaptureMap = CaptureViewMap;
         ViewModel.CenterMap = () => MapCanvas.CenterMap();
+        // A unit that has not deployed has no position, so there is nothing to center on.
+        ViewModel.FocusUnit = unit =>
+        {
+            if (unit.Position is { } position) MapCanvas.CenterOnHex(position.Coordinates);
+        };
         if (ViewModel.Game is not { } game) return;
         RenderMap(game);
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
