@@ -624,8 +624,6 @@ public class LocalizationResourcesTests
     [InlineData("BattleMap_UnitInfo", "Unit Info")]
     [InlineData("BattleMap_Commands", "Commands")]
     [InlineData("BattleMap_MapSettings", "Map Settings")]
-    [InlineData("BattleMap_NextUnit", "Next available unit")]
-    [InlineData("BattleMap_NextUnitShort", "Next")]
     [InlineData("BattleMap_SquadTonnage", "{0}t")]
     [InlineData("BattleMap_SquadHeat", "Heat {0}")]
     [InlineData("BattleMap_SquadMovement", "MP {0}/{1}")]

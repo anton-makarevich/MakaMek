@@ -41,7 +41,7 @@ namespace MakaMek.Avalonia.AppTests;
 public class SquadBarTests
 {
     [Fact]
-    public Task SquadBar_ShowsATilePerLocalUnit_WithTheNextUnitButtonInside() => HarnessSession.Run(async () =>
+    public Task SquadBar_ShowsATilePerLocalUnit() => HarnessSession.Run(async () =>
     {
         var (window, view, viewModel) = await ShowBattleMapWithSquad();
         try
@@ -52,10 +52,6 @@ public class SquadBarTests
             bar.IsEffectivelyVisible.ShouldBeTrue();
             var tiles = bar.GetVisualDescendants().OfType<SquadUnitTile>().ToList();
             tiles.Select(tile => tile.DataContext).ShouldBe(viewModel.LocalUnits);
-
-            var next = view.FindControl<Button>("NextUnitButton").ShouldNotBeNull();
-            next.IsEffectivelyVisible.ShouldBeTrue();
-            bar.GetVisualDescendants().ShouldContain(next, "next available belongs to the squad panel");
         }
         finally
         {
@@ -119,28 +115,6 @@ public class SquadBarTests
             ShouldBeCentredOn(map, third);
             // Asked again: the bar rebuilds its tiles whenever LocalUnits is raised.
             Tiles(view).Select(tile => tile.IsActive).ShouldBe([false, false, true, false]);
-        }
-        finally
-        {
-            window.Close();
-        }
-    });
-
-    [Fact]
-    public Task NextUnitButton_SelectsAUnitAndCentersTheMapOnIt() => HarnessSession.Run(async () =>
-    {
-        var (window, view, viewModel) = await ShowBattleMapWithSquad();
-        try
-        {
-            var map = view.FindControl<HexMap>("MapCanvas").ShouldNotBeNull();
-            var before = map.RenderTransform?.Value;
-
-            Click(window, view.FindControl<Button>("NextUnitButton")!);
-
-            var selected = viewModel.SelectedUnit.ShouldNotBeNull();
-            selected.ShouldBe(viewModel.LocalUnits.First());
-            (map.RenderTransform?.Value == before).ShouldBeFalse("the view wires FocusUnit to the map");
-            ShouldBeCentredOn(map, selected);
         }
         finally
         {
