@@ -180,7 +180,7 @@ public class BattleMapViewModelTests
     });
 
     /// <summary>
-    /// Joins a local player that owns a unit, so it counts towards <see cref="IGame.AlivePlayers"/>.
+    /// Joins a local player that owns a unit, so it counts towards <see cref="IGame.Players"/>.
     /// JoinPlayer deliberately joins without units, which leaves the player unable to act.
     /// </summary>
     private Player JoinPlayerWithUnit(string name, string tint, int unitCount = 1)
@@ -4012,8 +4012,6 @@ public class BattleMapViewModelTests
         state.SelectedUnit.Returns(squad[0]);
         state.CanSelectUnit(squad[1]).Returns(false);
         SetCurrentState(_sut, state);
-
-        _sut.SelectSquadUnit(squad[1]);
 
         var focused = new List<IUnit>();
         _sut.FocusUnit = focused.Add;
