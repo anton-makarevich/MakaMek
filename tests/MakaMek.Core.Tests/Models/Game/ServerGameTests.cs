@@ -72,6 +72,12 @@ public class ServerGameTests
     }
 
     [Fact]
+    public void SetBattleMap_AttachesTheServerRulesProviderToTheMap()
+    {
+        _sut.BattleMap!.MovementCostProvider.ShouldBeSameAs(_sut.RulesProvider);
+    }
+
+    [Fact]
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
         _sut.IsDisposed.ShouldBeFalse();

@@ -225,7 +225,7 @@ public class SkidInterruptHandler : IMovementInterruptHandler
                     Math.Abs(elevationChange));
             }
 
-            var movementCost = nextHex.GetEnterMovementCost(currentHex, currentSurface, nextSurface);
+            var movementCost = nextHex.GetEnterMovementCost(currentHex, currentSurface, nextSurface, game.RulesProvider);
             var fromPos2 = new HexPosition(currentCoords, skidFacing, currentSurface);
             var toPos2 = new HexPosition(nextCoords, skidFacing, nextSurface);
             var normalSegment = new PathSegment(fromPos2, toPos2, [])

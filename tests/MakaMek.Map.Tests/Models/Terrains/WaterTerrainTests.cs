@@ -40,39 +40,6 @@ public class WaterTerrainTests
     }
 
     [Fact]
-    public void MovementCost_ShallowWater_Returns0()
-    {
-        // Arrange
-        var terrain = new WaterTerrain();
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(0);
-    }
-
-    [Fact]
-    public void MovementCost_StandardDepth_Returns1()
-    {
-        // Arrange
-        var terrain = new WaterTerrain(-1);
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(1);
-    }
-
-    [Theory]
-    [InlineData(-2)]
-    [InlineData(-3)]
-    [InlineData(-5)]
-    public void MovementCost_DeepWater_Returns3(int depth)
-    {
-        // Arrange
-        var terrain = new WaterTerrain(depth);
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(3);
-    }
-    
-    [Fact]
     public void GetTerrainType_WithWater_ReturnsWaterTerrain()
     {
         // Act

@@ -358,6 +358,48 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindPath_UsesConfiguredMovementCostProvider()
+    {
+        var sut = BattleMapFactory.GenerateMap(2, 1,
+            new SingleTerrainGenerator(2, 1, new ClearTerrain()));
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new HeavyWoodsTerrain());
+        sut.MovementCostProvider = new FixedMovementCostProvider(0);
+
+        var path = sut.FindPath(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight),
+            new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight),
+            MovementType.Walk,
+            1,
+            1);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ChangingMovementCostProvider_InvalidatesPathCache()
+    {
+        var sut = BattleMapFactory.GenerateMap(2, 1,
+            new SingleTerrainGenerator(2, 1, new ClearTerrain()));
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new HeavyWoodsTerrain());
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        sut.FindPath(start, target, MovementType.Walk, 4, 1)!.TotalCost.ShouldBe(3);
+        sut.MovementCostProvider = new FixedMovementCostProvider(0);
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 1, 1);
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(1);
+    }
+
+    private sealed class FixedMovementCostProvider(int movementCost) : IMovementCostProvider
+    {
+        public int GetMovementCost(MakaMekTerrains terrainType, int terrainHeight) => movementCost;
+    }
+
+    [Fact]
     public void FindPath_WithTerrainCosts_ShouldConsiderMovementCosts()
     {
         // Arrange

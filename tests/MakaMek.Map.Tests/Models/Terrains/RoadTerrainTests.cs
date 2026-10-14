@@ -13,13 +13,6 @@ public class RoadTerrainTests
     }
 
     [Fact]
-    public void MovementCost_Returns0()
-    {
-        var sut = new RoadTerrain();
-        sut.MovementCost.ShouldBe(0);
-    }
-
-    [Fact]
     public void Id_ReturnsRoad()
     {
         var sut = new RoadTerrain();

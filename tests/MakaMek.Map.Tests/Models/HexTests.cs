@@ -123,6 +123,28 @@ public class HexTests
     }
 
     [Fact]
+    public void GetEnterMovementCost_UsesProvidedMovementCostProvider()
+    {
+        var fromHex = new Hex(new HexCoordinates(0, 0));
+        var toHex = new Hex(new HexCoordinates(1, 0));
+        toHex.AddTerrain(new HeavyWoodsTerrain());
+
+        var costs = toHex.GetEnterMovementCost(
+            fromHex,
+            HexSurface.Ground,
+            HexSurface.Ground,
+            new FixedMovementCostProvider(7)).ToList();
+
+        costs.Any(cost => cost is TerrainMovementCost
+            { TerrainId: MakaMekTerrains.HeavyWoods, Value: 7 }).ShouldBeTrue();
+    }
+
+    private sealed class FixedMovementCostProvider(int movementCost) : IMovementCostProvider
+    {
+        public int GetMovementCost(MakaMekTerrains terrainType, int terrainHeight) => movementCost;
+    }
+
+    [Fact]
     public void GetEnterMovementCost_BothHexesRoadPavedWithHeavyWoodsUnderlying_ReturnsCostsForRoadTotal1()
     {
         var fromHex = new Hex(new HexCoordinates(0, 0));

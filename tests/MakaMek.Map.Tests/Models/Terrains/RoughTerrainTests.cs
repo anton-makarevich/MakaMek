@@ -36,16 +36,6 @@ public class RoughTerrainTests
     }
 
     [Fact]
-    public void MovementCost_Returns1()
-    {
-        // Arrange
-        var terrain = new RoughTerrain();
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(1);
-    }
-
-    [Fact]
     public void GetTerrainType_WithRough_ReturnsRoughTerrain()
     {
         // Act

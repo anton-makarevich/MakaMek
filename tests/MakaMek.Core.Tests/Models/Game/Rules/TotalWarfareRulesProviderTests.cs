@@ -14,6 +14,52 @@ public class TotalWarfareRulesProviderTests
     private readonly TotalWarfareRulesProvider _sut = new();
 
     [Theory]
+    [InlineData(MakaMekTerrains.Clear, 0, 0)]
+    [InlineData(MakaMekTerrains.LightWoods, 0, 1)]
+    [InlineData(MakaMekTerrains.HeavyWoods, 0, 2)]
+    [InlineData(MakaMekTerrains.Rough, 0, 1)]
+    [InlineData(MakaMekTerrains.Water, 0, 0)]
+    [InlineData(MakaMekTerrains.Water, -1, 1)]
+    [InlineData(MakaMekTerrains.Water, -2, 3)]
+    [InlineData(MakaMekTerrains.Road, 0, 0)]
+    [InlineData(MakaMekTerrains.Pavement, 0, 0)]
+    [InlineData(MakaMekTerrains.Bridge, 0, 0)]
+    [InlineData(MakaMekTerrains.Rubble, 0, 1)]
+    public void GetMovementCost_ShouldUseClassicTerrainCosts(MakaMekTerrains terrainType, int height, int expected)
+    {
+        _sut.GetMovementCost(terrainType, height).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void GetMovementCost_ShouldThrow_WhenTerrainTypeIsUnknown()
+    {
+        var unknownTerrain = (MakaMekTerrains)999;
+
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetMovementCost(unknownTerrain, 0));
+
+        exception.ParamName.ShouldBe("terrainType");
+    }
+
+    [Fact]
+    public void GetMovementCost_ShouldAgreeWithTheDefaultProvider_ForEveryDefinedTerrain()
+    {
+        // DefaultMovementCostProvider stands in for the rules provider on standalone maps,
+        // so the two tables must not drift apart.
+        var defaultProvider = new DefaultMovementCostProvider();
+
+        foreach (var terrain in Enum.GetValues<MakaMekTerrains>())
+        {
+            foreach (var height in new[] { 0, -1, -2, 1 })
+            {
+                defaultProvider.GetMovementCost(terrain, height)
+                    .ShouldBe(_sut.GetMovementCost(terrain, height),
+                        $"{terrain} at height {height}");
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
     [InlineData(25, 3, 8, 6, 6, 4, 4, 6, 6)]
     [InlineData(30, 3, 10, 7, 7, 5, 5, 7, 7)]

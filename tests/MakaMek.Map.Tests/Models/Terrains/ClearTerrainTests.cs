@@ -16,16 +16,6 @@ public class ClearTerrainTests
     }
 
     [Fact]
-    public void TerrainFactor_Returns0()
-    {
-        // Arrange
-        var terrain = new ClearTerrain();
-
-        // Act & Assert
-        terrain.MovementCost.ShouldBe(0);
-    }
-
-    [Fact]
     public void Id_ReturnsClear()
     {
         // Arrange
