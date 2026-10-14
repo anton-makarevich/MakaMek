@@ -26,8 +26,8 @@
     <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
     <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <PackageReference Include="Sanet.MVVM.Core" Version="1.7.0" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
