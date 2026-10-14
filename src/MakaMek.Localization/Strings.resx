@@ -75,6 +75,7 @@
   <data name="Command_ChangeActivePlayerUnits" xml:space="preserve"><value>{0}'s turn to play {1} units</value></data>
   <data name="Command_WeaponConfiguration_TorsoRotation" xml:space="preserve"><value>{0}'s {1} rotates torso to face {2}</value></data>
   <data name="Command_WeaponConfiguration_ArmsFlip" xml:space="preserve"><value>{0}'s {1} flips arms {2}</value></data>
+  <data name="Command_PhysicalAttack" xml:space="preserve"><value>{0}'s {1} declares a {3} against {2}</value></data>
   <data name="Command_WeaponAttackDeclaration_NoAttacks" xml:space="preserve"><value>{0}'s {1} declares no attacks</value></data>
   <data name="Command_WeaponAttackDeclaration_Header" xml:space="preserve"><value>{0}'s {1} declares attacks:</value></data>
   <data name="Command_WeaponAttackDeclaration_WeaponLine" xml:space="preserve"><value>- {0} targeting {1}'s {2}</value></data>

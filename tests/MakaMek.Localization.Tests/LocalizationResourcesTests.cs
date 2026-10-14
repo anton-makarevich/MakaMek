@@ -61,6 +61,7 @@ public class LocalizationResourcesTests
     [Theory]
     [InlineData("Command_WeaponConfiguration_TorsoRotation", "{0}'s {1} rotates torso to face {2}")]
     [InlineData("Command_WeaponConfiguration_ArmsFlip", "{0}'s {1} flips arms {2}")]
+    [InlineData("Command_PhysicalAttack", "{0}'s {1} declares a {3} against {2}")]
     [InlineData("Command_WeaponAttackDeclaration_NoAttacks", "{0}'s {1} declares no attacks")]
     [InlineData("Command_WeaponAttackDeclaration_Header", "{0}'s {1} declares attacks:")]
     [InlineData("Command_WeaponAttackDeclaration_WeaponLine", "- {0} targeting {1}'s {2}")]
