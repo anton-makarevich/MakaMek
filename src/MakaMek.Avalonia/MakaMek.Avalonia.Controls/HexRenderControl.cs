@@ -36,13 +36,14 @@ public class HexRenderControl : Control
     private readonly Dictionary<HexCoordinates, FormattedText> _coordLabelCache = new();
     private readonly Dictionary<HexCoordinates, FormattedText?> _terrainLabelCache = new();
     private readonly Dictionary<HexCoordinates, List<IHexHighlightType>> _sortedHighlightsCache = new();
-    private readonly Dictionary<(Type HighlightType, double Thickness), Pen> _boundaryPenCache = new();
+    private readonly Dictionary<(Type HighlightType, double Thickness, AttackRangeBand? Band), Pen> _boundaryPenCache = new();
 
     private readonly Pen _whiteOutlinePen;
     private readonly Pen _whiteHighlightPen;
     private readonly IBrush _whiteHighlightBrush;
     private readonly (Pen Pen, IBrush Fill) _movementHighlight;
     private readonly (Pen Pen, IBrush Fill) _attackHighlight;
+    private readonly Dictionary<AttackRangeBand, (Pen Pen, IBrush Fill)> _attackBandHighlights;
     private readonly (Pen Pen, IBrush Fill) _losBlockingHighlight;
 
     private readonly Geometry _hexPolygon;
@@ -69,6 +70,15 @@ public class HexRenderControl : Control
         var attackStroke = FindBrush(resourcesLocator, "AttackReachableStrokeBrush", new SolidColorBrush(Color.Parse("#FFB347")));
         var attackFill = FindBrush(resourcesLocator, "AttackReachableFillBrush", new SolidColorBrush(Color.Parse("#33FFB347")));
         _attackHighlight = (new Pen(attackStroke), attackFill);
+
+        // Medium keeps the existing attack colour, so a map with no banding looks unchanged.
+        _attackBandHighlights = new Dictionary<AttackRangeBand, (Pen, IBrush)>
+        {
+            [AttackRangeBand.Short] = BandHighlight(resourcesLocator, "AttackShortRange", attackStroke, attackFill),
+            [AttackRangeBand.Medium] = (new Pen(attackStroke), attackFill),
+            [AttackRangeBand.Long] = BandHighlight(resourcesLocator, "AttackLongRange", attackStroke, attackFill),
+            [AttackRangeBand.Mixed] = BandHighlight(resourcesLocator, "AttackMixedRange", attackStroke, attackFill)
+        };
 
         var losStroke = FindBrush(resourcesLocator, "LosBlockingStrokeBrush", new SolidColorBrush(Color.Parse("#8B0000")));
         var losFill = FindBrush(resourcesLocator, "LosBlockingFillBrush", new SolidColorBrush(Color.Parse("#338B0000")));
@@ -163,7 +173,7 @@ public class HexRenderControl : Control
         _boundaryPenCache.Clear();
         foreach (var (_, boundary) in _boundaryOutlines)
         {
-            var key = (boundary.HighlightType.GetType(), boundary.Thickness);
+            var key = BoundaryPenKey(boundary);
             if (!_boundaryPenCache.ContainsKey(key))
             {
                 var (highlightPen, _) = GetHighlightPenAndFill(boundary.HighlightType);
@@ -178,7 +188,18 @@ public class HexRenderControl : Control
     /// resolved from themed resources when the outlines are set, not when they are drawn.
     /// </summary>
     internal Pen BoundaryPenFor(HighlightBoundaryOutline boundary) =>
-        _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
+        _boundaryPenCache[BoundaryPenKey(boundary)];
+
+    /// <summary>
+    /// One pen per highlight type and thickness, and per range band where there is one. Keyed on
+    /// type alone, the first attack boundary the dictionary happened to yield would have decided
+    /// the outline colour for every band on the map.
+    /// </summary>
+    private static (Type HighlightType, double Thickness, AttackRangeBand? Band) BoundaryPenKey(
+        HighlightBoundaryOutline boundary) =>
+        (boundary.HighlightType.GetType(),
+            boundary.Thickness,
+            boundary.HighlightType is AttackReachableHighlight attack ? attack.RangeBand : null);
 
     public void UpdateConfiguration(HexRenderConfiguration configuration)
     {
@@ -508,7 +529,7 @@ public class HexRenderControl : Control
 
             using (context.PushTransform(Matrix.CreateTranslation(ox, oy)))
             {
-                var bp = _boundaryPenCache[(boundary.HighlightType.GetType(), boundary.Thickness)];
+                var bp = _boundaryPenCache[BoundaryPenKey(boundary)];
                 for (var i = 0; i < allDirections.Length; i++)
                 {
                     if ((boundary.EdgeMask & (1 << i)) == 0) continue;
@@ -542,11 +563,25 @@ public class HexRenderControl : Control
         return highlight switch
         {
             MovementReachableHighlight => _movementHighlight,
-            AttackReachableHighlight => _attackHighlight,
+            AttackReachableHighlight attack => _attackBandHighlights.TryGetValue(attack.RangeBand, out var band)
+                ? band
+                : _attackHighlight,
             LosBlockingHighlight => _losBlockingHighlight,
             _ => (_whiteHighlightPen, null)
         };
     }
+
+    /// <summary>
+    /// The themed pair for one range band, falling back to the plain attack colours where a theme
+    /// has not defined the band.
+    /// </summary>
+    private static (Pen Pen, IBrush Fill) BandHighlight(
+        IAvaloniaResourcesLocator? locator,
+        string prefix,
+        IBrush fallbackStroke,
+        IBrush fallbackFill) =>
+        (new Pen(FindBrush(locator, $"{prefix}StrokeBrush", fallbackStroke)),
+            FindBrush(locator, $"{prefix}FillBrush", fallbackFill));
 
     private static IBrush FindBrush(IAvaloniaResourcesLocator? locator, string key, IBrush fallback)
     {

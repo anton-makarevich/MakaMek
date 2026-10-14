@@ -22,6 +22,9 @@ public class HexRenderControlBoundaryTests
     private readonly SolidColorBrush _attackStroke = new(Colors.Fuchsia);
     private readonly SolidColorBrush _losStroke = new(Colors.Navy);
     private readonly SolidColorBrush _whiteStroke = new(Colors.White);
+    private readonly SolidColorBrush _shortRangeStroke = new(Colors.Cyan);
+    private readonly SolidColorBrush _longRangeStroke = new(Colors.Coral);
+    private readonly SolidColorBrush _mixedRangeStroke = new(Colors.Violet);
 
     private static Task Dispatch(Action action)
     {
@@ -37,6 +40,9 @@ public class HexRenderControlBoundaryTests
         resources.TryFindResource("AttackReachableStrokeBrush").Returns(_attackStroke);
         resources.TryFindResource("LosBlockingStrokeBrush").Returns(_losStroke);
         resources.TryFindResource("WhiteHighlightBrush").Returns(_whiteStroke);
+        resources.TryFindResource("AttackShortRangeStrokeBrush").Returns(_shortRangeStroke);
+        resources.TryFindResource("AttackLongRangeStrokeBrush").Returns(_longRangeStroke);
+        resources.TryFindResource("AttackMixedRangeStrokeBrush").Returns(_mixedRangeStroke);
 
         return new HexRenderControl(
             Substitute.For<ITerrainAssetService>(),
@@ -129,6 +135,57 @@ public class HexRenderControlBoundaryTests
 
         // Assert
         Should.Throw<KeyNotFoundException>(() => sut.BoundaryPenFor(attack));
+    });
+
+    [Fact]
+    public Task SetBoundaryOutlines_ShouldGiveEachRangeBandItsOwnStroke() => Dispatch(() =>
+    {
+        // Arrange
+        var sut = CreateSut();
+        var shortRange = new HighlightBoundaryOutline(
+            0b000001, new AttackReachableHighlight(["Medium Laser"], AttackRangeBand.Short), 2);
+        var longRange = new HighlightBoundaryOutline(
+            0b000010, new AttackReachableHighlight(["PPC"], AttackRangeBand.Long), 2);
+        var mixed = new HighlightBoundaryOutline(
+            0b000100, new AttackReachableHighlight(["PPC", "Medium Laser"], AttackRangeBand.Mixed), 2);
+        var medium = new HighlightBoundaryOutline(
+            0b001000, new AttackReachableHighlight(["PPC"], AttackRangeBand.Medium), 2);
+
+        // Act
+        sut.SetBoundaryOutlines(new Dictionary<HexCoordinates, HighlightBoundaryOutline>
+        {
+            [new HexCoordinates(1, 1)] = shortRange,
+            [new HexCoordinates(2, 1)] = longRange,
+            [new HexCoordinates(3, 1)] = mixed,
+            [new HexCoordinates(4, 1)] = medium
+        });
+
+        // Assert - the band is part of the key, so the outline matches the fill under it
+        sut.BoundaryPenFor(shortRange).Brush.ShouldBeSameAs(_shortRangeStroke);
+        sut.BoundaryPenFor(longRange).Brush.ShouldBeSameAs(_longRangeStroke);
+        sut.BoundaryPenFor(mixed).Brush.ShouldBeSameAs(_mixedRangeStroke);
+        sut.BoundaryPenFor(medium).Brush.ShouldBeSameAs(_attackStroke);
+    });
+
+    [Fact]
+    public Task SetBoundaryOutlines_ShouldFallBackToTheAttackStroke_WhenAThemeOmitsTheBand() => Dispatch(() =>
+    {
+        // Arrange - a theme that defines the plain attack colours and none of the bands
+        var resources = Substitute.For<IAvaloniaResourcesLocator>();
+        resources.TryFindResource("AttackReachableStrokeBrush").Returns(_attackStroke);
+        var sut = new HexRenderControl(
+            Substitute.For<ITerrainAssetService>(), null, Scheduler.CurrentThread, resources);
+        var shortRange = new HighlightBoundaryOutline(
+            0b000001, new AttackReachableHighlight(["Medium Laser"], AttackRangeBand.Short), 2);
+
+        // Act
+        sut.SetBoundaryOutlines(new Dictionary<HexCoordinates, HighlightBoundaryOutline>
+        {
+            [new HexCoordinates(1, 1)] = shortRange
+        });
+
+        // Assert
+        sut.BoundaryPenFor(shortRange).Brush.ShouldBeSameAs(_attackStroke);
     });
 
     private sealed record UnknownHighlight : IHexHighlightType

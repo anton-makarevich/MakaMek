@@ -446,6 +446,7 @@
   <data name="WeaponSelection_Primary" xml:space="preserve"><value>PRIMARY</value></data>
   <data name="WeaponSelection_SetPrimary" xml:space="preserve"><value>Set Primary</value></data>
   <data name="WeaponSelection_AimedShot" xml:space="preserve"><value>Aimed Shot</value></data>
+  <data name="WeaponSelection_TargetOverlay" xml:space="preserve"><value>{0}</value></data>
   <data name="UnitItem_RemoveUnit" xml:space="preserve"><value>Remove unit</value></data>
   <data name="UnitItem_Info" xml:space="preserve"><value>Unit Info</value></data>
   <data name="UnitItem_EditName" xml:space="preserve"><value>Edit unit name</value></data>
