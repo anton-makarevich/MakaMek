@@ -13,7 +13,7 @@
 
     <ItemGroup>
         <PackageReference Include="Pulumi" Version="3.114.2" />
-        <PackageReference Include="Pulumi.Cloudflare" Version="6.22.0" />
+        <PackageReference Include="Pulumi.Cloudflare" Version="6.22.1" />
     </ItemGroup>
 
 </Project>
