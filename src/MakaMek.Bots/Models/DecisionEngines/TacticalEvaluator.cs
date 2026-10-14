@@ -336,7 +336,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         var targetPosition = targetPath.Destination;
 
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
-        var attackerModifiers = attacker.GetAttackModifiers(weaponLocation.Value);
+        var attackerModifiers = attacker.GetAttackModifiers(weaponLocation.Value, _game.RulesProvider);
 
         // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
         var attackerMovementType = attackerPath.MovementType;

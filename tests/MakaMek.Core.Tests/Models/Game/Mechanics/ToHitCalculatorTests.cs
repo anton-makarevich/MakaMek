@@ -66,6 +66,17 @@ public class ToHitCalculatorTests
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);
         _rules.GetTargetMovementModifier(1).Returns(0);
         _rules.GetRangeModifier(RangeBracket.Short,Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+
+        // Keep the test rules complete as heat modifiers are now supplied by IRulesProvider.
+        var totalWarfareRules = new TotalWarfareRulesProvider();
+        _rules.GetHeatAttackPenalty(Arg.Any<int>())
+            .Returns(callInfo => totalWarfareRules.GetHeatAttackPenalty(callInfo.Arg<int>()));
+        _rules.GetHeatMovementPenalty(Arg.Any<int>())
+            .Returns(callInfo => totalWarfareRules.GetHeatMovementPenalty(callInfo.Arg<int>()));
+        _rules.GetLifeSupportPilotDamage(Arg.Any<int>())
+            .Returns(callInfo => totalWarfareRules.GetLifeSupportPilotDamage(callInfo.Arg<int>()));
+        _rules.GetSkiddingAttackerModifier().Returns(totalWarfareRules.GetSkiddingAttackerModifier());
+        _rules.GetSkiddingTargetModifier().Returns(totalWarfareRules.GetSkiddingTargetModifier());
     }
 
     private void SetupAttackerAndTarget(HexPosition attackerPosition, HexPosition targetEndPosition)

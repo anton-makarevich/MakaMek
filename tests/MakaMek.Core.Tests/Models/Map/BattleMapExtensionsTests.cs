@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -162,6 +163,32 @@ public class BattleMapExtensionsTests
         reachabilityData.AllReachableHexes.Count.ShouldBe(36);
     }
     
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldReadMovementPointsFromTheRulesProvider_WhenOneIsSupplied()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        // The legacy overload would report a different budget, so the counts distinguish the two paths.
+        unit.GetMovementPoints(MovementType.Jump).Returns(1);
+        unit.GetMovementPoints(MovementType.Jump, rulesProvider).Returns(3);
+
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(
+            unit,
+            MovementType.Jump,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>(),
+            rulesProvider);
+
+        // Assert
+        reachabilityData.AllReachableHexes.Count.ShouldBe(36);
+        unit.DidNotReceive().GetMovementPoints(MovementType.Jump);
+    }
+
     [Fact]
     public void GetReachableHexesForUnit_ShouldNotIncludeFriendlyUnits()
     {

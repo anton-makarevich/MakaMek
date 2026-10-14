@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -89,6 +90,7 @@ public record AttackScenario
     /// <param name="weaponLocation">Location where the weapon is mounted (for attack modifiers)</param>
     /// <param name="isPrimaryTarget">Whether this is the primary target</param>
     /// <param name="aimedShotTarget">Body part being targeted for aimed shot, if any</param>
+    /// <param name="rulesProvider">Optional active rule set used to calculate unit modifiers.</param>
     /// <returns>AttackScenario representing the actual attack</returns>
     /// <exception cref="Exception">Thrown if the attacker has no pilot, no position, or no movement type set</exception>
     public static AttackScenario FromUnits(
@@ -96,7 +98,8 @@ public record AttackScenario
         IUnit target,
         PartLocation weaponLocation,
         bool isPrimaryTarget = true,
-        PartLocation? aimedShotTarget = null)
+        PartLocation? aimedShotTarget = null,
+        IRulesProvider? rulesProvider = null)
     {
         if (attacker.Pilot is null)
             throw new InvalidOperationException("Attacker pilot is not assigned");
@@ -116,7 +119,10 @@ public record AttackScenario
             TargetPosition = target.Position,
             AttackerMovementType = attacker.MovementTaken.MovementType,
             TargetHexesMoved = target.MovementTaken.HexesTraveled,
-            AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
+            AttackerModifiers = attacker is Unit
+                ? attacker.GetAttackModifiers(weaponLocation,
+                    rulesProvider ?? new TotalWarfareRulesProvider())
+                : attacker.GetAttackModifiers(weaponLocation),
             AttackerFacing = attacker.Facing,
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget,
@@ -179,4 +185,3 @@ public record AttackScenario
         };
     }
 }
-

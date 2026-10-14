@@ -20,6 +20,7 @@ namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit : IUnit
 {
+    protected static readonly IRulesProvider DefaultRulesProvider = new TotalWarfareRulesProvider();
     protected readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
@@ -198,30 +199,43 @@ public abstract class Unit : IUnit
     }
     
     // Modified movement after applying effects (defaults to base movement)
-    protected int ModifiedMovement => Math.Max(0, DamageReducedMovement 
-        - (MovementHeatPenalty?.Value ?? 0));
+    protected int ModifiedMovement => GetModifiedMovement(DefaultRulesProvider);
+    protected int GetModifiedMovement(IRulesProvider rulesProvider) => Math.Max(0, GetDamageReducedMovement(rulesProvider)
+        - (GetMovementHeatPenalty(rulesProvider)?.Value ?? 0));
     public virtual int DamageReducedMovement => BaseMovement;
+    protected virtual int GetDamageReducedMovement(IRulesProvider rulesProvider) => DamageReducedMovement;
 
     // Movement heat penalty
     public virtual HeatMovementPenalty? MovementHeatPenalty => null;
+    public virtual HeatMovementPenalty? GetMovementHeatPenalty(IRulesProvider rulesProvider) => MovementHeatPenalty;
     
     // Attack heat penalty
     public virtual HeatRollModifier? AttackHeatPenalty => null;
+    public virtual HeatRollModifier? GetAttackHeatPenalty(IRulesProvider rulesProvider) => AttackHeatPenalty;
     
     // Engine heat penalty due to engine damage
     public virtual EngineHeatPenalty? EngineHeatPenalty => null;
     
     public virtual IReadOnlyList<RollModifier> MovementModifiers => [];
+    public virtual IReadOnlyList<RollModifier> GetMovementModifiers(IRulesProvider rulesProvider) => MovementModifiers;
 
     public virtual IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
     {
         return [];
     }
 
+    public virtual IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location, IRulesProvider rulesProvider) =>
+        GetAttackModifiers(location);
+
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)
     {
         return Math.Max(0, ModifiedMovement - MovementPointsSpent);
+    }
+
+    public virtual int GetMovementPoints(MovementType movementType, IRulesProvider rulesProvider)
+    {
+        return Math.Max(0, GetModifiedMovement(rulesProvider) - MovementPointsSpent);
     }
     
     public virtual IReadOnlyList<MovementType> GetAvailableMovementTypes()
@@ -380,18 +394,26 @@ public abstract class Unit : IUnit
         return CurrentHeat + movementHeat + weaponHeat + engineHeat;
     }
     
-    public void ApplyHeat(HeatData heatData)
+    public void ApplyHeat(HeatData heatData) => ApplyHeat(heatData, DefaultRulesProvider);
+
+    public void ApplyHeat(HeatData heatData, IRulesProvider rulesProvider)
     {
         CurrentHeat = Math.Max(0,
             CurrentHeat 
             + heatData.TotalHeatPoints 
             - heatData.TotalHeatDissipationPoints);
-        ApplyHeatEffects();
+        ApplyHeatEffects(rulesProvider);
         HasAppliedHeat = true;
         _turnExternalHeat.Clear();
     }
 
     protected abstract void ApplyHeatEffects();
+
+    /// <summary>
+    /// Applies heat effects using the active rule set. The parameterless hook remains
+    /// as a compatibility fallback for custom unit implementations.
+    /// </summary>
+    protected virtual void ApplyHeatEffects(IRulesProvider rulesProvider) => ApplyHeatEffects();
     
     // Parts management
     public IReadOnlyDictionary<PartLocation, UnitPart> Parts => _parts;
