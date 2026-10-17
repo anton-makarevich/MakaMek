@@ -5,16 +5,24 @@
     width: 100%;
     background: white;
     font-family: 'Outfit', sans-serif;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     display: flex;
     pointer-events: none;
 }
 
+.avalonia-splash img {
+    max-height: 40vh;
+    max-width: 90vw;
+    height: auto;
+}
+
 /* Light theme styles */
 @media (prefers-color-scheme: light) {
     .avalonia-splash {
         background: white;
+        color: #1b2a4e;
     }
 
     .avalonia-splash h2 {
@@ -24,11 +32,20 @@
     .avalonia-splash a {
         color: #0D6EFD;
     }
+
+    .splash-progress {
+        background: #e0e0e0;
+    }
+
+    .splash-progress-fill {
+        background: #1b2a4e;
+    }
 }
 
 @media (prefers-color-scheme: dark) {
     .avalonia-splash {
         background: #1b2a4e;
+        color: white;
     }
 
     .avalonia-splash h2 {
@@ -37,6 +54,76 @@
 
     .avalonia-splash a {
         color: white;
+    }
+
+    .splash-progress {
+        background: #2a3a5a;
+    }
+
+    .splash-progress-fill {
+        background: #5a7fbf;
+    }
+}
+
+#splash-status {
+    margin-top: 1rem;
+    font-size: 1rem;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.splash-progress {
+    width: min(300px, 80vw);
+    height: 8px;
+    border-radius: 4px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+    background: #e0e0e0;
+}
+
+.splash-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #1b2a4e;
+    transition: width 200ms ease;
+}
+
+#splash-percent {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.splash-error {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 0 1rem;
+    color: #d32f2f;
+}
+
+.avalonia-splash.splash-error .splash-progress,
+.avalonia-splash.splash-error #splash-percent,
+.avalonia-splash.splash-error #splash-status {
+    display: none;
+}
+
+.avalonia-splash.splash-error .splash-error {
+    display: block !important;
+}
+
+.avalonia-splash.splash-error a {
+    pointer-events: auto;
+    color: #0D6EFD;
+    text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+    .splash-error {
+        color: #ff8888;
+    }
+
+    .avalonia-splash.splash-error a {
+        color: #ffb3b3;
     }
 }
 

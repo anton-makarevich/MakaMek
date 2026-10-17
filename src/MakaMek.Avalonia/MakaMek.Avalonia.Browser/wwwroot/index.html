@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>MakaMek.Avalonia.Browser</title>
@@ -13,7 +13,13 @@
 <body style="margin: 0; overflow: hidden">
 <div id="out">
     <div class="avalonia-splash">
-        <img src="logo.png" alt="MakaMek Logo" style="height: 520px;">
+        <img src="logo.png" alt="MakaMek Logo">
+        <div id="splash-status" aria-live="polite">Loading…</div>
+        <div class="splash-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="splash-progress-fill" class="splash-progress-fill"></div>
+        </div>
+        <div id="splash-percent">0%</div>
+        <div id="splash-error" class="splash-error" aria-live="polite" style="display:none;"></div>
     </div>
 </div>
 <script type='module' src="./main.js"></script>
