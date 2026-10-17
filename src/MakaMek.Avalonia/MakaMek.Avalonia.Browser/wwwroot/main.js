@@ -8,8 +8,6 @@ const splashBar = document.querySelector(".splash-progress");
 const splashError = document.getElementById("splash-error");
 const splashRoot = document.querySelector(".avalonia-splash");
 
-let maxProgress = 0;
-
 function setStatus(text) {
     if (splashStatus) {
         splashStatus.textContent = text;
@@ -18,20 +16,15 @@ function setStatus(text) {
 
 function setProgress(loaded, total) {
     if (total > 0) {
-        const pct = Math.min(100, Math.max(0, (loaded / total) * 100));
-        if (pct > maxProgress) {
-            maxProgress = pct;
-        } else {
-            return;
-        }
+        const pct = Math.min(100, Math.max(0, (loaded / total) * 100)).toFixed(0);
         if (splashProgressFill) {
-            splashProgressFill.style.width = maxProgress.toFixed(0) + "%";
+            splashProgressFill.style.width = pct + "%";
         }
         if (splashPercent) {
-            splashPercent.textContent = maxProgress.toFixed(0) + "%";
+            splashPercent.textContent = pct + "%";
         }
         if (splashBar) {
-            splashBar.setAttribute("aria-valuenow", maxProgress.toFixed(0));
+            splashBar.setAttribute("aria-valuenow", pct);
         }
     }
 }
