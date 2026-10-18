@@ -102,7 +102,7 @@ Split `IRulesProvider` along exactly these lines (§3.4).
 - **Across domains — composition.** A rule set is a composition of independent domain implementations (`CompositeRulesProvider(toHit, damage, piloting, heat)`). `IRulesProvider` must **not** inherit Map's `IMovementCostProvider` (the #1445 approach — "the whole Core rules surface becomes a subtype of a Map concern").
 - **Within a domain — inheritance with virtual methods.** Overriding a single heat threshold should be one `override`, not a re-implementation or decorator of all of `IHeatRules`. `TotalWarfareHeatRules` exposes virtual methods; `MyHouseHeatRules : TotalWarfareHeatRules` overrides one.
 
-This is the shape MegaMek actually uses (§4): `RulesManager` exposes domain accessors (composition), and `TWRulesHeat extends RulesHeat` (inheritance within a domain). The GoF maxim argues against deep hierarchies that couple unrelated concerns, not against a one-level, single-domain override.
+The GoF maxim argues against deep hierarchies that couple unrelated concerns, not against a one-level, single-domain override.
 
 ### 2.6 Single Responsibility Principle (SRP)
 
@@ -176,9 +176,9 @@ public sealed class HouseRuleMovementCostProvider(IReadOnlyDictionary<MakaMekTer
 
 **Why this is open-closed:** a new `SwampTerrain` with `MovementCost => 2` works with every existing provider. Unknown terrains fall through to the default — no `ArgumentOutOfRangeException`.
 
-**Wiring:** the provider is supplied once, at map creation, through `IBattleMapFactory` (`BattleMapFactory` is already the only creation seam — used by `ClientGame`, `JoinGameViewModel`, `MapConfigViewModel`). `BattleMap` passes it to its hexes. Because the provider is fixed for the lifetime of a map instance, the path caches (`_movementPathCache`, `_movementLongPathCache`) can never go stale — **no cache invalidation is needed** (consistent with the §9 non-goal of runtime rule switching).
+**Wiring:** the provider is supplied once, at map creation, through `IBattleMapFactory` (`BattleMapFactory` is already the only creation seam — used by `ClientGame`, `JoinGameViewModel`, `MapConfigViewModel`). `BattleMap` passes it to its hexes. Because the provider is fixed for the lifetime of a map instance, the path caches (`_movementPathCache`, `_movementLongPathCache`) can never go stale — **no cache invalidation is needed** (consistent with the §8 non-goal of runtime rule switching).
 
-**Same treatment for terrain to-hit (follow-up):** `GetTerrainToHitModifier` currently has the inverse shape (provider table, `_ => 0`). Either give `Terrain` a default to-hit modifier and apply the same hybrid, or explicitly document that unknown terrains have no to-hit modifier. This PRD recommends the hybrid for consistency, but defers it (§6, Phase 3 scope inventory).
+**Same treatment for terrain to-hit (follow-up):** `GetTerrainToHitModifier` currently has the inverse shape (provider table, `_ => 0`). Either give `Terrain` a default to-hit modifier and apply the same hybrid, or explicitly document that unknown terrains have no to-hit modifier. This PRD recommends the hybrid for consistency, but defers it (§5, Phase 3 scope inventory).
 
 ### 3.3 Runtime per-unit modifiers
 
@@ -370,25 +370,9 @@ The provider is a per-process DI singleton, registered separately in the desktop
 
 ---
 
-## 4. MegaMek Comparison
+## 4. Disposition of the Four PRs
 
-MegaMek's rules architecture (`megamek/src/megamek/common/rules/`) was introduced on **2026-06-27** (commit `1b54f67fc1`, "Changing rules system to use RulesManager"). It is a recent refactor of a mature codebase — useful as a design reference, **not** as decades of proof.
-
-| MegaMek concept | MakaMek equivalent | Notes |
-|---|---|---|
-| `RulesManager` interface with **20 accessors** (`getRulesHeat()`, `getRulesTarget()`, …) | `CompositeRulesProvider` (4 runtime domains) + `IUnitConstructionRules` | MegaMek **composes** domains via accessors; it does not inherit them into one interface |
-| Abstract `RulesHeat`, `RulesTarget`, … | `IHeatRules`, `IToHitRules`, … | Per-domain contract |
-| `TWRulesHeat extends RulesHeat`, `CoreRules*`, `TacOpsScanning` | `TotalWarfareHeatRules` (virtual) / `HarshHeatRules : TotalWarfareHeatRules` | **Inheritance within a domain** for partial override |
-| `TWRulesManager` / `CoreRulesManager` | `CompositeRulesProvider` instances | Rule-set selection = choosing which domain instances to compose |
-| `GameType`, `GameOptions` (~200+), `Era`, `TechConstants`, faction RAT | Not needed | MakaMek targets Classic BattleTech, no option-driven or era-driven rules |
-
-**Key takeaway:** the transferable pattern is *composition across domains, inheritance within a domain* — exactly §2.5. The flat `IRulesProvider : IToHitRules, IHeatRules, …` inheritance is kept only as a transitional aggregate (§3.4), not as the model MegaMek validates.
-
----
-
-## 5. Disposition of the Four PRs
-
-### 5.1 Attack + unit modifiers (#1443 / #1450)
+### 4.1 Attack + unit modifiers (#1443 / #1450)
 
 **Decision: close both, implement the refactor directly.**
 
@@ -398,7 +382,7 @@ MegaMek's rules architecture (`megamek/src/megamek/common/rules/`) was introduce
 
 Attack modifiers are resolved in `ToHitCalculator` (§3.3.1); heat-derived values become server-resolved state (§3.3.2).
 
-### 5.2 Terrain movement cost (#1445 / #1451)
+### 4.2 Terrain movement cost (#1445 / #1451)
 
 **Decision: close both, implement the hybrid directly.**
 
@@ -406,13 +390,13 @@ Attack modifiers are resolved in `ToHitCalculator` (§3.3.1); heat-derived value
 - #1451's deletion of `Terrain.MovementCost` removes the entity default the hybrid relies on; its cache invalidation is unnecessary once the provider is fixed per map instance.
 - Both duplicate the cost table. In the target design the table exists once — on the terrain classes.
 
-### 5.3 Interface segregation
+### 4.3 Interface segregation
 
 **Decision: implement first.** It is independent of the other work, behavior-neutral, and lets later phases depend on narrow interfaces.
 
 ---
 
-## 6. Implementation Phases
+## 5. Implementation Phases
 
 Each phase is an independently mergeable PR with its own version bump.
 
@@ -482,7 +466,7 @@ Each phase is an independently mergeable PR with its own version bump.
 
 ---
 
-## 7. Acceptance Criteria
+## 6. Acceptance Criteria
 
 | # | Criterion | Verifies |
 |---|---|---|
@@ -501,7 +485,7 @@ Each phase is an independently mergeable PR with its own version bump.
 
 ---
 
-## 8. Risks and Mitigations
+## 7. Risks and Mitigations
 
 | Risk | Mitigation |
 |---|---|
@@ -515,19 +499,19 @@ Each phase is an independently mergeable PR with its own version bump.
 
 ---
 
-## 9. Non-Goals
+## 8. Non-Goals
 
 - **Runtime rule switching** (hot-swapping providers mid-game). The movement-cost provider is fixed per map instance; no cache invalidation is built.
 - **Rule-set selection UI / lobby negotiation.** Only the invariant is documented (§3.6).
-- **GameOptions system** (MegaMek's ~200+ options). House rules are code-level compositions.
+- **GameOptions-style rule-option system** (hundreds of toggleable options). House rules are code-level compositions.
 - **Era/tech-level/faction rules.**
 - **Mod support / scripting.**
 - **Alpha Strike / BattleForce rules.**
-- **Deferred inventory rows** (§6) — run multiplier, sensor/actuator penalties, stand-up cost.
+- **Deferred inventory rows** (§5) — run multiplier, sensor/actuator penalties, stand-up cost.
 
 ---
 
-## 10. Summary of Decisions
+## 9. Summary of Decisions
 
 | Decision | Justified by |
 |---|---|
@@ -536,7 +520,7 @@ Each phase is an independently mergeable PR with its own version bump.
 | `IMovementCostProvider` + default (identity) provider in Map, injected via `IBattleMapFactory` | DIP (Map has no Core reference) |
 | No path-cache invalidation — provider fixed per map | YAGNI, consistent with non-goals |
 | Rules split into four runtime domains + construction; no empty `IMovementRules` | Interface Segregation, derived from actual consumers |
-| Composition across domains (`CompositeRulesProvider`), virtual inheritance within a domain | Composition over Inheritance, MegaMek precedent, minimal house-rule code |
+| Composition across domains (`CompositeRulesProvider`), virtual inheritance within a domain | Composition over Inheritance, minimal house-rule code |
 | `IRulesProvider` aggregate kept as a migration aid only | Test compatibility (72 files) while narrowing consumers |
 | `IUnitConstructionRules` injected directly into `MechFactory` | Interface Segregation (construction-only concern) |
 | Attack modifiers resolved in `ToHitCalculator` | Existing precedent (skidding-target, partial cover) |
@@ -547,6 +531,6 @@ Each phase is an independently mergeable PR with its own version bump.
 
 ---
 
-**Document Version:** 1.1 — corrected terrain cost semantics and prone value; replaced the duplicating movement-cost adapter with an identity default in Map; removed cache invalidation; split Phase 3 into attack (service) and heat (server-resolved state) strategies; added `GetHeatData` migration, concrete domain mapping, composite + virtual-domain house-rule model, rule-set consistency invariant, and rule-value inventory; corrected MegaMek comparison and quote attribution.
+**Document Version:** 1.2 — removed the external rules-engine comparison (former §4) and related references; renumbered sections 4–9. v1.1: corrected terrain cost semantics and prone value; replaced the duplicating movement-cost adapter with an identity default in Map; removed cache invalidation; split Phase 3 into attack (service) and heat (server-resolved state) strategies; added `GetHeatData` migration, concrete domain mapping, composite + virtual-domain house-rule model, rule-set consistency invariant, and rule-value inventory; corrected quote attribution.
 **Author:** AI-assisted architecture analysis
 **Reviewers:** TBD
