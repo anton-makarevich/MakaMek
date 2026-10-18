@@ -61,7 +61,7 @@ Every architectural decision in this PRD is justified by one or more of these pr
 
 **Application:** The caller (`ToHitCalculator`, pathfinding, `MechFactory`) makes one simple call — `_rules.GetProneFiringModifier()`, `_movementCost.GetMovementCost(terrain)`. It never branches on nullability, never checks "is there an override?", never knows which rule set is active.
 
-**Caveat (same source):** Ousterhout flags *pass-through methods* and *shallow classes* as red flags. Interface segregation must not degenerate into many tiny interfaces and hand-written forwarding layers. Hence: a small number of domains (five), no empty interfaces, and forwarding written **once** (§3.4), not once per house rule.
+**Caveat (same source):** Ousterhout flags *pass-through methods* and *shallow classes* as red flags — a method that does nothing but invoke another with a similar signature adds no functionality and usually means the boundary between the classes is misplaced. Interface segregation must not degenerate into many tiny interfaces and forwarding layers. Hence: a small number of domains (five), no empty interfaces, and **no forwarding class in the end state** — consumers depend on the domain interface they use, and the whole rule set is held by a methodless `RuleSet` record whose properties expose the domains directly (§3.4). Exposing the lower-level object to the caller is Ousterhout's own remedy for a pass-through layer. A transitional forwarding composite exists only to keep existing tests compiling and is deleted in Phase 5.
 
 ### 2.2 Information Hiding
 
@@ -99,7 +99,7 @@ Split `IRulesProvider` along exactly these lines (§3.4).
 
 **Application, two levels:**
 
-- **Across domains — composition.** A rule set is a composition of independent domain implementations (`CompositeRulesProvider(toHit, damage, piloting, heat)`). `IRulesProvider` must **not** inherit Map's `IMovementCostProvider` (the #1445 approach — "the whole Core rules surface becomes a subtype of a Map concern").
+- **Across domains — composition.** A rule set is a composition of independent domain implementations (`RuleSet(toHit, damage, piloting, heat)`). `IRulesProvider` must **not** inherit Map's `IMovementCostProvider` (the #1445 approach — "the whole Core rules surface becomes a subtype of a Map concern").
 - **Within a domain — inheritance with virtual methods.** Overriding a single heat threshold should be one `override`, not a re-implementation or decorator of all of `IHeatRules`. `TotalWarfareHeatRules` exposes virtual methods; `MyHouseHeatRules : TotalWarfareHeatRules` overrides one.
 
 The GoF maxim argues against deep hierarchies that couple unrelated concerns, not against a one-level, single-domain override.
@@ -317,27 +317,44 @@ public class TotalWarfareHeatRules : IHeatRules
 }
 ```
 
-**One composite, written once:**
+**The end state: a methodless holder, no forwarding class.**
+
+```csharp
+// The rule set. Consumers take the domain interface they need; the rare
+// multi-domain consumer calls ruleSet.Heat.GetX(). A record's properties
+// expose state — they do not re-export behavior — so the holder adds no
+// pass-through surface (Ousterhout's remedy: expose the lower-level object).
+public sealed record RuleSet(IToHitRules ToHit, IDamageRules Damage, IPilotingRules Piloting, IHeatRules Heat);
+```
+
+The Total Warfare rule set is `new RuleSet(new TotalWarfareToHitRules(), new TotalWarfareDamageRules(), new TotalWarfarePilotingRules(), new TotalWarfareHeatRules())`. `BaseGame.RulesProvider` is retyped to `RuleSet` in Phase 5; during the transition it remains `IRulesProvider`, backed by the composite below.
+
+**The transition: an aggregate interface and one forwarding class, both scheduled for demolition.**
 
 ```csharp
 // Transitional aggregate: keeps existing IRulesProvider consumers and tests compiling.
+// Keeps no members of its own. Retained after Phase 5 only as a test-substitution
+// convenience; retired once tests migrate to domain substitutes.
 public interface IRulesProvider : IToHitRules, IDamageRules, IPilotingRules, IHeatRules { }
 
-// The ONLY class that forwards. House rules never write forwarding code.
-public sealed class CompositeRulesProvider(
+// Transitional (deleted in Phase 5): the ONLY class that forwards.
+public class CompositeRulesProvider(
     IToHitRules toHit, IDamageRules damage, IPilotingRules piloting, IHeatRules heat) : IRulesProvider
 {
     public int GetProneFiringModifier() => toHit.GetProneFiringModifier();
-    public int GetHeatShutdownAvoidNumber(int heatLevel) => heat.GetHeatShutdownAvoidNumber(heatLevel);
     // ... one line per method
 }
+
+// Transitional (deleted in Phase 5): keeps `new TotalWarfareRulesProvider()` compiling
+// in tests while they migrate to `RuleSet` or domain substitutes.
+public sealed class TotalWarfareRulesProvider()
+    : CompositeRulesProvider(new TotalWarfareToHitRules(), new TotalWarfareDamageRules(),
+                             new TotalWarfarePilotingRules(), new TotalWarfareHeatRules());
 ```
 
-`TotalWarfareRulesProvider` becomes `new CompositeRulesProvider(new TotalWarfareToHitRules(), new TotalWarfareDamageRules(), new TotalWarfarePilotingRules(), new TotalWarfareHeatRules())`.
+**Why the transition works this way:** 72 test files (127 occurrences) use `Substitute.For<IRulesProvider>()` or `new TotalWarfareRulesProvider()`. NSubstitute mocks the aggregate interface directly — no concrete implementation is ever needed for substitution — so the mock-based tests are untouched by the composite's deletion. Only tests constructing the concrete full set need the transitional `TotalWarfareRulesProvider` subclass, and they migrate mechanically. Because `IRulesProvider` *is-a* `IToHitRules`, consumers narrow their constructor parameter types (`ToHitCalculator(IToHitRules)`) while existing tests keep compiling. The answer to the §2.1 pass-through warning is therefore not a justification but a **deletion plan**: Phase 5 adds an exit criterion that no concrete type implements `IRulesProvider` by delegation.
 
-**Why keep the inheriting `IRulesProvider` at all:** 72 test files (127 occurrences) use `Substitute.For<IRulesProvider>()` or `new TotalWarfareRulesProvider()`. Because `IRulesProvider` *is-a* `IToHitRules`, consumers can narrow their constructor parameter types (`ToHitCalculator(IToHitRules)`) while existing tests keep compiling. The aggregate is a migration aid, not the extension point — the extension point is the domain classes plus `CompositeRulesProvider`. Once all consumers depend on domain interfaces, `IRulesProvider` may remain only where a holder genuinely needs the whole rule set (`BaseGame.RulesProvider`).
-
-**DI registration:** register each domain interface and `IUnitConstructionRules` individually (`CoreServices.cs`, `BotContainerServices.cs`), plus `IRulesProvider` → `CompositeRulesProvider` built from the same instances.
+**DI registration:** register each domain interface and `IUnitConstructionRules` individually (`CoreServices.cs`, `BotContainerServices.cs`), plus a `RuleSet` built from the same instances. During the transition, `IRulesProvider` → the transitional composite; that registration is removed in Phase 5.
 
 ### 3.5 House-rule composition
 
@@ -350,11 +367,11 @@ public sealed class HarshHeatRules : TotalWarfareHeatRules
 }
 
 // Compose the rule set — no forwarding, no reimplementation of other domains.
-var houseRules = new CompositeRulesProvider(
-    toHit:    new TotalWarfareToHitRules(),
-    damage:   new TotalWarfareDamageRules(),
-    piloting: new TotalWarfarePilotingRules(),
-    heat:     new HarshHeatRules());
+var houseRules = new RuleSet(
+    ToHit:    new TotalWarfareToHitRules(),
+    Damage:   new TotalWarfareDamageRules(),
+    Piloting: new TotalWarfarePilotingRules(),
+    Heat:     new HarshHeatRules());
 
 var houseMovementCost = new HouseRuleMovementCostProvider(
     new Dictionary<MakaMekTerrains, int> { [MakaMekTerrains.HeavyWoods] = 3 });
@@ -404,7 +421,7 @@ Each phase is an independently mergeable PR with its own version bump.
 
 1. Create `IToHitRules`, `IDamageRules`, `IPilotingRules`, `IHeatRules`, `IUnitConstructionRules` in `src/MakaMek.Core/Models/Game/Rules/` with the method mapping from §3.4.
 2. Create `TotalWarfareToHitRules`, `TotalWarfareDamageRules`, `TotalWarfarePilotingRules`, `TotalWarfareHeatRules`, `TotalWarfareUnitConstructionRules` with **virtual** methods; move the bodies from `TotalWarfareRulesProvider`.
-3. Create `CompositeRulesProvider`; make `IRulesProvider` the aggregate of the four runtime domains; remove `GetStructureValues` from it.
+3. Make `IRulesProvider` the aggregate of the four runtime domains; remove `GetStructureValues` from it. Create the `RuleSet` record and the transitional `CompositeRulesProvider` + `TotalWarfareRulesProvider` subclass (§3.4), both marked for deletion in Phase 5.
 4. Inject `IUnitConstructionRules` directly into `MechFactory`.
 5. Narrow mechanics-service constructors to the domain interface they use (`ToHitCalculator(IToHitRules)`, `HeatEffectsCalculator(IHeatRules, …)`, etc.).
 6. Update DI registration in `CoreServices.cs` and `BotContainerServices.cs`.
@@ -448,6 +465,9 @@ Each phase is an independently mergeable PR with its own version bump.
 2. Document the `IMovementCostProvider` contract and the `override ?? entityDefault` model.
 3. Document the rule-set consistency invariant (§3.6).
 4. Add the §3.5 house-rule example to the docs.
+5. Delete the transitional `CompositeRulesProvider` and `TotalWarfareRulesProvider`; retype `BaseGame.RulesProvider` to `RuleSet`; migrate the remaining concrete-full-set test usages to `RuleSet` or domain substitutes; remove the `IRulesProvider` DI registration.
+
+**Exit criteria:** no concrete type implements `IRulesProvider` by delegation; `BaseGame.RulesProvider` is a `RuleSet`; `IRulesProvider` remains only as a memberless aggregate used by test substitutes.
 
 ### Rule-value inventory (to complete in Phase 3)
 
@@ -471,7 +491,7 @@ Each phase is an independently mergeable PR with its own version bump.
 | # | Criterion | Verifies |
 |---|---|---|
 | 1 | A new terrain type (`SwampTerrain`) works with every existing `IMovementCostProvider` without modifying any provider | Open-Closed |
-| 2 | A house-rule set overrides a single rule (e.g. one heat threshold) with one subclass overriding one method, plus one `CompositeRulesProvider` construction | Composition / partial override |
+| 2 | A house-rule set overrides a single rule (e.g. one heat threshold) with one subclass overriding one method, plus one `RuleSet` construction | Composition / partial override |
 | 3 | `MechFactory` depends only on `IUnitConstructionRules`; `GetStructureValues` is not reachable from `IRulesProvider` | Interface Segregation |
 | 4 | Each mechanics service depends only on the domain interface(s) it uses | Interface Segregation |
 | 5 | No `IUnit`/`Unit`/`Mech` member takes `IRulesProvider` (or a domain interface) as a parameter — including the existing `GetHeatData` / `GetProjectedHeatValue` | Information Hiding |
@@ -482,6 +502,7 @@ Each phase is an independently mergeable PR with its own version bump.
 | 10 | A custom `IMovementCostProvider` supplied via `IBattleMapFactory` affects pathfinding | Testability (#1028) |
 | 11 | Adding a new rules domain does not modify existing domain interfaces or their implementations | Interface Segregation |
 | 12 | All existing tests pass after each phase | Regression |
+| 13 | No concrete type implements `IRulesProvider` by delegation; the whole rule set is held by the methodless `RuleSet` record | Deep Modules — no pass-through class |
 
 ---
 
@@ -490,8 +511,8 @@ Each phase is an independently mergeable PR with its own version bump.
 | Risk | Mitigation |
 |---|---|
 | Phase 4 changes the heat command payload and unit-state restore | Isolated phase; `HeatData` already flows through `HeatUpdatedCommand`; add round-trip serialization and restore tests |
-| Forwarding boilerplate in `CompositeRulesProvider` | Written once; house rules never forward. Pass-through cost is accepted in one class only |
-| Transitional `IRulesProvider` aggregate becomes permanent god interface | Phase 1 narrows all mechanics-service constructors; AC 4 enforces it; the aggregate keeps no members of its own |
+| Transitional forwarding composite becomes permanent | Scheduled for deletion in Phase 5 with an exit criterion; the end state holds the rule set in the methodless `RuleSet` record — no pass-through class survives |
+| Transitional `IRulesProvider` aggregate becomes permanent god interface | Phase 1 narrows all mechanics-service constructors; AC 4 enforces it; the aggregate keeps no members of its own and has no concrete implementation after Phase 5 — what remains is a test-substitution convenience, retired once tests migrate to domain interfaces |
 | Peers running different rule sets accept each other's values silently | §3.6 invariant documented now; rule-set ID handshake required before the first non-TW rule set ships |
 | Silent defaults for new content (`_ => 0` style fallbacks) | Prefer entity defaults authored with the entity (hybrid); Phase 3 decides terrain to-hit explicitly |
 | Performance regression from indirection | One virtual call or dictionary lookup per value, in-memory, no I/O or reflection — negligible in a turn-based game |
@@ -520,8 +541,8 @@ Each phase is an independently mergeable PR with its own version bump.
 | `IMovementCostProvider` + default (identity) provider in Map, injected via `IBattleMapFactory` | DIP (Map has no Core reference) |
 | No path-cache invalidation — provider fixed per map | YAGNI, consistent with non-goals |
 | Rules split into four runtime domains + construction; no empty `IMovementRules` | Interface Segregation, derived from actual consumers |
-| Composition across domains (`CompositeRulesProvider`), virtual inheritance within a domain | Composition over Inheritance, minimal house-rule code |
-| `IRulesProvider` aggregate kept as a migration aid only | Test compatibility (72 files) while narrowing consumers |
+| Composition across domains (methodless `RuleSet` record), virtual inheritance within a domain | Composition over Inheritance, minimal house-rule code; no pass-through class (Ousterhout) |
+| `IRulesProvider` aggregate and forwarding composite kept as migration aids only; composite deleted in Phase 5 | Test compatibility (72 files) while narrowing consumers; the pass-through warning is answered with a deletion plan, not a justification |
 | `IUnitConstructionRules` injected directly into `MechFactory` | Interface Segregation (construction-only concern) |
 | Attack modifiers resolved in `ToHitCalculator` | Existing precedent (skidding-target, partial cover) |
 | Heat-derived values resolved server-side in `HeatPhase`, stored as unit state | Server-authoritative architecture; avoids unit-API ripple |
@@ -531,6 +552,6 @@ Each phase is an independently mergeable PR with its own version bump.
 
 ---
 
-**Document Version:** 1.2 — removed the external rules-engine comparison (former §4) and related references; renumbered sections 4–9. v1.1: corrected terrain cost semantics and prone value; replaced the duplicating movement-cost adapter with an identity default in Map; removed cache invalidation; split Phase 3 into attack (service) and heat (server-resolved state) strategies; added `GetHeatData` migration, concrete domain mapping, composite + virtual-domain house-rule model, rule-set consistency invariant, and rule-value inventory; corrected quote attribution.
+**Document Version:** 1.3 — replaced the permanent `CompositeRulesProvider` forwarding class with the methodless `RuleSet` record as the end state (Ousterhout pass-through warning); the composite and `TotalWarfareRulesProvider` are now transitional and deleted in Phase 5, with `BaseGame.RulesProvider` retyped to `RuleSet`. v1.2: removed the external rules-engine comparison (former §4) and related references; renumbered sections 4–9. v1.1: corrected terrain cost semantics and prone value; replaced the duplicating movement-cost adapter with an identity default in Map; removed cache invalidation; split Phase 3 into attack (service) and heat (server-resolved state) strategies; added `GetHeatData` migration, concrete domain mapping, composite + virtual-domain house-rule model, rule-set consistency invariant, and rule-value inventory; corrected quote attribution.
 **Author:** AI-assisted architecture analysis
 **Reviewers:** TBD
