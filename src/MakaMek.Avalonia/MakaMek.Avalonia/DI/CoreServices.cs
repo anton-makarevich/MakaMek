@@ -101,7 +101,7 @@ public static class CoreServices
         services.AddSingleton<IFileService, AvaloniaFileService>();
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
 
-        services.AddSingleton<IPdfExportService, PdfExportService>();
+        services.AddSingleton<IPdfExportService, SkiaPdfExportService>();
 
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
