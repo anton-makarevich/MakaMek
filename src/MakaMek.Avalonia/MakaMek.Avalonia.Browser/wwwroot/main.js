@@ -22,8 +22,13 @@ try {
     const config = dotnetRuntime.getConfig();
     setProgress(100, 100);
     setStatus("Starting MakaMek…");
-    await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
+    try {
+        await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
+    } catch (error) {
+        console.error(error);
+        showError("Failed to Start MakaMek. Try reloading the page.", "Reload", "./");
+    }
 } catch (error) {
     console.error(error);
-    showError("Failed to load MakaMek. Check your connection and reload the page. <a href=\"./\">Reload</a>");
+    showError("Failed to load MakaMek. Check your connection and reload the page.", "Reload", "./");
 }

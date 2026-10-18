@@ -93,6 +93,10 @@
     font-size: 0.875rem;
 }
 
+.hidden {
+    display: none;
+}
+
 .splash-error {
     margin-top: 0.75rem;
     font-size: 0.875rem;
@@ -108,7 +112,7 @@
 }
 
 .avalonia-splash.splash-error .splash-error {
-    display: block !important;
+    display: block;
 }
 
 .avalonia-splash.splash-error a {
