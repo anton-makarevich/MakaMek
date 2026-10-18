@@ -1,11 +1,19 @@
-using PdfSharp.Pdf.IO;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Shouldly;
 
-namespace Sanet.MakaMek.Services.Tests;
+namespace MakaMek.Avalonia.AppTests;
 
-public class PdfExportServiceTests
+/// <summary>
+/// Drives the concrete <see cref="SkiaPdfExportService"/> end to end (this assembly has real
+/// Skia natives). Page dimensions are verified by parsing the uncompressed page dictionary
+/// (<c>/MediaBox</c>) out of the produced PDF instead of a PDF library reader, so no
+/// additional dependency is needed.
+/// </summary>
+public class SkiaPdfExportServiceTests
 {
-    private readonly PdfExportService _sut = new();
+    private readonly SkiaPdfExportService _sut = new();
 
     [Fact]
     public async Task GeneratePdfFromPngAsync_WithValidPng_ReturnsPdfBytes()
@@ -16,7 +24,7 @@ public class PdfExportServiceTests
 
         result.ShouldNotBeNull();
         result.ShouldNotBeEmpty();
-        result.Take(5).ShouldBe("%PDF-"u8.ToArray()); // %PDF-
+        result.Take(5).ShouldBe("%PDF-"u8.ToArray());
     }
 
     [Fact]
@@ -28,10 +36,20 @@ public class PdfExportServiceTests
 
         result.ShouldNotBeNull();
         result.ShouldNotBeEmpty();
-        result.Take(5).ShouldBe("%PDF-"u8.ToArray()); // %PDF-
-        using var pdf = PdfReader.Open(new MemoryStream(result), PdfDocumentOpenMode.Import);
-        pdf.Pages[0].Width.Point.ShouldBe(612, 0.5);
-        pdf.Pages[0].Height.Point.ShouldBe(792, 0.5);
+        result.Take(5).ShouldBe("%PDF-"u8.ToArray());
+
+        var text = System.Text.Encoding.ASCII.GetString(result);
+        // "/Type /Page" must not match the "/Type /Pages" tree node, hence the lookahead.
+        Regex.Matches(text, @"/Type\s*/Page(?!s)").Count.ShouldBe(1);
+        var mediaBox = Regex.Match(text, @"/MediaBox\s*\[\s*([^\]]+)\]");
+        mediaBox.Success.ShouldBeTrue();
+        var values = mediaBox.Groups[1].Value
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(v => double.Parse(v, CultureInfo.InvariantCulture))
+            .ToArray();
+        values.Length.ShouldBe(4);
+        values[2].ShouldBe(612, 0.5);
+        values[3].ShouldBe(792, 0.5);
     }
 
     [Fact]
@@ -64,6 +82,16 @@ public class PdfExportServiceTests
         Func<Task> act = () => _sut.GeneratePdfFromPngAsync(pngBytes, 100, heightPoints);
 
         await act.ShouldThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task GeneratePdfFromPngAsync_MalformedImageBytes_ThrowsArgumentException()
+    {
+        var malformedBytes = "not a png"u8.ToArray();
+
+        Func<Task> act = () => _sut.GeneratePdfFromPngAsync(malformedBytes, 100, 100);
+
+        await act.ShouldThrowAsync<ArgumentException>();
     }
 
     private const string _1x1RedPngBase64 =
