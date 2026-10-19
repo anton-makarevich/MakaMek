@@ -61,6 +61,23 @@ public abstract class Weapon : Component
     /// </summary>
     public virtual bool IsAimShotCapable => true;
 
+    /// <summary>
+    /// Indicates whether this weapon has fired this turn.
+    /// Set by <c>Unit.FireWeapon</c> after the availability guard and cleared by the unit's turn-level reset.
+    /// This flag is runtime-only and is not serialized.
+    /// </summary>
+    public bool HasFiredThisTurn { get; private set; }
+
+    /// <summary>
+    /// Marks the weapon as fired this turn.
+    /// </summary>
+    public void MarkAsFired() => HasFiredThisTurn = true;
+
+    /// <summary>
+    /// Clears the fired state of the weapon.
+    /// </summary>
+    public void ClearFiredState() => HasFiredThisTurn = false;
+
     public IReadOnlyList<FiringArc> GetFiringArcs()
     {
         if (FirstMountPart == null)

@@ -180,6 +180,18 @@ public abstract class Unit : IUnit
     }
 
     /// <summary>
+    /// Returns the distinct mount locations of all weapons that have fired this turn.
+    /// </summary>
+    public IReadOnlyCollection<PartLocation> GetFiredWeaponLocations()
+    {
+        return GetAllComponents<Weapon>()
+            .Where(w => w.HasFiredThisTurn)
+            .SelectMany(w => w.GetLocations())
+            .Distinct()
+            .ToList();
+    }
+
+    /// <summary>
     /// Determines if this unit can have partial cover from elevation.
     /// Only standing mechs can have partial cover.
     /// </summary>
@@ -481,6 +493,8 @@ public abstract class Unit : IUnit
         ResetMovement();
         HasAppliedHeat = false;
         ResetWeaponsTargets();
+        foreach (var weapon in GetAllComponents<Weapon>())
+            weapon.ClearFiredState();
         ClearEvents();
     }
 
@@ -833,6 +847,9 @@ public abstract class Unit : IUnit
     /// Fires a weapon based on the provided weapon data and consumes ammo if required.
     /// </summary>
     /// <param name="weaponData">Data identifying the weapon to fire</param>
+    /// <summary>
+    /// Fires the specified weapon. Records the weapon's fired state and then consumes ammo if the weapon requires ammo.
+    /// </summary>
     public void FireWeapon(ComponentData weaponData)
     {
         // Find the weapon using the location and slots from weaponData
@@ -845,7 +862,9 @@ public abstract class Unit : IUnit
 
         if (weapon is not { IsAvailable: true })
             return;
-        
+
+        weapon.MarkAsFired();
+
         // If the weapon requires ammo, find and use ammo
         if (!weapon.RequiresAmmo) return;
         // Get all available ammo of the correct type
