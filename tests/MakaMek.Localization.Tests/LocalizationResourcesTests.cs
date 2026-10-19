@@ -204,6 +204,8 @@ public class LocalizationResourcesTests
     [InlineData("PilotingSkillRollType_WaterEntry", "Water Entry")]
     [InlineData("PilotingSkillRollType_SkidCheck", "Skid Check")]
     [InlineData("PilotingSkillRollType_RubbleEntry", "Rubble Entry")]
+    [InlineData("PilotingSkillRollType_KickHit", "Hit by Kick")]
+    [InlineData("PilotingSkillRollType_KickMiss", "Missed Kick")]
     [InlineData("PilotingSkillRollType_SkidCheck_WithHexes", "{0} ({1} hexes)")]
     [InlineData("PilotingSkillRollType_CliffFall", "Cliff Fall")]
     [InlineData("PilotingSkillRollType_CliffFall_WithLevels", "{0} ({1} levels)")]

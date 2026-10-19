@@ -294,6 +294,46 @@ public class FallProcessorTests
     }
 
     [Fact]
+    public void ProcessPotentialFall_RollsAnAdditionalContextAfterTheDamageCausedOnes()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1);
+        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
+        SetupPsrFor(PilotingSkillRollType.KickHit, 0, "Hit by Kick");
+        SetupRollResult(true, PilotingSkillRollType.GyroHit);
+        SetupRollResult(true, PilotingSkillRollType.KickHit);
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, null, [new KickHitRollContext()]).ToList();
+
+        // Assert
+        results.Select(c => c.FallPilotingSkillRoll!.RollContext.RollType)
+            .ShouldBe([PilotingSkillRollType.GyroHit, PilotingSkillRollType.KickHit]);
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_DoesNotRollTheAdditionalContext_WhenADamageCausedRollAlreadyFelled()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1);
+        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
+        SetupRollResult(false, PilotingSkillRollType.GyroHit);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false).Returns(GetFallingDamageData());
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, null, [new KickHitRollContext()]).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem().FallPilotingSkillRoll!.RollContext.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.KickHit),
+            Arg.Any<IGame>());
+    }
+
+    [Fact]
     public void ProcessPotentialFall_ShouldReturnTwoCommands_WhenGyroHitAndHeavyDamagePsrsSucceed()
     {
         // Arrange

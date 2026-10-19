@@ -694,6 +694,8 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.LegDestroyed, 5)]
     [InlineData(PilotingSkillRollType.BridgeCollapse, 0)]
     [InlineData(PilotingSkillRollType.RubbleEntry, 0)]
+    [InlineData(PilotingSkillRollType.KickHit, 0)]
+    [InlineData(PilotingSkillRollType.KickMiss, 0)]
     public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
         int expectedModifier)
     {
@@ -728,6 +730,8 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.HipActuatorHit)]
     [InlineData(PilotingSkillRollType.FootActuatorHit)]
     [InlineData(PilotingSkillRollType.UpperLegActuatorHit)]
+    [InlineData(PilotingSkillRollType.KickHit)]
+    [InlineData(PilotingSkillRollType.KickMiss)]
     [InlineData(PilotingSkillRollType.PilotDamageFromFall)]
     [InlineData(PilotingSkillRollType.StandupAttempt)]
     [InlineData(PilotingSkillRollType.JumpWithDamage)]
