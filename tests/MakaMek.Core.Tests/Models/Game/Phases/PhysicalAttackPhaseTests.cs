@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -49,21 +50,43 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_ShouldSetFirstPlayerActive()
+    public void Enter_ShouldTransitionToNextPhaseImmediately()
     {
         // Act
         _sut.Enter();
-    
+
         // Assert
-        Game.PhaseStepState!.Value.ActivePlayer.ShouldBe(Game.Players[0]); // Player who lost initiative attacks first
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttack, Game);
+        _mockNextPhase.Received(1).Enter();
+        Game.PhaseStepState.ShouldBeNull();
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishOnlyChangePhaseCommand()
+    {
+        // Arrange
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var publishedCommands = CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == nameof(CommandPublisher.PublishCommand))
+            .Select(call => call.GetArguments()[0])
+            .ToList();
+
+        publishedCommands.Count.ShouldBe(1);
+        publishedCommands[0].ShouldBeOfType<ChangePhaseCommand>();
     }
 
     [Fact]
     public void HandleCommand_WhenValidPhysicalAttack_ShouldPublishAndUpdateTurn()
     {
         // Arrange
-        _sut.Enter();
-        
+        Game.SetActivePlayer(Game.Players[0], 2);
+
         // Act
         _sut.HandleCommand(new PhysicalAttackCommand
         {
@@ -85,7 +108,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_WhenWrongPlayer_ShouldIgnoreCommand()
     {
         // Arrange
-        _sut.Enter();
+        Game.SetActivePlayer(Game.Players[0], 2);
         var wrongPlayerId = Guid.NewGuid();
     
         // Act
@@ -103,53 +126,11 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void HandleCommand_WhenAllUnitsAttacked_ShouldTransitionToNextPhase()
-    {
-        // Arrange
-        _sut.Enter();
-        var firstPlayer = Game.PhaseStepState!.Value.ActivePlayer;
-        
-        // Act - First player attacks with all units
-        foreach (var unit in firstPlayer.Units)
-        {
-            _sut.HandleCommand(new PhysicalAttackCommand
-            {
-                GameOriginId = Game.Id,
-                PlayerId = firstPlayer.Id,
-                UnitId = unit.Id,
-                TargetUnitId = _unit2Id,
-                AttackType = PhysicalAttackType.Punch
-            });
-        }
-
-        // The second player should be active now
-        Game.PhaseStepState!.Value.ActivePlayer.ShouldNotBe(firstPlayer);
-        var secondPlayer = Game.PhaseStepState.Value.ActivePlayer;
-        
-        // Second player attacks
-        foreach (var unit in secondPlayer.Units)
-        {
-            _sut.HandleCommand(new PhysicalAttackCommand
-            {
-                GameOriginId = Game.Id,
-                PlayerId = secondPlayer.Id,
-                UnitId = unit.Id,
-                TargetUnitId = _unit1Id,
-                AttackType = PhysicalAttackType.Punch
-            });
-        }
-    
-        // Assert
-        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttack, Game);
-        _mockNextPhase.Received(1).Enter();
-    }
-
-    [Fact]
     public void HandleCommand_WhenInvalidCommand_ShouldIgnoreCommand()
     {
         // Arrange
-        _sut.Enter();
-        
+        Game.SetActivePlayer(Game.Players[0], 2);
+
         // Act
         _sut.HandleCommand(new WeaponAttackDeclarationCommand // Wrong command type
         {

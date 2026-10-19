@@ -9,6 +9,7 @@ public enum PhaseNames
     WeaponsAttack,
     WeaponAttackResolution,
     PhysicalAttack,
+    PhysicalAttackResolution,
     Heat,
     End
 }
