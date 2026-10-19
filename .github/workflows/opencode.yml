@@ -41,13 +41,15 @@ jobs:
 
       - name: Configure Serena for OpenCode
         run: |
+          # Ensure uv tool bin dir is in PATH so `serena` is found
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           cat > opencode.json << 'EOF'
           {
             "mcp": {
               "servers": {
                 "serena": {
                   "type": "local",
-                  "command": ["serena", "start-mcp-server", "--context=ide"],
+                  "command": ["serena", "start-mcp-server", "--context=ide", "--project", "."],
                   "disabled": false
                 },
                 "avalonia-docs": {

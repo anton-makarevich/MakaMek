@@ -16,6 +16,7 @@ Technical analyses, integration studies, design evaluations, and race condition 
 |----------|---------|
 | [Rules-Provider-Analysis.md](Rules-Provider-Analysis.md) | Software architecture analysis of rules provider design options and trade-offs |
 | [Rules-Provider-Analysis-Updated.md](Rules-Provider-Analysis-Updated.md) | Updated rules provider analysis incorporating revised requirements and findings |
+| [Rule-Related-PRs.md](Rule-Related-PRs.md) | Consolidated report on the four open rules-provider PRs (#1443, #1450, #1445, #1451) — overlaps, conflicts, and disposition |
 
 ## Reachability Analyses
 

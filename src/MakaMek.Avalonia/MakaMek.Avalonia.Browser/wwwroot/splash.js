@@ -26,13 +26,23 @@ export function setProgress(loaded, total) {
     }
 }
 
-export function showError(message) {
+export function showError(message, linkText, linkUrl) {
     if (splashRoot) {
         splashRoot.classList.add("splash-error");
     }
     if (splashError) {
-        splashError.style.display = "block";
-        splashError.innerHTML = message;
+        splashError.classList.remove("hidden");
+        splashError.textContent = "";
+        if (message) {
+            const textNode = document.createTextNode(message + (linkText ? " " : ""));
+            splashError.appendChild(textNode);
+        }
+        if (linkText && linkUrl) {
+            const link = document.createElement("a");
+            link.href = linkUrl;
+            link.textContent = linkText;
+            splashError.appendChild(link);
+        }
     }
     if (splashPercent) {
         splashPercent.textContent = "0%";
