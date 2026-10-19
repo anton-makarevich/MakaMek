@@ -1218,6 +1218,57 @@ public class ClientGameTests
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
     }
 
+    [Theory]
+    [InlineData(true, 4)]
+    [InlineData(false, 0)]
+    public void HandleCommand_AppliesTheCarriedDamage_WhenPhysicalAttackResolutionCommandIsReceived(bool isHit, int expectedArmorLoss)
+    {
+        // Arrange
+        var targetPlayerId = Guid.NewGuid();
+        var targetUnitData = MechFactoryTests.CreateDummyMechData();
+        targetUnitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = targetPlayerId,
+            PlayerName = "Target",
+            GameOriginId = Guid.NewGuid(),
+            Units = [targetUnitData],
+            Tint = "#00FF00",
+            PilotAssignments = []
+        });
+        var targetMech = (Mech)_sut.Players.First(p => p.Id == targetPlayerId).Units.First();
+        targetMech.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+
+        // Act
+        _sut.HandleCommand(new PhysicalAttackResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = targetMech.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Kick,
+                PartLocation.LeftLeg,
+                4,
+                new AttackResolutionData(
+                    5,
+                    [],
+                    isHit,
+                    HitDirection.Front,
+                    0,
+                    isHit
+                        ? new AttackHitLocationsData([CreateHitDataForLocation(PartLocation.RightLeg, 4, [], [])], 4, [], 1)
+                        : null),
+                isHit,
+                !isHit)
+        });
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - expectedArmorLoss);
+    }
+
     [Fact]
     public void HandleCommand_ShouldApplyHeat_WhenHeatUpdatedCommandIsReceived()
     {
