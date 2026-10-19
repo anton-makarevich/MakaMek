@@ -63,7 +63,7 @@ jobs:
           EOF
 
       - name: Run OpenCode
-        uses: anomalyco/opencode/github@v2.0.26
+        uses: anomalyco/opencode/github@v2.0.32
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
