@@ -5,6 +5,14 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
 {
+    public override void Enter()
+    {
+        // Temporary auto-advance: no client can declare or pass a physical attack yet, so the
+        // phase would stall waiting for a PhysicalAttackCommand. Remove this override once
+        // declaration, pass, UI, and bot support are available.
+        Game.TransitionToNextPhase(Name);
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
         if (command is not PhysicalAttackCommand attackCommand) return;
