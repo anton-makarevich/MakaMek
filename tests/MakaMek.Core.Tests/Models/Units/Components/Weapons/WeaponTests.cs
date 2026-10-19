@@ -87,6 +87,14 @@ public class WeaponTests
     }
     
     [Fact]
+    public void HasFiredThisTurn_ShouldBeFalse_ByDefault()
+    {
+        var weapon = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
+
+        weapon.HasFiredThisTurn.ShouldBeFalse();
+    }
+
+    [Fact]
     public void GetFiringArcs_ShouldReturnEmptyList_WhenNotMounted()
     {
         var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
