@@ -165,8 +165,15 @@ public sealed class DefaultMovementCostProvider : IMovementCostProvider
 public sealed class HouseRuleMovementCostProvider(IReadOnlyDictionary<MakaMekTerrains, int> overrides)
     : IMovementCostProvider
 {
+    private readonly IReadOnlyDictionary<MakaMekTerrains, int> _overrides;
+
+    public HouseRuleMovementCostProvider(IReadOnlyDictionary<MakaMekTerrains, int> overrides)
+    {
+        _overrides = new Dictionary<MakaMekTerrains, int>(overrides);
+    }
+
     public int GetMovementCost(Terrain terrain)
-        => overrides.TryGetValue(terrain.Id, out var cost) ? cost : terrain.MovementCost;
+        => _overrides.TryGetValue(terrain.Id, out var cost) ? cost : terrain.MovementCost;
 }
 ```
 
@@ -383,7 +390,7 @@ The provider is a per-process DI singleton, registered separately in the desktop
 
 **Requirement for this PRD (minimum):** document the invariant *"all peers and bot containers in a game run an identical rule set"* beside `IRulesProvider`.
 
-**Future requirement (when the first non-TW rule set ships):** a rule-set identifier is part of game setup, broadcast in the lobby, and validated on join.
+**Future requirement (when the first non-TW rule set ships):** a rule-set identifier is part of game setup, broadcast in the lobby, and validated on join. The identifier must encompass the full rule configuration: the four RuleSet domains (ToHit, Damage, Piloting, Heat) *and* the `IMovementCostProvider` configuration including any house-rule movement-cost overrides (e.g. `houseMovementCost`). Peer consistency and join validation must cover these movement-cost settings alongside the four RuleSet domains so that no peer can compute divergent path costs.
 
 ---
 
