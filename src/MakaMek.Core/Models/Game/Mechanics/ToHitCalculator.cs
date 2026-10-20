@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -72,7 +73,7 @@ public class ToHitCalculator : IToHitCalculator
         var rangeValue = effectiveRange?.GetRangeValue(range) ?? 1;
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
-        var terrainModifiers = GetTerrainModifiers(losResult);
+        var terrainModifiers = losResult.GetTerrainToHitModifiers(_rules);
 
         if (scenario.TargetUnit != null && _rules.HasPartialCover(scenario.TargetUnit, losResult))
         {
@@ -209,27 +210,6 @@ public class ToHitCalculator : IToHitCalculator
             Value = _rules.GetSecondaryTargetModifier(isInFrontArc)
         });
 
-        return modifiers;
-    }
-
-    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(LineOfSightResult losResult)
-    {
-        var modifiers = new List<TerrainRollModifier>();
-        foreach (var hexInfo in losResult.HexPath)
-        {
-            if (hexInfo.InterveningFactor <= 0) continue;
-            foreach (var terrain in hexInfo.Hex.GetTerrains())
-            {
-                var modifier = _rules.GetTerrainToHitModifier(terrain.Id);
-                if (modifier != 0)
-                    modifiers.Add(new TerrainRollModifier
-                    {
-                        Value = modifier,
-                        Location = hexInfo.Hex.Coordinates,
-                        TerrainId = terrain.Id
-                    });
-            }
-        }
         return modifiers;
     }
 }

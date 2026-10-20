@@ -21,6 +21,13 @@ public interface IRulesProvider
     int GetTargetMovementModifier(int hexesMoved);
 
     /// <summary>
+    /// Gets the per-type base modifier for a physical attack.
+    /// Later milestones extend the table: Push -1 (M2), Charge/DFA +0 (M3),
+    /// physical weapons -1/-2 (M4), Club -1 (M5).
+    /// </summary>
+    int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType);
+
+    /// <summary>
     /// Gets the modifier for firing at a specific rangeBracket bracket
     /// </summary>
     int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance);
