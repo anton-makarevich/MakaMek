@@ -408,6 +408,47 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_SkiddingAttacker_ReplacesMovementModifierWithSkiddingModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(2, 2, HexDirection.Bottom);
+        var targetPosition = new HexPosition(2, 3, HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            attackerMovement: CreateWalkingPath(attackerPosition, targetPosition));
+        attacker.IsSkidding.Returns(true);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert — a skidding attacker gets +1 (skidding) instead of +1 (walked)
+        var skidding = result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
+        skidding.Value.ShouldBe(1);
+        result.AttackerMovement.Value.ShouldBe(0);
+        result.Total.ShouldBe(6); // piloting (5) + punch base (0) + skidding (1)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_StationaryAttacker_DoesNotIncludeSkiddingAttackerModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        attacker.IsSkidding.Returns(false);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldBeEmpty();
+        result.Total.ShouldBe(5); // piloting (5) + punch base (0)
+    }
+
+    [Fact]
     public void GetModifierBreakdown_DoesNotMutateUnits()
     {
         // Arrange

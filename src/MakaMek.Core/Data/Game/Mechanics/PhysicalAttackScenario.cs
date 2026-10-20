@@ -11,6 +11,8 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 /// current unit state) and hypothetical attacks (for UI preview and bot evaluation).
 /// The target unit is optional and only used to evaluate target-side modifiers
 /// (partial cover, skidding); without it those modifiers cannot be determined.
+/// The attacker unit is optional and only used to evaluate attacker-side modifiers
+/// (skidding); without it those modifiers cannot be determined.
 /// </summary>
 public record PhysicalAttackScenario
 {
@@ -61,6 +63,12 @@ public record PhysicalAttackScenario
     public IUnit? TargetUnit { get; private init; }
 
     /// <summary>
+    /// The actual attacker unit, if available, for evaluating attacker-side modifiers
+    /// (skidding).
+    /// </summary>
+    public IUnit? AttackerUnit { get; private init; }
+
+    /// <summary>
     /// Creates a PhysicalAttackScenario from actual units in their current state.
     /// Used for real combat calculations and to-hit previews.
     /// </summary>
@@ -95,7 +103,8 @@ public record PhysicalAttackScenario
             TargetHexesMoved = target.MovementTaken.HexesTraveled,
             AttackerHeight = attacker.Height,
             TargetHeight = target.Height,
-            TargetUnit = target
+            TargetUnit = target,
+            AttackerUnit = attacker
         };
     }
 }

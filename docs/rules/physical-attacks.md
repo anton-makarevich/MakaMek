@@ -21,7 +21,7 @@
   * **Partial cover +1** — the target is partially concealed (see Line of Sight, p. 99). Partial cover only applies to standing 'Mechs. 'Mechs in **Depth 1 water** receive partial cover. An attacker firing downhill negates the target's partial cover.
   * **Skidding target +2** — a skidding ground unit is easier to hit for the remainder of the turn it skids.
   * **Prone target** — –2 when attacking from an adjacent hex, +1 from all other hexes.
-* **Attacker-Side Modifiers (apply to all attacks, weapon and physical):** a **skidding** attacker applies +1 to its physical attacks (except unintentional charges).
+* **Attacker-Side Modifiers (apply to all attacks, weapon and physical):** a **skidding** attacker applies +1 to its physical attacks (except unintentional charges). The attacker-movement rows (stationary / walked / ran / jumped / prone / skidding) are **exclusive states** — a skidding attacker gets the skidding modifier, not the modifier for the movement it performed before the skid.
 * **Heat & Sensors:** **Heat build-up and sensor damage modifiers NEVER apply to physical attacks**.
 * **Single Attack Limit:** A ’Mech may only perform **one type** of physical attack per turn (e.g., a ’Mech cannot kick and punch, or use a hatchet and kick in the same turn).
 

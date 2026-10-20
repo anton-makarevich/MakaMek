@@ -13,8 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// Classic BattleTech implementation of the physical attack to-hit calculator.
 /// Base to-hit is the attacker's Piloting Skill plus a per-type base modifier
 /// (Punch +0, Kick -2); standard attacker movement, target movement and terrain
-/// modifiers apply, as do target-side modifiers (partial cover, skidding).
-/// Heat and sensor modifiers are never applied.
+/// modifiers apply, as do target-side modifiers (partial cover, skidding) and the
+/// attacker-side skidding modifier. Heat and sensor modifiers are never applied.
 /// </summary>
 public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 {
@@ -56,6 +56,17 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
         var otherModifiers = GetTargetModifiers(scenario, losResult);
 
+        // A skidding attacker replaced its normal movement with the skid, so the skidding
+        // modifier takes the place of the movement-type modifier (Attack Modifiers Table).
+        var isSkidding = scenario.AttackerUnit?.IsSkidding == true;
+        if (isSkidding)
+        {
+            otherModifiers.Add(new SkiddingAttackerModifier
+            {
+                Value = SkiddingAttackerModifier.DefaultValue
+            });
+        }
+
         return new PhysicalAttackBreakdown
         {
             PilotingBase = new PilotingRollModifier
@@ -69,7 +80,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
+                Value = isSkidding ? 0 : _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
                 MovementType = scenario.AttackerMovementType
             },
             TargetMovement = new TargetMovementModifier
