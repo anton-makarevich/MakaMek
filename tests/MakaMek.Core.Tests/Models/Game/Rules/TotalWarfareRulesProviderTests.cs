@@ -239,6 +239,158 @@ public class TotalWarfareRulesProviderTests
 
     #endregion
 
+    #region Physical Hit Location Tests
+
+    [Theory]
+    [InlineData(1, PartLocation.LeftArm)]
+    [InlineData(2, PartLocation.LeftTorso)]
+    [InlineData(3, PartLocation.CenterTorso)]
+    [InlineData(4, PartLocation.RightTorso)]
+    [InlineData(5, PartLocation.RightArm)]
+    [InlineData(6, PartLocation.Head)]
+    public void GetPunchHitLocation_FrontAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetPunchHitLocation(diceResult, HitDirection.Front);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.LeftArm)]
+    [InlineData(2, PartLocation.LeftTorso)]
+    [InlineData(3, PartLocation.CenterTorso)]
+    [InlineData(4, PartLocation.RightTorso)]
+    [InlineData(5, PartLocation.RightArm)]
+    [InlineData(6, PartLocation.Head)]
+    public void GetPunchHitLocation_RearAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetPunchHitLocation(diceResult, HitDirection.Rear);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.LeftTorso)]
+    [InlineData(2, PartLocation.LeftTorso)]
+    [InlineData(3, PartLocation.CenterTorso)]
+    [InlineData(4, PartLocation.LeftArm)]
+    [InlineData(5, PartLocation.LeftArm)]
+    [InlineData(6, PartLocation.Head)]
+    public void GetPunchHitLocation_LeftAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetPunchHitLocation(diceResult, HitDirection.Left);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.RightTorso)]
+    [InlineData(2, PartLocation.RightTorso)]
+    [InlineData(3, PartLocation.CenterTorso)]
+    [InlineData(4, PartLocation.RightArm)]
+    [InlineData(5, PartLocation.RightArm)]
+    [InlineData(6, PartLocation.Head)]
+    public void GetPunchHitLocation_RightAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetPunchHitLocation(diceResult, HitDirection.Right);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.LeftLeg)]
+    [InlineData(2, PartLocation.LeftLeg)]
+    [InlineData(3, PartLocation.LeftLeg)]
+    [InlineData(4, PartLocation.LeftLeg)]
+    [InlineData(5, PartLocation.LeftLeg)]
+    [InlineData(6, PartLocation.LeftLeg)]
+    public void GetKickHitLocation_LeftAttack_AlwaysHitsTheLeftLeg(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetKickHitLocation(diceResult, HitDirection.Left);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.RightLeg)]
+    [InlineData(2, PartLocation.RightLeg)]
+    [InlineData(3, PartLocation.RightLeg)]
+    [InlineData(4, PartLocation.RightLeg)]
+    [InlineData(5, PartLocation.RightLeg)]
+    [InlineData(6, PartLocation.RightLeg)]
+    public void GetKickHitLocation_RightAttack_AlwaysHitsTheRightLeg(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetKickHitLocation(diceResult, HitDirection.Right);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.RightLeg)]
+    [InlineData(2, PartLocation.RightLeg)]
+    [InlineData(3, PartLocation.RightLeg)]
+    [InlineData(4, PartLocation.LeftLeg)]
+    [InlineData(5, PartLocation.LeftLeg)]
+    [InlineData(6, PartLocation.LeftLeg)]
+    public void GetKickHitLocation_FrontAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetKickHitLocation(diceResult, HitDirection.Front);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(1, PartLocation.RightLeg)]
+    [InlineData(2, PartLocation.RightLeg)]
+    [InlineData(3, PartLocation.RightLeg)]
+    [InlineData(4, PartLocation.LeftLeg)]
+    [InlineData(5, PartLocation.LeftLeg)]
+    [InlineData(6, PartLocation.LeftLeg)]
+    public void GetKickHitLocation_RearAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
+    {
+        // Act
+        var result = _sut.GetKickHitLocation(diceResult, HitDirection.Rear);
+
+        // Assert
+        result.ShouldBe(expectedLocation);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    [InlineData(-1)]
+    public void GetPunchHitLocation_ShouldThrowArgumentOutOfRangeException_WhenInvalidDiceResult(int invalidDiceResult)
+    {
+        // Act & Assert
+        Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPunchHitLocation(invalidDiceResult, HitDirection.Front));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    [InlineData(-1)]
+    public void GetKickHitLocation_ShouldThrowArgumentOutOfRangeException_WhenInvalidDiceResult(int invalidDiceResult)
+    {
+        // Act & Assert
+        Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetKickHitLocation(invalidDiceResult, HitDirection.Front));
+    }
+
+    #endregion
+
     #region Cluster Hits Tests
 
     [Theory]
