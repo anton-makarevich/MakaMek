@@ -84,4 +84,22 @@ public class PhysicalAttackBreakdownTests
         // Assert — piloting (4) + attack type (-2) + attacker movement (1) + target movement (2) + terrain (2)
         result.ShouldBe(7);
     }
+
+    [Fact]
+    public void AllModifiers_IncludesTargetSideModifiers_Once()
+    {
+        // Arrange
+        var partialCover = new PartialCoverModifier { Value = 1 };
+        var skiddingTarget = new SkiddingTargetModifier { Value = 2 };
+        var sut = CreateBreakdown([], [partialCover, skiddingTarget]);
+
+        // Act
+        var allModifiers = sut.AllModifiers;
+
+        // Assert — target-side modifiers sit between the movement modifiers and the terrain ones
+        allModifiers.Count.ShouldBe(6);
+        allModifiers[4].ShouldBe(partialCover);
+        allModifiers[5].ShouldBe(skiddingTarget);
+        sut.Total.ShouldBe(8); // piloting (4) + attack type (-2) + attacker movement (1) + target movement (2) + cover (1) + skidding (2) - terrain (0)
+    }
 }

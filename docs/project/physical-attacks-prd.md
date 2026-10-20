@@ -25,7 +25,7 @@ Work is split into milestones so that each can be refined into independently-shi
 The authoritative rules source for this feature is [`docs/rules/physical-attacks.md`](../rules/physical-attacks.md). Key rules the implementation must satisfy:
 
 1. **Phase timing** — Punch, Kick, Push are declared and resolved in the **Physical Attack Phase** (after Weapon Attack Resolution, before Heat). **Charge and DFA are declared during the Movement Phase** (they dictate movement) but resolved in the Physical Attack Phase.
-2. **Base to-hit** — attacker's **Piloting Skill** (not Gunnery). Movement and terrain modifiers apply as usual. **Heat and sensor-damage modifiers never apply** to physical attacks.
+2. **Base to-hit** — attacker's **Piloting Skill** (not Gunnery). All standard weapon-attack modifiers apply — attacker movement, target movement, target state, terrain — except **heat and sensor-damage modifiers, which never apply** to physical attacks. This includes **partial cover +1** (target partially concealed, or standing in Depth 1 water) and **skidding target +2**.
 3. **Single attack limit** — a 'Mech may perform only **one type** of physical attack per turn.
 4. **Damage & hit locations:**
 
@@ -40,7 +40,7 @@ The authoritative rules source for this feature is [`docs/rules/physical-attacks
 | DFA | +0 | ⌈Attacker tonnage/10⌉ × 3 to target (punch table); attacker takes ⌈tonnage/5⌉ to legs on hit | Attacker PSR +4, target PSR +2 on hit; attacker auto-falls on miss |
 
 5. **Weapon-firing restrictions** — a limb with weapons fired during the Weapon Attack Phase cannot punch/kick; a kicking leg's weapons cannot fire that turn; push requires both arms with no arm weapons fired. **Club** requires undamaged shoulder **and hand** actuators in both arms and no arm weapons fired from either arm (carrying a club occupies both hands). **Physical weapons** (hatchet/sword) restrict only the single weapon arm.
-6. **Actuator damage** — punch blocked by damaged **shoulder** actuator; club blocked by damaged shoulder or hand actuator in either arm; push is allowed but adds **+2 per damaged shoulder**.
+6. **Actuator damage** — punch blocked by damaged **shoulder** actuator; club blocked by damaged shoulder or hand actuator in either arm; push is allowed but adds **+2 per damaged shoulder**. Beyond the blockers, actuator damage also carries **to-hit penalties** for physical attacks: punching with an arm adds **+2 per damaged upper/lower arm actuator** and **+1 for a damaged hand actuator**; kicking adds **+2 per damaged upper/lower leg actuator** and **+1 for a damaged foot actuator**. Damaged arm actuators also **halve the punch damage**; damaged leg actuators **halve the kick damage**.
 7. **Push specifics** — target must be a standing 'Mech at the exact same elevation in the hex directly in front of the attacker's **feet** (not torso twist); attacker advances into the vacated hex at 0 MP; pushed target PSRs or falls; blocked destination → no movement but PSR still occurs; one displacement (Charge/DFA/Push) per target per turn; mutual pushes resolved per rules.
 8. **Eligibility** — prone 'Mechs cannot perform standard physical attacks (punching vehicles / thrashing infantry is out of scope — no such unit types yet); only 'Mechs are attackers and targets in v1.
 9. **Punch arcs & arm restriction** — a punch can target any adjacent 'Mech in the attacker's forward, left-side, or right-side arc. A target in the left side arc can only be punched by the **left** arm, a target in the right side arc only by the **right** arm; a target in the forward arc can be punched by one or both arms (each arm a separate attack). The punch hit-location table column (**Left Side / Front-Rear / Right Side**) is determined by the **attack direction relative to the target's facing** — where a straightedge from attacker to target hex centers enters the target's hex — *not* by the attacker's arc: a side-arc punch entering the target's front/rear rolls on the Front-Rear column.
@@ -180,6 +180,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - attack type is eligible per M1 (punch/kick) rules: limb weapons not fired, punching arm's shoulder actuator intact (both for a two-arm punch), hip actuators intact + leg weapons not fired (kick), attacker not skidding, punch arm(s) valid for the target's arc (forward → one or both arms; side arc → only the matching arm; punch arcs follow the torso twist — see Background item 10),
     - target is a valid enemy unit (adjacent 'Mech; adjacency and arc checks per attack type are validated again at resolution time against current positions).
     - Invalid commands return an `ErrorCommand` (existing idempotency-aware pattern used by `MovementPhase`).
+    - *Open rules question (M1):* excluding a **skidding** attacker from declaring physical attacks deviates from the rules, which let a skidding unit attack with a **+1 to-hit** penalty (Attack Modifiers Table, p. 118). Either allow skidding attackers and apply the +1, or keep the exclusion as an explicit project deviation — to be settled with the eligibility work.
 
 1.5. Skipping works without any `SkipPhysicalAttackCommand`. Two distinct cases:
 
@@ -206,7 +207,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
 
 **Files:** new `Models/Game/Mechanics/PhysicalAttack/` folder; `Data/Game/Mechanics/AttackScenario.cs`; `Rules/IRulesProvider.cs`, `TotalWarfareRulesProvider.cs`
 
-2.1. Introduce a physical-attack scenario record (`PhysicalAttackScenario`) analogous to `AttackScenario` but keyed on **Piloting Skill** (`AttackerPiloting`) and `PhysicalAttackType`. It excludes heat and sensor modifiers by construction.
+2.1. Introduce a physical-attack scenario record (`PhysicalAttackScenario`) analogous to `AttackScenario` but keyed on **Piloting Skill** (`AttackerPiloting`) and `PhysicalAttackType`. It excludes heat and sensor modifiers by construction. It carries the **target unit** (optional) so target-side modifiers — partial cover, skidding — can be evaluated; without it those modifiers cannot be determined.
 
 2.2. New calculator interface `IPhysicalAttackCalculator` with `GetToHitNumber(...)` / `GetModifierBreakdown(...)` returning `ToHitBreakdown` (reused record). Implementation composes existing `RollModifier` instances:
 
@@ -215,7 +216,9 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
       - `ChargePilotingDifferenceModifier` (relative piloting skill, M3)
       - `DfaJumpModifier` (M3)
       - `PushDamagedShoulderModifier` (+2 per damaged shoulder, M2)
-    - Reused modifiers where rules allow: `TargetMovementModifier`, `TerrainRollModifier` (attacker movement/terrain modifiers follow the standard movement tables — physical attacks use the attacker's executed movement type).
+      - `PunchActuatorDamageModifier` / `KickActuatorDamageModifier` (punch: +2 per damaged upper/lower arm actuator, +1 damaged hand; kick: +2 per damaged upper/lower leg actuator, +1 damaged foot — **pending**, they are per-limb and therefore require the attack-limb payload of R1.3)
+    - Reused modifiers where rules allow: `TargetMovementModifier`, `TerrainRollModifier` (attacker movement/terrain modifiers follow the standard movement tables — physical attacks use the attacker's executed movement type), `PartialCoverModifier` (+1, target partially concealed or in Depth 1 water), `SkiddingTargetModifier` (+2).
+    - *Pending (not implemented yet):* a **prone target** modifier (–2 when attacking from an adjacent hex, +1 otherwise — applies to all attacks and is missing from the weapon path as well) and the **punch/kick actuator penalties** listed above, which are per-limb and therefore need the attack-limb payload of R1.3.
     - *Implementation note (M1):* `GetModifierBreakdown` returns a dedicated `PhysicalAttackBreakdown` record rather than the weapon `ToHitBreakdown` — that record requires Gunnery/Range modifiers and treats a null firing arc as impossible, which does not fit melee attacks. Terrain is derived through the shared LOS-based extraction (target-hex terrain applies; attacker-hex terrain does not).
 
 2.3. Extend `IRulesProvider` with the physical hit-location tables:

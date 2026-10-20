@@ -36,7 +36,8 @@ public record PhysicalAttackBreakdown
     public required IReadOnlyList<TerrainRollModifier> TerrainModifiers { get; init; }
 
     /// <summary>
-    /// List of other modifiers with descriptions. Empty in M1; the extension point for
+    /// List of other modifiers with descriptions. Holds target-side modifiers
+    /// (partial cover +1, skidding target +2) and is the extension point for
     /// PushDamagedShoulderModifier (M2), ChargePilotingDifferenceModifier and DfaJumpModifier (M3).
     /// </summary>
     public required IReadOnlyList<RollModifier> OtherModifiers { get; init; }

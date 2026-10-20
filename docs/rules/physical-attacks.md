@@ -16,9 +16,31 @@
 ### **2. Core Physical Attack Rules & Modifiers**
 
 * **Base To-Hit Number:** Equal to the pilot’s **Piloting Skill Rating** (unlike weapon attacks, which use Gunnery Skill).
-* **Modifiers:** Standard movement and terrain modifiers apply. Relative Piloting Skill modifiers apply to Charges and DFAs.
+* **Modifiers:** The modified to-hit number is the base to-hit number plus the attack-type modifier, plus **all standard weapon-attack modifiers** — attacker movement, target movement, target state, and terrain — unless a rule for the specific attack type says otherwise. The only exceptions are heat and sensor-damage modifiers, which never apply. Relative Piloting Skill modifiers apply to Charges and DFAs.
+* **Target-Side Modifiers (apply to all attacks, weapon and physical):**
+  * **Partial cover +1** — the target is partially concealed (see Line of Sight, p. 99). Partial cover only applies to standing 'Mechs. 'Mechs in **Depth 1 water** receive partial cover. An attacker firing downhill negates the target's partial cover.
+  * **Skidding target +2** — a skidding ground unit is easier to hit for the remainder of the turn it skids.
+  * **Prone target** — –2 when attacking from an adjacent hex, +1 from all other hexes.
+* **Attacker-Side Modifiers (apply to all attacks, weapon and physical):** a **skidding** attacker applies +1 to its physical attacks (except unintentional charges).
 * **Heat & Sensors:** **Heat build-up and sensor damage modifiers NEVER apply to physical attacks**.
 * **Single Attack Limit:** A ’Mech may only perform **one type** of physical attack per turn (e.g., a ’Mech cannot kick and punch, or use a hatchet and kick in the same turn).
+
+---
+
+### **2.1. Actuator Damage — To-Hit Penalties & Restrictions**
+
+Attacker 'Mech damage that specifically affects physical attacks (Attack Modifiers Table, p. 119):
+
+| Damage | Effect on physical attacks |
+| :--- | :--- |
+| **Shoulder actuator hit** | No punching or physical weapon attack with that arm; no clubbing attacks; **+2 to a pushing attack (each)** |
+| **Upper or lower arm actuator hit (each)** | **+2 to punching and physical weapon attacks with that arm**; half damage for a punching attack with that arm; +2 to clubbing attacks |
+| **Hand actuator hit** | **+1 to a punching attack with that arm**; no clubbing attacks; no physical weapon attack with that arm |
+| **Hip actuator hit** | No kicking attacks |
+| **Upper or lower leg actuator hit (each)** | **+2 to all kick attacks**; half damage to all kick attacks |
+| **Foot actuator hit** | **+1 to all kick attacks** |
+
+A 'Mech punching with one or two arms resolves each arm separately, so the arm-actuator penalties apply per punching arm. A 'Mech making a punch or push attack with an arm that mounts a **salvage arm** treats that arm as though it has no hand actuator. A club requires hands (or hand actuators) on both arms, and 'Mechs with damaged upper or lower arm actuators add +2 to the to-hit number for each damaged actuator.
 
 ---
 
@@ -26,8 +48,8 @@
 
 | Attack Type | When Declared | Base Modifier | Damage Value | Hit Location & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Punch** | Physical Phase | `+0` | Tonnage / 10 *(round up)* | Uses **Punch Location Table** (head/torsos/arms). Can punch with 1 or 2 arms (separate roll each) if no weapons were fired from those arms. |
-| **Kick** | Physical Phase | `-2` | Tonnage / 5 *(round up)* | Uses **Kick Location Table** (legs). The **kicking leg** must not have fired any weapons mounted in it during the Weapon Attack Phase (rule: *"No weapons mounted on a kicking leg can fire in the turn in which a 'Mech kicks"*). The restriction is **per-leg**: firing a right-leg weapon only disqualifies the right leg; the left leg may still kick. Both **hip actuators** must be undamaged, and the target must be in one of the three forward-arc hexes based on the kicking foot's orientation. On a hit, the target must pass a PSR or fall; on a miss, the attacker must pass a PSR or fall. |
+| **Punch** | Physical Phase | `+0` | Tonnage / 10 *(round up)* | Uses **Punch Location Table** (head/torsos/arms). Can punch with 1 or 2 arms (separate roll each) if no weapons were fired from those arms. A damaged **shoulder** actuator blocks punching with that arm; damaged upper/lower **arm** actuators add **+2 to-hit each** (and halve the punch damage) and a damaged **hand** actuator adds **+1 to-hit** (see §2.1). |
+| **Kick** | Physical Phase | `-2` | Tonnage / 5 *(round up)* | Uses **Kick Location Table** (legs). The **kicking leg** must not have fired any weapons mounted in it during the Weapon Attack Phase (rule: *"No weapons mounted on a kicking leg can fire in the turn in which a 'Mech kicks"*). The restriction is **per-leg**: firing a right-leg weapon only disqualifies the right leg; the left leg may still kick. Both **hip actuators** must be undamaged, and the target must be in one of the three forward-arc hexes based on the kicking foot's orientation. Damaged upper/lower **leg** actuators add **+2 to-hit each** (and halve the kick damage) and a damaged **foot** actuator adds **+1 to-hit** (see §2.1). On a hit, the target must pass a PSR or fall; on a miss, the attacker must pass a PSR or fall. |
 | **Club** | Physical Phase | `-1` | Tonnage / 5 *(round up)* | Uses **Standard Hit Location Table**. Requires two undamaged hand/shoulder actuators and no arm weapons fired. Clubs can be severed limbs, trees, or girders. |
 | **Push** | Physical Phase | `-1` | `0` *(No damage)* | Target must be a **standing ’Mech** at the **exact same elevation** in the hex directly in front of the attacker's **feet** (not torso twist); cannot be performing a Charge or DFA, and a unit may receive only one Charge/DFA/Push per turn. Requires **both arms** and **no arm-mounted weapons fired** that turn (head/torso/leg weapons allowed). Damaged shoulder actuators do **not** block the push but add **+2 to-hit per damaged shoulder**. On a hit, target is pushed 1 hex directly away, attacker advances into the vacated hex at **0 MP cost**, and the target must pass a PSR or fall. Blocked/prohibited destination prevents movement but not the PSR. See §4 for full requirements. |
 | **Physical Weapon** | Physical Phase | Varies *(e.g., Hatchet -1, Sword -2)* | Varies *(e.g., Hatchet = Tonnage / 5, round up; Sword = Tonnage / 10, round up, + 1)* | Uses **Standard Hit Location Table** (or Punch/Kick table with a +4 modifier). Cannot fire weapons on the weapon arm. |

@@ -98,6 +98,21 @@ public class PhysicalAttackScenarioTests
     }
 
     [Fact]
+    public void FromUnits_CarriesTargetUnit()
+    {
+        // Arrange
+        var singlePath = MovementPath.CreateSingleSegmentPath(new HexPosition(1, 1, HexDirection.Top));
+        var attacker = CreateUnit(Substitute.For<IPilot>(), new HexPosition(1, 1, HexDirection.Top), singlePath);
+        var target = CreateUnit(Substitute.For<IPilot>(), new HexPosition(1, 2, HexDirection.Top), singlePath);
+
+        // Act
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Punch);
+
+        // Assert
+        scenario.TargetUnit.ShouldBe(target);
+    }
+
+    [Fact]
     public void FromUnits_WithStationaryUnit_ProducesStandingStillAndZeroHexes()
     {
         // Arrange

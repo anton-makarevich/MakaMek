@@ -9,6 +9,8 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 /// It is keyed on the attacker's Piloting Skill and carries no attacker-modifier list, so heat and
 /// sensor-damage modifiers are excluded by construction. Can represent both actual attacks (from the
 /// current unit state) and hypothetical attacks (for UI preview and bot evaluation).
+/// The target unit is optional and only used to evaluate target-side modifiers
+/// (partial cover, skidding); without it those modifiers cannot be determined.
 /// </summary>
 public record PhysicalAttackScenario
 {
@@ -53,6 +55,12 @@ public record PhysicalAttackScenario
     public int TargetHeight { get; private init; }
 
     /// <summary>
+    /// The actual target unit, if available, for evaluating target-side modifiers
+    /// (partial cover, skidding).
+    /// </summary>
+    public IUnit? TargetUnit { get; private init; }
+
+    /// <summary>
     /// Creates a PhysicalAttackScenario from actual units in their current state.
     /// Used for real combat calculations and to-hit previews.
     /// </summary>
@@ -86,7 +94,8 @@ public record PhysicalAttackScenario
             AttackerMovementType = attacker.MovementTaken.MovementType,
             TargetHexesMoved = target.MovementTaken.HexesTraveled,
             AttackerHeight = attacker.Height,
-            TargetHeight = target.Height
+            TargetHeight = target.Height,
+            TargetUnit = target
         };
     }
 }

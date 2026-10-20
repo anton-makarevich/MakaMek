@@ -334,6 +334,80 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_WithPartialCover_IncludesPartialCoverModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        _rules.GetPartialCoverModifier().Returns(1);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        var partialCover = result.OtherModifiers.OfType<PartialCoverModifier>().ShouldHaveSingleItem();
+        partialCover.Value.ShouldBe(1);
+        result.Total.ShouldBe(6); // piloting (5) + punch base (0) + partial cover (1)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithoutPartialCover_DoesNotIncludePartialCoverModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(false);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        result.OtherModifiers.OfType<PartialCoverModifier>().ShouldBeEmpty();
+        result.Total.ShouldBe(5); // piloting (5) + punch base (0)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_SkiddingTarget_IncludesSkiddingTargetModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.IsSkidding.Returns(true);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        var skidding = result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldHaveSingleItem();
+        skidding.Value.ShouldBe(2);
+        result.Total.ShouldBe(7); // piloting (5) + punch base (0) + skidding target (2)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_StandingTarget_DoesNotIncludeSkiddingTargetModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.IsSkidding.Returns(false);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void GetModifierBreakdown_DoesNotMutateUnits()
     {
         // Arrange
