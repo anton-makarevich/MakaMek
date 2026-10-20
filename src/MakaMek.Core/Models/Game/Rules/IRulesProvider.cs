@@ -59,6 +59,29 @@ public interface IRulesProvider
     PartLocation GetHitLocation(int diceResult, HitDirection attackDirection);
 
     /// <summary>
+    /// Determines the hit location for a punch.
+    /// </summary>
+    /// <param name="diceResult">The 1D6 roll result determining hit location</param>
+    /// <param name="attackDirection">
+    /// Which column to roll on, taken from the direction the attack enters the target's hex
+    /// relative to the target's own facing, not from the attacker's arc. A punch thrown from a
+    /// side arc that enters the target's front or rear rolls on the front/rear column.
+    /// </param>
+    /// <returns>The part location that was hit</returns>
+    PartLocation GetPunchHitLocation(int diceResult, HitDirection attackDirection);
+
+    /// <summary>
+    /// Determines the hit location for a kick, which always strikes a leg.
+    /// </summary>
+    /// <param name="diceResult">The 1D6 roll result determining hit location</param>
+    /// <param name="attackDirection">
+    /// Which column to roll on, taken the same way as for a punch. On the side columns the near
+    /// leg is the one on the struck side.
+    /// </param>
+    /// <returns>The leg that was hit</returns>
+    PartLocation GetKickHitLocation(int diceResult, HitDirection attackDirection);
+
+    /// <summary>
     /// Determines how many missiles hit the target based on the cluster hit table
     /// </summary>
     /// <param name="diceResult">The 2D6 roll result</param>

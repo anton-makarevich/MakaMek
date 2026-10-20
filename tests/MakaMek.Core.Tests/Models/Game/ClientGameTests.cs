@@ -3074,13 +3074,35 @@ public class ClientGameTests
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
-        
-        var task = _sut.JoinGameWithUnits(player, [unitData],[]);
+
+        // Block the publisher inside PublishCommand so the command is guaranteed
+        // to still be registered as pending when Dispose runs - otherwise the
+        // timing between registration and disposal is a race on slow CI runners.
+        var publisherEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var publishGateOpen = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _commandPublisher
+            .When(p => p.PublishCommand(Arg.Any<IGameCommand>()))
+            .Do(_ =>
+            {
+                publisherEntered.TrySetResult();
+                publishGateOpen.Task.GetAwaiter().GetResult();
+            });
+
+        var joinGameTask = Task.Run(() => _sut.JoinGameWithUnits(player, [unitData], []));
+
+        // Wait until the publisher callback has actually been reached and is
+        // blocked in the gate, so Dispose cancels the pending command while
+        // publication is in progress.
+        await publisherEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        _sut.HasPendingCommands.ShouldBeTrue("command should be registered as pending before disposal");
 
         // Act
         _sut.Dispose();
-        
+        publishGateOpen.TrySetResult();
+
         // Assert, a task should be canceled
+        // Note: Task.Run unwraps Task<Task<bool>>, so joinGameTask is already Task<bool>
+        var task = joinGameTask;
         await Should.ThrowAsync<TaskCanceledException>(() => task)
             .WaitAsync(TimeSpan.FromSeconds(5));
     }
