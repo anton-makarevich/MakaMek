@@ -61,7 +61,7 @@ public interface IRulesProvider
     /// <summary>
     /// Determines the hit location for a punch.
     /// </summary>
-    /// <param name="diceResult">The 2D6 roll result determining hit location</param>
+    /// <param name="diceResult">The 1D6 roll result determining hit location</param>
     /// <param name="attackDirection">
     /// Which column to roll on, taken from the direction the attack enters the target's hex
     /// relative to the target's own facing, not from the attacker's arc. A punch thrown from a
@@ -73,7 +73,7 @@ public interface IRulesProvider
     /// <summary>
     /// Determines the hit location for a kick, which always strikes a leg.
     /// </summary>
-    /// <param name="diceResult">The 2D6 roll result determining hit location</param>
+    /// <param name="diceResult">The 1D6 roll result determining hit location</param>
     /// <param name="attackDirection">
     /// Which column to roll on, taken the same way as for a punch. On the side columns the near
     /// leg is the one on the struck side.

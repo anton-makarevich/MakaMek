@@ -248,53 +248,58 @@ public class TotalWarfareRulesProvider : IRulesProvider
     }
 
     /// <summary>
-    /// Punch Location Table. The column comes from where the attack enters the target's hex
-    /// relative to the target's facing, so a side-arc punch that enters the front or rear rolls
-    /// on the front/rear column.
-    ///
-    /// Only the front/rear column is specified in #1501 and the rules summary in
-    /// docs/rules/physical-attacks.md names the table without giving its rows, so the two side
-    /// columns are not implemented rather than guessed. See the note on the PR.
+    /// 'Mech Punch Location Table (Total Warfare, p. 146 / p. 309). Rolled on 1D6. The column comes
+    /// from where the attack enters the target's hex relative to the target's facing, so a
+    /// side-arc punch that enters the front or rear rolls on the front/rear column.
     /// </summary>
     public PartLocation GetPunchHitLocation(int diceResult, HitDirection attackDirection)
     {
-        if (diceResult is < 2 or > 12)
+        if (diceResult is < 1 or > 6)
             throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result");
 
         return attackDirection switch
         {
-            HitDirection.Front or HitDirection.Rear => diceResult switch
+            HitDirection.Left => diceResult switch
             {
-                2 => PartLocation.CenterTorso, // Critical hit
-                3 or 4 => PartLocation.RightArm,
-                5 or 6 => PartLocation.RightTorso,
-                7 => PartLocation.CenterTorso,
-                8 or 9 => PartLocation.LeftTorso,
-                10 or 11 => PartLocation.LeftArm,
+                1 or 2 => PartLocation.LeftTorso,
+                3 => PartLocation.CenterTorso,
+                4 or 5 => PartLocation.LeftArm,
                 _ => PartLocation.Head
             },
-            _ => throw new NotSupportedException(
-                "The left and right columns of the Punch Location Table are not specified yet: "
-                + "#1501 gives only the front/rear column and docs/rules/physical-attacks.md "
-                + "names the table without its rows.")
+            HitDirection.Right => diceResult switch
+            {
+                1 or 2 => PartLocation.RightTorso,
+                3 => PartLocation.CenterTorso,
+                4 or 5 => PartLocation.RightArm,
+                _ => PartLocation.Head
+            },
+            _ => diceResult switch // Front or Rear
+            {
+                1 => PartLocation.LeftArm,
+                2 => PartLocation.LeftTorso,
+                3 => PartLocation.CenterTorso,
+                4 => PartLocation.RightTorso,
+                5 => PartLocation.RightArm,
+                _ => PartLocation.Head
+            }
         };
     }
 
     /// <summary>
-    /// Kick Location Table. A kick always strikes a leg. On the side columns the near leg is the
-    /// one on the struck side; the front/rear column reads right then left.
+    /// 'Mech Kick Location Table (Total Warfare, p. 148 / p. 309). Rolled on 1D6. A kick always
+    /// strikes a leg. On the side columns the near leg is the one on the struck side, so every
+    /// side-column roll hits that leg; the front/rear column reads right then left.
     /// </summary>
     public PartLocation GetKickHitLocation(int diceResult, HitDirection attackDirection)
     {
-        if (diceResult is < 2 or > 12)
+        if (diceResult is < 1 or > 6)
             throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result");
 
-        var near = diceResult <= 8;
         return attackDirection switch
         {
-            HitDirection.Left => near ? PartLocation.LeftLeg : PartLocation.RightLeg,
-            HitDirection.Right => near ? PartLocation.RightLeg : PartLocation.LeftLeg,
-            _ => near ? PartLocation.RightLeg : PartLocation.LeftLeg
+            HitDirection.Left => PartLocation.LeftLeg,
+            HitDirection.Right => PartLocation.RightLeg,
+            _ => diceResult <= 3 ? PartLocation.RightLeg : PartLocation.LeftLeg // Front or Rear
         };
     }
 
