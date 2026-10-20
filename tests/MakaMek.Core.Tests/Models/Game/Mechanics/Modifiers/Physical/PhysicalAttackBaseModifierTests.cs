@@ -21,13 +21,13 @@ public class PhysicalAttackBaseModifierTests
             Value = value,
             AttackType = attackType
         };
-        _localizationService.GetString("Modifier_PhysicalAttackBase").Returns("{0} Base: +{1}");
+        _localizationService.GetString("Modifier_PhysicalAttackBase").Returns("{0} Base: {1:+#;-#;0}");
 
         // Act
         var result = sut.Render(_localizationService);
 
         // Assert
-        result.ShouldBe($"{attackType} Base: +{value}");
+        result.ShouldBe($"{attackType} Base: {value:+#;-#;0}");
         _localizationService.Received(1).GetString("Modifier_PhysicalAttackBase");
     }
 }
