@@ -600,7 +600,10 @@ public abstract class Unit : IUnit
         // Single attack limit: the first declaration of the turn wins
         if (HasDeclaredPhysicalAttack) return;
 
-        DeclaredPhysicalAttack = declaration;
+        DeclaredPhysicalAttack = declaration with
+        {
+            AttackerLimbs = new List<PartLocation>(declaration.AttackerLimbs).AsReadOnly()
+        };
     }
 
     // Methods

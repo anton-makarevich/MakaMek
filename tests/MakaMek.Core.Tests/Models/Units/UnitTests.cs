@@ -2491,6 +2491,30 @@ public class UnitTests
     }
 
     [Fact]
+    public void DeclarePhysicalAttack_ShouldSnapshotAttackerLimbs()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        var attackerLimbs = new List<PartLocation> { PartLocation.LeftArm };
+
+        // Act
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = attackerLimbs,
+            TargetId = target.Id
+        });
+        attackerLimbs.Clear();
+        attackerLimbs.Add(PartLocation.RightArm);
+
+        // Assert - the stored declaration must not reflect later caller mutations
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+        sut.DeclaredPhysicalAttack.AttackerLimbs.ShouldBe([PartLocation.LeftArm]);
+    }
+
+    [Fact]
     public void DeclarePhysicalAttack_ShouldThrowException_WhenNotDeployed()
     {
         // Arrange
