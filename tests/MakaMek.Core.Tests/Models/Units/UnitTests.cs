@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -2461,6 +2462,156 @@ public class UnitTests
         // Assert
         sut.Notifications.Count.ShouldBe(0);
         sut.Events.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldStoreDeclaration()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        sut.DeclaredPhysicalAttack.ShouldBeNull();
+
+        // Act
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = target.Id
+        });
+
+        // Assert
+        sut.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+        sut.DeclaredPhysicalAttack.AttackType.ShouldBe(PhysicalAttackType.Punch);
+        sut.DeclaredPhysicalAttack.AttackerLimbs.ShouldBe([PartLocation.LeftArm, PartLocation.RightArm]);
+        sut.DeclaredPhysicalAttack.TargetId.ShouldBe(target.Id);
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldSnapshotAttackerLimbs()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        var attackerLimbs = new List<PartLocation> { PartLocation.LeftArm };
+
+        // Act
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = attackerLimbs,
+            TargetId = target.Id
+        });
+        attackerLimbs.Clear();
+        attackerLimbs.Add(PartLocation.RightArm);
+
+        // Assert - the stored declaration must not reflect later caller mutations
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+        sut.DeclaredPhysicalAttack.AttackerLimbs.ShouldBe([PartLocation.LeftArm]);
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldThrowException_WhenNotDeployed()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        var declaration = new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Kick,
+            AttackerLimbs = [PartLocation.LeftLeg],
+            TargetId = target.Id
+        };
+
+        // Act
+        var act = () => sut.DeclarePhysicalAttack(declaration);
+
+        // Assert
+        var ex = Should.Throw<InvalidOperationException>(act);
+        ex.Message.ShouldBe("Unit is not deployed.");
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldIgnoreSecondDeclaration_WhenAttackAlreadyDeclared()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var firstTarget = CreateTestUnit();
+        var secondTarget = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = firstTarget.Id
+        });
+
+        // Act
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Kick,
+            AttackerLimbs = [PartLocation.RightLeg],
+            TargetId = secondTarget.Id
+        });
+
+        // Assert - the first declaration of the turn wins
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+        sut.DeclaredPhysicalAttack.AttackType.ShouldBe(PhysicalAttackType.Punch);
+        sut.DeclaredPhysicalAttack.AttackerLimbs.ShouldBe([PartLocation.LeftArm]);
+        sut.DeclaredPhysicalAttack.TargetId.ShouldBe(firstTarget.Id);
+    }
+
+    [Fact]
+    public void ResetPhaseState_ShouldNotClearPhysicalAttackDeclaration()
+    {
+        // Arrange - a declaration made in the Movement phase must survive every later phase reset
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+
+        // Act - Movement -> WeaponsAttack -> WeaponAttackResolution
+        sut.ResetPhaseState();
+        sut.ResetPhaseState();
+        sut.ResetPhaseState();
+
+        // Assert
+        sut.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+        sut.DeclaredPhysicalAttack.TargetId.ShouldBe(target.Id);
+    }
+
+    [Fact]
+    public void ResetTurnState_ShouldClearPhysicalAttackDeclaration()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.RightArm],
+            TargetId = target.Id
+        });
+        sut.HasDeclaredPhysicalAttack.ShouldBeTrue();
+
+        // Act
+        sut.ResetTurnState();
+
+        // Assert
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        sut.DeclaredPhysicalAttack.ShouldBeNull();
     }
     
     [Fact]

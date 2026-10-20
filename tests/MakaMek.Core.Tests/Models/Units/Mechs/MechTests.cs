@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -784,6 +785,30 @@ public class MechTests
         // Assert
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
         sut.DeclaredWeaponTargets.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResetTurnState_ShouldResetPhysicalAttackDeclaration()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
+        var dummyTarget = new Mech("Dummy", "DMY-1A", 50, CreateBasicPartsData());
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Kick,
+            AttackerLimbs = [PartLocation.LeftLeg],
+            TargetId = dummyTarget.Id
+        });
+        sut.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+
+        // Act
+        sut.ResetTurnState();
+
+        // Assert
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        sut.DeclaredPhysicalAttack.ShouldBeNull();
     }
 
 

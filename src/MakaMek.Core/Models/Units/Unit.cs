@@ -470,6 +470,11 @@ public abstract class Unit : IUnit
     public bool HasDeclaredWeaponAttack => DeclaredWeaponTargets != null;
 
     /// <summary>
+    /// Indicates whether this unit has declared a physical attack for the current turn
+    /// </summary>
+    public bool HasDeclaredPhysicalAttack => DeclaredPhysicalAttack != null;
+
+    /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
     public bool HasAppliedHeat { get; private set; }
@@ -478,6 +483,12 @@ public abstract class Unit : IUnit
     /// Collection of weapon targeting data for the current attack declaration
     /// </summary>
     public IReadOnlyList<WeaponTargetData>? DeclaredWeaponTargets { get; private set; }
+
+    /// <summary>
+    /// The physical attack declared by this unit for the current turn, or null if none was declared.
+    /// A declaration is turn-scoped: it survives phase resets and is cleared only by <see cref="ResetTurnState"/>.
+    /// </summary>
+    public PhysicalAttackDeclarationData? DeclaredPhysicalAttack { get; private set; }
 
     private void ResetMovement()
     {
@@ -495,6 +506,7 @@ public abstract class Unit : IUnit
         ResetWeaponsTargets();
         foreach (var weapon in GetAllComponents<Weapon>())
             weapon.ClearFiredState();
+        ResetPhysicalAttackDeclaration();
         ClearEvents();
     }
 
@@ -527,6 +539,11 @@ public abstract class Unit : IUnit
     private void ResetWeaponsTargets()
     {
         DeclaredWeaponTargets = null;
+    }
+
+    private void ResetPhysicalAttackDeclaration()
+    {
+        DeclaredPhysicalAttack = null;
     }
 
     /// <summary>
@@ -565,6 +582,28 @@ public abstract class Unit : IUnit
 
         // Store weapon targets
         DeclaredWeaponTargets = validatedWeaponTargets.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Declares a physical attack against a target unit for the current turn.
+    /// A unit may declare only one physical attack per turn: once a declaration is stored,
+    /// further attempts are ignored until the turn state is reset.
+    /// </summary>
+    /// <param name="declaration">The declared attack type, attacker limbs and target unit id</param>
+    public void DeclarePhysicalAttack(PhysicalAttackDeclarationData declaration)
+    {
+        if (!IsDeployed)
+        {
+            throw new InvalidOperationException("Unit is not deployed.");
+        }
+
+        // Single attack limit: the first declaration of the turn wins
+        if (HasDeclaredPhysicalAttack) return;
+
+        DeclaredPhysicalAttack = declaration with
+        {
+            AttackerLimbs = new List<PartLocation>(declaration.AttackerLimbs).AsReadOnly()
+        };
     }
 
     // Methods
