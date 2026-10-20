@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -72,7 +73,7 @@ public class ToHitCalculator : IToHitCalculator
         var rangeValue = effectiveRange?.GetRangeValue(range) ?? 1;
 
         var otherModifiers = GetDetailedOtherModifiers(scenario).ToList();
-        var terrainModifiers = TerrainModifierHelper.GetTerrainModifiers(losResult, _rules);
+        var terrainModifiers = losResult.GetTerrainToHitModifiers(_rules);
 
         if (scenario.TargetUnit != null && _rules.HasPartialCover(scenario.TargetUnit, losResult))
         {
