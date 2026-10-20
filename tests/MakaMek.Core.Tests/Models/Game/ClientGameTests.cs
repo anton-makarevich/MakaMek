@@ -3078,20 +3078,22 @@ public class ClientGameTests
         // Block the publisher inside PublishCommand so the command is guaranteed
         // to still be registered as pending when Dispose runs - otherwise the
         // timing between registration and disposal is a race on slow CI runners.
+        var publisherEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var publishGateOpen = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _commandPublisher
             .When(p => p.PublishCommand(Arg.Any<IGameCommand>()))
-            .Do(_ => publishGateOpen.Task.GetAwaiter().GetResult());
+            .Do(_ =>
+            {
+                publisherEntered.TrySetResult();
+                publishGateOpen.Task.GetAwaiter().GetResult();
+            });
 
         var joinGameTask = Task.Run(() => _sut.JoinGameWithUnits(player, [unitData], []));
 
-        // Wait until the command is registered as pending (publisher is blocked in the gate)
-        var pollCount = 0;
-        while (!_sut.HasPendingCommands && pollCount < 500)
-        {
-            await Task.Delay(10);
-            pollCount++;
-        }
+        // Wait until the publisher callback has actually been reached and is
+        // blocked in the gate, so Dispose cancels the pending command while
+        // publication is in progress.
+        await publisherEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         _sut.HasPendingCommands.ShouldBeTrue("command should be registered as pending before disposal");
 
         // Act
