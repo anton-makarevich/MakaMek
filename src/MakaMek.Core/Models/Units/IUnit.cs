@@ -129,6 +129,11 @@ public interface IUnit
     bool HasDeclaredWeaponAttack { get; }
 
     /// <summary>
+    /// Indicates whether this unit has declared a physical attack for the current turn
+    /// </summary>
+    bool HasDeclaredPhysicalAttack { get; }
+
+    /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
     bool HasAppliedHeat { get; }
@@ -219,6 +224,20 @@ public interface IUnit
     void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets);
 
     IReadOnlyList<WeaponTargetData>? DeclaredWeaponTargets { get; }
+
+    /// <summary>
+    /// Declares a physical attack against a target unit for the current turn.
+    /// A unit may declare only one physical attack per turn: once a declaration is stored,
+    /// further attempts are ignored until the turn state is reset.
+    /// </summary>
+    /// <param name="declaration">The declared attack type, attacker limbs and target unit id</param>
+    void DeclarePhysicalAttack(PhysicalAttackDeclarationData declaration);
+
+    /// <summary>
+    /// The physical attack declared by this unit for the current turn, or null if none was declared.
+    /// A declaration is turn-scoped: it survives phase resets and is cleared only by <see cref="ResetTurnState"/>.
+    /// </summary>
+    PhysicalAttackDeclarationData? DeclaredPhysicalAttack { get; }
 
     void ApplyWeaponConfiguration(WeaponConfiguration config);
 

@@ -764,6 +764,49 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void PhysicalAttackDeclaration_SurvivesPhaseTransitions_AndIsClearedOnTurnEnd()
+    {
+        // Arrange - a unit declares a physical attack during the Movement phase
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        mech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft), null);
+        TurnPhase = PhaseNames.Movement;
+        mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act - every phase change resets the phase state of all units
+        TurnPhase = PhaseNames.WeaponsAttack;
+        mech.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        TurnPhase = PhaseNames.WeaponAttackResolution;
+
+        // Assert - the declaration is still there after the phase transitions
+        mech.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        mech.DeclaredPhysicalAttack.ShouldNotBeNull();
+
+        // Act - only the turn-level reset clears it
+        OnTurnEnded(player.Id);
+
+        // Assert
+        mech.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        mech.DeclaredPhysicalAttack.ShouldBeNull();
+    }
+
+    [Fact]
     public void OnWeaponsAttack_ShouldNotProcessAttack_WhenSensorsAreDestroyed()
     {
         // Arrange
