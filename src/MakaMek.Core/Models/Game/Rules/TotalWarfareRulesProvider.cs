@@ -219,6 +219,22 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <summary>
+    /// Gets the per-type base modifier for a physical attack. Only Punch and Kick are supported
+    /// in M1; other types throw. Later milestones extend the table: Push -1 (M2), Charge and DFA +0
+    /// (M3), physical weapons -1 or -2 (M4), Club -1 (M5).
+    /// </summary>
+    public int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType)
+    {
+        return attackType switch
+        {
+            PhysicalAttackType.Punch => 0,
+            PhysicalAttackType.Kick => -2,
+            _ => throw new NotSupportedException(
+                $"Physical attack base modifier is not supported for attack type: {attackType}")
+        };
+    }
+
     public int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance)
     {
         return rangeBracketType switch

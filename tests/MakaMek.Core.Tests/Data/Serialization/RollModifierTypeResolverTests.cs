@@ -2,8 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Data.Serialization;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Shouldly;
 using RollModifierTypeResolver = Sanet.MakaMek.Core.Data.Serialization.RollModifierTypeResolver;
@@ -169,6 +171,44 @@ public class RollModifierTypeResolverTests
         deserializedModifier.Value.ShouldBe(2);
     }
     
+    [Fact]
+    public void Should_Serialize_And_Deserialize_PilotingRollModifier()
+    {
+        // Arrange
+        var modifier = new PilotingRollModifier
+        {
+            Value = 5
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(modifier, _options);
+        var deserializedModifier = JsonSerializer.Deserialize<PilotingRollModifier>(json, _options);
+
+        // Assert
+        deserializedModifier.ShouldNotBeNull();
+        deserializedModifier.Value.ShouldBe(5);
+    }
+
+    [Fact]
+    public void Should_Serialize_And_Deserialize_PhysicalAttackBaseModifier()
+    {
+        // Arrange
+        var modifier = new PhysicalAttackBaseModifier
+        {
+            Value = -2,
+            AttackType = PhysicalAttackType.Kick
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(modifier, _options);
+        var deserializedModifier = JsonSerializer.Deserialize<PhysicalAttackBaseModifier>(json, _options);
+
+        // Assert
+        deserializedModifier.ShouldNotBeNull();
+        deserializedModifier.Value.ShouldBe(-2);
+        deserializedModifier.AttackType.ShouldBe(PhysicalAttackType.Kick);
+    }
+
     [Fact]
     public void Should_Deserialize_Array_Of_RollModifiers()
     {

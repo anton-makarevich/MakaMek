@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -54,6 +55,27 @@ public class TotalWarfareRulesProviderTests
         // Act & Assert
         Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetStructureValues(150));
     }
+
+    #region Physical Attack Base Modifier Tests
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, 0)]
+    [InlineData(PhysicalAttackType.Kick, -2)]
+    public void GetPhysicalAttackBaseModifier_ShouldReturnExpectedValues(PhysicalAttackType attackType, int expectedModifier)
+    {
+        _sut.GetPhysicalAttackBaseModifier(attackType).ShouldBe(expectedModifier);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackBaseModifier_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
+    {
+        Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackBaseModifier(attackType));
+    }
+
+    #endregion
 
     [Theory]
     [InlineData(MovementType.StandingStill, 0)]

@@ -93,6 +93,7 @@ public static class BotContainerServices
         services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
         services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
+        services.AddSingleton<IPhysicalAttackCalculator, PhysicalAttackCalculator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();

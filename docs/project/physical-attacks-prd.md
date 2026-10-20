@@ -216,6 +216,7 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
       - `DfaJumpModifier` (M3)
       - `PushDamagedShoulderModifier` (+2 per damaged shoulder, M2)
     - Reused modifiers where rules allow: `TargetMovementModifier`, `TerrainRollModifier` (attacker movement/terrain modifiers follow the standard movement tables — physical attacks use the attacker's executed movement type).
+    - *Implementation note (M1):* `GetModifierBreakdown` returns a dedicated `PhysicalAttackBreakdown` record rather than the weapon `ToHitBreakdown` — that record requires Gunnery/Range modifiers and treats a null firing arc as impossible, which does not fit melee attacks. Terrain is derived through the shared LOS-based extraction (target-hex terrain applies; attacker-hex terrain does not).
 
 2.3. Extend `IRulesProvider` with the physical hit-location tables:
     - `PartLocation GetPunchHitLocation(int diceResult, HitDirection attackDirection)`
