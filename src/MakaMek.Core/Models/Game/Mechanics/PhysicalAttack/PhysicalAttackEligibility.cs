@@ -8,8 +8,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
 /// Punch and kick eligibility per docs/rules/physical-attacks.md section 3 and the physical attacks
-/// PRD (Background items 9 and 10, R1.4). The elevation limits follow the rules extract posted on
-/// issue #1504.
+/// PRD (Background items 9 and 10, R1.4). The elevation limits follow the corrected Different-Levels
+/// table posted on issue #1504.
 /// </summary>
 public class PhysicalAttackEligibility : IPhysicalAttackEligibility
 {
@@ -20,13 +20,15 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         IBattleMap map)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
-            || GetTargetIsHigherBy(mech, target, map) is not { } targetIsHigherBy)
+            || GetEffectiveLevelDifference(mech, target, map) is not { } levelDifference)
             return [];
 
+        var isTargetProne = ((Mech)target).IsProne;
         return attackType switch
         {
-            PhysicalAttackType.Punch when targetIsHigherBy is 0 or 1 => GetPunchingArms(mech, target),
-            PhysicalAttackType.Kick when targetIsHigherBy == 0 || (targetIsHigherBy == -1 && !((Mech)target).IsProne)
+            PhysicalAttackType.Punch when levelDifference == 1 || (levelDifference == 0 && !isTargetProne)
+                => GetPunchingArms(mech, target),
+            PhysicalAttackType.Kick when levelDifference == 0 || (levelDifference == -1 && !isTargetProne)
                 => GetKickingLegs(mech, target),
             _ => []
         };
@@ -52,18 +54,19 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         && attacker.Position!.Coordinates.DistanceTo(targetMech.Position.Coordinates) == 1;
 
     /// <summary>
-    /// How many levels the target's hex is above the attacker's, or null when either hex is missing
-    /// from the map. The hexes have to be within one level of each other: a punch cannot reach a
-    /// target one level lower, and a kick cannot reach one level higher and reaches one level lower
-    /// only when the target is standing.
+    /// How many levels the target is above the attacker, or null when either hex is missing from the
+    /// map. A prone Mech rises one level above its hex, so against a prone target the difference is
+    /// one higher than the raw hex difference; the height difference of the two units carries that.
+    /// Standing target: 0 allows a punch and a kick, +1 a punch, -1 a kick.
+    /// Prone target: +1 allows a punch, 0 a kick, anything else nothing.
     /// </summary>
-    private static int? GetTargetIsHigherBy(Mech attacker, IUnit target, IBattleMap map)
+    private static int? GetEffectiveLevelDifference(Mech attacker, IUnit target, IBattleMap map)
     {
         var attackerHex = map.GetHex(attacker.Position!.Coordinates);
         var targetHex = map.GetHex(target.Position!.Coordinates);
         if (attackerHex == null || targetHex == null) return null;
 
-        return targetHex.GetLevelDifference(attackerHex);
+        return targetHex.GetLevelDifference(attackerHex) - (target.Height - attacker.Height);
     }
 
     /// <summary>

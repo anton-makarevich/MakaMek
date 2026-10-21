@@ -305,13 +305,18 @@ public class PhysicalAttackEligibilityTests
         (limbs.Count > 0).ShouldBe(canAttack);
     }
 
+    /// <summary>
+    /// A prone Mech rises one level above its hex, so the table is shifted by one (issue #1504).
+    /// </summary>
     [Theory]
+    [InlineData(PhysicalAttackType.Punch, 1, false)]
     [InlineData(PhysicalAttackType.Punch, 0, true)]
-    [InlineData(PhysicalAttackType.Punch, 1, true)]
     [InlineData(PhysicalAttackType.Punch, -1, false)]
-    [InlineData(PhysicalAttackType.Kick, 0, true)]
-    [InlineData(PhysicalAttackType.Kick, -1, false)]
+    [InlineData(PhysicalAttackType.Punch, -2, false)]
     [InlineData(PhysicalAttackType.Kick, 1, false)]
+    [InlineData(PhysicalAttackType.Kick, 0, false)]
+    [InlineData(PhysicalAttackType.Kick, -1, true)]
+    [InlineData(PhysicalAttackType.Kick, -2, false)]
     public void Elevation_ProneTarget(PhysicalAttackType attackType, int targetIsHigherBy, bool canAttack)
     {
         // Arrange
