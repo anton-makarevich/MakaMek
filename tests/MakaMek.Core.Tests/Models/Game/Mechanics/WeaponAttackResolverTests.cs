@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -448,10 +449,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns((HexPosition?)null);
 
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
 
         result.ShouldBe(HitDirection.Front);
     }
@@ -464,10 +462,7 @@ public class WeaponAttackResolverTests
         attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         target.Position.Returns((HexPosition?)null);
 
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
 
         result.ShouldBe(HitDirection.Front);
     }
@@ -480,10 +475,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns(new HexPosition(-2, 0, HexDirection.Top));
 
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
 
         result.ShouldBe(HitDirection.Left);
     }
@@ -496,10 +488,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns(new HexPosition(2, 0, HexDirection.Top));
 
-        var method = typeof(WeaponAttackResolver).GetMethod("DetermineAttackDirection",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        var result = (HitDirection)method!.Invoke(_sut, [attacker, target])!;
+        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
 
         result.ShouldBe(HitDirection.Right);
     }
