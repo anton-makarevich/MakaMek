@@ -20,13 +20,14 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         IBattleMap map)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
-            || !IsWithinReach(mech, (Mech)target, attackType, map))
+            || GetTargetIsHigherBy(mech, target, map) is not { } targetIsHigherBy)
             return [];
 
         return attackType switch
         {
-            PhysicalAttackType.Punch => GetPunchingArms(mech, target),
-            PhysicalAttackType.Kick => GetKickingLegs(mech, target),
+            PhysicalAttackType.Punch when targetIsHigherBy is 0 or 1 => GetPunchingArms(mech, target),
+            PhysicalAttackType.Kick when targetIsHigherBy == 0 || (targetIsHigherBy == -1 && !((Mech)target).IsProne)
+                => GetKickingLegs(mech, target),
             _ => []
         };
     }
@@ -51,23 +52,18 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         && attacker.Position!.Coordinates.DistanceTo(targetMech.Position.Coordinates) == 1;
 
     /// <summary>
-    /// The two hexes have to be within one level of each other. A punch cannot reach a target one
-    /// level lower. A kick cannot reach a target one level higher, and reaches a target one level
-    /// lower only when that target is standing.
+    /// How many levels the target's hex is above the attacker's, or null when either hex is missing
+    /// from the map. The hexes have to be within one level of each other: a punch cannot reach a
+    /// target one level lower, and a kick cannot reach one level higher and reaches one level lower
+    /// only when the target is standing.
     /// </summary>
-    private static bool IsWithinReach(Mech attacker, Mech target, PhysicalAttackType attackType, IBattleMap map)
+    private static int? GetTargetIsHigherBy(Mech attacker, IUnit target, IBattleMap map)
     {
         var attackerHex = map.GetHex(attacker.Position!.Coordinates);
         var targetHex = map.GetHex(target.Position!.Coordinates);
-        if (attackerHex == null || targetHex == null) return false;
+        if (attackerHex == null || targetHex == null) return null;
 
-        var targetIsHigherBy = targetHex.GetLevelDifference(attackerHex);
-        return attackType switch
-        {
-            PhysicalAttackType.Punch => targetIsHigherBy is 0 or 1,
-            PhysicalAttackType.Kick => targetIsHigherBy == 0 || (targetIsHigherBy == -1 && !target.IsProne),
-            _ => false
-        };
+        return targetHex.GetLevelDifference(attackerHex);
     }
 
     /// <summary>

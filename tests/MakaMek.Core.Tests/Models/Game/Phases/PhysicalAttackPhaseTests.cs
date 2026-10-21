@@ -396,6 +396,22 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.PhysicalAttack, Game);
     }
 
+    [Fact]
+    public void HandleCommand_AfterExit_ShouldReturnAnError()
+    {
+        // Arrange
+        var sut = CreateEnabledSut();
+        sut.Enter();
+        sut.Exit();
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Punch(PartLocation.LeftArm)));
+
+        // Assert
+        VerifyRejected(ErrorCode.InvalidGameState);
+        _attacker.DeclaredPhysicalAttack.ShouldBeNull();
+    }
+
     private void VerifyRejected(ErrorCode errorCode)
     {
         CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(c =>

@@ -328,15 +328,18 @@ public class PhysicalAttackEligibilityTests
         (limbs.Count > 0).ShouldBe(canAttack);
     }
 
-    [Fact]
-    public void NoAttack_WhenAHexIsMissingFromTheMap()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NoAttack_WhenAHexIsMissingFromTheMap(bool attackerHexOnMap)
     {
         // Arrange
         var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
-        var emptyMap = new BattleMap(10, 10);
+        var map = new BattleMap(10, 10);
+        if (attackerHexOnMap) map.AddHex(new Hex(AttackerHex));
 
         // Act
-        var limbs = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, emptyMap);
+        var limbs = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, map);
 
         // Assert
         limbs.ShouldBeEmpty();
