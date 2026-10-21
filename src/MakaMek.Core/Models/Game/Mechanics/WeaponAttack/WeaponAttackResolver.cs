@@ -65,7 +65,7 @@ public class WeaponAttackResolver : IWeaponAttackResolver
             weapon.ExternalHeat,
             hitLocationsData);
 
-        attackDirection = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
+        attackDirection = target.GetAttackDirection(attacker);
 
         var losResult = battleMap.GetLineOfSight(
             attacker.Position!.Coordinates,

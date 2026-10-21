@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -70,7 +69,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
                 RequiresAttackerPsr: context.AttackType == PhysicalAttackType.Kick);
         }
 
-        var attackDirection = AttackDirectionHelper.DetermineAttackDirection(context.Attacker, context.Target);
+        var attackDirection = context.Target.GetAttackDirection(context.Attacker);
 
         var locationRoll = _diceRoller.RollD6();
         var rolledLocation = GetHitLocation(context.AttackType, locationRoll.Result, attackDirection);

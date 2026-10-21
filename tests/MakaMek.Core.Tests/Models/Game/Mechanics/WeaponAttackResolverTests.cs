@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -449,7 +448,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns((HexPosition?)null);
 
-        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
+        var result = target.GetAttackDirection(attacker);
 
         result.ShouldBe(HitDirection.Front);
     }
@@ -462,7 +461,7 @@ public class WeaponAttackResolverTests
         attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         target.Position.Returns((HexPosition?)null);
 
-        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
+        var result = target.GetAttackDirection(attacker);
 
         result.ShouldBe(HitDirection.Front);
     }
@@ -475,7 +474,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns(new HexPosition(-2, 0, HexDirection.Top));
 
-        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
+        var result = target.GetAttackDirection(attacker);
 
         result.ShouldBe(HitDirection.Left);
     }
@@ -488,7 +487,7 @@ public class WeaponAttackResolverTests
         target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
         attacker.Position.Returns(new HexPosition(2, 0, HexDirection.Top));
 
-        var result = AttackDirectionHelper.DetermineAttackDirection(attacker, target);
+        var result = target.GetAttackDirection(attacker);
 
         result.ShouldBe(HitDirection.Right);
     }
