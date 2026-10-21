@@ -678,7 +678,7 @@ public class UnitPartTests
     public void ApplyBreach_FloodsAllComponents()
     {
         var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
-        var component = new TestComponent("TestComp", 1);
+        var component = new TestComponent("TestComp");
         var added = sut.TryAddComponent(component, [4]);
         added.ShouldBeTrue();
 
@@ -691,7 +691,7 @@ public class UnitPartTests
     public void RestoreState_WithBreachTrue_SetsIsBreachedAndFloodsComponents()
     {
         var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
-        var component = new TestComponent("TestComp", 1);
+        var component = new TestComponent("TestComp");
         var added = sut.TryAddComponent(component, [4]);
         added.ShouldBeTrue();
 
@@ -706,7 +706,7 @@ public class UnitPartTests
     {
         var sut = new Leg("TestLeg", PartLocation.LeftLeg, 10, 5);
 
-        sut.RestoreState(10, 5, false, false);
+        sut.RestoreState(10, 5, false);
 
         sut.IsBreached.ShouldBeFalse();
     }

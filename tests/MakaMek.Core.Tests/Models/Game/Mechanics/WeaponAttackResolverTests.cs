@@ -312,7 +312,7 @@ public class WeaponAttackResolverTests
         var target = Substitute.For<IUnit>();
 
         var exception = Should.Throw<ArgumentException>(() =>
-            _sut.ResolveAttack(attacker, target, unmountedWeapon, weaponTargetData, Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>()));
+            _sut.ResolveAttack(attacker, target, unmountedWeapon, weaponTargetData, Substitute.For<IBattleMap>()));
 
         exception.Message.ShouldBe("Weapon Test Weapon is not mounted (Parameter 'weapon')");
     }
@@ -346,9 +346,9 @@ public class WeaponAttackResolverTests
         var weaponTargetData = CreateWeaponTargetData(weapon);
         var attacker = CreateAttackerWithPosition();
         var target = CreateTargetWithPosition();
-        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+        var battleMap = Substitute.For<IBattleMap>();
 
-        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(12);
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap).Returns(12);
         _diceRoller.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]);
 
         var result = _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
@@ -365,9 +365,9 @@ public class WeaponAttackResolverTests
         var weaponTargetData = CreateWeaponTargetData(weapon);
         var attacker = CreateAttackerWithPosition();
         var target = CreateTargetWithPosition();
-        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+        var battleMap = Substitute.For<IBattleMap>();
 
-        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(2);
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap).Returns(2);
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(4)],
             [new DiceResult(5), new DiceResult(5)]
@@ -402,10 +402,10 @@ public class WeaponAttackResolverTests
         var weaponTargetData = CreateWeaponTargetData(weapon);
         var attacker = CreateAttackerWithPosition();
         var target = CreateTargetWithPosition();
-        var battleMap = Substitute.For<Sanet.MakaMek.Map.Models.IBattleMap>();
+        var battleMap = Substitute.For<IBattleMap>();
         var sut = CreateSutWithMockRules(out var mockRulesProvider);
 
-        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap, true, null).Returns(2);
+        _toHitCalculator.GetToHitNumber(attacker, target, weapon, battleMap).Returns(2);
         mockRulesProvider.GetClusterHits(Arg.Any<int>(), 15).Returns(12);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftTorso);
         mockRulesProvider.HasPartialCover(target, Arg.Any<LineOfSightResult>()).Returns(false);
@@ -438,58 +438,6 @@ public class WeaponAttackResolverTests
         result.HitLocationsData.ShouldNotBeNull();
         result.HitLocationsData.HitLocations.Count.ShouldBe(4);
         result.HitLocationsData.TotalDamage.ShouldBe(60);
-    }
-
-    [Fact]
-    public void DetermineAttackDirection_ShouldReturnFront_WhenAttackerPositionIsNull()
-    {
-        var attacker = Substitute.For<IUnit>();
-        var target = Substitute.For<IUnit>();
-        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
-        attacker.Position.Returns((HexPosition?)null);
-
-        var result = target.GetAttackDirection(attacker);
-
-        result.ShouldBe(HitDirection.Front);
-    }
-
-    [Fact]
-    public void DetermineAttackDirection_ShouldReturnFront_WhenTargetPositionIsNull()
-    {
-        var attacker = Substitute.For<IUnit>();
-        var target = Substitute.For<IUnit>();
-        attacker.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
-        target.Position.Returns((HexPosition?)null);
-
-        var result = target.GetAttackDirection(attacker);
-
-        result.ShouldBe(HitDirection.Front);
-    }
-
-    [Fact]
-    public void DetermineAttackDirection_ShouldReturnLeft_WhenTargetInLeftFiringArc()
-    {
-        var attacker = Substitute.For<IUnit>();
-        var target = Substitute.For<IUnit>();
-        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
-        attacker.Position.Returns(new HexPosition(-2, 0, HexDirection.Top));
-
-        var result = target.GetAttackDirection(attacker);
-
-        result.ShouldBe(HitDirection.Left);
-    }
-
-    [Fact]
-    public void DetermineAttackDirection_ShouldReturnRight_WhenTargetInRightFiringArc()
-    {
-        var attacker = Substitute.For<IUnit>();
-        var target = Substitute.For<IUnit>();
-        target.Position.Returns(new HexPosition(0, 0, HexDirection.Top));
-        attacker.Position.Returns(new HexPosition(2, 0, HexDirection.Top));
-
-        var result = target.GetAttackDirection(attacker);
-
-        result.ShouldBe(HitDirection.Right);
     }
 
     private WeaponAttackResolver CreateSutWithMockRules(out IRulesProvider mockRulesProvider)
