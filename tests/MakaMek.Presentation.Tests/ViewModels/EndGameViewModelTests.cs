@@ -19,6 +19,7 @@ using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -58,6 +59,7 @@ public class EndGameViewModelTests
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             mapFactory,
             hashService,
             Substitute.For<ILogger<ClientGame>>());

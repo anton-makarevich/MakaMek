@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
@@ -153,6 +154,7 @@ public static class CoreServices
         services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
         services.AddSingleton<IPhysicalAttackCalculator, PhysicalAttackCalculator>();
+        services.AddSingleton<IPhysicalAttackEligibility, PhysicalAttackEligibility>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();

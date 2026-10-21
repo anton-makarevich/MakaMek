@@ -35,6 +35,7 @@ using Sanet.MVVM.Core.Services;
 using Shouldly;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -94,6 +95,7 @@ public class StartNewGameViewModelTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger);
@@ -2399,6 +2401,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger,

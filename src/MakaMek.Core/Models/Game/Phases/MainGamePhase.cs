@@ -14,9 +14,15 @@ public abstract class MainGamePhase : GamePhase
 
     public override void Enter()
     {
-        _turnOrder.CalculateOrder(Game.InitiativeOrder);
+        CalculateTurnOrder(_turnOrder);
         SetNextPlayerActive();
     }
+
+    /// <summary>
+    /// Every alive unit acts by default. A phase in which only some units act overrides this.
+    /// </summary>
+    protected virtual void CalculateTurnOrder(TurnOrder turnOrder) =>
+        turnOrder.CalculateOrder(Game.InitiativeOrder);
 
     private void SetNextPlayerActive()
     {

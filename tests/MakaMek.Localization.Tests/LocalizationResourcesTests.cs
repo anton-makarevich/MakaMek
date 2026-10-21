@@ -64,6 +64,8 @@ public class LocalizationResourcesTests
     [InlineData("Command_WeaponAttackDeclaration_NoAttacks", "{0}'s {1} declares no attacks")]
     [InlineData("Command_WeaponAttackDeclaration_Header", "{0}'s {1} declares attacks:")]
     [InlineData("Command_WeaponAttackDeclaration_WeaponLine", "- {0} targeting {1}'s {2}")]
+    [InlineData("Command_PhysicalAttack", "{0}'s {1} declares {3} against {2}")]
+    [InlineData("Command_PhysicalAttack_NoAttack", "{0}'s {1} declares no physical attack")]
     [InlineData("Command_WeaponAttackResolution_DamageAbsorbedByTerrain", "Damage absorbed by terrain at {0}: {1}")]
     public void GetString_WeaponCommands_ReturnsExpectedString(string key, string expected)
     {

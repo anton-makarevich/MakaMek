@@ -1,9 +1,11 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -65,8 +67,12 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             UnitId = Guid.NewGuid(),
-            TargetUnitId = Guid.NewGuid(),
-            AttackType = PhysicalAttackType.Punch
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Punch,
+                AttackerLimbs = [PartLocation.LeftArm],
+                TargetId = Guid.NewGuid()
+            }
         };
 
         // Act

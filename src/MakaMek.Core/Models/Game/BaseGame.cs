@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -49,6 +50,7 @@ public abstract class BaseGame : IGame
     public IRulesProvider RulesProvider { get; }
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
     public IHeatEffectsCalculator HeatEffectsCalculator { get; }
+    public IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
 
     public int Turn
     {
@@ -108,6 +110,7 @@ public abstract class BaseGame : IGame
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
+        IPhysicalAttackEligibility physicalAttackEligibility,
         ILogger logger)
     {
         Logger = logger;
@@ -119,6 +122,7 @@ public abstract class BaseGame : IGame
         PilotingSkillCalculator = pilotingSkillCalculator;
         ConsciousnessCalculator = consciousnessCalculator;
         HeatEffectsCalculator = heatEffectsCalculator;
+        PhysicalAttackEligibility = physicalAttackEligibility;
         CommandPublisher.Subscribe(HandleCommand);
     }
 
@@ -368,7 +372,12 @@ public abstract class BaseGame : IGame
     
     internal void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
     {
-        Logger.LogInformation("Physical attacks are not implemented");
+        // No declaration means the unit makes no physical attack, so there is nothing to store.
+        if (attackCommand.Declaration is not { } declaration) return;
+
+        var player = _players.FirstOrDefault(p => p.Id == attackCommand.PlayerId);
+        var attackerUnit = player?.Units.FirstOrDefault(u => u.Id == attackCommand.UnitId);
+        attackerUnit?.DeclarePhysicalAttack(declaration);
     }
 
     internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)
@@ -471,6 +480,7 @@ public abstract class BaseGame : IGame
             WeaponConfigurationCommand => CommandValidationResult.Valid(),
             WeaponAttackDeclarationCommand attackCommand => ValidateWeaponAttackDeclarationCommand(attackCommand),
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
+            PhysicalAttackCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
             RequestGameLobbyStatusCommand => CommandValidationResult.Valid(),

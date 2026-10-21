@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -37,11 +38,12 @@ public class ServerGame : BaseGame, IDisposable
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
+        IPhysicalAttackEligibility physicalAttackEligibility,
         IFallProcessor fallProcessor,
         IWeaponAttackResolver weaponAttackResolver,
         ILogger<ServerGame> logger,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, logger)
     {
         DiceRoller = diceRoller;
         DamageTransferCalculator = damageTransferCalculator;

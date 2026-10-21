@@ -19,6 +19,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -54,6 +55,7 @@ public abstract class GamePhaseTestsBase
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             MockFallProcessor,
             new WeaponAttackResolver(rulesProvider, DiceRoller, MockDamageTransferCalculator, MockToHitCalculator),
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
@@ -71,6 +73,7 @@ public abstract class GamePhaseTestsBase
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             MockFallProcessor,
             new WeaponAttackResolver(rulesProvider, DiceRoller, MockDamageTransferCalculator, MockToHitCalculator),
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);

@@ -36,6 +36,7 @@ using Sanet.MVVM.Core.Services;
 using Shouldly;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -75,6 +76,7 @@ public class JoinGameViewModelTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

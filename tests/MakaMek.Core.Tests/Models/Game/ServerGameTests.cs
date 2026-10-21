@@ -22,6 +22,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -65,6 +66,7 @@ public class ServerGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
             _logger);
@@ -342,6 +344,7 @@ public class ServerGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), phaseManager);

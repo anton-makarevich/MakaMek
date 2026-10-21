@@ -44,6 +44,7 @@ using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
@@ -3799,6 +3800,7 @@ public class BattleMapViewModelTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>(),
@@ -4634,6 +4636,7 @@ public class BattleMapViewModelTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

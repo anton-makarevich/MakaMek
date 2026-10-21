@@ -25,6 +25,7 @@ using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
@@ -80,6 +81,7 @@ public class EndStateTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             Substitute.For<IBattleMapFactory>(),
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

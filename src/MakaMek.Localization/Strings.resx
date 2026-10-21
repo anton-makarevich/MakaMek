@@ -78,6 +78,8 @@
   <data name="Command_WeaponAttackDeclaration_NoAttacks" xml:space="preserve"><value>{0}'s {1} declares no attacks</value></data>
   <data name="Command_WeaponAttackDeclaration_Header" xml:space="preserve"><value>{0}'s {1} declares attacks:</value></data>
   <data name="Command_WeaponAttackDeclaration_WeaponLine" xml:space="preserve"><value>- {0} targeting {1}'s {2}</value></data>
+  <data name="Command_PhysicalAttack" xml:space="preserve"><value>{0}'s {1} declares {3} against {2}</value></data>
+  <data name="Command_PhysicalAttack_NoAttack" xml:space="preserve"><value>{0}'s {1} declares no physical attack</value></data>
   <data name="Command_WeaponAttackResolution" xml:space="preserve"><value>{0}'s {1} attacks with {2} targeting {3}'s {4}. To hit number: {5}</value></data>
   <data name="Command_WeaponAttackResolution_Hit" xml:space="preserve"><value>{0}'s {1} hits {3}'s {4} with {2} (Target: {5}, Roll: {6})</value></data>
   <data name="Command_WeaponAttackResolution_Miss" xml:space="preserve"><value>{0}'s {1} misses {3}'s {4} with {2} (Target: {5}, Roll: {6})</value></data>

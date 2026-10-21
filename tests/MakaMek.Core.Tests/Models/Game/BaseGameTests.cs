@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -49,6 +50,7 @@ public sealed class BaseGameTests : BaseGame
         Substitute.For<IPilotingSkillCalculator>(),
         Substitute.For<IConsciousnessCalculator>(),
         Substitute.For<IHeatEffectsCalculator>(),
+        new PhysicalAttackEligibility(),
         Substitute.For<ILogger<BaseGame>>())
     {
         SetBattleMap(
@@ -1080,6 +1082,23 @@ public sealed class BaseGameTests : BaseGame
             ConsciousnessNumber = 4,
             DiceResults = [1, 2],
             IsSuccessful = false
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldPassPhysicalAttackCommandToThePhase()
+    {
+        // Arrange
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid()
         };
 
         // Act

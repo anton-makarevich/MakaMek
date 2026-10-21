@@ -34,6 +34,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -80,6 +81,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger, null, CommandAckTimeout);
@@ -1100,6 +1102,55 @@ public class ClientGameTests
         attackerUnit.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void HandleCommand_PhysicalAttackCommand_MirrorsTheDeclaration(bool hasDeclaration)
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = "Attacker",
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _sut.HandleCommand(new DeployUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            Position = new HexCoordinateData(1, 1),
+            Direction = 0,
+            UnitId = unitData.Id.Value
+        });
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+        var declaration = new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Kick,
+            AttackerLimbs = [PartLocation.LeftLeg],
+            TargetId = Guid.NewGuid()
+        };
+
+        // Act
+        _sut.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitId = unit.Id,
+            Declaration = hasDeclaration ? declaration : null
+        });
+
+        // Assert
+        unit.HasDeclaredPhysicalAttack.ShouldBe(hasDeclaration);
+        if (hasDeclaration)
+            unit.DeclaredPhysicalAttack!.AttackerLimbs.ShouldBe([PartLocation.LeftLeg]);
+    }
+
     [Fact]
     public void HandleCommand_ShouldApplyDamage_WhenWeaponAttackResolutionCommandIsReceived()
     {
@@ -1636,6 +1687,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -1736,6 +1788,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
@@ -3566,6 +3619,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger,

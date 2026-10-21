@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -38,12 +39,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
+        IPhysicalAttackEligibility physicalAttackEligibility,
         IBattleMapFactory mapFactory,
         IHashService hashService,
         ILogger<ClientGame> logger,
         Guid? serverGameId = null,
         int ackTimeoutMilliseconds = 10000)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;
@@ -159,6 +161,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case WeaponAttackDeclarationCommand weaponAttackDeclarationCommand:
                 OnWeaponsAttack(weaponAttackDeclarationCommand);
+                break;
+            case PhysicalAttackCommand physicalAttackCommand:
+                OnPhysicalAttack(physicalAttackCommand);
                 break;
             case WeaponAttackResolutionCommand attackResolutionCommand:
                 OnWeaponsAttackResolution(attackResolutionCommand);
