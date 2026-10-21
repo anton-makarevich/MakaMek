@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Localization;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;

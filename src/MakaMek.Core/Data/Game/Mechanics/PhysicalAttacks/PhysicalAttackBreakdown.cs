@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 
-namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
 /// Detailed breakdown of modifiers affecting a physical attack. Unlike <see cref="ToHitBreakdown"/>

@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Data.Game;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
 /// The result of resolving one physical attack limb against one target. It wraps the weapon

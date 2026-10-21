@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
 /// Represents a physical attack scenario with all parameters needed for to-hit calculation.

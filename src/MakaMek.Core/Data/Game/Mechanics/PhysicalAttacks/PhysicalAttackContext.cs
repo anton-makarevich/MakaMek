@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
 /// The input of a physical attack resolution. A context describes exactly one attacking limb
