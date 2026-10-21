@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
 /// The one definition of who can make which physical attack against whom. Declaration validation,
