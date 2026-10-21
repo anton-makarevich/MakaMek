@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Factory;
 
@@ -26,6 +27,7 @@ public class GameFactoryTests
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator= Substitute.For<IHeatEffectsCalculator>();
+    private readonly IPhysicalAttackEligibility _physicalAttackEligibility = Substitute.For<IPhysicalAttackEligibility>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
     private readonly IHashService _hashService= Substitute.For<IHashService>();
@@ -50,6 +52,7 @@ public class GameFactoryTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
+            _physicalAttackEligibility,
             _fallProcessor,
             _mapFactory,
             _hashService);
@@ -64,6 +67,7 @@ public class GameFactoryTests
         // Assert
         serverGame.ShouldNotBeNull();
         serverGame.ShouldBeOfType<ServerGame>();
+        serverGame.PhysicalAttackEligibility.ShouldBe(_physicalAttackEligibility);
         // Implicitly checks if dependencies were passed, as constructor would fail otherwise
     }
 
@@ -76,5 +80,6 @@ public class GameFactoryTests
         // Assert
         clientGame.ShouldNotBeNull();
         clientGame.ShouldBeOfType<ClientGame>();
+        clientGame.PhysicalAttackEligibility.ShouldBe(_physicalAttackEligibility);
     }
 }

@@ -17,6 +17,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -328,6 +329,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), mockPhaseManager)

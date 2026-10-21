@@ -34,6 +34,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -80,6 +81,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger, null, CommandAckTimeout);
@@ -1685,6 +1687,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -1785,6 +1788,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
@@ -3615,6 +3619,7 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
+            new PhysicalAttackEligibility(),
             _mapFactory,
             _hashService,
             _logger,

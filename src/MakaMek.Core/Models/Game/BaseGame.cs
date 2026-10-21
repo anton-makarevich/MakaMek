@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -49,6 +50,7 @@ public abstract class BaseGame : IGame
     public IRulesProvider RulesProvider { get; }
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
     public IHeatEffectsCalculator HeatEffectsCalculator { get; }
+    public IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
 
     public int Turn
     {
@@ -108,6 +110,7 @@ public abstract class BaseGame : IGame
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
+        IPhysicalAttackEligibility physicalAttackEligibility,
         ILogger logger)
     {
         Logger = logger;
@@ -119,6 +122,7 @@ public abstract class BaseGame : IGame
         PilotingSkillCalculator = pilotingSkillCalculator;
         ConsciousnessCalculator = consciousnessCalculator;
         HeatEffectsCalculator = heatEffectsCalculator;
+        PhysicalAttackEligibility = physicalAttackEligibility;
         CommandPublisher.Subscribe(HandleCommand);
     }
 

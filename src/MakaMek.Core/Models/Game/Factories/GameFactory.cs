@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -27,6 +28,7 @@ public class GameFactory : IGameFactory
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IConsciousnessCalculator _consciousnessCalculator;
     private readonly IHeatEffectsCalculator _heatEffectsCalculator;
+    private readonly IPhysicalAttackEligibility _physicalAttackEligibility;
     private readonly IFallProcessor _fallProcessor;
     private readonly IBattleMapFactory _battleMapFactory;
     private readonly IHashService _hashService;
@@ -43,6 +45,7 @@ public class GameFactory : IGameFactory
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
+        IPhysicalAttackEligibility physicalAttackEligibility,
         IFallProcessor fallProcessor,
         IBattleMapFactory battleMapFactory,
         IHashService hashService)
@@ -58,6 +61,7 @@ public class GameFactory : IGameFactory
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _consciousnessCalculator = consciousnessCalculator;
         _heatEffectsCalculator = heatEffectsCalculator;
+        _physicalAttackEligibility = physicalAttackEligibility;
         _fallProcessor = fallProcessor;
         _battleMapFactory = battleMapFactory;
         _hashService = hashService;
@@ -80,6 +84,7 @@ public class GameFactory : IGameFactory
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
+            _physicalAttackEligibility,
             _fallProcessor,
             _weaponAttackResolver,
             logger);
@@ -96,6 +101,7 @@ public class GameFactory : IGameFactory
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
+            _physicalAttackEligibility,
             _battleMapFactory,
             _hashService,
             logger,

@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement.Actions;
 
@@ -180,6 +181,7 @@ public class ApplyFallActionTests : GamePhaseTestsBase
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             null!, MockPhaseManager);

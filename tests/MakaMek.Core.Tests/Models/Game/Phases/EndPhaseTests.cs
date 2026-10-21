@@ -18,6 +18,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -708,6 +709,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);

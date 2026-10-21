@@ -154,6 +154,7 @@ public static class CoreServices
         services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
         services.AddSingleton<IPhysicalAttackCalculator, PhysicalAttackCalculator>();
+        services.AddSingleton<IPhysicalAttackEligibility, PhysicalAttackEligibility>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();

@@ -28,6 +28,7 @@ using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -82,6 +83,7 @@ public class GameManagerTests : IDisposable
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
+            new PhysicalAttackEligibility(),
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>());

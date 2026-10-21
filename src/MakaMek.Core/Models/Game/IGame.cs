@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -24,5 +25,6 @@ public interface IGame
     Guid Id { get; }
 
     IToHitCalculator ToHitCalculator { get; }
+    IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
     IRulesProvider RulesProvider { get; }
 }
