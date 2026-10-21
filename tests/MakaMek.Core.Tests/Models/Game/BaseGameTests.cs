@@ -1090,6 +1090,23 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldPassPhysicalAttackCommandToThePhase()
+    {
+        // Arrange
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid()
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateUnitShutdownCommand()
     {
         // Arrange

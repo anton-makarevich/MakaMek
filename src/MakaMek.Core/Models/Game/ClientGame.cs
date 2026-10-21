@@ -160,6 +160,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case WeaponAttackDeclarationCommand weaponAttackDeclarationCommand:
                 OnWeaponsAttack(weaponAttackDeclarationCommand);
                 break;
+            case PhysicalAttackCommand physicalAttackCommand:
+                OnPhysicalAttack(physicalAttackCommand);
+                break;
             case WeaponAttackResolutionCommand attackResolutionCommand:
                 OnWeaponsAttackResolution(attackResolutionCommand);
                 break;

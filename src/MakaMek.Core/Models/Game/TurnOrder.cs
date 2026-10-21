@@ -16,12 +16,27 @@ public class TurnOrder
 
     public void CalculateOrder(IReadOnlyList<IPlayer> initiativeOrder)
     {
+        CalculateOrder(initiativeOrder, initiativeOrder.ToDictionary(p => p, p => p.AliveUnits.Count));
+    }
+
+    /// <summary>
+    /// Calculates the order for a phase in which only some units act. Players with no unit to act
+    /// get no step at all.
+    /// </summary>
+    /// <param name="initiativeOrder">Players in initiative order, winner first</param>
+    /// <param name="unitsToAct">How many of a player's units act in this phase</param>
+    public void CalculateOrder(IReadOnlyList<IPlayer> initiativeOrder, Func<IPlayer, int> unitsToAct)
+    {
+        var actingPlayers = initiativeOrder.Where(p => unitsToAct(p) > 0).ToList();
+        CalculateOrder(actingPlayers, actingPlayers.ToDictionary(p => p, unitsToAct));
+    }
+
+    private void CalculateOrder(IReadOnlyList<IPlayer> initiativeOrder, Dictionary<IPlayer, int> unitCounts)
+    {
         _steps.Clear();
         _currentStepIndex = -1;
 
-        // Get unit counts for each player
-        var unitCounts = initiativeOrder
-            .ToDictionary(p => p, p => p.AliveUnits.Count);
+        if (unitCounts.Count == 0) return;
 
         // If only one player, move all units
         if (unitCounts.Count == 1)

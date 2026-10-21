@@ -330,4 +330,41 @@ public class TurnOrderTests
         steps[1].ShouldBe(new TurnStep(_player2, 1));
         steps[2].ShouldBe(new TurnStep(_player2, 1));
     }
+
+    [Fact]
+    public void CalculateOrder_WithUnitsToAct_CountsOnlyThoseUnits()
+    {
+        // Arrange: player 2 has three alive units but only one acts
+        var initiativeOrder = new List<IPlayer> { _player2, _player1 };
+
+        // Act
+        _sut.CalculateOrder(initiativeOrder, p => p == _player2 ? 1 : 2);
+
+        // Assert
+        _sut.Steps.ShouldBe([new TurnStep(_player1, 2), new TurnStep(_player2, 1)]);
+    }
+
+    [Fact]
+    public void CalculateOrder_WithUnitsToAct_PlayerWithNoneGetsNoStep()
+    {
+        // Arrange
+        var initiativeOrder = new List<IPlayer> { _player2, _player1, _player3 };
+
+        // Act
+        _sut.CalculateOrder(initiativeOrder, p => p == _player1 ? 0 : 1);
+
+        // Assert
+        _sut.Steps.ShouldBe([new TurnStep(_player3, 1), new TurnStep(_player2, 1)]);
+    }
+
+    [Fact]
+    public void CalculateOrder_WithUnitsToAct_NoStepsWhenNobodyActs()
+    {
+        // Act
+        _sut.CalculateOrder([_player1, _player2], _ => 0);
+
+        // Assert
+        _sut.Steps.ShouldBeEmpty();
+        _sut.GetNextStep().ShouldBeNull();
+    }
 }
