@@ -41,6 +41,7 @@ public class BattleTechPhaseManagerTests
             new PhysicalAttackEligibility(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
+            Substitute.For<IPhysicalAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(),
             _sut // phaseManager
         );

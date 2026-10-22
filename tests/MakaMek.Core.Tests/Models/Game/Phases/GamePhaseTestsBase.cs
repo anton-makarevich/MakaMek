@@ -36,6 +36,7 @@ public abstract class GamePhaseTestsBase
     protected readonly IConsciousnessCalculator MockConsciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
+    protected readonly IPhysicalAttackResolver MockPhysicalAttackResolver = Substitute.For<IPhysicalAttackResolver>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
     private readonly IMechFactory _mechFactory = new MechFactory(
@@ -58,6 +59,7 @@ public abstract class GamePhaseTestsBase
             new PhysicalAttackEligibility(),
             MockFallProcessor,
             new WeaponAttackResolver(rulesProvider, DiceRoller, MockDamageTransferCalculator, MockToHitCalculator),
+            MockPhysicalAttackResolver,
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
         
         SetupSut();
@@ -76,6 +78,7 @@ public abstract class GamePhaseTestsBase
             new PhysicalAttackEligibility(),
             MockFallProcessor,
             new WeaponAttackResolver(rulesProvider, DiceRoller, MockDamageTransferCalculator, MockToHitCalculator),
+            MockPhysicalAttackResolver,
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
         
         SetupSut();

@@ -712,6 +712,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             new PhysicalAttackEligibility(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
+            Substitute.For<IPhysicalAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
 
         var playerId = Guid.NewGuid();

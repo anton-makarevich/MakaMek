@@ -19,6 +19,7 @@ public class GameFactory : IGameFactory
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly IWeaponAttackResolver _weaponAttackResolver;
+    private readonly IPhysicalAttackResolver _physicalAttackResolver;
     private readonly IRulesProvider _rulesProvider;
     private readonly IMechFactory _mechFactory;
     private readonly IDiceRoller _diceRoller;
@@ -36,6 +37,7 @@ public class GameFactory : IGameFactory
     public GameFactory(
         ILoggerFactory loggerFactory,
         IWeaponAttackResolver weaponAttackResolver,
+        IPhysicalAttackResolver physicalAttackResolver,
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         IDiceRoller diceRoller,
@@ -52,6 +54,7 @@ public class GameFactory : IGameFactory
     {
         _loggerFactory = loggerFactory;
         _weaponAttackResolver = weaponAttackResolver;
+        _physicalAttackResolver = physicalAttackResolver;
         _rulesProvider = rulesProvider;
         _mechFactory = mechFactory;
         _diceRoller = diceRoller;
@@ -87,6 +90,7 @@ public class GameFactory : IGameFactory
             _physicalAttackEligibility,
             _fallProcessor,
             _weaponAttackResolver,
+            _physicalAttackResolver,
             logger);
     }
 
