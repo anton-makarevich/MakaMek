@@ -1186,6 +1186,33 @@ public class MechTests
         critsData.HitComponents[0].Slot.ShouldBeInRange(0, 9);
     }
 
+    [Theory]
+    [InlineData(1, 6)]
+    [InlineData(6, 7)]
+    public void CalculateCriticalHitsData_ShouldPickUniformFallback_WhenDiceNeverSelectAnAvailableSlot(
+        int die, int expectedSlot)
+    {
+        // Arrange: a 12-slot location where only slots 6 and 7 hold components, and the
+        // die always selects an empty slot (group 1 for a 1, slot 11 for a 6). The fallback
+        // must not always return the first available slot.
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        foreach (var slot in new[] { 6, 7 })
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(5)]); // 1 critical hit
+        _diceRoller.RollD6().Returns(new DiceResult(die));
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.LeftTorso, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBe(expectedSlot);
+    }
+
     [Fact]
     public void CalculateCriticalHitsData_ShouldUseTwelveSlotProcedure_WhenFewerThanSevenSlotsRemain()
     {

@@ -779,10 +779,15 @@ public class Mech : Unit
     }
 
     /// <summary>
-    /// Maximum number of slot-roll attempts before falling back to a deterministic slot.
+    /// Maximum number of slot-roll attempts before falling back to a uniform pick.
     /// With fair dice, this limit is effectively unreachable.
     /// </summary>
     private const int MaxCriticalSlotRollAttempts = 100;
+
+    /// <summary>
+    /// Number of equally likely outcomes of rolling two six-sided dice.
+    /// </summary>
+    private const int TwoDiceOutcomes = 36;
 
     /// <summary>
     /// Determines which specific slots are affected by critical hits
@@ -840,8 +845,31 @@ public class Mech : Unit
                 return slot;
         }
 
-        // Deterministic fallback so no dice sequence can hang the game.
-        return availableSlots[0];
+        // Degenerate dice must not hang the game, but the fallback still has to keep
+        // every remaining slot equally likely instead of always taking the first one.
+        return RollSlotUniformly(availableSlots, diceRoller);
+    }
+
+    /// <summary>
+    /// Picks one of the remaining slots uniformly using two dice. Two dice yield
+    /// <see cref="TwoDiceOutcomes"/> equally likely outcomes, so the values that would
+    /// make some slots more likely than others are discarded.
+    /// </summary>
+    private static int RollSlotUniformly(List<int> availableSlots, IDiceRoller diceRoller)
+    {
+        var limit = TwoDiceOutcomes - TwoDiceOutcomes % availableSlots.Count;
+        var roll = TwoDiceOutcomes;
+
+        for (var attempt = 0; attempt < MaxCriticalSlotRollAttempts; attempt++)
+        {
+            roll = (diceRoller.RollD6().Result - 1) * 6 + diceRoller.RollD6().Result;
+            if (roll <= limit)
+                break;
+        }
+
+        // If the dice never leave the discarded tail, spread the result over the
+        // remaining slots rather than always returning the first one.
+        return availableSlots[(roll - 1) % availableSlots.Count];
     }
 
     /// <summary>
