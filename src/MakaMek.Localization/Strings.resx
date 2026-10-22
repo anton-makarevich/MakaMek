@@ -182,6 +182,8 @@
   <data name="PilotingSkillRollType_WaterEntry" xml:space="preserve"><value>Water Entry</value></data>
   <data name="PilotingSkillRollType_SkidCheck" xml:space="preserve"><value>Skid Check</value></data>
   <data name="PilotingSkillRollType_RubbleEntry" xml:space="preserve"><value>Rubble Entry</value></data>
+  <data name="PilotingSkillRollType_KickHit" xml:space="preserve"><value>Hit by Kick</value></data>
+  <data name="PilotingSkillRollType_KickMiss" xml:space="preserve"><value>Missed Kick</value></data>
   <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
   <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
   <data name="PilotingSkillRollType_CliffFall" xml:space="preserve"><value>Cliff Fall</value></data>

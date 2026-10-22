@@ -511,6 +511,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PilotingSkillRollType.LegDestroyed => 5, // +5 modifier for leg destroyed (pilot damage during fall)
             PilotingSkillRollType.BridgeCollapse => 0,
             PilotingSkillRollType.RubbleEntry => 0,
+            // docs/rules/physical-attacks.md section 3 calls for both rolls and gives no modifier for either.
+            PilotingSkillRollType.KickHit => 0,
+            PilotingSkillRollType.KickMiss => 0,
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }

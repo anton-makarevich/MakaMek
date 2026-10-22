@@ -17,12 +17,15 @@ public interface IFallProcessor
     /// <param name="game">Current game.</param>
     /// <param name="componentHits">A list of component hits sustained by the unit in the current context.</param>
     /// <param name="destroyedPartLocations">The locations of parts that were destroyed.</param>
+    /// <param name="additionalRollContexts">Rolls that do not come from damage, such as the one a kick
+    /// calls for. They are checked after the damage-caused ones.</param>
     /// <returns>A collection of MechFallCommands if the unit falls, otherwise null.</returns>
     IEnumerable<MechFallCommand> ProcessPotentialFall(
         Mech mech, 
         IGame game,
         List<ComponentHitData> componentHits,
-        List<PartLocation>? destroyedPartLocations = null);
+        List<PartLocation>? destroyedPartLocations = null,
+        IReadOnlyList<PilotingSkillRollContext>? additionalRollContexts = null);
 
     /// <summary>
     /// Processes a movement attempt that may result in a fall for a unit, including entering a water hex.

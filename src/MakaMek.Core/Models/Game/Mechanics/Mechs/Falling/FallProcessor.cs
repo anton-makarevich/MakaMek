@@ -45,7 +45,8 @@ public class FallProcessor : IFallProcessor
         Mech mech,
         IGame game,
         List<ComponentHitData> componentHits,
-        List<PartLocation>? destroyedPartLocations = null)
+        List<PartLocation>? destroyedPartLocations = null,
+        IReadOnlyList<PilotingSkillRollContext>? additionalRollContexts = null)
     {
         if (mech.IsProne) return []; // Prone mechs cannot fall
 
@@ -82,6 +83,9 @@ public class FallProcessor : IFallProcessor
         // Check for destroyed legs (automatic fall)
         if (destroyedPartLocations?.Any(location => location.IsLeg()) == true)
             rollContexts.Add(new PilotingSkillRollContext(PilotingSkillRollType.LegDestroyed));
+
+        if (additionalRollContexts != null)
+            rollContexts.AddRange(additionalRollContexts);
 
         return ProcessRollContexts(rollContexts, mech, game)
             .Select(f => f.ToMechFallCommand());

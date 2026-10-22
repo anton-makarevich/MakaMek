@@ -68,5 +68,15 @@ public enum PilotingSkillRollType
     /// <summary>
     /// Automatic fall when a mech skids off a cliff edge.
     /// </summary>
-    CliffFall
+    CliffFall,
+
+    /// <summary>
+    /// PSR required of a 'Mech hit by a kick.
+    /// </summary>
+    KickHit,
+
+    /// <summary>
+    /// PSR required of a 'Mech whose kick missed.
+    /// </summary>
+    KickMiss
 }

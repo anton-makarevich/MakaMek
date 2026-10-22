@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -36,6 +37,9 @@ public abstract class BaseGame : IGame
     private readonly Subject<PhaseStepState?> _phaseStepStateSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly Subject<IGameCommand> _commandSubject = new();
+
+    // Physical attack resolutions already applied, so a resolution delivered twice deals its damage once
+    private readonly ConcurrentDictionary<Guid, byte> _appliedPhysicalAttackResolutions = new();
 
     public Guid Id { get; }
 
@@ -267,6 +271,20 @@ public abstract class BaseGame : IGame
         }
     }
 
+    internal void OnPhysicalAttackResolution(PhysicalAttackResolutionCommand resolutionCommand)
+    {
+        if (!_appliedPhysicalAttackResolutions.TryAdd(resolutionCommand.ResolutionId, 0)) return;
+
+        var res = resolutionCommand.ResolutionData.AttackResolution;
+        if (res is not { IsHit: true, HitLocationsData: not null }) return;
+
+        var targetUnit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
+
+        targetUnit?.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+    }
+
     internal void OnMechFalling(MechFallCommand fallCommand)
     {
         // Find the unit with the given ID across all players
@@ -481,6 +499,7 @@ public abstract class BaseGame : IGame
             WeaponAttackDeclarationCommand attackCommand => ValidateWeaponAttackDeclarationCommand(attackCommand),
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
             PhysicalAttackCommand => CommandValidationResult.Valid(),
+            PhysicalAttackResolutionCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
             RequestGameLobbyStatusCommand => CommandValidationResult.Valid(),

@@ -1218,6 +1218,100 @@ public class ClientGameTests
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
     }
 
+    [Theory]
+    [InlineData(true, 4)]
+    [InlineData(false, 0)]
+    public void HandleCommand_AppliesTheCarriedDamage_WhenPhysicalAttackResolutionCommandIsReceived(bool isHit, int expectedArmorLoss)
+    {
+        // Arrange
+        var targetMech = JoinPhysicalAttackTarget();
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+
+        // Act
+        _sut.HandleCommand(CreatePhysicalAttackResolution(targetMech.Id, Guid.NewGuid(), isHit));
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - expectedArmorLoss);
+    }
+
+    [Fact]
+    public void HandleCommand_PhysicalAttackResolutionDeliveredTwice_AppliesTheDamageOnce()
+    {
+        // Arrange
+        var targetMech = JoinPhysicalAttackTarget();
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+        var command = CreatePhysicalAttackResolution(targetMech.Id, Guid.NewGuid(), true);
+
+        // Act
+        _sut.HandleCommand(command);
+        _sut.HandleCommand(command);
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - 4);
+    }
+
+    [Fact]
+    public void HandleCommand_PhysicalAttackResolutionsWithDifferentIds_AreBothApplied()
+    {
+        // Arrange: the two arms of a punch resolve separately, so their commands differ only by id
+        var targetMech = JoinPhysicalAttackTarget();
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+
+        // Act
+        _sut.HandleCommand(CreatePhysicalAttackResolution(targetMech.Id, Guid.NewGuid(), true));
+        _sut.HandleCommand(CreatePhysicalAttackResolution(targetMech.Id, Guid.NewGuid(), true));
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - 8);
+    }
+
+    private Mech JoinPhysicalAttackTarget()
+    {
+        var targetPlayerId = Guid.NewGuid();
+        var targetUnitData = MechFactoryTests.CreateDummyMechData();
+        targetUnitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = targetPlayerId,
+            PlayerName = "Target",
+            GameOriginId = Guid.NewGuid(),
+            Units = [targetUnitData],
+            Tint = "#00FF00",
+            PilotAssignments = []
+        });
+        var targetMech = (Mech)_sut.Players.First(p => p.Id == targetPlayerId).Units.First();
+        targetMech.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
+        return targetMech;
+    }
+
+    private PhysicalAttackResolutionCommand CreatePhysicalAttackResolution(Guid targetId, Guid resolutionId,
+        bool isHit) => new()
+    {
+        ResolutionId = resolutionId,
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = Guid.NewGuid(),
+        AttackerId = Guid.NewGuid(),
+        TargetId = targetId,
+        ResolutionData = new PhysicalAttackResolutionData(
+            PhysicalAttackType.Kick,
+            PartLocation.LeftLeg,
+            4,
+            new AttackResolutionData(
+                5,
+                [],
+                isHit,
+                HitDirection.Front,
+                0,
+                isHit
+                    ? new AttackHitLocationsData([CreateHitDataForLocation(PartLocation.RightLeg, 4, [], [])], 4, [], 1)
+                    : null),
+            isHit,
+            !isHit)
+    };
+
     [Fact]
     public void HandleCommand_ShouldApplyHeat_WhenHeatUpdatedCommandIsReceived()
     {

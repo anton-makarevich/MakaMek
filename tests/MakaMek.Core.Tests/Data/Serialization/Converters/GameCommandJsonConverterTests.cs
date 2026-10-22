@@ -3,8 +3,10 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -458,6 +460,55 @@ public class GameCommandJsonConverterTests
         hullBreachCommand.BreachedLocations[0].EngineHitsApplied.ShouldBe(3);
     }
 
+    [Fact]
+    public void RoundTrip_PhysicalAttackResolutionCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalCommand = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Kick,
+                PartLocation.RightLeg,
+                10,
+                new AttackResolutionData(
+                    6,
+                    [new DiceResult(4), new DiceResult(5)],
+                    true,
+                    HitDirection.Left,
+                    0,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 10, 0, false)], [], [3],
+                            PartLocation.LeftLeg)],
+                        10, [], 1)),
+                true,
+                false)
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        var resolutionCommand = deserializedCommand.ShouldBeOfType<PhysicalAttackResolutionCommand>();
+        resolutionCommand.ResolutionId.ShouldBe(originalCommand.ResolutionId);
+        resolutionCommand.AttackerId.ShouldBe(originalCommand.AttackerId);
+        resolutionCommand.TargetId.ShouldBe(originalCommand.TargetId);
+        var data = resolutionCommand.ResolutionData;
+        data.AttackType.ShouldBe(PhysicalAttackType.Kick);
+        data.AttackerLimb.ShouldBe(PartLocation.RightLeg);
+        data.Damage.ShouldBe(10);
+        data.RequiresTargetPsr.ShouldBeTrue();
+        data.RequiresAttackerPsr.ShouldBeFalse();
+        data.AttackResolution.AttackRoll.Sum(d => d.Result).ShouldBe(9);
+        data.AttackResolution.HitLocationsData!.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(10);
+    }
+
     [Theory]
     [InlineData("AmmoExplosionCommand")]
     [InlineData("ChangeActivePlayerCommand")]
@@ -474,6 +525,7 @@ public class GameCommandJsonConverterTests
     [InlineData("MechStandUpCommand")]
     [InlineData("MoveUnitCommand")]
     [InlineData("PhysicalAttackCommand")]
+    [InlineData("PhysicalAttackResolutionCommand")]
     [InlineData("PilotConsciousnessRollCommand")]
     [InlineData("PlayerLeftCommand")]
     [InlineData("RequestGameLobbyStatusCommand")]
