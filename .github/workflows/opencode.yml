@@ -65,7 +65,9 @@ jobs:
       - name: Run OpenCode
         uses: anomalyco/opencode/github@v2.0.32
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Must match the provider id: model `opencode/...` authenticates via
+          # OPENCODE_API_KEY (the Console/Zen/Go key), not OPENROUTER_API_KEY.
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/big-pickle
           share: true
