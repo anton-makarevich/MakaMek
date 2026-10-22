@@ -8,7 +8,9 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Localization;
@@ -208,6 +210,158 @@ public class PhysicalAttackResolverTests
 
         result.AttackResolution.IsHit.ShouldBeTrue();
         result.Damage.ShouldBe(expectedDamage);
+    }
+
+    #endregion
+
+    #region Actuator damage
+
+    [Fact]
+    public void ResolveAttack_WithADamagedUpperArmActuator_ShouldHalveThePunchDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetArmActuators(attacker, PartLocation.LeftArm, DestroyedActuator(new UpperArmActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(3);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithDamagedUpperAndLowerArmActuators_ShouldQuarterThePunchDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetArmActuators(
+            attacker,
+            PartLocation.LeftArm,
+            DestroyedActuator(new UpperArmActuator()),
+            DestroyedActuator(new LowerArmActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ResolveAttack_WhenActuatorDamageWouldReduceThePunchBelowOne_ShouldInflictOnePoint()
+    {
+        var attacker = CreateUnit(20, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetArmActuators(
+            attacker,
+            PartLocation.LeftArm,
+            DestroyedActuator(new UpperArmActuator()),
+            DestroyedActuator(new LowerArmActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithDamagedActuatorsInTheOtherArm_ShouldNotReduceThePunchDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetArmActuators(
+            attacker,
+            PartLocation.RightArm,
+            DestroyedActuator(new UpperArmActuator()),
+            DestroyedActuator(new LowerArmActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(6);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithADamagedUpperLegActuator_ShouldHalveTheKickDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetLegActuators(attacker, PartLocation.RightLeg, DestroyedActuator(new UpperLegActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg));
+
+        result.Damage.ShouldBe(5);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithDamagedActuatorsInTheKickingLeg_ShouldHalveTheKickDamageForEach()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetLegActuators(
+            attacker,
+            PartLocation.RightLeg,
+            DestroyedActuator(new UpperLegActuator()),
+            DestroyedActuator(new LowerLegActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg));
+
+        result.Damage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithDamagedActuatorsInTheOtherLeg_ShouldNotReduceTheKickDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetLegActuators(
+            attacker,
+            PartLocation.LeftLeg,
+            DestroyedActuator(new UpperLegActuator()),
+            DestroyedActuator(new LowerLegActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg));
+
+        result.Damage.ShouldBe(11);
+    }
+
+    private static TActuator DestroyedActuator<TActuator>(TActuator actuator) where TActuator : Component
+    {
+        actuator.Hit();
+        actuator.IsDestroyed.ShouldBeTrue();
+        return actuator;
+    }
+
+    private static void SetArmActuators(IUnit attacker, PartLocation arm, params Component[] actuators)
+    {
+        attacker.GetComponentsAtLocation<UpperArmActuator>(arm)
+            .Returns(actuators.OfType<UpperArmActuator>().ToList());
+        attacker.GetComponentsAtLocation<LowerArmActuator>(arm)
+            .Returns(actuators.OfType<LowerArmActuator>().ToList());
+    }
+
+    private static void SetLegActuators(IUnit attacker, PartLocation leg, params Component[] actuators)
+    {
+        attacker.GetComponentsAtLocation<UpperLegActuator>(leg)
+            .Returns(actuators.OfType<UpperLegActuator>().ToList());
+        attacker.GetComponentsAtLocation<LowerLegActuator>(leg)
+            .Returns(actuators.OfType<LowerLegActuator>().ToList());
     }
 
     #endregion

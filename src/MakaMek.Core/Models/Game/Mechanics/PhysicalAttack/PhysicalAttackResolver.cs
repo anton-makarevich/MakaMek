@@ -3,6 +3,8 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
@@ -47,7 +49,11 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         if (context.Target.Position is null)
             throw new InvalidOperationException("Target position is not set");
 
-        var damage = CalculateDamage(context.Attacker.Tonnage, context.AttackType);
+        var damagedActuators = CountDamagedActuators(
+            context.Attacker,
+            context.AttackType,
+            context.AttackerLimb);
+        var damage = CalculateDamage(context.Attacker.Tonnage, context.AttackType, damagedActuators);
 
         var toHitNumber = _toHitCalculator.GetToHitNumber(
             context.Attacker,
@@ -104,16 +110,51 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
 
     /// <summary>
     /// The damage value of a physical attack: one point of damage for every ten tons of the
-    /// attacker's weight for a punch and every five tons for a kick, rounded up.
+    /// attacker's weight for a punch and every five tons for a kick, rounded up. Each damaged
+    /// upper or lower arm actuator halves the damage of a punch with that arm, and each damaged
+    /// upper or lower leg actuator halves the damage of a kick; damage fractions are rounded down,
+    /// to a minimum of one point.
     /// </summary>
     /// <param name="tonnage">The tonnage of the attacking unit.</param>
     /// <param name="attackType">The kind of physical attack.</param>
+    /// <param name="damagedActuators">The number of damaged actuators reducing the damage.</param>
     /// <returns>The damage value of the attack.</returns>
-    private static int CalculateDamage(int tonnage, PhysicalAttackType attackType)
+    private static int CalculateDamage(int tonnage, PhysicalAttackType attackType, int damagedActuators)
     {
         var divisor = attackType == PhysicalAttackType.Punch ? 10 : 5;
-        return (tonnage + divisor - 1) / divisor;
+        var damage = (tonnage + divisor - 1) / divisor;
+
+        for (var i = 0; i < damagedActuators; i++)
+            damage = Math.Max(1, damage / 2);
+
+        return damage;
     }
+
+    /// <summary>
+    /// Counts the damaged actuators that halve the damage of the attack. A punch is halved by
+    /// each damaged upper or lower arm actuator of the punching arm; a kick by each damaged upper
+    /// or lower leg actuator of the kicking leg.
+    /// </summary>
+    private static int CountDamagedActuators(
+        IUnit attacker,
+        PhysicalAttackType attackType,
+        PartLocation attackerLimb)
+    {
+        return attackType switch
+        {
+            PhysicalAttackType.Punch =>
+                CountDamagedActuatorsAtLocation<UpperArmActuator>(attacker, attackerLimb)
+                + CountDamagedActuatorsAtLocation<LowerArmActuator>(attacker, attackerLimb),
+            PhysicalAttackType.Kick =>
+                CountDamagedActuatorsAtLocation<UpperLegActuator>(attacker, attackerLimb)
+                + CountDamagedActuatorsAtLocation<LowerLegActuator>(attacker, attackerLimb),
+            _ => 0
+        };
+    }
+
+    private static int CountDamagedActuatorsAtLocation<TActuator>(IUnit attacker, PartLocation location)
+        where TActuator : Component =>
+        attacker.GetComponentsAtLocation<TActuator>(location).Count(a => a.IsDestroyed);
 
     /// <summary>
     /// The hit location of a physical attack, rolled on 1D6 on the punch or the kick table. The
