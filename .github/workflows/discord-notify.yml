@@ -7,8 +7,11 @@ name: Discord Notifications
 # outage must never turn a green build red. Failures here are cosmetic - the
 # summary step is best-effort and falls back to posting the title/link alone.
 #
-# Uses OpenCode Console (free `big-pickle` by default); see
-# https://opencode.ai/docs/zen/ for the endpoint and model list.
+# Uses the OpenCode Go inference endpoint (OpenAI-compatible), which - unlike
+# the console free tier (e.g. `big-pickle`) - is documented for direct API use:
+# https://opencode.ai/docs/go/#endpoints. It requires a stable
+# `x-opencode-session` header and a client-specific User-Agent.
+# Verified by hand: glm-5.3-flash answers this endpoint with a plain bearer key.
 
 on:
   pull_request:
@@ -35,8 +38,10 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           TITLE: ${{ github.event.pull_request.title }}
           BODY: ${{ github.event.pull_request.body }}
-          # Tried in order; the free models are "limited time" and can disappear.
-          MODELS: big-pickle deepseek-v4.1-flash-free
+          # Tried in order; all must be OpenAI-compatible models served by the
+          # Go endpoint. glm-5.3-flash is a reasoning model - it needs a high
+          # max_tokens so the reasoning phase leaves room for actual content.
+          MODELS: glm-5.3-flash deepseek-v4.1-flash
           SYSTEM_PROMPT: >-
             You write terse changelog lines for a game-development Discord
             channel. Summarize the merged pull request in one or two plain
@@ -61,7 +66,7 @@ jobs:
               '{
                  model: $model,
                  temperature: 0.3,
-                 max_tokens: 300,
+                 max_tokens: 1000,
                  messages: [
                    { role: "system", content: $system },
                    { role: "user", content: ("Title: " + $title + "\n\nDescription:\n" + $body) }
@@ -72,9 +77,11 @@ jobs:
             # "401 invalid api key" or "429 rate limited" instead of nothing.
             http=$(curl -s --max-time 90 \
                      -o response.json -w '%{http_code}' \
-                     https://opencode.ai/inference/openai/v1/chat/completions \
+                     https://opencode.ai/inference/go/openai/v1/chat/completions \
                      -H "Authorization: Bearer ${OPENCODE_API_KEY:-}" \
                      -H "Content-Type: application/json" \
+                     -H "x-opencode-session: makamek-discord-notify" \
+                     -H "User-Agent: makamek-discord-notify/1.0" \
                      -d @request.json) || http=000
 
             if [[ "$http" == "200" ]]; then
@@ -144,7 +151,7 @@ jobs:
           # build-windows.yml creates the release with generate_release_notes: true,
           # so this body already contains GitHub's generated notes.
           BODY: ${{ github.event.release.body }}
-          MODELS: big-pickle deepseek-v4.1-flash-free
+          MODELS: glm-5.3-flash deepseek-v4.1-flash
           SYSTEM_PROMPT: >-
             You condense GitHub release notes into a short Discord announcement
             for players of a BattleTech tactics game. Produce 3 to 5 bullet
@@ -167,12 +174,23 @@ jobs:
               '{
                  model: $model,
                  temperature: 0.3,
-                 max_tokens: 500,
+                 max_tokens: 1500,
                  messages: [
                    { role: "system", content: $system },
                    { role: "user", content: ("Release: " + $name + " (" + $tag + ")\n\nNotes:\n" + $body) }
                  ]
                }' > request.json
+
+            # No `--fail`: on 4xx/5xx we want the error body, so the log says
+            # "401 invalid api key" or "429 rate limited" instead of nothing.
+            http=$(curl -s --max-time 90 \
+                     -o response.json -w '%{http_code}' \
+                     https://opencode.ai/inference/go/openai/v1/chat/completions \
+                     -H "Authorization: Bearer ${OPENCODE_API_KEY:-}" \
+                     -H "Content-Type: application/json" \
+                     -H "x-opencode-session: makamek-discord-notify" \
+                     -H "User-Agent: makamek-discord-notify/1.0" \
+                     -d @request.json) || http=000
 
             if [[ "$http" == "200" ]]; then
               summary=$(jq -r '.choices[0].message.content // ""' response.json 2>/dev/null || true)
