@@ -779,6 +779,17 @@ public class Mech : Unit
     }
 
     /// <summary>
+    /// Maximum number of slot-roll attempts before falling back to a uniform pick.
+    /// With fair dice, this limit is effectively unreachable.
+    /// </summary>
+    private const int MaxCriticalSlotRollAttempts = 100;
+
+    /// <summary>
+    /// Number of equally likely outcomes of rolling two six-sided dice.
+    /// </summary>
+    private const int TwoDiceOutcomes = 36;
+
+    /// <summary>
     /// Determines which specific slots are affected by critical hits
     /// </summary>
     /// <param name="part">The unit part receiving critical hits</param>
@@ -793,54 +804,82 @@ public class Mech : Unit
     {
         var availableSlots = Enumerable.Range(0, part.TotalSlots)
             .Where(slot => !part.HitSlots.Contains(slot)
-                           && part.GetComponentAtSlot(slot)!=null)
+                           && part.GetComponentAtSlot(slot) != null)
             .ToList();
         if (availableSlots.Count == 0 || numCriticalHits == 0)
             return null;
-        var result = new List<ComponentHitData>();
-        for (var i = 0; i < numCriticalHits; i++)
-        {
-            if (availableSlots.Count == 1)
-            {
-                result.Add(ComponentHitData.CreateComponentHitData(part,availableSlots[0], damageTransferCalculator));
-                availableSlots.RemoveAt(0);
-                break;
-            }
-            var slot = -1;
-            // Roll for slot as per 6/12 slot logic
-            if (availableSlots.Count <= 6)
-            {
-                // 1d6, map 1-6 to 0-5
-                do {
-                    slot = diceRoller.RollD6().Result - 1;
-                } while (!availableSlots.Contains(slot));
-            }
-            else
-            {
-                int group;
-                do {
-                    var groupRoll = diceRoller.RollD6().Result; // 1d6
-                    group = groupRoll <= 3 ? 0 : 1;
-                    var groupSlots = availableSlots.Where(s => group == 0 ? s < 6 : s >= 6).ToList();
-                    if (groupSlots.Count == 1)
-                    {
-                        slot = groupSlots[0];
-                    }
-                    else if (groupSlots.Count > 1)
-                    {
-                        do
-                        {
-                            var slotRoll = diceRoller.RollD6().Result - 1;
-                            slot = group == 0 ? slotRoll : slotRoll + 6;
-                        } while (!groupSlots.Contains(slot));
-                    }
-                } while (!availableSlots.Contains(slot));
-            }
 
-            if (slot == -1) continue;
+        var result = new List<ComponentHitData>();
+        for (var i = 0; i < numCriticalHits && availableSlots.Count > 0; i++)
+        {
+            // With one candidate left, rolling would eventually land on it anyway.
+            var slot = availableSlots.Count == 1
+                ? availableSlots[0]
+                : RollCriticalHitSlot(part, availableSlots, diceRoller);
+
             result.Add(ComponentHitData.CreateComponentHitData(part, slot, damageTransferCalculator));
             availableSlots.Remove(slot);
         }
+
         return result.Count > 0 ? result.ToArray() : null;
+    }
+
+    /// <summary>
+    /// Rolls a critical hit slot per Total Warfare p. 124: 1D6 for a 6-slot location
+    /// (head or leg), and two dice for a 12-slot location (torso or arm), where the
+    /// first die selects one of the two groups of six slots and the second die selects
+    /// the slot within that group. Invalid slots are re-rolled, which gives every
+    /// remaining slot an equal chance.
+    /// </summary>
+    private static int RollCriticalHitSlot(UnitPart part, List<int> availableSlots, IDiceRoller diceRoller)
+    {
+        var usesTwoDice = part.TotalSlots > 6;
+
+        for (var attempt = 0; attempt < MaxCriticalSlotRollAttempts; attempt++)
+        {
+            var slot = usesTwoDice
+                ? RollTwoDiceSlot(diceRoller)
+                : diceRoller.RollD6().Result - 1;
+
+            if (availableSlots.Contains(slot))
+                return slot;
+        }
+
+        // Degenerate dice must not hang the game, but the fallback still has to keep
+        // every remaining slot equally likely instead of always taking the first one.
+        return RollSlotUniformly(availableSlots, diceRoller);
+    }
+
+    /// <summary>
+    /// Picks one of the remaining slots uniformly using two dice. Two dice yield
+    /// <see cref="TwoDiceOutcomes"/> equally likely outcomes, so the values that would
+    /// make some slots more likely than others are discarded.
+    /// </summary>
+    private static int RollSlotUniformly(List<int> availableSlots, IDiceRoller diceRoller)
+    {
+        var limit = TwoDiceOutcomes - TwoDiceOutcomes % availableSlots.Count;
+        var roll = TwoDiceOutcomes;
+
+        for (var attempt = 0; attempt < MaxCriticalSlotRollAttempts; attempt++)
+        {
+            roll = (diceRoller.RollD6().Result - 1) * 6 + diceRoller.RollD6().Result;
+            if (roll <= limit)
+                break;
+        }
+
+        // If the dice never leave the discarded tail, spread the result over the
+        // remaining slots rather than always returning the first one.
+        return availableSlots[(roll - 1) % availableSlots.Count];
+    }
+
+    /// <summary>
+    /// Rolls a slot on a 12-slot critical hit table: the first die selects one of the
+    /// two groups of six slots, the second die selects the slot within that group.
+    /// </summary>
+    private static int RollTwoDiceSlot(IDiceRoller diceRoller)
+    {
+        var groupRoll = diceRoller.RollD6().Result; // 1-3 = slots 0-5, 4-6 = slots 6-11
+        var slotRoll = diceRoller.RollD6().Result - 1; // 0-5 within the group
+        return (groupRoll <= 3 ? 0 : 6) + slotRoll;
     }
 }
