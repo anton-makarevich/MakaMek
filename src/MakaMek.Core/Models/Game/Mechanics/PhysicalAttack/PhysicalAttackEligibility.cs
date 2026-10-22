@@ -17,7 +17,22 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         [PhysicalAttackType.Punch, PhysicalAttackType.Kick];
 
     public IReadOnlyList<PartLocation> GetEligibleLimbs(IUnit attacker, IUnit target, PhysicalAttackType attackType,
-        IBattleMap map)
+        IBattleMap map) =>
+        attacker is Mech { HasDeclaredPhysicalAttack: false } ? GetReachingLimbs(attacker, target, attackType, map) : [];
+
+    public bool CanResolve(IUnit attacker, IUnit target, PhysicalAttackType attackType, PartLocation limb,
+        IBattleMap map) =>
+        GetReachingLimbs(attacker, target, attackType, map).Contains(limb);
+
+    public bool HasAnyOption(IUnit attacker, IEnumerable<IUnit> units, IBattleMap map) =>
+        units.Any(target => SupportedAttackTypes.Any(type => GetEligibleLimbs(attacker, target, type, map).Count > 0));
+
+    /// <summary>
+    /// The limbs that can make this attack against this target, leaving aside whether the attacker
+    /// has already declared its physical attack this turn.
+    /// </summary>
+    private static IReadOnlyList<PartLocation> GetReachingLimbs(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
             || GetEffectiveLevelDifference(mech, target, map) is not { } levelDifference)
@@ -34,16 +49,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         };
     }
 
-    public bool HasAnyOption(IUnit attacker, IEnumerable<IUnit> units, IBattleMap map) =>
-        units.Any(target => SupportedAttackTypes.Any(type => GetEligibleLimbs(attacker, target, type, map).Count > 0));
-
     /// <summary>
-    /// A standing Mech that has not made its one physical attack this turn. A skidding Mech may
-    /// still attack; it takes a to-hit penalty instead.
+    /// A standing Mech that is still in the game. A skidding Mech may still attack; it takes a
+    /// to-hit penalty instead.
     /// </summary>
     private static bool CanMakePhysicalAttack(Mech attacker) =>
-        attacker is { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null }
-        && !attacker.HasDeclaredPhysicalAttack;
+        attacker is { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null };
 
     /// <summary>
     /// An enemy Mech that is still standing on the map in an adjacent hex.
