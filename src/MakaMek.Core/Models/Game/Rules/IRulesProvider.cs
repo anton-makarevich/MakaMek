@@ -28,6 +28,17 @@ public interface IRulesProvider
     int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType);
 
     /// <summary>
+    /// Gets the final damage of a physical attack after actuator damage reduction.
+    /// Punch base damage is one point per ten tons of the attacker's tonnage; kick base damage is
+    /// one point per five tons. Base damage rounds up. Each reducing actuator halves the damage,
+    /// with fractions rounded down to a minimum of one point.
+    /// </summary>
+    /// <param name="tonnage">The tonnage of the attacking unit.</param>
+    /// <param name="attackType">The kind of physical attack.</param>
+    /// <param name="reducingActuators">The number of damaged or missing actuators reducing the damage.</param>
+    int GetPhysicalAttackDamage(int tonnage, PhysicalAttackType attackType, int reducingActuators);
+
+    /// <summary>
     /// Gets the modifier for firing at a specific rangeBracket bracket
     /// </summary>
     int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance);

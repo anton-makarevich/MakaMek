@@ -53,7 +53,10 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             context.Attacker,
             context.AttackType,
             context.AttackerLimb);
-        var damage = CalculateDamage(context.Attacker.Tonnage, context.AttackType, damagedActuators);
+        var damage = _rulesProvider.GetPhysicalAttackDamage(
+            context.Attacker.Tonnage,
+            context.AttackType,
+            damagedActuators);
 
         var toHitNumber = _toHitCalculator.GetToHitNumber(
             context.Attacker,
@@ -106,28 +109,6 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             new AttackResolutionData(toHitNumber, attackRoll, true, attackDirection, 0, hitLocationsData),
             RequiresTargetPsr: context.AttackType == PhysicalAttackType.Kick,
             RequiresAttackerPsr: false);
-    }
-
-    /// <summary>
-    /// The damage value of a physical attack: one point of damage for every ten tons of the
-    /// attacker's weight for a punch and every five tons for a kick, rounded up. Each damaged or
-    /// missing upper or lower arm actuator halves the damage of a punch with that arm, and each
-    /// damaged upper or lower leg actuator halves the damage of a kick; damage fractions are
-    /// rounded down, to a minimum of one point.
-    /// </summary>
-    /// <param name="tonnage">The tonnage of the attacking unit.</param>
-    /// <param name="attackType">The kind of physical attack.</param>
-    /// <param name="damagedActuators">The number of damaged or missing actuators reducing the damage.</param>
-    /// <returns>The damage value of the attack.</returns>
-    private static int CalculateDamage(int tonnage, PhysicalAttackType attackType, int damagedActuators)
-    {
-        var divisor = attackType == PhysicalAttackType.Punch ? 10 : 5;
-        var damage = (tonnage + divisor - 1) / divisor;
-
-        for (var i = 0; i < damagedActuators; i++)
-            damage = Math.Max(1, damage / 2);
-
-        return damage;
     }
 
     /// <summary>

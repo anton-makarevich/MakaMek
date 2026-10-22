@@ -77,6 +77,41 @@ public class TotalWarfareRulesProviderTests
 
     #endregion
 
+    #region Physical Attack Damage Tests
+
+    [Theory]
+    [InlineData(20, PhysicalAttackType.Punch, 0, 2)]
+    [InlineData(25, PhysicalAttackType.Punch, 0, 3)]
+    [InlineData(55, PhysicalAttackType.Punch, 0, 6)]
+    [InlineData(70, PhysicalAttackType.Punch, 0, 7)]
+    [InlineData(70, PhysicalAttackType.Punch, 1, 3)]
+    [InlineData(70, PhysicalAttackType.Punch, 2, 1)]
+    [InlineData(20, PhysicalAttackType.Punch, 2, 1)]
+    [InlineData(21, PhysicalAttackType.Kick, 0, 5)]
+    [InlineData(55, PhysicalAttackType.Kick, 0, 11)]
+    [InlineData(55, PhysicalAttackType.Kick, 1, 5)]
+    [InlineData(55, PhysicalAttackType.Kick, 2, 2)]
+    public void GetPhysicalAttackDamage_ShouldReturnExpectedValues(
+        int tonnage,
+        PhysicalAttackType attackType,
+        int reducingActuators,
+        int expectedDamage)
+    {
+        _sut.GetPhysicalAttackDamage(tonnage, attackType, reducingActuators).ShouldBe(expectedDamage);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackDamage_UnsupportedAttackType_ThrowsNotSupportedException(
+        PhysicalAttackType attackType)
+    {
+        Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackDamage(50, attackType, 0));
+    }
+
+    #endregion
+
     [Theory]
     [InlineData(MovementType.StandingStill, 0)]
     [InlineData(MovementType.Walk, 1)]
