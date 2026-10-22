@@ -108,8 +108,6 @@ MakaMek/
 
 ### Project Status
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/eEfauRpd7)
-
 | Component                  | Build Status                                                                                                                                                                                                     | Package/Download                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 |----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Test Coverage (non-ui)** | [![codecov](https://codecov.io/github/anton-makarevich/MakaMek/graph/badge.svg?token=SAQTXWFA21)](https://codecov.io/github/anton-makarevich/MakaMek)                                                            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -151,6 +149,8 @@ Some art and assets used in this projectâ€”specifically unit and terrain imagesâ
 The assets are located in the `data` folder and are supposed to be distributed separately as downloadable content.
 
 If you have any concerns regarding the usage of these assets, please reach out to me at: anton.makarevich@gmail.com
+
+Or message me here [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/eEfauRpd7)
 
 ## Acknowledgments
 
