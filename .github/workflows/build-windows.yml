@@ -89,6 +89,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          # Events created by the default GITHUB_TOKEN do not trigger other
+          # workflows, so the release:published notification workflow would
+          # never fire. Falls back to github.token until RELEASE_TOKEN is set.
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
           files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
           draft: false
           prerelease: false

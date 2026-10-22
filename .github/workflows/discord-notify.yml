@@ -14,7 +14,11 @@ name: Discord Notifications
 # Verified by hand: glm-5.3-flash answers this endpoint with a plain bearer key.
 
 on:
-  pull_request:
+  # `pull_request_target` so merged PRs from forks also get repository secrets
+  # (plain `pull_request` runs from forks get none, so fork merges would post
+  # nothing). Safe here: this workflow never checks out or executes PR code -
+  # PR text reaches the LLM/Discord steps only via env vars and jq --arg.
+  pull_request_target:
     types: [closed]
   release:
     types: [published]
@@ -29,8 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # Best-effort: if the model is rate-limited, unavailable, or the secret is
-      # missing (e.g. a fork PR), we still post - just without the summary.
+      # Best-effort: if the model is rate-limited or unavailable, we still
+      # post - just without the summary.
       - name: Summarize PR
         id: summarize
         continue-on-error: true
