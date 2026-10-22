@@ -954,10 +954,10 @@ public class MechTests
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
         _diceRoller.RollD6().Returns(
-            new DiceResult(4),
-            new DiceResult(3),
-            new DiceResult(4),
-            new DiceResult(5));
+            new DiceResult(4), // Second group of six slots
+            new DiceResult(1), // Slot 6
+            new DiceResult(2), // First group of six slots
+            new DiceResult(2)); // Slot 1
 
         // Act
         var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
@@ -1140,6 +1140,203 @@ public class MechTests
 
         // Verify that slot 3 is already marked as hit
         centerTorso.HitSlots.ShouldContain(3);
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldNotHang_WhenOnlySlotsAboveFiveRemain()
+    {
+        // Arrange: a 12-slot location where only the second group of six slots is available
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        foreach (var slot in new[] { 6, 7, 8 })
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(5)]); // 2 critical hits
+        _diceRoller.RollD6().Returns(new DiceResult(1)); // Always selects the empty first group
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.LeftTorso, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(2);
+        critsData.HitComponents.All(hit => hit.Slot is >= 6 and <= 8).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldNotHang_WhenDieRepeatedlyHitsAnUnavailableSlot()
+    {
+        // Arrange: 10 of the 12 slots are filled and the die always selects empty slot 11
+        var part = new Arm("TestArm", PartLocation.RightArm, 17, 6);
+        for (var slot = 1; slot <= 9; slot++)
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(5)]); // 1 critical hit
+        _diceRoller.RollD6().Returns(new DiceResult(6)); // Second group, slot 11
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBeInRange(0, 9);
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldUseTwelveSlotProcedure_WhenFewerThanSevenSlotsRemain()
+    {
+        // Arrange: a 12-slot location with only 3 available slots, all in the second group
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        foreach (var slot in new[] { 6, 7, 8 })
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(5)]); // 1 critical hit
+        _diceRoller.RollD6().Returns(new DiceResult(5), new DiceResult(1)); // Second group, slot 6
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.LeftTorso, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBe(6);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 2)]
+    [InlineData(4, 3)]
+    [InlineData(5, 4)]
+    [InlineData(6, 5)]
+    public void CalculateCriticalHitsData_ShouldUseSingleDie_ForSixSlotLocation(int die, int expectedSlot)
+    {
+        // Arrange
+        var part = new Leg("TestLeg", PartLocation.RightLeg, 25, 8);
+        part.TryAddComponent(new TestComponent(), [4]).ShouldBeTrue();
+        part.TryAddComponent(new TestComponent(), [5]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(5)]); // 1 critical hit
+        _diceRoller.RollD6().Returns(new DiceResult(die));
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBe(expectedSlot);
+    }
+
+    [Theory]
+    [InlineData(1, 1, 0)]
+    [InlineData(2, 6, 5)]
+    [InlineData(3, 3, 2)]
+    [InlineData(4, 1, 6)]
+    [InlineData(5, 6, 11)]
+    [InlineData(6, 4, 9)]
+    public void CalculateCriticalHitsData_ShouldMapTwoDiceToTwelveSlots(int groupDie, int slotDie, int expectedSlot)
+    {
+        // Arrange: all 12 slots are available
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        for (var slot = 0; slot < part.TotalSlots; slot++)
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(5)]); // 1 critical hit
+        _diceRoller.RollD6().Returns(new DiceResult(groupDie), new DiceResult(slotDie));
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.LeftTorso, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBe(expectedSlot);
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldLoseExcessCriticalHits_WhenFewerSlotsThanCrits()
+    {
+        // Arrange: only 2 slots are available but the roll grants 3 critical hits
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        part.TryAddComponent(new TestComponent(), [0]).ShouldBeTrue();
+        part.TryAddComponent(new TestComponent(), [1]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        _diceRoller.Roll2D6().Returns([new DiceResult(6), new DiceResult(6)]); // 3 critical hits
+        _diceRoller.RollD6().Returns(new DiceResult(1));
+
+        // Act
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.LeftTorso, _diceRoller, _damageTransferCalculator);
+
+        // Assert
+        critsData.ShouldNotBeNull();
+        critsData.NumCriticalHits.ShouldBe(3);
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(2);
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldGiveEveryRemainingSlotAnEqualChance()
+    {
+        // Arrange: 4 available slots spread across both groups. Because an invalid
+        // slot forces a reroll of both dice, every remaining slot must have an equal chance.
+        var part = new SideTorso("TestTorso", PartLocation.LeftTorso, 25, 8, 6);
+        foreach (var slot in new[] { 0, 7, 8, 9 })
+            part.TryAddComponent(new TestComponent(), [slot]).ShouldBeTrue();
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
+
+        var roller = new CyclingDiceRoller();
+        var counts = new Dictionary<int, int> { [0] = 0, [7] = 0, [8] = 0, [9] = 0 };
+
+        // The 36 two-dice outcomes contain exactly 12 valid ones: 3 for each slot
+        for (var i = 0; i < 12; i++)
+        {
+            var critsData = mech.CalculateCriticalHitsData(
+                PartLocation.LeftTorso, roller, _damageTransferCalculator);
+
+            critsData.ShouldNotBeNull();
+            critsData.HitComponents.ShouldNotBeNull();
+            critsData.HitComponents.Length.ShouldBe(1);
+            var slot = critsData.HitComponents[0].Slot;
+            counts.ShouldContainKey(slot);
+            counts[slot]++;
+        }
+
+        counts[0].ShouldBe(3);
+        counts[7].ShouldBe(3);
+        counts[8].ShouldBe(3);
+        counts[9].ShouldBe(3);
+    }
+
+    private sealed class CyclingDiceRoller : IDiceRoller
+    {
+        private static readonly (int Group, int Slot)[] Pairs =
+            Enumerable.Range(1, 6)
+                .SelectMany(group => Enumerable.Range(1, 6).Select(slot => (group, slot)))
+                .ToArray();
+
+        private int _rollIndex;
+
+        public DiceResult RollD6()
+        {
+            var pair = Pairs[(_rollIndex / 2) % Pairs.Length];
+            var value = _rollIndex % 2 == 0 ? pair.Group : pair.Slot;
+            _rollIndex++;
+            return new DiceResult(value);
+        }
+
+        public List<DiceResult> Roll2D6() => [new DiceResult(5), new DiceResult(4)];
     }
 
 
