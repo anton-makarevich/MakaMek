@@ -29,7 +29,9 @@ permissions:
 jobs:
   dev-log:
     # `release` also triggers this file; only run the PR job for actual merges.
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    # Event name must match the trigger: `pull_request_target`, not
+    # `pull_request` (mismatch silently skips the job).
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
