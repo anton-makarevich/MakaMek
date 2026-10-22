@@ -15,6 +15,12 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// </remarks>
 public record struct PhysicalAttackResolutionCommand : IGameCommand
 {
+    /// <summary>
+    /// Identifies this one resolution. Each arm of a two-arm punch gets its own. A game applies the
+    /// damage of a resolution once, however many times the command is delivered.
+    /// </summary>
+    public required Guid ResolutionId { get; init; }
+
     public required Guid PlayerId { get; init; }
     public required Guid AttackerId { get; init; }
     public required Guid TargetId { get; init; }

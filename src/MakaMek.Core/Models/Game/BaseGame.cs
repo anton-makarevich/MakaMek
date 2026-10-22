@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -36,6 +37,9 @@ public abstract class BaseGame : IGame
     private readonly Subject<PhaseStepState?> _phaseStepStateSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly Subject<IGameCommand> _commandSubject = new();
+
+    // Physical attack resolutions already applied, so a resolution delivered twice deals its damage once
+    private readonly ConcurrentDictionary<Guid, byte> _appliedPhysicalAttackResolutions = new();
 
     public Guid Id { get; }
 
@@ -269,6 +273,8 @@ public abstract class BaseGame : IGame
 
     internal void OnPhysicalAttackResolution(PhysicalAttackResolutionCommand resolutionCommand)
     {
+        if (!_appliedPhysicalAttackResolutions.TryAdd(resolutionCommand.ResolutionId, 0)) return;
+
         var res = resolutionCommand.ResolutionData.AttackResolution;
         if (res is not { IsHit: true, HitLocationsData: not null }) return;
 

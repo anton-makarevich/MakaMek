@@ -466,6 +466,7 @@ public class GameCommandJsonConverterTests
         // Arrange
         var originalCommand = new PhysicalAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),
@@ -495,6 +496,7 @@ public class GameCommandJsonConverterTests
 
         // Assert
         var resolutionCommand = deserializedCommand.ShouldBeOfType<PhysicalAttackResolutionCommand>();
+        resolutionCommand.ResolutionId.ShouldBe(originalCommand.ResolutionId);
         resolutionCommand.AttackerId.ShouldBe(originalCommand.AttackerId);
         resolutionCommand.TargetId.ShouldBe(originalCommand.TargetId);
         var data = resolutionCommand.ResolutionData;

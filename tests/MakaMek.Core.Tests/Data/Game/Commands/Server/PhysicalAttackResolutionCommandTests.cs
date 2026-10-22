@@ -119,6 +119,7 @@ public class PhysicalAttackResolutionCommandTests
 
     private PhysicalAttackResolutionCommand CreateCommand(AttackResolutionData resolution) => new()
     {
+        ResolutionId = Guid.NewGuid(),
         GameOriginId = Guid.NewGuid(),
         PlayerId = _player1.Id,
         AttackerId = _attacker.Id,
