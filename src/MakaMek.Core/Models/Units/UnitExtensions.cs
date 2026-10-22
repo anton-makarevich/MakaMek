@@ -158,5 +158,29 @@ public static class UnitExtensions
 
             return UnitTacticalRole.Trooper;
         }
+
+        /// <summary>
+        /// Determines the direction an attack enters this unit's hex, taken from this unit's own
+        /// facing. A missing position on either unit falls back to the front.
+        /// </summary>
+        /// <param name="attacker">The attacking unit.</param>
+        /// <returns>The direction of the attack relative to this unit.</returns>
+        public HitDirection GetAttackDirection(IUnit? attacker)
+        {
+            if (attacker?.Position == null || unit.Position == null)
+                return HitDirection.Front;
+
+            var arc = unit.Position.Coordinates.GetFiringArc(
+                attacker.Position.Coordinates,
+                unit.Position.Facing);
+
+            return arc switch
+            {
+                FiringArc.Left => HitDirection.Left,
+                FiringArc.Right => HitDirection.Right,
+                FiringArc.Rear => HitDirection.Rear,
+                _ => HitDirection.Front
+            };
+        }
     }
 }

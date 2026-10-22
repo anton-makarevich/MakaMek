@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -2943,7 +2944,7 @@ public class MechTests
         // at the BEGINNING of its turn. A mech that had more MP but spent most of them
         // (e.g. ran into water and fell) must not qualify for it.
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(100)); // walk 2
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData()); // walk 2
         sut.SetProne();
         sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
         var start = sut.Position!;

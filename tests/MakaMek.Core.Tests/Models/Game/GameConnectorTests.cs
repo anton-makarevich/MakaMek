@@ -156,7 +156,7 @@ public class GameConnectorTests : IDisposable
         // Arrange
         const string roomCode = "ABCDEF";
         const string sessionToken = "session-token";
-        await JoinOnlineAsync(_sut, roomCode);
+        await JoinOnlineAsync(_sut);
 
         // The retry reuses the token handed back by the first join, not a null token.
         _relayRoomClient.Join(roomCode, sessionToken, Arg.Any<CancellationToken>())

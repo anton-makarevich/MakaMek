@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Data.Game;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
 /// Serializable data about a physical attack a unit has declared for the current turn

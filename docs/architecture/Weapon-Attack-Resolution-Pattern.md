@@ -67,11 +67,11 @@ A self-contained, stateless service (constructor-injected `IRulesProvider`, `IDi
 
 1. **To-hit** — `IToHitCalculator.GetToHitNumber`, then `IDiceRoller.Roll2D6`.
 2. **Miss** — returns early with `IsHit = false`.
-3. **Direction** — `DetermineAttackDirection` (firing arc → `HitDirection`).
+3. **Direction** — `IUnit.GetAttackDirection` (firing arc → `HitDirection`).
 4. **LOS / partial cover** — `battleMap.GetLineOfSight` + `IRulesProvider.HasPartialCover`.
 5. **Hit location** — `DetermineHitLocation` for standard weapons, `ResolveClusterWeaponHit` for clusters (LRMs, SRMs, etc.).
 
-Private helpers `DetermineHitLocation`, `ResolveClusterWeaponHit`, and `DetermineAttackDirection` are tested through the public API or via direct reflection in resolver-specific tests.
+Private helpers `DetermineHitLocation` and `ResolveClusterWeaponHit` are tested through the public API or via direct reflection in resolver-specific tests. The attack direction comes from the shared `IUnit.GetAttackDirection` extension, so the weapon resolver and the physical attack resolver agree on the column of the hit location table.
 
 ### `IAttackResolutionGate` — optional pre-attack skips
 
@@ -157,7 +157,7 @@ Key points:
 5. **Resolver**:
    - `_toHitCalculator.GetToHitNumber` → needs 7+.
    - Roll: 4 + 5 = 9 → hit.
-   - `DetermineAttackDirection` → Archer is in Wolverine's front arc → `HitDirection.Front`.
+   - `target.GetAttackDirection(attacker)` → Archer is in Wolverine's front arc → `HitDirection.Front`.
    - LOS check → partial cover detected; covering hex recorded.
    - `ResolveClusterWeaponHit`: cluster roll 8 → 12 missiles hit; 3 clusters of 5 damage resolve against hit locations (partial cover absorption applied per `DetermineHitLocation` where legs are hit).
 6. **Finalize**: damage applied to Wolverine, `WeaponAttackResolutionCommand` published, hull breach/crits/consciousness handled.

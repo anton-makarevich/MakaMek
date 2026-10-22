@@ -235,6 +235,28 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <summary>
+    /// Physical attack damage is based on the attacker's tonnage: one point per ten tons for a
+    /// punch and one point per five tons for a kick, rounded up. Each damaged or missing actuator
+    /// halves the result, rounding down to a minimum of one point (Total Warfare, p. 145).
+    /// </summary>
+    public int GetPhysicalAttackDamage(int tonnage, PhysicalAttackType attackType, int reducingActuators)
+    {
+        var divisor = attackType switch
+        {
+            PhysicalAttackType.Punch => 10,
+            PhysicalAttackType.Kick => 5,
+            _ => throw new NotSupportedException(
+                $"Physical attack damage is not supported for attack type: {attackType}")
+        };
+
+        var damage = (tonnage + divisor - 1) / divisor;
+        for (var i = 0; i < reducingActuators; i++)
+            damage = Math.Max(1, damage / 2);
+
+        return damage;
+    }
+
     public int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance)
     {
         return rangeBracketType switch

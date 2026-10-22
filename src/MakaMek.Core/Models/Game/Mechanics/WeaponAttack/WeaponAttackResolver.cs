@@ -65,7 +65,7 @@ public class WeaponAttackResolver : IWeaponAttackResolver
             weapon.ExternalHeat,
             hitLocationsData);
 
-        attackDirection = DetermineAttackDirection(attacker, target);
+        attackDirection = target.GetAttackDirection(attacker);
 
         var losResult = battleMap.GetLineOfSight(
             attacker.Position!.Coordinates,
@@ -239,20 +239,4 @@ public class WeaponAttackResolver : IWeaponAttackResolver
         }
     }
 
-    private HitDirection DetermineAttackDirection(IUnit? attacker, IUnit target)
-    {
-        if (attacker?.Position == null || target.Position == null)
-            return HitDirection.Front;
-
-        var arc = target.Position.Coordinates.GetFiringArc(
-            attacker.Position.Coordinates, target.Position.Facing);
-
-        return arc switch
-        {
-            FiringArc.Left => HitDirection.Left,
-            FiringArc.Right => HitDirection.Right,
-            FiringArc.Rear => HitDirection.Rear,
-            _ => HitDirection.Front
-        };
-    }
 }

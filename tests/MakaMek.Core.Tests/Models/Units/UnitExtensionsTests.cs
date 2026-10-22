@@ -778,5 +778,111 @@ public class UnitExtensionsTests
         // Assert
         result.ShouldBe(UnitTacticalRole.Trooper);
     }
+
+    [Fact]
+    public void GetAttackDirection_WhenAttackerIsInTheFrontArc_ReturnsFront()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+        var attacker = CreateUnitAt(new HexCoordinates(0, -1), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenAttackerIsInTheLeftArc_ReturnsLeft()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+        var attacker = CreateUnitAt(new HexCoordinates(-2, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Left);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenAttackerIsInTheRightArc_ReturnsRight()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+        var attacker = CreateUnitAt(new HexCoordinates(2, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Right);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenAttackerIsInTheRearArc_ReturnsRear()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+        var attacker = CreateUnitAt(new HexCoordinates(0, 1), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Rear);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenAttackerHasNoPosition_ReturnsFront()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+        var attacker = Substitute.For<IUnit>();
+        attacker.Position.Returns((HexPosition?)null);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenTargetHasNoPosition_ReturnsFront()
+    {
+        // Arrange
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns((HexPosition?)null);
+        var attacker = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(attacker);
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void GetAttackDirection_WhenThereIsNoAttacker_ReturnsFront()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirection(null);
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    private static IUnit CreateUnitAt(HexCoordinates coordinates, HexDirection facing)
+    {
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(coordinates, facing));
+        return unit;
+    }
 }
 

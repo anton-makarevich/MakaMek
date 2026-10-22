@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
