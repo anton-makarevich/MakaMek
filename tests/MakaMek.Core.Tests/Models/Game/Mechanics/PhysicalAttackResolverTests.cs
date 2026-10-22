@@ -253,6 +253,29 @@ public class PhysicalAttackResolverTests
 
     #endregion
 
+    #region Resolution data
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, PartLocation.LeftArm)]
+    [InlineData(PhysicalAttackType.Kick, PartLocation.RightLeg)]
+    public void ResolveAttack_ShouldReportTheResolvedAttackTypeAndLimb(
+        PhysicalAttackType attackType,
+        PartLocation limb)
+    {
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, attackType, limb));
+
+        result.AttackType.ShouldBe(attackType);
+        result.AttackerLimb.ShouldBe(limb);
+    }
+
+    #endregion
+
     #region Actuator damage
 
     [Fact]
@@ -811,6 +834,28 @@ public class PhysicalAttackResolverTests
         hitLocation.InitialLocation.ShouldBe(PartLocation.LeftArm);
         var damageData = hitLocation.Damage.ShouldHaveSingleItem();
         damageData.Location.ShouldBe(PartLocation.LeftTorso);
+    }
+
+    [Fact]
+    public void ResolveAttack_ShouldStopTheTransferChain_WhenTheNextLocationDoesNotExist()
+    {
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateTargetUnit();
+        var centerTorso = target.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(
+            centerTorso.CurrentArmor + centerTorso.CurrentStructure,
+            HitDirection.Front);
+        centerTorso.IsDestroyed.ShouldBeTrue();
+        SetHitRoll(5, 5);
+        // The front column of the punch table sends a roll of 3 to the centre torso.
+        SetLocationRoll(3);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        var hitLocation = result.AttackResolution.HitLocationsData!.HitLocations.ShouldHaveSingleItem();
+        hitLocation.InitialLocation.ShouldBe(PartLocation.CenterTorso);
+        hitLocation.Damage.ShouldHaveSingleItem().Location.ShouldBe(PartLocation.CenterTorso);
     }
 
     [Fact]
