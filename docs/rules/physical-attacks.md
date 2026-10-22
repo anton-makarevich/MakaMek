@@ -34,7 +34,7 @@ Attacker 'Mech damage that specifically affects physical attacks (Attack Modifie
 | Damage | Effect on physical attacks |
 | :--- | :--- |
 | **Shoulder actuator hit** | No punching or physical weapon attack with that arm; no clubbing attacks; **+2 to a pushing attack (each)** |
-| **Upper or lower arm actuator hit (each)** | **+2 to punching and physical weapon attacks with that arm**; half damage for a punching attack with that arm (round down, to a minimum of 1); +2 to clubbing attacks |
+| **Upper or lower arm actuator hit (each)** | **+2 to punching and physical weapon attacks with that arm**; half damage for a punching attack with that arm (round down, to a minimum of 1); +2 to clubbing attacks. An arm actuator the design does not mount at all counts as damaged for punch damage. |
 | **Hand actuator hit** | **+1 to a punching attack with that arm**; no clubbing attacks; no physical weapon attack with that arm |
 | **Hip actuator hit** | No kicking attacks |
 | **Upper or lower leg actuator hit (each)** | **+2 to all kick attacks**; half damage to kick attacks made with that leg (round down, to a minimum of 1) |

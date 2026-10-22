@@ -110,14 +110,14 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
 
     /// <summary>
     /// The damage value of a physical attack: one point of damage for every ten tons of the
-    /// attacker's weight for a punch and every five tons for a kick, rounded up. Each damaged
-    /// upper or lower arm actuator halves the damage of a punch with that arm, and each damaged
-    /// upper or lower leg actuator halves the damage of a kick; damage fractions are rounded down,
-    /// to a minimum of one point.
+    /// attacker's weight for a punch and every five tons for a kick, rounded up. Each damaged or
+    /// missing upper or lower arm actuator halves the damage of a punch with that arm, and each
+    /// damaged upper or lower leg actuator halves the damage of a kick; damage fractions are
+    /// rounded down, to a minimum of one point.
     /// </summary>
     /// <param name="tonnage">The tonnage of the attacking unit.</param>
     /// <param name="attackType">The kind of physical attack.</param>
-    /// <param name="damagedActuators">The number of damaged actuators reducing the damage.</param>
+    /// <param name="damagedActuators">The number of damaged or missing actuators reducing the damage.</param>
     /// <returns>The damage value of the attack.</returns>
     private static int CalculateDamage(int tonnage, PhysicalAttackType attackType, int damagedActuators)
     {
@@ -131,9 +131,9 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
     }
 
     /// <summary>
-    /// Counts the damaged actuators that halve the damage of the attack. A punch is halved by
-    /// each damaged upper or lower arm actuator of the punching arm; a kick by each damaged upper
-    /// or lower leg actuator of the kicking leg.
+    /// Counts the actuators that halve the damage of the attack. A punch is halved by each
+    /// damaged or missing upper or lower arm actuator of the punching arm; a kick by each damaged
+    /// upper or lower leg actuator of the kicking leg.
     /// </summary>
     private static int CountDamagedActuators(
         IUnit attacker,
@@ -143,8 +143,8 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         return attackType switch
         {
             PhysicalAttackType.Punch =>
-                CountDamagedActuatorsAtLocation<UpperArmActuator>(attacker, attackerLimb)
-                + CountDamagedActuatorsAtLocation<LowerArmActuator>(attacker, attackerLimb),
+                CountDamagedOrMissingActuatorsAtLocation<UpperArmActuator>(attacker, attackerLimb)
+                + CountDamagedOrMissingActuatorsAtLocation<LowerArmActuator>(attacker, attackerLimb),
             PhysicalAttackType.Kick =>
                 CountDamagedActuatorsAtLocation<UpperLegActuator>(attacker, attackerLimb)
                 + CountDamagedActuatorsAtLocation<LowerLegActuator>(attacker, attackerLimb),
@@ -155,6 +155,22 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
     private static int CountDamagedActuatorsAtLocation<TActuator>(IUnit attacker, PartLocation location)
         where TActuator : Component =>
         attacker.GetComponentsAtLocation<TActuator>(location).Count(a => a.IsDestroyed);
+
+    /// <summary>
+    /// A component that the design does not mount at all is treated as a missing actuator. This
+    /// matters for punches because many 'Mech designs omit the lower arm actuator; such an arm
+    /// still punches, but at half damage under the "damaged or not present" rule.
+    /// </summary>
+    private static int CountDamagedOrMissingActuatorsAtLocation<TActuator>(
+        IUnit attacker,
+        PartLocation location)
+        where TActuator : Component
+    {
+        var actuators = attacker.GetComponentsAtLocation<TActuator>(location).ToList();
+        return actuators.Count == 0
+            ? 1
+            : actuators.Count(a => a.IsDestroyed);
+    }
 
     /// <summary>
     /// The hit location of a physical attack, rolled on 1D6 on the punch or the kick table. The

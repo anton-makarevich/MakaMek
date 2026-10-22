@@ -76,6 +76,14 @@ public class PhysicalAttackResolverTests
         unit.Tonnage.Returns(tonnage);
         unit.Position.Returns(position);
         unit.Parts.Returns(new Dictionary<PartLocation, UnitPart>());
+        unit.GetComponentsAtLocation<UpperArmActuator>(Arg.Any<PartLocation>())
+            .Returns([new UpperArmActuator()]);
+        unit.GetComponentsAtLocation<LowerArmActuator>(Arg.Any<PartLocation>())
+            .Returns([new LowerArmActuator()]);
+        unit.GetComponentsAtLocation<UpperLegActuator>(Arg.Any<PartLocation>())
+            .Returns([new UpperLegActuator()]);
+        unit.GetComponentsAtLocation<LowerLegActuator>(Arg.Any<PartLocation>())
+            .Returns([new LowerLegActuator()]);
         return unit;
     }
 
@@ -136,17 +144,48 @@ public class PhysicalAttackResolverTests
         { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
     });
 
-    private static UnitData CreateAttackerMechData(int mass) => CreateMechData(mass, new Dictionary<PartLocation, ArmorLocation>
+    private static UnitData CreateAttackerMechData(int mass)
     {
-        { PartLocation.Head, new ArmorLocation { FrontArmor = 9 } },
-        { PartLocation.CenterTorso, new ArmorLocation { FrontArmor = 10, RearArmor = 5 } },
-        { PartLocation.LeftTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
-        { PartLocation.RightTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
-        { PartLocation.LeftArm, new ArmorLocation { FrontArmor = 4 } },
-        { PartLocation.RightArm, new ArmorLocation { FrontArmor = 4 } },
-        { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
-        { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
-    });
+        var data = CreateMechData(mass, new Dictionary<PartLocation, ArmorLocation>
+        {
+            { PartLocation.Head, new ArmorLocation { FrontArmor = 9 } },
+            { PartLocation.CenterTorso, new ArmorLocation { FrontArmor = 10, RearArmor = 5 } },
+            { PartLocation.LeftTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
+            { PartLocation.RightTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
+            { PartLocation.LeftArm, new ArmorLocation { FrontArmor = 4 } },
+            { PartLocation.RightArm, new ArmorLocation { FrontArmor = 4 } },
+            { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
+            { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
+        });
+
+        return data with
+        {
+            Equipment =
+            [
+                .. data.Equipment,
+                new ComponentData
+                {
+                    Type = MakaMekComponent.UpperArmActuator,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.LowerArmActuator,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 2, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.UpperArmActuator,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.LowerArmActuator,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 2, 1)]
+                }
+            ]
+        };
+    }
 
     private (MechFactory MechFactory, DamageTransferCalculator DamageTransferCalculator, PhysicalAttackResolver Resolver)
         CreateRealPipeline()
@@ -221,7 +260,11 @@ public class PhysicalAttackResolverTests
     {
         var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
         var target = CreateUnit(20, TargetPosition());
-        SetArmActuators(attacker, PartLocation.LeftArm, DestroyedActuator(new UpperArmActuator()));
+        SetArmActuators(
+            attacker,
+            PartLocation.LeftArm,
+            DestroyedActuator(new UpperArmActuator()),
+            new LowerArmActuator());
         SetHitRoll(5, 5);
         SetLocationRoll(1);
 
@@ -269,6 +312,30 @@ public class PhysicalAttackResolverTests
         result.Damage.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData(false, true, 3)]
+    [InlineData(true, false, 3)]
+    [InlineData(true, true, 1)]
+    public void ResolveAttack_WithMissingArmActuators_ShouldHalveThePunchDamageForEach(
+        bool missingUpper,
+        bool missingLower,
+        int expectedDamage)
+    {
+        var attacker = CreateUnit(70, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        var actuators = new List<Component>();
+        if (!missingUpper) actuators.Add(new UpperArmActuator());
+        if (!missingLower) actuators.Add(new LowerArmActuator());
+        SetArmActuators(attacker, PartLocation.LeftArm, actuators.ToArray());
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(expectedDamage);
+    }
+
     [Fact]
     public void ResolveAttack_WithDamagedActuatorsInTheOtherArm_ShouldNotReduceThePunchDamage()
     {
@@ -279,6 +346,21 @@ public class PhysicalAttackResolverTests
             PartLocation.RightArm,
             DestroyedActuator(new UpperArmActuator()),
             DestroyedActuator(new LowerArmActuator()));
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(6);
+    }
+
+    [Fact]
+    public void ResolveAttack_WithMissingActuatorsInTheOtherArm_ShouldNotReduceThePunchDamage()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetArmActuators(attacker, PartLocation.RightArm);
         SetHitRoll(5, 5);
         SetLocationRoll(1);
 
