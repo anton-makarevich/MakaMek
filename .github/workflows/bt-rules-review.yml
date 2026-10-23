@@ -48,6 +48,7 @@ jobs:
     outputs:
       pr_number: ${{ steps.resolve_pr.outputs.pr_number }}
       head_sha: ${{ steps.resolve_pr.outputs.head_sha }}
+      agent_outcome: ${{ steps.agent_run.outcome }}
     steps:
       # Fail before doing any work if the maintainers have not configured the
       # credentials. A rules gate that passes on a broken configuration is worse
@@ -97,6 +98,17 @@ jobs:
           ref: ${{ steps.resolve_pr.outputs.base_sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      # The reviewer definition is part of the trusted tooling, exactly like
+      # mise.toml: it is read from the base revision, never from the PR head, so
+      # a fork cannot supply its own reviewer. On the PR that first adds this
+      # file it is therefore absent, and the check stops here on purpose.
+      - name: Verify the reviewer agent is in the base revision
+        run: |
+          if [ ! -f .opencode/agents/bt-rules-reviewer.md ]; then
+            echo "::error::.opencode/agents/bt-rules-reviewer.md is missing from the base revision. The reviewer becomes available once it is merged to the base branch."
+            exit 1
+          fi
 
       - name: Install mise tools (base revision only)
         uses: jdx/mise-action@v4
@@ -336,6 +348,7 @@ jobs:
           PR_NUMBER: ${{ needs.review.outputs.pr_number }}
           HEAD_SHA: ${{ needs.review.outputs.head_sha }}
           REVIEW_RESULT: ${{ needs.review.result }}
+          REVIEW_AGENT_OUTCOME: ${{ needs.review.outputs.agent_outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -uo pipefail
@@ -345,6 +358,8 @@ jobs:
 
           if [ "${REVIEW_RESULT}" != "success" ]; then
             reason="review job did not complete (${REVIEW_RESULT})"
+          elif [ "${REVIEW_AGENT_OUTCOME}" != "success" ]; then
+            reason="the reviewer agent did not run successfully (${REVIEW_AGENT_OUTCOME}); see the review job log"
           elif [ ! -f "${result}" ]; then
             reason="result file missing"
           elif [ "$(wc -c < "${result}")" -gt 100000 ]; then
