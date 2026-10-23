@@ -11,7 +11,9 @@ name: BT Rules Review
 #                    cannot alter the job that reviews it.
 #
 # In both cases the trusted base revision is checked out first, every tool is
-# installed from it, and only then is the PR head fetched as read-only data.
+# installed from it, and only then is the PR head fetched as read-only data. The
+# head is always fetched by immutable SHA, never by a mutable branch or PR ref,
+# and for `/rules-review` the command must be newer than the commit it approves.
 
 on:
   pull_request:
@@ -156,16 +158,39 @@ jobs:
           }
           EOF
 
-      # Everything below this point touches untrusted content. It is fetched into
-      # a subdirectory and treated strictly as data: nothing under
-      # .rules-review/head is ever executed.
+      # A `/rules-review` command approves the head that existed when it was
+      # written. If the PR head moved after that, the approval no longer covers
+      # the code that would be fetched, so stop instead of reviewing unseen code.
+      - name: Verify the command is newer than the reviewed commit
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+          HEAD_SHA: ${{ steps.resolve_pr.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          head_commit_at="$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}" \
+            --jq '.commit.committer.date')"
+          comment_epoch="$(date -d "${COMMENT_AT}" +%s)"
+          commit_epoch="$(date -d "${head_commit_at}" +%s)"
+          if [ "${commit_epoch}" -gt "${comment_epoch}" ]; then
+            echo "::error::PR head ${HEAD_SHA} was committed after the /rules-review command; comment /rules-review again to review the new head."
+            exit 1
+          fi
+
+      # Everything below this point touches untrusted content. The head commit is
+      # fetched by immutable SHA - a force-push between resolution and fetch
+      # cannot swap the reviewed code - into a subdirectory, and treated strictly
+      # as data: nothing under .rules-review/head is ever executed.
       - name: Fetch PR head as read-only data
+        env:
+          HEAD_SHA: ${{ steps.resolve_pr.outputs.head_sha }}
         run: |
           set -euo pipefail
           mkdir -p .rules-review
-          git fetch --no-tags --depth=1 origin \
-            "+refs/pull/${{ steps.resolve_pr.outputs.pr_number }}/head:refs/remotes/pr/head"
-          git worktree add --detach .rules-review/head refs/remotes/pr/head
+          git fetch --no-tags --depth=1 origin "${HEAD_SHA}"
+          git worktree add --detach .rules-review/head "${HEAD_SHA}"
+          test "$(git -C .rules-review/head rev-parse HEAD)" = "${HEAD_SHA}"
 
       - name: Prepare review context
         env:
