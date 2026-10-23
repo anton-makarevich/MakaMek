@@ -322,7 +322,7 @@ public void Dispose()
 {
     HideMovementPath();
     _subscription.Dispose();
-    _selectionScope?.Revert();
+    _selectionHex.Dispose();
 }
 ```
 

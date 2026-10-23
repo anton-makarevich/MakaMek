@@ -67,9 +67,9 @@ internal static class SelectionHexMotion
     /// stay bright enough to be seen against the outline it grows out of.
     /// </remarks>
     public static readonly AnimationBuilder IdlePulse = Presto.Build()
-        .Scale(from: 1, to: 1.22)
+        .Scale(from: 1, to: 1.5)
         .Opacity(from: 0.6, to: 0)
-        .Duration(1800)
+        .Duration(1200)
         .Ease(Eases.OutQuad)
         .Loop()
         .WhenReduced(r => r.Loop(false).Opacity(to: 0).Duration(1).Ease(Eases.None));
