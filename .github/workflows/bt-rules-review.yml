@@ -3,9 +3,10 @@ name: BT Rules Review
 # Two entry points, deliberately different in trust level:
 #
 #   pull_request   - same-repository, non-draft PRs only. The workflow file comes
-#                    from the PR head, so this job never receives repository
-#                    secrets it could be tricked into leaking beyond the review
-#                    itself, and never gets write permissions.
+#                    from the PR head, so this entry point is limited to people
+#                    who can already push branches to this repository; the job
+#                    token stays read-only, and the reviewer credentials are
+#                    exposed to that job only.
 #   issue_comment  - maintainer `/rules-review` command, used for fork PRs. The
 #                    workflow file comes from the default branch, so a fork
 #                    cannot alter the job that reviews it.
