@@ -118,8 +118,21 @@ jobs:
             exit 1
           fi
 
+      # The agent's `permissions` ruleset is a V2 feature: V1 (the `opencode-ai`
+      # npm package) spells it `permission` and silently drops anything else, so
+      # installing the wrong major version would run the reviewer unrestricted.
       - name: Install OpenCode CLI
-        run: npm install -g opencode-ai@1.19.4
+        run: npm install -g @opencode/cli@2.1.4
+
+      - name: Verify OpenCode CLI is V2
+        run: |
+          version="$(opencode --version 2>&1 | tr -d '\r')"
+          major="$(grep -oE '[0-9]+\.[0-9]+' <<<"${version}" | head -n1 | cut -d. -f1)"
+          echo "Installed: ${version}"
+          if [ "${major}" != "2" ]; then
+            echo "::error::${version} is not OpenCode V2; the agent permissions would be ignored."
+            exit 1
+          fi
 
       # Secrets are handed to the MCP child process through `environment`, which
       # is the documented `{env:NAME}` substitution point. `command` arguments
@@ -226,8 +239,10 @@ jobs:
           PR_NUMBER: ${{ steps.resolve_pr.outputs.pr_number }}
           BASE_SHA: ${{ steps.resolve_pr.outputs.base_sha }}
           HEAD_SHA: ${{ steps.resolve_pr.outputs.head_sha }}
+          PRIMARY_MODEL: opencode/big-pickle
+          FALLBACK_MODEL: opencode-go/glm-5.3-flash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           prompt="$(cat <<'PROMPT'
           Review pull request #__PR__ (base __BASE__, head __HEAD__).
 
@@ -250,7 +265,37 @@ jobs:
           prompt="${prompt//__PR__/${PR_NUMBER}}"
           prompt="${prompt//__BASE__/${BASE_SHA}}"
           prompt="${prompt//__HEAD__/${HEAD_SHA}}"
-          opencode run --agent bt-rules-reviewer --model opencode/big-pickle "${prompt}"
+
+          result=.rules-review/result.json
+
+          # Success means a usable review, not merely a zero exit code: a model
+          # can fail mid-run and leave nothing (or half a document) behind.
+          # `--standalone` keeps the run in one process instead of a background
+          # service, which CI runners cannot outlive.
+          attempt() {
+            rm -f "${result}"
+            echo "::group::opencode run --model $1"
+            opencode run --standalone --agent bt-rules-reviewer --model "$1" "${prompt}"
+            rc=$?
+            echo "::endgroup::"
+            [ "${rc}" -eq 0 ] && jq -e . "${result}" > /dev/null 2>&1
+          }
+
+          if attempt "${PRIMARY_MODEL}"; then
+            echo "Review produced by ${PRIMARY_MODEL}."
+            exit 0
+          fi
+
+          # Both models bill to the same subscription key, so the fallback only
+          # covers provider outages, quota exhaustion, and model deprecation.
+          echo "::warning::${PRIMARY_MODEL} did not produce a usable review; retrying with ${FALLBACK_MODEL}."
+          if attempt "${FALLBACK_MODEL}"; then
+            echo "Review produced by ${FALLBACK_MODEL}."
+            exit 0
+          fi
+
+          echo "::error::Both ${PRIMARY_MODEL} and ${FALLBACK_MODEL} failed to produce a review."
+          exit 1
 
       - name: Reject modifications to tracked files
         run: |
