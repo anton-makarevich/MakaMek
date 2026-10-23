@@ -67,6 +67,21 @@ public class PhysicalAttackCommandTests
     }
 
     [Fact]
+    public void Render_Declaration_UsesLocalizedAttackType()
+    {
+        // Arrange
+        var localizationService = Substitute.For<ILocalizationService>();
+        localizationService.GetString("Command_PhysicalAttack").Returns("{3}");
+        localizationService.GetString("PhysicalAttackType_Kick").Returns("Coup de pied");
+
+        // Act
+        var result = CreateCommand(Kick(_target.Id)).Render(localizationService, _game);
+
+        // Assert
+        result.ShouldBe("Coup de pied");
+    }
+
+    [Fact]
     public void Render_NoDeclaration_SaysNoPhysicalAttack()
     {
         // Act

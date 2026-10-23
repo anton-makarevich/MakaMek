@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.TestHelpers;
 using Shouldly;
@@ -393,6 +394,42 @@ public class LocalizationResourcesTests
 
         // Assert
         result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, "Punch")]
+    [InlineData(PhysicalAttackType.Kick, "Kick")]
+    [InlineData(PhysicalAttackType.Push, "Push")]
+    [InlineData(PhysicalAttackType.Charge, "Charge")]
+    [InlineData(PhysicalAttackType.DFA, "Death From Above")]
+    public void GetString_PhysicalAttackTypes_ReturnsExpectedString(PhysicalAttackType attackType, string expected)
+    {
+        // Arrange
+        var localizationService = TestLocalizationService.Create();
+        var key = $"PhysicalAttackType_{attackType}";
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void GetString_AllPhysicalAttackTypes_HaveLocalizedString()
+    {
+        // Arrange
+        var localizationService = TestLocalizationService.Create();
+
+        // Act & Assert
+        foreach (var attackType in Enum.GetValues<PhysicalAttackType>())
+        {
+            var key = $"PhysicalAttackType_{attackType}";
+            var result = localizationService.GetString(key);
+
+            result.ShouldNotBeNullOrWhiteSpace();
+            result.ShouldNotBe(key);
+        }
     }
 
     [Theory]

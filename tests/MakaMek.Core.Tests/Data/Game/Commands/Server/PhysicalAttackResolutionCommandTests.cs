@@ -81,6 +81,24 @@ public class PhysicalAttackResolutionCommandTests
     }
 
     [Fact]
+    public void Render_UsesLocalizedAttackTypeAndLimb()
+    {
+        // Arrange
+        var localizationService = Substitute.For<ILocalizationService>();
+        localizationService.GetString("Command_WeaponAttackResolution_Miss").Returns("{2}");
+        localizationService.GetString("PhysicalAttackType_Punch").Returns("Coup de poing");
+        localizationService.GetString("MechPart_LeftArm").Returns("Bras gauche");
+        var sut = CreateCommand(new AttackResolutionData(
+            9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0));
+
+        // Act
+        var result = sut.Render(localizationService, _game);
+
+        // Assert
+        result.ShouldBe("Coup de poing (Bras gauche)");
+    }
+
+    [Fact]
     public void Render_DestroyedPartsAndUnit_AreListed()
     {
         // Arrange
