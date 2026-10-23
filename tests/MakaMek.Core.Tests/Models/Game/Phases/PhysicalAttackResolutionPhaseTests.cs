@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
@@ -382,6 +383,197 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<IGameCommand>());
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+    }
+
+    [Fact]
+    public void Enter_DeclarationForTargetNotInTheGame_SkipsTheAttack()
+    {
+        // Arrange
+        SetMap();
+        _player1Mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = Guid.NewGuid()
+        });
+        ResolverReturnsMiss();
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveAttack(null!);
+        PublishedCommands().ShouldHaveSingleItem().ShouldBeOfType<ChangePhaseCommand>();
+    }
+
+    [Fact]
+    public void Enter_Hit_PublishesHullBreachCommand_WhenTheCalculatorReturnsOne()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso, armorDamage: 4));
+        var hullBreachCommand = new HullBreachCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _player2Mech.Id,
+            BreachedLocations = []
+        };
+        Game.HullBreachCalculator.CalculateAndApplyHullBreach(
+                Arg.Any<IUnit>(), Arg.Any<List<LocationDamageData>>())
+            .Returns(hullBreachCommand);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<HullBreachCommand>(cmd => cmd.GameOriginId == Game.Id && cmd.UnitId == _player2Mech.Id));
+    }
+
+    [Fact]
+    public void Enter_HitWithStructureDamage_AppliesAndPublishesCriticalHits()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso,
+                armorDamage: 2, structureDamage: 3));
+        var componentHit = new ComponentHitData
+        {
+            Type = MakaMekComponent.ISAmmoLRM10,
+            Slot = 1,
+            ExplosionDamage = 0
+        };
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TargetId = _player2Mech.Id,
+            CriticalHits =
+            [
+                new LocationCriticalHitsData(PartLocation.LeftTorso, [6, 6], 1, [componentHit], false),
+                new LocationCriticalHitsData(PartLocation.LeftArm, [12], 1, null, true)
+            ]
+        };
+        MockCriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Is<IUnit>(u => u.Id == _player2Mech.Id),
+                Arg.Any<List<LocationDamageData>>())
+            .Returns(criticalHitsCommand);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Mech.Parts[PartLocation.LeftArm].IsBlownOff.ShouldBeTrue();
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<CriticalHitsResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id && cmd.TargetId == _player2Mech.Id));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game,
+            Arg.Is<List<ComponentHitData>>(hits => hits.Contains(componentHit)),
+            Arg.Is<List<PartLocation>?>(parts => parts != null && parts.Contains(PartLocation.LeftArm)),
+            Arg.Any<IReadOnlyList<PilotingSkillRollContext>?>());
+    }
+
+    [Fact]
+    public void Enter_PunchRequiringATargetPsr_ThrowsNotSupportedException()
+    {
+        // Arrange: only kick attacks call for a target piloting skill roll
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso,
+                armorDamage: 2, requiresTargetPsr: true));
+
+        // Act + Assert
+        Should.Throw<NotSupportedException>(() => _sut.Enter())
+            .Message.ShouldContain("Punch");
+    }
+
+    [Fact]
+    public void Enter_PunchRequiringAnAttackerPsr_ThrowsNotSupportedException()
+    {
+        // Arrange: only kick attacks call for an attacker piloting skill roll
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Miss(PhysicalAttackType.Punch, PartLocation.LeftArm, requiresAttackerPsr: true));
+
+        // Act + Assert
+        Should.Throw<NotSupportedException>(() => _sut.Enter())
+            .Message.ShouldContain("Punch");
+    }
+
+    [Fact]
+    public void Enter_FallWithDamage_ResolvesCriticalHitsForTheFallDamage_ThenStopsRollingForTheUnit()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg, armorDamage: 2,
+                requiresTargetPsr: true));
+        var fallWithDamage = new MechFallCommand
+        {
+            GameOriginId = Game.Id,
+            UnitId = _player2Mech.Id,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData(
+                [
+                    new LocationHitData(
+                        [new LocationDamageData(PartLocation.LeftTorso, 0, 4, false)], [], [], PartLocation.LeftTorso)
+                ], 4),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+        var fallWithoutDamage = new MechFallCommand
+        {
+            GameOriginId = Game.Id,
+            UnitId = _player2Mech.Id,
+            DamageData = null
+        };
+        MockFallProcessor.ProcessPotentialFall(
+                _player2Mech, Game, Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>?>(),
+                Arg.Any<IReadOnlyList<PilotingSkillRollContext>?>())
+            .Returns([fallWithDamage, fallWithoutDamage]);
+        MockCriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Is<IUnit>(u => u.Id == _player2Mech.Id),
+                Arg.Is<List<LocationDamageData>>(damage =>
+                    damage.Count == 1 && damage[0].Location == PartLocation.LeftTorso))
+            .Returns(new CriticalHitsResolutionCommand
+            {
+                GameOriginId = Guid.NewGuid(),
+                TargetId = _player2Mech.Id,
+                CriticalHits =
+                [
+                    new LocationCriticalHitsData(PartLocation.LeftTorso, [7, 8], 1, null, false)
+                ]
+            });
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHits(
+            _player2Mech,
+            Arg.Is<List<LocationDamageData>>(damage =>
+                damage.Count == 1 && damage[0].Location == PartLocation.LeftTorso));
+        // The first fall command is applied and published, the second one never is (break)
+        PublishedCommands().Select(c => c.GetType()).ShouldBe(
+            [typeof(PhysicalAttackResolutionCommand), typeof(MechFallCommand),
+                typeof(CriticalHitsResolutionCommand), typeof(ChangePhaseCommand)]);
+        PublishedCommands().OfType<CriticalHitsResolutionCommand>()
+            .ShouldHaveSingleItem().GameOriginId.ShouldBe(Game.Id);
+        // The pilot rolls consciousness after the attack and again after the fall
+        MockConsciousnessCalculator.Received(2).MakeConsciousnessRolls(_player2Mech.Pilot!);
     }
 
     private static void Declare(IUnit attacker, IUnit target, PhysicalAttackType attackType, params PartLocation[] limbs) =>
