@@ -41,6 +41,7 @@ public class ServerGame : BaseGame, IDisposable
         IPhysicalAttackEligibility physicalAttackEligibility,
         IFallProcessor fallProcessor,
         IWeaponAttackResolver weaponAttackResolver,
+        IPhysicalAttackResolver physicalAttackResolver,
         ILogger<ServerGame> logger,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, logger)
@@ -51,6 +52,7 @@ public class ServerGame : BaseGame, IDisposable
         HullBreachCalculator = hullBreachCalculator;
         FallProcessor = fallProcessor;
         WeaponAttackResolver = weaponAttackResolver;
+        PhysicalAttackResolver = physicalAttackResolver;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
@@ -66,6 +68,8 @@ public class ServerGame : BaseGame, IDisposable
     public IFallProcessor FallProcessor { get; }
 
     public IWeaponAttackResolver WeaponAttackResolver { get; }
+
+    public IPhysicalAttackResolver PhysicalAttackResolver { get; }
 
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
     

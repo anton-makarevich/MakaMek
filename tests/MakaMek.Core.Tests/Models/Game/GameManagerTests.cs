@@ -86,6 +86,7 @@ public class GameManagerTests : IDisposable
             new PhysicalAttackEligibility(),
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
+            Substitute.For<IPhysicalAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>());
         _gameFactory.CreateServerGame(_commandPublisher).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);

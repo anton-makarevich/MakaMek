@@ -363,6 +363,60 @@ public class PhysicalAttackEligibilityTests
         _sut.HasAnyOption(attacker, [farAway], _map).ShouldBeFalse();
     }
 
+    [Fact]
+    public void CanResolve_DeclaredAttackThatStillReaches_IsTrue()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclarePunch(attacker, target);
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm, _map).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanResolve_LimbThatDoesNotReach_IsFalse()
+    {
+        // Arrange: a target in the right side arc can only be punched with the right arm
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+        DeclarePunch(attacker, target);
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm, _map).ShouldBeFalse();
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.RightArm, _map).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanResolve_AttackerThatBecameProne_IsFalse()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclarePunch(attacker, target);
+        attacker.SetProne();
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm, _map).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanResolve_TargetNoLongerAdjacent_IsFalse()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(new HexCoordinates(5, 3));
+        DeclarePunch(attacker, target);
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm, _map).ShouldBeFalse();
+    }
+
+    private static void DeclarePunch(Mech attacker, Mech target) =>
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = target.Id
+        });
+
     private (Mech Attacker, Mech Target) CreatePair(HexCoordinates targetHex) =>
         (CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top),
             CreateMech(_defendingPlayer, targetHex, HexDirection.Bottom));

@@ -35,6 +35,7 @@ public class GameFactoryTests
     private readonly GameFactory _sut;
     private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
     private readonly IWeaponAttackResolver _weaponAttackResolver = Substitute.For<IWeaponAttackResolver>();
+    private readonly IPhysicalAttackResolver _physicalAttackResolver = Substitute.For<IPhysicalAttackResolver>();
     private readonly ILogger _logger = Substitute.For<ILogger>();
 
     public GameFactoryTests()
@@ -43,6 +44,7 @@ public class GameFactoryTests
         _sut = new GameFactory(
             _loggerFactory,
             _weaponAttackResolver,
+            _physicalAttackResolver,
             _rulesProvider,
             _mechFactory,
             _diceRoller,
@@ -67,6 +69,7 @@ public class GameFactoryTests
         // Assert
         serverGame.ShouldNotBeNull();
         serverGame.ShouldBeOfType<ServerGame>();
+        serverGame.PhysicalAttackResolver.ShouldBe(_physicalAttackResolver);
         serverGame.PhysicalAttackEligibility.ShouldBe(_physicalAttackEligibility);
         // Implicitly checks if dependencies were passed, as constructor would fail otherwise
     }

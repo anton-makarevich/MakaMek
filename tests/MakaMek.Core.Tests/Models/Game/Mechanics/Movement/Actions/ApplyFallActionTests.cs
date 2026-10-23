@@ -184,6 +184,7 @@ public class ApplyFallActionTests : GamePhaseTestsBase
             new PhysicalAttackEligibility(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
+            Substitute.For<IPhysicalAttackResolver>(),
             null!, MockPhaseManager);
     }
 }

@@ -18,6 +18,13 @@ public interface IPhysicalAttackEligibility
         IBattleMap map);
 
     /// <summary>
+    /// Whether an attack the attacker has already declared can still be made with this limb: the
+    /// same checks as <see cref="GetEligibleLimbs"/>, apart from the one attack per turn rule.
+    /// The resolution phase asks this before any damage of the phase is applied.
+    /// </summary>
+    bool CanResolve(IUnit attacker, IUnit target, PhysicalAttackType attackType, PartLocation limb, IBattleMap map);
+
+    /// <summary>
     /// Whether the attacker has at least one physical attack against at least one of the units,
     /// whatever the odds of hitting.
     /// </summary>

@@ -332,6 +332,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             new PhysicalAttackEligibility(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
+            Substitute.For<IPhysicalAttackResolver>(),
             Substitute.For<ILogger<ServerGame>>(), mockPhaseManager)
         {
             IsAutoRoll = false
