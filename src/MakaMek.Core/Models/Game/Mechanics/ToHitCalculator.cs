@@ -187,6 +187,13 @@ public class ToHitCalculator : IToHitCalculator
             });
         }
 
+        // Add prone target modifier
+        if (scenario.IsTargetProne)
+        {
+            var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
+            modifiers.Add(new ProneTargetModifier { Value = _rules.GetProneTargetModifier(distance) });
+        }
+
         // Add an aimed shot modifier if applicable
         if (scenario.AimedShotTarget.HasValue)
         {

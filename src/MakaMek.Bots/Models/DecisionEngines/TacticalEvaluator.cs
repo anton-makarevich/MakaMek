@@ -364,7 +364,8 @@ public class TacticalEvaluator : ITacticalEvaluator
             attackerHeight: attacker.Height,
             targetHeight: targetHeight,
             attackerWaterDepth: attackerWaterDepth,
-            targetWaterDepth: targetWaterDepth
+            targetWaterDepth: targetWaterDepth,
+            isTargetProne: (target as IUnit)?.Status.HasFlag(UnitStatus.Prone) == true
             );
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)

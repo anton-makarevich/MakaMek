@@ -229,4 +229,12 @@ public interface IRulesProvider
     /// <param name="hexesMoved">The number of hexes moved before the skid turn</param>
     /// <returns>The modifier value for the skid PSR based on hexes moved</returns>
     int GetSkidModifier(int hexesMoved);
+
+    /// <summary>
+    /// Gets the to-hit modifier for a prone target.
+    /// Total Warfare: -2 when attacking from an adjacent hex; +1 from all other hexes.
+    /// </summary>
+    /// <param name="distance">Distance between attacker and target in hexes</param>
+    /// <returns>The modifier value to apply</returns>
+    int GetProneTargetModifier(int distance);
 }
