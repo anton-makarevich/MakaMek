@@ -11,5 +11,6 @@ public record PhysicalAttackBaseModifier : RollModifier
     public required PhysicalAttackType AttackType { get; init; }
 
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_PhysicalAttackBase"), AttackType, Value);
+        string.Format(localizationService.GetString("Modifier_PhysicalAttackBase"),
+            localizationService.GetString($"PhysicalAttackType_{AttackType}"), Value);
 }

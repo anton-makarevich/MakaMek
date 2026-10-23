@@ -216,6 +216,11 @@ public class LocalizationResourcesTests
     [InlineData("PilotingSkillRollType_WaterEntry_WithDepth", "{0} (Depth {1})")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall_WithLevels", "{0} ({1} levels)")]
     // Attack modifiers
+    [InlineData("PhysicalAttackType_Punch", "Punch")]
+    [InlineData("PhysicalAttackType_Kick", "Kick")]
+    [InlineData("PhysicalAttackType_Push", "Push")]
+    [InlineData("PhysicalAttackType_Charge", "Charge")]
+    [InlineData("PhysicalAttackType_DFA", "Death From Above")]
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]
     [InlineData("AttackDirection_Front", "Front")]

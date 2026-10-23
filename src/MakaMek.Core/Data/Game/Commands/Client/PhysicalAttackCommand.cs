@@ -37,7 +37,7 @@ public record struct PhysicalAttackCommand : IClientUnitCommand
             player.Name,
             unit.Model,
             target.Model,
-            declaration.AttackType);
+            localizationService.GetString($"PhysicalAttackType_{declaration.AttackType}"));
     }
 
     public required Guid UnitId { get; init; }
