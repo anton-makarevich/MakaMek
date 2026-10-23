@@ -128,7 +128,7 @@ Before opening a pull request:
 
 ### CI Checks
 
-- **BT Rules Review**: Runs automatically on same-repository, non-draft pull requests. Fork PRs are reviewed only when a maintainer comments `/rules-review`. The check fails on Total Warfare violations. Maintainers must configure `OPENCODE_API_KEY`, `COGNEE_URL`, and `COGNEE_API_KEY` as secrets. The review uses read-only analysis; Cognee access requires only `recall` permissions.
+- **BT Rules Review**: Runs automatically on same-repository, non-draft pull requests. Fork PRs are reviewed when a maintainer comments `/rules-review` on the PR. The reviewer classifies the change by gameplay behavior and checks tabletop mechanics against Total Warfare through the Cognee MCP server; the check fails only on Total Warfare violations or when the review itself could not complete. Maintainers must configure the `OPENCODE_API_KEY`, `COGNEE_URL` and `COGNEE_API_KEY` secrets — without them the check fails rather than silently passing.
 
 Pull requests should be ready for review, build cleanly in CI, and make it easy to verify the intended behavior. Maintainers may request design discussion or revisions before merging.
 

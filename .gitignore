@@ -282,6 +282,7 @@ serve-wasm.ps1
 .serena/memories
 opencode.json
 opencode.jsonc
+.rules-review/
 .agents/skills
 .claude/skills
 agent/skills
