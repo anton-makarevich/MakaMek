@@ -126,6 +126,10 @@ Before opening a pull request:
 - If any file under `src/` changed, increment only the patch segment of `VersionPrefix` in `Directory.Build.props`. Increment it once per PR.
 - Keep the PR focused and update documentation when behavior or public guidance changes.
 
+### CI Checks
+
+- **BT Rules Review**: Runs automatically on same-repository, non-draft pull requests. Fork PRs are reviewed only when a maintainer comments `/rules-review`. The check fails on Total Warfare violations. Maintainers must configure `OPENCODE_API_KEY`, `COGNEE_URL`, and `COGNEE_API_KEY` as secrets. The review uses read-only analysis; Cognee access requires only `recall` permissions.
+
 Pull requests should be ready for review, build cleanly in CI, and make it easy to verify the intended behavior. Maintainers may request design discussion or revisions before merging.
 
 ## Reporting bugs

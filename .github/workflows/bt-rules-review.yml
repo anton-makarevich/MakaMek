@@ -1,0 +1,364 @@
+name: BT Rules Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bt-rules-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  fork-notice:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Notice fork review available on request
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: bt-rules-review
+          message: |
+            **BattleTech Rules Review:** This is a fork PR. Automatic rules review is not run for fork PRs for security reasons.
+            
+            A maintainer can run the review on request by commenting `/rules-review` on this PR.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: |
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) || (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        github.event.comment.body && contains(github.event.comment.body, '/rules-review') &&
+        github.event.comment.user.type != 'Bot' &&
+        contains(fromJson('["OWNER","MEMBER"]'), github.event.comment.author_association)
+      )
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      review_outcome: ${{ steps.agent_run.outcome }}
+      pr_number: ${{ steps.resolve_pr.outputs.pr_number }}
+      head_sha: ${{ steps.resolve_pr.outputs.head_sha }}
+    steps:
+      - name: Resolve PR details
+        id: resolve_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "head_sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+            echo "base_sha=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            PR_NUM="${{ github.event.issue.number }}"
+            echo "pr_number=$PR_NUM" >> "$GITHUB_OUTPUT"
+            PR_DATA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUM)
+            HEAD_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
+            BASE_SHA=$(echo "$PR_DATA" | jq -r '.base.sha')
+            echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+            echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout base repository (default branch) for tools
+        if: github.event_name == 'issue_comment'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout PR head for same-repo path
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.resolve_pr.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup base for fork path (fetch head read-only)
+        if: github.event_name == 'issue_comment'
+        run: |
+          git fetch origin +refs/pull/${{ steps.resolve_pr.outputs.pr_number }}/head:refs/remotes/pr/head
+          git worktree add .rules-review/head pr/head
+          # Never execute anything in .rules-review/head
+
+      - name: Install mise tools (from base)
+        uses: jdx/mise-action@v4
+
+      - name: Install Cognee
+        run: |
+          mise run install-cognee
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify cognee-mcp supports --api-auth-scheme
+        run: |
+          if ! cognee-mcp --help 2>&1 | grep -q -- "--api-auth-scheme"; then
+            echo "::error::cognee-mcp does not support --api-auth-scheme"
+            exit 1
+          fi
+
+      - name: Install OpenCode CLI
+        run: npm install -g opencode-ai@1.19.4
+
+      - name: Guard secrets
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          COGNEE_URL: ${{ secrets.COGNEE_URL }}
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
+        run: |
+          if [ -z "${OPENCODE_API_KEY}" ] || [ -z "${COGNEE_URL}" ] || [ -z "${COGNEE_API_KEY}" ]; then
+            echo "::error::Missing required secrets: OPENCODE_API_KEY, COGNEE_URL, or COGNEE_API_KEY"
+            exit 1
+          fi
+
+      - name: Generate opencode.json with Cognee MCP (base only)
+        env:
+          COGNEE_URL: ${{ secrets.COGNEE_URL }}
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
+        run: |
+          cat > opencode.json << 'EOF'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "mcp": {
+              "servers": {
+                "cognee": {
+                  "type": "local",
+                  "command": [
+                    "cognee-mcp",
+                    "--api-url",
+                    "{env:COGNEE_URL}",
+                    "--api-token",
+                    "{env:COGNEE_API_KEY}",
+                    "--api-auth-scheme",
+                    "x-api-key"
+                  ],
+                  "timeout": {
+                    "startup": 120000,
+                    "catalog": 60000,
+                    "execution": 180000
+                  }
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Prepare review context
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p .rules-review
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ steps.resolve_pr.outputs.base_sha }}"
+            HEAD_SHA="${{ steps.resolve_pr.outputs.head_sha }}"
+            git fetch origin "$BASE_SHA" --depth=1 || true
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" > .rules-review/changed-files.txt || true
+            git diff "$BASE_SHA" "$HEAD_SHA" | head -c 200000 > .rules-review/diff.patch || true
+            if [ $(wc -c < .rules-review/diff.patch) -ge 200000 ]; then
+              echo "---TRUNCATED---" >> .rules-review/diff.patch
+            fi
+          else
+            BASE_SHA="${{ steps.resolve_pr.outputs.base_sha }}"
+            HEAD_SHA="${{ steps.resolve_pr.outputs.head_sha }}"
+            git -C .rules-review/head diff --name-status "$BASE_SHA" "$HEAD_SHA" > .rules-review/changed-files.txt || true
+            git -C .rules-review/head diff "$BASE_SHA" "$HEAD_SHA" | head -c 200000 > .rules-review/diff.patch || true
+            if [ $(wc -c < .rules-review/diff.patch) -ge 200000 ]; then
+              echo "---TRUNCATED---" >> .rules-review/diff.patch
+            fi
+          fi
+
+      - name: Run BT rules reviewer
+        id: agent_run
+        continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          COGNEE_URL: ${{ secrets.COGNEE_URL }}
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
+        run: |
+          opencode run --agent bt-rules-reviewer --model opencode/big-pickle \
+            "Review PR #${{ steps.resolve_pr.outputs.pr_number }} (base ${{ steps.resolve_pr.outputs.base_sha }} head ${{ steps.resolve_pr.outputs.head_sha }}). Read .rules-review/diff.patch and .rules-review/changed-files.txt first, then read changed files as needed. Write exactly one JSON result to .rules-review/result.json."
+
+      - name: Check for tracked file changes
+        run: |
+          if [ -n "$(git status --porcelain | grep -v '^??')" ]; then
+            echo "::error::Tracked files were modified by the review"
+            exit 1
+          fi
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bt-rules-review
+          path: .rules-review/result.json
+          if-no-files-found: ignore
+
+  report:
+    needs: review
+    if: always() && needs.review.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bt-rules-review
+          path: ./artifact
+        continue-on-error: true
+
+      - name: Validate and derive verdict
+        id: verdict
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ needs.review.outputs.pr_number }}
+          HEAD_SHA: ${{ needs.review.outputs.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          STATUS="error"
+          REASON="review could not complete"
+          
+          if [ ! -f ./artifact/result.json ]; then
+            REASON="result file missing"
+          elif [ $(wc -c < ./artifact/result.json) -gt 100000 ]; then
+            REASON="result file too large"
+          elif ! jq empty ./artifact/result.json 2>/dev/null; then
+            REASON="invalid json"
+          else
+            # Validate schema
+            SCHEMA_OK=$(jq -r 'if (.schema_version==1 and (.rules_changes_detected|type)=="boolean" and (.summary|type)=="string" and (.changes|type)=="array" and (.findings|type)=="array") then "yes" else "no" end' ./artifact/result.json)
+            if [ "$SCHEMA_OK" != "yes" ]; then
+              REASON="schema validation failed"
+            else
+              CHANGES_COUNT=$(jq '.changes|length' ./artifact/result.json)
+              FINDINGS_COUNT=$(jq '.findings|length' ./artifact/result.json)
+              if [ "$CHANGES_COUNT" -gt 50 ] || [ "$FINDINGS_COUNT" -gt 100 ]; then
+                REASON="too many items"
+              elif [ "${{ needs.review.result }}" != "success" ]; then
+                REASON="review job failed"
+              else
+                # Check for violations
+                VIOLATIONS=$(jq '[.findings[] | select(.verdict=="violation")] | length' ./artifact/result.json)
+                RULES_DETECTED=$(jq -r '.rules_changes_detected' ./artifact/result.json)
+                if [ "$VIOLATIONS" -gt 0 ]; then
+                  STATUS="violations"
+                  REASON="total warfare violations found"
+                elif [ "$RULES_DETECTED" = "false" ] && [ "$FINDINGS_COUNT" -eq 0 ]; then
+                  STATUS="no_rules_changes"
+                  REASON="no rules changes detected"
+                else
+                  STATUS="compliant"
+                  REASON="compliant with total warfare"
+                fi
+              fi
+            fi
+          fi
+          
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "reason=$REASON" >> "$GITHUB_OUTPUT"
+          
+          # Generate comment
+          if [ "$STATUS" = "no_rules_changes" ]; then
+            SUMMARY=$(jq -r '.summary' ./artifact/result.json 2>/dev/null || echo "No rules changes detected")
+            {
+              echo "### BattleTech Rules Review"
+              echo ""
+              echo "**Status:** No BattleTech rules changes detected"
+              echo ""
+              echo "**Summary:** $SUMMARY"
+              echo ""
+              echo "**Reviewed:** $HEAD_SHA"
+              echo "**Run:** [$RUN_URL]($RUN_URL)"
+            } > ./comment.md
+          elif [ "$STATUS" = "compliant" ]; then
+            {
+              echo "### BattleTech Rules Review"
+              echo ""
+              echo "**Status:** Compliant with Total Warfare"
+              echo ""
+              echo "**Summary:** $(jq -r '.summary' ./artifact/result.json 2>/dev/null || echo "")"
+              echo ""
+              echo "**Changes reviewed:**"
+              jq -r '.changes[] | "- \(.file): \(.classification) - \(.description)"' ./artifact/result.json 2>/dev/null | head -20
+              echo ""
+              UNVERIFIED=$(jq '[.findings[] | select(.verdict=="unverified")] | length' ./artifact/result.json)
+              if [ "$UNVERIFIED" -gt 0 ]; then
+                echo "**Notes:** $UNVERIFIED finding(s) unverified (no direct TW evidence found)"
+                echo ""
+              fi
+              echo "**Reviewed:** $HEAD_SHA"
+              echo "**Run:** [$RUN_URL]($RUN_URL)"
+            } > ./comment.md
+          elif [ "$STATUS" = "violations" ]; then
+            {
+              echo "### BattleTech Rules Review"
+              echo ""
+              echo "**Status:** ⚠️ Total Warfare Violations Found"
+              echo ""
+              echo "| File | Line | Change | Expected (TW) | Rule Reference |"
+              echo "|------|------|--------|---------------|----------------|"
+              jq -r '.findings[] | select(.verdict=="violation") | "| \(.file) | \(.line // "N/A") | \(.change | gsub("\\|"; "\\\\|")) | \(.expected | gsub("\\|"; "\\\\|")) | \(.rule_reference | gsub("\\|"; "\\\\|")) |"' ./artifact/result.json 2>/dev/null
+              echo ""
+              echo "**Reviewed:** $HEAD_SHA"
+              echo "**Run:** [$RUN_URL]($RUN_URL)"
+            } > ./comment.md
+          else
+            {
+              echo "### BattleTech Rules Review"
+              echo ""
+              echo "**Status:** Rules review could not complete"
+              echo ""
+              echo "**Reason:** $REASON"
+              echo ""
+              echo "**Reviewed:** $HEAD_SHA"
+              echo "**Run:** [$RUN_URL]($RUN_URL)"
+            } > ./comment.md
+          fi
+
+      - name: Post sticky comment
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          number: ${{ needs.review.outputs.pr_number }}
+          header: bt-rules-review
+          path: ./comment.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report outcome to triggering comment (fork path)
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STATUS="${{ steps.verdict.outputs.status }}"
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions -f content="+1" 2>/dev/null || true
+          gh api repos/${{ github.repository }}/issues/${{ needs.review.outputs.pr_number }}/comments -f body="**Rules review:** $STATUS" 2>/dev/null || true
+
+      - name: Set check conclusion
+        run: |
+          STATUS="${{ steps.verdict.outputs.status }}"
+          REASON="${{ steps.verdict.outputs.reason }}"
+          echo "## BattleTech Rules Review" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: $STATUS" >> $GITHUB_STEP_SUMMARY
+          echo "- Reason: $REASON" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS" = "violations" ] || [ "$STATUS" = "error" ]; then
+            echo "::error::$REASON"
+            exit 1
+          fi
+          exit 0
