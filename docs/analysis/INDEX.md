@@ -30,3 +30,4 @@ Technical analyses, integration studies, design evaluations, and race condition 
 |----------|---------|
 | [inputs-patterns.md](inputs-patterns.md) | Analysis of user input patterns in the UI state machine — overlays, action menus, and identified inconsistencies |
 | [canvas-optimisations-analysis.md](canvas-optimisations-analysis.md) | Analysis of Avalonia Canvas viewport culling, virtualization, and rendering optimization strategies |
+| [presto-animation-capabilities.md](presto-animation-capabilities.md) | Evaluation of the MonacoLabs.Presto animation framework, a capability inventory mapped to MakaMek UI use cases, and the animated unit selection ring pilot design |
