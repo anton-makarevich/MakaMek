@@ -13,6 +13,7 @@ internal class UnitState : IEquatable<UnitState>
     public HexPosition? Position { get; init; }
     public bool IsDeployed { get; init; }
     public object? SelectedUnit { get; init; }
+    public UnitSelectionKind SelectionKind { get; init; }
     public IEnumerable<StateAction> Actions { get; init; } = [];
     public bool IsWeaponsPhase { get; init; }
     public HexDirection? TorsoDirection { get; init; }
@@ -34,6 +35,7 @@ internal class UnitState : IEquatable<UnitState>
         return ArePositionsEqual(Position, other.Position) &&
                IsDeployed == other.IsDeployed &&
                SelectedUnit == other.SelectedUnit &&
+               SelectionKind == other.SelectionKind &&
                AreActionsEqual(Actions, other.Actions) &&
                IsWeaponsPhase == other.IsWeaponsPhase &&
                TorsoDirection == other.TorsoDirection &&
@@ -63,7 +65,7 @@ internal class UnitState : IEquatable<UnitState>
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
             HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
-            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0)
+            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0, SelectionKind.GetHashCode())
         );
     }
 

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -15,6 +14,7 @@ using AsyncAwaitBestPractices;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
+using AvaloniaAnimation = Avalonia.Animation.Animation;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Avalonia.Services;
@@ -45,6 +45,9 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
         private readonly List<PathSegmentControl> _unitMovementPathSegments = [];
+
+        // The hexagonal outline that marks the selected unit, and the motion that plays it.
+        private readonly SelectionHex _selectionHex;
 
         private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
 
@@ -178,18 +181,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
             var color = _unit.Owner != null
                 ? Color.Parse(_unit.Owner.Tint)
                 : Colors.Yellow;
-            var selectionBorder = new Border
-            {
-                Width = Width * 0.9,
-                Height = Height * 0.9,
-                Opacity = 0.9,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                BorderBrush = new SolidColorBrush(color),
-                BorderThickness = new Thickness(4),
-                CornerRadius = new CornerRadius(Width / 2),
-                IsVisible = false
-            };
+
+            // The selection outline marks the unit and owns the motion that plays it.
+            _selectionHex = new SelectionHex(
+                new SolidColorBrush(color),
+                _resourcesLocator.TryFindResource("TargetingBrush") as IBrush
+                ?? new SolidColorBrush(Colors.IndianRed));
 
             // Create torso direction indicator
             var torsoArrow = new Path
@@ -269,7 +266,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             statusPanel.Children.Add(proneIndicator);
             statusPanel.Children.Add(immobileIndicator);
 
-            Children.Add(selectionBorder);
+            Children.Add(_selectionHex);
             Children.Add(_unitImage);
             Children.Add(_tintBorder);
             Children.Add(torsoArrow);
@@ -284,6 +281,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     Position = _unit.Position,
                     IsDeployed = _unit.IsDeployed,
                     SelectedUnit = viewModel.SelectedUnit,
+                    SelectionKind = UnitSelectionKindResolver.Resolve(_unit, viewModel.SelectedUnit, viewModel.CurrentState),
                     Actions = viewModel.CurrentState.GetAvailableActions(),
                     IsWeaponsPhase = viewModel.CurrentState is WeaponsAttackState,
                     TorsoDirection = (_unit as Mech)?.TorsoDirection,
@@ -306,7 +304,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     if (state.Position == null) return; // unit is not deployed, no need to display
 
                     UpdateStatusIndicators(statusPanel, proneIndicator, immobileIndicator);
-                    UpdateSelectionBorder(state, selectionBorder);
+                    _selectionHex.Update(state.SelectionKind);
                     UpdateRotation(state);
                     
                     // Phase 2: Process events (modifies _eventsPanel.Children before positioning)
@@ -497,7 +495,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private async Task AnimateDamageLabel(TextBlock label)
         {
             // Get the animation from resources
-            if (_resourcesLocator.TryFindResource("DamageLabelAnimation") is Animation animation)
+            if (_resourcesLocator.TryFindResource("DamageLabelAnimation") is AvaloniaAnimation animation)
             {
                 // Start the animation and await its completion
                 await animation.RunAsync(label);
@@ -547,6 +545,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             HideMovementPath();
             _subscription.Dispose();
+            _selectionHex.Dispose();
         }
 
         public StackPanel ActionButtons => _actionButtons;
@@ -645,13 +644,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 immobileIndicator.IsVisible = false;
                 statusPanel.IsVisible = false;
             }
-        }
-
-        private void UpdateSelectionBorder(UnitState state, Border selectionBorder)
-        {
-            selectionBorder.IsVisible = state.SelectedUnit == _unit
-                                        || _viewModel.CurrentState is WeaponsAttackState attackState &&
-                                        (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
         }
 
         private void UpdateRotation(UnitState state)

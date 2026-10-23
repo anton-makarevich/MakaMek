@@ -1,5 +1,6 @@
 ﻿using System;
 using Avalonia;
+using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Desktop.DependencyInjection;
 using Sanet.MVVM.DI.Avalonia.Extensions;
 using Velopack;
@@ -26,6 +27,7 @@ sealed class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .UsePresto()
             .UseDependencyInjection(services=>services.RegisterDesktopServices())
             .WithInterFont()
 #if DEBUG

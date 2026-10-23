@@ -14,6 +14,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="MakaMek.Avalonia.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
@@ -26,6 +30,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.13" />
+        <PackageReference Include="MonacoLabs.Presto.Avalonia" Version="0.1.0-preview.1" />
         <PackageReference Include="Sanet.Localization" Version="0.3.0" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.7.1214" />
         <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.7.1214" />
