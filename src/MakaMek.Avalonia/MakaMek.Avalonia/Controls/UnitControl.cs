@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -15,6 +14,9 @@ using AsyncAwaitBestPractices;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
+using MonacoLabs.Presto;
+using AvaloniaAnimation = Avalonia.Animation.Animation;
+using PrestoAnimation = MonacoLabs.Presto.Animation;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Avalonia.Services;
@@ -45,6 +47,17 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
         private readonly List<PathSegmentControl> _unitMovementPathSegments = [];
+
+        // Animated hexagonal selection ring. The three paths are stacked behind the unit art:
+        // the ring itself, a one-shot sonar echo and a slow breathing pulse.
+        private readonly Path _selectionRing;
+        private readonly Path _selectionEcho;
+        private readonly Path _selectionPulse;
+        private readonly ControlScope _selectionScope;
+        private PrestoAnimation? _ringAnimation;
+        private PrestoAnimation? _echoAnimation;
+        private PrestoAnimation? _pulseAnimation;
+        private UnitSelectionKind _selectionKind = UnitSelectionKind.None;
 
         private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
 
@@ -178,18 +191,18 @@ namespace Sanet.MakaMek.Avalonia.Controls
             var color = _unit.Owner != null
                 ? Color.Parse(_unit.Owner.Tint)
                 : Colors.Yellow;
-            var selectionBorder = new Border
-            {
-                Width = Width * 0.9,
-                Height = Height * 0.9,
-                Opacity = 0.9,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                BorderBrush = new SolidColorBrush(color),
-                BorderThickness = new Thickness(4),
-                CornerRadius = new CornerRadius(Width / 2),
-                IsVisible = false
-            };
+
+            // The selection ring lives in its own scope, so every animation it starts dies with the control.
+            _selectionScope = PrestoAvalonia.CreateScope(this);
+            _selectionRing = SelectionRingMotion.CreateRing(
+                SelectionRingMotion.Inset, 4, new SolidColorBrush(color));
+            _selectionEcho = SelectionRingMotion.CreateRing(
+                SelectionRingMotion.Inset, 2, new SolidColorBrush(color));
+            _selectionPulse = SelectionRingMotion.CreateRing(
+                SelectionRingMotion.Inset + 2, 2, new SolidColorBrush(color));
+
+            // The ring draws its own stroke, so it starts hidden until the entrance reveals it.
+            PrestoAvalonia.CreateDrawable(_selectionRing);
 
             // Create torso direction indicator
             var torsoArrow = new Path
@@ -269,7 +282,9 @@ namespace Sanet.MakaMek.Avalonia.Controls
             statusPanel.Children.Add(proneIndicator);
             statusPanel.Children.Add(immobileIndicator);
 
-            Children.Add(selectionBorder);
+            Children.Add(_selectionPulse);
+            Children.Add(_selectionEcho);
+            Children.Add(_selectionRing);
             Children.Add(_unitImage);
             Children.Add(_tintBorder);
             Children.Add(torsoArrow);
@@ -284,6 +299,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     Position = _unit.Position,
                     IsDeployed = _unit.IsDeployed,
                     SelectedUnit = viewModel.SelectedUnit,
+                    SelectionKind = UnitSelectionKindResolver.Resolve(_unit, viewModel.SelectedUnit, viewModel.CurrentState),
                     Actions = viewModel.CurrentState.GetAvailableActions(),
                     IsWeaponsPhase = viewModel.CurrentState is WeaponsAttackState,
                     TorsoDirection = (_unit as Mech)?.TorsoDirection,
@@ -306,7 +322,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     if (state.Position == null) return; // unit is not deployed, no need to display
 
                     UpdateStatusIndicators(statusPanel, proneIndicator, immobileIndicator);
-                    UpdateSelectionBorder(state, selectionBorder);
+                    UpdateSelectionVisuals(state);
                     UpdateRotation(state);
                     
                     // Phase 2: Process events (modifies _eventsPanel.Children before positioning)
@@ -497,7 +513,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private async Task AnimateDamageLabel(TextBlock label)
         {
             // Get the animation from resources
-            if (_resourcesLocator.TryFindResource("DamageLabelAnimation") is Animation animation)
+            if (_resourcesLocator.TryFindResource("DamageLabelAnimation") is AvaloniaAnimation animation)
             {
                 // Start the animation and await its completion
                 await animation.RunAsync(label);
@@ -547,6 +563,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             HideMovementPath();
             _subscription.Dispose();
+            StopSelectionAnimations();
+            _selectionScope.Revert();
         }
 
         public StackPanel ActionButtons => _actionButtons;
@@ -647,11 +665,109 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
         }
 
-        private void UpdateSelectionBorder(UnitState state, Border selectionBorder)
+        /// <summary>
+        /// Updates the selection ring for the role the unit currently plays.
+        /// </summary>
+        /// <remarks>
+        /// Called from the poll, so it edge-detects the role and only starts animations when the role actually
+        /// changes - restarting them on every tick would restart the animation on every tick.
+        /// </remarks>
+        private void UpdateSelectionVisuals(UnitState state)
         {
-            selectionBorder.IsVisible = state.SelectedUnit == _unit
-                                        || _viewModel.CurrentState is WeaponsAttackState attackState &&
-                                        (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
+            var kind = state.SelectionKind;
+            if (kind == _selectionKind) return;
+
+            var previousKind = _selectionKind;
+            _selectionKind = kind;
+
+            if (kind == UnitSelectionKind.None)
+            {
+                StopPulseAnimation();
+                // Cancel keeps the ring where it is, so the fade out starts from the current state.
+                _ringAnimation?.Cancel();
+                _ringAnimation = null;
+                _echoAnimation?.Revert();
+                _echoAnimation = null;
+                _selectionScope.Execute(_ => { _ringAnimation = _selectionRing.Animate(SelectionRingMotion.RingOut); });
+                return;
+            }
+
+            ApplyRingStyle(kind);
+
+            if (previousKind == UnitSelectionKind.None)
+            {
+                // Only the entrance draws the stroke in; a role change keeps the ring as it is.
+                _ringAnimation?.Cancel();
+                _ringAnimation = null;
+                _echoAnimation?.Revert();
+                _echoAnimation = null;
+                _selectionScope.Execute(_ =>
+                {
+                    _ringAnimation = _selectionRing.Animate(SelectionRingMotion.RingIn);
+                    _echoAnimation = _selectionEcho.Animate(SelectionRingMotion.Echo);
+                });
+            }
+
+            StopPulseAnimation();
+            if (kind == UnitSelectionKind.Attacker) return;
+
+            var pulse = kind == UnitSelectionKind.Target
+                ? SelectionRingMotion.TargetPulse
+                : SelectionRingMotion.IdlePulse;
+            _selectionScope.Execute(_ => { _pulseAnimation = _selectionPulse.Animate(pulse); });
+        }
+
+        /// <summary>
+        /// Applies the brush and the stroke width that belong to the role.
+        /// </summary>
+        private void ApplyRingStyle(UnitSelectionKind kind)
+        {
+            var brush = RingBrush(kind);
+            _selectionRing.Stroke = brush;
+            _selectionEcho.Stroke = brush;
+            _selectionPulse.Stroke = brush;
+            _selectionRing.StrokeThickness = kind == UnitSelectionKind.Target ? 5 : 4;
+            _selectionEcho.StrokeThickness = kind == UnitSelectionKind.Target ? 3 : 2;
+            _selectionPulse.StrokeThickness = kind == UnitSelectionKind.Target ? 3 : 2;
+        }
+
+        /// <summary>
+        /// The brush of the ring: the owner tint for the own units, the targeting brush for a hostile target.
+        /// </summary>
+        private IBrush RingBrush(UnitSelectionKind kind)
+        {
+            if (kind == UnitSelectionKind.Target)
+            {
+                return _resourcesLocator.TryFindResource("TargetingBrush") as IBrush
+                       ?? new SolidColorBrush(Colors.IndianRed);
+            }
+
+            var color = _unit.Owner != null
+                ? Color.Parse(_unit.Owner.Tint)
+                : Colors.Yellow;
+            return new SolidColorBrush(color);
+        }
+
+        /// <summary>
+        /// Stops the breathing pulse and puts the pulse path back to its resting state.
+        /// </summary>
+        private void StopPulseAnimation()
+        {
+            _pulseAnimation?.Revert();
+            _pulseAnimation = null;
+        }
+
+        /// <summary>
+        /// Stops every selection animation and releases their handles.
+        /// </summary>
+        private void StopSelectionAnimations()
+        {
+            _ringAnimation?.Cancel();
+            _echoAnimation?.Revert();
+            _pulseAnimation?.Revert();
+            _ringAnimation = null;
+            _echoAnimation = null;
+            _pulseAnimation = null;
         }
 
         private void UpdateRotation(UnitState state)

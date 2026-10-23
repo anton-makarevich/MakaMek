@@ -43,41 +43,51 @@ Why a module: every call site then uses the same durations/eases, reduced-motion
 
 ## 1. Animated selection ring (`UnitControl`)
 
-See the full design in `docs/analysis/presto-animation-capabilities.md` §5. The essentials:
+Shipped in #1624. See the full design in `docs/analysis/presto-animation-capabilities.md` §5.
+
+The motion vocabulary lives in one module, `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionRingMotion.cs`
+(internal, with `InternalsVisibleTo` for `MakaMek.Avalonia.Tests`), so the builders and the geometry can be
+tested without a board. `UnitControl` owns the three paths and their lifetime:
 
 ```csharp
 private readonly Path _selectionRing;
 private readonly Path _selectionEcho;
-private ControlScope? _selectionScope;
+private readonly Path _selectionPulse;
+private readonly ControlScope _selectionScope;
+private Animation? _ringAnimation;
+private Animation? _echoAnimation;
+private Animation? _pulseAnimation;
 private UnitSelectionKind _selectionKind = UnitSelectionKind.None;
 
 // ctor
 _selectionScope = PrestoAvalonia.CreateScope(this);
-_selectionRing = CreateRing(thickness: 4);
-_selectionEcho = CreateRing(thickness: 2);
+_selectionRing = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset, 4, brush);
+_selectionEcho = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset, 2, brush);
+_selectionPulse = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset + 2, 2, brush);
 PrestoAvalonia.CreateDrawable(_selectionRing);   // start in the draw state at "0 0"
-Children.Insert(0, _selectionRing);
-Children.Insert(0, _selectionEcho);
 ```
 
 Rules that matter:
 
-- **Edge detection.** `UpdateSelectionVisuals()` is called from the 30 Hz poll. Compare with `_selectionKind` and return when unchanged.
+- **Edge detection.** `UpdateSelectionVisuals(state)` is called from the 30 Hz poll. Compare with `_selectionKind`
+  and return when unchanged. The role is part of the polled `UnitState`, so a role change always wakes the poll up.
+- **A role change is not an entrance.** Only the transition from `None` plays the entrance; switching between
+  selected / attacker / target re-colours the ring and swaps the pulse, it does not spring the ring in again.
 - **Animate children, not the control.** `UnitControl.RenderTransform` is reserved for facing.
 - **Base `Opacity = 0`.** Fade in/out instead of toggling `IsVisible`, so layout never changes.
 - **Hexagon geometry.** `HexagonGeometry.GetCorners()` + `HexCoordinatesPixelExtensions` keep the ring aligned with the map.
-- **Scope + Dispose.** `_selectionScope?.Revert()` in `Dispose`, and dispose old `UnitControl`s in `BattleMapView.RenderMap` before rebuilding.
+- **Scope + Dispose.** `_selectionScope.Revert()` in `Dispose`, and dispose old `UnitControl`s in `BattleMapView.RenderMap` before rebuilding.
 
 ```csharp
-private static readonly AnimationBuilder RingIn = Presto.Build()
+public static readonly AnimationBuilder RingIn = Presto.Build()
     .Opacity(from: 0, to: 1)
     .Scale(from: 0.82, to: 1)
     .Draw(from: "0 0", to: "0 1")
     .Ease(Eases.Spring(stiffness: 180, damping: 18))
     // WhenReduced builds a NEW builder: restate Draw or the stroke stays at "0 0" and is invisible.
-    .WhenReduced(r => r.Opacity(to: 1).Draw("0 1").Duration(120).Ease(Eases.None));
+    .WhenReduced(r => r.Opacity(from: 0, to: 1).Draw("0 1").Duration(120).Ease(Eases.None));
 
-private static readonly AnimationBuilder RingOut = Presto.Build()
+public static readonly AnimationBuilder RingOut = Presto.Build()
     .Opacity(to: 0)
     .Scale(to: 1.12)
     .Duration(160)
@@ -85,24 +95,38 @@ private static readonly AnimationBuilder RingOut = Presto.Build()
     .WhenReduced(r => r.Opacity(to: 0).Duration(80).Ease(Eases.None));
 ```
 
-Keep the returned `Animation` handles (`_ringAnimation`, `_echoAnimation`, `_pulseAnimation`) — `Cancel()`/`Revert()` are on the animation, not on the `Path`. Set `RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)` on the ring shapes so `Scale` pulses around the hex centre.
+Keep the returned `Animation` handles (`_ringAnimation`, `_echoAnimation`, `_pulseAnimation`) — `Cancel()`/`Revert()` are on the animation, not on the `Path`. `Cancel()` leaves the values where they are (the ring fades out from where it is), `Revert()` restores the resting state (the echo and the pulse). Set `RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)` on the ring shapes so `Scale` pulses around the hex centre.
 
 The pure role decision belongs in Presentation, not in the control:
 
 ```csharp
 public enum UnitSelectionKind { None, Selected, Attacker, Target }
 
-public static UnitSelectionKind Resolve(IUnit unit, IUnit? selected, IUiState state)
+// src/MakaMek.Presentation/UiStates/UnitSelectionKindResolver.cs
+public static UnitSelectionKind Resolve(IUnit unit, IUnit? selected, IUnit? attacker, IUnit? target)
 {
     if (unit.IsOutOfCommission) return UnitSelectionKind.None;
-    if (state is WeaponsAttackState attack)
-    {
-        if (attack.Attacker == unit) return UnitSelectionKind.Attacker;
-        if (attack.SelectedTarget == unit) return UnitSelectionKind.Target;
-    }
-    return selected == unit ? UnitSelectionKind.Selected : UnitSelectionKind.None;
+    if (ReferenceEquals(attacker, unit)) return UnitSelectionKind.Attacker;
+    if (ReferenceEquals(target, unit)) return UnitSelectionKind.Target;
+    return ReferenceEquals(selected, unit) ? UnitSelectionKind.Selected : UnitSelectionKind.None;
 }
 ```
+
+The combat roles reach the resolver through `ICombatSelectionRoles`, which `WeaponsAttackState` implements, so the
+rule is testable without a game:
+
+```csharp
+public interface ICombatSelectionRoles
+{
+    IUnit? Attacker { get; }
+    IUnit? SelectedTarget { get; }
+}
+```
+
+**Headless caveat.** The headless platform reports `Geometry.ContourLength` as `0`, so the self-drawing stroke
+cannot be exercised in a headless test — the dash is only written on a platform that measures the contour
+(Skia: Desktop, Browser, Android, iOS). Test the geometry, the entrance, the exit, the pulse and the reduced
+forms; check the draw-in on a real platform.
 
 ## 2. Damage / event labels
 

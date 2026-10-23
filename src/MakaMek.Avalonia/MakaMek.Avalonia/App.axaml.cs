@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Behaviors;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
 using Sanet.MakaMek.Avalonia.DI;
@@ -33,6 +34,11 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Presto is the motion layer of the client. Follow the OS reduce-motion setting, so every
+        // animation with a reduced form degrades to a short fade instead of moving.
+        PrestoAvalonia.EnsureInitialized();
+        PrestoAvalonia.MotionPreference = MotionPreference.System;
+
         if (Resources[MVVM.DI.Avalonia.Extensions.AppBuilderExtensions.ServiceCollectionResourceKey] is not IServiceCollection services)
         {
             throw new Exception("Services are not initialized");

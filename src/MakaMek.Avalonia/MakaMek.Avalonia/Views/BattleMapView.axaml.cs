@@ -81,6 +81,10 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default,
             _resourcesLocator);
 
+        // The map is rebuilt from scratch, so the previous unit controls have to go: their animations
+        // and their poll subscription would otherwise outlive the controls they belong to.
+        DisposeUnitControls();
+
         _unitControls = ViewModel?.Units
             .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
             .ToList();
@@ -103,6 +107,21 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
         UpdateWeaponAttacks();
+    }
+
+    /// <summary>
+    /// Disposes the unit controls of the previous map render.
+    /// </summary>
+    private void DisposeUnitControls()
+    {
+        if (_unitControls is not { } unitControls) return;
+
+        foreach (var unitControl in unitControls)
+        {
+            unitControl.Dispose();
+        }
+
+        _unitControls = null;
     }
 
     private void OnMapContentClicked(object? sender, Point clickPosition)

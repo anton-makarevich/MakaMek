@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Browser;
+using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Browser.DependencyInjection;
 using Sanet.MVVM.DI.Avalonia.Extensions;
 
@@ -17,5 +18,6 @@ internal sealed partial class Program
         .StartBrowserAppAsync("out");
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>();
+        => AppBuilder.Configure<App>()
+            .UsePresto();
 }

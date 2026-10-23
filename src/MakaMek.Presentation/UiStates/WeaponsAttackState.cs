@@ -11,7 +11,7 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
 
-public class WeaponsAttackState : IUiState
+public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 {
     private readonly BattleMapViewModel _viewModel;
     private readonly List<HexDirection> _availableDirections = [];
