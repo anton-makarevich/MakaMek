@@ -41,45 +41,66 @@ internal static class MakaMekMotion
 
 Why a module: every call site then uses the same durations/eases, reduced-motion behaviour is defined once, and a future Presto upgrade or replacement touches one file.
 
-## 1. Animated selection ring (`UnitControl`)
+## 1. Animated selection outline (`SelectionHex`)
 
 Shipped in #1624. See the full design in `docs/analysis/presto-animation-capabilities.md` §5.
 
-The motion vocabulary lives in one module, `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionRingMotion.cs`
+The motion vocabulary lives in one module, `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionHexMotion.cs`
 (internal, with `InternalsVisibleTo` for `MakaMek.Avalonia.Tests`), so the builders and the geometry can be
-tested without a board. `UnitControl` owns the three paths and their lifetime:
+tested without a board. The visual itself is a control of its own,
+`src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionHex.cs`, so `UnitControl` only tells it which role the
+unit plays — a board control that keeps growing a method per animation becomes unreadable.
 
 ```csharp
-private readonly Path _selectionRing;
-private readonly Path _selectionEcho;
-private readonly Path _selectionPulse;
-private readonly ControlScope _selectionScope;
-private Animation? _ringAnimation;
-private Animation? _echoAnimation;
-private Animation? _pulseAnimation;
-private UnitSelectionKind _selectionKind = UnitSelectionKind.None;
+// UnitControl
+private readonly SelectionHex _selectionHex;
 
 // ctor
-_selectionScope = PrestoAvalonia.CreateScope(this);
-_selectionRing = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset, 4, brush);
-_selectionEcho = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset, 2, brush);
-_selectionPulse = SelectionRingMotion.CreateRing(SelectionRingMotion.Inset + 2, 2, brush);
-PrestoAvalonia.CreateDrawable(_selectionRing);   // start in the draw state at "0 0"
+_selectionHex = new SelectionHex(ownerBrush, targetBrush);
+Children.Add(_selectionHex);   // behind the unit art
+
+// poll
+_selectionHex.Update(state.SelectionKind);
+
+// Dispose
+_selectionHex.Dispose();
+```
+
+`SelectionHex` owns the three paths, the scope and the animations:
+
+```csharp
+private readonly Path _hex;
+private readonly Path _echo;
+private readonly Path _pulse;
+private readonly ControlScope _scope;
+private Animation? _hexAnimation;
+private Animation? _echoAnimation;
+private Animation? _pulseAnimation;
+private UnitSelectionKind _kind = UnitSelectionKind.None;
+
+// ctor
+_scope = PrestoAvalonia.CreateScope(this);
+_hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, ownerBrush);
+_echo = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
+_pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
+PrestoAvalonia.CreateDrawable(_hex);   // start in the draw state at "0 0"
 ```
 
 Rules that matter:
 
-- **Edge detection.** `UpdateSelectionVisuals(state)` is called from the 30 Hz poll. Compare with `_selectionKind`
-  and return when unchanged. The role is part of the polled `UnitState`, so a role change always wakes the poll up.
+- **Edge detection.** `Update(kind)` is called from the 30 Hz poll. Compare with `_kind` and return when
+  unchanged. The role is part of the polled `UnitState`, so a role change always wakes the poll up.
 - **A role change is not an entrance.** Only the transition from `None` plays the entrance; switching between
-  selected / attacker / target re-colours the ring and swaps the pulse, it does not spring the ring in again.
+  selected / attacker / target re-colours the outline and swaps the pulse, it does not spring it in again.
 - **Animate children, not the control.** `UnitControl.RenderTransform` is reserved for facing.
 - **Base `Opacity = 0`.** Fade in/out instead of toggling `IsVisible`, so layout never changes.
-- **Hexagon geometry.** `HexagonGeometry.GetCorners()` + `HexCoordinatesPixelExtensions` keep the ring aligned with the map.
-- **Scope + Dispose.** `_selectionScope.Revert()` in `Dispose`, and dispose old `UnitControl`s in `BattleMapView.RenderMap` before rebuilding.
+- **Hexagon geometry.** `HexagonGeometry.GetCorners()` + `HexCoordinatesPixelExtensions` keep the outline aligned
+  with the map.
+- **Scope + Dispose.** `_scope.Revert()` in `Dispose`, and dispose old `UnitControl`s in `BattleMapView.RenderMap`
+  before rebuilding.
 
 ```csharp
-public static readonly AnimationBuilder RingIn = Presto.Build()
+public static readonly AnimationBuilder Enter = Presto.Build()
     .Opacity(from: 0, to: 1)
     .Scale(from: 0.82, to: 1)
     .Draw(from: "0 0", to: "0 1")
@@ -87,7 +108,7 @@ public static readonly AnimationBuilder RingIn = Presto.Build()
     // WhenReduced builds a NEW builder: restate Draw or the stroke stays at "0 0" and is invisible.
     .WhenReduced(r => r.Opacity(from: 0, to: 1).Draw("0 1").Duration(120).Ease(Eases.None));
 
-public static readonly AnimationBuilder RingOut = Presto.Build()
+public static readonly AnimationBuilder Exit = Presto.Build()
     .Opacity(to: 0)
     .Scale(to: 1.12)
     .Duration(160)
@@ -95,7 +116,25 @@ public static readonly AnimationBuilder RingOut = Presto.Build()
     .WhenReduced(r => r.Opacity(to: 0).Duration(80).Ease(Eases.None));
 ```
 
-Keep the returned `Animation` handles (`_ringAnimation`, `_echoAnimation`, `_pulseAnimation`) — `Cancel()`/`Revert()` are on the animation, not on the `Path`. `Cancel()` leaves the values where they are (the ring fades out from where it is), `Revert()` restores the resting state (the echo and the pulse). Set `RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)` on the ring shapes so `Scale` pulses around the hex centre.
+Keep the returned `Animation` handles — `Cancel()`/`Revert()` are on the animation, not on the `Path`. `Cancel()`
+leaves the values where they are (the outline fades out from where it is), `Revert()` restores the resting state
+(the echo and the pulse).
+
+**A pulse that grows out of an outline has to leave it.** The outline strokes a 4 px line on the hexagon's path,
+so a 2 px pulse on the same path starts *under* that line and only shows as a slightly brighter outline until it
+scales past it. Give the pulse a real travel (`Scale 1 → 1.22` on a 100 px hex is about 10 px) and enough opacity
+to survive the fade, and give the path the size of the whole hex (`Width`/`Height`) so a relative
+`RenderTransformOrigin` of one half is the centre of the hexagon rather than the centre of its bounding box.
+
+```csharp
+public static readonly AnimationBuilder IdlePulse = Presto.Build()
+    .Scale(from: 1, to: 1.22)
+    .Opacity(from: 0.6, to: 0)
+    .Duration(1800)
+    .Ease(Eases.OutQuad)
+    .Loop()
+    .WhenReduced(r => r.Loop(false).Opacity(to: 0).Duration(1).Ease(Eases.None));
+```
 
 The pure role decision belongs in Presentation, not in the control:
 
