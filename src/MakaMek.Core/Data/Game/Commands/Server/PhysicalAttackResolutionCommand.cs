@@ -43,8 +43,9 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             return string.Empty;
 
         // The weapon attack templates read "hits X with {2}", so the attack and limb fill that slot.
-        var attackName =
-            $"{localizationService.GetString($"PhysicalAttackType_{ResolutionData.AttackType}")} ({localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}")})";
+        var attackTypeName = localizationService.GetString($"PhysicalAttackType_{ResolutionData.AttackType}");
+        var limbName = localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}");
+        var attackName = $"{attackTypeName} ({limbName})";
         var resolution = ResolutionData.AttackResolution;
         var rollTotal = resolution.AttackRoll.Sum(d => d.Result);
         var stringBuilder = new StringBuilder();
