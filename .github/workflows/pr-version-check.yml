@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      # Agent instruction files are docs, not shipped code — no version bump needed.
+      - '!src/**/AGENTS.md'
 
 jobs:
   check-version:

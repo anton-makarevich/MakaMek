@@ -6,6 +6,9 @@ metadata:
   version: "1.0"
   framework: MonacoLabs.Presto 0.1.0-preview.1 + AvaloniaUI 12.1.4
   reference-doc: docs/analysis/presto-animation-capabilities.md
+  # Hidden from the model's available list; loaded on demand by id.
+  # See src/MakaMek.Avalonia/AGENTS.md, which points here for motion work.
+  opencode/autoinvoke: false
 ---
 
 # Presto motion in MakaMek
