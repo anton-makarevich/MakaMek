@@ -448,8 +448,8 @@ jobs:
             reason="result file missing"
           elif [ "$(wc -c < "${result}")" -gt 100000 ]; then
             reason="result file too large"
-          elif ! jq -e . "${result}" > /dev/null 2>&1; then
-            reason="result is not valid JSON"
+          elif ! jq -e -s 'length == 1 and (.[0] | type == "object")' "${result}" > /dev/null 2>&1; then
+            reason="result is not a single JSON object"
           else
             # The model cannot count characters reliably. Clip the display
             # strings to the documented limits and keep the review, instead of
@@ -492,8 +492,11 @@ jobs:
             fi
 
             # Anything still wrong is structural. Name the offending paths
-            # instead of reporting a bare "schema validation failed".
-            problems="$(jq -r '
+            # instead of reporting a bare "schema validation failed". If the
+            # filter itself fails, that is an error too: falling through would
+            # derive a verdict from a document we could not validate.
+            problems=""
+            if ! problems="$(jq -r '
                   def str($max): type == "string" and length <= $max;
                   def classification:
                     IN("tabletop_mechanics", "bot_policy", "refactor",
@@ -524,9 +527,9 @@ jobs:
                               or ((.value.rule_reference | str(200)) | not))
                      | "findings[\(.key)]")
                   ] | join(", ")
-                ' "${result}" 2>/dev/null)"
-
-            if [ -n "${problems}" ]; then
+                ' "${result}" 2>/dev/null)"; then
+              reason="result could not be validated (schema filter failed)"
+            elif [ -n "${problems}" ]; then
               reason="result failed schema validation: ${problems}"
             else
               violations="$(jq '[.findings[] | select(.verdict == "violation")] | length' "${result}")"
