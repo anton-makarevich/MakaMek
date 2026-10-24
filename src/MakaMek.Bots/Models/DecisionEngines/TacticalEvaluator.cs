@@ -36,7 +36,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         IReadOnlyList<IUnit> enemyUnits,
         ITurnState? turnState = null)
     {
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height);
+        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height, unit.Status.HasFlag(UnitStatus.Prone));
 
         var targetScores = EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
@@ -107,7 +107,8 @@ public class TacticalEvaluator : ITacticalEvaluator
                 weapons,
                 allConfigs,
                 partConfigTypes,
-                target.Height);
+                target.Height,
+                target.Status.HasFlag(UnitStatus.Prone));
 
             if (viableWeapons.Count <= 0) continue;
 
@@ -155,7 +156,8 @@ public class TacticalEvaluator : ITacticalEvaluator
     private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits,
-        int defenderHeight)
+        int defenderHeight,
+        bool defenderIsProne = false)
     {
         var enemiesInRearArc = 0;
         if (_game.BattleMap == null)
@@ -206,7 +208,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Calculate hit probability using ToHitCalculator with full accuracy
                 // For defensive calculation, we're the target
-                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon, null, defenderHeight);
+                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon, null, defenderHeight, defenderIsProne);
                 
                 // Calculate threat value
                 var threatValue = hitProbability * weapon.Damage * arcMultiplier;
@@ -250,7 +252,8 @@ public class TacticalEvaluator : ITacticalEvaluator
         IReadOnlyList<Weapon> weapons,
         IReadOnlyList<WeaponConfiguration> allConfigs,
         Dictionary<UnitPart, HashSet<WeaponConfigurationType>> partConfigTypes,
-        int targetHeight)
+        int targetHeight,
+        bool isTargetProne = false)
     {
         if (_game.BattleMap == null)
             return [];
@@ -292,7 +295,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                     continue;
 
                 // Calculate hit probability with the configuration's facing
-                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing, targetHeight);
+                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing, targetHeight, isTargetProne);
 
                 if (hitProbability <= 0)
                     continue;
@@ -323,7 +326,8 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath targetPath,
         Weapon weapon,
         HexDirection? attackerFacing = null,
-        int targetHeight = 0)
+        int targetHeight = 0,
+        bool isTargetProne = false)
     {
         if (_game.BattleMap == null || attacker.Pilot == null)
             return 0;
@@ -365,7 +369,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             targetHeight: targetHeight,
             attackerWaterDepth: attackerWaterDepth,
             targetWaterDepth: targetWaterDepth,
-            isTargetProne: (target as IUnit)?.Status.HasFlag(UnitStatus.Prone) == true
+            isTargetProne: isTargetProne
             );
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)

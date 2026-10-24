@@ -244,6 +244,7 @@ public class LocalizationResourcesTests
     [InlineData("Modifier_UpperArmActuatorHit", "{0} Upper Arm Actuator Destroyed: +{1}")]
     [InlineData("Modifier_LowerArmActuatorHit", "{0} Lower Arm Actuator Destroyed: +{1}")]
     [InlineData("Modifier_SkiddingTarget", "Skidding Target: +{0}")]
+    [InlineData("Modifier_ProneTarget", "Prone Target: {0:+#;-#;0}")]
     [InlineData("Modifier_SkiddingAttacker", "Skidding Attacker: +{0}")]
     [InlineData("Modifier_ProneFiring", "Prone Firing: +{0}")]
     [InlineData("Modifier_PartialCover", "Partial Cover: +{0}")]
