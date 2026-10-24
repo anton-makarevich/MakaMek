@@ -19,7 +19,8 @@ public abstract class TerrainEntryInterruptHandler : IMovementInterruptHandler
         if (rollContext == null) return null;
 
         var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
-            mech, rollContext, context.Game, context.MoveCommand.MovementType);
+            mech, rollContext, context.Game, context.MoveCommand.MovementType,
+            new HexPosition(segment.To));
 
         if (fallContextData.IsFalling)
         {

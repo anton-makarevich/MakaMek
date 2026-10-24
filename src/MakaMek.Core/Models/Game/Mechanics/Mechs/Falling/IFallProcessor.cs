@@ -36,7 +36,11 @@ public interface IFallProcessor
     /// <param name="rollContext">The PSR context for this movement attempt</param>
     /// <param name="game">The game instance</param>
     /// <param name="movementType">The type of movement being attempted</param>
+    /// <param name="fallPosition">
+    /// The position where the unit lands, when the fall happens before the movement is applied
+    /// (movement interrupts). When omitted, the mech's current position is used.
+    /// </param>
     /// <returns>FallContextData containing the result of the movement attempt</returns>
-    FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType);
+    FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType, HexPosition? fallPosition = null);
 
 }

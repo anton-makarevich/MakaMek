@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -48,7 +48,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, movementType)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, movementType, Arg.Any<HexPosition?>())
             .Returns(fallContext);
     }
 
@@ -120,7 +120,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var idempotencyKey = Guid.NewGuid();
@@ -158,7 +158,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
             GameId = Game.Id,
             IsFalling = false
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -211,7 +211,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
@@ -248,7 +248,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
             GameId = Game.Id,
             IsFalling = false
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,

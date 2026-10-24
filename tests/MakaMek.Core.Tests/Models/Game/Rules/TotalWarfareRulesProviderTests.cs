@@ -1315,6 +1315,28 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(0, 1)] // Dry land: no reduction
+    [InlineData(1, 2)] // Depth 1: falling damage halved
+    [InlineData(2, 2)] // Depth 2: falling damage halved
+    [InlineData(3, 2)] // Depth 3: falling damage halved
+    [InlineData(10, 2)] // Depth 10: falling damage halved
+    public void GetFallingDamageDivisor_ShouldReturnExpectedValues(int waterDepth, int expectedDivisor)
+    {
+        // Act
+        var result = _sut.GetFallingDamageDivisor(waterDepth);
+
+        // Assert
+        result.ShouldBe(expectedDivisor);
+    }
+
+    [Fact]
+    public void GetFallingDamageDivisor_ThrowsException_ForNegativeWaterDepth()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.GetFallingDamageDivisor(-1));
+    }
+
+    [Theory]
     [InlineData(0, -1)]   // 0-2 hexes: -1
     [InlineData(1, -1)]
     [InlineData(2, -1)]

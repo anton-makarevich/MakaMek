@@ -31,13 +31,18 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     /// Calculates the damage a unit takes when falling
     /// </summary>
     /// <param name="unit">The unit that fell</param>
-    /// <param name="levelsFallen">The number of levels the unit fell</param>
-    /// <param name="wasJumping">Whether the unit was jumping when it fell</param>
+    /// <param name="levelsFallen">
+    /// The total number of levels the unit fell, down to the hex bottom (0 for a fall in place)
+    /// </param>
+    /// <param name="waterDepth">
+    /// Water depth of the hex where the fall happens (0 for dry land).
+    /// In depth 1+ water the damage of each impact is halved (BMM p. 57, TW p. 57).
+    /// </param>
     /// <returns>The result of the falling damage calculation</returns>
     public FallingDamageData CalculateFallingDamage(
         Unit unit,
         int levelsFallen,
-        bool wasJumping)
+        int waterDepth = 0)
     {
         if (unit is not Mech mech)
         {
@@ -52,13 +57,28 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         var facingRoll = _diceRoller.RollD6();
         var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
 
-        return CalculateFallingDamage(unit, levelsFallen, wasJumping, facingRoll, newFacing);
+        return CalculateFallingDamage(unit, levelsFallen, waterDepth, facingRoll, newFacing);
     }
 
+    /// <summary>
+    /// Calculates falling damage with an explicit facing roll.
+    /// The total fall (<paramref name="levelsFallen"/>, down to the hex bottom) is split into the impacts
+    /// defined by TW: the fall to the water surface (only when the fall starts above it) and the fall
+    /// from the surface to the hex bottom. In depth 1+ water the damage of each impact is halved,
+    /// rounding down (BMM 7th ed. p. 57, TW p. 57, official clarification 2026-01-22).
+    /// </summary>
+    /// <param name="unit">The unit that fell</param>
+    /// <param name="levelsFallen">
+    /// The total number of levels the unit fell, down to the hex bottom (0 for a fall in place)
+    /// </param>
+    /// <param name="waterDepth">Water depth of the hex where the fall happens (0 for dry land)</param>
+    /// <param name="facingDiceRoll">The dice roll for the facing after the fall</param>
+    /// <param name="facingAfterFall">The facing after the fall</param>
+    /// <returns>The result of the falling damage calculation</returns>
     public FallingDamageData CalculateFallingDamage(
         Unit unit,
         int levelsFallen,
-        bool wasJumping,
+        int waterDepth,
         DiceResult facingDiceRoll,
         HexDirection facingAfterFall)
     {
@@ -72,8 +92,29 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             throw new ArgumentException("Mech must be deployed", nameof(unit));
         }
 
-        var effectiveLevels = wasJumping ? 0 : levelsFallen;
-        var totalDamage = (int)Math.Ceiling(mech.Tonnage / 10.0) * (effectiveLevels + 1);
+        var divisor = _rulesProvider.GetFallingDamageDivisor(waterDepth);
+        var perLevelDamage = (int)Math.Ceiling(mech.Tonnage / 10.0);
+        int totalDamage;
+
+        if (waterDepth <= 0)
+        {
+            // Dry land: normal falling damage
+            totalDamage = perLevelDamage * (levelsFallen + 1);
+        }
+        else if (levelsFallen <= waterDepth)
+        {
+            // The fall is contained in the water column (from the water surface down to the hex bottom,
+            // or a fall in place of a submerged unit): only the impact with the bottom, halved
+            totalDamage = perLevelDamage * (levelsFallen + 1) / divisor;
+        }
+        else
+        {
+            // The fall starts above the water surface: impact with the surface (halved)
+            // plus impact with the hex bottom (halved)
+            var surfaceDamage = perLevelDamage * (levelsFallen - waterDepth + 1) / divisor;
+            var bottomDamage = perLevelDamage * (waterDepth + 1) / divisor;
+            totalDamage = surfaceDamage + bottomDamage;
+        }
 
         var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingDiceRoll.Result);
 
