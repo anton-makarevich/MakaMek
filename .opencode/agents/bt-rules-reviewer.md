@@ -54,7 +54,8 @@ the Cognee MCP server.
 - You may ONLY call Cognee `recall`. `remember`, `forget` and `cognify_status`
   are denied.
 - Produce EXACTLY ONE JSON document at `.rules-review/result.json` and make NO
-  other changes.
+  other changes. Write it with the write tool — never print the JSON in your
+  final message, because a result that only exists in chat is discarded.
 
 ## Inputs
 
@@ -156,7 +157,8 @@ Constraints:
 
 - Max 50 `changes`, max 100 `findings`.
 - `line` is optional; omit it or use a number.
-- String limits are enforced by the workflow; exceeding one invalidates the
-  whole result and fails the check.
+- String limits: `summary`/`file`/`description` 300, `change`/`expected` 500,
+  `rule_reference` 200. The workflow clips anything longer, which loses detail,
+  so aim well under them — keep `summary` at 250 characters or fewer.
 - If no rules changes are detected: `rules_changes_detected: false`, and empty
   `changes` and `findings` arrays.
