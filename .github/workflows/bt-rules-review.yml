@@ -376,43 +376,98 @@ jobs:
             reason="result file too large"
           elif ! jq -e . "${result}" > /dev/null 2>&1; then
             reason="result is not valid JSON"
-          elif ! jq -e '
-                def str($max): type == "string" and length <= $max;
-                def classification:
-                  IN("tabletop_mechanics", "bot_policy", "refactor",
-                     "presentation_protocol", "tests_docs_only");
-                def finding_verdict: IN("compliant", "unverified", "violation");
-                .schema_version == 1
-                and (.rules_changes_detected | type == "boolean")
-                and (.summary | str(300))
-                and (.changes | type == "array" and length <= 50)
-                and (.findings | type == "array" and length <= 100)
-                and all(.changes[];
-                      (.file | str(300))
-                      and (.classification | classification)
-                      and (.description | str(300)))
-                and all(.findings[];
-                      (.file | str(300))
-                      and ((.line == null) or (.line | type == "number"))
-                      and (.verdict | finding_verdict)
-                      and (.change | str(500))
-                      and (.expected | str(500))
-                      and (.rule_reference | str(200)))
-              ' "${result}" > /dev/null 2>&1; then
-            reason="result failed schema validation"
           else
-            violations="$(jq '[.findings[] | select(.verdict == "violation")] | length' "${result}")"
-            findings="$(jq '.findings | length' "${result}")"
-            rules_changed="$(jq -r '.rules_changes_detected' "${result}")"
-            if [ "${violations}" -gt 0 ]; then
-              status="violations"
-              reason="${violations} Total Warfare violation(s) found"
-            elif [ "${rules_changed}" = "false" ] && [ "${findings}" -eq 0 ]; then
-              status="no_rules_changes"
-              reason="no BattleTech rules changes detected"
+            # The model cannot count characters reliably. Clip the display
+            # strings to the documented limits and keep the review, instead of
+            # discarding an otherwise valid verdict over a few characters.
+            clipped="$(jq -r '
+                  def limit($k):
+                    if $k == "summary" or $k == "description" or $k == "file" then 300
+                    elif $k == "change" or $k == "expected" then 500
+                    elif $k == "rule_reference" then 200
+                    else null end;
+                  [ paths(scalars) as $p
+                    | limit($p[-1]) as $max
+                    | select($max != null
+                             and (getpath($p) | type) == "string"
+                             and (getpath($p) | length) > $max)
+                    | "\($p | join(".")) (\(getpath($p) | length)>\($max))" ]
+                  | join(", ")
+                ' "${result}" 2>/dev/null)"
+            if [ -n "${clipped}" ]; then
+              echo "::warning::Clipped over-long result fields: ${clipped}"
+              if jq '
+                    def clip($max):
+                      if type == "string" and length > $max
+                      then .[:($max - 1)] + "…" else . end;
+                    .summary |= clip(300)
+                    | .changes |= (if type == "array" then map(
+                        if type == "object"
+                        then .file |= clip(300) | .description |= clip(300)
+                        else . end) else . end)
+                    | .findings |= (if type == "array" then map(
+                        if type == "object"
+                        then .file |= clip(300) | .change |= clip(500)
+                             | .expected |= clip(500) | .rule_reference |= clip(200)
+                        else . end) else . end)
+                  ' "${result}" > "${result}.clipped" 2>/dev/null; then
+                mv "${result}.clipped" "${result}"
+              else
+                rm -f "${result}.clipped"
+              fi
+            fi
+
+            # Anything still wrong is structural. Name the offending paths
+            # instead of reporting a bare "schema validation failed".
+            problems="$(jq -r '
+                  def str($max): type == "string" and length <= $max;
+                  def classification:
+                    IN("tabletop_mechanics", "bot_policy", "refactor",
+                       "presentation_protocol", "tests_docs_only");
+                  def finding_verdict: IN("compliant", "unverified", "violation");
+                  [ (if .schema_version != 1 then "schema_version" else empty end),
+                    (if (.rules_changes_detected | type) != "boolean"
+                     then "rules_changes_detected" else empty end),
+                    (if (.summary | str(300)) then empty else "summary" end),
+                    (if ((.changes | type) == "array") and ((.changes | length) <= 50)
+                     then empty else "changes" end),
+                    (if ((.findings | type) == "array") and ((.findings | length) <= 100)
+                     then empty else "findings" end),
+                    (.changes | if type == "array" then to_entries[] else empty end
+                     | select((.value | type) != "object"
+                              or ((.value.file | str(300)) | not)
+                              or ((.value.classification | classification) | not)
+                              or ((.value.description | str(300)) | not))
+                     | "changes[\(.key)]"),
+                    (.findings | if type == "array" then to_entries[] else empty end
+                     | select((.value | type) != "object"
+                              or ((.value.file | str(300)) | not)
+                              or ((.value.line != null)
+                                  and ((.value.line | type) != "number"))
+                              or ((.value.verdict | finding_verdict) | not)
+                              or ((.value.change | str(500)) | not)
+                              or ((.value.expected | str(500)) | not)
+                              or ((.value.rule_reference | str(200)) | not))
+                     | "findings[\(.key)]")
+                  ] | join(", ")
+                ' "${result}" 2>/dev/null)"
+
+            if [ -n "${problems}" ]; then
+              reason="result failed schema validation: ${problems}"
             else
-              status="compliant"
-              reason="compliant with Total Warfare"
+              violations="$(jq '[.findings[] | select(.verdict == "violation")] | length' "${result}")"
+              findings="$(jq '.findings | length' "${result}")"
+              rules_changed="$(jq -r '.rules_changes_detected' "${result}")"
+              if [ "${violations}" -gt 0 ]; then
+                status="violations"
+                reason="${violations} Total Warfare violation(s) found"
+              elif [ "${rules_changed}" = "false" ] && [ "${findings}" -eq 0 ]; then
+                status="no_rules_changes"
+                reason="no BattleTech rules changes detected"
+              else
+                status="compliant"
+                reason="compliant with Total Warfare"
+              fi
             fi
           fi
 
