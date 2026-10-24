@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -265,6 +266,31 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
 
         // Act
         sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Kick(PartLocation.LeftLeg, PartLocation.RightLeg)));
+
+        // Assert
+        VerifyRejected(ErrorCode.ValidationFailed);
+        _attacker.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        Game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
+    }
+
+    /// <summary>
+    /// The attacker is cached as a declaring unit while the target is legal. If the target's hex
+    /// becomes fully submerged before the declaration is submitted (issue #1600), the command is
+    /// rejected with ValidationFailed and nothing is stored.
+    /// </summary>
+    [Fact]
+    public void HandleCommand_TargetBecomesSubmergedAfterEnter_ShouldReturnAnError()
+    {
+        // Arrange
+        var sut = CreateEnabledSut();
+        sut.Enter();
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var hex = new Hex(targetHex);
+        hex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(hex);
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Punch(PartLocation.LeftArm)));
 
         // Assert
         VerifyRejected(ErrorCode.ValidationFailed);

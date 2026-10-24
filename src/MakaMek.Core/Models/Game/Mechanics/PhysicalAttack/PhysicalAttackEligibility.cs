@@ -9,7 +9,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <summary>
 /// Punch and kick eligibility per docs/rules/physical-attacks.md section 3 and the physical attacks
 /// PRD (Background items 9 and 10, R1.4). The elevation limits follow the corrected Different-Levels
-/// table posted on issue #1504.
+/// table posted on issue #1504; level comparisons use effective standing levels and the water
+/// eligibility rules follow Total Warfare p.109 and p.151 (issue #1600).
 /// </summary>
 public class PhysicalAttackEligibility : IPhysicalAttackEligibility
 {
@@ -35,9 +36,21 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         PhysicalAttackType attackType, IBattleMap map)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
-            || GetEffectiveLevelDifference(mech, target, map) is not { } levelDifference)
+            || GetEndpoint(mech, map) is not { } attackerEndpoint
+            || GetEndpoint(target, map) is not { } targetEndpoint)
             return [];
 
+        // Total Warfare p.151 (Water): a physical attack against a submerged unit must begin
+        // underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
+        // only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
+        // and any supported attack qualifies (issue #1600).
+        if (targetEndpoint.IsSubmerged
+            && (!attackerEndpoint.IsInWater
+                || (!attackerEndpoint.IsSubmerged && attackType == PhysicalAttackType.Punch)))
+            return [];
+
+        var levelDifference = GetEffectiveLevelDifference(
+            attackerEndpoint, targetEndpoint, attacker.Height, target.Height);
         var isTargetProne = ((Mech)target).IsProne;
         return attackType switch
         {
@@ -47,6 +60,30 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
                 => GetKickingLegs(mech, target),
             _ => []
         };
+    }
+
+    /// <summary>
+    /// Where a unit stands relative to the water line, resolved from the current map. The stored
+    /// Unit.Hex is deliberately not used because replacing a map hex does not update it.
+    /// </summary>
+    private sealed record UnitEndpoint(int EffectiveStandingLevel, bool IsSubmerged, bool IsInWater);
+
+    /// <summary>
+    /// The effective standing level and submersion of one unit (Total Warfare p.109: water counts
+    /// as negative levels). A unit is in water when it stands on the ground surface of a hex with
+    /// water deeper than shallow; a unit on a bridge is never in water.
+    /// </summary>
+    private static UnitEndpoint? GetEndpoint(IUnit unit, IBattleMap map)
+    {
+        var hex = map.GetHex(unit.Position!.Coordinates);
+        if (hex == null) return null;
+
+        var surface = unit.Position.Surface;
+        var (effectiveStandingLevel, isSubmerged) = hex.GetLosEndpointInfo(surface, unit.Height);
+        return new UnitEndpoint(
+            effectiveStandingLevel,
+            isSubmerged,
+            surface == HexSurface.Ground && hex.GetWaterDepth() is > 0);
     }
 
     /// <summary>
@@ -65,20 +102,17 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         && attacker.Position!.Coordinates.DistanceTo(targetMech.Position.Coordinates) == 1;
 
     /// <summary>
-    /// How many levels the target is above the attacker, or null when either hex is missing from the
-    /// map. A prone Mech rises one level above its hex, so against a prone target the difference is
+    /// How many levels the target stands above the attacker, computed from the effective standing
+    /// levels of both units so water counts as negative levels (Total Warfare p.109, issue #1600).
+    /// A prone Mech rises one level above its hex, so against a prone target the difference is
     /// one higher than the raw hex difference; the height difference of the two units carries that.
     /// Standing target: 0 allows a punch and a kick, +1 a punch, -1 a kick.
     /// Prone target: +1 allows a punch, 0 a kick, anything else nothing.
     /// </summary>
-    private static int? GetEffectiveLevelDifference(Mech attacker, IUnit target, IBattleMap map)
-    {
-        var attackerHex = map.GetHex(attacker.Position!.Coordinates);
-        var targetHex = map.GetHex(target.Position!.Coordinates);
-        if (attackerHex == null || targetHex == null) return null;
-
-        return targetHex.GetLevelDifference(attackerHex) - (target.Height - attacker.Height);
-    }
+    private static int GetEffectiveLevelDifference(UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint,
+        int attackerHeight, int targetHeight) =>
+        targetEndpoint.EffectiveStandingLevel - attackerEndpoint.EffectiveStandingLevel
+        - (targetHeight - attackerHeight);
 
     /// <summary>
     /// Punch arcs follow the torso: both arms reach the forward arc, each arm only its own side arc.
