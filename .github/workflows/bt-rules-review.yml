@@ -26,8 +26,13 @@ permissions:
   contents: read
 
 concurrency:
+  # Every comment on a PR fires `issue_comment` — CodeRabbit, the coverage
+  # sticky-comment jobs and Codecov all comment within a minute of a push. Those
+  # runs are skipped by the review job's `if:`, but only after they have entered
+  # this group, so cancelling in progress would let a bot comment kill a review
+  # that is already running. Only a newer commit may supersede a review.
   group: bt-rules-review-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   review:
@@ -328,7 +333,12 @@ jobs:
 
   report:
     needs: review
-    if: always() && needs.review.result != 'skipped'
+    # A cancelled review was superseded (newer commit, or a newer run in the same
+    # group) and that run reports its own result. Commenting and failing here
+    # only overwrites a good review with "could not complete". `!cancelled()`
+    # replaces `always()`, which would keep this job alive after the run was
+    # cancelled and let it publish a superseded HEAD_SHA.
+    if: ${{ !cancelled() && (needs.review.result == 'success' || needs.review.result == 'failure') }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
