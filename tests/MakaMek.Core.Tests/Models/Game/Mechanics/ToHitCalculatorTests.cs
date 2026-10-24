@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
@@ -384,6 +385,68 @@ public class ToHitCalculatorTests
         var skiddingModifier = result.OtherModifiers.OfType<SkiddingTargetModifier>().ShouldHaveSingleItem();
         skiddingModifier.Value.ShouldBe(SkiddingTargetModifier.DefaultValue);
         result.Total.ShouldBe(6); // Base (4) + skidding target (2)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_ProneTargetInAdjacentHex_IncludesProneTargetModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        ((Mech)_target!).SetProne();
+        _rules.GetProneTargetModifier(Arg.Any<int>()).Returns(0);
+        _rules.GetProneTargetModifier(1).Returns(-2);
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        var proneModifier = result.OtherModifiers.OfType<ProneTargetModifier>().ShouldHaveSingleItem();
+        proneModifier.Value.ShouldBe(-2);
+        _rules.Received(1).GetProneTargetModifier(1);
+        result.Total.ShouldBe(2); // Base (4) + prone target adjacent (-2)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_ProneTargetNotAdjacent_IncludesProneTargetModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        ((Mech)_target!).SetProne();
+        _rules.GetProneTargetModifier(Arg.Any<int>()).Returns(0);
+        _rules.GetProneTargetModifier(3).Returns(1);
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        var proneModifier = result.OtherModifiers.OfType<ProneTargetModifier>().ShouldHaveSingleItem();
+        proneModifier.Value.ShouldBe(1);
+        _rules.Received(1).GetProneTargetModifier(3);
+        result.Total.ShouldBe(5); // Base (4) + prone target not adjacent (1)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_StandingTarget_DoesNotIncludeProneTargetModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        SetupAttackerAndTarget(attackerPosition, targetPosition);
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        result.OtherModifiers.OfType<ProneTargetModifier>().ShouldBeEmpty();
+        _rules.DidNotReceive().GetProneTargetModifier(Arg.Any<int>());
+        result.Total.ShouldBe(4); // Base (4)
     }
 
     [Fact]

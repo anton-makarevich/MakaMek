@@ -408,6 +408,45 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_ProneTarget_IncludesProneTargetModifier()
+    {
+        // Arrange — physical attackers are always adjacent to their target
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.Status.Returns(UnitStatus.Prone);
+        _rules.GetProneTargetModifier(1).Returns(-2);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        var prone = result.OtherModifiers.OfType<ProneTargetModifier>().ShouldHaveSingleItem();
+        prone.Value.ShouldBe(-2);
+        _rules.Received(1).GetProneTargetModifier(1);
+        result.Total.ShouldBe(3); // piloting (5) + punch base (0) + prone target adjacent (-2)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_StandingTarget_DoesNotIncludeProneTargetModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.Status.Returns(UnitStatus.Active);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        result.OtherModifiers.OfType<ProneTargetModifier>().ShouldBeEmpty();
+        _rules.DidNotReceive().GetProneTargetModifier(Arg.Any<int>());
+    }
+
+    [Fact]
     public void GetModifierBreakdown_SkiddingAttacker_ReplacesMovementModifierWithSkiddingModifier()
     {
         // Arrange

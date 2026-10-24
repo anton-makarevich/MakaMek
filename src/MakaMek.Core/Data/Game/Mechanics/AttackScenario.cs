@@ -81,6 +81,11 @@ public record AttackScenario
     public int? TargetWaterDepth { get; private init; }
 
     /// <summary>
+    /// Whether the target is prone
+    /// </summary>
+    public bool IsTargetProne { get; private init; }
+
+    /// <summary>
     /// Creates an AttackScenario from actual units in their current state.
     /// Used for real combat calculations.
     /// </summary>
@@ -124,7 +129,8 @@ public record AttackScenario
             TargetHeight = target.Height,
             TargetUnit = target,
             AttackerWaterDepth = attacker.Hex?.GetWaterDepth(),
-            TargetWaterDepth = target.Hex?.GetWaterDepth()
+            TargetWaterDepth = target.Hex?.GetWaterDepth(),
+            IsTargetProne = target.Status.HasFlag(UnitStatus.Prone)
         };
     }
     
@@ -145,6 +151,7 @@ public record AttackScenario
     /// <param name="targetHeight">Height of the target unit in levels</param>
     /// <param name="attackerWaterDepth">Water depth at attacker's hex (null if no water, 0 for shallow, 1+ for depth)</param>
     /// <param name="targetWaterDepth">Water depth at target's hex (null if no water, 0 for shallow, 1+ for depth)</param>
+    /// <param name="isTargetProne">Whether the target is prone</param>
     /// <returns>AttackScenario representing the hypothetical attack</returns>
     public static AttackScenario FromHypothetical(
         int attackerGunnery,
@@ -159,7 +166,8 @@ public record AttackScenario
         int attackerHeight = 2, // assume the attacker is a mech
         int targetHeight = 2, // assume the target is a mech
         int? attackerWaterDepth = null,
-        int? targetWaterDepth = null)
+        int? targetWaterDepth = null,
+        bool isTargetProne = false)
     {
         return new AttackScenario
         {
@@ -175,7 +183,8 @@ public record AttackScenario
             AttackerHeight = attackerHeight,
             TargetHeight = targetHeight,
             AttackerWaterDepth = attackerWaterDepth,
-            TargetWaterDepth = targetWaterDepth
+            TargetWaterDepth = targetWaterDepth,
+            IsTargetProne = isTargetProne
         };
     }
 }

@@ -1341,4 +1341,16 @@ public class TotalWarfareRulesProviderTests
 
         result.ShouldBe(expectedModifier);
     }
+
+    [Theory]
+    [InlineData(1, -2)]   // adjacent hex: -2
+    [InlineData(2, 1)]    // all other hexes: +1
+    [InlineData(3, 1)]
+    [InlineData(10, 1)]
+    public void GetProneTargetModifier_ShouldReturnExpectedValues(int distance, int expectedModifier)
+    {
+        var result = _sut.GetProneTargetModifier(distance);
+
+        result.ShouldBe(expectedModifier);
+    }
 }

@@ -673,4 +673,10 @@ public class TotalWarfareRulesProvider : IRulesProvider
             _ => 6        // 25+ hexes
         };
     }
+
+    public int GetProneTargetModifier(int distance)
+    {
+        if (distance == 1) return -2;
+        return 1;
+    }
 }

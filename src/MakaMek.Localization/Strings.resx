@@ -224,6 +224,7 @@
   <data name="Modifier_UpperArmActuatorHit" xml:space="preserve"><value>{0} Upper Arm Actuator Destroyed: +{1}</value></data>
   <data name="Modifier_LowerArmActuatorHit" xml:space="preserve"><value>{0} Lower Arm Actuator Destroyed: +{1}</value></data>
   <data name="Modifier_SkiddingTarget" xml:space="preserve"><value>Skidding Target: +{0}</value></data>
+  <data name="Modifier_ProneTarget" xml:space="preserve"><value>Prone Target: {0:+#;-#;0}</value></data>
   <data name="Modifier_SkiddingAttacker" xml:space="preserve"><value>Skidding Attacker: +{0}</value></data>
   <data name="Modifier_ProneFiring" xml:space="preserve"><value>Prone Firing: +{0}</value></data>
   <data name="Modifier_PartialCover" xml:space="preserve"><value>Partial Cover: +{0}</value></data>

@@ -146,7 +146,8 @@ public class AttackScenarioTests
             attackerModifiers: modifiers,
             attackerFacing: HexDirection.TopLeft,
             isPrimaryTarget: false,
-            aimedShotTarget: PartLocation.LeftLeg);
+            aimedShotTarget: PartLocation.LeftLeg,
+            isTargetProne: true);
         
         // Assert
         scenario.AttackerGunnery.ShouldBe(5);
@@ -158,6 +159,36 @@ public class AttackScenarioTests
         scenario.AttackerFacing.ShouldBe(HexDirection.TopLeft);
         scenario.IsPrimaryTarget.ShouldBeFalse();
         scenario.AimedShotTarget.ShouldBe(PartLocation.LeftLeg);
+        scenario.IsTargetProne.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(UnitStatus.Prone, true)]
+    [InlineData(UnitStatus.Active, false)]
+    public void FromUnits_SetsIsTargetProneFromTargetStatus(UnitStatus targetStatus, bool expectedIsProne)
+    {
+        // Arrange
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var movementPath = MovementPath.CreateSingleSegmentPath(position);
+
+        attacker.Pilot.Returns(pilot);
+        attacker.Position.Returns(position);
+        attacker.MovementTaken.Returns(movementPath);
+
+        target.Position.Returns(position);
+        target.MovementTaken.Returns(movementPath);
+        target.Status.Returns(targetStatus);
+
+        // Act
+        var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.RightArm);
+
+        // Assert
+        scenario.IsTargetProne.ShouldBe(expectedIsProne);
     }
     
     [Fact]
