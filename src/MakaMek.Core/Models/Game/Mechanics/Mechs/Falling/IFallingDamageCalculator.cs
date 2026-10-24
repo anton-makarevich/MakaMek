@@ -17,7 +17,7 @@ public interface IFallingDamageCalculator
     /// </param>
     /// <param name="waterDepth">
     /// Water depth of the hex where the fall happens (0 for dry land).
-    /// In depth 1+ water the damage of each impact is halved (BMM p. 57, TW p. 57).
+    /// The water reduction is delegated to the rules provider and is rules-set specific.
     /// </param>
     FallingDamageData CalculateFallingDamage(Unit unit, int levelsFallen, int waterDepth = 0);
 
@@ -31,7 +31,7 @@ public interface IFallingDamageCalculator
     /// </param>
     /// <param name="waterDepth">
     /// Water depth of the hex where the fall happens (0 for dry land).
-    /// In depth 1+ water the damage of each impact is halved (BMM p. 57, TW p. 57).
+    /// The water reduction is delegated to the rules provider and is rules-set specific.
     /// </param>
     /// <param name="facingDiceRoll">The dice roll for the facing after the fall</param>
     /// <param name="facingAfterFall">The facing after the fall</param>

@@ -224,16 +224,23 @@ public interface IRulesProvider
     int GetWaterDepthModifier(int waterDepth);
 
     /// <summary>
-    /// Gets the divisor applied to the final falling damage of a unit that falls in a hex with water.
-    /// BMM 7th ed. p. 57: "If a 'Mech falls when standing in Depth 1 or greater water, it suffers normal
-    /// falling damage divided by 2 (round down)." TW p. 57 (underwater movement) states the same for a unit
-    /// below the water's surface. Officially clarified on the BattleTech forums (Hammer, 2026-01-22):
-    /// "When a 'Mech takes falling damage in a Depth 1 hex or deeper, the falling damage is divided by 2."
-    /// The caller divides the final damage total by this value; integer division rounds down.
+    /// Calculates the total falling damage for a fall that ends in a hex with water.
+    /// The damage formula for water falls (impact splitting into stages, halving and rounding)
+    /// is rules-set specific: TW p. 57 splits the fall into the impact with the water surface
+    /// (only when the fall starts above it) and the impact with the hex bottom, halving each
+    /// (round down); other rules sets may apply a single halved total. Officially clarified
+    /// on the BattleTech forums (Hammer, 2026-01-22): "When a 'Mech takes falling damage in
+    /// a Depth 1 hex or deeper, the falling damage is divided by 2."
+    /// Callers pass the per-level damage (ceil(tonnage/10)) and the total number of levels
+    /// fallen, down to the hex bottom.
     /// </summary>
-    /// <param name="waterDepth">The water depth of the hex where the fall happens (0 for dry land)</param>
-    /// <returns>1 for dry land (depth 0), 2 for water depth 1 or greater</returns>
-    int GetFallingDamageDivisor(int waterDepth);
+    /// <param name="perLevelDamage">The damage per fallen level, ceil(tonnage/10)</param>
+    /// <param name="levelsFallen">
+    /// The total number of levels the unit fell, down to the hex bottom (0 for a fall in place)
+    /// </param>
+    /// <param name="waterDepth">The water depth of the hex where the fall happens</param>
+    /// <returns>The total falling damage after the rules-set specific water reduction</returns>
+    int CalculateFallingDamageInWater(int perLevelDamage, int levelsFallen, int waterDepth);
 
     /// <summary>
     /// Gets the piloting skill roll modifier based on the number of hexes moved before skidding.

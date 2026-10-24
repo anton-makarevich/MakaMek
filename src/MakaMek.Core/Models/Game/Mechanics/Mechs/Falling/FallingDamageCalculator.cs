@@ -62,10 +62,11 @@ public class FallingDamageCalculator : IFallingDamageCalculator
 
     /// <summary>
     /// Calculates falling damage with an explicit facing roll.
-    /// The total fall (<paramref name="levelsFallen"/>, down to the hex bottom) is split into the impacts
-    /// defined by TW: the fall to the water surface (only when the fall starts above it) and the fall
-    /// from the surface to the hex bottom. In depth 1+ water the damage of each impact is halved,
-    /// rounding down (BMM 7th ed. p. 57, TW p. 57, official clarification 2026-01-22).
+    /// Dry-land falling damage is computed as ceil(tonnage/10) × (levelsFallen + 1). For falls
+    /// ending in a water hex, the total is delegated to the rules provider
+    /// (<see cref="IRulesProvider.CalculateFallingDamageInWater"/>), which applies the
+    /// rules-set specific water reduction (BMM 7th ed. p. 57, TW p. 57, official
+    /// clarification 2026-01-22). The calculator is agnostic to the applied variant.
     /// </summary>
     /// <param name="unit">The unit that fell</param>
     /// <param name="levelsFallen">
@@ -92,29 +93,10 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             throw new ArgumentException("Mech must be deployed", nameof(unit));
         }
 
-        var divisor = _rulesProvider.GetFallingDamageDivisor(waterDepth);
         var perLevelDamage = (int)Math.Ceiling(mech.Tonnage / 10.0);
-        int totalDamage;
-
-        if (waterDepth <= 0)
-        {
-            // Dry land: normal falling damage
-            totalDamage = perLevelDamage * (levelsFallen + 1);
-        }
-        else if (levelsFallen <= waterDepth)
-        {
-            // The fall is contained in the water column (from the water surface down to the hex bottom,
-            // or a fall in place of a submerged unit): only the impact with the bottom, halved
-            totalDamage = perLevelDamage * (levelsFallen + 1) / divisor;
-        }
-        else
-        {
-            // The fall starts above the water surface: impact with the surface (halved)
-            // plus impact with the hex bottom (halved)
-            var surfaceDamage = perLevelDamage * (levelsFallen - waterDepth + 1) / divisor;
-            var bottomDamage = perLevelDamage * (waterDepth + 1) / divisor;
-            totalDamage = surfaceDamage + bottomDamage;
-        }
+        var totalDamage = waterDepth > 0
+            ? _rulesProvider.CalculateFallingDamageInWater(perLevelDamage, levelsFallen, waterDepth)
+            : perLevelDamage * (levelsFallen + 1);
 
         var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingDiceRoll.Result);
 
