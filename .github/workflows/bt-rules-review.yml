@@ -189,6 +189,35 @@ jobs:
           }
           EOF
 
+      # The reviewer's only authority is Total Warfare through Cognee. If the MCP
+      # server cannot start, every finding degrades to "unverified" and a broken
+      # gate still reports success, so prove the tool is there before reviewing.
+      - name: Verify the Cognee MCP server connects
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          COGNEE_URL: ${{ secrets.COGNEE_URL }}
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
+        run: |
+          set -uo pipefail
+          status=""
+          for attempt in 1 2; do
+            status="$(opencode mcp list 2>&1 || true)"
+            echo "${status}"
+            if grep -qE 'cognee[[:space:]]+connected' <<<"${status}"; then
+              echo "cognee MCP server connected (attempt ${attempt})."
+              opencode service stop > /dev/null 2>&1 || true
+              exit 0
+            fi
+            # Stopping the service makes the next attempt a real handshake rather
+            # than a cached failure, and keeps the MCP child out of the way of the
+            # reviewer's own --standalone run.
+            opencode service stop > /dev/null 2>&1 || true
+            echo "::warning::cognee MCP server not connected (attempt ${attempt} of 2)."
+            if [ "${attempt}" -lt 2 ]; then sleep 10; fi
+          done
+          echo "::error::The cognee MCP server did not connect, so Total Warfare verification would silently degrade to 'unverified'. Check COGNEE_URL, COGNEE_API_KEY and the Cognee service."
+          exit 1
+
       # A `/rules-review` command approves the head that existed when it was
       # written. If the PR head moved after that, the approval no longer covers
       # the code that would be fetched, so stop instead of reviewing unseen code.
