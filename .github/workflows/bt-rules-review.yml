@@ -190,33 +190,77 @@ jobs:
           EOF
 
       # The reviewer's only authority is Total Warfare through Cognee. If the MCP
-      # server cannot start, every finding degrades to "unverified" and a broken
-      # gate still reports success, so prove the tool is there before reviewing.
-      - name: Verify the Cognee MCP server connects
+      # server cannot start or cannot authenticate, every finding degrades to
+      # "unverified" and a broken gate still reports success, so prove it works
+      # before reviewing. This talks to cognee-mcp over MCP stdio directly:
+      # `opencode mcp list` reports OpenCode's own service state and said "No MCP
+      # servers configured" on a clean runner even with the server configured.
+      - name: Verify the Cognee MCP server answers a recall
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           COGNEE_URL: ${{ secrets.COGNEE_URL }}
           COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
         run: |
           set -uo pipefail
-          status=""
-          for attempt in 1 2; do
-            status="$(opencode mcp list 2>&1 || true)"
-            echo "${status}"
-            if grep -qE 'cognee[[:space:]]+connected' <<<"${status}"; then
-              echo "cognee MCP server connected (attempt ${attempt})."
-              opencode service stop > /dev/null 2>&1 || true
-              exit 0
-            fi
-            # Stopping the service makes the next attempt a real handshake rather
-            # than a cached failure, and keeps the MCP child out of the way of the
-            # reviewer's own --standalone run.
-            opencode service stop > /dev/null 2>&1 || true
-            echo "::warning::cognee MCP server not connected (attempt ${attempt} of 2)."
-            if [ "${attempt}" -lt 2 ]; then sleep 10; fi
-          done
-          echo "::error::The cognee MCP server did not connect, so Total Warfare verification would silently degrade to 'unverified'. Check COGNEE_URL, COGNEE_API_KEY and the Cognee service."
-          exit 1
+          command -v cognee-mcp > /dev/null 2>&1 || {
+            echo "::error::cognee-mcp is not on PATH; the install-cognee task did not put it in ~/.local/bin."
+            exit 1
+          }
+          seen="$(mktemp)"
+          err_file="$(mktemp)"
+
+          coproc MCP { cognee-mcp --api-url "${COGNEE_URL}" --api-token "${COGNEE_API_KEY}" \
+            --api-auth-scheme x-api-key 2>"${err_file}"; }
+          mcp_in="${MCP[1]}"
+          mcp_out="${MCP[0]}"
+          mcp_pid="${MCP_PID}"
+
+          cleanup() {
+            kill "${mcp_pid}" 2>/dev/null || true
+            rm -f "${seen}" "${err_file}"
+          }
+          trap cleanup EXIT
+
+          send() { printf '%s\n' "$1" >&"${mcp_in}"; }
+
+          read_until() {
+            local pattern="$1" timeout="${2:-180}" deadline line=""
+            deadline=$(( $(date +%s) + timeout ))
+            while [ "$(date +%s)" -lt "${deadline}" ]; do
+              kill -0 "${mcp_pid}" 2>/dev/null || return 1
+              if IFS= read -r -t 5 line <&"${mcp_out}"; then
+                printf '%s\n' "${line}" >> "${seen}"
+                case "${line}" in *"${pattern}"*) return 0 ;; esac
+              fi
+            done
+            return 1
+          }
+
+          fail() {
+            echo "::error::$1"
+            echo "--- stderr:"
+            tail -n 30 "${err_file}" 2>/dev/null || true
+            echo "--- mcp responses:"
+            tail -n 5 "${seen}" 2>/dev/null || true
+            exit 1
+          }
+
+          send '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}'
+          read_until '"id":1' 180 || fail "cognee-mcp did not answer an MCP initialize request."
+
+          send '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+          send '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+          read_until '"recall"' 180 || fail "cognee-mcp did not advertise a recall tool, so Total Warfare verification would silently degrade to 'unverified'."
+
+          send '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"recall","arguments":{"query":"Total Warfare attack modifiers","top_k":1}}}'
+          read_until '"id":3' 180 || fail "cognee-mcp did not answer a recall call."
+
+          # cognee reports API failures as tool text with isError=false, so the
+          # payload has to be inspected rather than trusted.
+          if grep -qE '"isError":true|"text":"Error:' "${seen}"; then
+            fail "cognee-mcp cannot use the configured Cognee credentials (401/403 or transport error in the recall payload)."
+          fi
+
+          echo "cognee-mcp is up, advertises recall, and a recall call succeeds."
 
       # A `/rules-review` command approves the head that existed when it was
       # written. If the PR head moved after that, the approval no longer covers
