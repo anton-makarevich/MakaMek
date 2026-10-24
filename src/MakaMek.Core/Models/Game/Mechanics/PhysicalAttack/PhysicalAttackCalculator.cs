@@ -15,6 +15,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// (Punch +0, Kick -2); standard attacker movement, target movement and terrain
 /// modifiers apply, as do target-side modifiers (partial cover, skidding) and the
 /// attacker-side skidding modifier. Heat and sensor modifiers are never applied.
+/// <para>
+/// Attacker movement modifiers are cumulative (Attack Modifiers Table): the skidding
+/// attacker modifier (+1) is added on top of the movement-type modifier, not in place
+/// of it. Prone attackers cannot perform physical attacks (see
+/// <see cref="AttackerProneGate"/>); the only exception (punching a vehicle in the same
+/// hex) is not modelled yet.
+/// </para>
 /// </summary>
 public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 {
@@ -56,8 +63,8 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
         var otherModifiers = GetTargetModifiers(scenario, losResult);
 
-        // A skidding attacker replaced its normal movement with the skid, so the skidding
-        // modifier takes the place of the movement-type modifier (Attack Modifiers Table).
+        // Attacker movement modifiers are cumulative (Attack Modifiers Table): a skidding
+        // attacker adds +1 on top of its movement-type modifier.
         var isSkidding = scenario.AttackerUnit?.IsSkidding == true;
         if (isSkidding)
         {
@@ -80,7 +87,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = isSkidding ? 0 : _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
+                Value = _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
                 MovementType = scenario.AttackerMovementType
             },
             TargetMovement = new TargetMovementModifier

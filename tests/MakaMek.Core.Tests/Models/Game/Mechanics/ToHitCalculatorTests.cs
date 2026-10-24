@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -329,6 +330,7 @@ public class ToHitCalculatorTests
                 Events: [new SegmentEvent(SegmentEventType.Skid)])
         ], MovementType.Walk), null);
         _attacker.Parts.Values.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(1);
 
         // Setup target
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -347,7 +349,96 @@ public class ToHitCalculatorTests
         // Assert
         var skiddingModifier = result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
         skiddingModifier.Value.ShouldBe(SkiddingAttackerModifier.DefaultValue);
-        result.Total.ShouldBe(5); // Base (4) + skidding attacker (1)
+        result.AttackerMovement.Value.ShouldBe(1);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Walk);
+        result.Total.ShouldBe(6); // Base (4) + walked (1) + skidding attacker (1) — cumulative
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_ProneAttacker_StacksProneOnMovementModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+
+        // Setup attacker with walking movement, then fall prone
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        _attacker.Deploy(attackerPosition, null);
+        _attacker.Move(new MovementPath([
+            new PathSegment(attackerPosition, attackerPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk), null);
+        ((Mech)_attacker).SetProne();
+        // Torso location is valid for a prone mech (arm weapons cannot fire while prone)
+        _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.CenterTorso)!
+            .TryAddComponent(_weapon);
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(1);
+
+        // Setup target
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(targetPosition.Coordinates.Q-1, targetPosition.Coordinates.R), HexDirection.Bottom);
+        _target.Deploy(targetStartPosition, null);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+            MovementType.Walk), null);
+
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert — prone (+2) stacks on the walked (+1) movement modifier
+        var proneModifier = result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
+        proneModifier.Value.ShouldBe(ProneAttackerModifier.DefaultValue);
+        result.AttackerMovement.Value.ShouldBe(1);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Walk);
+        result.Total.ShouldBe(7); // Base (4) + walked (1) + prone (2)
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_RanSkiddingProneAttacker_StacksAllModifiers()
+    {
+        // Arrange — a skid starts with a fall, so a skidding 'Mech is prone (TW p. 62/63)
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+
+        var attackerData = MechFactoryTests.CreateDummyMechData();
+        _attacker = _mechFactory.Create(attackerData);
+        _attacker.AssignPilot(new MechWarrior("John", "Doe"));
+        _attacker.Deploy(attackerPosition, null);
+        _attacker.Move(new MovementPath([
+            new PathSegment(attackerPosition, attackerPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Run), null);
+        ((Mech)_attacker).SetProne();
+        _attacker.Parts.Values.FirstOrDefault(p => p.Location == PartLocation.CenterTorso)!
+            .TryAddComponent(_weapon);
+        _rules.GetAttackerMovementModifier(MovementType.Run).Returns(2);
+
+        // Setup target
+        var targetData = MechFactoryTests.CreateDummyMechData();
+        _target = _mechFactory.Create(targetData);
+        var targetStartPosition = new HexPosition(new HexCoordinates(targetPosition.Coordinates.Q-1, targetPosition.Coordinates.R), HexDirection.Bottom);
+        _target.Deploy(targetStartPosition, null);
+        _target.Move(new MovementPath([
+            new PathSegment(targetStartPosition, targetPosition, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+            MovementType.Walk), null);
+
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert — ran (+2) + skidding (+1) + prone (+2) are cumulative
+        result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
+        result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
+        result.AttackerMovement.Value.ShouldBe(2);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Run);
+        result.Total.ShouldBe(9); // Base (4) + ran (2) + skidding (1) + prone (2)
     }
 
     [Fact]
@@ -846,6 +937,41 @@ public class ToHitCalculatorTests
         result.TargetMovement.HexesMoved.ShouldBe(3);
         result.OtherModifiers.ShouldContain(m => m is HeatRollModifier);
         result.Total.ShouldBe(9); // 4 + 2 + 1 + 2
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_HypotheticalScenarioWithProneAttacker_KeepsMovementModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        SetupAttackerAndTarget(attackerPosition, targetPosition); // mounts the weapon for the firing arc calculation
+
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: 4,
+            attackerPosition: attackerPosition,
+            attackerMovementType: MovementType.Run,
+            targetPosition: targetPosition,
+            targetHexesMoved: 0,
+            attackerModifiers: new List<RollModifier>
+            {
+                new ProneAttackerModifier { Value = ProneAttackerModifier.DefaultValue }
+            });
+
+        _rules.GetAttackerMovementModifier(MovementType.Run).Returns(2);
+        _rules.GetTargetMovementModifier(0).Returns(0);
+        _rules.GetRangeModifier(Arg.Any<RangeBracket>(), Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetTerrainToHitModifier(Arg.Any<MakaMekTerrains>()).Returns(0);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(scenario, _weapon, map);
+
+        // Assert — the prone (+2) attacker state is cumulative with the ran (+2) movement modifier
+        result.AttackerMovement.Value.ShouldBe(2);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Run);
+        result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
+        result.Total.ShouldBe(8); // 4 + 2 (ran) + 2 (prone)
     }
 
     [Fact]
