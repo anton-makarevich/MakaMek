@@ -453,6 +453,11 @@ public abstract class Unit : IUnit
     public bool IsSkidding => MovementTaken?
         .Segments.Any(s => s.Events.Any(e => e.Type == SegmentEventType.Skid))
                               ?? false;
+
+    /// <summary>
+    /// Gets whether the unit is prone. Returns true if the Prone status flag is set.
+    /// </summary>
+    public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
     public MovementPath? MovementTaken { get; protected set; }
 
     public bool HasMoved { get; private set; }

@@ -3117,6 +3117,51 @@ public class MechTests
         result.OfType<ProneAttackerModifier>().ShouldBeEmpty();
     }
 
+    [Fact]
+    public void GetAttackModifiers_WithSkiddingMech_ShouldIncludeSkiddingModifier()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.Move(new MovementPath([
+            new PathSegment(
+                new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+                new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Walk), null);
+
+        // Act
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
+
+        // Assert
+        result.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
+        result.OfType<ProneAttackerModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAttackModifiers_WithProneAndSkiddingMech_ShouldIncludeOnlyProneModifier()
+    {
+        // Arrange — a 'Mech commonly falls at the end of a skid, so both flags can be set
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        sut.Move(new MovementPath([
+            new PathSegment(
+                new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+                new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                Events: [new SegmentEvent(SegmentEventType.Skid)])
+        ], MovementType.Walk), null);
+        sut.SetProne();
+
+        // Act
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
+
+        // Assert — prone wins over skidding
+        result.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
+        result.OfType<SkiddingAttackerModifier>().ShouldBeEmpty();
+    }
+
     
     [Fact]
     public void IsMinimumMovement_ShouldReturnFalse_ByDefault()
