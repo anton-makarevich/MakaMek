@@ -3656,24 +3656,6 @@ public class UnitTests
     }
 
     [Fact]
-    public void IsProne_ReturnsFalse_WhenProneStatusFlagIsNotSet()
-    {
-        var sut = CreateTestUnit();
-        sut.SetStatusForTesting(UnitStatus.Active);
-
-        sut.IsProne.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void IsProne_ReturnsTrue_WhenProneStatusFlagIsSet()
-    {
-        var sut = CreateTestUnit();
-        sut.SetStatusForTesting(UnitStatus.Prone);
-
-        sut.IsProne.ShouldBeTrue();
-    }
-
-    [Fact]
     public void MaxLevelChangeForward_Default_ReturnsZero()
     {
         var sut = CreateTestUnit();

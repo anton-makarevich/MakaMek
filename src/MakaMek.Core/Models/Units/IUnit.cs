@@ -122,11 +122,6 @@ public interface IUnit
     /// Gets whether the unit is currently skidding. Returns true if any movement segment contains a skid event.
     /// </summary>
     bool IsSkidding { get; }
-
-    /// <summary>
-    /// Gets whether the unit is prone. Returns true if the Prone status flag is set.
-    /// </summary>
-    bool IsProne { get; }
     int TotalPhaseDamage { get; }
 
     /// <summary>

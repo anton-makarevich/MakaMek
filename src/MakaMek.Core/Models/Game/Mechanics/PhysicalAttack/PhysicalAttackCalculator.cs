@@ -16,10 +16,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// modifiers apply, as do target-side modifiers (partial cover, skidding) and the
 /// attacker-side skidding modifier. Heat and sensor modifiers are never applied.
 /// <para>
-/// The attacker movement rows of the Attack Modifiers Table are exclusive states:
-/// a prone (+2) or skidding (+1) attacker-state modifier replaces the movement-type
-/// modifier instead of stacking on it, and prone wins over skidding
-/// (see <see cref="AttackerStateModifierResolver"/>).
+/// Attacker movement modifiers are cumulative (Attack Modifiers Table): the skidding
+/// attacker modifier (+1) is added on top of the movement-type modifier, not in place
+/// of it. Prone attackers cannot perform physical attacks (see
+/// <see cref="AttackerProneGate"/>); the only exception (punching a vehicle in the same
+/// hex) is not modelled yet.
 /// </para>
 /// </summary>
 public class PhysicalAttackCalculator : IPhysicalAttackCalculator
@@ -48,11 +49,6 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
         return GetModifierBreakdown(scenario, map).Total;
     }
 
-    /// <summary>
-    /// Builds the modifier breakdown for a physical attack scenario.
-    /// Attacker-state modifiers (prone +2 / skidding +1) are exclusive attacker movement
-    /// rows: they replace the movement-type modifier, and prone wins over skidding.
-    /// </summary>
     public PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map)
     {
         var losResult = map.GetLineOfSight(
@@ -67,15 +63,15 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
         var otherModifiers = GetTargetModifiers(scenario, losResult);
 
-        // Attacker-state modifiers (prone/skidding) are exclusive attacker movement rows:
-        // the prone (+2) or skidding (+1) modifier takes the place of the movement-type
-        // modifier (Attack Modifiers Table); prone wins over skidding.
-        var attackerStateModifier = AttackerStateModifierResolver.Resolve(
-            scenario.AttackerUnit?.IsProne == true,
-            scenario.AttackerUnit?.IsSkidding == true);
-        if (attackerStateModifier != null)
+        // Attacker movement modifiers are cumulative (Attack Modifiers Table): a skidding
+        // attacker adds +1 on top of its movement-type modifier.
+        var isSkidding = scenario.AttackerUnit?.IsSkidding == true;
+        if (isSkidding)
         {
-            otherModifiers.Add(attackerStateModifier);
+            otherModifiers.Add(new SkiddingAttackerModifier
+            {
+                Value = SkiddingAttackerModifier.DefaultValue
+            });
         }
 
         return new PhysicalAttackBreakdown
@@ -91,9 +87,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = attackerStateModifier != null
-                    ? 0
-                    : _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
+                Value = _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
                 MovementType = scenario.AttackerMovementType
             },
             TargetMovement = new TargetMovementModifier

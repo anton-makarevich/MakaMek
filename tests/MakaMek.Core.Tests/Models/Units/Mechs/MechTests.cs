@@ -3129,7 +3129,7 @@ public class MechTests
                 new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
                 [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 Events: [new SegmentEvent(SegmentEventType.Skid)])
-        ], MovementType.Walk), null);
+        ], MovementType.Run), null);
 
         // Act
         var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
@@ -3140,9 +3140,10 @@ public class MechTests
     }
 
     [Fact]
-    public void GetAttackModifiers_WithProneAndSkiddingMech_ShouldIncludeOnlyProneModifier()
+    public void GetAttackModifiers_WithProneAndSkiddingMech_ShouldIncludeBothModifiers()
     {
-        // Arrange — a 'Mech commonly falls at the end of a skid, so both flags can be set
+        // Arrange — a skid starts with a fall, so a skidding 'Mech is prone (TW p. 62/63);
+        // attacker movement modifiers are cumulative
         var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
         sut.Move(new MovementPath([
@@ -3151,15 +3152,15 @@ public class MechTests
                 new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
                 [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
                 Events: [new SegmentEvent(SegmentEventType.Skid)])
-        ], MovementType.Walk), null);
+        ], MovementType.Run), null);
         sut.SetProne();
 
         // Act
         var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
 
-        // Assert — prone wins over skidding
+        // Assert
         result.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
-        result.OfType<SkiddingAttackerModifier>().ShouldBeEmpty();
+        result.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
     }
 
     

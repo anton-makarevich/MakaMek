@@ -83,12 +83,6 @@ public class ToHitCalculator : IToHitCalculator
             });
         }
 
-        // Attacker-state modifiers (prone +2 / skidding +1) are exclusive attacker movement
-        // rows of the Attack Modifiers Table: when one applies, it replaces the
-        // movement-type modifier instead of stacking on top of it.
-        var hasAttackerStateModifier = scenario.AttackerModifiers
-            .Any(AttackerStateModifierResolver.IsAttackerStateModifier);
-
         return new ToHitBreakdown
         {
             GunneryBase = new GunneryRollModifier
@@ -97,9 +91,7 @@ public class ToHitCalculator : IToHitCalculator
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = hasAttackerStateModifier
-                    ? 0
-                    : _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
+                Value = _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
                 MovementType = scenario.AttackerMovementType
             },
             TargetMovement = new TargetMovementModifier

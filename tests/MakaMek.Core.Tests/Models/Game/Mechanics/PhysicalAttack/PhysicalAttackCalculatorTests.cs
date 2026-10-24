@@ -447,7 +447,7 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
-    public void GetModifierBreakdown_SkiddingAttacker_ReplacesMovementModifierWithSkiddingModifier()
+    public void GetModifierBreakdown_SkiddingAttacker_StacksSkiddingOnMovementModifier()
     {
         // Arrange
         var attackerPosition = new HexPosition(2, 2, HexDirection.Bottom);
@@ -462,76 +462,12 @@ public class PhysicalAttackCalculatorTests
         // Act
         var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
 
-        // Assert — a skidding attacker gets +1 (skidding) instead of +1 (walked)
+        // Assert — attacker movement modifiers are cumulative: walked (+1) + skidding (+1)
         var skidding = result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldHaveSingleItem();
         skidding.Value.ShouldBe(1);
-        result.AttackerMovement.Value.ShouldBe(0);
-        result.Total.ShouldBe(6); // piloting (5) + punch base (0) + skidding (1)
-    }
-
-    [Fact]
-    public void GetModifierBreakdown_ProneAttacker_ReplacesMovementModifierWithProneModifier()
-    {
-        // Arrange
-        var attackerPosition = new HexPosition(2, 2, HexDirection.Bottom);
-        var targetPosition = new HexPosition(2, 3, HexDirection.Bottom);
-        var (attacker, target) = CreateUnits(
-            attackerPosition,
-            targetPosition,
-            attackerMovement: CreateWalkingPath(attackerPosition, targetPosition));
-        attacker.IsProne.Returns(true);
-        var map = CreateMap();
-
-        // Act
-        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
-
-        // Assert — a prone attacker gets +2 (prone) instead of +1 (walked)
-        var prone = result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
-        prone.Value.ShouldBe(2);
-        result.AttackerMovement.Value.ShouldBe(0);
-        result.Total.ShouldBe(7); // piloting (5) + punch base (0) + prone (2)
-    }
-
-    [Fact]
-    public void GetModifierBreakdown_ProneAndSkiddingAttacker_ProneModifierWins()
-    {
-        // Arrange
-        var attackerPosition = new HexPosition(2, 2, HexDirection.Bottom);
-        var targetPosition = new HexPosition(2, 3, HexDirection.Bottom);
-        var (attacker, target) = CreateUnits(
-            attackerPosition,
-            targetPosition,
-            attackerMovement: CreateWalkingPath(attackerPosition, targetPosition));
-        attacker.IsProne.Returns(true);
-        attacker.IsSkidding.Returns(true);
-        var map = CreateMap();
-
-        // Act
-        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
-
-        // Assert — prone wins over skidding
-        result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
-        result.OtherModifiers.OfType<SkiddingAttackerModifier>().ShouldBeEmpty();
-        result.AttackerMovement.Value.ShouldBe(0);
-        result.Total.ShouldBe(7); // piloting (5) + punch base (0) + prone (2)
-    }
-
-    [Fact]
-    public void GetModifierBreakdown_NonProneAttacker_DoesNotIncludeProneAttackerModifier()
-    {
-        // Arrange
-        var (attacker, target) = CreateUnits(
-            new HexPosition(2, 2, HexDirection.Bottom),
-            new HexPosition(2, 3, HexDirection.Bottom));
-        attacker.IsProne.Returns(false);
-        var map = CreateMap();
-
-        // Act
-        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
-
-        // Assert
-        result.OtherModifiers.OfType<ProneAttackerModifier>().ShouldBeEmpty();
-        result.Total.ShouldBe(5); // piloting (5) + punch base (0)
+        result.AttackerMovement.Value.ShouldBe(1);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Walk);
+        result.Total.ShouldBe(7); // piloting (5) + punch base (0) + walked (1) + skidding (1)
     }
 
     [Fact]

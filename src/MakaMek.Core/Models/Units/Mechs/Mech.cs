@@ -410,12 +410,22 @@ public class Mech : Unit
             penalties.Add(AttackHeatPenalty);
         }
 
-        // Attacker-state modifier (exclusive attacker movement rows of the Attack Modifiers
-        // Table): prone (+2) or skidding (+1) replaces the movement-type modifier; prone wins
-        var attackerStateModifier = AttackerStateModifierResolver.Resolve(IsProne, IsSkidding);
-        if (attackerStateModifier != null)
+        // Prone firing penalty
+        if (IsProne)
         {
-            penalties.Add(attackerStateModifier);
+            penalties.Add(new ProneAttackerModifier
+            {
+                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
+            });
+        }
+
+        // Skidding penalty
+        if (IsSkidding)
+        {
+            penalties.Add(new SkiddingAttackerModifier
+            {
+                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
+            });
         }
 
         // Add sensor hit modifier for Mechs
@@ -673,7 +683,7 @@ public class Mech : Unit
         }
     }
 
-
+    public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
 
     /// <summary>
     /// Gets the mech's height in levels. Standing mechs are height 2, prone mechs are height 1.
