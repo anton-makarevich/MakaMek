@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -83,7 +83,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -122,7 +122,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -136,6 +136,16 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
         result.GameActions[0].ShouldBeOfType<MoveUnitAction>();
         result.GameActions[1].ShouldBeOfType<ApplyFallAction>();
         result.GameActions[2].ShouldBeOfType<FallBroadcastAction>();
+
+        // The landing position (segment.To on Ground) must be passed so the water depth can be resolved
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Any<EnteringDeepWaterRollContext>(),
+            Game,
+            MovementType.Walk,
+            Arg.Is<HexPosition?>(p => p != null
+                && p.Coordinates == new HexCoordinates(2, 2)
+                && p.Surface == HexSurface.Ground));
     }
 
     [Fact]
@@ -188,7 +198,7 @@ public class WaterEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,

@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -98,7 +98,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -144,7 +144,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -196,7 +196,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.HexesMoved == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -267,7 +267,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -311,7 +311,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -354,7 +354,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -409,7 +409,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         var cliffFallContext = new FallContextData
@@ -435,7 +435,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -485,7 +485,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         var cliffFallContext = new FallContextData
@@ -504,7 +504,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 5),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -521,7 +521,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 5),
             Game,
-            MovementType.Run);
+            MovementType.Run, Arg.Any<HexPosition?>());
     }
 
     [Fact]
@@ -553,7 +553,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -604,7 +604,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -626,7 +626,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Any<CliffFallRollContext>(),
             Game,
-            MovementType.Run);
+            MovementType.Run, Arg.Any<HexPosition?>());
     }
 
     [Fact]
@@ -657,7 +657,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.AccidentalFallLevels == 0),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -676,7 +676,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1 && ctx.AccidentalFallLevels == 0),
             Game,
-            MovementType.Run);
+            MovementType.Run, Arg.Any<HexPosition?>());
     }
 
     // ──────────────────────────────────────────────
@@ -723,7 +723,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         var cliffFallContext = new FallContextData
@@ -749,7 +749,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -818,7 +818,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Any<SkidCheckRollContext>(),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         var cliffFallContext = new FallContextData
@@ -844,7 +844,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -861,7 +861,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3 
                                                 && ctx.FacingDiceRoll == sharedFacingRoll && ctx.FacingAfterFall == sharedFacing),
             Game,
-            MovementType.Run);
+            MovementType.Run, Arg.Any<HexPosition?>());
     }
 
     [Fact]
@@ -906,7 +906,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         var cliffFallContext = new FallContextData
@@ -925,7 +925,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,
@@ -945,7 +945,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 2),
             Game,
-            MovementType.Run);
+            MovementType.Run, Arg.Any<HexPosition?>());
     }
 
     [Fact]
@@ -987,7 +987,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<SkidCheckRollContext>(ctx => ctx.SkidDistance == 1),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(initialFallContext);
 
         // Cliff fall has a successful pilot damage PSR → no pilot injury
@@ -1014,7 +1014,7 @@ public class SkidInterruptHandlerTests : GamePhaseTestsBase
             mech,
             Arg.Is<CliffFallRollContext>(ctx => ctx.LevelsFallen == 3),
             Game,
-            MovementType.Run)
+            MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(cliffFallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Run,

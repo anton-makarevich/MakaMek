@@ -1314,6 +1314,49 @@ public class TotalWarfareRulesProviderTests
             _sut.GetWaterDepthModifier(waterDepth));
     }
 
+    [Fact]
+    public void CalculateFallingDamageInWater_ThrowsException_ForNegativeLevelsFallen()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            _sut.CalculateFallingDamageInWater(2, -1, 1));
+    }
+
+    [Theory]
+    // Fall contained in the water column (entry falls, falls in place of a submerged unit):
+    // single bottom impact, halved and rounded down
+    [InlineData(2, 0, 1, 1)]  // 20-ton in depth 1 water, 0 levels: 2 * 1 / 2 = 1
+    [InlineData(5, 0, 1, 2)]  // 50-ton in depth 1 water, 0 levels: 5 * 1 / 2 = 2
+    [InlineData(6, 0, 1, 3)]  // 55-ton in depth 1 water, 0 levels: 6 * 1 / 2 = 3
+    [InlineData(2, 1, 1, 2)]  // 20-ton, 1 level in depth 1 water: 2 * 2 / 2 = 2
+    [InlineData(5, 1, 2, 5)]  // 50-ton, 1 level in depth 2 water: 5 * 2 / 2 = 5
+    [InlineData(5, 2, 2, 7)]  // 50-ton, 2 levels in depth 2 water: 5 * 3 / 2 = 7
+    [InlineData(5, 0, 3, 2)]  // 50-ton in depth 3 water, 0 levels: 5 * 1 / 2 = 2
+    // Fall starting above the water surface: surface impact (halved) + bottom impact (halved)
+    [InlineData(5, 3, 2, 12)] // surface: 5 * 2 / 2 = 5, bottom: 5 * 3 / 2 = 7
+    [InlineData(5, 4, 1, 15)] // surface: 5 * 4 / 2 = 10, bottom: 5 * 2 / 2 = 5
+    [InlineData(5, 4, 3, 15)] // surface: 5 * 2 / 2 = 5, bottom: 5 * 4 / 2 = 10
+    public void CalculateFallingDamageInWater_CalculatesTotalDamageCorrectly(
+        int perLevelDamage,
+        int levelsFallen,
+        int waterDepth,
+        int expectedDamage)
+    {
+        // Act
+        var result = _sut.CalculateFallingDamageInWater(perLevelDamage, levelsFallen, waterDepth);
+
+        // Assert
+        result.ShouldBe(expectedDamage);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public void CalculateFallingDamageInWater_ThrowsException_ForInvalidWaterDepth(int waterDepth)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+                _sut.CalculateFallingDamageInWater(2, 1, waterDepth));
+    }
+
     [Theory]
     [InlineData(0, -1)]   // 0-2 hexes: -1
     [InlineData(1, -1)]

@@ -32,7 +32,8 @@ public class SkidInterruptHandler : IMovementInterruptHandler
 
         var skidContext = new SkidCheckRollContext(skidResult.Segments.Count, hexesMoved);
         var skidFallContext = context.Game.FallProcessor.ProcessMovementAttempt(
-            mech, skidContext, context.Game, context.MoveCommand.MovementType);
+            mech, skidContext, context.Game, context.MoveCommand.MovementType,
+            new HexPosition(segment.From));
 
         if (!skidFallContext.IsFalling)
         {
@@ -99,7 +100,8 @@ public class SkidInterruptHandler : IMovementInterruptHandler
             mech,
             new CliffFallRollContext(skidResult.LevelsFallen, facingDiceRoll, facingAfterFall),
             context.Game,
-            context.MoveCommand.MovementType);
+            context.MoveCommand.MovementType,
+            new HexPosition(skidResult.Segments[^1].To.Coordinates, skidResult.Segments[^1].To.Facing, skidResult.Segments[^1].To.Surface));
 
         var cliffSegments = skidResult.Segments.ToList();
         cliffSegments[^1] = cliffSegments[^1] with

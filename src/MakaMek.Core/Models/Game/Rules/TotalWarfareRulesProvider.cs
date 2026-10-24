@@ -660,6 +660,38 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <summary>
+    /// Calculates the total falling damage for a fall that ends in a hex with water, following TW p. 57:
+    /// the fall is resolved in two stages — the impact with the water surface (only when the fall
+    /// starts above the surface) and the impact with the hex bottom — and the damage of each stage
+    /// is halved, rounding down.
+    /// </summary>
+    /// <param name="perLevelDamage">The damage per fallen level, ceil(tonnage/10)</param>
+    /// <param name="levelsFallen">
+    /// The total number of levels the unit fell, down to the hex bottom (0 for a fall in place)
+    /// </param>
+    /// <param name="waterDepth">The water depth of the hex where the fall happens</param>
+    /// <returns>The total falling damage after the water reduction</returns>
+    public int CalculateFallingDamageInWater(int perLevelDamage, int levelsFallen, int waterDepth)
+    {
+        if (waterDepth < 1)
+            throw new ArgumentOutOfRangeException(nameof(waterDepth), "Water depth must be at least 1.");
+        if (levelsFallen < 0)
+            throw new ArgumentOutOfRangeException(nameof(levelsFallen), "Levels fallen cannot be negative.");
+        if (levelsFallen <= waterDepth)
+        {
+            // The fall is contained in the water column (from the water surface down to the hex
+            // bottom, or a fall in place of a submerged unit): only the impact with the bottom, halved
+            return perLevelDamage * (levelsFallen + 1) / 2;
+        }
+
+        // The fall starts above the water surface: impact with the surface (halved)
+        // plus impact with the hex bottom (halved)
+        var surfaceDamage = perLevelDamage * (levelsFallen - waterDepth + 1) / 2;
+        var bottomDamage = perLevelDamage * (waterDepth + 1) / 2;
+        return surfaceDamage + bottomDamage;
+    }
+
     public int GetSkidModifier(int hexesMoved)
     {
         return hexesMoved switch

@@ -87,7 +87,7 @@ Concrete actions:
 | `MoveUnitAction(command, publish)` | `game.OnMoveUnit(command)` | the command iff `publish` |
 | `BridgeCollapsedAction(command, publish)` | `game.OnBridgeCollapsed(command)` | the command iff `publish` |
 | `ApplyFallAction(mech, fallCommand)` | `game.OnMechFalling` + crit hits + consciousness rolls | fall command + derived commands |
-| `WaterFallBroadcastAction(mech, truncatedCommand)` | builds the post-fall broadcast, completing the move if the mech can't stand up | broadcast command |
+| `FallBroadcastAction(mech, truncatedCommand)` | builds the post-fall broadcast, completing the move if the mech can't stand up | broadcast command |
 | `PublishCommandAction(command)` | none | the command (pure broadcast) |
 
 The `publish` flag matters for ordering: a handler can mutate state silently first (`publish: false`), interleave another action, then emit the publishable command later (`publish: true`). `BridgeCollapseInterruptHandler` uses exactly this to land the unit, collapse the bridge, then re-broadcast the completed move.
@@ -105,7 +105,8 @@ private readonly IReadOnlyList<IMovementInterruptHandler> _segmentInterruptHandl
 [
     new BridgeCollapseInterruptHandler(),
     new SkidInterruptHandler(),
-    new WaterEntryInterruptHandler()
+    new WaterEntryInterruptHandler(),
+    new RubbleEntryInterruptHandler()
 ];
 ```
 
@@ -120,13 +121,27 @@ private readonly IReadOnlyList<IMovementInterruptHandler> _landingInterruptHandl
 [
     new BridgeCollapseInterruptHandler(),
     new JumpDamageInterruptHandler(),
-    new WaterEntryInterruptHandler()
+    new WaterEntryInterruptHandler(),
+    new RubbleEntryInterruptHandler()
 ];
 ```
 
 These run with `IsLandingCheck = true` and `SegmentIndex` pointing at the final segment.
 
 Note the two chains share handlers but differ in membership and order: skid only applies to running, jump-landing damage only applies to landing. A handler that does not apply to its mode simply guards and returns `null` (e.g. `SkidInterruptHandler` requires `MovementType.Run`; `JumpDamageInterruptHandler` requires `Jump` + `IsLandingCheck`).
+
+### Landing position
+
+`FallProcessor.ProcessMovementAttempt` accepts a trailing optional `fallPosition` (`HexPosition?`). Movement interrupts calculate the fall **before** the unit moves, so at that point `mech.Position` still points at the *previous* hex — handlers must pass the hex where the unit will actually land so the fall processor can resolve water depth there:
+
+| Handler | `fallPosition` |
+|---------|----------------|
+| `WaterEntryInterruptHandler` / `RubbleEntryInterruptHandler` | `segment.To` (the hex being entered) |
+| `BridgeCollapseInterruptHandler` | `bridgeCoords` with `HexSurface.Ground` (post-collapse landing) |
+| `SkidInterruptHandler` | `segment.From` for the initial skid fall, the final skid segment's `To` for the cliff fall |
+| `JumpDamageInterruptHandler` | omitted — movement is already applied, the current position is correct |
+
+`FallProcessor` resolves the landing water depth from that position (only on a `Ground` surface) and delegates the water damage reduction to the rules provider (`IRulesProvider.CalculateFallingDamageInWater`). A fall that ends in a water hex drops the unit to the hex bottom, so `LevelsFallen` equals the water depth for every water-entry fall — walk, run and jump alike — and the resulting damage is halved per the TW two-stage rule (see `TotalWarfareRulesProvider`).
 
 ### Applying a result
 
@@ -183,7 +198,7 @@ Because handlers are pure (`Check(context) → result?`) they are unit-tested in
 ## Adding a new hazard
 
 1. Implement `IMovementInterruptHandler`. Guard early and return `null` when the hazard does not apply (wrong movement type, wrong segment, not a `Mech`, `IsLandingCheck` mismatch, etc.).
-2. Run any roll through `context.Game.FallProcessor.ProcessMovementAttempt(...)` with the appropriate `*RollContext`.
+2. Run any roll through `context.Game.FallProcessor.ProcessMovementAttempt(...)` with the appropriate `*RollContext`, passing the hex where the unit will land as `fallPosition` (see *Landing position* above).
 3. Return a `MovementInterruptResult`: `ShouldStop = false` for a passed roll that only needs a PSR broadcast, `true` to interrupt the move.
 4. Build the consequence from existing `IGameAction`s; add a new action only if no current one fits, keeping mutation + publish-list together in the action.
 5. Register the handler in `_segmentInterruptHandlers` and/or `_landingInterruptHandlers` at the correct position in the chain.
