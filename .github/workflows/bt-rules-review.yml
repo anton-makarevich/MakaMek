@@ -335,8 +335,10 @@ jobs:
     needs: review
     # A cancelled review was superseded (newer commit, or a newer run in the same
     # group) and that run reports its own result. Commenting and failing here
-    # only overwrites a good review with "could not complete".
-    if: always() && (needs.review.result == 'success' || needs.review.result == 'failure')
+    # only overwrites a good review with "could not complete". `!cancelled()`
+    # replaces `always()`, which would keep this job alive after the run was
+    # cancelled and let it publish a superseded HEAD_SHA.
+    if: ${{ !cancelled() && (needs.review.result == 'success' || needs.review.result == 'failure') }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
