@@ -97,3 +97,25 @@ A 'Mech punching with one or two arms resolves each arm separately, so the arm-a
 * **Vehicles:** Cannot perform physical attacks, except for **Charge (ramming)** attacks or using specialized mounted equipment (like a bulldozer or saw).
 * **ProtoMechs & Infantry:** ProtoMechs cannot make standard physical attacks (they have a special "frenzy" attack). Infantry use specialized Anti-’Mech leg or swarm attack rules instead of standard physical attacks.
 * **Aerospace Units:** Cannot make physical attacks against ground units.
+
+---
+
+### **6. Water — Physical Attack Eligibility (Total Warfare p. 109, p. 151; issue #1600)**
+
+The water rules decide whether a physical attack may be **made at all** — they are *eligibility* rules, not to-hit modifiers. The only to-hit effect of water on a physical attack is the **partial cover +1** a target in Depth 1 water receives (see §2), and the **damage halving** for attacks applied to an underwater location is a resolution rule (tracked in #1503), not an eligibility rule.
+
+**Effective standing levels (p. 109):** water counts as negative levels. A unit in a water hex stands at the bottom of that hex, so its effective standing level is `hex level − water depth`. A unit on a bridge over water stands at the bridge level and is never considered to be in water.
+
+**Restriction against submerged targets (p. 151):** a physical attack cannot be made against a unit that is **fully submerged** (water depth ≥ the unit's height — for a 'Mech: standing in Depth 2+ water, or prone in Depth 1 water) unless the attack **begins underwater as well**:
+
+| Attacker's position | Attacks allowed against a submerged target |
+| :--- | :--- |
+| **Not in water** (on land or on a bridge) | **None** — no part of the attack is underwater |
+| **Standing in Depth 1 water** (half-submerged: torso and arms above the surface) | **Kick only** — the only attack that occurs entirely underwater. Punches, charges, DFA and other attacks that would partly take place above the surface are illegal |
+| **Fully submerged** (Depth 2+ water, or prone in Depth 1 water) | **Any** supported attack — the whole attack takes place underwater |
+
+**No attacker-side restriction toward surface targets:** the Depth 2+ paragraph grants a fully submerged 'Mech permission to make any of the listed physical attacks without restricting the target's state. An underwater attacker may therefore attack a surface target subject to the normal requirements — adjacency, arcs, and the **Different Levels Table** acting on the effective standing levels of both units. (In practice the level difference usually blocks such attacks geometrically.)
+
+**Depth 1 attacker against a surface target:** explicitly unrestricted — a 'Mech standing in Depth 1 water "may make any physical attack, provided the unit meets the normal requirements for each type of attack".
+
+**Implementation:** `PhysicalAttackEligibility` applies these rules (and the effective-standing-level comparison) to punch/kick declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically.
