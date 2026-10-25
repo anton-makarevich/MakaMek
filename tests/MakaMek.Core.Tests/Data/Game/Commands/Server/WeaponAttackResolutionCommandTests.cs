@@ -103,6 +103,7 @@ public class WeaponAttackResolutionCommandTests
         
         return new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -124,6 +125,7 @@ public class WeaponAttackResolutionCommandTests
         
         return new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -160,6 +162,7 @@ public class WeaponAttackResolutionCommandTests
         
         return new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -319,6 +322,7 @@ public class WeaponAttackResolutionCommandTests
         
         var sut = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -365,6 +369,7 @@ public class WeaponAttackResolutionCommandTests
 
         var sut = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -409,6 +414,7 @@ public class WeaponAttackResolutionCommandTests
         
         var sut = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,
@@ -455,6 +461,7 @@ public class WeaponAttackResolutionCommandTests
         
         var sut = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
             AttackerId = _attacker.Id,

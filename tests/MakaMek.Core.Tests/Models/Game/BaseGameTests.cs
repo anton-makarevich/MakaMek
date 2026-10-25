@@ -471,6 +471,7 @@ public sealed class BaseGameTests : BaseGame
         // Arrange
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Id,
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),
@@ -528,6 +529,7 @@ public sealed class BaseGameTests : BaseGame
         // Create the attack resolution command with IsHit = false
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Id,
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),
@@ -587,6 +589,7 @@ public sealed class BaseGameTests : BaseGame
         // Create the attack resolution command with a non-existent attacker ID
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Id,
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(), // Non-existent attacker
@@ -673,6 +676,7 @@ public sealed class BaseGameTests : BaseGame
         // Create the attack resolution command
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Id,
             PlayerId = attackerPlayerId,
             AttackerId = attackerMech.Id,
@@ -2033,6 +2037,7 @@ public sealed class BaseGameTests : BaseGame
         // Arrange
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),

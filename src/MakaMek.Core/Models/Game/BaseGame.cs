@@ -41,6 +41,9 @@ public abstract class BaseGame : IGame
     // Physical attack resolutions already applied, so a resolution delivered twice deals its damage once
     private readonly ConcurrentDictionary<Guid, byte> _appliedPhysicalAttackResolutions = new();
 
+    // Weapon attack resolutions already applied, so a resolution delivered twice deals its damage once
+    private readonly ConcurrentDictionary<Guid, byte> _appliedWeaponAttackResolutions = new();
+
     public Guid Id { get; }
 
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
@@ -240,6 +243,8 @@ public abstract class BaseGame : IGame
 
     internal void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)
     {
+        if (!_appliedWeaponAttackResolutions.TryAdd(attackResolutionCommand.ResolutionId, 0)) return;
+
         // Find the attacking unit
         var attackerUnit = _players
             .SelectMany(p => p.Units)
@@ -568,7 +573,7 @@ public abstract class BaseGame : IGame
             return CommandValidationResult.Valid();
 
         return command.WeaponTargets.Any(target =>
-                target is null || target.Weapon is null || target.Weapon.Assignments is not { Count: > 0 })
+                target.Weapon.Assignments is not { Count: > 0 })
             ? CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
             : CommandValidationResult.Valid();
     }

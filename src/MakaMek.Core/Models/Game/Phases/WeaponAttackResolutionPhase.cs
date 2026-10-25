@@ -165,6 +165,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Create and publish a command to inform clients about the attack resolution
         var command = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Game.Id,
             PlayerId = player.Id,
             AttackerId = attacker.Id,
