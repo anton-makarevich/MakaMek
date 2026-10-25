@@ -95,9 +95,16 @@ jobs:
             head_ref="opencode/issue-${NUMBER}"
             base_ref="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
             # The issue branch is ours; resolve its current tip to an immutable
-            # SHA so the checkout does not follow a mutable ref.
+            # SHA so the checkout does not follow a mutable ref. `gh api` prints
+            # the JSON error body to stdout when the request fails (only the
+            # `gh: ...` line goes to stderr), so `2>/dev/null || true` alone
+            # would capture `{"message":"Not Found",...}` for a missing branch
+            # and pass it on as a git refspec. Only accept a real object id.
             branch_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${head_ref}" \
               --jq '.object.sha' 2>/dev/null || true)"
+            if ! [[ "${branch_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+              branch_sha=""
+            fi
           fi
 
           {
@@ -204,20 +211,42 @@ jobs:
           BRANCH_SHA: ${{ needs.triage.outputs.branch_sha }}
         run: |
           set -euo pipefail
+          branch_created="false"
           if [ "${IS_PR}" = "true" ]; then
             # Immutable commit, never a branch ref: the code cannot change
             # between the date check above and this checkout.
             git fetch --no-tags --depth=1 origin "${HEAD_SHA}"
             git checkout -B "${HEAD_REF}" "${HEAD_SHA}"
-          elif [ -n "${BRANCH_SHA}" ]; then
+          elif [[ "${BRANCH_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
             # A `/oc` on the same issue again: continue on the existing branch.
             git fetch --no-tags --depth=1 origin "${BRANCH_SHA}"
             git checkout -B "${HEAD_REF}" "${BRANCH_SHA}"
           else
+            # First `/oc` on this issue: branch off the default branch and
+            # publish the branch immediately, so the run owns a stable target
+            # that can be removed again when it produces nothing.
             git checkout -B "${HEAD_REF}"
+            if gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+                -f ref="refs/heads/${HEAD_REF}" \
+                -f sha="$(git rev-parse HEAD)" > /dev/null; then
+              branch_created="true"
+            else
+              # Created concurrently (or already present): adopt it instead of
+              # losing the run.
+              existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${HEAD_REF}" \
+                --jq '.object.sha' 2>/dev/null || true)"
+              if [[ "${existing_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+                git fetch --no-tags --depth=1 origin "${existing_sha}"
+                git checkout -B "${HEAD_REF}" "${existing_sha}"
+              else
+                echo "::error::Could not create or resolve the branch ${HEAD_REF}."
+                exit 1
+              fi
+            fi
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "branch_created=${branch_created}" >> "$GITHUB_OUTPUT"
           echo "head_before=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Write the request
@@ -358,21 +387,51 @@ jobs:
             echo "pr_url=${pr_url}" >> "$GITHUB_OUTPUT"
           fi
 
+      # A run that publishes nothing must not leave a dead branch behind. Only
+      # branches this run created are removed: an existing one may hold commits
+      # from an earlier run and its pull request. A failed push is safe to clean
+      # up (nothing reached the remote), but a pushed branch with a failed PR
+      # creation is not: that branch carries the agent's commits.
+      - name: Delete the branch when nothing was published
+        id: cleanup
+        if: >-
+          always() &&
+          steps.branch.outputs.branch_created == 'true' &&
+          (steps.commit.outputs.committed != 'true' || steps.push.outputs.sha == '')
+        env:
+          HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+        run: |
+          set -uo pipefail
+          if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" > /dev/null; then
+            echo "deleted=true" >> "$GITHUB_OUTPUT"
+            echo "Deleted the unused branch ${HEAD_REF}."
+          else
+            echo "::warning::Could not delete the unused branch ${HEAD_REF}."
+          fi
+
       - name: Report the result
         if: always()
         env:
           NUMBER: ${{ needs.triage.outputs.number }}
+          HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          PREPARE_OUTCOME: ${{ steps.branch.outcome }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
           COMMIT_OUTCOME: ${{ steps.commit.outcome }}
           PUSH_OUTCOME: ${{ steps.push.outcome }}
           PUSHED_SHA: ${{ steps.push.outputs.sha }}
           PR_URL: ${{ steps.push.outputs.pr_url }}
+          BRANCH_DELETED: ${{ steps.cleanup.outputs.deleted }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -uo pipefail
           log="${RUNNER_TEMP}/opencode.log"
           failed=""
-          if [ "${AGENT_OUTCOME}" != "success" ]; then failed="agent"; fi
+          if [ "${PREPARE_OUTCOME}" = "failure" ]; then failed="prepare branch"; fi
+          # `skipped` only means an earlier step failed: blame the agent for an
+          # actual failure, not for never having been reached.
+          if [ "${AGENT_OUTCOME}" = "failure" ] || [ "${AGENT_OUTCOME}" = "cancelled" ]; then
+            failed="${failed:+${failed}, }agent"
+          fi
           if [ "${COMMIT_OUTCOME}" = "failure" ]; then
             failed="${failed:+${failed}, }commit"
           fi
@@ -392,6 +451,10 @@ jobs:
               echo "See the [workflow run](${RUN_URL}) for the failing step's log."
             elif [ -n "${PR_URL}" ]; then
               echo "Opened ${PR_URL}"
+              echo
+            fi
+            if [ "${BRANCH_DELETED}" = "true" ]; then
+              echo "Nothing was published, so the unused branch \`${HEAD_REF}\` was deleted."
               echo
             fi
             if [ -s "${log}" ] && [ -z "${failed}" ]; then
