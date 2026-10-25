@@ -6,6 +6,12 @@ name: opencode
 # time (its `@v*` ref versions the action script, not the CLI), so the CLI
 # version could never be pinned or shared with the other workflows. The version
 # now lives in exactly one place: the `install-opencode` task in mise.toml.
+#
+# Trust model: the agent can push commits, so it is started ONLY by the
+# repository owner typing `/oc` as the first word of a comment. Fork pull
+# requests are not supported: this job holds write credentials and GITHUB_TOKEN
+# cannot push to a fork, so a fork PR is refused before any fork code is checked
+# out or any tool is installed.
 
 on:
   issue_comment:
@@ -19,17 +25,87 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  opencode:
-    timeout-minutes: 60
-    if: |
-      (contains(github.event.comment.body, '/oc') ||
-      contains(github.event.comment.body, '/opencode')) &&
-      github.event.comment.user.type != 'Bot' &&
-        contains(
-          fromJson('["OWNER"]'),
-          github.event.comment.author_association
-        )
+  # Cheap triage with no checkout. Decides whether the privileged job may run at
+  # all, so no tooling is installed and no code is checked out for refused
+  # requests. Its only write permission is the refusal comment.
+  triage:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: |
+      contains(github.event.comment.body, '/oc') &&
+      github.event.comment.user.type != 'Bot' &&
+      github.event.comment.author_association == 'OWNER'
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      number: ${{ steps.ctx.outputs.number }}
+      is_pr: ${{ steps.ctx.outputs.is_pr }}
+      head_ref: ${{ steps.ctx.outputs.head_ref }}
+      base_ref: ${{ steps.ctx.outputs.base_ref }}
+      comment_api: ${{ steps.ctx.outputs.comment_api }}
+      runnable: ${{ steps.ctx.outputs.runnable }}
+    steps:
+      - name: Resolve issue/PR context
+        id: ctx
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          IS_PR: ${{ github.event.issue.pull_request != null || github.event_name == 'pull_request_review_comment' }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+
+          # The command must be the first word of the comment, so prose that
+          # merely mentions `/oc` cannot start a run.
+          first_line="${COMMENT_BODY%%$'\n'*}"
+          first_line="${first_line#"${first_line%%[![:space:]]*}"}"
+          if [[ ! "${first_line}" =~ ^/oc([[:space:]]|$) ]]; then
+            echo "Not an /oc command; nothing to do."
+            echo "runnable=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          runnable="true"
+          reason=""
+          if [ "${IS_PR}" = "true" ]; then
+            pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}")"
+            head_ref="$(jq -r '.head.ref' <<<"${pr_json}")"
+            base_ref="$(jq -r '.base.ref' <<<"${pr_json}")"
+            head_repo="$(jq -r '.head.repo.full_name' <<<"${pr_json}")"
+            if [ "${head_repo}" != "${GITHUB_REPOSITORY}" ]; then
+              # Fork PR: this job would hold write credentials while running
+              # fork-controlled instructions, and GITHUB_TOKEN cannot push to
+              # the fork anyway. Refuse before any checkout.
+              runnable="false"
+              reason="Fork pull requests are not supported. The agent runs with write credentials, so it only runs on branches in \`${GITHUB_REPOSITORY}\`. Ask a maintainer to open a branch here if you need this reviewed."
+            fi
+          else
+            head_ref="opencode/issue-${NUMBER}"
+            base_ref="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
+          fi
+
+          {
+            echo "number=${NUMBER}"
+            echo "is_pr=${IS_PR}"
+            echo "head_ref=${head_ref}"
+            echo "base_ref=${base_ref}"
+            echo "comment_api=$([ "${EVENT_NAME}" = "pull_request_review_comment" ] && echo pulls || echo issues)"
+            echo "runnable=${runnable}"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "${runnable}" = "false" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${NUMBER}/comments" \
+              -f body="**opencode:** ${reason}" > /dev/null
+          fi
+
+  opencode:
+    needs: triage
+    if: needs.triage.outputs.runnable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write
@@ -83,48 +159,14 @@ jobs:
           }
           EOF
 
-      - name: Resolve issue/PR context
-        id: ctx
-        env:
-          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
-          IS_PR: ${{ github.event.issue.pull_request != null || github.event_name == 'pull_request_review_comment' }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          if [ "${IS_PR}" = "true" ]; then
-            pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}")"
-            head_ref="$(jq -r '.head.ref' <<<"${pr_json}")"
-            head_repo="$(jq -r '.head.repo.full_name' <<<"${pr_json}")"
-            base_ref="$(jq -r '.base.ref' <<<"${pr_json}")"
-          else
-            head_ref="opencode/issue-${NUMBER}"
-            head_repo="${GITHUB_REPOSITORY}"
-            base_ref="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
-          fi
-          {
-            echo "number=${NUMBER}"
-            echo "is_pr=${IS_PR}"
-            echo "head_ref=${head_ref}"
-            echo "head_repo=${head_repo}"
-            echo "base_ref=${base_ref}"
-            echo "comment_api=$([ "${EVENT_NAME}" = "pull_request_review_comment" ] && echo pulls || echo issues)"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Prepare working branch
         id: branch
         env:
-          IS_PR: ${{ steps.ctx.outputs.is_pr }}
-          NUMBER: ${{ steps.ctx.outputs.number }}
-          HEAD_REF: ${{ steps.ctx.outputs.head_ref }}
-          HEAD_REPO: ${{ steps.ctx.outputs.head_repo }}
+          IS_PR: ${{ needs.triage.outputs.is_pr }}
+          HEAD_REF: ${{ needs.triage.outputs.head_ref }}
         run: |
           set -euo pipefail
-          if [ "${IS_PR}" = "true" ] && [ "${HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
-            # Fork PR: GITHUB_TOKEN cannot push to the fork, so the run is
-            # read-only and its answer is posted as a comment only.
-            git fetch --no-tags --depth=1 origin "pull/${NUMBER}/head"
-            git checkout --detach FETCH_HEAD
-          elif [ "${IS_PR}" = "true" ]; then
+          if [ "${IS_PR}" = "true" ]; then
             git fetch --no-tags --depth=1 origin "refs/heads/${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
             git checkout -B "${HEAD_REF}" "origin/${HEAD_REF}"
           elif git fetch --no-tags --depth=1 origin \
@@ -141,8 +183,8 @@ jobs:
       - name: Write the request
         id: request
         env:
-          NUMBER: ${{ steps.ctx.outputs.number }}
-          IS_PR: ${{ steps.ctx.outputs.is_pr }}
+          NUMBER: ${{ needs.triage.outputs.number }}
+          IS_PR: ${{ needs.triage.outputs.is_pr }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
           COMMENT_URL: ${{ github.event.comment.html_url }}
@@ -182,7 +224,7 @@ jobs:
         continue-on-error: true
         env:
           COMMENT_ID: ${{ github.event.comment.id }}
-          COMMENT_API: ${{ steps.ctx.outputs.comment_api }}
+          COMMENT_API: ${{ needs.triage.outputs.comment_api }}
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/${COMMENT_API}/comments/${COMMENT_ID}/reactions" \
             -f content="eyes" > /dev/null 2>&1 || true
@@ -243,19 +285,14 @@ jobs:
         id: push
         if: steps.commit.outputs.committed == 'true'
         env:
-          IS_PR: ${{ steps.ctx.outputs.is_pr }}
-          HEAD_REF: ${{ steps.ctx.outputs.head_ref }}
-          HEAD_REPO: ${{ steps.ctx.outputs.head_repo }}
-          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
-          NUMBER: ${{ steps.ctx.outputs.number }}
+          IS_PR: ${{ needs.triage.outputs.is_pr }}
+          HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          BASE_REF: ${{ needs.triage.outputs.base_ref }}
+          NUMBER: ${{ needs.triage.outputs.number }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          if [ "${IS_PR}" = "true" ] && [ "${HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]; then
-            echo "Fork PR: changes are not pushed, only reported in the comment."
-            exit 0
-          fi
           git config --local http.https://github.com/.extraheader \
             "AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
           git push origin "HEAD:${HEAD_REF}"
@@ -265,37 +302,59 @@ jobs:
             title="$(git log -1 --pretty=%s)"
             body="$(printf 'Closes #%s\n\nRequested by @%s. Run: %s' \
               "${NUMBER}" "${COMMENT_AUTHOR}" "${RUN_URL}")"
-            pr_url="$(gh pr create --base "${BASE_REF}" --head "${HEAD_REF}" \
-              --title "${title}" --body "${body}" 2>/dev/null \
-              || gh pr list --head "${HEAD_REF}" --json url --jq '.[0].url')"
+            create_err="${RUNNER_TEMP}/pr-create.err"
+            pr_url=""
+            if ! pr_url="$(gh pr create --base "${BASE_REF}" --head "${HEAD_REF}" \
+                --title "${title}" --body "${body}" 2>"${create_err}")"; then
+              pr_url="$(gh pr list --head "${HEAD_REF}" --state open \
+                --json url --jq '.[0].url // empty' 2>/dev/null || true)"
+            fi
+            if [ -z "${pr_url}" ]; then
+              # Pushing without a PR would leave the issue branch unreachable.
+              echo "::error::Could not create or find a pull request for ${HEAD_REF}."
+              cat "${create_err}" 2>/dev/null || true
+              exit 1
+            fi
             echo "pr_url=${pr_url}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Report the result
         if: always()
         env:
-          NUMBER: ${{ steps.ctx.outputs.number }}
+          NUMBER: ${{ needs.triage.outputs.number }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          COMMIT_OUTCOME: ${{ steps.commit.outcome }}
+          PUSH_OUTCOME: ${{ steps.push.outcome }}
           PUSHED_SHA: ${{ steps.push.outputs.sha }}
           PR_URL: ${{ steps.push.outputs.pr_url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -uo pipefail
           log="${RUNNER_TEMP}/opencode.log"
+          failed=""
+          if [ "${AGENT_OUTCOME}" != "success" ]; then failed="agent"; fi
+          if [ "${COMMIT_OUTCOME}" = "failure" ]; then
+            failed="${failed:+${failed}, }commit"
+          fi
+          if [ "${PUSH_OUTCOME}" = "failure" ]; then
+            failed="${failed:+${failed}, }push"
+          fi
           {
             echo "### 🤖 opencode"
             echo
-            if [ "${AGENT_OUTCOME}" != "success" ]; then
-              echo "**Run failed.** Last output:"
+            if [ -n "${failed}" ]; then
+              echo "**Run failed:** ${failed} step failed. Last output:"
               echo
               echo '```'
               tail -n 40 "${log}" 2>/dev/null || echo "no output captured"
               echo '```'
+              echo
+              echo "See the [workflow run](${RUN_URL}) for the failing step's log."
             elif [ -n "${PR_URL}" ]; then
               echo "Opened ${PR_URL}"
               echo
             fi
-            if [ -s "${log}" ] && [ "${AGENT_OUTCOME}" = "success" ]; then
+            if [ -s "${log}" ] && [ -z "${failed}" ]; then
               # Keep the end of the log: the summary is the last thing the agent writes.
               if [ "$(wc -c < "${log}")" -gt 55000 ]; then
                 echo "_(log truncated, showing the last 55000 bytes)_"
@@ -305,7 +364,7 @@ jobs:
               fi
             fi
             echo
-            if [ -n "${PUSHED_SHA}" ]; then
+            if [ -n "${PUSHED_SHA}" ] && [ -z "${failed}" ]; then
               echo "**Pushed:** \`${PUSHED_SHA}\`"
             fi
             echo "**Run:** [workflow run](${RUN_URL})"
@@ -314,8 +373,9 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/issues/${NUMBER}/comments" \
             -F body="@${RUNNER_TEMP}/comment.trimmed.md" > /dev/null 2>&1 || \
             echo "::warning::Could not post the result comment."
-          # Mirror the old action's behaviour: a failed agent fails the run.
-          if [ "${AGENT_OUTCOME}" != "success" ]; then
+          # Mirror the old action's behaviour: a failed agent/commit/push fails
+          # the run, so an unpublished change is never reported as success.
+          if [ -n "${failed}" ]; then
             exit 1
           fi
 
@@ -324,7 +384,7 @@ jobs:
         continue-on-error: true
         env:
           COMMENT_ID: ${{ github.event.comment.id }}
-          COMMENT_API: ${{ steps.ctx.outputs.comment_api }}
+          COMMENT_API: ${{ needs.triage.outputs.comment_api }}
         run: |
           id="$(gh api "repos/${GITHUB_REPOSITORY}/${COMMENT_API}/comments/${COMMENT_ID}/reactions" \
             --jq '.[] | select(.content == "eyes") | .id' | head -n1)"

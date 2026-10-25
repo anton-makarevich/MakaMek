@@ -119,7 +119,15 @@ jobs:
         uses: jdx/mise-action@v4
 
       - name: Install OpenCode CLI
-        run: mise run install-opencode
+        run: |
+          if grep -q '^\[tasks\.install-opencode\]' mise.toml; then
+            mise run install-opencode
+          else
+            # Bootstrap for base revisions that predate the install-opencode
+            # task: take the newest release and let the V2 check below gate it.
+            echo "::warning::mise.toml on this base revision has no install-opencode task; bootstrapping the latest CLI release."
+            npm install -g @opencode/cli@latest
+          fi
 
       - name: Install Cognee MCP
         run: |
