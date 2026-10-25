@@ -400,13 +400,25 @@ jobs:
           (steps.commit.outputs.committed != 'true' || steps.push.outputs.sha == '')
         env:
           HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          EXPECTED_SHA: ${{ steps.branch.outputs.head_before }}
         run: |
           set -uo pipefail
-          if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" > /dev/null; then
+          if [ -z "${EXPECTED_SHA:-}" ]; then
+            echo "::warning::No branch SHA was recorded; leaving ${HEAD_REF} in place rather than deleting an unknown ref."
+            exit 0
+          fi
+          # Lease-protected delete: only remove the ref if it still points at the
+          # SHA this run created. A plain REST DELETE would also take a commit
+          # another writer pushed in the meantime (the agent has a write token,
+          # so "do not push" is a prompt, not an enforcement boundary).
+          git config --local http.https://github.com/.extraheader \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
+          if git push origin --delete "${HEAD_REF}" \
+               --force-with-lease="refs/heads/${HEAD_REF}:${EXPECTED_SHA}" 2>/dev/null; then
             echo "deleted=true" >> "$GITHUB_OUTPUT"
             echo "Deleted the unused branch ${HEAD_REF}."
           else
-            echo "::warning::Could not delete the unused branch ${HEAD_REF}."
+            echo "::warning::Could not delete ${HEAD_REF}: it moved since this run created it, or it is already gone."
           fi
 
       - name: Report the result
