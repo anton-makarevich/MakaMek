@@ -12,6 +12,10 @@ name: opencode
 # requests are not supported: this job holds write credentials and GITHUB_TOKEN
 # cannot push to a fork, so a fork PR is refused before any fork code is checked
 # out or any tool is installed.
+#
+# The review target is pinned to an immutable commit SHA, and the run is refused
+# when that commit is newer than the triggering comment, so the code that is
+# executed cannot change between the owner's command and the checkout.
 
 on:
   issue_comment:
@@ -43,6 +47,8 @@ jobs:
       number: ${{ steps.ctx.outputs.number }}
       is_pr: ${{ steps.ctx.outputs.is_pr }}
       head_ref: ${{ steps.ctx.outputs.head_ref }}
+      head_sha: ${{ steps.ctx.outputs.head_sha }}
+      branch_sha: ${{ steps.ctx.outputs.branch_sha }}
       base_ref: ${{ steps.ctx.outputs.base_ref }}
       comment_api: ${{ steps.ctx.outputs.comment_api }}
       runnable: ${{ steps.ctx.outputs.runnable }}
@@ -70,9 +76,12 @@ jobs:
 
           runnable="true"
           reason=""
+          head_sha=""
+          branch_sha=""
           if [ "${IS_PR}" = "true" ]; then
             pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}")"
             head_ref="$(jq -r '.head.ref' <<<"${pr_json}")"
+            head_sha="$(jq -r '.head.sha' <<<"${pr_json}")"
             base_ref="$(jq -r '.base.ref' <<<"${pr_json}")"
             head_repo="$(jq -r '.head.repo.full_name' <<<"${pr_json}")"
             if [ "${head_repo}" != "${GITHUB_REPOSITORY}" ]; then
@@ -85,12 +94,18 @@ jobs:
           else
             head_ref="opencode/issue-${NUMBER}"
             base_ref="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
+            # The issue branch is ours; resolve its current tip to an immutable
+            # SHA so the checkout does not follow a mutable ref.
+            branch_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${head_ref}" \
+              --jq '.object.sha' 2>/dev/null || true)"
           fi
 
           {
             echo "number=${NUMBER}"
             echo "is_pr=${IS_PR}"
             echo "head_ref=${head_ref}"
+            echo "head_sha=${head_sha}"
+            echo "branch_sha=${branch_sha}"
             echo "base_ref=${base_ref}"
             echo "comment_api=$([ "${EVENT_NAME}" = "pull_request_review_comment" ] && echo pulls || echo issues)"
             echo "runnable=${runnable}"
@@ -115,6 +130,27 @@ jobs:
       # pushes never start workflow runs. Works unchanged without the secret.
       GH_TOKEN: ${{ secrets.OPENCODE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
+      # First step: the command must be newer than the commit it will review, so
+      # the code cannot change between the owner's /oc and the execution. This
+      # runs before any checkout.
+      - name: Verify the command is newer than the reviewed commit
+        env:
+          IS_PR: ${{ needs.triage.outputs.is_pr }}
+          HEAD_SHA: ${{ needs.triage.outputs.head_sha }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          set -euo pipefail
+          if [ "${IS_PR}" = "true" ]; then
+            head_commit_at="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}" \
+              --jq '.commit.committer.date')"
+            comment_epoch="$(date -d "${COMMENT_AT}" +%s)"
+            commit_epoch="$(date -d "${head_commit_at}" +%s)"
+            if [ "${commit_epoch}" -gt "${comment_epoch}" ]; then
+              echo "::error::PR head ${HEAD_SHA} was committed after the /oc command; comment /oc again to review the new head."
+              exit 1
+            fi
+          fi
+
       # Trusted tooling comes from the default branch, never from the PR head.
       - name: Checkout default branch for tooling
         uses: actions/checkout@v7
@@ -164,15 +200,19 @@ jobs:
         env:
           IS_PR: ${{ needs.triage.outputs.is_pr }}
           HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          HEAD_SHA: ${{ needs.triage.outputs.head_sha }}
+          BRANCH_SHA: ${{ needs.triage.outputs.branch_sha }}
         run: |
           set -euo pipefail
           if [ "${IS_PR}" = "true" ]; then
-            git fetch --no-tags --depth=1 origin "refs/heads/${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
-            git checkout -B "${HEAD_REF}" "origin/${HEAD_REF}"
-          elif git fetch --no-tags --depth=1 origin \
-              "refs/heads/${HEAD_REF}:refs/remotes/origin/${HEAD_REF}" 2>/dev/null; then
+            # Immutable commit, never a branch ref: the code cannot change
+            # between the date check above and this checkout.
+            git fetch --no-tags --depth=1 origin "${HEAD_SHA}"
+            git checkout -B "${HEAD_REF}" "${HEAD_SHA}"
+          elif [ -n "${BRANCH_SHA}" ]; then
             # A `/oc` on the same issue again: continue on the existing branch.
-            git checkout -B "${HEAD_REF}" "origin/${HEAD_REF}"
+            git fetch --no-tags --depth=1 origin "${BRANCH_SHA}"
+            git checkout -B "${HEAD_REF}" "${BRANCH_SHA}"
           else
             git checkout -B "${HEAD_REF}"
           fi
