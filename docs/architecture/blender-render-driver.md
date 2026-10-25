@@ -24,6 +24,7 @@ blender -b --factory-startup -noaudio \
         -P tools/blender/render.py -- \
         --model   artifacts/models/AS7/model.glb \
         --preset  presets/board-topdown.json \
+        --scale   0.7978 \
         --out     artifacts/sprites/AS7 \
         --clips   Idle,Walk,Run,ProneEnter,ProneIdle,StandUp \
         --report  artifacts/sprites/AS7/render-report.json
@@ -35,6 +36,7 @@ Rules:
 - `--factory-startup` — ignore user preferences and add-ons; the render must not depend on whose machine it is.
 - `--python-exit-code 1` — a Python exception fails the process. Additionally the driver verifies every expected file exists afterwards, because Blender can exit `0` with partial output.
 - `--` — everything after it is parsed by the driver, not by Blender.
+- `--scale` is **required** and is the pipeline's `effectiveScale` (§3.2). The driver never reads manifests, overrides or tonnage: it is a renderer, not a policy engine.
 - The `.blend` is **not** an input and not checked in. The scene is constructed by the script from the preset, so the scene is diffable text, not an opaque binary.
 
 Optional flags: `--engine cycles|eevee`, `--samples N`, `--resolution N`, `--save-blend path`, `--frame N` (single-frame smoke test), `--no-outline`, `--device cpu|gpu`.
@@ -45,7 +47,7 @@ Built by the driver, every run, from the preset:
 
 | Element | Rule |
 |---|---|
-| Model | `bpy.ops.import_scene.gltf(filepath=…)`; apply the manifest's `volume.correctionScale`; position so the **footprint centre** is at the world origin, ground at `z = 0` |
+| Model | `bpy.ops.import_scene.gltf(filepath=…)`; apply the **`--scale` value the pipeline passes** (see §3.2 — the driver never computes scale itself); position so the **footprint centre** is at the world origin, ground at `z = 0` |
 | Camera | Orthographic, pitch 90°, yaw 0°, `ortho_scale` derived from the preset's `referenceChassis` calibration so all chassis share one scale |
 | Lights | Key + fill + rim parented to the camera, fixed intensities, **neutral white** (a coloured light would break the luminance contract, §3.1) — identical for every mech and every frame (facing is a runtime rotation, so lighting must not vary with it) |
 | Materials | `board-look` override: imported textures and albedo are **discarded**, replaced by a near-white base with a tight roughness range, so all detail comes from shading rather than colour |
@@ -67,6 +69,22 @@ Therefore:
 - The pipeline converts each frame to `L = 0.2126R + 0.7152G + 0.0722B` and writes `R = G = B = L`, then **fails the frame** if the pre-conversion channel delta exceeds 1/255 — a coloured render means the material override or the view transform was not applied.
 - The current art already satisfies this (~98% neutral pixels, full 4…255 range), so the tint path needs no change.
 
+### 3.2 Scale handoff
+
+Scale policy has exactly one owner — the C# pipeline — and the driver receives a single number.
+
+```text
+effectiveScale = model.volume.correctionScale            // measured at import
+               × (variant overrides[chassis][variant]    // optional, most specific first
+                  ?? overrides[chassis])
+               × floorClamp                              // minimumCoverage, if triggered
+```
+
+- The pipeline computes it and passes `--scale`; the driver applies that uniform scale to the imported armature root **before** framing, so the camera's `ortho_scale` never depends on the model.
+- The driver does **not** read `model.json`, `scale-overrides.json`, tonnage or coverage thresholds. That keeps override logic testable in C# (where it is unit-covered) and makes the Python side purely mechanical.
+- The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.
+- A pre-scaled model (`--scale 1.0` with the scale baked into the `.glb`) is deliberately **not** supported: it would make the canonical model depend on a presentation preset and break reuse by a future 3D client.
+
 ## 4. Preset → scene mapping
 
 The preset stays renderer-agnostic in shape; the driver translates the keys it understands and fails loudly on unknown ones (a typo must not silently render the default look).
@@ -74,7 +92,7 @@ The preset stays renderer-agnostic in shape; the driver translates the keys it u
 | Preset key | Blender setting |
 |---|---|
 | `camera.pitchDegrees`, `camera.yawDegrees` | camera rotation |
-| `scale.referenceChassis`, `scale.referenceCoverage` | `ortho_scale`, and the model `scale` from each manifest's `correctionScale` (applied before framing) |
+| `scale.referenceChassis`, `scale.referenceCoverage` | `ortho_scale` (camera framing only — the model's scale comes from `--scale`, §3.2) |
 | `output.cellWidth`, `output.cellHeight` | `render.resolution_x/y` — 84×72, the same size every existing asset uses; AA comes from Cycles samples, not a supersampling multiplier |
 | `output.background` | `film_transparent` |
 | `output.channels` | luminance conversion + `R = G = B` assertion in the pipeline (Blender always writes RGB) |

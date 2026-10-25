@@ -342,7 +342,7 @@ artifacts/sprites/AS7/
   contact-sheet.png              # every clip/frame in one image, for human review
   lineup.png                     # (batch only) all chassis at effective scale on a hex grid
   scene.blend                    # optional, --save-blend only: the generated scene, for inspection
-  render-report.json             # per-clip frames, Blender version, samples, effective scale, warnings
+  render-report.json             # per-clip frames, Blender version, samples, effectiveScale breakdown, warnings
 ```
 
 Division of labour: Blender writes PNG frames and nothing else, already at the 1× cell size. All assembly — luminance conversion, atlas packing, `unit.png`, contact sheet, lineup, reports — is the pipeline's job, which is why the atlas layout can change without touching Python.

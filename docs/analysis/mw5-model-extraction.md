@@ -10,7 +10,7 @@ Date: 2026-10-25 · Scope: research only, no code changes.
 
 ## 1. Executive summary
 
-1. **Extraction is a solved, well-trodden problem.** MW5 is Unreal Engine 4.26; every asset lives in `MW5Mercs-WindowsNoEditor.pak`. Three working routes exist: **FModel** (browse/preview/export), **UE Viewer/umodel** (viewer + batch export), and the official **MW5 Mod Editor** (FBX export with real materials and skeletons).
+1. **Extraction is a solved, well-trodden problem.** MW5 is Unreal Engine 4.26; every **base-game** asset lives in `MW5Mercs-WindowsNoEditor.pak`, and DLC/mods ship as additional `.pak` files that must be loaded too (see §2.1). Three working routes exist: **FModel** (browse/preview/export), **UE Viewer/umodel** (viewer + batch export), and the official **MW5 Mod Editor** (FBX export with real materials and skeletons).
 2. **There are 199 unit variants in `data/units/mechs` but only 76 distinct chassis.** MW5 meshes are per-chassis, so the render workload is 76 model sets, not 199 (see §2.3).
 3. **Current unit art is a single 84×72 top-down silhouette** (`unit.png` inside the `.mmux` zip) drawn at 0.84 × the 100×86.6 hex. A re-render pipeline only needs to replace one PNG per unit at first — no format change is required to prove the idea.
 4. **Animation needs a format change** (`.mmux` v2: sprite atlas + metadata), but the runtime already has a sprite engine: `MonacoLabs.Presto.Avalonia` exposes `SpriteSheet` / `ImageSequence` / `PlayFrames` (see [presto-animation-capabilities.md](presto-animation-capabilities.md) §3.6).
@@ -166,6 +166,7 @@ Because the board is top-down, lying down is a silhouette problem, not a rig pro
 ### 4.4 Camera and lighting spec
 
 The current art is top-down and the `UnitControl` rotates sprites for facing, so the camera and lights must be **facing-independent**:
+
 | Parameter | Recommendation |
 |---|---|
 | Projection | Orthographic, `ortho_scale` fixed to the hex footprint (100 u) — every mech shares one scale |
@@ -178,7 +179,7 @@ The current art is top-down and the `UnitControl` rotates sprites for facing, so
 
 ### 4.5 Frame cell, colour and atlas
 
-- Current draw size is 84×72 logical px at 0.84 × hex, and that is also the render size: **1×, 84×72 per frame**, matching every existing asset. No supersampling and no downscale step — the frame lands exactly on the UI's draw box, so there is no resampling blur. Because resolution is only a preset value, a sharper variant later is a `cellWidth`/`cellHeight` change plus render time, not a format change. (No padding inside the cell: the atlas packer adds the 2 px gutters between cells.)
+- Current draw size is `0.84 × hex` = **84 × 72.746** logical px, so render at **84×72 per frame** (1×, the same as every existing asset) and accept the same ~1.01× vertical stretch that `Stretch = Fill` already applies to today's 84×72 art. There is no *extra* resampling introduced by the pipeline — it is identical to the status quo — but if pixel-exactness is ever wanted, render 84×73 and switch `UnitControl` to `Stretch = Uniform`. Because resolution is only a preset value, a sharper variant later is a `cellWidth`/`cellHeight` change plus render time, not a format change. (No padding inside the cell: the atlas packer adds the 2 px gutters between cells.)
 - Sprite *size* is not chosen here: it comes from the tonnage-volume scale chain in `../architecture/asset-pipeline.md` §4.3, with per-chassis overrides in `scale-overrides.json`.
 - Keep the **84:72 aspect** inside the cell, or switch `UnitControl` to `Stretch = Uniform`; `Stretch = Fill` on a square frame would squash the mech.
 - **Luminance only, no hue.** The shipped sprites are tinted at runtime (`UnitControl` composites the owner colour over the sprite with the sprite's alpha as an `OpacityMask`), so they must be a white→dark-grey ramp: near-white base, darker creases and outline. Measured on the current art: ~98% of opaque pixels are neutral (R≈G≈B) across a full 4…255 range — the tint path already assumes exactly this. Details in `../architecture/blender-render-driver.md` §3.1.
@@ -255,12 +256,14 @@ Per-chassis render time is minutes, not hours, if the scene is a template with l
 
 > **Not legal advice.** The statements below are engineering constraints we choose to honour, not a legal interpretation of any agreement. Verify against the current EULA before relying on them.
 
-MW5 assets and any render derived from them are PGI/Microsoft IP. PGI's MechWarrior EULA structure that matters here is consistent across their titles (check the numbering in the current Mercenaries EULA):
+MW5 assets and any render derived from them are PGI/Microsoft IP. Quoting the [MechWarrior 5: Mercenaries EULA](https://mw5mercs.com/eula) directly (26 July 2021 text):
 
-- **License grant** — a personal, non-commercial, non-transferable licence to install and use the *game* (MW5: Clans EULA §3 states this shape; the Mercenaries EULA has an equivalent grant).
-- **Distribution** — the licensee must not "sell, rent, lease, license, distribute, or otherwise transfer the Product" (Clans EULA §4.1(d)).
-- **Derivative works** — reverse engineering and creating derivative works are prohibited outside the User-Generated-Content terms (Clans EULA §4.2 and Art. 7). A rendered sprite of a game mesh is a derivative of the Licensed Materials under that reading.
-- **Separate instrument** — if the *Mod Editor* is used in the workflow, the [MW5 Mod Editor EULA](https://mw5mercs.com/static/docs/MW5_Mod_Editor_EULA.pdf) governs it, and it scopes "Licensed Materials" (software + content) separately from the Editor (which Epic licenses). It does not grant redistribution rights over the game content.
+- **License Grant** — "a non-exclusive, non-transferable, non-sublicensable worldwide license to install and use the Product … solely for your personal and non-commercial use".
+- **Restrictions / Code of Conduct** (pursuant to Article 3) — the licensee shall not "(c) copy, reproduce, display, perform, or otherwise use the Product in a way that is not expressly authorized in this EULA" or "(d) sell, rent, lease, license, distribute, or otherwise transfer the Product".
+- **Derivative works** — "You shall not reverse engineer, derive source code from, modify, adapt, translate, decompile, or disassemble the Product or create derivative works based on the Product, **except as set forth in Article 7 with respect to User Generated Content**". A rendered sprite of a game mesh is a derivative of the Product under that reading.
+- **Ownership** — "Any reproduction or representation of these licensed materials in any way and for any reason is prohibited without Piranha Games' prior permission".
+
+**The User-Generated-Content carve-out is real, and narrower than "modding is allowed".** Article 7 permits creating and distributing *your own* additions/mods; the separate [MW5 Mod Editor EULA](https://mw5mercs.com/static/docs/MW5_Mod_Editor_EULA.pdf) then scopes "Licensed Materials" (software + content) separately from the Editor (Epic-licensed) and permits Licensed Materials **inside a compliant, free Mod used with the game**. That does not make standalone redistribution of extracted assets — or of renders produced from them — a "mod": the carve-out is about shipping content that extends the game, under its conditions, not about publishing the game's art as an independent asset pack.
 
 This is the same constraint that shaped the current asset story: `data/` art comes from the MegaMek Data Repository (CC BY-NC-SA 4.0) and is distributed separately as downloadable content.
 
@@ -268,6 +271,7 @@ Working rules we apply:
 
 - ✅ **May ship:** the extraction/render tooling, the `.mmux` v2 format, the runtime sprite support, documentation.
 - ❌ **May not ship:** rendered sprite atlases, or the extracted meshes, in the repo or in a downloadable pack.
+- ⚠️ **A mod is a different act:** a free, game-integrated mod built with the Mod Editor may include Licensed Materials under that EULA's conditions. That does not license *this repository* to ship MW5-derived sprites, and it does not turn an asset pack into a mod.
 - ✅ **Users may:** run the tool against their own licensed copy and load the result through `LocalFolderResourceStreamProvider` (which already exists precisely for "assets not published to GitHub").
 - Alternative for a *shippable* art pass: run the same pipeline against commissioned or CC-licensed mech models, or trace silhouettes into original vector art.
 - The pipeline enforces the first two mechanically with a closed `licenseStatus` (`redistributable` / `not-redistributable` / `unknown`, default-deny) — see `../architecture/asset-pipeline.md` §8.

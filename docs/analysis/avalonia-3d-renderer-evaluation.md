@@ -19,7 +19,7 @@ Blender also has MCP support, in two flavours, neither of which is a batch path:
 | Used for | CI, shipped frames | authoring the preset, diagnosing a model, one-off previews |
 | Availability | official CLI | official Blender Lab server (Blender 5.1+, add-on + external server) and community servers (`mcp-for-blender`, `blender-mcp-server`) |
 
-So the correct split is: **C# for the pipeline (import, normalise, pack, CLI/MCP), Blender+Python for rendering, MCP for authoring.** Sections 2–7 below remain accurate as an API survey and as the rationale for *not* writing a renderer; §8 is superseded.
+So the correct split is: **C# for the pipeline (import, normalise, pack, CLI/MCP), Blender+Python for rendering, MCP for authoring.** Sections 2–3 below remain accurate as an API survey. Sections 4–5 and §8 are superseded by §9. Section 6 and the rasterizer risks in §7 describe the rejected option and are not current guidance.
 
 ---
 
@@ -155,11 +155,13 @@ Triangle-setup bound rather than fill bound (small triangles), which is exactly 
 
 ## 6. Implications for the future 3D client
 
+> **Superseded** — this section reasons about the rejected CPU rasterizer. The offline sprite renderer is Blender automation (§9).
+
 This investigation does not decide the client, but it de-risks the options:
 
-- If the 3D client is **MonoGame**, it consumes the same canonical `.glb` — stage 1 is unchanged, and the CPU rasterizer remains the offline sprite renderer.
+- If the 3D client is **MonoGame**, it consumes the same canonical `.glb` — stage 1 is unchanged. The offline sprite renderer stays Blender automation (§9), not the CPU rasterizer.
 - If the 3D client is **Avalonia-hosted**, the preview viewport is already the first version of it, and `OpenGlControlBase` becomes the runtime path (desktop + mobile; WASM would need a different story).
-- Either way, keeping the renderer core framework-free means the sprite pipeline survives whichever way that decision lands.
+- Either way, keeping the canonical model engine-neutral means the sprite pipeline survives whichever way that decision lands.
 
 An explicit non-goal: this rasterizer is **not** a runtime renderer. Interactive 3D at 60 fps with full-detail meshes and a real scene stays on the GPU.
 
