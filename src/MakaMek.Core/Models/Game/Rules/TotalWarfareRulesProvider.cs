@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -256,6 +258,81 @@ public class TotalWarfareRulesProvider : IRulesProvider
 
         return damage;
     }
+
+    /// <summary>
+    /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
+    /// make one when it misses (Total Warfare, p. 146). A punch creates no obligation of its own.
+    /// Requirements disabled through <see cref="RequiresPilotingSkillRoll"/> are omitted.
+    /// </summary>
+    public IReadOnlyList<PhysicalAttackPsrRequirement> GetPhysicalAttackPsrRequirements(
+        PhysicalAttackType attackType,
+        bool isHit)
+    {
+        IReadOnlyList<PhysicalAttackPsrRequirement> candidates = attackType switch
+        {
+            PhysicalAttackType.Punch => [],
+            PhysicalAttackType.Kick when isHit =>
+                [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)],
+            PhysicalAttackType.Kick =>
+                [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)],
+            _ => throw new NotSupportedException(
+                $"Physical attack piloting skill roll requirements are not supported for attack type: {attackType}")
+        };
+
+        return candidates
+            .Where(requirement => RequiresPilotingSkillRoll(requirement.RollType))
+            .ToList();
+    }
+
+    /// <summary>
+    /// A punch is halved by each damaged or missing upper or lower arm actuator of the punching
+    /// arm; a kick by each destroyed upper or lower leg actuator of the kicking leg
+    /// (Total Warfare, p. 146-148).
+    /// </summary>
+    public int GetPhysicalAttackReducingActuators(
+        PhysicalAttackType attackType,
+        IReadOnlyCollection<LimbComponentState> limbComponents)
+    {
+        return attackType switch
+        {
+            PhysicalAttackType.Punch =>
+                CountDamagedOrMissing(limbComponents, MakaMekComponent.UpperArmActuator)
+                + CountDamagedOrMissing(limbComponents, MakaMekComponent.LowerArmActuator),
+            PhysicalAttackType.Kick =>
+                CountDestroyed(limbComponents, MakaMekComponent.UpperLegActuator)
+                + CountDestroyed(limbComponents, MakaMekComponent.LowerLegActuator),
+            _ => throw new NotSupportedException(
+                $"Physical attack actuator damage reduction is not supported for attack type: {attackType}")
+        };
+    }
+
+    private static int CountDestroyed(
+        IReadOnlyCollection<LimbComponentState> limbComponents,
+        MakaMekComponent type) =>
+        limbComponents.Count(component => component.Type == type && component.IsDestroyed);
+
+    private static int CountDamagedOrMissing(
+        IReadOnlyCollection<LimbComponentState> limbComponents,
+        MakaMekComponent type)
+    {
+        var matching = limbComponents.Where(component => component.Type == type).ToList();
+        return matching.Count == 0 ? 1 : matching.Count(component => component.IsDestroyed);
+    }
+
+    /// <summary>
+    /// Dispatches a physical attack hit-location roll to the punch or kick table.
+    /// </summary>
+    public PartLocation GetPhysicalAttackHitLocation(
+        PhysicalAttackType attackType,
+        int roll,
+        HitDirection direction) =>
+        attackType switch
+        {
+            PhysicalAttackType.Punch => GetPunchHitLocation(roll, direction),
+            PhysicalAttackType.Kick => GetKickHitLocation(roll, direction),
+            _ => throw new NotSupportedException(
+                $"Physical attack hit location is not supported for attack type: {attackType}")
+        };
 
     public int GetRangeModifier(RangeBracket rangeBracketType, int rangeValue, int distance)
     {

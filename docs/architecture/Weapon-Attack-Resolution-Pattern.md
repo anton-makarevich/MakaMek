@@ -165,6 +165,23 @@ Key points:
 8. **Phase end**: `CalculateEndOfPhasePsrs()` runs; Wolverine took 30+ damage in the phase → `FallProcessor` emits a PSR command.
 9. **Transition**: `Game.TransitionToNextPhase(PhaseNames.Heat)`
 
+## Physical attack adapter
+
+Physical attacks reuse the weapon resolution payload so the standard damage pipeline can consume
+them without a parallel damage implementation. The adapter boundary is explicit:
+
+* `PhysicalAttackResolutionData` wraps `AttackResolutionData` and `AttackHitLocationsData`, plus the
+  physical-specific attack type, attacking limb, damage and the piloting skill roll requirements
+  (`IReadOnlyList<PhysicalAttackPsrRequirement>`).
+* `BaseGame` damage application consumes `IsHit`, the per-location damage and the attack direction.
+  Logging observes `TotalDamage`, the location roll and the (empty) aimed-shot rolls.
+* `ExternalHeat`, `ClusterRoll` and `MissilesHit` are neutral placeholders in the physical path —
+  physical attacks generate no heat, have no cluster roll and hit no missiles. A miss is reported
+  with `HitDirection.Front`.
+* The adapter values are set in one private helper in `PhysicalAttackResolver`, so the fake
+  weapon-only fields stay in a single documented place instead of being scattered through the
+  resolver.
+
 ## Testing
 
 Three layers of testing, mirroring the Movement phase:

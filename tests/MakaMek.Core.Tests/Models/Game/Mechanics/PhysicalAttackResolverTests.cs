@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -76,14 +77,14 @@ public class PhysicalAttackResolverTests
         unit.Tonnage.Returns(tonnage);
         unit.Position.Returns(position);
         unit.Parts.Returns(new Dictionary<PartLocation, UnitPart>());
-        unit.GetComponentsAtLocation<UpperArmActuator>(Arg.Any<PartLocation>())
-            .Returns([new UpperArmActuator()]);
-        unit.GetComponentsAtLocation<LowerArmActuator>(Arg.Any<PartLocation>())
-            .Returns([new LowerArmActuator()]);
-        unit.GetComponentsAtLocation<UpperLegActuator>(Arg.Any<PartLocation>())
-            .Returns([new UpperLegActuator()]);
-        unit.GetComponentsAtLocation<LowerLegActuator>(Arg.Any<PartLocation>())
-            .Returns([new LowerLegActuator()]);
+        unit.GetComponentsAtLocation(Arg.Any<PartLocation>())
+            .Returns(_ => new List<Component>
+            {
+                new UpperArmActuator(),
+                new LowerArmActuator(),
+                new UpperLegActuator(),
+                new LowerLegActuator()
+            });
         return unit;
     }
 
@@ -453,21 +454,11 @@ public class PhysicalAttackResolverTests
         return actuator;
     }
 
-    private static void SetArmActuators(IUnit attacker, PartLocation arm, params Component[] actuators)
-    {
-        attacker.GetComponentsAtLocation<UpperArmActuator>(arm)
-            .Returns(actuators.OfType<UpperArmActuator>().ToList());
-        attacker.GetComponentsAtLocation<LowerArmActuator>(arm)
-            .Returns(actuators.OfType<LowerArmActuator>().ToList());
-    }
+    private static void SetArmActuators(IUnit attacker, PartLocation arm, params Component[] actuators) =>
+        attacker.GetComponentsAtLocation(arm).Returns(actuators.ToList());
 
-    private static void SetLegActuators(IUnit attacker, PartLocation leg, params Component[] actuators)
-    {
-        attacker.GetComponentsAtLocation<UpperLegActuator>(leg)
-            .Returns(actuators.OfType<UpperLegActuator>().ToList());
-        attacker.GetComponentsAtLocation<LowerLegActuator>(leg)
-            .Returns(actuators.OfType<LowerLegActuator>().ToList());
-    }
+    private static void SetLegActuators(IUnit attacker, PartLocation leg, params Component[] actuators) =>
+        attacker.GetComponentsAtLocation(leg).Returns(actuators.ToList());
 
     #endregion
 
@@ -597,8 +588,7 @@ public class PhysicalAttackResolverTests
 
         result.AttackResolution.IsHit.ShouldBeFalse();
         result.AttackResolution.HitLocationsData.ShouldBeNull();
-        result.RequiresTargetPsr.ShouldBeFalse();
-        result.RequiresAttackerPsr.ShouldBeFalse();
+        result.PsrRequirements.ShouldBeEmpty();
 
         _damageTransferCalculator
             .DidNotReceive()
@@ -622,8 +612,8 @@ public class PhysicalAttackResolverTests
 
         result.AttackResolution.IsHit.ShouldBeFalse();
         result.AttackResolution.HitLocationsData.ShouldBeNull();
-        result.RequiresTargetPsr.ShouldBeFalse();
-        result.RequiresAttackerPsr.ShouldBeTrue();
+        result.PsrRequirements.ShouldBe(
+            [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)]);
     }
 
     [Fact]
@@ -638,8 +628,74 @@ public class PhysicalAttackResolverTests
             CreateContext(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg));
 
         result.AttackResolution.IsHit.ShouldBeTrue();
-        result.RequiresTargetPsr.ShouldBeTrue();
-        result.RequiresAttackerPsr.ShouldBeFalse();
+        result.PsrRequirements.ShouldBe(
+            [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)]);
+    }
+
+    #endregion
+
+    #region Rules provider collaboration
+
+    [Fact]
+    public void ResolveAttack_ShouldPassTheProviderActuatorCountAndPsrRequirementsThrough()
+    {
+        var rules = Substitute.For<IRulesProvider>();
+        var resolver = new PhysicalAttackResolver(
+            _toHitCalculator,
+            _diceRoller,
+            rules,
+            _damageTransferCalculator);
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+        var requirements = new List<PhysicalAttackPsrRequirement>
+        {
+            new(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)
+        };
+        rules.GetPhysicalAttackReducingActuators(
+                PhysicalAttackType.Punch,
+                Arg.Any<IReadOnlyCollection<LimbComponentState>>())
+            .Returns(2);
+        rules.GetPhysicalAttackDamage(50, PhysicalAttackType.Punch, 2).Returns(7);
+        rules.GetPhysicalAttackHitLocation(PhysicalAttackType.Punch, 1, HitDirection.Front)
+            .Returns(PartLocation.CenterTorso);
+        rules.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Punch, true).Returns(requirements);
+
+        var result = resolver.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        result.Damage.ShouldBe(7);
+        rules.Received(1).GetPhysicalAttackDamage(50, PhysicalAttackType.Punch, 2);
+        result.PsrRequirements.ShouldBe(requirements);
+    }
+
+    [Fact]
+    public void ResolveAttack_ShouldPassTheLimbComponentStateToTheProvider()
+    {
+        var rules = Substitute.For<IRulesProvider>();
+        var resolver = new PhysicalAttackResolver(
+            _toHitCalculator,
+            _diceRoller,
+            rules,
+            _damageTransferCalculator);
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        var destroyedUpperArm = new UpperArmActuator();
+        destroyedUpperArm.Hit();
+        SetArmActuators(attacker, PartLocation.LeftArm, destroyedUpperArm);
+        SetHitRoll(5, 5);
+        SetLocationRoll(1);
+
+        resolver.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm));
+
+        rules.Received(1).GetPhysicalAttackReducingActuators(
+            PhysicalAttackType.Punch,
+            Arg.Is<IReadOnlyCollection<LimbComponentState>>(components =>
+                components.Count == 1
+                && components.Single() == new LimbComponentState(
+                    MakaMekComponent.UpperArmActuator, IsDestroyed: true)));
     }
 
     #endregion

@@ -3,8 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
@@ -16,6 +14,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// damage is distributed by the standard damage transfer calculator.
 /// The resolver never mutates a unit: applying the damage and rolling the critical hits stays
 /// with the caller, exactly as with weapon hits.
+/// <para>
+/// Rules ownership is split three ways: the supported attack catalog describes which limbs can
+/// make an attack, the rules provider owns the damage reduction, hit location and piloting skill
+/// roll obligations, and this resolver only performs component discovery and dice rolls.
+/// </para>
 /// </summary>
 public class PhysicalAttackResolver : IPhysicalAttackResolver
 {
@@ -41,22 +44,25 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(context.Map);
 
-        ValidateAttackType(context.AttackType);
-        ValidateLimb(context.AttackType, context.AttackerLimb);
+        var definition = PhysicalAttackDefinitions.Get(context.AttackType);
+        ValidateLimb(definition, context.AttackerLimb);
 
         if (context.Attacker.Position is null)
             throw new InvalidOperationException("Attacker position is not set");
         if (context.Target.Position is null)
             throw new InvalidOperationException("Target position is not set");
 
-        var damagedActuators = CountDamagedActuators(
-            context.Attacker,
+        var limbComponents = context.Attacker
+            .GetComponentsAtLocation(context.AttackerLimb)
+            .Select(component => new LimbComponentState(component.ComponentType, component.IsDestroyed))
+            .ToList();
+        var reducingActuators = _rulesProvider.GetPhysicalAttackReducingActuators(
             context.AttackType,
-            context.AttackerLimb);
+            limbComponents);
         var damage = _rulesProvider.GetPhysicalAttackDamage(
             context.Attacker.Tonnage,
             context.AttackType,
-            damagedActuators);
+            reducingActuators);
 
         var toHitNumber = _toHitCalculator.GetToHitNumber(
             context.Attacker,
@@ -66,6 +72,9 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
 
         var attackRoll = _diceRoller.Roll2D6();
         var isHit = attackRoll.Sum(d => d.Result) >= toHitNumber;
+        var psrRequirements = _rulesProvider.GetPhysicalAttackPsrRequirements(
+            context.AttackType,
+            isHit);
 
         if (!isHit)
         {
@@ -73,15 +82,17 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
                 context.AttackType,
                 context.AttackerLimb,
                 damage,
-                new AttackResolutionData(toHitNumber, attackRoll, false, HitDirection.Front, 0),
-                RequiresTargetPsr: false,
-                RequiresAttackerPsr: context.AttackType == PhysicalAttackType.Kick);
+                CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
+                psrRequirements);
         }
 
         var attackDirection = context.Target.GetAttackDirection(context.Attacker);
 
         var locationRoll = _diceRoller.RollD6();
-        var rolledLocation = GetHitLocation(context.AttackType, locationRoll.Result, attackDirection);
+        var rolledLocation = _rulesProvider.GetPhysicalAttackHitLocation(
+            context.AttackType,
+            locationRoll.Result,
+            attackDirection);
         var hitLocation = ResolveTransferLocation(context.Target, rolledLocation);
 
         var damageData = _damageTransferCalculator.CalculateStructureDamage(
@@ -106,70 +117,29 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             context.AttackType,
             context.AttackerLimb,
             damage,
-            new AttackResolutionData(toHitNumber, attackRoll, true, attackDirection, 0, hitLocationsData),
-            RequiresTargetPsr: context.AttackType == PhysicalAttackType.Kick,
-            RequiresAttackerPsr: false);
+            CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, hitLocationsData),
+            psrRequirements);
     }
 
     /// <summary>
-    /// Counts the actuators that halve the damage of the attack. A punch is halved by each
-    /// damaged or missing upper or lower arm actuator of the punching arm; a kick by each damaged
-    /// upper or lower leg actuator of the kicking leg.
+    /// Builds the weapon-shaped payload that the standard damage pipeline consumes. A physical
+    /// attack generates no heat, has no cluster roll or missiles, and a miss is always reported as
+    /// coming from the front. Isolating the adapter here documents the boundary instead of
+    /// scattering weapon-only values through the resolver.
     /// </summary>
-    private static int CountDamagedActuators(
-        IUnit attacker,
-        PhysicalAttackType attackType,
-        PartLocation attackerLimb)
-    {
-        return attackType switch
-        {
-            PhysicalAttackType.Punch =>
-                CountDamagedOrMissingActuatorsAtLocation<UpperArmActuator>(attacker, attackerLimb)
-                + CountDamagedOrMissingActuatorsAtLocation<LowerArmActuator>(attacker, attackerLimb),
-            PhysicalAttackType.Kick =>
-                CountDamagedActuatorsAtLocation<UpperLegActuator>(attacker, attackerLimb)
-                + CountDamagedActuatorsAtLocation<LowerLegActuator>(attacker, attackerLimb),
-            _ => 0
-        };
-    }
-
-    private static int CountDamagedActuatorsAtLocation<TActuator>(IUnit attacker, PartLocation location)
-        where TActuator : Component =>
-        attacker.GetComponentsAtLocation<TActuator>(location).Count(a => a.IsDestroyed);
-
-    /// <summary>
-    /// A component that the design does not mount at all is treated as a missing actuator. This
-    /// matters for punches because many 'Mech designs omit the lower arm actuator; such an arm
-    /// still punches, but at half damage under the "damaged or not present" rule.
-    /// </summary>
-    private static int CountDamagedOrMissingActuatorsAtLocation<TActuator>(
-        IUnit attacker,
-        PartLocation location)
-        where TActuator : Component
-    {
-        var actuators = attacker.GetComponentsAtLocation<TActuator>(location).ToList();
-        return actuators.Count == 0
-            ? 1
-            : actuators.Count(a => a.IsDestroyed);
-    }
-
-    /// <summary>
-    /// The hit location of a physical attack, rolled on 1D6 on the punch or the kick table. The
-    /// column comes from the direction the attack enters the target's hex.
-    /// </summary>
-    private PartLocation GetHitLocation(
-        PhysicalAttackType attackType,
-        int locationRoll,
-        HitDirection attackDirection)
-    {
-        return attackType switch
-        {
-            PhysicalAttackType.Punch => _rulesProvider.GetPunchHitLocation(locationRoll, attackDirection),
-            PhysicalAttackType.Kick => _rulesProvider.GetKickHitLocation(locationRoll, attackDirection),
-            _ => throw new NotSupportedException(
-                $"Physical attack resolution is not supported for attack type: {attackType}")
-        };
-    }
+    private static AttackResolutionData CreateAttackResolution(
+        int toHitNumber,
+        List<DiceResult> attackRoll,
+        bool isHit,
+        HitDirection attackDirection,
+        AttackHitLocationsData? hitLocationsData) =>
+        new(
+            toHitNumber,
+            attackRoll,
+            isHit,
+            attackDirection,
+            ExternalHeat: 0,
+            HitLocationsData: hitLocationsData);
 
     /// <summary>
     /// Follows the damage transfer chain of an already destroyed location, as the weapon
@@ -192,23 +162,18 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         return hitLocation;
     }
 
-    private static void ValidateAttackType(PhysicalAttackType attackType)
+    private static void ValidateLimb(PhysicalAttackDefinition definition, PartLocation limb)
     {
-        if (attackType is not (PhysicalAttackType.Punch or PhysicalAttackType.Kick))
-            throw new NotSupportedException(
-                $"Physical attack resolution is not supported for attack type: {attackType}");
-    }
+        if (definition.CandidateLimbs.Contains(limb)) return;
 
-    private static void ValidateLimb(PhysicalAttackType attackType, PartLocation limb)
-    {
-        switch (attackType)
-        {
-            case PhysicalAttackType.Punch when limb is not (PartLocation.LeftArm or PartLocation.RightArm):
-                throw new ArgumentException(
-                    $"A punch has to be made with an arm, but {limb} was used", nameof(limb));
-            case PhysicalAttackType.Kick when limb is not (PartLocation.LeftLeg or PartLocation.RightLeg):
-                throw new ArgumentException(
-                    $"A kick has to be made with a leg, but {limb} was used", nameof(limb));
-        }
+        throw new ArgumentException(
+            definition.AttackType switch
+            {
+                PhysicalAttackType.Punch => $"A punch has to be made with an arm, but {limb} was used",
+                PhysicalAttackType.Kick => $"A kick has to be made with a leg, but {limb} was used",
+                _ => $"A {definition.AttackType} has to be made with one of " +
+                     $"{string.Join(", ", definition.CandidateLimbs)}, but {limb} was used"
+            },
+            nameof(limb));
     }
 }

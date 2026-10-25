@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -174,24 +175,25 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         foreach (var part in (resolution.AttackResolution.DestroyedParts ?? []).Concat(blownOffParts))
             targetDamage.DestroyedParts.Add(part);
 
-        if (resolution.RequiresTargetPsr)
-            targetDamage.RollContexts.Add(GetTargetRollContext(resolution.AttackType));
-        if (resolution.RequiresAttackerPsr)
-            GetAccumulatedDamage(item.Context.Attacker).RollContexts.Add(GetAttackerRollContext(resolution.AttackType));
+        foreach (var requirement in resolution.PsrRequirements)
+        {
+            var recipient = requirement.Recipient switch
+            {
+                PhysicalAttackParticipant.Target => target,
+                PhysicalAttackParticipant.Attacker => item.Context.Attacker,
+                _ => throw new NotSupportedException(
+                    $"No piloting skill roll recipient is defined for {requirement.Recipient}")
+            };
+            GetAccumulatedDamage(recipient).RollContexts.Add(GetRollContext(requirement.RollType));
+        }
     }
 
-    private static PilotingSkillRollContext GetTargetRollContext(PhysicalAttackType attackType) => attackType switch
+    private static PilotingSkillRollContext GetRollContext(PilotingSkillRollType rollType) => rollType switch
     {
-        PhysicalAttackType.Kick => new KickHitRollContext(),
-        _ => throw new NotSupportedException($"No target piloting skill roll is defined for a {attackType} attack")
+        PilotingSkillRollType.KickHit => new KickHitRollContext(),
+        PilotingSkillRollType.KickMiss => new KickMissRollContext(),
+        _ => throw new NotSupportedException($"No piloting skill roll context is defined for {rollType}")
     };
-
-    private static PilotingSkillRollContext GetAttackerRollContext(PhysicalAttackType attackType) => attackType switch
-    {
-        PhysicalAttackType.Kick => new KickMissRollContext(),
-        _ => throw new NotSupportedException($"No attacker piloting skill roll is defined for a {attackType} attack")
-    };
-
     /// <summary>
     /// One unit at a time in initiative order: the rolls the phase's damage calls for first, then
     /// the rolls the attacks themselves call for. A unit that falls makes no further roll.

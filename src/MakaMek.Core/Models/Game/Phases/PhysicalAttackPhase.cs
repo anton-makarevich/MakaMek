@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -117,11 +118,11 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
 
         var target = Game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == declaration.TargetId);
         var limbs = declaration.AttackerLimbs;
-        if (target == null || limbs is not { Count: > 0 } || limbs.Distinct().Count() != limbs.Count)
+        if (target == null || limbs is not { Count: > 0 } 
+                           || limbs.Distinct().Count() != limbs.Count 
+                           || !PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition) 
+                           || limbs.Count > definition.MaxLimbsPerDeclaration)
             return ErrorCode.ValidationFailed;
-
-        // The player picks the kicking leg; a kick is made with one leg only.
-        if (declaration.AttackType == PhysicalAttackType.Kick && limbs.Count != 1) return ErrorCode.ValidationFailed;
 
         var eligibleLimbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, declaration.AttackType, Game.BattleMap!);
         return limbs.All(eligibleLimbs.Contains) ? null : ErrorCode.ValidationFailed;

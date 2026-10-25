@@ -11,12 +11,29 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// PRD (Background items 9 and 10, R1.4). The elevation limits follow the corrected Different-Levels
 /// table posted on issue #1504; level comparisons use effective standing levels and the water
 /// eligibility rules follow Total Warfare p.109 and p.151 (issue #1600).
+/// <para>
+/// This is the default eligibility policy. It owns the rules that depend on the current board
+/// state:
+/// </para>
+/// <list type="bullet">
+/// <item>the punch and kick level-difference table, including the prone-target variants;</item>
+/// <item>punch arcs following the torso and kick arcs following the feet;</item>
+/// <item>the shoulder and hip actuator prerequisites;</item>
+/// <item>the per-limb fired-weapon restrictions;</item>
+/// <item>the one physical attack per turn rule (applied by <see cref="GetEligibleLimbs"/>, skipped
+/// by <see cref="CanResolve"/>);</item>
+/// <item>the target checks: an enemy, standing, adjacent Mech.</item>
+/// </list>
+/// <para>
+/// Which attacks exist and which limbs they use is structural metadata in
+/// <see cref="PhysicalAttackDefinitions"/>, not policy. The level table is intentionally not
+/// extracted to the rules layer yet, and no separate eligibility rules interface is introduced:
+/// replacing the <see cref="IPhysicalAttackEligibility"/> registration already makes the policy
+/// replaceable.
+/// </para>
 /// </summary>
 public class PhysicalAttackEligibility : IPhysicalAttackEligibility
 {
-    private static readonly PhysicalAttackType[] SupportedAttackTypes =
-        [PhysicalAttackType.Punch, PhysicalAttackType.Kick];
-
     public IReadOnlyList<PartLocation> GetEligibleLimbs(IUnit attacker, IUnit target, PhysicalAttackType attackType,
         IBattleMap map) =>
         attacker is Mech { HasDeclaredPhysicalAttack: false } ? GetReachingLimbs(attacker, target, attackType, map) : [];
@@ -26,7 +43,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         GetReachingLimbs(attacker, target, attackType, map).Contains(limb);
 
     public bool HasAnyOption(IUnit attacker, IEnumerable<IUnit> units, IBattleMap map) =>
-        units.Any(target => SupportedAttackTypes.Any(type => GetEligibleLimbs(attacker, target, type, map).Count > 0));
+        units.Any(target => PhysicalAttackDefinitions.Supported.Any(definition =>
+            GetEligibleLimbs(attacker, target, definition.AttackType, map).Count > 0));
 
     /// <summary>
     /// The limbs that can make this attack against this target, leaving aside whether the attacker

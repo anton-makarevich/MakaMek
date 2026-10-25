@@ -13,18 +13,13 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 /// <param name="AttackerLimb">The attacking limb used for this resolution.</param>
 /// <param name="Damage">The damage value of the attack, derived from the attacker's tonnage.</param>
 /// <param name="AttackResolution">The weapon shaped resolution data with the roll and the hit location.</param>
-/// <param name="RequiresTargetPsr">
-/// True when the target has to make a piloting skill roll because of this attack. A successful
-/// kick requires a target piloting skill roll. Every miss leaves this false.
-/// </param>
-/// <param name="RequiresAttackerPsr">
-/// True when the attacker has to make a piloting skill roll because of this attack. A missed
-/// kick requires an attacker piloting skill roll.
+/// <param name="PsrRequirements">
+/// The piloting skill rolls this attack requires, selected by the rules provider from the attack
+/// type and the hit result. The list is empty when the attack imposes no obligation.
 /// </param>
 public record PhysicalAttackResolutionData(
     PhysicalAttackType AttackType,
     PartLocation AttackerLimb,
     int Damage,
     AttackResolutionData AttackResolution,
-    bool RequiresTargetPsr,
-    bool RequiresAttackerPsr);
+    IReadOnlyList<PhysicalAttackPsrRequirement> PsrRequirements);

@@ -143,6 +143,6 @@ public class PhysicalAttackResolutionCommandTests
         AttackerId = _attacker.Id,
         TargetId = _target.Id,
         ResolutionData = new PhysicalAttackResolutionData(
-            PhysicalAttackType.Punch, PartLocation.LeftArm, 2, resolution, false, false)
+            PhysicalAttackType.Punch, PartLocation.LeftArm, 2, resolution, [])
     };
 }

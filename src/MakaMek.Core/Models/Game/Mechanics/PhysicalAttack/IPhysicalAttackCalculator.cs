@@ -7,6 +7,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <summary>
 /// Interface for calculating physical attack to-hit modifiers, keyed on the attacker's Piloting Skill.
 /// Heat and sensor-damage modifiers never apply to physical attacks.
+/// <para>
+/// A <see cref="PhysicalAttackScenario"/> copies its scalar inputs (Piloting Skill, positions,
+/// movement type, target hexes moved and heights) but keeps live <c>AttackerUnit</c>/<c>TargetUnit</c>
+/// references. Skidding, target prone status and partial cover are read from those units at
+/// evaluation time, so previews do not mutate state but are not isolated snapshots. Scenarios
+/// without units omit the modifiers that depend on them.
+/// </para>
 /// </summary>
 public interface IPhysicalAttackCalculator
 {

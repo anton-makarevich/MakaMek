@@ -203,6 +203,14 @@ Requires a new `PhaseNames.PhysicalAttackResolution` value. `PhysicalAttackPhase
     - If **no** player has any eligible unit, the phase transitions immediately to resolution (which then transitions straight to Heat) — no `ChangeActivePlayerCommand` is broadcast.
     - Later, this skipping becomes configurable via game settings (e.g. "always prompt physical attack phase" for stricter rules fidelity); in v1 skipping is unconditional and not user-configurable.
 
+#### Eligibility policy decision (issue #1612)
+
+Physical-attack eligibility stays a **policy service**, not a rules-provider table:
+
+* `IPhysicalAttackEligibility` remains the construction-time replaceable policy (registered in `CoreServices` and `BotContainerServices`). `PhysicalAttackPhase`, `PhysicalAttackResolutionPhase` and `PhysicalAttackTargetValidityGate` consume it; `CanResolve` intentionally skips the one-attack-per-turn check so an already-declared attack can still resolve.
+* The punch/kick level-difference table is **not** extracted to the rules layer for now, and no separate `IPhysicalAttackEligibilityRules` is introduced — the existing interface registration already makes the policy replaceable.
+* **Structural metadata is centralized separately** in `PhysicalAttackDefinitions` (supported attack types, candidate limbs, `MaxLimbsPerDeclaration`). It is deliberately not policy and not part of `IRulesProvider`.
+
 ### R2 — Physical To-Hit Calculation (M1)
 
 **Files:** new `Models/Game/Mechanics/PhysicalAttack/` folder; `Data/Game/Mechanics/AttackScenario.cs`; `Rules/IRulesProvider.cs`, `TotalWarfareRulesProvider.cs`

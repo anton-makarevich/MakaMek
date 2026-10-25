@@ -119,3 +119,14 @@ The water rules decide whether a physical attack may be **made at all** — they
 **Depth 1 attacker against a surface target:** explicitly unrestricted — a 'Mech standing in Depth 1 water "may make any physical attack, provided the unit meets the normal requirements for each type of attack".
 
 **Implementation:** `PhysicalAttackEligibility` applies these rules (and the effective-standing-level comparison) to punch/kick declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically.
+
+---
+
+### **7. Eligibility Policy and Structural Metadata (issue #1612)**
+
+A decision is recorded here about where physical-attack knowledge lives:
+
+* **Keep eligibility as a policy service.** `IPhysicalAttackEligibility` is the construction-time replaceable policy, registered in `CoreServices` and `BotContainerServices`. The declaration phase, the resolution phase and the resolution gates consume it; `CanResolve` skips only the one-attack-per-turn check.
+* **Do not extract the level-difference table now.** It is a small, well-tested table inside the default policy and no house rule needs to vary it yet.
+* **Do not introduce `IPhysicalAttackEligibilityRules`.** The existing `IPhysicalAttackEligibility` registration is already replaceable, so a second abstraction would add indirection without a consumer.
+* **`PhysicalAttackDefinitions` holds structural metadata only** — which attack types exist, their candidate limbs and the maximum limbs per declaration. Dynamic policy (arcs, actuator prerequisites, fired-weapon restrictions, level differences, target checks) stays in the eligibility service.
