@@ -502,6 +502,26 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_UnknownRollRecipient_ThrowsNotSupportedException()
+    {
+        // Arrange: the resolver contract only knows the attacker and the target
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        const PhysicalAttackParticipant unknownRecipient = (PhysicalAttackParticipant)99;
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso,
+                armorDamage: 2,
+                psrRequirements:
+                [
+                    new PhysicalAttackPsrRequirement(unknownRecipient, PilotingSkillRollType.KickHit)
+                ]));
+
+        // Act + Assert
+        Should.Throw<NotSupportedException>(() => _sut.Enter())
+            .Message.ShouldContain(((int)unknownRecipient).ToString());
+    }
+
+    [Fact]
     public void Enter_FallWithDamage_ResolvesCriticalHitsForTheFallDamage_ThenStopsRollingForTheUnit()
     {
         // Arrange

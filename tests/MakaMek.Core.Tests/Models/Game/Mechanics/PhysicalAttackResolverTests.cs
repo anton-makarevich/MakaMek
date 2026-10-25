@@ -1,3 +1,4 @@
+using System.Reflection;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -801,6 +802,34 @@ public class PhysicalAttackResolverTests
 
         Should.Throw<ArgumentException>(() => _sut.ResolveAttack(
             CreateContext(attacker, target, PhysicalAttackType.Kick, PartLocation.RightArm)));
+    }
+
+    [Fact]
+    public void ValidateLimb_ForAnAttackTypeWithoutItsOwnMessage_ShouldNameTheTypeAndTheCandidateLimbs()
+    {
+        // Only Punch and Kick have definitions today, so the fallback message for the
+        // remaining attack types can only be exercised directly.
+        var definition = new PhysicalAttackDefinition(
+            PhysicalAttackType.Push,
+            [PartLocation.LeftArm, PartLocation.RightArm],
+            MaxLimbsPerDeclaration: 2);
+
+        var invocation = Should.Throw<TargetInvocationException>(() => InvokeValidateLimb(definition, PartLocation.LeftLeg));
+        var exception = invocation.InnerException.ShouldBeOfType<ArgumentException>();
+
+        exception.ParamName.ShouldBe("limb");
+        exception.Message.ShouldContain(nameof(PhysicalAttackType.Push));
+        exception.Message.ShouldContain(nameof(PartLocation.LeftArm));
+        exception.Message.ShouldContain(nameof(PartLocation.RightArm));
+        exception.Message.ShouldContain(nameof(PartLocation.LeftLeg));
+    }
+
+    private static void InvokeValidateLimb(PhysicalAttackDefinition definition, PartLocation limb)
+    {
+        var method = typeof(PhysicalAttackResolver).GetMethod(
+            "ValidateLimb",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        method!.Invoke(null, [definition, limb]);
     }
 
     [Fact]
