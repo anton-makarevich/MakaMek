@@ -451,6 +451,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // We should have exactly 2 commands
         capturedCommands.Count.ShouldBe(2);
 
+        // Each resolution carries its own identity so a duplicate delivery can be ignored
+        capturedCommands.ShouldAllBe(cmd => cmd.ResolutionId != Guid.Empty);
+        capturedCommands.Select(cmd => cmd.ResolutionId).Distinct().Count().ShouldBe(2);
+
         // Both commands should target the left arm
         capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].InitialLocation
             .ShouldBe(PartLocation.LeftArm);

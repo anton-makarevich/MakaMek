@@ -5,8 +5,22 @@ using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
+/// <summary>
+/// The outcome of one weapon attack against one target, published by the server. Clients apply the
+/// damage it carries as it is and never roll or recompute anything.
+/// </summary>
+/// <remarks>
+/// Cluster hits of one attack are carried inside this single command. A game applies the effects of
+/// a resolution once, however many times the command is delivered.
+/// </remarks>
 public record struct WeaponAttackResolutionCommand : IGameCommand
 {
+    /// <summary>
+    /// Identifies this one resolution. A game applies the effects of a resolution once, however many
+    /// times the command is delivered.
+    /// </summary>
+    public required Guid ResolutionId { get; init; }
+
     public required Guid PlayerId { get; init; }
     public required Guid AttackerId { get; init; }
     public required ComponentData WeaponData { get; init; }

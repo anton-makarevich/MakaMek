@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -507,6 +508,51 @@ public class GameCommandJsonConverterTests
         data.RequiresAttackerPsr.ShouldBeFalse();
         data.AttackResolution.AttackRoll.Sum(d => d.Result).ShouldBe(9);
         data.AttackResolution.HitLocationsData!.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(10);
+    }
+
+    [Fact]
+    public void RoundTrip_WeaponAttackResolutionCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalCommand = new WeaponAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            WeaponData = new ComponentData
+            {
+                Name = "Medium Laser",
+                Type = MakaMekComponent.MediumLaser,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
+            },
+            ResolutionData = new AttackResolutionData(
+                7,
+                [new DiceResult(4), new DiceResult(5)],
+                true,
+                HitDirection.Front,
+                2,
+                new AttackHitLocationsData(
+                    [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [3],
+                        PartLocation.CenterTorso)],
+                    5, [], 0))
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        var resolutionCommand = deserializedCommand.ShouldBeOfType<WeaponAttackResolutionCommand>();
+        resolutionCommand.ResolutionId.ShouldBe(originalCommand.ResolutionId);
+        resolutionCommand.AttackerId.ShouldBe(originalCommand.AttackerId);
+        resolutionCommand.TargetId.ShouldBe(originalCommand.TargetId);
+        resolutionCommand.WeaponData.Name.ShouldBe("Medium Laser");
+        resolutionCommand.ResolutionData.IsHit.ShouldBeTrue();
+        resolutionCommand.ResolutionData.ExternalHeat.ShouldBe(2);
+        resolutionCommand.ResolutionData.HitLocationsData!.TotalDamage.ShouldBe(5);
     }
 
     [Theory]

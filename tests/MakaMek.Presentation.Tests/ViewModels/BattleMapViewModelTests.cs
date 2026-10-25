@@ -2674,6 +2674,7 @@ public class BattleMapViewModelTests
         // Create a resolution command for the first weapon
         var resolutionCommand = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             PlayerId = playerId,
             AttackerId = attacker.Id,
             TargetId = target.Id,

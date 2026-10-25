@@ -1184,6 +1184,7 @@ public class ClientGameTests
         // Create the attack resolution command
         var attackResolutionCommand = new WeaponAttackResolutionCommand
         {
+            ResolutionId = Guid.NewGuid(),
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
             AttackerId = targetMech.Id,
@@ -1310,6 +1311,65 @@ public class ClientGameTests
                     : null),
             isHit,
             !isHit)
+    };
+
+    [Fact]
+    public void HandleCommand_WeaponAttackResolutionDeliveredTwice_AppliesTheDamageOnce()
+    {
+        // Arrange
+        var targetMech = JoinPhysicalAttackTarget();
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+        var command = CreateWeaponAttackResolution(targetMech.Id, Guid.NewGuid(), externalHeat: 2);
+
+        // Act
+        _sut.HandleCommand(command);
+        _sut.HandleCommand(command);
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - 4);
+        targetMech.GetHeatData(_rulesProvider).ExternalHeatPoints.ShouldBe(2);
+    }
+
+    [Fact]
+    public void HandleCommand_WeaponAttackResolutionsWithDifferentIds_AreBothApplied()
+    {
+        // Arrange: each weapon attack resolution is applied once, even against the same target
+        var targetMech = JoinPhysicalAttackTarget();
+        var rightLeg = targetMech.Parts[PartLocation.RightLeg];
+        var initialArmor = rightLeg.CurrentArmor;
+
+        // Act
+        _sut.HandleCommand(CreateWeaponAttackResolution(targetMech.Id, Guid.NewGuid()));
+        _sut.HandleCommand(CreateWeaponAttackResolution(targetMech.Id, Guid.NewGuid()));
+
+        // Assert
+        rightLeg.CurrentArmor.ShouldBe(initialArmor - 8);
+    }
+
+    private WeaponAttackResolutionCommand CreateWeaponAttackResolution(Guid targetId, Guid resolutionId,
+        bool isHit = true, int externalHeat = 0) => new()
+    {
+        ResolutionId = resolutionId,
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = Guid.NewGuid(),
+        AttackerId = targetId,
+        TargetId = targetId,
+        WeaponData = new ComponentData
+        {
+            Name = "Test Weapon",
+            Type = MakaMekComponent.MachineGun,
+            Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
+        },
+        ResolutionData = new AttackResolutionData(
+            10,
+            [],
+            isHit,
+            HitDirection.Front,
+            externalHeat,
+            isHit
+                ? new AttackHitLocationsData([CreateHitDataForLocation(PartLocation.RightLeg, 4, [], [])], 4, [], 0)
+                : null)
     };
 
     [Fact]
