@@ -130,6 +130,7 @@ Because step 3 is data, adding a new "cheat" animation for a whole family of sou
     "canonicalLoadout": ["arm_ra_std", "ac20"]
   },
   "planView": {
+    "maxExtentMeters": 12.8,              // footprint span the sprite fills at 90° (§4.3)
     "silhouetteAreaSquareMeters": 96.3,
     "coverageAtReferenceScale": 0.94      // silhouette area / hex area, before overrides
   },
@@ -182,7 +183,7 @@ A pure, unit-testable chain applied to `RawModel`:
 6. **Materials** — resolve textures into roles (`baseColor`, `normal`, `emissive`, `mask`), convert to PNG, cap at 2k, pick one `boardLook`.
 7. **Animations** — match/alias/synthesize/absent per §2.4, resample to 30 fps, strip root motion into a metadata track (sprites are board-anchored).
 8. **Metrics & validation** — bounds, footprint, tri/bone counts, convention assertions.
-9. **Volume measurement** — voxelise the bounds at a fixed grid and count occupied cells (§4.3); record `volume.modelCubicMeters` and `planView.silhouetteAreaSquareMeters`. Tonnage comes from the catalog (built from `data/units/mechs/*.mmux`), never guessed from the model.
+9. **Volume measurement** — voxelise the bounds at a fixed grid and count occupied cells (§4.3); record `volume.modelCubicMeters`, `planView.maxExtentMeters` (the footprint span a 90° camera sees) and `planView.silhouetteAreaSquareMeters`. Tonnage comes from the catalog (built from `data/units/mechs/*.mmux`), never guessed from the model.
 
 Every step is deterministic and idempotent: importing an already-canonical `.glb` must be a no-op apart from the manifest timestamp.
 
@@ -230,9 +231,10 @@ The look lives in `presets/*.json`, not in code:
   "scale": {
     "mode": "tonnage-volume",       // tonnage-volume | uniform | none
     "referenceChassis": "AS7",      // the chassis that calibrates pixelsPerMetre (§4.3)
-    "referenceCoverage": 0.90,      // of hex height, for the reference chassis
-    "minimumCoverage": 0.55,        // readability floor, applied last
-    "hexHeightLogicalPx": 86.6
+    "referenceCoverage": 0.90,      // of the 84×72 draw-box height, for the reference chassis
+    "minimumCoverage": 0.55,        // readability floor: silhouette area ÷ hex area
+    "drawBoxHeightPx": 72,          // the slot the sprite is drawn into
+    "hexAreaPx": 8660               // 100 × 86.6, used only by the coverage floor
   },
   "output": {
     "cellWidth": 84, "cellHeight": 72,      // 1×: the size every existing asset already uses
@@ -283,18 +285,22 @@ V_model     = voxelised displacement volume of the canonical mesh (m³)
 s_volume    = volume.correctionScale from model.json   // (density·tonnage / V_model)^(1/3)
 s_override  = scale-overrides.json[chassis] ?? 1.0      // human review, persisted
 
-// calibration: the only per-run scale input. Derived from the reference chassis,
-// never stored, so there is nothing to fall out of sync.
-pxPerMetre  = (referenceCoverage × hexHeightLogicalPx)
-              / (heightMeters[referenceChassis] × s_volume[referenceChassis])
+// calibration: the reference chassis's plan-view extent fills referenceCoverage
+// of the 84×72 slot. planView.maxExtentMeters, not heightMeters — at 90° a mech's
+// standing height is invisible; its footprint is what fills the frame.
+pxPerMetre  = (referenceCoverage × drawBoxHeightPx)
+              / (planView.maxExtentMeters[referenceChassis] × s_volume[referenceChassis])
 
 spriteScale = pxPerMetre × s_volume × s_override
 ```
+
+`spriteScale` is the **`--scale` value the driver receives** (pixel space: after it, 1 model unit = 1 px, §3.2 of [blender-render-driver.md](blender-render-driver.md)).
 
 Why this shape:
 
 - **Volume correction is a measurement, not a geometry edit.** `correctionScale` is computed once at import and stored in the manifest (`model.json`), so the `.glb` stays a faithful copy of the source and rendering applies one number.
 - **The pixel factor is global and derived**, not configured. `referenceChassis` + `referenceCoverage` fully determine it from that chassis's manifest, so there is exactly **one** place each value lives: corrections in manifests, calibration in the preset, deviations in `scale-overrides.json`. Nothing is duplicated and nothing goes stale.
+- **At 90° the frame is filled by the footprint, not the standing height.** A mech's height is invisible from directly above; what fills the 84×72 slot is the plan-view extent (nose-to-tail / widest horizontal span). Calibration therefore uses `planView.maxExtentMeters` and the floor uses silhouette *area*; `metrics.heightMeters` is recorded for the future 3D client, never used for sprite scale. Expressing `referenceCoverage` as a fraction of the **draw box** (not of the hex) also means the reference chassis cannot be clipped by construction.
 - **Density is provenance, not a render input.** It is recorded in the manifest for the 3D client's physical units; sprite size depends only on `correctionScale` and the calibration. Changing density requires re-importing that model (to recompute `correctionScale`) but never touches the preset — and because every correction moves by `density^(1/3)` while `pxPerMetre` moves by the inverse, a global change cancels out of the result anyway.
 - **The size gradient comes from the calibration, not from a per-chassis rule.** Once the reference chassis fills `referenceCoverage`, size falls out as `∝ tonnage^(1/3)`: a 20 t Locust is ~58% the linear size of a 100 t Atlas, not 20% — physically honest, and the thing the current flat 84×72 art cannot express.
 - **Volume is measured on a declared loadout**, not on whatever the variant happens to carry (`volume.includesAttachments` + `canonicalLoadout` per chassis), so `AS7-D` and `AS7-K` produce identical sprites.

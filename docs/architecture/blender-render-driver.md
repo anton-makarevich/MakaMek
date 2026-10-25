@@ -24,7 +24,7 @@ blender -b --factory-startup -noaudio \
         -P tools/blender/render.py -- \
         --model   artifacts/models/AS7/model.glb \
         --preset  presets/board-topdown.json \
-        --scale   0.7978 \
+        --scale   5.06 \
         --out     artifacts/sprites/AS7 \
         --clips   Idle,Walk,Run,ProneEnter,ProneIdle,StandUp \
         --report  artifacts/sprites/AS7/render-report.json
@@ -71,18 +71,23 @@ Therefore:
 
 ### 3.2 Scale handoff
 
-Scale policy has exactly one owner — the C# pipeline — and the driver receives a single number.
+Scale policy has exactly one owner — the C# pipeline — and the driver receives a single number in **pixel space**.
 
 ```text
-effectiveScale = model.volume.correctionScale            // measured at import
-               × (variant overrides[chassis][variant]    // optional, most specific first
+pxPerMetre     = (referenceCoverage × drawBoxHeightPx)          // from the preset
+                 / (planView.maxExtentMeters[referenceChassis]
+                    × correctionScale[referenceChassis])        // from that chassis's manifest
+
+effectiveScale = pxPerMetre
+               × model.volume.correctionScale                   // measured at import
+               × (variant overrides[chassis][variant]            // optional, most specific first
                   ?? overrides[chassis])
-               × floorClamp                              // minimumCoverage, if triggered
+               × floorClamp                                     // minimumCoverage, if triggered
 ```
 
-- The pipeline computes it and passes `--scale`; the driver applies that uniform scale to the imported armature root **before** framing, so the camera's `ortho_scale` never depends on the model.
-- The driver does **not** read `model.json`, `scale-overrides.json`, tonnage or coverage thresholds. That keeps override logic testable in C# (where it is unit-covered) and makes the Python side purely mechanical.
-- The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.
+- The pipeline computes it and passes `--scale`; the driver applies that uniform scale to the imported armature root and sets `ortho_scale = output.cellWidth`, so **after scaling, 1 model unit = 1 pixel** and framing is direct. The camera never depends on which mech it is looking at.
+- The driver does **not** read `model.json`, `scale-overrides.json`, `planView.*`, tonnage or coverage thresholds. That keeps the calibration and override logic in C# (where it is unit-covered) and makes the Python side purely mechanical.
+- The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`pxPerMetre`, `correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.
 - A pre-scaled model (`--scale 1.0` with the scale baked into the `.glb`) is deliberately **not** supported: it would make the canonical model depend on a presentation preset and break reuse by a future 3D client.
 
 ## 4. Preset → scene mapping
@@ -92,7 +97,7 @@ The preset stays renderer-agnostic in shape; the driver translates the keys it u
 | Preset key | Blender setting |
 |---|---|
 | `camera.pitchDegrees`, `camera.yawDegrees` | camera rotation |
-| `scale.referenceChassis`, `scale.referenceCoverage` | `ortho_scale` (camera framing only — the model's scale comes from `--scale`, §3.2) |
+| `scale.referenceChassis`, `scale.referenceCoverage`, `scale.drawBoxHeightPx` | **not read by the driver** — the pipeline uses them to compute `--scale` (§3.2). The driver only takes `output.cellWidth` as `ortho_scale` |
 | `output.cellWidth`, `output.cellHeight` | `render.resolution_x/y` — 84×72, the same size every existing asset uses; AA comes from Cycles samples, not a supersampling multiplier |
 | `output.background` | `film_transparent` |
 | `output.channels` | luminance conversion + `R = G = B` assertion in the pipeline (Blender always writes RGB) |
