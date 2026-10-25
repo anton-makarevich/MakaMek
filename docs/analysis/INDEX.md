@@ -18,6 +18,13 @@ Technical analyses, integration studies, design evaluations, and race condition 
 | [Rules-Provider-Analysis-Updated.md](Rules-Provider-Analysis-Updated.md) | Updated rules provider analysis incorporating revised requirements and findings |
 | [Rule-Related-PRs.md](Rule-Related-PRs.md) | Consolidated report on the four open rules-provider PRs (#1443, #1450, #1445, #1451) — overlaps, conflicts, and disposition |
 
+## Asset Pipeline Analyses
+
+| Document | Summary |
+|----------|---------|
+| [mw5-model-extraction.md](mw5-model-extraction.md) | Extracting 3D mech models from MechWarrior 5 (FModel / umodel / Mod Editor), the 2D sprite re-render pipeline, spritesheet animation plan, and the licensing constraints |
+| [avalonia-3d-renderer-evaluation.md](avalonia-3d-renderer-evaluation.md) | Avalonia-hosted 3D vs MonoGame vs Blender automation for the sprite renderer: API survey with package evidence, comparison, and why Blender automation won (superseded verdict, kept for interactive-3D planning) |
+
 ## Reachability Analyses
 
 | Document | Summary |

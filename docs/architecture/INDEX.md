@@ -19,6 +19,8 @@ Architectural designs for core game modules, network protocol, AI bot subsystems
 | Document | Summary |
 |----------|---------|
 | [Content-Download.md](Content-Download.md) | Content download pipeline, asset management, R2 release workflow (data assets to Cloudflare R2), and update distribution |
+| [asset-pipeline.md](asset-pipeline.md) | Two-stage asset pipeline: any 3D source → canonical glTF model (+clip vocabulary) → sprites/spritesheets; C# CLI + MCP, headless |
+| [blender-render-driver.md](blender-render-driver.md) | Stage-2 renderer contract: headless Blender invocation, scene/preset mapping, determinism rules, engine policy, MCP split |
 | [Game-(Protocol)-High-Level-Architecture.md](Game-(Protocol)-High-Level-Architecture.md) | High-level network protocol design for client-server game communication |
 | [MMTX-Terrain-Format.md](MMTX-Terrain-Format.md) | MMTX binary/text terrain file format specification and parser design |
 | [hub-deployment.md](hub-deployment.md) | Hub deployment (OCI Always Free + Pulumi), container configuration reference, TLS, and secret-safety guidance |
