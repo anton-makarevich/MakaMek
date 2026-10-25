@@ -71,7 +71,7 @@ public class FallingDamageCalculatorTests
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => 
-            _sut.CalculateFallingDamage(unit, 1, false))
+            _sut.CalculateFallingDamage(unit, 1))
             .Message.ShouldContain("Only mechs can take falling damage");
     }
 
@@ -84,7 +84,7 @@ public class FallingDamageCalculatorTests
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => 
-            _sut.CalculateFallingDamage(mech, 1, false))
+            _sut.CalculateFallingDamage(mech, 1))
             .Message.ShouldContain("Mech must be deployed");
     }
 
@@ -94,7 +94,7 @@ public class FallingDamageCalculatorTests
         var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         Should.Throw<ArgumentException>(() =>
-            _sut.CalculateFallingDamage(unit, 1, false, new DiceResult(1), HexDirection.Top))
+            _sut.CalculateFallingDamage(unit, 1, 0, new DiceResult(1), HexDirection.Top))
             .Message.ShouldContain("Only mechs can take falling damage");
     }
 
@@ -104,18 +104,27 @@ public class FallingDamageCalculatorTests
         var mech = CreateTestMech(20);
 
         Should.Throw<ArgumentException>(() =>
-            _sut.CalculateFallingDamage(mech, 1, false, new DiceResult(1), HexDirection.Top))
+            _sut.CalculateFallingDamage(mech, 1, 0, new DiceResult(1), HexDirection.Top))
             .Message.ShouldContain("Mech must be deployed");
     }
 
     [Theory]
-    [InlineData(0, false, 5)] // 0 levels, not jumping, 50 ton mech = 5 damage
-    [InlineData(1, false, 10)] // 1 level, not jumping, 50 ton mech = 10 damage
-    [InlineData(2, false, 15)] // 2 levels, not jumping, 50 ton mech = 15 damage
-    [InlineData(0, true, 5)] // 0 levels, jumping, 50 ton mech = 5 damage
-    [InlineData(1, true, 5)] // 1 level, jumping, 50 ton mech = 5 damage (jumping ignores levels)
-    [InlineData(2, true, 5)] // 2 levels, jumping, 50 ton mech = 5 damage (jumping ignores levels)
-    public void CalculateFallingDamage_CalculatesTotalDamageCorrectly(int levelsFallen, bool wasJumping, int expectedDamage)
+    // Dry land (depth 0): normal falling damage, unchanged
+    [InlineData(0, 0, 5)]  // 0 levels, 50 ton mech = 5 damage
+    [InlineData(1, 0, 10)] // 1 level, 50 ton mech = 10 damage
+    [InlineData(2, 0, 15)] // 2 levels, 50 ton mech = 15 damage
+    // Water entry (fall contained in the water column): damage halved, rounded down
+    [InlineData(0, 1, 2)]  // 0 levels in depth 1 water: 5 * 1 / 2 = 2
+    [InlineData(0, 2, 2)]  // 0 levels in depth 2 water: 5 * 1 / 2 = 2
+    [InlineData(0, 3, 2)]  // 0 levels in depth 3 water: 5 * 1 / 2 = 2
+    [InlineData(1, 1, 5)]  // 1 level in depth 1 water: 5 * 2 / 2 = 5 (halved after level multiplication)
+    [InlineData(1, 2, 5)]  // 1 level in depth 2 water: 5 * 2 / 2 = 5
+    [InlineData(2, 2, 7)]  // 2 levels in depth 2 water: 5 * 3 / 2 = 7
+    // Fall starting above the water surface: surface impact (halved) + bottom impact (halved)
+    [InlineData(3, 2, 12)] // surface: 5 * 2 / 2 = 5, bottom: 5 * 3 / 2 = 7
+    [InlineData(4, 1, 15)] // surface: 5 * 4 / 2 = 10, bottom: 5 * 2 / 2 = 5
+    [InlineData(4, 3, 15)] // surface: 5 * 2 / 2 = 5, bottom: 5 * 4 / 2 = 10
+    public void CalculateFallingDamage_CalculatesTotalDamageCorrectly(int levelsFallen, int waterDepth, int expectedDamage)
     {
         // Arrange
         var mech = CreateTestMech(50);
@@ -130,10 +139,43 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, wasJumping);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, waterDepth);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(expectedDamage);
+    }
+
+    [Theory]
+    // Water entry: dry-land damage halved, rounded down
+    // 20-ton mech: dry-land damage 2 -> 1 in water
+    [InlineData(20, 1)]
+    [InlineData(20, 2)]
+    [InlineData(20, 3)]
+    // 55-ton mech: dry-land damage 6 -> 3 in water (odd total rounds down)
+    [InlineData(55, 1)]
+    [InlineData(55, 2)]
+    [InlineData(55, 3)]
+    public void CalculateFallingDamage_InWater_HalvesDryLandDamage(int tonnage, int waterDepth)
+    {
+        // Arrange
+        var mech = CreateTestMech(tonnage);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+
+        // Set up a dice roller for facing roll
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+
+        // Set up a dice roller for hit locations
+        _mockDiceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(3)] // First hit location roll
+        );
+
+        // Act
+        var result = _sut.CalculateFallingDamage(mech, 0, waterDepth);
+
+        // Assert
+        var dryLandDamage = (int)Math.Ceiling(tonnage / 10.0);
+        var expected = dryLandDamage / 2; // integer division rounds down
+        result.HitLocations.TotalDamage.ShouldBe(expected);
     }
 
     [Fact]
@@ -181,7 +223,7 @@ public class FallingDamageCalculatorTests
             ]);
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(15);
@@ -250,7 +292,7 @@ public class FallingDamageCalculatorTests
             ]);
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(8);
@@ -302,7 +344,7 @@ public class FallingDamageCalculatorTests
             ]);
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(8);
@@ -314,6 +356,71 @@ public class FallingDamageCalculatorTests
         
         result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(3);
         result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
+    }
+
+    [Fact]
+    public void CalculateFallingDamage_InWater_GroupsHalvedTotalIntoFivePointGroups()
+    {
+        // Arrange
+        var mech = CreateTestMech(50);
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        // 50-ton mech, 3 levels fallen in depth 2 water:
+        // surface impact: 5 * 2 / 2 = 5, bottom impact: 5 * 3 / 2 = 7, total 12
+        const int levelsFallen = 3;
+        const int waterDepth = 2;
+
+        // Setup dice roller for facing roll
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
+
+        // Setup dice roller for hit locations (3 groups: 5, 5 and 2 damage)
+        _mockDiceRoller.Roll2D6().Returns(
+            [new DiceResult(3), new DiceResult(4)], // First hit location roll, 7 CT
+            [new DiceResult(4), new DiceResult(4)], // Second hit location roll, 8 LT
+            [new DiceResult(5), new DiceResult(5)]  // Third hit location roll, 10 LA
+        );
+
+        // Setup structure damage calculator to return correct data
+        _mockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 5, 0, false)
+            ]);
+        _mockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+                Arg.Is<int>(d => d == 2),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftArm, 2, 0, false)
+            ]);
+
+        // Act
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, waterDepth);
+
+        // Assert
+        result.HitLocations.TotalDamage.ShouldBe(12);
+        result.HitLocations.HitLocations.Count.ShouldBe(3);
+
+        result.HitLocations.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[0].Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
+
+        result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
+
+        result.HitLocations.HitLocations[2].Damage[0].ArmorDamage.ShouldBe(2);
+        result.HitLocations.HitLocations[2].Damage[0].Location.ShouldBe(PartLocation.LeftArm);
     }
 
     [Fact]
@@ -332,7 +439,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, 0, false);
+        var result = _sut.CalculateFallingDamage(mech, 0);
         
         // Assert
         result.FacingAfterFall.ShouldBe(HexDirection.BottomRight);

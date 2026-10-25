@@ -818,7 +818,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -862,7 +862,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -923,7 +923,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         var consciousnessCommand = new PilotConsciousnessRollCommand
@@ -998,7 +998,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         var consciousnessCommand = new PilotConsciousnessRollCommand
@@ -1068,7 +1068,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         _sut.HandleCommand(new MoveUnitCommand
@@ -1136,7 +1136,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 unit,
                 Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
                 Game,
-                MovementType.Walk)
+                MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(waterFallData);
 
         var psrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] };
@@ -1240,7 +1240,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 unit,
                 Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
                 Game,
-                MovementType.Walk)
+                MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(waterFallData);
 
         // Setup successful standup
@@ -1358,7 +1358,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 unit,
                 Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
                 Game,
-                MovementType.Run)
+                MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(waterFallData);
 
         // Setup successful standup
@@ -1469,7 +1469,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1518,7 +1518,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1568,7 +1568,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Jump, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1707,7 +1707,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         _sut.HandleCommand(new MoveUnitCommand
@@ -1788,7 +1788,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1847,7 +1847,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -1903,7 +1903,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(successContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(successContext);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2024,7 +2024,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2079,7 +2079,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2171,7 +2171,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Run).Returns(waterFallData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(waterFallData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2244,8 +2244,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Run).Returns(waterSuccessData);
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 2), Game, MovementType.Run).Returns(skidFallData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(waterSuccessData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 2), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(skidFallData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2307,7 +2307,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2370,7 +2370,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2433,7 +2433,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 2 && c.HexesMoved == 5), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 2 && c.HexesMoved == 5), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2500,7 +2500,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 5), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 5), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2560,7 +2560,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 0 && c.HexesMoved == 5), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 0 && c.HexesMoved == 5), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2666,10 +2666,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit1,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 3 && c.HexesMoved == 7), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(waterFallContextData);
         MockFallProcessor.ProcessMovementAttempt(unit2,
-            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run)
+            Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 5), Game, MovementType.Run, Arg.Any<HexPosition?>())
             .Returns(deepWaterFallContextData);
 
         CommandPublisher.ClearReceivedCalls();
@@ -2734,7 +2734,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1), Game, MovementType.Walk, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -2787,7 +2787,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 new DiceResult(3), HitDirection.Front)
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -3024,9 +3024,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3080,9 +3080,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3139,9 +3139,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3194,9 +3194,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3257,9 +3257,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Is<BridgeCollapseRollContext>(c => c.BridgeHeight == 2), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3313,9 +3313,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3372,9 +3372,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         var fallContextForUnit2 = fallContextForUnit1 with { UnitId = unit2.Id };
 
-        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill)
+        MockFallProcessor.ProcessMovementAttempt(unit1, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.StandingStill, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit1);
-        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(unit2, Arg.Any<PilotingSkillRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContextForUnit2);
 
         var moveCommand = new MoveUnitCommand
@@ -3474,7 +3474,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -3524,7 +3524,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             }
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Walk, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -3579,7 +3579,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Jump).Returns(fallContextData);
+        MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<RubbleEntryRollContext>(_ => true), Game, MovementType.Jump, Arg.Any<HexPosition?>()).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 

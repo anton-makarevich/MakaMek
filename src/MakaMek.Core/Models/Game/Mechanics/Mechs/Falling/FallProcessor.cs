@@ -91,8 +91,13 @@ public class FallProcessor : IFallProcessor
             .Select(f => f.ToMechFallCommand());
     }
 
-    public FallContextData ProcessMovementAttempt(Mech mech, PilotingSkillRollContext rollContext, IGame game, MovementType movementType)
-        => ProcessRollContexts([rollContext], mech, game, movementType).First();
+    public FallContextData ProcessMovementAttempt(
+        Mech mech,
+        PilotingSkillRollContext rollContext,
+        IGame game,
+        MovementType movementType,
+        HexPosition? fallPosition = null)
+        => ProcessRollContexts([rollContext], mech, game, movementType, fallPosition).First();
 
     /// <summary>
     /// Core processing loop: evaluates each roll context in order (auto-falls first),
@@ -102,7 +107,8 @@ public class FallProcessor : IFallProcessor
         List<PilotingSkillRollContext> rollContexts,
         Mech mech,
         IGame game,
-        MovementType movementType = MovementType.StandingStill)
+        MovementType movementType = MovementType.StandingStill,
+        HexPosition? fallPosition = null)
     {
         if (rollContexts.Count == 0)
             return [];
@@ -129,6 +135,12 @@ public class FallProcessor : IFallProcessor
                 isFallingNow = !fallPsrData.IsSuccessful;
             }
 
+            // Water depth of the hex where the fall happens (0 when the hex is dry or the surface is not Ground).
+            // For water entry the roll context carries the authoritative depth (it is built from the actual hex).
+            var waterDepth = context is EnteringDeepWaterRollContext deepWaterCtx
+                ? deepWaterCtx.WaterDepth
+                : ResolveWaterDepth(mech, game, fallPosition);
+
             PilotingSkillRollData? pilotDamagePsr = null;
 
             // Determine levels fallen based on context and movement type
@@ -139,14 +151,17 @@ public class FallProcessor : IFallProcessor
             {
                 // WaterTerrain.Height stores depth as negative integers (0 = shallow, -1 = depth 1, -2 = depth 2).
                 // EnteringDeepWaterRollContext.WaterDepth is already the positive depth value (-1 * water.Height).
-                // For water entry falls while jumping, levelsFallen = WaterDepth.
-                if (context is EnteringDeepWaterRollContext waterCtx && wasJumping)
+                // A fall that ends in a water hex drops the unit to the hex bottom, so for a water-entry
+                // fall levelsFallen equals the water depth, regardless of the movement type
+                // (walk, run or jump all fall the same levels).
+                if (context is EnteringDeepWaterRollContext waterCtx)
                 {
                     levelsFallen = waterCtx.WaterDepth;
                 }
                 else if (context is BridgeCollapseRollContext bridgeCtx)
                 {
-                    levelsFallen = bridgeCtx.BridgeHeight;
+                    // A collapsing bridge drops the unit from the bridge deck down to the hex bottom
+                    levelsFallen = bridgeCtx.BridgeHeight + waterDepth;
                 }
                 else if (context is SkidCheckRollContext)
                 {
@@ -157,6 +172,12 @@ public class FallProcessor : IFallProcessor
                 {
                     levelsFallen = cliffCtx.LevelsFallen;
                     wasJumping = false;
+                }
+                else if (movementType == MovementType.Jump && waterDepth > 0)
+                {
+                    // A failed jump landing in a water hex drops the unit from the surface
+                    // to the hex bottom
+                    levelsFallen = waterDepth;
                 }
 
                 var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
@@ -173,13 +194,13 @@ public class FallProcessor : IFallProcessor
                 if (context is CliffFallRollContext cliffCtx2)
                 {
                     fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
-                        mech, levelsFallen, false,
+                        mech, levelsFallen, waterDepth,
                         cliffCtx2.FacingDiceRoll, cliffCtx2.FacingAfterFall);
                 }
                 else
                 {
                     fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
-                        mech, levelsFallen, wasJumping);
+                        mech, levelsFallen, waterDepth);
                 }
 
                 if (context is SkidCheckRollContext skidCtx && skidCtx.SkidDistance > 0)
@@ -213,5 +234,22 @@ public class FallProcessor : IFallProcessor
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Resolves the water depth of the hex where the fall happens.
+    /// Uses the explicit landing position when supplied (movement interrupts calculate the fall
+    /// before the unit moves), otherwise the mech's current position.
+    /// Depth only counts on a Ground surface: a unit on a bridge falls onto the deck, not into the water.
+    /// Returns 0 when the hex cannot be resolved or has no water.
+    /// </summary>
+    private int ResolveWaterDepth(Mech mech, IGame game, HexPosition? fallPosition)
+    {
+        var position = fallPosition ?? mech.Position;
+        if (position == null) return 0;
+        if (position.Surface != HexSurface.Ground) return 0;
+
+        var hex = game.BattleMap?.GetHex(position.Coordinates);
+        return hex?.GetWaterDepth() ?? 0;
     }
 }

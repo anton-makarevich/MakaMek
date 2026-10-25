@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -5,9 +6,9 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
-using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -91,7 +92,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
+                Arg.Is<int>(b => b == 0))
             .Returns(fallingDamageData);
 
         // Act
@@ -135,8 +136,7 @@ public class FallProcessorTests
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 _testMech, 
-                0,
-                false)
+                0)
             .Returns(fallingDamageData);
 
         // Act
@@ -171,7 +171,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
+                Arg.Is<int>(b => b == 0))
             .Returns(fallingDamageData);
     
         // Act
@@ -226,7 +226,7 @@ public class FallProcessorTests
 
         // Verify no FallingDamage calculation occurred
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
-            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
     
     [Fact]
@@ -257,7 +257,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -290,7 +290,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             Arg.Any<IGame>());
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
         SetupRollResult(false, PilotingSkillRollType.GyroHit);
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false).Returns(GetFallingDamageData());
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0).Returns(GetFallingDamageData());
 
         // Act
         var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, null, [new KickHitRollContext()]).ToList();
@@ -395,7 +395,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             Arg.Any<IGame>());
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -429,7 +429,7 @@ public class FallProcessorTests
             Arg.Any<PilotingSkillRollContext>(),
             _game);
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
         
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -489,7 +489,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
    
     [Fact]
@@ -539,7 +539,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -563,7 +563,7 @@ public class FallProcessorTests
         SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -598,7 +598,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
 
     [Fact]
@@ -623,7 +623,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -657,7 +657,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
     
     [Fact]
@@ -682,7 +682,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -716,7 +716,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.PilotDamageFromFall),
             _game);
             
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
     
     [Fact]
@@ -754,7 +754,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.LowerLegActuatorHit),
             _game);
             
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -775,7 +775,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -836,7 +836,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.HipActuatorHit),
             _game);
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -857,7 +857,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -918,7 +918,7 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollContext>(ctx => ctx.RollType == PilotingSkillRollType.FootActuatorHit),
             _game);
 
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Theory]
@@ -943,7 +943,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
+                Arg.Is<int>(b => b == 0))
             .Returns(fallingDamageData);
         
         // Act
@@ -971,7 +971,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.Received().CalculateFallingDamage(
             Arg.Any<Unit>(),
             Arg.Is<int>(i => i == 0),
-            Arg.Is<bool>(b => b == false));
+            Arg.Is<int>(b => b == 0));
     }
     
     [Fact]
@@ -1009,7 +1009,7 @@ public class FallProcessorTests
             
         // Verify no falling damage calculation occurred
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
-            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -1053,7 +1053,7 @@ public class FallProcessorTests
             
         // Verify falling damage calculation occurred
         _mockFallingDamageCalculator.Received().CalculateFallingDamage(
-            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -1067,7 +1067,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 1, true)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 1, 1)
             .Returns(fallingDamageData);
 
         // Act
@@ -1082,12 +1082,12 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll!.RollContext.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll.RollContext).LevelsFallen.ShouldBe(1);
 
-        // Verify FallingDamageCalculator received correct levelsFallen and wasJumping
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 1, true);
+        // Verify FallingDamageCalculator received correct levelsFallen and water depth
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 1, 1);
     }
 
     [Fact]
-    public void ProcessWaterEntry_ShouldSetLevelsFallenToZero_WhenWalkingIntoDeepWaterAndFalling()
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToWaterDepth_WhenWalkingIntoDeepWaterAndFalling()
     {
         // Arrange - WaterDepth: 1, Walk movement
         SetupWaterEntryPsrFor(1, 1, "Water Depth");
@@ -1097,7 +1097,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 1, 1)
             .Returns(fallingDamageData);
 
         // Act
@@ -1105,13 +1105,13 @@ public class FallProcessorTests
 
         // Assert
         result.IsFalling.ShouldBeTrue();
-        result.LevelsFallen.ShouldBe(0);
+        result.LevelsFallen.ShouldBe(1);
         result.WasJumping.ShouldBeFalse();
         result.FallingDamageData.ShouldBe(fallingDamageData);
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
-        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(1);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 1, 1);
     }
 
     [Fact]
@@ -1125,7 +1125,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, true)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, 2)
             .Returns(fallingDamageData);
 
         // Act
@@ -1139,11 +1139,11 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(2);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 2, true);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 2, 2);
     }
 
     [Fact]
-    public void ProcessWaterEntry_ShouldSetLevelsFallenToZero_WhenRunningIntoDeepWaterAndFalling()
+    public void ProcessWaterEntry_ShouldSetLevelsFallenToWaterDepth_WhenRunningIntoDeepWaterAndFalling()
     {
         // Arrange - WaterDepth: 1, Run movement
         SetupWaterEntryPsrFor(1, 1, "Water Depth");
@@ -1153,7 +1153,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 1, 1)
             .Returns(fallingDamageData);
 
         // Act
@@ -1161,10 +1161,10 @@ public class FallProcessorTests
 
         // Assert
         result.IsFalling.ShouldBeTrue();
-        result.LevelsFallen.ShouldBe(0);
+        result.LevelsFallen.ShouldBe(1);
         result.WasJumping.ShouldBeFalse();
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 1, 1);
     }
 
     [Fact]
@@ -1178,7 +1178,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, true)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -1192,7 +1192,48 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, true);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToWaterDepth_WhenJumpingAndFallingInWater(
+        int waterDepth)
+    {
+        // Arrange - deploy the mech onto a water hex and fail the jump-with-damage PSR there
+        var waterCoords = new HexCoordinates(7, 7);
+        _map.GetHex(waterCoords)!.AddTerrain(new WaterTerrain(-waterDepth));
+        _testMech.Deploy(new HexPosition(waterCoords, HexDirection.Top), null);
+
+        SetupPsrFor(PilotingSkillRollType.JumpWithDamage, 1, "Jump with damage");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.JumpWithDamage);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, waterDepth, waterDepth)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
+            _game,
+            MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(waterDepth,
+            "A failed jump landing in water drops the mech from the surface to the hex bottom");
+        result.WasJumping.ShouldBeTrue();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext)
+            .LevelsFallen.ShouldBe(waterDepth);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, waterDepth, waterDepth);
     }
 
     [Fact]
@@ -1206,7 +1247,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0)
             .Returns(fallingDamageData);
 
         // Act
@@ -1219,7 +1260,7 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(0);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
 
     private void SetupWaterEntryPsrFor(int waterDepth, int modifierValue, string modifierName)
@@ -1281,7 +1322,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, waterDepth, waterDepth)
             .Returns(fallingDamageData);
 
         // Act
@@ -1430,7 +1471,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
+                Arg.Is<int>(b => b == 0))
             .Returns(fallingDamageData);
 
         // Act
@@ -1471,7 +1512,7 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<int>(),
-                Arg.Any<bool>())
+                Arg.Any<int>())
             .Returns(fallingDamageData);
 
         // Apply heavy damage
@@ -1507,7 +1548,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>())
+        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(fallingDamageData);
 
         var skidDamageData = GetFallingDamageData();
@@ -1524,7 +1565,7 @@ public class FallProcessorTests
         result.FallingDamageData.ShouldBe(fallingDamageData);
 
         _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -1543,7 +1584,7 @@ public class FallProcessorTests
         result.FallingDamageData.ShouldBeNull();
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateSkidDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
-        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -1557,7 +1598,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>())
+        _mockFallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(fallingDamageData);
 
         var skidDamageData = GetFallingDamageData();
@@ -1570,7 +1611,7 @@ public class FallProcessorTests
         // Assert
         result.IsFalling.ShouldBeTrue();
         _mockFallingDamageCalculator.Received(1).CalculateSkidDamage(Arg.Any<Unit>(), Arg.Is<int>(h => h == 3), Arg.Any<HexDirection>(), Arg.Any<DiceResult>(), Arg.Any<HitDirection>());
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Theory]
@@ -1584,7 +1625,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight)
             .Returns(fallingDamageData);
 
         // Act
@@ -1600,7 +1641,7 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(bridgeHeight);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight, false);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight);
     }
 
     [Theory]
@@ -1614,7 +1655,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight, true)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, bridgeHeight)
             .Returns(fallingDamageData);
 
         // Act
@@ -1630,7 +1671,7 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(bridgeHeight);
 
-        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight, true);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, bridgeHeight);
     }
 
     [Fact]
@@ -1641,7 +1682,7 @@ public class FallProcessorTests
         SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2)
             .Returns(fallingDamageData);
 
         // Act
@@ -1667,7 +1708,7 @@ public class FallProcessorTests
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
-        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2, false)
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 2)
             .Returns(fallingDamageData);
 
         // Act
@@ -1697,7 +1738,7 @@ public class FallProcessorTests
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
-                _testMech, levelsFallen, false,
+                _testMech, levelsFallen, 0,
                 facingDiceRoll, facingAfterFall)
             .Returns(fallingDamageData);
 
@@ -1715,10 +1756,10 @@ public class FallProcessorTests
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(levelsFallen);
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
-            _testMech, levelsFallen, false,
+            _testMech, levelsFallen, 0,
             facingDiceRoll, facingAfterFall);
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
-            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>());
     }
 
     [Fact]
@@ -1734,7 +1775,7 @@ public class FallProcessorTests
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
-                _testMech, levelsFallen, false,
+                _testMech, levelsFallen, 0,
                 facingDiceRoll, facingAfterFall)
             .Returns(fallingDamageData);
 
@@ -1766,7 +1807,7 @@ public class FallProcessorTests
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
-                _testMech, levelsFallen, false,
+                _testMech, levelsFallen, 0,
                 facingDiceRoll, facingAfterFall)
             .Returns(fallingDamageData);
 
@@ -1783,5 +1824,213 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue();
         ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext).LevelsFallen.ShouldBe(levelsFallen);
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldResolveWaterDepthFromFallPosition_WhenExplicitPositionOnWaterHex()
+    {
+        // Arrange - add depth-2 water to a hex
+        var waterCoords = new HexCoordinates(2, 2);
+        _map.GetHex(waterCoords)!.AddTerrain(new WaterTerrain(-2));
+
+        _testMech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Top), null);
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - auto-fall (destroyed gyro) with an explicit landing position on the water hex
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            _game,
+            MovementType.StandingStill,
+            new HexPosition(waterCoords, HexDirection.Top));
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(0);
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 2));
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldNotUseWaterDepth_WhenFallPositionSurfaceIsBridge()
+    {
+        // Arrange - add depth-2 water to a hex and fall onto its bridge surface
+        var waterCoords = new HexCoordinates(2, 2);
+        _map.GetHex(waterCoords)!.AddTerrain(new WaterTerrain(-2));
+
+        _testMech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Top), null);
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            _game,
+            MovementType.StandingStill,
+            new HexPosition(waterCoords, HexDirection.Top, HexSurface.Bridge));
+
+        // Assert - a unit on a bridge falls onto the deck, not into the water
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldResolveWaterDepthFromCurrentPosition_WhenMechStandsInWater()
+    {
+        // Arrange - deploy the mech directly on a depth-1 water hex
+        var waterCoords = new HexCoordinates(4, 4);
+        _map.GetHex(waterCoords)!.AddTerrain(new WaterTerrain(-1));
+        _testMech.Deploy(new HexPosition(waterCoords, HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - in-place fall (automatic, destroyed gyro) without an explicit position
+        var results = _sut.ProcessPotentialFall(
+            _testMech,
+            _game,
+            [],
+            null,
+            [new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed)]).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 1));
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldResolveZeroWaterDepth_WhenGameHasNoBattleMap()
+    {
+        // Arrange - a game without a battle map cannot resolve the landing hex
+        var gameWithoutMap = Substitute.For<IGame>();
+        gameWithoutMap.Id.Returns(_gameId);
+        gameWithoutMap.BattleMap.Returns((IBattleMap?)null);
+        _testMech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - automatic fall (destroyed gyro) with no map available
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            gameWithoutMap,
+            MovementType.StandingStill);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldResolveZeroWaterDepth_WhenFallHexIsOutsideTheMap()
+    {
+        // Arrange - the mech is deployed on coordinates the map does not contain
+        _testMech.Deploy(new HexPosition(new HexCoordinates(50, 50), HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - automatic fall (destroyed gyro) on a hex that cannot be resolved
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            _game,
+            MovementType.StandingStill);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldResolveZeroWaterDepth_WhenMechStandsOnDryGround()
+    {
+        // Arrange
+        _testMech.Deploy(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act
+        var results = _sut.ProcessPotentialFall(
+            _testMech,
+            _game,
+            [],
+            null,
+            [new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed)]).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
+    }
+
+    [Fact]
+    public void ProcessWaterEntry_ShouldProduceSameDamage_ForWalkAndJumpIntoSameHex()
+    {
+        // Arrange - real falling damage calculator and rules provider, mocked dice and piloting rolls
+        var mockDiceRoller = Substitute.For<IDiceRoller>();
+        mockDiceRoller.RollD6().Returns(new DiceResult(3));
+        mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
+
+        var realFallingDamageCalculator = new FallingDamageCalculator(
+            Substitute.For<ILogger<FallingDamageCalculator>>(),
+            mockDiceRoller,
+            new TotalWarfareRulesProvider(),
+            Substitute.For<IDamageTransferCalculator>());
+
+        var paritySut = new FallProcessor(
+            new TotalWarfareRulesProvider(),
+            _mockPilotingSkillCalculator,
+            realFallingDamageCalculator);
+
+        // Water entry PSR fails, pilot damage PSR succeeds
+        SetupWaterEntryPsrFor(2, 1, "Water Depth");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+        SetupRollResult(false, PilotingSkillRollType.WaterEntry);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        _testMech.Deploy(new HexPosition(new HexCoordinates(6, 6), HexDirection.Top), null);
+
+        // Act - walk and jump into the same depth-2 water hex
+        var walkResult = paritySut.ProcessMovementAttempt(
+            _testMech, new EnteringDeepWaterRollContext(2), _game, MovementType.Walk);
+        var jumpResult = paritySut.ProcessMovementAttempt(
+            _testMech, new EnteringDeepWaterRollContext(2), _game, MovementType.Jump);
+
+        // Assert - both are falls to the hex bottom with equal, halved damage
+        walkResult.LevelsFallen.ShouldBe(2);
+        jumpResult.LevelsFallen.ShouldBe(2);
+        walkResult.FallingDamageData.ShouldNotBeNull();
+        jumpResult.FallingDamageData.ShouldNotBeNull();
+        walkResult.FallingDamageData.HitLocations.TotalDamage
+            .ShouldBe(jumpResult.FallingDamageData.HitLocations.TotalDamage);
+        // 20-ton mech: (2 tons/10 * (2+1)) / 2 = 3
+        walkResult.FallingDamageData.HitLocations.TotalDamage.ShouldBe(3);
     }
 }

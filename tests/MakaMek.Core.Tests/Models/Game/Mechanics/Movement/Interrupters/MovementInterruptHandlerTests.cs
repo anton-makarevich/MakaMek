@@ -77,9 +77,9 @@ public class MovementInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<EnteringDeepWaterRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,

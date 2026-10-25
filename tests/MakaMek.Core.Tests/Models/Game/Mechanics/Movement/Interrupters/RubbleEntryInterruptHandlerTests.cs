@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -94,7 +94,7 @@ public class RubbleEntryInterruptHandlerTests : GamePhaseTestsBase
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(successContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -133,7 +133,7 @@ public class RubbleEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -174,7 +174,7 @@ public class RubbleEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -215,7 +215,7 @@ public class RubbleEntryInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<RubbleEntryRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,

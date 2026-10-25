@@ -21,7 +21,7 @@ In BattleTech, **pavement** and **roads** represent smooth, hard surfaces like a
     *   **Failure Result:** The 'Mech falls and skids for a distance equal to half the hexes moved that turn (rounded up).
     *   **Damage:** Skidding 'Mechs take half their normal falling damage per hex traveled during the skid.
     *   **Combat Penalty:** A skidding unit is easier to hit (**+2 to-hit modifier**) and suffers a **+1 to-hit penalty** on its own attacks.
-*   **Bridge Capacity:** Bridges have a **Construction Factor (CF)**. If the total tonnage of units on a bridge hex exceeds its current CF, the bridge **collapses**, and the units take standard falling damage to the terrain below.
+*   **Bridge Capacity:** Bridges have a **Construction Factor (CF)**. If the total tonnage of units on a bridge hex exceeds its current CF, the bridge **collapses**, and the units take standard falling damage to the terrain below. If that terrain is water, the fall extends to the hex bottom (bridge height + water depth levels) and the damage is halved per the water fall rule (each impact halved, round down).
 *   **Vehicle Bonus:** While 'Mechs do not get a speed boost on pavement, **ground vehicles** (wheeled/tracked) receive a **+1 MP bonus** if they begin their turn on pavement and stay on it for their entire movement.
 *   **Airborne Units:** VTOLs and WiGE vehicles can use roads to traverse woods hexes at an elevation **below the treetops** without crashing, provided they stay on the road for the entire movement through the woods.
 *   **Aerospace Landing:** Pavement and roads are the safest places for aerospace units to land, providing a **0 terrain modifier** to the landing Control Roll.
@@ -33,7 +33,7 @@ A unit in a hex containing both a bridge and water can be located in one of two 
 ### **1. On Top of the Bridge**
 When a unit is "on" the bridge, it is traveling at the **road level**.
 *   **Terrain Interaction:** The unit **ignores the normal terrain restrictions** and movement penalties of the underlying terrain (such as water MP costs or depth-based Piloting Skill Rolls).
-*   **Weight Limits:** Each hex of the bridge has a Construction Factor (CF) representing the weight it can bear. If the total tonnage of units on the bridge in a single hex exceeds the current CF, that hex **collapses**, and the units fall to the underlying terrain (water), taking standard falling damage.
+*   **Weight Limits:** Each hex of the bridge has a Construction Factor (CF) representing the weight it can bear. If the total tonnage of units on the bridge in a single hex exceeds the current CF, that hex **collapses**, and the units fall to the underlying terrain (water), taking standard falling damage — extended to the hex bottom (bridge height + water depth levels) and halved per the water fall rule (each impact halved, round down).
 
 ### **2. Underneath the Bridge**
 A unit may enter a bridge hex and be considered "underneath" the bridge, provided the level of the underlying hex plus the height of the unit is **equal to or less than the level of the bridge**. In this position, the unit is interacting with the water terrain. The unit's specific location depends on its type:

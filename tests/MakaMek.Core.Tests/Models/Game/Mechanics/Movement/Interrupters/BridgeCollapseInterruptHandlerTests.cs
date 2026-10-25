@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -48,7 +48,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, movementType)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, movementType, Arg.Any<HexPosition?>())
             .Returns(fallContext);
     }
 
@@ -120,7 +120,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var idempotencyKey = Guid.NewGuid();
@@ -142,6 +142,16 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         publishedMoveAction.ShouldNotBeNull();
         publishedMoveAction.Command.GameOriginId.ShouldBe(Game.Id);
         publishedMoveAction.Command.IdempotencyKey.ShouldBe(idempotencyKey);
+
+        // The falling unit must be resolved at the bridge hex, not its pre-move position
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Any<BridgeCollapseRollContext>(),
+            Game,
+            MovementType.Walk,
+            Arg.Is<HexPosition?>(p => p != null
+                && p.Coordinates == new HexCoordinates(2, 2)
+                && p.Surface == HexSurface.Ground));
     }
 
     [Fact]
@@ -158,7 +168,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
             GameId = Game.Id,
             IsFalling = false
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Walk,
@@ -211,7 +221,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
                 new DiceResult(3),
                 HitDirection.Front)
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,
@@ -232,6 +242,16 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeTrue();
         result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
+
+        // The falling unit must be resolved at the bridge hex
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Any<BridgeCollapseRollContext>(),
+            Game,
+            MovementType.Jump,
+            Arg.Is<HexPosition?>(p => p != null
+                && p.Coordinates == new HexCoordinates(2, 2)
+                && p.Surface == HexSurface.Ground));
     }
 
     [Fact]
@@ -248,7 +268,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
             GameId = Game.Id,
             IsFalling = false
         };
-        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump)
+        MockFallProcessor.ProcessMovementAttempt(mech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Jump, Arg.Any<HexPosition?>())
             .Returns(fallContext);
 
         var moveCommand = CreateMoveCommand(_unitId, MovementType.Jump,

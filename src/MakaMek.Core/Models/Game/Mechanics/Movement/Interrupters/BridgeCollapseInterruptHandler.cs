@@ -63,7 +63,8 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
                     hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game,
                     hexUnit.Id == context.Unit.Id
                         ? context.MoveCommand.MovementType
-                        : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill);
+                        : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill,
+                    new HexPosition(bridgeCoords, hexMech.Position!.Facing));
 
                 if (fallContextData.IsFalling)
                 {
@@ -136,7 +137,8 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
                 hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game,
                 hexUnit.Id == context.Unit.Id
                     ? context.MoveCommand.MovementType
-                    : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill);
+                    : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill,
+                new HexPosition(bridgeCoords, hexMech.Position!.Facing));
 
             if (fallContextData.IsFalling)
             {
