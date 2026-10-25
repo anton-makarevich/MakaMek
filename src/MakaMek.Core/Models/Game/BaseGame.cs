@@ -38,11 +38,9 @@ public abstract class BaseGame : IGame
     private readonly List<IGameCommand> _commandLog = [];
     private readonly Subject<IGameCommand> _commandSubject = new();
 
-    // Physical attack resolutions already applied, so a resolution delivered twice deals its damage once
-    private readonly ConcurrentDictionary<Guid, byte> _appliedPhysicalAttackResolutions = new();
-
-    // Weapon attack resolutions already applied, so a resolution delivered twice deals its damage once
-    private readonly ConcurrentDictionary<Guid, byte> _appliedWeaponAttackResolutions = new();
+    // Attack resolutions (weapon and physical) already applied, so a resolution delivered twice
+    // deals its damage once. Resolution ids are globally unique GUIDs, so one set covers both kinds.
+    private readonly ConcurrentDictionary<Guid, byte> _appliedAttackResolutions = new();
 
     public Guid Id { get; }
 
@@ -243,7 +241,7 @@ public abstract class BaseGame : IGame
 
     internal void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)
     {
-        if (!_appliedWeaponAttackResolutions.TryAdd(attackResolutionCommand.ResolutionId, 0)) return;
+        if (!_appliedAttackResolutions.TryAdd(attackResolutionCommand.ResolutionId, 0)) return;
 
         // Find the attacking unit
         var attackerUnit = _players
@@ -278,7 +276,7 @@ public abstract class BaseGame : IGame
 
     internal void OnPhysicalAttackResolution(PhysicalAttackResolutionCommand resolutionCommand)
     {
-        if (!_appliedPhysicalAttackResolutions.TryAdd(resolutionCommand.ResolutionId, 0)) return;
+        if (!_appliedAttackResolutions.TryAdd(resolutionCommand.ResolutionId, 0)) return;
 
         var res = resolutionCommand.ResolutionData.AttackResolution;
         if (res is not { IsHit: true, HitLocationsData: not null }) return;
@@ -573,7 +571,7 @@ public abstract class BaseGame : IGame
             return CommandValidationResult.Valid();
 
         return command.WeaponTargets.Any(target =>
-                target.Weapon.Assignments is not { Count: > 0 })
+                target is null || target.Weapon is null || target.Weapon.Assignments is not { Count: > 0 })
             ? CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
             : CommandValidationResult.Valid();
     }
