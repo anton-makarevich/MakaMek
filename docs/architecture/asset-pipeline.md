@@ -5,7 +5,7 @@ Design for a two-stage, fully automated, CLI/MCP-driven asset pipeline:
 1. **Import** — any 3D source (MechWarrior 5, other games, a model from the internet) → one **canonical model** containing normalised geometry, skeleton, materials and the animation clips the board needs.
 2. **Render** — canonical model → sprites and spritesheets consumed by MakaMek.
 
-The canonical model from stage 1 is also the asset format for the planned **native 3D client**, so stage 1 is not disposable tooling — it is the long-term asset contract. The renderer engine question (MonoGame vs Avalonia-hosted) stays open by design; see [../analysis/avalonia-3d-renderer-evaluation.md](../analysis/avalonia-3d-renderer-evaluation.md).
+The canonical model from stage 1 is also the asset format for the planned **native 3D client**, so stage 1 is not disposable tooling — it is the long-term asset contract. Stage 2 renders with **headless Blender automation** (§4.1, [blender-render-driver.md](blender-render-driver.md)); the engine question for an *interactive* 3D client stays open, which is why the model format is engine-neutral. See [../analysis/avalonia-3d-renderer-evaluation.md](../analysis/avalonia-3d-renderer-evaluation.md) for the comparison behind both statements.
 
 No UI-only tools are part of the pipeline. Every step is a headless process that can be scripted, batched, and exposed to an agent.
 
@@ -42,8 +42,8 @@ The contract between the stages is the whole design. Everything else is an adapt
 `.glb` + JSON, nothing bespoke. Reasons:
 
 - glTF 2.0 carries skinning, skeletal animation, PBR materials and embedded textures in one file — no format invention.
-- It is the best-supported C# path into both plausible runtime engines: `SharpGLTF` (read/write) plus `SharpGLTF.Runtime.MonoGame` / `MonoGame.AnimAndPBR` for MonoGame, and `SharpGLTF` again for an Avalonia-hosted renderer; the MonoGame content pipeline can also consume `.glb` through `OpenAssetImporter`.
-- It is readable by Blender/three.js/anything, so a human escape hatch exists without adding a dependency to the pipeline.
+- It is readable by **Blender** (the adopted renderer) with the best-supported 3D importer available, and by three.js/anything else, so a human escape hatch exists without adding a dependency to the pipeline.
+- If a **MonoGame** client is chosen later, `SharpGLTF` is the most-used C# reader, but the MonoGame *runtime* integration is community-maintained (temporary package names, runtime rather than content-pipeline loading, documented animation/PBR limitations). Treat it as something to qualify in a spike, not as an established path — the canonical format does not depend on it.
 
 ### 2.2 Canonical conventions
 
@@ -58,6 +58,7 @@ These are non-negotiable and enforced by the normalizer (`validate` fails otherw
 | Mesh | triangulated, welded, normals + tangents + UV0, ≤ 4 bone influences per vertex |
 | Rest pose | bind pose = the source's rest pose; T-pose is *not* required (mechs have no arms-out pose) |
 | Materials | PBR kept as authored, but exactly one material property, `extras.boardLook`, names the sprite material profile |
+| Sprite colour | **luminance only**: the board sprite carries shape and shading, never hue. Near-white base, darker creases/outline, alpha for the silhouette. Owner tint is applied at runtime (see §4.4) |
 | Animation fps | resampled to **30 fps**, linear interpolation |
 | Scene | exactly one scene, no lights/cameras/empties exported (stage 2 owns those) |
 
@@ -110,7 +111,8 @@ Because step 3 is data, adding a new "cheat" animation for a whole family of sou
     "adapter": "unreal", "kind": "pak",
     "uri": "MW5Mercs-WindowsNoEditor.pak#/Game/Objects/Mechs/Atlas/...",
     "gameVersion": "4.26", "sha256": "…",
-    "license": "PGI/Microsoft — not redistributable"
+    "licenseStatus": "not-redistributable",   // redistributable | not-redistributable | unknown
+    "licenseNote": "PGI/Microsoft — game content, not redistributable"
   },
   "metrics": {
     "heightMeters": 15.2, "footprintDiameterMeters": 11.4,
@@ -122,8 +124,8 @@ Because step 3 is data, adding a new "cheat" animation for a whole family of sou
     "method": "voxel", "grid": 64,
     "modelCubicMeters": 1520.4,
     "targetCubicMeters": 666.7,
-    "densityTonsPerCubicMeter": 0.15,
-    "correctionScale": 0.7597,          // (target/model)^(1/3), applied at render time
+    "correctionScale": 0.7597,          // (target/model)^(1/3) — authoritative; computed at import
+    "densityTonsPerCubicMeter": 0.15,   // provenance for the 3D client only; does not affect sprites (§4.3)
     "includesAttachments": true,
     "canonicalLoadout": ["arm_ra_std", "ac20"]
   },
@@ -227,19 +229,27 @@ The look lives in `presets/*.json`, not in code:
   "camera": { "projection": "ortho", "pitchDegrees": 90, "yawDegrees": 0 },
   "scale": {
     "mode": "tonnage-volume",       // tonnage-volume | uniform | none
-    "referenceTonnage": 100,
-    "referenceCoverage": 0.90,      // of hex height, at reference tonnage
-    "densityTonsPerCubicMeter": 0.15,
+    "referenceChassis": "AS7",      // the chassis that calibrates pixelsPerMetre (§4.3)
+    "referenceCoverage": 0.90,      // of hex height, for the reference chassis
     "minimumCoverage": 0.55,        // readability floor, applied last
     "hexHeightLogicalPx": 86.6
   },
-  "output": { "cell": 384, "supersample": 2, "background": "transparent", "colorSpace": "sRGB" },
+  "output": {
+    "cellWidth": 84, "cellHeight": 72,      // 1×: the size every existing asset already uses
+    "channels": "luminance",               // R=G=B, alpha = silhouette; tint applied at runtime
+    "background": "transparent",
+    "viewTransform": "Standard"            // no AgX: a controlled grey ramp, not filmic tone mapping
+  },
   "engine": { "name": "cycles", "device": "cpu", "samples": 48, "denoise": "openimagedenoise" },
   "lights": [
-    { "type": "area", "position": [-6, -8, 12], "size": 8, "color": "#FFF4E0", "intensity": 420 },
-    { "type": "area", "position": [7, -3, 9], "size": 10, "color": "#AFC4E0", "intensity": 140 }
+    { "type": "area", "position": [-6, -8, 12], "size": 8, "color": "#FFFFFF", "intensity": 420 },
+    { "type": "area", "position": [7, -3, 9], "size": 10, "color": "#FFFFFF", "intensity": 140 }
   ],
-  "styling": { "outline": { "enabled": true, "width": 2.0, "color": "#101418" }, "posterize": 0 },
+  "styling": {
+    "materialOverride": "board-look",      // near-white base, dark creases; imported albedo is discarded
+    "outline": { "enabled": true, "width": 2.0, "color": "#101418" },
+    "posterize": 0
+  },
   "shading": {
     "groundShadow": { "enabled": true, "opacity": 0.25, "blurPx": 6 }
   },
@@ -270,21 +280,27 @@ The model is three independent factors:
 
 ```text
 V_model     = voxelised displacement volume of the canonical mesh (m³)
-V_target    = density × tonnage                       // 100 t @ 0.15 t/m³ → 667 m³
-s_volume    = (V_target / V_model)^(1/3)              // per-model correction
-s_override  = scale-overrides.json[chassis] ?? 1.0     // human review, persisted
-pxPerMetre  = (referenceCoverage × hexHeightLogicalPx) / (V_target(refTonnage)^(1/3))
+s_volume    = volume.correctionScale from model.json   // (density·tonnage / V_model)^(1/3)
+s_override  = scale-overrides.json[chassis] ?? 1.0      // human review, persisted
+
+// calibration: the only per-run scale input. Derived from the reference chassis,
+// never stored, so there is nothing to fall out of sync.
+pxPerMetre  = (referenceCoverage × hexHeightLogicalPx)
+              / (heightMeters[referenceChassis] × s_volume[referenceChassis])
+
 spriteScale = pxPerMetre × s_volume × s_override
 ```
 
 Why this shape:
 
-- **Volume correction is a measurement, not a geometry edit.** `s_volume` is stored in the manifest and applied at render time, so the `.glb` stays a faithful copy of the source, and changing the density constant re-scales everything without re-importing 76 models.
-- **The pixel factor is global**, fixed by the preset so that a 100 t mech fills `referenceCoverage` of the hex height. Because volume scales with the cube of length, sprite size then falls out as `∝ tonnage^(1/3)` automatically — 20 t renders at ~58% the linear size of 100 t, which is both physically honest and the thing the current flat 84×72 art cannot express.
+- **Volume correction is a measurement, not a geometry edit.** `correctionScale` is computed once at import and stored in the manifest (`model.json`), so the `.glb` stays a faithful copy of the source and rendering applies one number.
+- **The pixel factor is global and derived**, not configured. `referenceChassis` + `referenceCoverage` fully determine it from that chassis's manifest, so there is exactly **one** place each value lives: corrections in manifests, calibration in the preset, deviations in `scale-overrides.json`. Nothing is duplicated and nothing goes stale.
+- **Density is provenance, not a render input.** It is recorded in the manifest for the 3D client's physical units; sprite size depends only on `correctionScale` and the calibration. Changing density requires re-importing that model (to recompute `correctionScale`) but never touches the preset — and because every correction moves by `density^(1/3)` while `pxPerMetre` moves by the inverse, a global change cancels out of the result anyway.
+- **The size gradient comes from the calibration, not from a per-chassis rule.** Once the reference chassis fills `referenceCoverage`, size falls out as `∝ tonnage^(1/3)`: a 20 t Locust is ~58% the linear size of a 100 t Atlas, not 20% — physically honest, and the thing the current flat 84×72 art cannot express.
 - **Volume is measured on a declared loadout**, not on whatever the variant happens to carry (`volume.includesAttachments` + `canonicalLoadout` per chassis), so `AS7-D` and `AS7-K` produce identical sprites.
 - **Voxel, not tetrahedron.** Game meshes are open (missing arms, unwelded shells) so signed-tetrahedron volume is garbage. Voxelising the bounds at a fixed grid (default 64³) and counting occupied cells × cell volume is robust, deterministic, and cheap. `--volume-method hull` is available when a watertight mesh is expected.
 
-One property worth knowing before tuning anything: **`density` cancels out of the sprite size.** It raises `s_volume` by `density^(1/3)` and lowers `pxPerMetre` by the same factor, so the rendered height depends only on `tonnage / V_model` (a shape constant) and `referenceCoverage`. Density exists for the native 3D client's physical units, not for sprites — `referenceCoverage` and the overrides are the only real knobs. Size ends up `∝ tonnage^(1/3)`: a 20 t Locust is ~58% the linear size of a 100 t Atlas, not 20%.
+Tuning knobs, in order: `referenceCoverage` (all sprites), `scale-overrides.json[chassis]` (one chassis), `minimumCoverage` (the readability floor). Density is not a knob — it cancels.
 
 At 90° pitch the *visible* quantity is plan-view area, not 3D volume, so the render report also records `planView.silhouetteArea`, and the readability floor (`minimumCoverage`) is applied against projected coverage, not height:
 
@@ -322,16 +338,29 @@ artifacts/sprites/AS7/
   frames/<clip>/<frame:03>.png   # raw Blender frames (the only thing Blender produces)
   unit-sprites.png               # atlas, one row per clip (packed by the pipeline, not by Blender)
   unit-sprites.json              # frame rects, fps, loop, hold, pivot (schema from the analysis doc)
-  unit.png                       # static Idle frame, downscaled to the current 84×72 slot
+  unit.png                       # static Idle frame, already at the 84×72 slot (no resampling)
   contact-sheet.png              # every clip/frame in one image, for human review
   lineup.png                     # (batch only) all chassis at effective scale on a hex grid
   scene.blend                    # optional, --save-blend only: the generated scene, for inspection
   render-report.json             # per-clip frames, Blender version, samples, effective scale, warnings
 ```
 
-Division of labour: Blender writes PNG frames and nothing else. All assembly — downscale, atlas packing, `unit.png`, contact sheet, lineup, reports — is the pipeline's job, which is why the atlas layout can change without touching Python.
+Division of labour: Blender writes PNG frames and nothing else, already at the 1× cell size. All assembly — luminance conversion, atlas packing, `unit.png`, contact sheet, lineup, reports — is the pipeline's job, which is why the atlas layout can change without touching Python.
+
+Frames are rendered at **84×72, the same resolution as every existing asset**, not supersampled. That is a deliberate 1:1 match with the UI's draw box (`Stretch = Fill` into 84×72), so there is no resampling step and no resampling blur; a sharper variant can be added later purely by changing `cellWidth`/`cellHeight` in the preset (the atlas JSON carries the cell size), without touching the renderer or the runtime.
 
 The atlas exists so the MakaMek runtime change is mechanical: `.mmux` v2 adds `unit-sprites.png` + `unit-sprites.json` next to the unchanged `unit.png`, and `UnitControl` swaps its `Image` for a Presto `SpriteSheet`.
+
+#### Sprite colour contract (luminance, tint at runtime)
+
+Sprites carry **no hue**. They are a white-to-dark-grey ramp plus alpha, because the owner colour is applied by the UI:
+
+- `UnitControl` composites a `Border` with `Background = owner tint` and `OpacityMask = ImageBrush(sprite)` at 0.7 opacity, added *above* the unit image. The sprite's **alpha** carries the silhouette; its **luminance** carries the detail that survives the 70% wash.
+- Consequence: a near-white base with darker creases/outline reads as a clean tinted mech, and any hue baked into the sprite would multiply with the owner colour and drift.
+- This is also what the current art does: the shipped `unit.png` files are ~98% neutral (R≈G≈B) with a full 4…255 luminance range, so the existing tint path needs no change.
+- Enforcement in the pipeline: after rendering, convert each frame to luminance (`L = 0.2126R + 0.7152G + 0.0722B`), write `R = G = B = L`, and **fail the frame if any pixel exceeds a 1/255 channel delta** before conversion — a coloured render means the material override or the view transform slipped.
+- The preset pins `output.channels = "luminance"` and `viewTransform = "Standard"`: AgX/Filmic deliberately desaturates and tone-maps, which flattens the grey ramp we are trying to control.
+- **Lights are neutral white by contract.** A coloured light would fail the pre-conversion channel check, and converting it away anyway would turn per-channel energy into arbitrary greys. Modelling comes from light intensity and direction, not hue.
 
 ### 4.5 CLI
 
@@ -343,7 +372,7 @@ makamek-pipeline render --catalog chassis-map.json --preset presets/board-topdow
 
 # Blender-facing controls (thin pass-through to the driver, validated against the preset)
 makamek-pipeline render … --blender-path "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe"
-makamek-pipeline render … --smoke-test          # 1 frame, 64×64, perceptual check — CI canary
+makamek-pipeline render … --smoke-test          # 1 frame at 84×72, perceptual check — CI canary
 ```
 
 `render` shells out to the driver and fails on a non-zero exit **or** a missing expected frame. `--catalog` renders every mapped chassis with per-item failure isolation, partial success allowed, one `summary.json` plus one `lineup.png` at the end. This is the unattended 76-chassis path — and the lineup sheet is the artifact a human reviews for scale (§4.3).
@@ -355,8 +384,11 @@ makamek-pipeline render … --smoke-test          # 1 frame, 64×64, perceptual 
 `.mmux` v2 assembly reuses the zip writer already in `src/MakaMek.Tools/MmuxPackager` — extract it into `MakaMek.Pipeline.Pack` and have the existing tool call the shared code (no duplicated writer).
 
 ```bash
-makamek-pipeline pack --unit data/units/mechs/AS7-D.mmux --sprites artifacts/sprites/AS7 --out artifacts/pack/AS7-D.mmux --json
+makamek-pipeline pack --model artifacts/models/AS7 --unit data/units/mechs/AS7-D.mmux \
+                      --sprites artifacts/sprites/AS7 --out artifacts/pack/AS7-D.mmux --json
 ```
+
+`pack` takes the **manifest** as well as the artefacts: `model.json` is the only place `source.licenseStatus` and `volume.correctionScale` live, so without it the tool cannot enforce the §8 refusal or record what it packed. `render-report.json` copies `licenseStatus` + the source URI forward, so a sprite directory is self-describing even when the model directory is gone.
 
 Rule: the pipeline **writes to `artifacts/`**, never to `data/`. Promoting a pack into `data/` is a deliberate, reviewable copy — and for MW5-derived assets, never (see §8).
 
@@ -399,9 +431,9 @@ Global flags: `--json` (machine-readable envelope: `{ ok, data, warnings, errors
 | `pipeline_inspect` | `modelPath` | manifest summary, clip table, warnings |
 | `pipeline_validate` | `modelPath` | violations with JSON-pointer paths |
 | `pipeline_import` | `source`, `uri`, `asset`, `id`, `out`, `options` | canonical model path + manifest + warnings |
-| `pipeline_render` | `modelPath`, `preset`, `out`, `clips[]`, `ignoreOverrides`, `only[]` | sprite paths + effective scale + coverage warnings |
+| `pipeline_render` | `modelPath`, `preset`, `out`, `clips[]`, `ignoreOverrides`, `only[]` | sprite paths + effective scale + `licenseStatus` + coverage warnings |
 | `pipeline_scale` | `catalog`, `preset` | current overrides + suggested changes + lineup path |
-| `pipeline_pack` | `unitPath`, `spritesPath`, `out` | `.mmux` path + entry list |
+| `pipeline_pack` | `modelPath`, `unitPath`, `spritesPath`, `out` | `.mmux` path + entry list + license disposition |
 | `pipeline_run` | full chain spec | all of the above |
 | `pipeline_batch` | `catalog`, `preset`, `out` | per-item status + summary |
 
@@ -436,8 +468,8 @@ tests/MakaMek.Pipeline.Tests/      normalizer, clip resolution, synthesis rules,
 
 Testing split matches the repo's coverage policy (UI and external tools excluded, logic covered):
 
-- **Covered by unit tests:** scale/axis/pivot maths, bone mapping, clip alias + synthesis resolution, fps resampling, preset parsing (including strict unknown-key rejection), atlas layout, `unit.png` downscale, manifest serialisation and validation, **volume voxelisation and the tonnage→sprite scale chain** (override precedence, coverage floor), and the Blender **command-line construction** (pure string/args mapping — the thing that silently breaks).
-- **Not covered:** Blender itself and the Python driver. They get a CI canary instead: `render --smoke-test` renders one frame of a committed fixture at 64×64 and compares it perceptually against a reference. Skips with a clear message when Blender is not installed; never blocks a PR on the renderer.
+- **Covered by unit tests:** scale/axis/pivot maths, bone mapping, clip alias + synthesis resolution, fps resampling, preset parsing (including strict unknown-key rejection), atlas layout, `unit.png` selection (frame 0, no resampling), manifest serialisation and validation, **volume voxelisation and the tonnage→sprite scale chain** (override precedence, coverage floor), and the Blender **command-line construction** (pure string/args mapping — the thing that silently breaks).
+- **Not covered:** Blender itself and the Python driver. They get a CI canary instead: `render --smoke-test` renders one 84×72 frame of a committed fixture and compares it perceptually against a reference. Skips with a clear message when Blender is not installed; never blocks a PR on the renderer.
 
 Determinism requirements (so a diff report means something): pinned Blender version, `--factory-startup`, fixed seed/samples/denoiser/threads/colour management from the preset, fixed culture, pinned package versions, sorted iteration everywhere, and content hashes of model + preset + Blender build recorded in `render-report.json`.
 
@@ -445,7 +477,19 @@ Determinism requirements (so a diff report means something): pinned Blender vers
 
 ## 8. Licensing
 
-Stage 1 records `source.license` in every manifest and the CLI refuses to `pack` an asset whose license is marked `not-redistributable` unless `--allow-nonredistributable` is passed, in which case the output is written outside `artifacts/` too. That keeps MW5-derived sprites a local, user-generated pack (loaded through the existing `LocalFolderResourceStreamProvider`) and prevents an accidental commit of derivative art.
+Every manifest declares a **closed** license status — no free-form string, no "probably fine":
+
+| `licenseStatus` | Meaning | `pack` behaviour |
+|---|---|---|
+| `redistributable` | we can publish the artefacts | allowed |
+| `not-redistributable` | source IP forbids redistribution (e.g. MW5) | refused unless `--allow-nonredistributable`; output is forced outside `artifacts/` |
+| `unknown` | missing, unparsed or unrecognised | **refused by default** (same as `not-redistributable`) |
+
+Default-deny is the point: a new adapter that forgets to classify a source produces `unknown`, and the pipeline stops rather than quietly publishing derivative art. The status is written into `render-report.json` so a sprite directory stays self-describing.
+
+With `--allow-nonredistributable`, MW5-derived sprites become a local, user-generated pack (loaded through the existing `LocalFolderResourceStreamProvider`) — which is exactly the existing pattern for assets that are not published to GitHub.
+
+**Not legal advice.** These rules are a pipeline safety rail, not an interpretation of any EULA; see [../analysis/mw5-model-extraction.md](../analysis/mw5-model-extraction.md) §5 for the source constraints and their uncertainties.
 
 Everything else — adapters, normalizer, renderer, presets, format — ships. The output of MW5 does not.
 
@@ -475,6 +519,8 @@ P2a/P2b is the go/no-go gate: it must answer two questions at board size, not on
 | **EEVEE won't run in CI** | Cycles CPU is the CI engine; EEVEE is local-only (it needs a display/EGL context) |
 | **Render time at scale** | 1–3 s/frame CPU; levers in order: samples down (denoise), 256² cells, fewer clips per pass, parallel chassis — not "write a renderer" |
 | **Determinism expectations** | Cycles is stable but not bit-identical across builds; regressions are caught with perceptual comparison and tolerance, and the report records the Blender build |
+| **Hue leaks into sprites** | A coloured render multiplies with the owner tint and drifts; the pipeline converts to luminance and **fails the frame** if any pixel differs by more than 1/255 across channels, and the preset pins `Standard` view transform rather than AgX |
+| **Density mistaken for a scale knob** | It cancels out; the only scale inputs are `correctionScale` (per model, computed at import) and `referenceCoverage` + `referenceChassis` (preset), documented in §4.3 and in the manifest comments |
 | Blender exits 0 with partial output | The driver verifies every expected frame exists; the CLI fails on a missing frame, not just on the exit code |
 | Blender MCP treated as a build dependency | It is interaction-only; CI never calls it, and the pipeline's own MCP wraps the CLI |
 | Assimp FBX quality varies by exporter | Accept `.glb` as the preferred hand-off (Blender's glTF importer is the best-supported path anyway); treat FBX as best-effort with `validate` warnings |

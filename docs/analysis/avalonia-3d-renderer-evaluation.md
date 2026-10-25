@@ -93,18 +93,21 @@ Three layers, only the middle one knows about Avalonia:
 MakaMek.Pipeline.Render                 pure C#, zero graphics dependencies
   Scene / Camera / Skeleton          ← glTF-canonical model (from stage 1)
   Skinning (CPU, per frame)
-  Rasterizer (z-buffer, 2–4× supersample)
+  Rasterizer (z-buffer, 2–4× supersample per axis)
   Shading (lambert + ambient + rim, flat/cel option)
   Outline (depth+normal discontinuity edge detect)
   FrameBuffer → int[] RGBA                 ← testable by golden images
+```
 
+> **Not applicable in the adopted design.** There is no FrameBuffer, no `WriteableBitmap` consumer and no `--via-avalonia` parity check: Blender writes PNG frames and the pipeline assembles them (§9). If an interactive viewport is ever built, this section is where to start — and then the pixel contract would need pinning (channel order, premultiplied vs straight alpha, row stride, top-left origin) before three consumers touch it.
+
+```text
 MakaMek.Pipeline.Render.Avalonia        Avalonia host (thin)
   MechViewport : Control                  WriteableBitmap blit, orbit/zoom, clip scrubber
   SpriteSheetPreview : Control            atlas playback, hex overlay, scale guides
 
 MakaMek.Pipeline.Cli / .Mcp             batch
   render → FrameBuffer → PNG (SkiaSharp 3.119.4) → atlas
-  optional --via-avalonia                 headless capture of the real control (parity check)
 ```
 
 Why this shape:
@@ -112,7 +115,7 @@ Why this shape:
 - **The renderer core has no framework dependency at all.** It is `System.Numerics` + arrays, so it is unit-testable with golden images at 64×64, sits inside the repo's coverage policy like any other logic assembly, and cannot drift when Avalonia ships a new renderer.
 - **The previewer is a host, not a reimplementation.** `MechViewport` calls the same `Renderer.RenderFrame(scene, camera, clip, time)` the CLI calls. No "looks different in the tool" class of bug.
 - **Capture is trivial.** Batch mode needs no window, no GL context, no Xvfb: `RenderFrame` returns a buffer, SkiaSharp encodes it. CI-friendly on any runner.
-- **Parity is checkable.** `--via-avalonia` renders through the real control with `Avalonia.Headless` and compares hashes against the direct path; if those ever diverge, the previewer is lying.
+- **Parity is checkable** by re-rendering the same frame through the real Avalonia control under `Avalonia.Headless` and comparing hashes; if those diverge, the previewer is lying. (No such flag exists in the adopted CLI.)
 
 ### 4.1 What the rasterizer needs (and does not)
 
@@ -124,7 +127,7 @@ Not needed: PBR, IBL, normal mapping at sprite scale, shadows with penumbra, pos
 
 | Quantity | Value |
 |---|---|
-| Frame cell | 384², 4× supersample → 590k samples |
+| Frame cell | 384² at 4 samples/px (2×2) → ~590k samples; a 4×4 grid (16 samples/px) → ~2.36M |
 | Sprite LOD mesh (stage 1 emits it) | ≤ 15k triangles |
 | Frames per chassis | ~60 (6 clips) |
 | Per chassis | a few seconds of CPU |
@@ -146,7 +149,7 @@ Triangle-setup bound rather than fill bound (small triangles), which is exactly 
 - Phasing: the previewer can arrive *before* the batch path, because it shares the core — which makes P2's go/no-go judgement much cheaper (drag a model in, look at it, no script).
 - Risk register: "headless GL in CI" and "MonoGame skinned-animation limits" disappear; replaced by "rasterizer correctness" and "preview frame rate".
 
-**Does not change:** the canonical glTF model, the clip vocabulary and synthesis rules, source adapters, the tonnage-volume scale chain, presets, `.mmux` v2, or the CLI/MCP surface. The renderer is a pluggable backend behind `IRenderBackend` — which is why this can be revisited again later.
+**Does not change:** the canonical glTF model, the clip vocabulary and synthesis rules, source adapters, the tonnage-volume scale chain, presets, `.mmux` v2, or the CLI/MCP surface. (The `--via-avalonia` flag discussed above belonged to *this* proposal; the adopted Blender driver adds no such flag.) The renderer is a pluggable backend behind `IRenderBackend` — which is why this can be revisited again later.
 
 ---
 
@@ -166,11 +169,11 @@ An explicit non-goal: this rasterizer is **not** a runtime renderer. Interactive
 
 | Risk | Mitigation |
 |---|---|
-| Rasterizer correctness (clipping, z-fighting, seams) | Golden-image tests on fixtures; keep the top-down ortho case simple (no perspective, no near-plane clipping of note) |
+| Rasterizer correctness (clipping, z-fighting, seams) | Golden-image tests on fixtures; the fixture is an orthographic top-down view, so near-plane clipping is unnecessary by construction (no geometry approaches the camera plane) |
 | Visual quality ceiling (no PBR, no soft shadows) | Validate at 84×72 in P2; outline + rim + posterize is the intended look, not a compromise |
 | Preview frame rate on the CPU | Preview at 512² with the sprite LOD mesh; if it is not smooth enough, add the `OpenGlControlBase` preview backend behind the same interface |
 | Avalonia host churn (12.x → 13) | Runtime renderer core has no Avalonia dependency; the host is ~200 lines |
-| Two render paths drifting | `--via-avalonia` parity check in CI on one fixture |
+| Two render paths drifting | (Superseded — no second path in the adopted design) if an interactive viewport is built, add a headless capture parity check in CI on one fixture |
 | SkiaSharp version skew | Pin 3.119.4 to match `Avalonia.Skia` |
 | Scope creep into a mini-engine | The rasterizer is a sprite tool: no scene graph, no asset hot-reload, no editor — the previewer reads files and draws them |
 
@@ -198,7 +201,7 @@ Scored for the same job: offline sprites, 76 chassis × ~60 frames, reproducible
 | Skinning / glTF / animation | free, best-in-class importer | hand-written | hand-written | via pipeline |
 | Headless in a bare CI container | ✅ `-b`, Cycles CPU | ✅ | ❌ needs surface | ⚠️ Xvfb |
 | Determinism | visually stable, not bit-exact | bit-exact | driver-dependent | driver-dependent |
-| Cost per frame | ~1–3 s CPU at 384² | ms | ms (GPU) | ms (GPU) |
+| Cost per frame | ~0.2–1 s CPU at 84×72 | ms | ms (GPU) | ms (GPU) |
 | New dependency | Blender binary (pinned), Python | none | Silk.NET + GL | MonoGame + SDL |
 | Language consistency | breaks it (one Python tool) | keeps it | keeps it | keeps it |
 | MCP story | ✅ official Blender Lab MCP + community servers | none | none | none |

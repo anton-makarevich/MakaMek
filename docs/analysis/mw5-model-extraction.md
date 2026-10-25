@@ -104,9 +104,9 @@ If the pipeline needs to run for 76 chassis repeatedly, write it as a scripted t
 | Pak read/decrypt | `repak` (CLI) or **CUE4Parse** (the library FModel is built on) |
 | Asset parse | CUE4Parse (meshes, textures) / `UAssetAPI` (property-level) |
 | Mesh → file | CUE4Parse exporters (PSK/glTF), or shell out to `umodel -export` |
-| Blender | `blender -b -P tools/blender/render.py` | This **is** the pipeline's renderer (see `../architecture/blender-render-driver.md`); the same install also covers PSK/PSA round-tripping |
+| Render | `blender -b -P tools/blender/render.py` — this **is** the pipeline's renderer (see `../architecture/blender-render-driver.md`); the same install also covers PSK/PSA round-tripping |
 
-A C# tool on CUE4Parse fits this repo's stack (net10.0, no Python runtime needed) and can emit the `.mmux` packages directly.
+A C# tool on CUE4Parse fits this repo's stack (net10.0, no Python build step needed for extraction) and can emit the `.mmux` packages directly.
 
 ### 3.5 Extraction gotchas
 
@@ -172,15 +172,16 @@ The current art is top-down and the `UnitControl` rotates sprites for facing, so
 | Pitch | **90° (decided)** — matches the current art, so sprite replacement never changes how the board reads. The tilted alternative was rejected; see `../architecture/asset-pipeline.md` §4.2 for the consequences (facing is the only depth cue; prone needs a marker) |
 | Yaw | 0° (mech faces "north"); rotation happens at runtime |
 | Framing | mech **footprint centre** at frame centre, not bounding-box centre — keeps position stable in the hex across frames |
-| Lights | key + fill + rim parented to the camera, fixed intensity — identical lighting on every mech and every frame |
+| Lights | key + fill + rim parented to the camera, fixed intensity, **neutral white** — identical lighting on every mech and every frame (colour would break the luminance contract) |
 | Background | `film_transparent = True`, RGBA output |
 | Renderer | Headless Blender (`blender -b -P tools/blender/render.py`), Cycles CPU — see `../architecture/blender-render-driver.md`. Blender is also the tool for the manual extraction route above (FBX export, PSK/PSA import), so one dependency covers both ends |
 
-### 4.5 Frame cell and atlas
+### 4.5 Frame cell, colour and atlas
 
-- Current draw size is 84×72 logical px at 0.84 × hex. Render **4×** (a 384×346 cell, or 384×384 with padding) and let Avalonia downscale — the existing art is noticeably soft on high-DPI and when zoomed.
+- Current draw size is 84×72 logical px at 0.84 × hex, and that is also the render size: **1×, 84×72 per frame**, matching every existing asset. No supersampling and no downscale step — the frame lands exactly on the UI's draw box, so there is no resampling blur. Because resolution is only a preset value, a sharper variant later is a `cellWidth`/`cellHeight` change plus render time, not a format change. (No padding inside the cell: the atlas packer adds the 2 px gutters between cells.)
 - Sprite *size* is not chosen here: it comes from the tonnage-volume scale chain in `../architecture/asset-pipeline.md` §4.3, with per-chassis overrides in `scale-overrides.json`.
 - Keep the **84:72 aspect** inside the cell, or switch `UnitControl` to `Stretch = Uniform`; `Stretch = Fill` on a square frame would squash the mech.
+- **Luminance only, no hue.** The shipped sprites are tinted at runtime (`UnitControl` composites the owner colour over the sprite with the sprite's alpha as an `OpacityMask`), so they must be a white→dark-grey ramp: near-white base, darker creases and outline. Measured on the current art: ~98% of opaque pixels are neutral (R≈G≈B) across a full 4…255 range — the tint path already assumes exactly this. Details in `../architecture/blender-render-driver.md` §3.1.
 - One atlas per chassis, **one row per clip**, fixed cell size → trivial slicing and a trivial Presto `SpriteSheet` mapping.
 
 Proposed `.mmux` v2 additions (backwards compatible — `unit.png` stays as the static/reduced-motion fallback):
@@ -190,8 +191,9 @@ Proposed `.mmux` v2 additions (backwards compatible — `unit.png` stays as the 
 {
   "version": 1,
   "sheet": "unit-sprites.png",
-  "cellWidth": 384,
-  "cellHeight": 384,
+  "cellWidth": 84,
+  "cellHeight": 72,
+  "colorSpace": "luminance",        // R = G = B; alpha = silhouette; tinted at runtime
   "pivot": [0.5, 0.5],
   "animations": {
     "Idle":       { "row": 0, "frames": 6,  "fps": 8,  "loop": true,  "hold": null },
@@ -242,8 +244,8 @@ Per-chassis render time is minutes, not hours, if the scene is a template with l
 | Silhouette readability | MW5 mechs are busy; top-down may read worse than the clean MegaMek line art | Pilot side-by-side at 84×72 before committing; mitigate with outline/posterize post-process rather than changing the camera pitch (locked at 90° — see `../architecture/asset-pipeline.md` §4.2) |
 | Missing arms/weapons | Extracted body may look "stripped" | Decide a canonical loadout per chassis; attach socket meshes |
 | Skeleton variance | Retargeting prone clips across 76 rigs | Author per body plan, not per chassis |
-| Asset size | 76 × 9 clips × 10 frames × 384² RGBA ≈ hundreds of MB if uncompressed | Pack atlases, trim cells to mech bounds, per-clip resolution, or ship P1 (static) only |
-| Soft raster at zoom | Current 84×72 is already soft | 4× render + mipmaps |
+| Asset size | 76 × 9 clips × 10 frames × 84×72 × 4 B ≈ **160 MiB** uncompressed (≈ 24 KiB/frame) | PNG on a grey ramp compresses this heavily, so it is not a packaging problem at 1×; if clips grow, cut frame counts or trim cells before raising resolution |
+| Soft raster at zoom | 1× is as soft as the current art when zoomed or on high-DPI | Accepted for parity with existing assets; resolution is a preset value, so a high-DPI pass is a later `cellWidth`/`cellHeight` change, not a format change |
 | Custom materials | Grey renders from FModel/umodel | Export via Mod Editor FBX, or author a simple 3-tone material (base/shadow/highlight) — arguably *better* for board readability |
 | Format churn | `.mmux` v2 breaks readers | Keep `unit.png` authoritative; sprites optional; bump `manifest.json` version |
 
@@ -251,18 +253,28 @@ Per-chassis render time is minutes, not hours, if the scene is a template with l
 
 ## 5. Legal position
 
-MW5 assets and any render derived from them are PGI/Microsoft IP. The EULA does not permit redistribution. This is exactly the same constraint that shaped the current asset story: `data/` art comes from the MegaMek Data Repository (CC BY-NC-SA 4.0) and is distributed separately as downloadable content.
+> **Not legal advice.** The statements below are engineering constraints we choose to honour, not a legal interpretation of any agreement. Verify against the current EULA before relying on them.
 
-Therefore:
+MW5 assets and any render derived from them are PGI/Microsoft IP. PGI's MechWarrior EULA structure that matters here is consistent across their titles (check the numbering in the current Mercenaries EULA):
+
+- **License grant** — a personal, non-commercial, non-transferable licence to install and use the *game* (MW5: Clans EULA §3 states this shape; the Mercenaries EULA has an equivalent grant).
+- **Distribution** — the licensee must not "sell, rent, lease, license, distribute, or otherwise transfer the Product" (Clans EULA §4.1(d)).
+- **Derivative works** — reverse engineering and creating derivative works are prohibited outside the User-Generated-Content terms (Clans EULA §4.2 and Art. 7). A rendered sprite of a game mesh is a derivative of the Licensed Materials under that reading.
+- **Separate instrument** — if the *Mod Editor* is used in the workflow, the [MW5 Mod Editor EULA](https://mw5mercs.com/static/docs/MW5_Mod_Editor_EULA.pdf) governs it, and it scopes "Licensed Materials" (software + content) separately from the Editor (which Epic licenses). It does not grant redistribution rights over the game content.
+
+This is the same constraint that shaped the current asset story: `data/` art comes from the MegaMek Data Repository (CC BY-NC-SA 4.0) and is distributed separately as downloadable content.
+
+Working rules we apply:
 
 - ✅ **May ship:** the extraction/render tooling, the `.mmux` v2 format, the runtime sprite support, documentation.
 - ❌ **May not ship:** rendered sprite atlases, or the extracted meshes, in the repo or in a downloadable pack.
 - ✅ **Users may:** run the tool against their own licensed copy and load the result through `LocalFolderResourceStreamProvider` (which already exists precisely for "assets not published to GitHub").
 - Alternative for a *shippable* art pass: run the same pipeline against commissioned or CC-licensed mech models, or trace silhouettes into original vector art.
+- The pipeline enforces the first two mechanically with a closed `licenseStatus` (`redistributable` / `not-redistributable` / `unknown`, default-deny) — see `../architecture/asset-pipeline.md` §8.
 
 ## 6. Recommendation
 
-1. **P0 first, nothing else.** Render the 3 pilot chassis top-down at 384², downsample to 84×72, drop into `.mmux`, and judge them against the existing MegaMek art in-game. If the silhouette doesn't read at board size, the whole pipeline is the wrong investment and no format work is justified.
+1. **P0 first, nothing else.** Render the 3 pilot chassis top-down at **84×72** (the same size as the existing art), drop them into `.mmux`, and judge them against the MegaMek sprites in-game. If the silhouette doesn't read at board size, the whole pipeline is the wrong investment and no format work is justified.
 2. If P0 passes, **P1 is a pure asset job** — no code — and can run in parallel with everything else.
 3. Only then design `.mmux` v2 and `UnitAnimationResolver`, and start with Idle/Walk/Run. Prone/stand-up are authored content, so schedule them last and per body plan, not per chassis.
 4. Keep the generator under `tools/` with a gitignored output folder; never point CI at it.

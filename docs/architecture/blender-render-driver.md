@@ -45,16 +45,27 @@ Built by the driver, every run, from the preset:
 
 | Element | Rule |
 |---|---|
-| Model | `bpy.ops.import_scene.gltf(filepath=…)`; apply the manifest's volume correction scale; position so the **footprint centre** is at the world origin, ground at `z = 0` |
-| Camera | Orthographic, pitch 90°, yaw 0°, `ortho_scale` derived from the preset's `pixelsPerMetre` so all chassis share one scale |
-| Lights | Key + fill + rim parented to the camera, fixed intensities — identical for every mech and every frame (facing is a runtime rotation, so lighting must not vary with it) |
-| Materials | Imported glTF materials used as-is; a preset `materialOverride` may flatten them to a two-tone board look |
-| Outline | **Freestyle** line set (silhouette + crease), width/colour from the preset — this is what replaces the current 2D line art |
-| Film | `transparent = True`, RGBA PNG |
+| Model | `bpy.ops.import_scene.gltf(filepath=…)`; apply the manifest's `volume.correctionScale`; position so the **footprint centre** is at the world origin, ground at `z = 0` |
+| Camera | Orthographic, pitch 90°, yaw 0°, `ortho_scale` derived from the preset's `referenceChassis` calibration so all chassis share one scale |
+| Lights | Key + fill + rim parented to the camera, fixed intensities, **neutral white** (a coloured light would break the luminance contract, §3.1) — identical for every mech and every frame (facing is a runtime rotation, so lighting must not vary with it) |
+| Materials | `board-look` override: imported textures and albedo are **discarded**, replaced by a near-white base with a tight roughness range, so all detail comes from shading rather than colour |
+| Outline | **Freestyle** line set (silhouette + crease), dark and thin — this is what replaces the current 2D line art |
+| Film | `transparent = True`; output is converted to 8-bit **luminance + alpha** by the pipeline (see §4) |
+| Colour management | `Standard` view transform, not AgX/Filmic: a filmic curve is designed to desaturate and compress highlights, which fights a controlled grey ramp |
 | Frame range | Per clip: `[start, start + frames - 1]`, one clip per render pass |
-| Ground | Optional shadow catcher for a soft contact shadow |
+| Ground | Optional shadow catcher for a soft contact shadow (luminance only, like everything else) |
 
 Nothing in the scene is hand-edited between runs. If the scene needs a change, it is a preset change or a driver change.
+
+### 3.1 Colour contract
+
+Sprites are **luminance-only** — no hue — because `UnitControl` tints them at runtime: it composites a `Border` with `Background = owner colour` and `OpacityMask = ImageBrush(sprite)` at 0.7 opacity over the unit image. Alpha carries the silhouette; luminance carries the detail that survives the wash.
+
+Therefore:
+
+- Render as greyscale by construction (`board-look` override, `Standard` view transform).
+- The pipeline converts each frame to `L = 0.2126R + 0.7152G + 0.0722B` and writes `R = G = B = L`, then **fails the frame** if the pre-conversion channel delta exceeds 1/255 — a coloured render means the material override or the view transform was not applied.
+- The current art already satisfies this (~98% neutral pixels, full 4…255 range), so the tint path needs no change.
 
 ## 4. Preset → scene mapping
 
@@ -63,10 +74,13 @@ The preset stays renderer-agnostic in shape; the driver translates the keys it u
 | Preset key | Blender setting |
 |---|---|
 | `camera.pitchDegrees`, `camera.yawDegrees` | camera rotation |
-| `scale.*` | `ortho_scale`, model `scale` (applied before framing) |
-| `output.cell`, `output.supersample` | `render.resolution_x/y`, `resolution_percentage` |
+| `scale.referenceChassis`, `scale.referenceCoverage` | `ortho_scale`, and the model `scale` from each manifest's `correctionScale` (applied before framing) |
+| `output.cellWidth`, `output.cellHeight` | `render.resolution_x/y` — 84×72, the same size every existing asset uses; AA comes from Cycles samples, not a supersampling multiplier |
 | `output.background` | `film_transparent` |
+| `output.channels` | luminance conversion + `R = G = B` assertion in the pipeline (Blender always writes RGB) |
+| `output.viewTransform` | `scene.view_settings.view_transform` (`Standard`) |
 | `lights[]` | lamp objects + intensities |
+| `styling.materialOverride` | replace imported materials with the `board-look` node group |
 | `styling.outline` | Freestyle `lineset` (thickness, colour) |
 | `styling.posterize` | compositor node if > 0 |
 | `shading.groundShadow` | shadow-catcher plane + `opacity`/`blur` |
@@ -78,7 +92,7 @@ The preset stays renderer-agnostic in shape; the driver translates the keys it u
 Determinism here means *the same input produces a visually identical output on the same pinned Blender build*, not byte equality across machines. Concrete rules:
 
 - Pinned Blender version, checked at startup (`blender --version`), refuse on a major mismatch.
-- `--factory-startup`, fixed seed (`scene.cycles.seed = 0`), `use_adaptive_sampling = False`, fixed `samples`, fixed `use_denoising` and denoiser (`OPENIMAGEDENOISE`), fixed colour management (AgX or Standard, pinned in the preset).
+- `--factory-startup`, fixed seed (`scene.cycles.seed = 0`), `use_adaptive_sampling = False`, fixed `samples`, fixed `use_denoising` and denoiser (`OPENIMAGEDENOISE`), fixed colour management (`Standard`, pinned in the preset).
 - `cycles.device = 'CPU'` in CI; GPU rendering is opt-in locally for speed and is not part of the reproducible path.
 - Thread count is fixed in the driver (`render.threads_mode = 'FIXED'`), so results do not vary with the CI machine's core count.
 - Verification is **perceptual**, not byte-exact: compare against a committed reference frame with a small per-channel tolerance (or SSIM ≥ threshold), because Cycles' sample ordering is stable but not bit-identical across builds and CPU architectures.
@@ -89,7 +103,7 @@ Determinism here means *the same input produces a visually identical output on t
 |---|---|---|
 | CI / reproducible batch | **Cycles, CPU** | works with no display server, no GPU, no Xvfb; deterministic enough to regression-test |
 | Local iteration | EEVEE **or** Cycles GPU | faster; EEVEE needs a real display/EGL context and will not run in a bare Linux container |
-| Final sprite atlas | Cycles CPU, low samples + denoise | 384² frames do not need many samples |
+| Final sprite atlas | Cycles CPU, low samples + denoise | 84×72 frames do not need many samples |
 
 EEVEE-Next requires an OpenGL/Vulkan context and fails in headless containers without EGL; do not build a CI path on it. This is the single most common way Blender CI pipelines break.
 
@@ -97,19 +111,21 @@ EEVEE-Next requires an OpenGL/Vulkan context and fails in headless containers wi
 
 | Quantity | Value |
 |---|---|
-| Frame | 384×384, RGBA, transparent |
+| Frame | **84×72** (1×, the same size as every existing asset), luminance + alpha, transparent |
 | Samples | 32–64 + OIDN denoise (flat board look, no GI needs) |
-| Per frame, CPU | ~1–3 s |
+| Per frame, CPU | ~0.2–1 s — at 84×72 the cost is dominated by per-frame scene sync and Freestyle, not by pixel fill |
 | Frames per chassis | ~60 (6 clips) |
-| Per chassis | 1–3 min |
-| 76 chassis | 1.5–4 h single machine, parallel across chassis |
+| Per chassis | under a minute |
+| 76 chassis | ~15–75 min single machine, parallel across chassis |
 
-If this lands above the acceptable time, the levers are, in order: fewer samples (denoise compensates), smaller cell (256² upscaled), fewer clips per pass, then a second machine. Writing a rasteriser is *not* on that list.
+If this lands above the acceptable time, the levers are, in order: fewer samples (denoise compensates), fewer clips per pass, then a second machine. Writing a rasteriser is *not* on that list.
+
+Note the resolution is a **preset value, not an architectural one**: raising `cellWidth`/`cellHeight` later (for a high-DPI or zoomed variant) costs render time linearly in pixels, and the atlas JSON carries the cell size, so nothing else changes.
 
 ## 8. Version pinning and CI
 
 - Blender is installed by an explicit setup task (mise or a workflow step) at a **pinned version**, from the official tarball — not `pip install bpy`, which is Python-version-locked and has a known interpreter-teardown crash that surfaces as a non-zero exit after a successful render.
-- A CI job renders **one frame** of a committed fixture model at 64×64 and compares perceptually. That is the canary for "Blender still does what the driver expects".
+- A CI job renders **one 84×72 frame** of a committed fixture model and compares perceptually. That is the canary for "Blender still does what the driver expects".
 - Full renders are not part of the required PR gate.
 
 ## 9. In-repo layout (Python isolation)
