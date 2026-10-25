@@ -1195,6 +1195,47 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ProcessMovementAttempt_ShouldSetLevelsFallenToWaterDepth_WhenJumpingAndFallingInWater(
+        int waterDepth)
+    {
+        // Arrange - deploy the mech onto a water hex and fail the jump-with-damage PSR there
+        var waterCoords = new HexCoordinates(7, 7);
+        _map.GetHex(waterCoords)!.AddTerrain(new WaterTerrain(-waterDepth));
+        _testMech.Deploy(new HexPosition(waterCoords, HexDirection.Top), null);
+
+        SetupPsrFor(PilotingSkillRollType.JumpWithDamage, 1, "Jump with damage");
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        SetupRollResult(false, PilotingSkillRollType.JumpWithDamage);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, waterDepth, waterDepth)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
+            _game,
+            MovementType.Jump);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(waterDepth,
+            "A failed jump landing in water drops the mech from the surface to the hex bottom");
+        result.WasJumping.ShouldBeTrue();
+        result.FallingDamageData.ShouldBe(fallingDamageData);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        ((PilotDamageFromFallRollContext)result.PilotDamagePilotingSkillRoll!.RollContext)
+            .LevelsFallen.ShouldBe(waterDepth);
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, waterDepth, waterDepth);
+    }
+
     [Fact]
     public void ProcessMovementAttempt_ShouldSetLevelsFallenToZero_WhenStandupAttemptFails()
     {
@@ -1868,6 +1909,59 @@ public class FallProcessorTests
             _testMech,
             Arg.Is<int>(levels => levels == 0),
             Arg.Is<int>(depth => depth == 1));
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldResolveZeroWaterDepth_WhenGameHasNoBattleMap()
+    {
+        // Arrange - a game without a battle map cannot resolve the landing hex
+        var gameWithoutMap = Substitute.For<IGame>();
+        gameWithoutMap.Id.Returns(_gameId);
+        gameWithoutMap.BattleMap.Returns((IBattleMap?)null);
+        _testMech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - automatic fall (destroyed gyro) with no map available
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            gameWithoutMap,
+            MovementType.StandingStill);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
+    }
+
+    [Fact]
+    public void ProcessMovementAttempt_ShouldResolveZeroWaterDepth_WhenFallHexIsOutsideTheMap()
+    {
+        // Arrange - the mech is deployed on coordinates the map does not contain
+        _testMech.Deploy(new HexPosition(new HexCoordinates(50, 50), HexDirection.Top), null);
+
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(GetFallingDamageData());
+
+        // Act - automatic fall (destroyed gyro) on a hex that cannot be resolved
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new PilotingSkillRollContext(PilotingSkillRollType.GyroDestroyed),
+            _game,
+            MovementType.StandingStill);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech,
+            Arg.Is<int>(levels => levels == 0),
+            Arg.Is<int>(depth => depth == 0));
     }
 
     [Fact]
