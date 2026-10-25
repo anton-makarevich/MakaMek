@@ -142,6 +142,16 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         publishedMoveAction.ShouldNotBeNull();
         publishedMoveAction.Command.GameOriginId.ShouldBe(Game.Id);
         publishedMoveAction.Command.IdempotencyKey.ShouldBe(idempotencyKey);
+
+        // The falling unit must be resolved at the bridge hex, not its pre-move position
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Any<BridgeCollapseRollContext>(),
+            Game,
+            MovementType.Walk,
+            Arg.Is<HexPosition?>(p => p != null
+                && p.Coordinates == new HexCoordinates(2, 2)
+                && p.Surface == HexSurface.Ground));
     }
 
     [Fact]
@@ -232,6 +242,16 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         result.ShouldStop.ShouldBeTrue();
         result.GameActions.ShouldContain(a => a is BridgeCollapsedAction);
         result.GameActions.ShouldContain(a => a is ApplyFallAction);
+
+        // The falling unit must be resolved at the bridge hex
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            mech,
+            Arg.Any<BridgeCollapseRollContext>(),
+            Game,
+            MovementType.Jump,
+            Arg.Is<HexPosition?>(p => p != null
+                && p.Coordinates == new HexCoordinates(2, 2)
+                && p.Surface == HexSurface.Ground));
     }
 
     [Fact]
