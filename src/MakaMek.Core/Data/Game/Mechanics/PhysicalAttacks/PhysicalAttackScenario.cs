@@ -5,14 +5,20 @@ using Sanet.MakaMek.Map.Models;
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>
-/// Represents a physical attack scenario with all parameters needed for to-hit calculation.
-/// It is keyed on the attacker's Piloting Skill and carries no attacker-modifier list, so heat and
-/// sensor-damage modifiers are excluded by construction. Can represent both actual attacks (from the
-/// current unit state) and hypothetical attacks (for UI preview and bot evaluation).
-/// The target unit is optional and only used to evaluate target-side modifiers
-/// (partial cover, skidding); without it those modifiers cannot be determined.
-/// The attacker unit is optional and only used to evaluate attacker-side modifiers
-/// (skidding); without it those modifiers cannot be determined.
+/// A physical attack to-hit scenario. When it is built it copies the attacker's Piloting Skill,
+/// both positions, the attacker movement type, the target hexes moved and both heights, so those
+/// values stay consistent for the lifetime of the scenario.
+/// <para>
+/// <see cref="AttackerUnit"/> and <see cref="TargetUnit"/> are live references, not snapshots. The
+/// calculator reads skidding from both units, the target's prone status and the partial-cover
+/// inputs from them when it evaluates. A preview therefore does not mutate state, but it is not an
+/// isolated snapshot either: if a unit changes before the calculator runs, the result reflects the
+/// new state. A scenario without a unit omits the modifiers that depend on that unit.
+/// </para>
+/// The scenario is keyed on the attacker's Piloting Skill and carries no attacker-modifier list,
+/// so heat and sensor-damage modifiers are excluded by construction. It can represent both actual
+/// attacks (from the current unit state) and hypothetical attacks (for UI preview and bot
+/// evaluation).
 /// </summary>
 public record PhysicalAttackScenario
 {
@@ -57,14 +63,14 @@ public record PhysicalAttackScenario
     public int TargetHeight { get; private init; }
 
     /// <summary>
-    /// The actual target unit, if available, for evaluating target-side modifiers
-    /// (partial cover, skidding).
+    /// The target unit, read live when the scenario is evaluated to determine target-side modifiers
+    /// (partial cover, skidding, prone status). Optional: without it those modifiers are omitted.
     /// </summary>
     public IUnit? TargetUnit { get; private init; }
 
     /// <summary>
-    /// The actual attacker unit, if available, for evaluating attacker-side modifiers
-    /// (skidding).
+    /// The attacker unit, read live when the scenario is evaluated to determine attacker-side
+    /// modifiers (skidding). Optional: without it those modifiers are omitted.
     /// </summary>
     public IUnit? AttackerUnit { get; private init; }
 

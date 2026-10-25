@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -487,8 +488,7 @@ public class GameCommandJsonConverterTests
                         [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 10, 0, false)], [], [3],
                             PartLocation.LeftLeg)],
                         10, [], 1)),
-                true,
-                false)
+                [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)])
         };
 
         // Act
@@ -504,8 +504,8 @@ public class GameCommandJsonConverterTests
         data.AttackType.ShouldBe(PhysicalAttackType.Kick);
         data.AttackerLimb.ShouldBe(PartLocation.RightLeg);
         data.Damage.ShouldBe(10);
-        data.RequiresTargetPsr.ShouldBeTrue();
-        data.RequiresAttackerPsr.ShouldBeFalse();
+        data.PsrRequirements.ShouldBe(
+            [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)]);
         data.AttackResolution.AttackRoll.Sum(d => d.Result).ShouldBe(9);
         data.AttackResolution.HitLocationsData!.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(10);
     }

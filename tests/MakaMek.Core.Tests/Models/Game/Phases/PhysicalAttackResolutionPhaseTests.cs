@@ -246,7 +246,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
             .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg, armorDamage: 2,
-                requiresTargetPsr: true));
+                psrRequirements: KickHitRequirement));
 
         // Act
         _sut.Enter();
@@ -268,7 +268,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
-            .Returns(Miss(PhysicalAttackType.Kick, PartLocation.LeftLeg, requiresAttackerPsr: true));
+            .Returns(Miss(PhysicalAttackType.Kick, PartLocation.LeftLeg, psrRequirements: KickMissRequirement));
 
         // Act
         _sut.Enter();
@@ -310,9 +310,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.Kick, PartLocation.RightLeg);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player1Mech))
             .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg, armorDamage: 2,
-                requiresTargetPsr: true));
+                psrRequirements: KickHitRequirement));
         MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player2Mech))
-            .Returns(Miss(PhysicalAttackType.Kick, PartLocation.RightLeg, requiresAttackerPsr: true));
+            .Returns(Miss(PhysicalAttackType.Kick, PartLocation.RightLeg, psrRequirements: KickMissRequirement));
 
         // Act
         _sut.Enter();
@@ -339,7 +339,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
             .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg, armorDamage: 2,
-                requiresTargetPsr: true));
+                psrRequirements: KickHitRequirement));
         var fall = new MechFallCommand
         {
             GameOriginId = Game.Id,
@@ -481,32 +481,44 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_PunchRequiringATargetPsr_ThrowsNotSupportedException()
+    public void Enter_UnmappedRollType_ThrowsNotSupportedException()
     {
-        // Arrange: only kick attacks call for a target piloting skill roll
+        // Arrange: only the kick obligations have a typed roll context yet
         SetMap();
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
             .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso,
-                armorDamage: 2, requiresTargetPsr: true));
+                armorDamage: 2,
+                psrRequirements:
+                [
+                    new PhysicalAttackPsrRequirement(
+                        PhysicalAttackParticipant.Target,
+                        PilotingSkillRollType.HeavyDamage)
+                ]));
 
         // Act + Assert
         Should.Throw<NotSupportedException>(() => _sut.Enter())
-            .Message.ShouldContain("Punch");
+            .Message.ShouldContain(nameof(PilotingSkillRollType.HeavyDamage));
     }
 
     [Fact]
-    public void Enter_PunchRequiringAnAttackerPsr_ThrowsNotSupportedException()
+    public void Enter_UnknownRollRecipient_ThrowsNotSupportedException()
     {
-        // Arrange: only kick attacks call for an attacker piloting skill roll
+        // Arrange: the resolver contract only knows the attacker and the target
         SetMap();
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        const PhysicalAttackParticipant unknownRecipient = (PhysicalAttackParticipant)99;
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
-            .Returns(Miss(PhysicalAttackType.Punch, PartLocation.LeftArm, requiresAttackerPsr: true));
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.CenterTorso,
+                armorDamage: 2,
+                psrRequirements:
+                [
+                    new PhysicalAttackPsrRequirement(unknownRecipient, PilotingSkillRollType.KickHit)
+                ]));
 
         // Act + Assert
         Should.Throw<NotSupportedException>(() => _sut.Enter())
-            .Message.ShouldContain("Punch");
+            .Message.ShouldContain(((int)unknownRecipient).ToString());
     }
 
     [Fact]
@@ -517,7 +529,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
             .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg, armorDamage: 2,
-                requiresTargetPsr: true));
+                psrRequirements: KickHitRequirement));
         var fallWithDamage = new MechFallCommand
         {
             GameOriginId = Game.Id,
@@ -576,6 +588,12 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         MockConsciousnessCalculator.Received(2).MakeConsciousnessRolls(_player2Mech.Pilot!);
     }
 
+    private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> KickHitRequirement =
+        [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)];
+
+    private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> KickMissRequirement =
+        [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)];
+
     private static void Declare(IUnit attacker, IUnit target, PhysicalAttackType attackType, params PartLocation[] limbs) =>
         attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
         {
@@ -596,13 +614,14 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             });
 
     private static PhysicalAttackResolutionData Miss(PhysicalAttackType attackType, PartLocation limb,
-        bool requiresAttackerPsr = false) =>
+        IReadOnlyList<PhysicalAttackPsrRequirement>? psrRequirements = null) =>
         new(attackType, limb, 2,
             new AttackResolutionData(8, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
-            false, requiresAttackerPsr);
+            psrRequirements ?? []);
 
     private static PhysicalAttackResolutionData Hit(PhysicalAttackType attackType, PartLocation limb,
-        PartLocation location, int armorDamage, int structureDamage = 0, bool requiresTargetPsr = false) =>
+        PartLocation location, int armorDamage, int structureDamage = 0,
+        IReadOnlyList<PhysicalAttackPsrRequirement>? psrRequirements = null) =>
         new(attackType, limb, armorDamage + structureDamage,
             new AttackResolutionData(8, [new DiceResult(6), new DiceResult(6)], true, HitDirection.Front, 0,
                 new AttackHitLocationsData(
@@ -610,7 +629,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                         [new LocationDamageData(location, armorDamage, structureDamage, structureDamage > 0)],
                         [], [3, 4], location)],
                     armorDamage + structureDamage, [], 1)),
-            requiresTargetPsr, false);
+            psrRequirements ?? []);
 
     private List<IGameCommand> PublishedCommands() =>
         CommandPublisher.ReceivedCalls()

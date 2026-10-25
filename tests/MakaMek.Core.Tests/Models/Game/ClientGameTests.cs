@@ -1309,8 +1309,9 @@ public class ClientGameTests
                 isHit
                     ? new AttackHitLocationsData([CreateHitDataForLocation(PartLocation.RightLeg, 4, [], [])], 4, [], 1)
                     : null),
-            isHit,
-            !isHit)
+            isHit
+                ? [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)]
+                : [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)])
     };
 
     [Fact]

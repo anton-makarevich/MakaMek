@@ -1,5 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -108,6 +110,234 @@ public class TotalWarfareRulesProviderTests
         PhysicalAttackType attackType)
     {
         Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackDamage(50, attackType, 0));
+    }
+
+    #endregion
+
+    #region Physical Attack Piloting Skill Roll Requirement Tests
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAKickHits_ReturnsTargetKickHitRequirement()
+    {
+        var requirements = _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Kick, isHit: true);
+
+        requirements.Count.ShouldBe(1);
+        requirements[0].ShouldBe(new PhysicalAttackPsrRequirement(
+            PhysicalAttackParticipant.Target,
+            PilotingSkillRollType.KickHit));
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAKickMisses_ReturnsAttackerKickMissRequirement()
+    {
+        var requirements = _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Kick, isHit: false);
+
+        requirements.Count.ShouldBe(1);
+        requirements[0].ShouldBe(new PhysicalAttackPsrRequirement(
+            PhysicalAttackParticipant.Attacker,
+            PilotingSkillRollType.KickMiss));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GetPhysicalAttackPsrRequirements_ForAPunch_ReturnsNoRequirements(bool isHit)
+    {
+        _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Punch, isHit).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackPsrRequirements_UnsupportedAttackType_ThrowsNotSupportedException(
+        PhysicalAttackType attackType)
+    {
+        Should.Throw<NotSupportedException>(() =>
+            _sut.GetPhysicalAttackPsrRequirements(attackType, isHit: true));
+    }
+
+    #endregion
+
+    #region Physical Attack Reducing Actuator Tests
+
+    public static IEnumerable<object[]> ReducingActuatorCases()
+    {
+        yield return
+        [
+            "punch intact", PhysicalAttackType.Punch,
+            Components(
+                (MakaMekComponent.UpperArmActuator, false),
+                (MakaMekComponent.LowerArmActuator, false)),
+            0
+        ];
+        yield return
+        [
+            "punch upper arm destroyed", PhysicalAttackType.Punch,
+            Components(
+                (MakaMekComponent.UpperArmActuator, true),
+                (MakaMekComponent.LowerArmActuator, false)),
+            1
+        ];
+        yield return
+        [
+            "punch lower arm destroyed", PhysicalAttackType.Punch,
+            Components(
+                (MakaMekComponent.UpperArmActuator, false),
+                (MakaMekComponent.LowerArmActuator, true)),
+            1
+        ];
+        yield return
+        [
+            "punch both destroyed", PhysicalAttackType.Punch,
+            Components(
+                (MakaMekComponent.UpperArmActuator, true),
+                (MakaMekComponent.LowerArmActuator, true)),
+            2
+        ];
+        yield return
+        [
+            "punch lower arm absent", PhysicalAttackType.Punch,
+            Components((MakaMekComponent.UpperArmActuator, false)),
+            1
+        ];
+        yield return
+        [
+            "punch both absent", PhysicalAttackType.Punch,
+            Components(),
+            2
+        ];
+        yield return
+        [
+            "punch upper arm absent and lower arm destroyed", PhysicalAttackType.Punch,
+            Components((MakaMekComponent.LowerArmActuator, true)),
+            2
+        ];
+        yield return
+        [
+            "punch hand actuator destroyed", PhysicalAttackType.Punch,
+            Components(
+                (MakaMekComponent.UpperArmActuator, false),
+                (MakaMekComponent.LowerArmActuator, false),
+                (MakaMekComponent.HandActuator, true)),
+            0
+        ];
+        yield return
+        [
+            "kick intact", PhysicalAttackType.Kick,
+            Components(
+                (MakaMekComponent.UpperLegActuator, false),
+                (MakaMekComponent.LowerLegActuator, false)),
+            0
+        ];
+        yield return
+        [
+            "kick upper leg destroyed", PhysicalAttackType.Kick,
+            Components(
+                (MakaMekComponent.UpperLegActuator, true),
+                (MakaMekComponent.LowerLegActuator, false)),
+            1
+        ];
+        yield return
+        [
+            "kick lower leg destroyed", PhysicalAttackType.Kick,
+            Components(
+                (MakaMekComponent.UpperLegActuator, false),
+                (MakaMekComponent.LowerLegActuator, true)),
+            1
+        ];
+        yield return
+        [
+            "kick both destroyed", PhysicalAttackType.Kick,
+            Components(
+                (MakaMekComponent.UpperLegActuator, true),
+                (MakaMekComponent.LowerLegActuator, true)),
+            2
+        ];
+        yield return
+        [
+            "kick leg actuators absent", PhysicalAttackType.Kick,
+            Components(),
+            0
+        ];
+        yield return
+        [
+            "kick foot actuator destroyed", PhysicalAttackType.Kick,
+            Components(
+                (MakaMekComponent.UpperLegActuator, false),
+                (MakaMekComponent.LowerLegActuator, false),
+                (MakaMekComponent.FootActuator, true)),
+            0
+        ];
+    }
+
+    [Theory]
+    [MemberData(nameof(ReducingActuatorCases))]
+    public void GetPhysicalAttackReducingActuators_ShouldReturnExpectedCount(
+        string scenario,
+        PhysicalAttackType attackType,
+        IReadOnlyCollection<LimbComponentState> limbComponents,
+        int expectedCount)
+    {
+        _sut.GetPhysicalAttackReducingActuators(attackType, limbComponents).ShouldBe(expectedCount, scenario);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackReducingActuators_UnsupportedAttackType_ThrowsNotSupportedException(
+        PhysicalAttackType attackType)
+    {
+        Should.Throw<NotSupportedException>(() =>
+            _sut.GetPhysicalAttackReducingActuators(attackType, []));
+    }
+
+    private static IReadOnlyCollection<LimbComponentState> Components(
+        params (MakaMekComponent Type, bool IsDestroyed)[] components) =>
+        components.Select(component => new LimbComponentState(component.Type, component.IsDestroyed)).ToList();
+
+    #endregion
+
+    #region Physical Attack Hit Location Dispatch Tests
+
+    [Theory]
+    [InlineData(HitDirection.Front)]
+    [InlineData(HitDirection.Rear)]
+    [InlineData(HitDirection.Left)]
+    [InlineData(HitDirection.Right)]
+    public void GetPhysicalAttackHitLocation_ForAPunch_UsesThePunchTable(HitDirection direction)
+    {
+        for (var roll = 1; roll <= 6; roll++)
+        {
+            _sut.GetPhysicalAttackHitLocation(PhysicalAttackType.Punch, roll, direction)
+                .ShouldBe(_sut.GetPunchHitLocation(roll, direction));
+        }
+    }
+
+    [Theory]
+    [InlineData(HitDirection.Front)]
+    [InlineData(HitDirection.Rear)]
+    [InlineData(HitDirection.Left)]
+    [InlineData(HitDirection.Right)]
+    public void GetPhysicalAttackHitLocation_ForAKick_UsesTheKickTable(HitDirection direction)
+    {
+        for (var roll = 1; roll <= 6; roll++)
+        {
+            _sut.GetPhysicalAttackHitLocation(PhysicalAttackType.Kick, roll, direction)
+                .ShouldBe(_sut.GetKickHitLocation(roll, direction));
+        }
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Push)]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackHitLocation_UnsupportedAttackType_ThrowsNotSupportedException(
+        PhysicalAttackType attackType)
+    {
+        Should.Throw<NotSupportedException>(() =>
+            _sut.GetPhysicalAttackHitLocation(attackType, 3, HitDirection.Front));
     }
 
     #endregion

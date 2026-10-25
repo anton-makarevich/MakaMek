@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
@@ -37,6 +38,50 @@ public interface IRulesProvider
     /// <param name="attackType">The kind of physical attack.</param>
     /// <param name="reducingActuators">The number of damaged or missing actuators reducing the damage.</param>
     int GetPhysicalAttackDamage(int tonnage, PhysicalAttackType attackType, int reducingActuators);
+
+    /// <summary>
+    /// Gets the piloting skill roll requirements a physical attack creates.
+    /// A successful kick requires the target to roll; a missed kick requires the attacker to roll.
+    /// </summary>
+    /// <param name="attackType">The kind of physical attack.</param>
+    /// <param name="isHit">Whether the attack hit.</param>
+    /// <returns>
+    /// The requirements in resolution order. Duplicates are preserved. Supported attack types
+    /// without a requirement (currently Punch) return an empty list.
+    /// </returns>
+    /// <exception cref="NotSupportedException">The attack type is not supported yet.</exception>
+    IReadOnlyList<PhysicalAttackPsrRequirement> GetPhysicalAttackPsrRequirements(
+        PhysicalAttackType attackType,
+        bool isHit);
+
+    /// <summary>
+    /// Selects which components of the attacking limb reduce the damage of a physical attack.
+    /// A punch counts a missing upper or lower arm actuator as reducing damage, because many
+    /// designs do not mount them; a kick counts only destroyed upper and lower leg actuators.
+    /// </summary>
+    /// <param name="attackType">The kind of physical attack.</param>
+    /// <param name="limbComponents">
+    /// The components mounted at the attacking limb. A component kind absent from the list is
+    /// treated as not mounted.
+    /// </param>
+    /// <returns>The number of actuators that halve the damage.</returns>
+    /// <exception cref="NotSupportedException">The attack type is not supported yet.</exception>
+    int GetPhysicalAttackReducingActuators(
+        PhysicalAttackType attackType,
+        IReadOnlyCollection<LimbComponentState> limbComponents);
+
+    /// <summary>
+    /// Determines the hit location of a physical attack from its 1D6 location roll.
+    /// </summary>
+    /// <param name="attackType">The kind of physical attack.</param>
+    /// <param name="roll">The 1D6 hit-location roll.</param>
+    /// <param name="direction">The direction the attack enters the target's hex.</param>
+    /// <returns>The part location that was hit.</returns>
+    /// <exception cref="NotSupportedException">The attack type is not supported yet.</exception>
+    PartLocation GetPhysicalAttackHitLocation(
+        PhysicalAttackType attackType,
+        int roll,
+        HitDirection direction);
 
     /// <summary>
     /// Gets the modifier for firing at a specific rangeBracket bracket

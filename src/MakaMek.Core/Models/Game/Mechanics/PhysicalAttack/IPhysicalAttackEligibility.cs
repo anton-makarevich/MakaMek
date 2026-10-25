@@ -7,6 +7,17 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// The one definition of who can make which physical attack against whom. Declaration validation,
 /// the physical attack phase's turn order and the UI's action list all ask this, so they cannot
 /// disagree.
+/// <para>
+/// This interface is the construction-time replaceable eligibility policy. It is registered as a
+/// singleton in <c>CoreServices</c> and <c>BotContainerServices</c>, and the declaration phase,
+/// the resolution phase and the resolution gates consume the instance owned by the game. Replacing
+/// the registration therefore replaces the policy without touching the mechanics.
+/// </para>
+/// <para>
+/// Structural metadata (which limbs a supported attack can use and how many limbs one declaration
+/// may select) lives in <see cref="PhysicalAttackDefinitions"/>; this interface owns the dynamic
+/// policy that depends on the current board state.
+/// </para>
 /// </summary>
 public interface IPhysicalAttackEligibility
 {
