@@ -118,6 +118,9 @@ jobs:
       - name: Install mise tools (base revision only)
         uses: jdx/mise-action@v4
 
+      - name: Install OpenCode CLI
+        run: mise run install-opencode
+
       - name: Install Cognee MCP
         run: |
           mise run install-cognee
@@ -135,14 +138,17 @@ jobs:
             exit 1
           fi
 
-      # The agent's `permissions` ruleset is a V2 feature: V1 (the `opencode-ai`
-      # npm package) spells it `permission` and silently drops anything else, so
-      # installing the wrong major version would run the reviewer unrestricted.
-      - name: Install OpenCode CLI
-        run: npm install -g @opencode/cli@2.1.4
-
+      # The CLI version is pinned once, in the `install-opencode` task in
+      # mise.toml, and installed by the step above. The agent's `permissions`
+      # ruleset is a V2 feature: V1 (the `opencode-ai` npm package) spells it
+      # `permission` and silently drops anything else, so a wrong major version
+      # would run the reviewer unrestricted.
       - name: Verify OpenCode CLI is V2
         run: |
+          if ! command -v opencode > /dev/null 2>&1; then
+            echo "::error::The OpenCode CLI is missing. It is installed by the install-opencode task in mise.toml, but tooling here comes from the base revision, so the pin only takes effect once this change is merged."
+            exit 1
+          fi
           version="$(opencode --version 2>&1 | tr -d '\r')"
           major="$(grep -oE '[0-9]+\.[0-9]+' <<<"${version}" | head -n1 | cut -d. -f1)"
           echo "Installed: ${version}"

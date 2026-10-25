@@ -3,6 +3,16 @@
 "pulumi" = "3.259.0"
 "uv" = "0.12.0"
 
+# The OpenCode CLI is intentionally NOT a mise tool: it is only needed by the
+# `opencode` and `bt-rules-review` workflows, so it is installed on demand.
+# This task is the single source of truth for its version.
+[tasks.install-opencode]
+description = "Installs the pinned OpenCode CLI (used by the GitHub workflows)"
+run = """
+npm install -g @opencode/cli@2.1.4
+opencode --version
+"""
+
 [tasks.install-skills]
 description = "Installs all skills (local + third-party) to .agents/skills and .claude/skills via the skills.sh CLI"
 run = [
