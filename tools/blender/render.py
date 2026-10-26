@@ -43,6 +43,7 @@ _DEFAULT_CLIPS = "Idle"
 
 
 def parse_args(argv):
+    """Parse the driver's command line (everything after Blender's `--`)."""
     parser = argparse.ArgumentParser(
         prog="render.py",
         description="Render top-down board sprites from a glTF/GLB model with headless Blender.",
@@ -82,7 +83,27 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def frame_numbers(preset, clips, single_frame=None):
+    """Absolute frame numbers the render loop will visit, de-duplicated and in order.
+
+    `--fit` measures exactly these frames, so the fitted canvas cannot disagree with what is actually
+    rendered.
+    """
+    numbers = []
+    for clip in clips:
+        if single_frame is not None:
+            count, first = 1, single_frame
+        else:
+            count, first = int(preset["clips"][clip]["frames"]), 1
+        for offset in range(count):
+            frame = first + offset
+            if frame not in numbers:
+                numbers.append(frame)
+    return numbers
+
+
 def main(argv):
+    """Build the scene from arguments + preset, render, verify the frames and print the report."""
     args = parse_args(argv)
 
     if bpy.app.version[0] != PINNED_BLENDER_MAJOR:
@@ -96,7 +117,9 @@ def main(argv):
         return EXIT_MISSING_INPUT
 
     try:
-        preset = preset_module.load(args.preset)
+        # The override is applied inside `load` so mode-dependent validation (a `lights` render needs
+        # a non-empty rig) sees the mode the run will actually use.
+        preset = preset_module.load(args.preset, lighting=args.lighting)
     except preset_module.PresetError as error:
         print(f"invalid preset: {error}", file=sys.stderr)
         return EXIT_INVALID
@@ -147,11 +170,15 @@ def main(argv):
         def _fit(value):
             return int(math.ceil((value + 2 * margin) / supersample)) * supersample
 
-        preset["output"]["cellWidth"] = _fit(metrics["spriteExtentPx"][0])
-        preset["output"]["cellHeight"] = _fit(metrics["spriteExtentPx"][1])
+        # Measured over every frame this run renders, not just the pose `normalise` saw, so a limb
+        # that swings past the rest footprint cannot be clipped by its own canvas. The camera keeps
+        # looking at the world origin (the sprite is drawn centred in the hex), so the canvas must
+        # cover the largest extent on *either* side of the origin, not just the union's width.
+        minimum, maximum = scene_module.animated_bounds(
+            imported, frame_numbers(preset, clips, args.frame))
+        preset["output"]["cellWidth"] = _fit(2 * max(-minimum.x, maximum.x))
+        preset["output"]["cellHeight"] = _fit(2 * max(-minimum.y, maximum.y))
 
-    if args.lighting:
-        preset["lighting"]["mode"] = args.lighting
     scene_module.override_materials(imported, preset["lighting"]["mode"])
     camera = scene_module.add_camera(preset)
     scene_module.setup_lighting(preset, camera)

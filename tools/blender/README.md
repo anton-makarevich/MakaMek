@@ -62,17 +62,17 @@ output, so the driver verifies every expected frame exists before exiting.
 |---|---|
 | `--model` | glTF/GLB to render (required) |
 | `--preset` | preset JSON (required) |
-| `--scale` | **required**, pixel space: after it, 1 model unit = 1 px, so `ortho_scale = cellWidth` frames the sprite directly |
+| `--scale` | **required**, pixel space: after it, 1 model unit = 1 px, so `ortho_scale` is simply the larger cell dimension and frames the sprite directly |
 | `--out` | output directory (required) |
 | `--clips` | comma-separated clip names from the preset (default `Idle`) |
 | `--report` | write the JSON report to this path as well |
 | `--frame N` | render a single frame per clip (static sprite / smoke test) |
 | `--samples N` | override the preset sample count |
 | `--resolution N` | render an N×N cell instead of the preset's or the fitted one — local inspection only |
-| `--fit` | size the cell to this model's plan-view projection (+2 px margin at 1×, rounded up to a multiple of the supersample factor) instead of a fixed cell. Each unit ships its own canvas and is drawn 1:1, centred in the hex |
+| `--fit` | size the cell to this model's plan-view projection (+2 px margin at 1×, rounded up to a multiple of the supersample factor) instead of a fixed cell. Measured over **every rendered frame**, so an animated pose cannot be clipped. Each unit ships its own canvas and is drawn 1:1, centred in the hex |
 | `--supersample N` | render N× the cell size (with `--fit`, 83×42 → 332×168 at 4×). `--scale` stays in 1× pixel space; the light rig and the Freestyle thickness scale with N so the look is preserved. The pipeline downsamples back to the cell size |
 | `--engine cycles\|eevee` | `cycles` is the reproducible path; `eevee` needs a display and is local-only |
-| `--lighting lights\|ambient\|flat` | override `lighting.mode`: `lights` = camera-parented area rig, `ambient` = uniform world light (no cast shadows, soft occlusion only), `flat` = emissive material, no lighting at all (silhouette + outline only) |
+| `--lighting lights\|ambient\|flat` | override `lighting.mode`: `lights` = camera-parented area rig, `ambient` = uniform world light (no cast shadows, soft occlusion only), `flat` = emissive material, no lighting at all (silhouette + outline only). Validated with the override applied, so `lights` still requires a non-empty rig |
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
 | `--no-outline` | disable the Freestyle outline |
 | `--save-blend PATH` | keep the generated scene for inspection |
@@ -101,8 +101,11 @@ horizontal axis, and the sprite is drawn 1:1, centred in the hex (`Stretch=None`
 ship exactly the canvas its own projection needs:
 
 - `--fit` sizes the cell to the model's projection plus 2 px of margin at 1x (rounded up to a multiple
-  of the supersample factor). Measured: Atlas **83 x 42** (mech 78 x 38), Annihilator **70 x 55**
-  (mech 65 x 51). At `--supersample 4` that is 332 x 168 and 280 x 220.
+  of the supersample factor), covering every frame the run renders on both sides of the unit's origin
+  so an animated pose is not clipped. Measured: Atlas **83 x 42** (mech 78 x 38), Annihilator
+  **70 x 55** (mech 65 x 51). At `--supersample 4` that is 332 x 168 and 280 x 220.
+- Portrait canvases (height > width) work too: `ortho_scale` is the larger cell dimension, so 1 unit
+  stays 1 px in both axes and nothing is clipped.
 - `referenceCoverage = 0.78` is the fraction of the 100 px hex width the reference chassis fills; it
   reproduces the hand-tuned "x1.2 over the old 84 px draw box" look (78 px against 80 px) while
   removing the 84x72 frame entirely.
@@ -116,7 +119,7 @@ ship exactly the canvas its own projection needs:
 | Key | Effect |
 |---|---|
 | `camera.pitchDegrees` / `yawDegrees` | camera rotation (`90` = straight down, the board look) |
-| `output.cellWidth` / `cellHeight` | render resolution **and** `ortho_scale` (= `cellWidth`); ignored under `--fit`, which derives both from the model |
+| `output.cellWidth` / `cellHeight` | render resolution **and** `ortho_scale` (the larger of the two, so 1 unit = 1 px for portrait cells too); ignored under `--fit`, which derives both from the model |
 | `output.background` | `transparent` -> `film_transparent` |
 | `output.viewTransform` | colour management (`Standard`; AgX/Filmic would compress the grey ramp) |
 | `output.channels` | must be `luminance` — enforced, converted by the pipeline, not by Blender |
@@ -135,7 +138,9 @@ ship exactly the canvas its own projection needs:
 valid for every chassis regardless of how large the model is in metres.
 
 The preset is validated strictly: an unknown key, a missing required section, a non-ortho camera or a
-non-luminance output channel is an error, never a silent default.
+non-luminance output channel is an error, never a silent default. A `--lighting` override is applied
+before that validation, so `--lighting lights` against an empty `lights` list fails with exit `4`
+instead of rendering an unlit sprite.
 
 ## Determinism
 

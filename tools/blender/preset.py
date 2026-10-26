@@ -134,12 +134,14 @@ class PresetError(ValueError):
 
 
 def _matches(value, types):
+    """Type check that keeps `bool` out of the numeric slots (a JSON `true` is not a number)."""
     if isinstance(value, bool):
         return bool in types
     return isinstance(value, types)
 
 
 def _check(node, schema, path):
+    """Recursively validate `node` against `schema`, rejecting unknown keys and wrong types."""
     where = path or "<root>"
 
     if isinstance(schema, dict):
@@ -165,8 +167,13 @@ def _check(node, schema, path):
         raise PresetError(f"{where}: expected {expected}, got {type(node).__name__}")
 
 
-def load(path):
-    """Read, parse and validate a preset file. Returns the preset as a plain dict."""
+def load(path, lighting=None):
+    """Read, parse and validate a preset file. Returns the preset as a plain dict.
+
+    `lighting` replaces `lighting.mode` before the mode-dependent checks, so a CLI override can never
+    produce a configuration the preset rules would have rejected - notably `--lighting lights` against
+    a preset whose `lights` list is empty.
+    """
     try:
         with open(path, "r", encoding="utf-8") as handle:
             preset = json.load(handle)
@@ -190,6 +197,9 @@ def load(path):
             if not isinstance(node, dict) or part not in node:
                 raise PresetError(f"{path}: missing required key: {dotted}")
             node = node[part]
+
+    if lighting is not None:
+        preset["lighting"]["mode"] = lighting
 
     lighting_mode = preset["lighting"]["mode"]
     if lighting_mode not in _LIGHTING_MODES:

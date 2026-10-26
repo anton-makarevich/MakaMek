@@ -3,9 +3,10 @@
 Everything here is derived from the preset and the `--scale` value the pipeline passes in; nothing
 in the scene is hand-edited between runs (see docs/architecture/blender-render-driver.md, section 3).
 
-Scale contract: after normalisation 1 model unit == 1 pixel, because `ortho_scale` is set to
-`output.cellWidth`. All preset light distances and sizes are therefore expressed in pixels too,
-which keeps one rig valid for every chassis regardless of how big the model is in metres.
+Scale contract: after normalisation 1 model unit == 1 pixel, because `ortho_scale` is set to the
+larger of `output.cellWidth` and `output.cellHeight` (the dimension Blender maps it to). All preset
+light distances and sizes are therefore expressed in pixels too, which keeps one rig valid for every
+chassis regardless of how big the model is in metres.
 """
 
 import math
@@ -60,22 +61,53 @@ def import_model(path):
 
 
 def _mesh_objects(objects):
+    """The renderable geometry of `objects` (measurement ignores empties and armatures)."""
     return [obj for obj in objects if obj.type == "MESH"]
 
 
-def world_bounds(objects):
-    """Axis-aligned world-space bounds over every mesh's bounding box."""
+def world_bounds(objects, depsgraph=None):
+    """Axis-aligned world-space bounds over every mesh's bounding box.
+
+    Without `depsgraph` the bounds describe the rest geometry. Pass the evaluated depsgraph to measure
+    the posed/deformed geometry after modifiers and animation have been applied.
+    """
     minimum = Vector((math.inf, math.inf, math.inf))
     maximum = Vector((-math.inf, -math.inf, -math.inf))
     for obj in _mesh_objects(objects):
-        for corner in obj.bound_box:
-            point = obj.matrix_world @ Vector(corner)
+        source = obj.evaluated_get(depsgraph) if depsgraph is not None else obj
+        for corner in source.bound_box:
+            point = source.matrix_world @ Vector(corner)
             minimum.x = min(minimum.x, point.x)
             minimum.y = min(minimum.y, point.y)
             minimum.z = min(minimum.z, point.z)
             maximum.x = max(maximum.x, point.x)
             maximum.y = max(maximum.y, point.y)
             maximum.z = max(maximum.z, point.z)
+    return minimum, maximum
+
+
+def animated_bounds(objects, frames):
+    """Union of the evaluated world-space bounds over every frame the run will render.
+
+    `normalise` measures the rest geometry once, but an animation deforms it, so a limb that swings
+    past the resting footprint would be clipped by a canvas fitted from that single pose. Evaluating
+    the depsgraph per frame gives the extent the render will actually produce.
+    """
+    scene = bpy.context.scene
+    original_frame = scene.frame_current
+    minimum = Vector((math.inf, math.inf, math.inf))
+    maximum = Vector((-math.inf, -math.inf, -math.inf))
+    for frame in frames:
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        low, high = world_bounds(objects, bpy.context.evaluated_depsgraph_get())
+        minimum.x = min(minimum.x, low.x)
+        minimum.y = min(minimum.y, low.y)
+        minimum.z = min(minimum.z, low.z)
+        maximum.x = max(maximum.x, high.x)
+        maximum.y = max(maximum.y, high.y)
+        maximum.z = max(maximum.z, high.z)
+    scene.frame_set(original_frame)
     return minimum, maximum
 
 
@@ -116,11 +148,16 @@ def normalise(objects, scale, model_yaw_deg=0.0):
 
 
 def add_camera(preset):
-    """Orthographic, straight down, with `ortho_scale` pinned to the cell width."""
+    """Orthographic, straight down, with `ortho_scale` sized to one model unit per pixel.
+
+    An orthographic camera maps `ortho_scale` to the larger of the render's two dimensions, so
+    scaling by `cellWidth` alone zooms a portrait cell (height > width) until a fitted sprite is
+    clipped. Using the larger cell dimension keeps 1 unit == 1 px for every aspect ratio.
+    """
     output = preset["output"]
     camera_data = bpy.data.cameras.new("board-camera")
     camera_data.type = "ORTHO"
-    camera_data.ortho_scale = float(output["cellWidth"])
+    camera_data.ortho_scale = float(max(output["cellWidth"], output["cellHeight"]))
     camera_data.clip_start = 1.0
     camera_data.clip_end = 10000.0
 
