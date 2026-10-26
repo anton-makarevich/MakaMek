@@ -69,6 +69,7 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--resolution N` | render an N×N cell instead of the preset's — local inspection only |
 | `--supersample N` | render N× the cell size (84×72 → 336×288 at 4×). `--scale` stays in 1× pixel space; the light rig and the Freestyle thickness scale with N so the look is preserved. The pipeline downsamples back to the cell size |
 | `--engine cycles\|eevee` | `cycles` is the reproducible path; `eevee` needs a display and is local-only |
+| `--lighting lights\|ambient\|flat` | override `lighting.mode`: `lights` = camera-parented area rig, `ambient` = uniform world light (no cast shadows, soft occlusion only), `flat` = emissive material, no lighting at all (silhouette + outline only) |
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
 | `--no-outline` | disable the Freestyle outline |
 | `--save-blend PATH` | keep the generated scene for inspection |
@@ -102,7 +103,9 @@ effectiveScale = (referenceCoverage x drawBoxHeightPx) / planView.maxExtentMeter
 | `output.viewTransform` | colour management (`Standard`; AgX/Filmic would compress the grey ramp) |
 | `output.channels` | must be `luminance` — enforced, converted by the pipeline, not by Blender |
 | `engine.*` | Cycles CPU, samples, denoiser |
-| `lights[]` | area/point/sun lamps, **neutral white**, positions and sizes in pixel space, parented to the camera and aimed at the footprint origin |
+| `lighting.mode` | `lights` (camera-parented area rig), `ambient` (uniform world, no cast shadows), `flat` (emissive — no shading at all) |
+| `lighting.color` / `strength` | world colour and strength, used by `ambient` only |
+| `lights[]` | area/point/sun lamps, **neutral white**, positions and sizes in pixel space, parented to the camera and aimed at the footprint origin (`lights` mode only) |
 | `styling.materialOverride` | replaces every imported material with the flat `board-look` shader |
 | `styling.outline` | Freestyle silhouette + border (+ optional `crease`), thickness in pixels |
 | `styling.posterize` | reserved (not implemented yet) |

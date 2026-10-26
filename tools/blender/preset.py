@@ -6,6 +6,7 @@ error, because a typo in a preset must never silently render the default scene
 """
 
 import json
+import re
 
 # Values are one of:
 #   (type, ...)  - leaf, must be an instance of one of the given types (bool is not a number)
@@ -38,6 +39,11 @@ _SCHEMA = {
         "device": (str,),
         "samples": (int,),
         "denoise": (str,),
+    },
+    "lighting": {
+        "mode": (str,),
+        "color": (str,),
+        "strength": (int, float),
     },
     "lights": [
         {
@@ -86,6 +92,7 @@ _REQUIRED = (
     "camera",
     "output",
     "engine",
+    "lighting",
     "lights",
     "styling",
     "shading",
@@ -107,12 +114,18 @@ _REQUIRED_NESTED = (
     "engine.device",
     "engine.samples",
     "engine.denoise",
+    "lighting.mode",
+    "lighting.color",
+    "lighting.strength",
     "styling.materialOverride",
     "styling.outline.enabled",
     "styling.outline.width",
     "styling.outline.color",
     "shading.groundShadow.enabled",
 )
+
+_LIGHTING_MODES = ("lights", "ambient", "flat")
+_HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 _LIGHT_KEYS = ("type", "position", "size", "color", "intensity")
 
@@ -179,8 +192,14 @@ def load(path):
                 raise PresetError(f"{path}: missing required key: {dotted}")
             node = node[part]
 
-    if not preset["lights"]:
-        raise PresetError(f"{path}: lights must not be empty")
+    lighting_mode = preset["lighting"]["mode"]
+    if lighting_mode not in _LIGHTING_MODES:
+        raise PresetError(
+            f'{path}: lighting.mode must be one of {", ".join(_LIGHTING_MODES)}; got "{lighting_mode}"'
+        )
+
+    if lighting_mode == "lights" and not preset["lights"]:
+        raise PresetError(f'{path}: lights must not be empty when lighting.mode is "lights"')
 
     for index, light in enumerate(preset["lights"]):
         missing_light = [key for key in _LIGHT_KEYS if key not in light]
@@ -190,6 +209,15 @@ def load(path):
             )
         if len(light["position"]) != 3:
             raise PresetError(f"{path}: lights[{index}].position must have exactly 3 values")
+
+    colour_slots = [
+        ("lighting.color", preset["lighting"]["color"]),
+        ("styling.outline.color", preset["styling"]["outline"]["color"]),
+    ]
+    colour_slots += [(f"lights[{index}].color", light["color"]) for index, light in enumerate(preset["lights"])]
+    for key, value in colour_slots:
+        if not isinstance(value, str) or not _HEX_COLOR.match(value):
+            raise PresetError(f"{path}: {key} must be a #RRGGBB colour, got {value!r}")
 
     if not preset["clips"]:
         raise PresetError(f"{path}: clips must not be empty")

@@ -138,6 +138,29 @@ def add_camera(preset):
     return camera
 
 
+def setup_lighting(preset, camera):
+    """Camera-parented lamp rig, uniform world light, or none at all (emissive flat look)."""
+    mode = preset["lighting"]["mode"]
+    if mode == "ambient":
+        setup_world(preset["lighting"])
+    elif mode == "lights":
+        add_lights(preset, camera)
+
+
+def setup_world(lighting):
+    """Uniform environment light: no cast shadows, no directional shading, soft occlusion in creases.
+
+    This is the "flat" experiment - the sprite is the silhouette plus the Freestyle outline, with only
+    ambient occlusion providing any tonal variation.
+    """
+    world = bpy.data.worlds.new("board-world")
+    world.use_nodes = True
+    background = world.node_tree.nodes["Background"]
+    background.inputs["Color"].default_value = (*hex_to_rgb(lighting["color"]), 1.0)
+    background.inputs["Strength"].default_value = float(lighting["strength"])
+    bpy.context.scene.world = world
+
+
 def add_lights(preset, camera):
     """Neutral-white area lamps parented to the camera, aimed at the footprint origin.
 
@@ -167,11 +190,14 @@ def add_lights(preset, camera):
         light.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
-def override_materials(objects):
+def override_materials(objects, mode="lights"):
     """Replace every imported material with the flat `board-look` shader.
 
     Imported albedo, normal and mask maps are discarded on purpose: the sprite must be a
     luminance-only grey ramp so the runtime owner tint composites cleanly.
+
+    In `flat` lighting mode the shader is emissive instead of diffuse, so the surface renders as one
+    constant value - no shading and no occlusion at all, only the Freestyle outline.
     """
     material = bpy.data.materials.new(BOARD_LOOK_MATERIAL)
     material.use_nodes = True
@@ -180,17 +206,24 @@ def override_materials(objects):
         if node.type != "OUTPUT_MATERIAL":
             nodes.remove(node)
     output = next(node for node in nodes if node.type == "OUTPUT_MATERIAL")
-    shader = nodes.new("ShaderNodeBsdfPrincipled")
-    material.node_tree.links.new(shader.outputs["BSDF"], output.inputs["Surface"])
 
-    shader.inputs["Base Color"].default_value = (0.90, 0.90, 0.90, 1.0)
-    shader.inputs["Roughness"].default_value = 0.45
-    shader.inputs["Metallic"].default_value = 0.0
-    # Blender 4+/5 renamed "Specular"; keep the highlight low so creases read, not glints.
-    for name in ("Specular IOR Level", "Specular"):
-        if name in shader.inputs:
-            shader.inputs[name].default_value = 0.25
-            break
+    if mode == "flat":
+        shader = nodes.new("ShaderNodeEmission")
+        shader.inputs["Color"].default_value = (0.80, 0.80, 0.80, 1.0)
+        shader.inputs["Strength"].default_value = 1.0
+        material.node_tree.links.new(shader.outputs["Emission"], output.inputs["Surface"])
+    else:
+        shader = nodes.new("ShaderNodeBsdfPrincipled")
+        material.node_tree.links.new(shader.outputs["BSDF"], output.inputs["Surface"])
+
+        shader.inputs["Base Color"].default_value = (0.90, 0.90, 0.90, 1.0)
+        shader.inputs["Roughness"].default_value = 0.45
+        shader.inputs["Metallic"].default_value = 0.0
+        # Blender 4+/5 renamed "Specular"; keep the highlight low so creases read, not glints.
+        for name in ("Specular IOR Level", "Specular"):
+            if name in shader.inputs:
+                shader.inputs[name].default_value = 0.25
+                break
 
     material.diffuse_color = (0.90, 0.90, 0.90, 1.0)
 

@@ -62,6 +62,10 @@ def parse_args(argv):
                              "(--scale is still given in 1x pixel space)")
     parser.add_argument("--engine", default="cycles", choices=["cycles", "eevee"],
                         help="cycles (CI/reproducible) or eevee (local iteration only)")
+    parser.add_argument("--lighting", default=None, choices=["lights", "ambient", "flat"],
+                        help="override preset lighting.mode: 'lights' = camera lamp rig, "
+                             "'ambient' = uniform world light (no cast shadows), 'flat' = emissive "
+                             "material with no lighting at all (silhouette + outline only)")
     parser.add_argument("--device", default="cpu", choices=["cpu", "gpu"],
                         help="cycles device; cpu is the reproducible path")
     parser.add_argument("--frame", default=None, type=int, help="render a single frame per clip")
@@ -124,9 +128,11 @@ def main(argv):
     scene_module.reset()
     imported = scene_module.import_model(args.model)
     _, metrics = scene_module.normalise(imported, render_scale, args.model_yaw)
-    scene_module.override_materials(imported)
+    if args.lighting:
+        preset["lighting"]["mode"] = args.lighting
+    scene_module.override_materials(imported, preset["lighting"]["mode"])
     camera = scene_module.add_camera(preset)
-    scene_module.add_lights(preset, camera)
+    scene_module.setup_lighting(preset, camera)
 
     if args.no_outline:
         preset["styling"]["outline"]["enabled"] = False
@@ -175,6 +181,7 @@ def main(argv):
         "engine": scene.render.engine,
         "device": scene.cycles.device if scene.render.engine == "CYCLES" else "n/a",
         "samples": scene.cycles.samples if scene.render.engine == "CYCLES" else "n/a",
+        "lighting": preset["lighting"]["mode"],
         "cellWidth": scene.render.resolution_x,
         "cellHeight": scene.render.resolution_y,
         "outline": bool(scene.render.use_freestyle),
