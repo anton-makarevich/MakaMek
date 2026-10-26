@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -2749,6 +2750,137 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void UpdateGamePhase_WhenPhysicalAttackWithUnitsToPlay_UsesPhysicalAttackState()
+    {
+        // Arrange
+        _localizationService.GetString("Action_SelectUnitToAttack").Returns("Select unit to attack");
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+
+        // Act
+        SetPhase(PhaseNames.PhysicalAttack);
+        SetActivePlayerWithUnits(player.Id, 1);
+
+        // Assert
+        _sut.CurrentState.ShouldBeOfType<PhysicalAttackState>();
+        _sut.ActionInfoLabel.ShouldBe("Select unit to attack");
+    }
+
+    [Fact]
+    public void UpdateGamePhase_WhenPhysicalAttackHasNoUnitsToPlay_UsesIdleState()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+
+        // Act
+        SetPhase(PhaseNames.PhysicalAttack);
+        SetActivePlayerWithUnits(player.Id, 0);
+
+        // Assert
+        _sut.CurrentState.ShouldBeOfType<IdleState>();
+        _sut.ActionInfoLabel.ShouldBe("Wait");
+    }
+
+    [Fact]
+    public void UpdateGamePhase_WhenPhysicalAttackResolution_UsesIdleState()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+
+        // Act
+        SetPhase(PhaseNames.PhysicalAttackResolution);
+        SetActivePlayerWithUnits(player.Id, 1);
+
+        // Assert
+        _sut.CurrentState.ShouldBeOfType<IdleState>();
+    }
+
+    [Fact]
+    public void PhysicalAttackResolutionCommand_AddsALocalizedLogEntry()
+    {
+        // Arrange
+        var attacker = JoinPlayerWithUnit("Attacker", "#FF0000");
+        var defender = JoinPlayerWithUnit("Defender", "#00FF00");
+        var attackerUnit = _game.Players.Single(player => player.Id == attacker.Id).Units.Single();
+        var targetUnit = _game.Players.Single(player => player.Id == defender.Id).Units.Single();
+
+        _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
+        _localizationService.GetString("MechPart_LeftArm").Returns("Left Arm");
+        _localizationService.GetString("Command_WeaponAttackResolution_Miss")
+            .Returns("{0}'s {1} misses {3}'s {4} with {2} (ToHit {5}, rolled {6})");
+
+        var command = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Id,
+            AttackerId = attackerUnit.Id,
+            TargetId = targetUnit.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Punch,
+                PartLocation.LeftArm,
+                2,
+                new AttackResolutionData(
+                    ToHitNumber: 7,
+                    AttackRoll: [new DiceResult(1), new DiceResult(2)],
+                    IsHit: false,
+                    AttackDirection: HitDirection.Front,
+                    ExternalHeat: 0),
+                [])
+        };
+
+        // Act
+        _game.HandleCommand(command);
+
+        // Assert
+        var entry = _sut.CommandLog.Last();
+        entry.ShouldBe(command.Render(_localizationService, _game));
+        entry.ShouldContain("Punch (Left Arm)");
+    }
+
+    [Fact]
+    public void KickPilotingSkillRollCommand_AddsALocalizedLogEntry()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Player1", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+
+        _localizationService.GetString("Command_MechFalling_PsrIntro").Returns("{0} makes a piloting skill roll");
+        _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("{0} succeeded");
+        _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill")
+            .Returns("Base piloting skill: {0}");
+        _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber")
+            .Returns("Modified piloting skill: {0}");
+        _localizationService.GetString("Command_RollResult").Returns("Roll result: {0}");
+        _localizationService.GetString("PilotingSkillRollType_KickHit").Returns("Kick hit");
+
+        var command = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            DamageData = null,
+            FallPilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new KickHitRollContext(),
+                DiceResults = [3, 4],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 5,
+                    Modifiers = []
+                }
+            }
+        };
+
+        // Act
+        _game.HandleCommand(command);
+
+        // Assert
+        var entry = _sut.CommandLog.Last();
+        entry.ShouldBe(command.Render(_localizationService, _game));
+        entry.ShouldContain("Kick hit");
+    }
+
+    [Fact]
     public void UpdateGamePhase_ShouldPersistWeaponAttacksBetweenWeaponsAttackAndResolutionPhases_AndClearOnEndPhase()
     {
         // Arrange
@@ -3802,6 +3934,7 @@ public class BattleMapViewModelTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>(),
@@ -4638,6 +4771,7 @@ public class BattleMapViewModelTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

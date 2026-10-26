@@ -84,6 +84,7 @@ public class GameManagerTests : IDisposable
             consciousnessCalculator,
             heatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),

@@ -120,6 +120,7 @@ public class WeaponsAttackStateTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             Substitute.For<IBattleMapFactory>(),
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

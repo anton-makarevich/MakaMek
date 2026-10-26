@@ -30,6 +30,7 @@ public class GameFactory : IGameFactory
     private readonly IConsciousnessCalculator _consciousnessCalculator;
     private readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IPhysicalAttackEligibility _physicalAttackEligibility;
+    private readonly IPhysicalAttackCalculator _physicalAttackCalculator;
     private readonly IFallProcessor _fallProcessor;
     private readonly IBattleMapFactory _battleMapFactory;
     private readonly IHashService _hashService;
@@ -48,6 +49,7 @@ public class GameFactory : IGameFactory
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
+        IPhysicalAttackCalculator physicalAttackCalculator,
         IFallProcessor fallProcessor,
         IBattleMapFactory battleMapFactory,
         IHashService hashService)
@@ -65,6 +67,7 @@ public class GameFactory : IGameFactory
         _consciousnessCalculator = consciousnessCalculator;
         _heatEffectsCalculator = heatEffectsCalculator;
         _physicalAttackEligibility = physicalAttackEligibility;
+        _physicalAttackCalculator = physicalAttackCalculator;
         _fallProcessor = fallProcessor;
         _battleMapFactory = battleMapFactory;
         _hashService = hashService;
@@ -88,6 +91,7 @@ public class GameFactory : IGameFactory
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _physicalAttackEligibility,
+            _physicalAttackCalculator,
             _fallProcessor,
             _weaponAttackResolver,
             _physicalAttackResolver,
@@ -106,6 +110,7 @@ public class GameFactory : IGameFactory
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _physicalAttackEligibility,
+            _physicalAttackCalculator,
             _battleMapFactory,
             _hashService,
             logger,

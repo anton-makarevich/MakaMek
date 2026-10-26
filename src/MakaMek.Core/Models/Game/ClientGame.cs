@@ -40,12 +40,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
+        IPhysicalAttackCalculator physicalAttackCalculator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
         ILogger<ClientGame> logger,
         Guid? serverGameId = null,
         int ackTimeoutMilliseconds = 10000)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, logger)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;
@@ -362,6 +363,11 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
 
     public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+
+    /// <summary>
+    /// Declares a physical attack for the active unit, or no attack when the declaration is null.
+    /// </summary>
+    public Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command) => SendPlayerAction(command);
 
     public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
 

@@ -56,6 +56,7 @@ public abstract class BaseGame : IGame
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
     public IHeatEffectsCalculator HeatEffectsCalculator { get; }
     public IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
+    public IPhysicalAttackCalculator PhysicalAttackCalculator { get; }
 
     public int Turn
     {
@@ -116,6 +117,7 @@ public abstract class BaseGame : IGame
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
+        IPhysicalAttackCalculator physicalAttackCalculator,
         ILogger logger)
     {
         Logger = logger;
@@ -128,6 +130,7 @@ public abstract class BaseGame : IGame
         ConsciousnessCalculator = consciousnessCalculator;
         HeatEffectsCalculator = heatEffectsCalculator;
         PhysicalAttackEligibility = physicalAttackEligibility;
+        PhysicalAttackCalculator = physicalAttackCalculator;
         CommandPublisher.Subscribe(HandleCommand);
     }
 

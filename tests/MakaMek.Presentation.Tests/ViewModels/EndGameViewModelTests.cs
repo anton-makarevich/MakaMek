@@ -60,6 +60,7 @@ public class EndGameViewModelTests
             consciousnessCalculator,
             heatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             mapFactory,
             hashService,
             Substitute.For<ILogger<ClientGame>>());

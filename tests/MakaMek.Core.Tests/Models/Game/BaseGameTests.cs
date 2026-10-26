@@ -52,6 +52,7 @@ public sealed class BaseGameTests : BaseGame
         Substitute.For<IConsciousnessCalculator>(),
         Substitute.For<IHeatEffectsCalculator>(),
         new PhysicalAttackEligibility(),
+        Substitute.For<IPhysicalAttackCalculator>(),
         Substitute.For<ILogger<BaseGame>>())
     {
         SetBattleMap(

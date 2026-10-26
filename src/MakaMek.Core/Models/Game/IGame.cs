@@ -26,5 +26,6 @@ public interface IGame
 
     IToHitCalculator ToHitCalculator { get; }
     IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
+    IPhysicalAttackCalculator PhysicalAttackCalculator { get; }
     IRulesProvider RulesProvider { get; }
 }

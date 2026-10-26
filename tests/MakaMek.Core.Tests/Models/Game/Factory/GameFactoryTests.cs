@@ -28,6 +28,7 @@ public class GameFactoryTests
     private readonly IConsciousnessCalculator _consciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator= Substitute.For<IHeatEffectsCalculator>();
     private readonly IPhysicalAttackEligibility _physicalAttackEligibility = Substitute.For<IPhysicalAttackEligibility>();
+    private readonly IPhysicalAttackCalculator _physicalAttackCalculator = Substitute.For<IPhysicalAttackCalculator>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
     private readonly IHashService _hashService= Substitute.For<IHashService>();
@@ -55,6 +56,7 @@ public class GameFactoryTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _physicalAttackEligibility,
+            _physicalAttackCalculator,
             _fallProcessor,
             _mapFactory,
             _hashService);
@@ -84,5 +86,18 @@ public class GameFactoryTests
         clientGame.ShouldNotBeNull();
         clientGame.ShouldBeOfType<ClientGame>();
         clientGame.PhysicalAttackEligibility.ShouldBe(_physicalAttackEligibility);
+        clientGame.PhysicalAttackCalculator.ShouldBe(_physicalAttackCalculator);
+    }
+
+    [Fact]
+    public void CreatedGames_ExposeTheInjectedPhysicalAttackCalculator()
+    {
+        // Act
+        var serverGame = _sut.CreateServerGame(_commandPublisher);
+        var clientGame = _sut.CreateClientGame(_commandPublisher);
+
+        // Assert
+        serverGame.PhysicalAttackCalculator.ShouldBe(_physicalAttackCalculator);
+        clientGame.PhysicalAttackCalculator.ShouldBe(_physicalAttackCalculator);
     }
 }

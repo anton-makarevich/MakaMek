@@ -257,6 +257,11 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Center"/>
 
+        <controls:PhysicalAttackPreviewPanel
+            x:Name="PhysicalAttackPreviewPanel"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"/>
+
         <!-- Body Part Selector for Aimed Shots -->
         <templatedControls:GamePanel
             IsVisible="{Binding IsUnitPartSelectorVisible}"

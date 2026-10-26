@@ -82,6 +82,7 @@ public class EndStateTests
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             Substitute.For<IBattleMapFactory>(),
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

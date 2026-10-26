@@ -197,6 +197,10 @@
   <data name="PhysicalAttackType_Push" xml:space="preserve"><value>Push</value></data>
   <data name="PhysicalAttackType_Charge" xml:space="preserve"><value>Charge</value></data>
   <data name="PhysicalAttackType_DFA" xml:space="preserve"><value>Death From Above</value></data>
+  <data name="PhysicalAttack_BothArms" xml:space="preserve"><value>Both Arms</value></data>
+  <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
+  <data name="PhysicalAttackPreview_Title" xml:space="preserve"><value>Physical attack</value></data>
+  <data name="Action_DeclarePhysicalAttack_WithLimb" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="AttackDirection_Left" xml:space="preserve"><value>Left</value></data>
   <data name="AttackDirection_Right" xml:space="preserve"><value>Right</value></data>
   <data name="AttackDirection_Front" xml:space="preserve"><value>Front</value></data>
@@ -252,6 +256,7 @@
   <data name="Action_SelectUnitToDeploy" xml:space="preserve"><value>Select Unit</value></data>
   <data name="Action_SelectDeploymentHex" xml:space="preserve"><value>Select Hex</value></data>
   <data name="Action_SelectUnitToFire" xml:space="preserve"><value>Select unit to fire weapons</value></data>
+  <data name="Action_SelectUnitToAttack" xml:space="preserve"><value>Select unit to attack</value></data>
   <data name="Action_SelectAction" xml:space="preserve"><value>Select action</value></data>
   <data name="Action_ConfigureWeapons" xml:space="preserve"><value>Configure weapons</value></data>
   <data name="Action_SelectTarget" xml:space="preserve"><value>Select Target</value></data>
