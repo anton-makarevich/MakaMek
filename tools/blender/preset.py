@@ -24,7 +24,6 @@ _SCHEMA = {
         "referenceChassis": (str,),
         "referenceCoverage": (int, float),
         "minimumCoverage": (int, float),
-        "drawBoxHeightPx": (int, float),
         "hexAreaPx": (int, float),
     },
     "output": {

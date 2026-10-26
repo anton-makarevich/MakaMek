@@ -4,14 +4,13 @@
   "scale": {
     "mode": "tonnage-volume",
     "referenceChassis": "AS7",
-    "referenceCoverage": 0.90,
+    "referenceCoverage": 0.95,
     "minimumCoverage": 0.55,
-    "drawBoxHeightPx": 72,
     "hexAreaPx": 8660
   },
   "output": {
-    "cellWidth": 84,
-    "cellHeight": 72,
+    "cellWidth": 100,
+    "cellHeight": 87,
     "channels": "luminance",
     "background": "transparent",
     "viewTransform": "Standard"
@@ -19,9 +18,9 @@
   "engine": { "name": "cycles", "device": "cpu", "samples": 64, "denoise": "openimagedenoise" },
   "lighting": { "mode": "ambient", "color": "#FFFFFF", "strength": 1.0 },
   "lights": [
-    { "type": "area", "position": [-55, -60, 85], "size": 55, "color": "#FFFFFF", "intensity": 2420000 },
-    { "type": "area", "position": [60, -25, 55], "size": 70, "color": "#FFFFFF", "intensity": 660000 },
-    { "type": "area", "position": [-15, 65, 45], "size": 50, "color": "#FFFFFF", "intensity": 385000 }
+    { "type": "area", "position": [-65, -71, 100], "size": 65, "color": "#FFFFFF", "intensity": 3400000 },
+    { "type": "area", "position": [71, -30, 65], "size": 83, "color": "#FFFFFF", "intensity": 930000 },
+    { "type": "area", "position": [-18, 77, 53], "size": 60, "color": "#FFFFFF", "intensity": 540000 }
   ],
   "styling": {
     "materialOverride": "board-look",

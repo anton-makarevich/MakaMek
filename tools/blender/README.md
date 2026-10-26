@@ -39,7 +39,7 @@ blender -b --factory-startup -noaudio \
         -P tools/blender/render.py -- \
         --model  artifacts/models/AS7/model.glb \
         --preset tools/blender/board-topdown.json \
-        --scale  4.5359 \
+        --scale  6.650 \
         --out    artifacts/sprites/AS7 \
         --clips  Idle \
         --report artifacts/sprites/AS7/render-report.json
@@ -67,7 +67,7 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--frame N` | render a single frame per clip (static sprite / smoke test) |
 | `--samples N` | override the preset sample count |
 | `--resolution N` | render an N×N cell instead of the preset's — local inspection only |
-| `--supersample N` | render N× the cell size (84×72 → 336×288 at 4×). `--scale` stays in 1× pixel space; the light rig and the Freestyle thickness scale with N so the look is preserved. The pipeline downsamples back to the cell size |
+| `--supersample N` | render N× the cell size (100×87 → 400×348 at 4×). `--scale` stays in 1× pixel space; the light rig and the Freestyle thickness scale with N so the look is preserved. The pipeline downsamples back to the cell size |
 | `--engine cycles\|eevee` | `cycles` is the reproducible path; `eevee` needs a display and is local-only |
 | `--lighting lights\|ambient\|flat` | override `lighting.mode`: `lights` = camera-parented area rig, `ambient` = uniform world light (no cast shadows, soft occlusion only), `flat` = emissive material, no lighting at all (silhouette + outline only) |
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
@@ -86,18 +86,24 @@ pipeline computes `pxPerMetre x correctionScale x override x floorClamp` and pas
 For a hand-calibrated run, the reference-chassis algebra collapses to:
 
 ```
-effectiveScale = (referenceCoverage x headroom x drawBoxHeightPx) / planView.maxExtentMeters[reference]
-               = (0.90 x 1.2 x 72) / 14.286          # AS7 Atlas, measured from Atlas_SKM.glb
-               = 5.443
+effectiveScale = (referenceCoverage x cellWidth) / planView.maxExtentMeters[reference]
+               = (0.95 x 100) / 14.286               # AS7 Atlas, measured from Atlas_SKM.glb
+               = 6.650
 ```
 
 `correctionScale` cancels for the reference chassis itself, so its sprite needs no volume measurement.
 
-The **1.2 headroom** is empirical, not arbitrary: at the documented 0.90 the reference chassis covers
-0.217 of the hex area against 0.297 for the shipped art, i.e. every sprite under-fills the board.
-`x1.2` puts the Atlas at 0.309 and the Annihilator at 0.299, and keeps the widest plan view (80 px)
-inside the 84 px cell. The equivalent change in pipeline terms is `referenceCoverage: 0.90` +
-`scale.headroom: 1.2`; it is applied here by passing `--scale 5.443`.
+**Calibration is on the cell width, not on a draw box.** At a 90° camera the plan-view max extent maps
+to the sprite's horizontal axis, and the cell is the full hex (100 x 86.6). Three things follow:
+
+- The sprite canvas is **100 x 87** and `UnitControl` draws it at **1.0 x hex** (today it draws at
+  `0.84 x hex`), so the sprite is 1:1 with the hex rather than 84 % of it. That is the change this
+  spike is proposing; it is not yet in the app.
+- `referenceCoverage = 0.95` leaves ~2 px of margin per side. Measured result: Atlas 96 x 49 px,
+  Annihilator 82 x 63 px, i.e. 0.458 and 0.438 of the hex area against 0.297 for the shipped art.
+- Wide chassis can poke a few pixels past the hexagon's slanted edges (the Atlas shoulders do, at 8x
+  zoom). Accepted: a per-chassis `scale-overrides` entry can pull a specific mech back if it looks
+  wrong on the board, and that mechanism already exists in the design.
 
 ## Preset keys the driver reads
 
@@ -137,13 +143,13 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
 
   | cell | samples | s/frame | 76 chassis × 60 frames |
   |---|---|---|---|
-  | 84×72 | 16 | 1.11 | ~85 min |
-  | 84×72 | 64 | 1.15 | ~87 min |
-  | 336×288 (4×) | 64 | 3.37 | ~4.3 h |
+  | 100×87 | 64 | 1.16 | ~1.5 h |
+  | 400×348 (4×) | 64 | 3.51 | ~4.5 h |
 
-  The sample count barely matters — Freestyle and per-frame scene sync dominate, not pixel fill. Use 64:
-  it is effectively free and notably less noisy than 16. Supersampling costs ~3× (4× the pixels), and 4×
-  is where the detail stops being mush: 16× is visually indistinguishable from 4× after downscaling.
+  The sample count barely matters — Freestyle and per-frame scene sync dominate, not pixel fill; 16 vs
+  64 samples differed by ~4 % at 84×72. Use 64: it is effectively free and notably less noisy than 16.
+  Supersampling costs ~3×, and 4× is where the detail stops being mush: 16× is visually
+  indistinguishable from 4× after downscaling.
 
 ## Gotchas
 
@@ -153,6 +159,9 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
   `UnitControl` draws the unit at `0.84 × hex` = 84 × 72 centred. A pointy-top hex, or compositing the
   sprite onto the 84×72 base texture without stretching the hex, makes the mech look larger than it is
   in game.
+- **Sprites are 100×87 but the app still draws at 0.84.** Until `UnitControl` changes to `1.0 × hex`,
+  a 100×87 sprite rendered in-game is squeezed into 84 × 72.7; previews drawn at 1.0 show the target
+  state, not today's build.
 - Blender's glTF importer parks helper objects (an `Icosphere` bone shape, gizmos) in a
   `glTF_not_exported` collection. They are not part of the model; the driver deletes them before
   measuring, shading and rendering. Anything that measures a glTF by hand must exclude them too, or
@@ -160,7 +169,7 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
 - FModel exports UE cm as glTF metres, keeps the mech **facing +X** (not the canonical +Z) and gives
   weapons their own `Weapon_SKL` skeleton. Until stage 1 normalises the model, pass `--model-yaw 90`
   and do not expect weapons to land on their hardpoints.
-- Freestyle line thickness above ~1.2 px at 84×72 covers a large share of the silhouette; the sprite
+- Freestyle line thickness above ~1.2 px at 100×87 covers a large share of the silhouette; the sprite
   turns into a black blob rather than gaining detail.
 
 ## Licensing
