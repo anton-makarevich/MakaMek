@@ -1,0 +1,45 @@
+{
+  "name": "board-topdown",
+  "camera": { "projection": "ortho", "pitchDegrees": 90, "yawDegrees": 0 },
+  "scale": {
+    "mode": "tonnage-volume",
+    "referenceChassis": "AS7",
+    "referenceCoverage": 0.78,
+    "minimumCoverage": 0.55,
+    "hexAreaPx": 8660
+  },
+  "output": {
+    "cellWidth": 100,
+    "cellHeight": 87,
+    "channels": "luminance",
+    "background": "transparent",
+    "viewTransform": "Standard"
+  },
+  "engine": { "name": "cycles", "device": "cpu", "samples": 64, "denoise": "openimagedenoise" },
+  "lighting": { "mode": "ambient", "color": "#FFFFFF", "strength": 1.0 },
+  "lights": [
+    { "type": "area", "position": [-65, -71, 100], "size": 65, "color": "#FFFFFF", "intensity": 3400000 },
+    { "type": "area", "position": [71, -30, 65], "size": 83, "color": "#FFFFFF", "intensity": 930000 },
+    { "type": "area", "position": [-18, 77, 53], "size": 60, "color": "#FFFFFF", "intensity": 540000 }
+  ],
+  "styling": {
+    "materialOverride": "board-look",
+    "outline": { "enabled": true, "width": 1.0, "color": "#101010", "crease": true },
+    "posterize": 0
+  },
+  "shading": {
+    "groundShadow": { "enabled": false, "opacity": 0.25, "blurPx": 6 }
+  },
+  "clips": {
+    "Idle": { "frames": 6, "fps": 8, "row": 0 },
+    "Walk": { "frames": 10, "fps": 12, "row": 1 },
+    "Run": { "frames": 10, "fps": 16, "row": 2 },
+    "Jump": { "frames": 8, "fps": 12, "row": 3 },
+    "ProneEnter": { "frames": 6, "fps": 12, "row": 4 },
+    "ProneIdle": { "frames": 4, "fps": 4, "row": 5 },
+    "StandUp": { "frames": 7, "fps": 12, "row": 6 },
+    "Shutdown": { "frames": 4, "fps": 8, "row": 7 },
+    "Destroyed": { "frames": 8, "fps": 10, "row": 8 }
+  },
+  "atlas": { "layout": "rows", "padding": 2, "powerOfTwo": true }
+}
