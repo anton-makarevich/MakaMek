@@ -82,6 +82,7 @@ _SCHEMA = {
 # Keys the driver dereferences unconditionally. Missing ones are a hard error rather than a default,
 # so a trimmed preset cannot silently produce a different look.
 _REQUIRED = (
+    "name",
     "camera",
     "output",
     "engine",
@@ -90,6 +91,30 @@ _REQUIRED = (
     "shading",
     "clips",
 )
+
+# Keys read below the top level, as dotted paths. `_check` catches unknown keys and wrong types; this
+# catches omissions, which would otherwise surface as a KeyError traceback after the scene is built.
+_REQUIRED_NESTED = (
+    "camera.projection",
+    "camera.pitchDegrees",
+    "camera.yawDegrees",
+    "output.cellWidth",
+    "output.cellHeight",
+    "output.channels",
+    "output.background",
+    "output.viewTransform",
+    "engine.name",
+    "engine.device",
+    "engine.samples",
+    "engine.denoise",
+    "styling.materialOverride",
+    "styling.outline.enabled",
+    "styling.outline.width",
+    "styling.outline.color",
+    "shading.groundShadow.enabled",
+)
+
+_LIGHT_KEYS = ("type", "position", "size", "color", "intensity")
 
 
 class PresetError(ValueError):
@@ -146,6 +171,32 @@ def load(path):
     missing = [key for key in _REQUIRED if key not in preset]
     if missing:
         raise PresetError(f'{path}: missing required key(s): {", ".join(missing)}')
+
+    for dotted in _REQUIRED_NESTED:
+        node = preset
+        for part in dotted.split("."):
+            if not isinstance(node, dict) or part not in node:
+                raise PresetError(f"{path}: missing required key: {dotted}")
+            node = node[part]
+
+    if not preset["lights"]:
+        raise PresetError(f"{path}: lights must not be empty")
+
+    for index, light in enumerate(preset["lights"]):
+        missing_light = [key for key in _LIGHT_KEYS if key not in light]
+        if missing_light:
+            raise PresetError(
+                f'{path}: lights[{index}] is missing required key(s): {", ".join(missing_light)}'
+            )
+        if len(light["position"]) != 3:
+            raise PresetError(f"{path}: lights[{index}].position must have exactly 3 values")
+
+    if not preset["clips"]:
+        raise PresetError(f"{path}: clips must not be empty")
+
+    for clip, spec in preset["clips"].items():
+        if "frames" not in spec:
+            raise PresetError(f"{path}: clips.{clip}.frames is required")
 
     if preset["camera"]["projection"] != "ortho":
         raise PresetError(

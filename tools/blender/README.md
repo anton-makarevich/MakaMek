@@ -4,7 +4,12 @@ Headless Blender renders top-down board sprites from a 3D mech model. The driver
 scene from a preset on every run; there is no `.blend` input and nothing is hand-edited between runs.
 
 Design and contract: [../../docs/architecture/blender-render-driver.md](../../docs/architecture/blender-render-driver.md).
-The look lives in [../../presets/board-topdown.json](../../presets/board-topdown.json).
+The look lives in [board-topdown.json](board-topdown.json).
+
+> **Spike layout.** Everything for this experiment lives in `tools/blender/` - driver, preset and this
+> README - so it can be removed in one go if the verdict is negative. The design docs describe the
+> eventual layout (`presets/board-topdown.json` at the repository root); the preset simply sits next to
+> the driver for now. `artifacts/` stays at the root and is gitignored.
 
 ```
 tools/blender/
@@ -33,7 +38,7 @@ blender -b --factory-startup -noaudio \
         --python-exit-code 1 \
         -P tools/blender/render.py -- \
         --model  artifacts/models/AS7/model.glb \
-        --preset presets/board-topdown.json \
+        --preset tools/blender/board-topdown.json \
         --scale  4.5359 \
         --out    artifacts/sprites/AS7 \
         --clips  Idle \

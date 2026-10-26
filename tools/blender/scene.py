@@ -143,7 +143,14 @@ def add_lights(preset, camera):
 
     Parenting keeps the rig identical for every mech and frame. Positions and sizes are in pixel
     space (1 unit == 1 px), so the preset numbers describe the rig directly.
+
+    The lights are children of the camera, so their `location` is camera-local while the model sits at
+    the *world* origin - which is not the camera-local origin. The aim target therefore has to be the
+    world origin transformed into camera space.
     """
+    bpy.context.view_layer.update()
+    target = camera.matrix_world.inverted() @ Vector((0.0, 0.0, 0.0))
+
     for index, spec in enumerate(preset["lights"]):
         light_data = bpy.data.lights.new(f"light-{index}", type=spec["type"].upper())
         light_data.color = hex_to_rgb(spec["color"])
@@ -156,7 +163,7 @@ def add_lights(preset, camera):
         light.parent = camera
         light.location = Vector(spec["position"])
 
-        direction = Vector((0.0, 0.0, 0.0)) - light.location
+        direction = target - light.location
         light.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 

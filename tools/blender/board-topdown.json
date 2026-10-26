@@ -1,0 +1,45 @@
+{
+  "name": "board-topdown",
+  "camera": { "projection": "ortho", "pitchDegrees": 90, "yawDegrees": 0 },
+  "scale": {
+    "mode": "tonnage-volume",
+    "referenceChassis": "AS7",
+    "referenceCoverage": 0.90,
+    "minimumCoverage": 0.55,
+    "drawBoxHeightPx": 72,
+    "hexAreaPx": 8660
+  },
+  "output": {
+    "cellWidth": 84,
+    "cellHeight": 72,
+    "channels": "luminance",
+    "background": "transparent",
+    "viewTransform": "Standard"
+  },
+  "engine": { "name": "cycles", "device": "cpu", "samples": 64, "denoise": "openimagedenoise" },
+  "lights": [
+    { "type": "area", "position": [-55, -60, 85], "size": 55, "color": "#FFFFFF", "intensity": 2420000 },
+    { "type": "area", "position": [60, -25, 55], "size": 70, "color": "#FFFFFF", "intensity": 660000 },
+    { "type": "area", "position": [-15, 65, 45], "size": 50, "color": "#FFFFFF", "intensity": 385000 }
+  ],
+  "styling": {
+    "materialOverride": "board-look",
+    "outline": { "enabled": true, "width": 1.0, "color": "#101010", "crease": true },
+    "posterize": 0
+  },
+  "shading": {
+    "groundShadow": { "enabled": false, "opacity": 0.25, "blurPx": 6 }
+  },
+  "clips": {
+    "Idle": { "frames": 6, "fps": 8, "row": 0 },
+    "Walk": { "frames": 10, "fps": 12, "row": 1 },
+    "Run": { "frames": 10, "fps": 16, "row": 2 },
+    "Jump": { "frames": 8, "fps": 12, "row": 3 },
+    "ProneEnter": { "frames": 6, "fps": 12, "row": 4 },
+    "ProneIdle": { "frames": 4, "fps": 4, "row": 5 },
+    "StandUp": { "frames": 7, "fps": 12, "row": 6 },
+    "Shutdown": { "frames": 4, "fps": 8, "row": 7 },
+    "Destroyed": { "frames": 8, "fps": 10, "row": 8 }
+  },
+  "atlas": { "layout": "rows", "padding": 2, "powerOfTwo": true }
+}

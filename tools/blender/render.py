@@ -5,7 +5,7 @@ This is the only supported entry point (docs/architecture/blender-render-driver.
     blender -b --factory-startup -noaudio --python-exit-code 1 \
             -P tools/blender/render.py -- \
             --model  <model.glb> \
-            --preset presets/board-topdown.json \
+            --preset tools/blender/board-topdown.json \
             --scale  <effectiveScale> \
             --out    <output directory> \
             [--clips Idle,Walk] [--report render-report.json]
@@ -149,6 +149,10 @@ def main(argv):
         for offset in range(frame_count):
             frame = first + offset
             path = os.path.join(clip_dir, f"{frame:03d}.png")
+            # Remove the previous frame first: verification must only be able to pass on output this
+            # run produced, never on a stale file from an earlier render.
+            if os.path.exists(path):
+                os.remove(path)
             scene.frame_set(frame)
             scene.render.filepath = path
             bpy.ops.render.render(write_still=True)
