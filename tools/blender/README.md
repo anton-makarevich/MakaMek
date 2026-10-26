@@ -86,12 +86,18 @@ pipeline computes `pxPerMetre x correctionScale x override x floorClamp` and pas
 For a hand-calibrated run, the reference-chassis algebra collapses to:
 
 ```
-effectiveScale = (referenceCoverage x drawBoxHeightPx) / planView.maxExtentMeters[reference]
-               = (0.90 x 72) / 14.286          # AS7 Atlas, measured from Atlas_SKM.glb
-               = 4.536
+effectiveScale = (referenceCoverage x headroom x drawBoxHeightPx) / planView.maxExtentMeters[reference]
+               = (0.90 x 1.2 x 72) / 14.286          # AS7 Atlas, measured from Atlas_SKM.glb
+               = 5.443
 ```
 
 `correctionScale` cancels for the reference chassis itself, so its sprite needs no volume measurement.
+
+The **1.2 headroom** is empirical, not arbitrary: at the documented 0.90 the reference chassis covers
+0.217 of the hex area against 0.297 for the shipped art, i.e. every sprite under-fills the board.
+`x1.2` puts the Atlas at 0.309 and the Annihilator at 0.299, and keeps the widest plan view (80 px)
+inside the 84 px cell. The equivalent change in pipeline terms is `referenceCoverage: 0.90` +
+`scale.headroom: 1.2`; it is applied here by passing `--scale 5.443`.
 
 ## Preset keys the driver reads
 
@@ -141,6 +147,12 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
 
 ## Gotchas
 
+- **Preview orientation.** The board hex is **flat-top**, 100 × 86.6 (`HexCoordinatesPixelExtensions`),
+  so a mech facing "up" faces a flat *edge*, not a vertex. The biome base texture
+  (`data/hexes/biomes/*.mmtx` -> `base.png`, authored at 84×72) is stretched over the whole hex and
+  `UnitControl` draws the unit at `0.84 × hex` = 84 × 72 centred. A pointy-top hex, or compositing the
+  sprite onto the 84×72 base texture without stretching the hex, makes the mech look larger than it is
+  in game.
 - Blender's glTF importer parks helper objects (an `Icosphere` bone shape, gizmos) in a
   `glTF_not_exported` collection. They are not part of the model; the driver deletes them before
   measuring, shading and rendering. Anything that measures a glTF by hand must exclude them too, or

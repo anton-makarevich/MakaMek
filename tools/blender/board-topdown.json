@@ -17,7 +17,7 @@
     "viewTransform": "Standard"
   },
   "engine": { "name": "cycles", "device": "cpu", "samples": 64, "denoise": "openimagedenoise" },
-  "lighting": { "mode": "lights", "color": "#FFFFFF", "strength": 1.0 },
+  "lighting": { "mode": "ambient", "color": "#FFFFFF", "strength": 1.0 },
   "lights": [
     { "type": "area", "position": [-55, -60, 85], "size": 55, "color": "#FFFFFF", "intensity": 2420000 },
     { "type": "area", "position": [60, -25, 55], "size": 70, "color": "#FFFFFF", "intensity": 660000 },
