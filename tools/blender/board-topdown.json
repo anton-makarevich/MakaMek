@@ -4,7 +4,7 @@
   "scale": {
     "mode": "tonnage-volume",
     "referenceChassis": "AS7",
-    "referenceCoverage": 0.95,
+    "referenceCoverage": 0.78,
     "minimumCoverage": 0.55,
     "hexAreaPx": 8660
   },

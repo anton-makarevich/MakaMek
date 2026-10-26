@@ -19,6 +19,7 @@ Exit codes: 0 ok, 2 bad arguments, 3 missing input, 4 invalid preset / failed ve
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -69,6 +70,10 @@ def parse_args(argv):
     parser.add_argument("--device", default="cpu", choices=["cpu", "gpu"],
                         help="cycles device; cpu is the reproducible path")
     parser.add_argument("--frame", default=None, type=int, help="render a single frame per clip")
+    parser.add_argument("--fit", action="store_true",
+                        help="size the cell to this model's plan-view projection (+2 px margin at 1x) "
+                             "instead of the preset's fixed cell - every unit gets its own canvas and is "
+                             "meant to be drawn 1:1, centred in the hex")
     parser.add_argument("--no-outline", action="store_true", help="disable the Freestyle outline")
     parser.add_argument("--save-blend", default=None, help="save the generated scene for inspection")
     parser.add_argument("--model-yaw", default=0.0, type=float,
@@ -103,6 +108,10 @@ def main(argv):
               file=sys.stderr)
         return EXIT_INVALID
 
+    if args.resolution and args.fit:
+        print("--resolution and --fit are mutually exclusive", file=sys.stderr)
+        return EXIT_BAD_ARGS
+
     if args.resolution:
         preset["output"]["cellWidth"] = args.resolution
         preset["output"]["cellHeight"] = args.resolution
@@ -128,6 +137,19 @@ def main(argv):
     scene_module.reset()
     imported = scene_module.import_model(args.model)
     _, metrics = scene_module.normalise(imported, render_scale, args.model_yaw)
+
+    if args.fit:
+        # Per-unit canvas: the projection plus a small margin so the 1 px outline is not clipped. At
+        # 1x this is exactly the mech's own size, so the pipeline can draw it 1:1 and centred. The cell
+        # is rounded up to a multiple of the supersample factor so the downsampled 1x size is integral.
+        margin = 2 * supersample
+
+        def _fit(value):
+            return int(math.ceil((value + 2 * margin) / supersample)) * supersample
+
+        preset["output"]["cellWidth"] = _fit(metrics["spriteExtentPx"][0])
+        preset["output"]["cellHeight"] = _fit(metrics["spriteExtentPx"][1])
+
     if args.lighting:
         preset["lighting"]["mode"] = args.lighting
     scene_module.override_materials(imported, preset["lighting"]["mode"])
