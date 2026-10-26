@@ -141,6 +141,7 @@ jobs:
       # the code cannot change between the owner's /oc and the execution. This
       # runs before any checkout.
       - name: Verify the command is newer than the reviewed commit
+        id: verify
         env:
           IS_PR: ${{ needs.triage.outputs.is_pr }}
           HEAD_SHA: ${{ needs.triage.outputs.head_sha }}
@@ -154,6 +155,8 @@ jobs:
             commit_epoch="$(date -d "${head_commit_at}" +%s)"
             if [ "${commit_epoch}" -gt "${comment_epoch}" ]; then
               echo "::error::PR head ${HEAD_SHA} was committed after the /oc command; comment /oc again to review the new head."
+              # Deliberate refusal, not a setup failure: let the report say so.
+              echo "stale=true" >> "$GITHUB_OUTPUT"
               exit 1
             fi
           fi
@@ -400,13 +403,25 @@ jobs:
           (steps.commit.outputs.committed != 'true' || steps.push.outputs.sha == '')
         env:
           HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          EXPECTED_SHA: ${{ steps.branch.outputs.head_before }}
         run: |
           set -uo pipefail
-          if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" > /dev/null; then
+          if [ -z "${EXPECTED_SHA:-}" ]; then
+            echo "::warning::No branch SHA was recorded; leaving ${HEAD_REF} in place rather than deleting an unknown ref."
+            exit 0
+          fi
+          # Lease-protected delete: only remove the ref if it still points at the
+          # SHA this run created. A plain REST DELETE would also take a commit
+          # another writer pushed in the meantime (the agent has a write token,
+          # so "do not push" is a prompt, not an enforcement boundary).
+          git config --local http.https://github.com/.extraheader \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
+          if git push origin --delete "${HEAD_REF}" \
+               --force-with-lease="refs/heads/${HEAD_REF}:${EXPECTED_SHA}" 2>/dev/null; then
             echo "deleted=true" >> "$GITHUB_OUTPUT"
             echo "Deleted the unused branch ${HEAD_REF}."
           else
-            echo "::warning::Could not delete the unused branch ${HEAD_REF}."
+            echo "::warning::Could not delete ${HEAD_REF}: it moved since this run created it, or it is already gone."
           fi
 
       - name: Report the result
@@ -414,6 +429,8 @@ jobs:
         env:
           NUMBER: ${{ needs.triage.outputs.number }}
           HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          VERIFY_STALE: ${{ steps.verify.outputs.stale }}
+          JOB_STATUS: ${{ job.status }}
           PREPARE_OUTCOME: ${{ steps.branch.outcome }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
           COMMIT_OUTCOME: ${{ steps.commit.outcome }}
@@ -426,10 +443,11 @@ jobs:
           set -uo pipefail
           log="${RUNNER_TEMP}/opencode.log"
           failed=""
+          reason=""
           if [ "${PREPARE_OUTCOME}" = "failure" ]; then failed="prepare branch"; fi
           # `skipped` only means an earlier step failed: blame the agent for an
           # actual failure, not for never having been reached.
-          if [ "${AGENT_OUTCOME}" = "failure" ] || [ "${AGENT_OUTCOME}" = "cancelled" ]; then
+          if [ "${AGENT_OUTCOME}" = "failure" ]; then
             failed="${failed:+${failed}, }agent"
           fi
           if [ "${COMMIT_OUTCOME}" = "failure" ]; then
@@ -438,15 +456,36 @@ jobs:
           if [ "${PUSH_OUTCOME}" = "failure" ]; then
             failed="${failed:+${failed}, }push"
           fi
+          # No step above ran when the job died before the agent: a failed setup
+          # step (checkout, tooling install), a cancellation, or the deliberate
+          # stale-command refusal. `continue-on-error` keeps a failed agent run
+          # out of `job.status`, so a non-success status here is never the agent.
+          if [ -z "${failed}" ] && [ "${JOB_STATUS}" != "success" ]; then
+            if [ "${VERIFY_STALE}" = "true" ]; then
+              reason="the commit under review is newer than the /oc command. Comment /oc again to review the new head"
+            elif [ "${JOB_STATUS}" = "cancelled" ] || [ "${AGENT_OUTCOME}" = "cancelled" ]; then
+              reason="the run was cancelled"
+            else
+              reason="a step before the agent failed"
+            fi
+          fi
           {
             echo "### 🤖 opencode"
             echo
-            if [ -n "${failed}" ]; then
-              echo "**Run failed:** ${failed} step failed. Last output:"
-              echo
-              echo '```'
-              tail -n 40 "${log}" 2>/dev/null || echo "no output captured"
-              echo '```'
+            if [ -n "${failed}" ] || [ -n "${reason}" ]; then
+              if [ -n "${failed}" ]; then
+                echo "**Run failed:** ${failed} step failed."
+              else
+                echo "**Run failed:** ${reason}."
+              fi
+              if [ -s "${log}" ]; then
+                echo
+                echo "Last output:"
+                echo
+                echo '```'
+                tail -n 40 "${log}"
+                echo '```'
+              fi
               echo
               echo "See the [workflow run](${RUN_URL}) for the failing step's log."
             elif [ -n "${PR_URL}" ]; then
@@ -457,7 +496,7 @@ jobs:
               echo "Nothing was published, so the unused branch \`${HEAD_REF}\` was deleted."
               echo
             fi
-            if [ -s "${log}" ] && [ -z "${failed}" ]; then
+            if [ -s "${log}" ] && [ -z "${failed}${reason}" ]; then
               # Keep the end of the log: the summary is the last thing the agent writes.
               if [ "$(wc -c < "${log}")" -gt 55000 ]; then
                 echo "_(log truncated, showing the last 55000 bytes)_"
@@ -478,7 +517,7 @@ jobs:
             echo "::warning::Could not post the result comment."
           # Mirror the old action's behaviour: a failed agent/commit/push fails
           # the run, so an unpublished change is never reported as success.
-          if [ -n "${failed}" ]; then
+          if [ -n "${failed}${reason}" ]; then
             exit 1
           fi
 
