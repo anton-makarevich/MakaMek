@@ -54,6 +54,10 @@ The statements above are directionally right but the real tree is messier; measu
 
 The MW5 layout is therefore "body + cockpit + glass + weapon meshes + data assets", with **two body layouts** to support. Filenames remain the cheapest discovery index (`Weapon_Mech_AS7_Torso_Right_BH1_AC20_SKM` encodes chassis, location, hardpoint and weapon), and the `<Chassis>_HPS`/`_MDA`/`_Loadout` JSON is the authoritative assembly data.
 
+#### 2.2.2 Assembly verified (2026-10-27)
+
+`MW5Extractor assemble` now builds a full variant from the pak and produces one renderable glTF (`AS7-D.glb`, ~50k triangles): body (`Atlas_SKM`) + third-person cockpit (`AS7_TP_Cockpit_DM0_STM`, named by `<Chassis>_MDL`, parented to the `Cockpit` bone) + the loadout's weapon meshes, each placed by its slot's skeleton bone. The loadout → weapon-data-asset → `WeaponType` tag → `<Chassis>_HPS` visual → `_SKM` mesh chain is fully data-driven; the only manual knowledge left is which *MakaMek* equipment corresponds to which MW5 weapon tag. The first-person cockpit (`Atlas_Cockpit_SKM`/`_CockpitGlass_STM`) is an interior asset and must not be used as the visible head. Output is byte-identical across runs.
+
 ### 2.3 Chassis count (measured from this repo)
 
 ```

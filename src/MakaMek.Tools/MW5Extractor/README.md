@@ -53,10 +53,43 @@ Every verb accepts `--paks`, `--extra <dir>` (repeatable), `--aes <hex>`, `--ood
 | `find <chassis>` | classify one chassis: body, body parts, cockpit, glass, hardpoints, weapons, variants, animations | `find Atlas` / `find AS7-D` |
 | `inspect <asset>` | exports, generic tags, bones, sockets with transforms, LODs, material slots, animation info | `inspect Atlas_SKM` |
 | `extract <asset>` | `--format gltf\|psk\|json` → files on disk | `extract Atlas_SKM` / `extract Atlas_HPS -f json` |
+| `assemble <chassis\|variant>` | merge body + cockpit + loadout weapons into **one** renderable glTF (`<VARIANT>.glb` + `<VARIANT>.assembly.json`) | `assemble AS7-D` |
 | `discovery-report` | every chassis in one JSON file, plus assumption checks against the research notes | `discovery-report` |
 
 Asset arguments accept a full virtual path, a path suffix (`Atlas/Model/Body/Atlas_SKM`) or a unique
 asset name (`Atlas_SKM`). Ambiguous names fail with the candidate list.
+
+## Assembly: one model per variant
+
+`assemble AS7-D` writes one static glTF in canonical space (metres, Y-up, mech facing **+Z**, pivot at the
+footprint centre, lowest point on the ground) plus an `assembly.json` describing every part. The renderer
+only needs that single file (`render.py --model AS7-D.glb --scale <chassis scale> --fit`).
+
+```
+body         Atlas_SKM                       identity
+cockpit      AS7_TP_Cockpit_DM0_STM          bone "Cockpit"  (from <Chassis>_MDL → MechDestructibleState.ThirdPersonCockpitData)
+weapon       Weapon_…_BH1_AC20_SKM           bone "Torso_Pitch"      slot Torso_Right_BH1_autocannon20
+…
+```
+
+The mapping is data all the way down — no shipping weapon table:
+
+1. `<Model>_Loadout` → `InstalledWeapons[]` (`HardpointSlotID` + weapon data asset).
+2. Weapon data asset → `WeaponType.TagName` (`Weapon.Ballistic.AutoCannon.Standard.AC20`).
+3. `<Chassis>_HPS` → the slot (exact id, else same location/hardpoint + slot type), its
+   `MechSkeletonSocketID` and `HardpointVisuals[tag]` → the weapon Blueprint.
+4. Blueprint → `_SKM` mesh; socket → bone (MW5's weapon sockets are identity offsets on `Mech_SKL`).
+5. Bone world transform from the exported body glTF (rest pose) positions the part; the body itself needs none.
+
+Notes that matter:
+
+- **The first-person cockpit is not the visible head.** `Atlas_Cockpit_SKM` is the FPP interior (scaled 0.4 in
+  its Blueprint); the exterior head is the static mesh named by `<Chassis>_MDL` and bone-parented to `Cockpit`.
+  `assemble` uses the third-person mesh and falls back to the FPP cockpit only when a chassis declares none.
+- **Weapon meshes are authored relative to their mount**, so the mount bone (not the slot id) places them; the
+  torso hardpoints all share `Torso_Weapon` (`Torso_Pitch`) and differ by their baked local geometry.
+- Weapons that have no visual (melee actuators, empty slots) are listed under `unmapped` with a reason.
+- Output is deterministic: the same command twice produced a byte-identical `.glb` (verified 2026-10-27).
 
 ## Output
 
@@ -82,10 +115,10 @@ artifacts/mw5/
   mounts and exports without either.
 - **glTF exports are faithful, not pretty:** materials resolve to material instances (not board-look),
   textures come out where referenced. Rendering stays stage 2's job (`tools/blender/render.py`).
-- **Not implemented here** (later slices): merging attachments into one skinned mesh, the MakaMek →
-  MW5 equipment mapping table, animations, `.mmux` output and the 199-variant batch.
+- **Not implemented here** (later slices): animation clips and skinned merges (assembly is the static rest
+  pose), `.mmux` v2 output, the 199-variant batch and contact sheets.
 - Chassis identity is the MW5 folder; the `chassis-map.json` (MW5 folder → MegaMek code) belongs to the
-  assembly step.
+  assembly/packaging step. `assemble` already reports the variant id it used.
 
 ## Licensing
 

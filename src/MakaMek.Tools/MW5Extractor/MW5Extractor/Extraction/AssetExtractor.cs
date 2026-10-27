@@ -47,16 +47,19 @@ public static class AssetExtractor
         Directory.CreateDirectory(outputDirectory);
 
         var (exportOptions, asProperties) = OptionsFor(request.Format);
-        var export = archive.LoadObject(request.AssetPath);
 
         var session = new ExportSession();
         if (asProperties)
         {
-            session.Add(new JsonPropertiesExporter(export));
+            // A package can hold several exports (blueprints especially); dump them all rather than guessing.
+            foreach (var export in archive.LoadPackage(request.AssetPath).GetExports())
+            {
+                session.Add(new JsonPropertiesExporter(export));
+            }
         }
         else
         {
-            session.Add(export);
+            session.Add(archive.LoadObject(request.AssetPath));
         }
 
         var stopwatch = Stopwatch.StartNew();

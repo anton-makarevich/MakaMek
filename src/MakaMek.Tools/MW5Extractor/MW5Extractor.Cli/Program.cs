@@ -16,5 +16,6 @@ rootCommand.Add(FindCommand.Create());
 rootCommand.Add(InspectCommand.Create());
 rootCommand.Add(ExtractCommand.Create());
 rootCommand.Add(DiscoveryReportCommand.Create());
+rootCommand.Add(AssembleCommand.Create());
 
 return await rootCommand.Parse(args).InvokeAsync();

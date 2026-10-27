@@ -149,7 +149,37 @@ So: **do not write a bespoke deserialiser before trying `--format json`.**
 - `docs/analysis/mw5-model-extraction.md` — extraction fact base (some §2.2 assumptions are now corrected).
 - `docs/architecture/asset-pipeline.md` — how the extractor becomes the `unreal` adapter.
 
-## 8. Anti-patterns
+## 8. Assembling a variant into one model
+
+`assemble <chassis|variant>` merges body + third-person cockpit + loadout weapons into one static glTF.
+The mapping chain (all data, no table):
+
+1. `<Model>_Loadout` → `InstalledWeapons[]` = `HardpointSlotID` + weapon data asset (`MWTraceWeaponDataAsset`).
+2. Weapon data asset → `Properties.WeaponType.TagName` (e.g. `Weapon.Ballistic.AutoCannon.Standard.AC20`) and
+   `WeaponSlotTypeAssetId`.
+3. `<Chassis>_HPS` → slot by exact id (else same location/hardpoint + slot type), `MechSkeletonSocketID`,
+   and `HardpointVisuals[tag]` → weapon Blueprint `/Game/…_C`.
+4. `/Game/…_C` → `MW5Mercs/Content/…` → mesh `…_SKM`; socket → bone via `Mech_SKL` sockets (identity offsets).
+5. Bone world matrix from the exported body glTF at rest pose; weapon meshes are authored in mount-local space.
+
+Gotchas found the hard way:
+
+- **The visible head is not `Atlas_Cockpit_SKM`.** That is the first-person interior (scaled 0.4 in
+  `Atlas_Cockpit_C` via `CockpitSkeleton.RelativeScale3D`). The exterior head is the static mesh in
+  `<Chassis>_MDL` → `MechModelData.MechDestructibleState.ThirdPersonCockpitData.InitialStaticMesh`
+  (e.g. `AS7_TP_Cockpit_DM0_STM`), parented to the `Cockpit` bone.
+- All torso weapons share the `Torso_Weapon` socket (bone `Torso_Pitch`); their left/right/up/down placement is
+  baked into each mesh's local geometry, so attaching at the bone is correct.
+- Weapon tags carry extra qualifiers (`…LRM20.Stream`); match the visual map by exact key first, then by longest
+  prefix, then by the slot's generic `Weapon` entry.
+- Melee actuators have no visual mesh (`WeaponData = None`); report them as unmapped.
+- Merging glTF: bake rest-pose vertices (skinning at bind pose is identity), drop skin/materials, write one
+  static primitive. `SharpGLTF.Toolkit` (`MeshBuilder<VertexPositionNormal, VertexEmpty>`) is enough; the
+  result is byte-identical across runs.
+- Canonical space: source is metres/Y-up facing +X; rotate −90° about Y so it faces +Z, then centre the
+  footprint on the origin and put the lowest vertex on Y=0.
+
+## 9. Anti-patterns
 
 - Loading assets to answer a discovery question (285k paths are cheap; 285k packages are not).
 - Hard-coding `EGame.GAME_UE5_x` for MW5; drive the version from `MountOptions.Game` → `VersionContainer`.
@@ -157,7 +187,7 @@ So: **do not write a bespoke deserialiser before trying `--format json`.**
 - Treating `FStructFallback` as "unreadable" — try the JSON exporter first, then walk `FPropertyTag`.
 - Keeping any exported `.glb`/`.png`/`.json` in the repo: MW5 output is never committed.
 
-## 9. Verify against source
+## 10. Verify against source
 
 - `CUE4Parse` repo: `CUE4Parse/FileProvider/DefaultFileProvider.cs`, `FileProvider/Vfs/AbstractVfsFileProvider.cs`,
   `UE4/Assets/Objects/FPropertyTag.cs`, `Compression/OodleHelper.cs`.

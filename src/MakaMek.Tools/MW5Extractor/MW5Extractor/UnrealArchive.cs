@@ -131,7 +131,17 @@ public sealed class UnrealArchive : IDisposable
     public UObject LoadObject(string pathOrName)
     {
         var file = FindFile(pathOrName) ?? throw new AssetNotFoundException(pathOrName);
-        return _provider.LoadPackageObject(file.PathWithoutExtension)
+
+        // Blueprints and other multi-export packages do not always resolve by the generic UObject overload.
+        var direct = _provider.SafeLoadPackageObject(file.PathWithoutExtension);
+        if (direct is not null)
+        {
+            return direct;
+        }
+
+        var exports = _provider.LoadPackage(file.PathWithoutExtension).GetExports().ToList();
+        return exports.FirstOrDefault(export => export.Name == file.NameWithoutExtension)
+               ?? exports.FirstOrDefault()
                ?? throw new AssetNotFoundException(pathOrName);
     }
 
