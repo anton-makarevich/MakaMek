@@ -25,12 +25,8 @@ public static class ClipInventory
 
         foreach (var animation in animations)
         {
-            if (vocabulary.IsExcluded(animation.Name))
-            {
-                continue;
-            }
-
-            if (vocabulary.Match(animation.Name) is null)
+            // Excluded aliases are still part of the inventory: the report lists them as ignored, never drops them.
+            if (vocabulary.IsExcluded(animation.Name) || vocabulary.Match(animation.Name) is null)
             {
                 ignored.Add(animation.Name);
             }
@@ -61,7 +57,6 @@ public static class ClipInventory
                 AssetPath = chosen.Name is null ? null : chosen.Path,
                 Candidates = candidates
                     .Select(candidate => candidate.Animation.Path)
-                    .OrderBy(path => path, StringComparer.Ordinal)
                     .ToList(),
                 Loop = definition.Loop,
                 Hold = definition.Hold

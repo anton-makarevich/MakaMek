@@ -60,9 +60,16 @@ public static class AnimationClipReader
         }
 
         var bones = new Dictionary<string, SampledBone>(StringComparer.OrdinalIgnoreCase);
+        var referencePose = skeleton.ReferenceSkeleton.FinalRefBonePose;
         for (var index = 0; index < boneNames.Length; index++)
         {
-            var bone = ReadBone(sequence.Tracks[index], frameCount);
+            // A track that only carries translation/scale keys leaves rotation untouched in GetBoneTransform, so it
+            // must start from the reference pose - starting from identity would override the bind-pose rotation.
+            var referenceRotation = index < referencePose.Length
+                ? referencePose[index].Rotation
+                : new CUE4Parse.UE4.Objects.Core.Math.FQuat(0, 0, 0, 1);
+
+            var bone = ReadBone(sequence.Tracks[index], frameCount, referenceRotation);
             if (bone is not null)
             {
                 bones[boneNames[index].Name] = bone;
@@ -134,7 +141,10 @@ public static class AnimationClipReader
         return skeleton;
     }
 
-    private static SampledBone? ReadBone(CAnimTrack track, int frameCount)
+    private static SampledBone? ReadBone(
+        CAnimTrack track,
+        int frameCount,
+        CUE4Parse.UE4.Objects.Core.Math.FQuat referenceRotation)
     {
         var hasRotation = track.KeyQuat.Length > 0;
         var hasTranslation = track.KeyPos.Length > 0;
@@ -149,7 +159,7 @@ public static class AnimationClipReader
         var translations = hasTranslation ? new Vector3[frameCount] : null;
         var scales = hasScale ? new Vector3[frameCount] : null;
 
-        var rotation = new CUE4Parse.UE4.Objects.Core.Math.FQuat(0, 0, 0, 1);
+        var rotation = referenceRotation;
         var translation = new CUE4Parse.UE4.Objects.Core.Math.FVector(0, 0, 0);
         var scale = new CUE4Parse.UE4.Objects.Core.Math.FVector(1, 1, 1);
 

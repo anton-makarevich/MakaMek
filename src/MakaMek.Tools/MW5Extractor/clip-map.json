@@ -27,13 +27,25 @@
       "name": "Walk",
       "loop": true,
       "hold": null,
-      "patterns": ["_WalkForward_Straight_ANI", "_WalkForward_ANI", "_Walk_ANI"]
+      "patterns": [
+        "_WalkForward_Straight_ANI",
+        "_WalkForward_Left_ANI",
+        "_WalkForward_Right_ANI",
+        "_WalkForward_ANI",
+        "_Walk_ANI"
+      ]
     },
     {
       "name": "Run",
       "loop": true,
       "hold": null,
-      "patterns": ["_RunForward_Straight_ANI", "_RunForward_ANI", "_Run_ANI"]
+      "patterns": [
+        "_RunForward_Straight_ANI",
+        "_RunForward_Left_ANI",
+        "_RunForward_Right_ANI",
+        "_RunForward_ANI",
+        "_Run_ANI"
+      ]
     },
     {
       "name": "Jump",

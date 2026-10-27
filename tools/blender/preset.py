@@ -75,6 +75,7 @@ _SCHEMA = {
             "frames": (int,),
             "fps": (int,),
             "row": (int,),
+            "loop": (bool,),
         }
     },
     "atlas": {
@@ -234,6 +235,8 @@ def load(path, lighting=None):
     for clip, spec in preset["clips"].items():
         if "frames" not in spec:
             raise PresetError(f"{path}: clips.{clip}.frames is required")
+        if "loop" not in spec:
+            raise PresetError(f"{path}: clips.{clip}.loop is required")
 
     if preset["camera"]["projection"] != "ortho":
         raise PresetError(

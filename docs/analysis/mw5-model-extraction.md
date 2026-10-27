@@ -85,7 +85,7 @@ Findings that shaped the tooling:
   board-anchored.
 - **Indexes do not line up.** `Mech_SKL` has 272 bones, `Atlas_SKM` references 110, and a walk track animates
   only 39. Tracks are mapped to joints **by bone name**; index-based mapping silently animates the wrong limb.
-- **`Idle` is a static stance, not a breathing loop.** `AS7_Stand_ANI` has 30 keys, but every key is identical:
+- **`Idle` is a static stance, not a breathing loop.** `AS7_Stand_ANI` has 31 keys, but every key is identical:
   the clip only holds the pose (34 constant channels, one key each after collapsing). Rendering it produces
   pixel-identical frames, even at 4× supersampling. Ship the pose for completeness, but do not count on idle
   motion at board size; the walk/run leg cycle is the motion that reads.
@@ -208,7 +208,7 @@ The mapping is data (`src/MakaMek.Tools/MW5Extractor/clip-map.json`), not a per-
 
 | Clip | Source in MW5 | Notes |
 |---|---|---|
-| `Idle` | ✅ chassis idle (`<Chassis>_Stand_ANI`) | subtle torso sway + weight shift |
+| `Idle` | ✅ chassis idle (`<Chassis>_Stand_ANI`) | static stance; holds the pose |
 | `Walk` | ✅ locomotion (`<Chassis>_WalkForward_Straight_ANI`) | loop; leg cycle reads top-down, 2 s at 30 fps |
 | `Run` | ✅ locomotion (`<Chassis>_RunForward_Straight_ANI`) | longer stride, faster; 1 s at 30 fps |
 | `Jump` | ⚠️ only chassis with jump jets | useful for `MovementType.Jump` |

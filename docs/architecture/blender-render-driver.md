@@ -103,14 +103,18 @@ Rules, measured in spike [#1653](https://github.com/anton-makarevich/MakaMek/iss
 
 - **Import rate.** The scene fps is pinned to 30 *before* `import_scene.gltf`. glTF animation times are in
   seconds; Blender lays the keys out at scene fps, so a source frame is `seconds × 30` on every machine.
-- **Sampling.** The preset's `frames`/`fps` are the shipped rate, not the source rate. Output frame *k*
-  samples the action's key range at `start + (k−1)/(N−1) × (end − start)`, using subframes. Ten output
-  frames over a 60-key walk therefore read at 12 fps while the source stays at 30.
+- **Sampling.** The preset's `frames`/`fps` are the shipped rate, not the source rate, and every preset clip
+  declares `loop` (mirroring `clip-map.json`). A non-loop clip samples the inclusive key range
+  `start + (k−1)/(N−1) × (end − start)`; a loop clip samples the full period **excluding** the endpoint,
+  `start + (k−1)/N × (end − start + 1)`. Stage 1 removed the duplicate closing key, so the action range is one
+  source frame short of the period; sampling it inclusively would leave a 1-frame wrap and a visible hitch.
+  Sampling uses subframes. Ten output frames over a 60-key walk read at 12 fps while the source stays at 30.
 - **Pose reset.** Before each clip the driver detaches the action, removes NLA tracks and resets every pose
   bone. Without that, a second clip in one invocation inherits bones the first clip did not animate.
 - **Root motion** is stripped in stage 1 — the sprite is board-anchored. The driver never compensates for it.
-- **Loop closing key.** Stage 1 drops the duplicated last key of a looping clip; the last rendered frame is
-  the last *distinct* pose and the runtime wraps to frame 1.
+- **Loop closing key.** Stage 1 drops the duplicated last key of a looping clip; the driver's loop schedule
+  adds that interval back to the period (but does not sample the endpoint), so the last rendered frame is the
+  last *distinct* pose and the runtime wraps to frame 1 without a short interval.
 - **Fitting.** `--fit` measures the evaluated (deformed) mesh over every source frame the run renders, per
   clip with its action active. An object's `bound_box` is the undeformed mesh, so animated frames cannot be
   fitted from it.
@@ -139,7 +143,7 @@ The preset stays renderer-agnostic in shape; the driver translates the keys it u
 | `styling.outline` | Freestyle `lineset` (thickness, colour) |
 | `styling.posterize` | compositor node if > 0 |
 | `shading.groundShadow` | shadow-catcher plane + `opacity`/`blur` |
-| `clips` | frame counts / row order (the atlas layout lives in the pipeline, not in Blender) |
+| `clips` | per-clip `frames`, `fps`, `row` and `loop` (the atlas layout lives in the pipeline, not in Blender) |
 | `engine`, `samples`, `denoise` | render settings; **CI always uses `cycles` + `cpu`** |
 
 ## 5. Determinism
@@ -168,10 +172,10 @@ EEVEE-Next requires an OpenGL/Vulkan context and fails in headless containers wi
 |---|---|
 | Frame | the fitted per-model canvas (`--fit`); spike [#1642](https://github.com/anton-makarevich/MakaMek/issues/1642) measured 83×42 for an assembled Atlas at 1× |
 | Samples | 32–64 + OIDN denoise (flat board look, no GI needs) |
-| Per frame, CPU | ~1.5 s at 1× and ~3.1 s at 4× supersampling for an assembled, animated Atlas (fitted canvas, 64 samples, Freestyle) |
+| Per frame, CPU | ~1.5 s at 1× and ~3–4 s at 4× supersampling for an assembled, animated Atlas (fitted canvas, 64 samples, Freestyle) |
 | Frames per model | ~60 (one row per clip; e.g. Walk = 10 frames at 12 fps) |
 | Per model | a few minutes at 4×; linear in frames |
-| 199 models | ~7–8 h single machine at 4×, parallelisable across models |
+| 199 models | ~10–12 h single machine at 4×, parallelisable across models |
 
 If this lands above the acceptable time, the levers are, in order: fewer samples (denoise compensates), fewer clips per pass, then a second machine. Writing a rasteriser is *not* on that list.
 

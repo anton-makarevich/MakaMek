@@ -111,8 +111,10 @@ What the driver does with a clip:
 
 - Pins the scene to 30 fps **before** the glTF import, so a glTF time of `t` seconds becomes source frame
   `t × 30` on every machine.
-- Samples the action's key range evenly for the preset's output frame count, using subframes: `Walk` is 60
-  source poses but ships 10 frames at 12 fps.
+- Samples the action's key range for the preset's output frame count, using subframes: `Walk` is 60 source
+  poses but ships 10 frames at 12 fps. Loop clips (`loop: true`) sample the full period **excluding** the
+  endpoint (stage 1 removed the duplicate closing key), so the wrap interval matches the others; non-loop
+  clips keep the inclusive endpoint.
 - Resets every pose bone and detaches NLA tracks before each clip, so a second clip cannot inherit bones the
   first one did not animate.
 - Measures `--fit` from the evaluated (deformed) mesh per clip, with that clip's action active.
@@ -179,7 +181,7 @@ ship exactly the canvas its own projection needs:
 | `styling.outline` | Freestyle silhouette + border (+ optional `crease`), thickness in pixels |
 | `styling.posterize` | reserved (not implemented yet) |
 | `shading.groundShadow` | reserved (not implemented yet) |
-| `clips` | frame counts per clip; the atlas layout stays in the pipeline |
+| `clips` | `frames`, `fps`, `row` and `loop` per clip; the atlas layout stays in the pipeline |
 | `scale.*`, `atlas.*` | **not read** — they belong to the pipeline |
 
 `light` positions/sizes are in pixel space because after `--scale` 1 unit = 1 px. That keeps one rig

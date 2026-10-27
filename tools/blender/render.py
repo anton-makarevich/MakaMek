@@ -112,29 +112,46 @@ def clip_schedule(preset, clips, actions, single_frame=None):
     """One entry per clip: output frame index -> source frame the pose is sampled from.
 
     Static models (no armature/actions) keep the historical behaviour: output frame N is scene frame N.
-    Animated models spread the requested output frame count evenly over the action's key range, so the preset's
+    Animated models spread the requested output frame count over the action's key range, so the preset's
     `frames`/`fps` decide the shipped rate and the source's native rate never leaks into the output.
+
+    Loop clips sample the **full period excluding the endpoint**: stage 1 drops the duplicate closing key, so
+    the action range is one source frame short of the period (0..59 for a 2 s / 60-frame walk). Sampling
+    0..59 inclusively would leave a 1/30 s wrap interval and a visible hitch. Non-loop clips keep the
+    inclusive endpoint so the final pose is rendered.
     """
     schedule = {}
     for clip in clips:
         spec = preset["clips"][clip]
-        frames = 1 if single_frame is not None else int(spec["frames"])
+        loop = bool(spec.get("loop", True))
+        declared_frames = max(1, int(spec["frames"]))
+        frames = 1 if single_frame is not None else declared_frames
         source = resolve_action(clip, actions) if actions else None
 
         entries = []
-        for index in range(1, frames + 1):
+        for offset in range(frames):
             if single_frame is not None:
-                index = single_frame
-                fraction = 0.0 if frames == 1 else (index - 1) / max(1, int(spec["frames"]) - 1)
+                index = min(max(1, single_frame), declared_frames)
+                total = declared_frames
             else:
-                fraction = 0.0 if frames == 1 else (index - 1) / (frames - 1)
+                index = offset + 1
+                total = frames
+
+            if total == 1:
+                fraction = 0.0
+            elif loop:
+                fraction = (index - 1) / total
+            else:
+                fraction = (index - 1) / (total - 1)
 
             if source is None:
                 entries.append((index, float(index)))
             else:
                 action = source[1]
                 start, end = action.frame_range
-                entries.append((index, start + fraction * (end - start)))
+                # +1 source frame puts the loop's wrap interval back after stage 1 removed the closing key.
+                span = (end - start) + (1.0 if loop else 0.0)
+                entries.append((index, start + fraction * span))
 
         schedule[clip] = entries
     return schedule
