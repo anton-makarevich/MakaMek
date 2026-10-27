@@ -64,6 +64,8 @@ public class PhysicalAttackPreviewViewModelTests
 
         sut.AttackType.ShouldBe(PhysicalAttackType.Punch);
         sut.AttackTypeName.ShouldBe("Punch");
+        sut.Attacker.ShouldBe(_attacker);
+        sut.Target.ShouldBe(_target);
         sut.TargetName.ShouldBe("Target");
     }
 

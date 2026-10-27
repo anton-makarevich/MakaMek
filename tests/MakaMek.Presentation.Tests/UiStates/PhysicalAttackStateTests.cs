@@ -44,6 +44,7 @@ public class PhysicalAttackStateTests
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly IPlatformService _platformService = Substitute.For<IPlatformService>();
     private readonly Guid _idempotencyKey = Guid.NewGuid();
 
     public PhysicalAttackStateTests()
@@ -61,33 +62,15 @@ public class PhysicalAttackStateTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             new TotalWarfareRulesProvider(),
-            Substitute.For<IPlatformService>());
+            _platformService);
 
-        var rules = new TotalWarfareRulesProvider();
-        var mechFactory = new MechFactory(
-            rules,
-            new ClassicBattletechComponentProvider(),
-            _localizationService);
-
-        var playerId = Guid.NewGuid();
-        _player = new Player(playerId, "Player1", PlayerControlType.Human);
+        _player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
 
         var battleMap = BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
 
-        _game = new ClientGame(rules,
-            mechFactory,
-            _commandPublisher,
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<IPilotingSkillCalculator>(),
-            Substitute.For<IConsciousnessCalculator>(),
-            Substitute.For<IHeatEffectsCalculator>(),
-            new PhysicalAttackEligibility(),
-            _physicalAttackCalculator,
-            Substitute.For<IBattleMapFactory>(),
-            _hashService,
-            Substitute.For<ILogger<ClientGame>>());
+        _game = CreateGame();
 
         _game.JoinGameWithUnits(_player, [], []);
         _game.SetBattleMap(battleMap);
@@ -107,6 +90,23 @@ public class PhysicalAttackStateTests
         typeof(BattleMapViewModel).GetProperty(nameof(BattleMapViewModel.CurrentState))!
             .GetSetMethod(true)!.Invoke(_viewModel, [state]);
     }
+
+    private ClientGame CreateGame() => new(
+        new TotalWarfareRulesProvider(),
+        new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService),
+        _commandPublisher,
+        Substitute.For<IToHitCalculator>(),
+        Substitute.For<IPilotingSkillCalculator>(),
+        Substitute.For<IConsciousnessCalculator>(),
+        Substitute.For<IHeatEffectsCalculator>(),
+        new PhysicalAttackEligibility(),
+        _physicalAttackCalculator,
+        Substitute.For<IBattleMapFactory>(),
+        _hashService,
+        Substitute.For<ILogger<ClientGame>>());
 
     private void StubLocalization()
     {
@@ -185,6 +185,24 @@ public class PhysicalAttackStateTests
     {
         Attacker.Deploy(new HexPosition(AttackerHex, HexDirection.Top), null);
         Enemy.Deploy(new HexPosition(enemyHex ?? AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Bottom), null);
+    }
+
+    private void SwitchActivePlayerToEnemy()
+    {
+        var enemyPlayerId = _game.Players.First(player => player.Id != _player.Id).Id;
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = enemyPlayerId,
+            UnitsToPlay = 1
+        });
+    }
+
+    private static void Destroy(IUnit unit)
+    {
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure + 10, HitDirection.Front);
+        unit.UpdateDestroyedStatus();
     }
 
     private void StubCalculator(int targetNumber = 7)
@@ -525,5 +543,227 @@ public class PhysicalAttackStateTests
         _sut.SelectedTarget.ShouldBeNull();
         _sut.Preview.ShouldBeNull();
         _viewModel.IsPhysicalAttackPreviewVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SelectingAnAttacker_ExposesTheAvailableAttackTypes()
+    {
+        DeployPair();
+
+        SelectAttacker();
+
+        _sut.AvailableAttackTypes.ShouldContain(PhysicalAttackType.Punch);
+        _sut.AvailableAttackTypes.ShouldContain(PhysicalAttackType.Kick);
+        _sut.SelectedAttackType.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SelectingAnAttackType_ExposesTheSelectedType()
+    {
+        DeployPair();
+        SelectAttacker();
+
+        GetAction("Punch").OnExecute();
+
+        _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Punch);
+    }
+
+    [Fact]
+    public void TargetSelection_PromptsForTargetAndSelectsTheTargetUnit()
+    {
+        DeployPair();
+        StubCalculator();
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+
+        _sut.ActionLabel.ShouldBe("Select Target");
+        _sut.SelectedUnit.ShouldBeNull();
+        _sut.PlayerActionLabel.ShouldBe("Skip Attack");
+        _sut.GetAvailableActions().Select(action => action.Label).ShouldBe(["Skip Attack"]);
+
+        _sut.HandleHexSelection(new Hex(Enemy.Position!.Coordinates));
+
+        _sut.SelectedUnit.ShouldBe(Enemy);
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_RequiresActionOrTargetSelectionAndAVisibleActionMenu()
+    {
+        DeployPair();
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
+
+        SelectAttacker();
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
+
+        GetAction("Punch").OnExecute();
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
+
+        _platformService.IsMobile.Returns(true);
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PlayerActionLabel_IsEmptyWhileSelectingAnAttacker()
+    {
+        DeployPair();
+
+        _sut.IsActionRequired.ShouldBeTrue();
+        _sut.PlayerActionLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PlayerActionLabel_IsEmptyWhenTheActivePlayerCannotAct()
+    {
+        DeployPair();
+        SelectAttacker();
+        SwitchActivePlayerToEnemy();
+
+        _sut.IsActionRequired.ShouldBeFalse();
+        _sut.PlayerActionLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PlayerAction_DuringTargetSelectionWithoutATarget_Skips()
+    {
+        DeployPair();
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+
+        _sut.ExecutePlayerAction();
+
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(command =>
+            command.Declaration == null && command.UnitId == Attacker.Id));
+    }
+
+    [Fact]
+    public void HandleUnitSelectionFromList_SelectsAnAttacker()
+    {
+        DeployPair();
+
+        _sut.HandleUnitSelectionFromList(Attacker);
+
+        _sut.Attacker.ShouldBe(Attacker);
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.ActionSelection);
+    }
+
+    [Fact]
+    public void HandleUnitSelectionFromList_DuringTargetSelectionWithAnIneligibleUnit_CancelsSelection()
+    {
+        DeployPair();
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+
+        _sut.HandleUnitSelectionFromList(Attacker);
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.ActionSelection);
+        _sut.SelectedTarget.ShouldBeNull();
+        _sut.SelectedAttackType.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UnitSelectionAfterLosingPermission_IsIgnored()
+    {
+        DeployPair();
+        StubCalculator();
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+        _sut.HandleHexSelection(new Hex(Enemy.Position!.Coordinates));
+        SwitchActivePlayerToEnemy();
+
+        _sut.HandleUnitSelectionFromList(Attacker);
+
+        _sut.SelectedTarget.ShouldBe(Enemy);
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+    }
+
+    [Fact]
+    public void HandleFacingSelection_DoesNotChangeTheState()
+    {
+        DeployPair();
+        SelectAttacker();
+
+        _sut.HandleFacingSelection(HexDirection.Top);
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.ActionSelection);
+        _sut.Attacker.ShouldBe(Attacker);
+    }
+
+    [Fact]
+    public void CanSelectUnit_AllowsOnlyOwnUndeclaredUnitsBeforeTargetSelection()
+    {
+        DeployPair();
+
+        _sut.CanSelectUnit(null).ShouldBeTrue();
+        _sut.CanSelectUnit(Attacker).ShouldBeTrue();
+        _sut.CanSelectUnit(Enemy).ShouldBeFalse();
+
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+
+        _sut.CanSelectUnit(Attacker).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void UnitWithoutAnAdjacentEnemy_CannotBeSelectedAsAttacker()
+    {
+        Attacker.Deploy(new HexPosition(AttackerHex, HexDirection.Top), null);
+        Enemy.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        _sut.CanSelectUnit(Attacker).ShouldBeFalse();
+        _sut.HandleHexSelection(new Hex(AttackerHex));
+
+        _sut.Attacker.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SelectingAnAttackTypeWithoutRemainingTargets_StaysInActionSelection()
+    {
+        DeployPair();
+        SelectAttacker();
+        Destroy(Enemy);
+
+        GetAction("Punch").OnExecute();
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.ActionSelection);
+        _sut.SelectedAttackType.ShouldBeNull();
+        _sut.SelectedTarget.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StaleDeclarationAction_AfterTargetSelectionIsCancelled_DoesNothing()
+    {
+        DeployPair();
+        StubCalculator();
+        SelectAttacker();
+        GetAction("Punch").OnExecute();
+        _sut.HandleHexSelection(new Hex(Enemy.Position!.Coordinates));
+        var declaration = GetAction("Punch (LA)");
+
+        // Cancelling target selection clears the target and the attack type; a stale action
+        // captured by the view must not publish anything.
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(1, 1)));
+        declaration.OnExecute();
+
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    [Fact]
+    public void Constructor_WithoutGame_Throws()
+    {
+        _viewModel.Game = null;
+
+        var exception = Should.Throw<InvalidOperationException>(() => new PhysicalAttackState(_viewModel));
+
+        exception.Message.ShouldBe("Game is not client game");
+    }
+
+    [Fact]
+    public void Constructor_WithoutActivePlayer_Throws()
+    {
+        _viewModel.Game = CreateGame();
+
+        var exception = Should.Throw<InvalidOperationException>(() => new PhysicalAttackState(_viewModel));
+
+        exception.Message.ShouldBe("Active player is null");
     }
 }

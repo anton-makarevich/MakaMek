@@ -5210,6 +5210,80 @@ public class BattleMapViewModelTests
         Should.NotThrow(() => _sut.CenterMapCommand.Execute(null));
     }
 
+    [Fact]
+    public void PhysicalAttackPreview_TracksTheCurrentStateAndCanBeClosed()
+    {
+        _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
+        _localizationService.GetString("PhysicalAttackType_Kick").Returns("Kick");
+        _sut.PhysicalAttackPreview.ShouldBeNull();
+        var enemyPlayer = JoinPlayerWithUnit("Enemy", "#00FF00");
+        var squad = SetUpSquadNavigation(PhaseNames.PhysicalAttack);
+        var enemy = _sut.Units.First(unit => unit.Owner!.Id == enemyPlayer.Id);
+        squad[0].Deploy(new HexPosition(2, 3, HexDirection.Top), null);
+        enemy.Deploy(new HexPosition(2, 2, HexDirection.Bottom), null);
+        var state = _sut.CurrentState.ShouldBeOfType<PhysicalAttackState>();
+
+        state.HandleHexSelection(new Hex(squad[0].Position!.Coordinates));
+        state.GetAvailableActions().Single(action => action.Label == "Punch").OnExecute();
+        state.HandleHexSelection(new Hex(enemy.Position!.Coordinates));
+
+        _sut.PhysicalAttackPreview.ShouldNotBeNull();
+        _sut.PhysicalAttackPreview!.Target.ShouldBe(enemy);
+        _sut.IsPhysicalAttackPreviewVisible.ShouldBeTrue();
+
+        _sut.ClosePhysicalAttackPreviewCommand();
+
+        _sut.IsPhysicalAttackPreviewVisible.ShouldBeFalse();
+        _sut.PhysicalAttackPreview.ShouldNotBeNull();
+        state.SelectedTarget.ShouldBe(enemy);
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_InPhysicalAttackPhase_SkipsUnitsThatAlreadyDeclared()
+    {
+        var enemyPlayer = JoinPlayerWithUnit("Enemy", "#00FF00");
+        var squad = SetUpSquadNavigation(PhaseNames.PhysicalAttack);
+        var enemy = _sut.Units.First(unit => unit.Owner!.Id == enemyPlayer.Id);
+        squad[0].Deploy(new HexPosition(2, 3, HexDirection.Top), null);
+        enemy.Deploy(new HexPosition(2, 2, HexDirection.Bottom), null);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        focused.ShouldHaveSingleItem().ShouldBe(squad[0]);
+
+        squad[0].DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = enemy.Id
+        });
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+
+        await _sut.SelectNextAvailableUnit();
+
+        focused.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_DuringInitiative_DoesNotNavigate()
+    {
+        var squad = SetUpSquadNavigation(PhaseNames.Initiative);
+        squad.ShouldHaveSingleItem();
+        _sut.CurrentState.ShouldBeOfType<InitiativeState>();
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+        _sut.IsNextAvailableUnitVisible.ShouldBeFalse();
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.SelectedUnit.ShouldBeNull();
+        focused.ShouldBeEmpty();
+    }
+
     private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);

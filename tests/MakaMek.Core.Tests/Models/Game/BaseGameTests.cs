@@ -1115,6 +1115,37 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAutoValidatePhysicalAttackResolutionCommand()
+    {
+        // Arrange
+        var command = new PhysicalAttackResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            ResolutionId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Punch,
+                PartLocation.LeftArm,
+                2,
+                new AttackResolutionData(
+                    ToHitNumber: 7,
+                    AttackRoll: [new DiceResult(1), new DiceResult(2)],
+                    IsHit: false,
+                    AttackDirection: HitDirection.Front,
+                    ExternalHeat: 0),
+                [])
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateUnitShutdownCommand()
     {
         // Arrange
