@@ -181,6 +181,8 @@ public class PhysicalAttackStateTests
 
     private IUnit Enemy => _viewModel.Units.First(unit => unit.Owner!.Id != _player.Id);
 
+    private IUnit SecondEnemy => _viewModel.Units.Where(unit => unit.Owner!.Id != _player.Id).ElementAt(1);
+
     private void DeployPair(HexCoordinates? enemyHex = null)
     {
         Attacker.Deploy(new HexPosition(AttackerHex, HexDirection.Top), null);
@@ -295,6 +297,37 @@ public class PhysicalAttackStateTests
         _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
         var targetHex = _game.BattleMap!.GetHex(Enemy.Position!.Coordinates);
         targetHex!.Highlights.OfType<AttackReachableHighlight>().ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// Selecting an attacker highlights every hex reachable by any attack type, so choosing a
+    /// single type has to drop the highlights that only the other types can reach.
+    /// </summary>
+    [Fact]
+    public void SelectingAnAttackType_ClearsHighlightsThatOnlyOtherAttackTypesCanReach()
+    {
+        // Arrange: a punchable enemy in the front arc and a kick-only one a level below,
+        // because a punch cannot reach a lower target while a kick can.
+        var punchableHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var kickOnlyHex = AttackerHex.GetNeighbour(HexDirection.TopRight);
+        var kickOnlyLevel = new Hex(kickOnlyHex, -1);
+        kickOnlyLevel.AddTerrain(new ClearTerrain());
+        _game.BattleMap!.AddHex(kickOnlyLevel);
+        DeployPair(punchableHex);
+        SecondEnemy.Deploy(new HexPosition(kickOnlyHex, HexDirection.Bottom), null);
+
+        SelectAttacker();
+        _game.BattleMap.GetHex(kickOnlyHex)!.Highlights.OfType<AttackReachableHighlight>()
+            .ShouldNotBeEmpty("the attacker-wide highlight covers the kick-only hex");
+
+        // Act
+        GetAction("Punch").OnExecute();
+
+        // Assert
+        _game.BattleMap.GetHex(kickOnlyHex)!.Highlights.ShouldBeEmpty();
+        var punchableHighlight = _game.BattleMap.GetHex(punchableHex)!
+            .Highlights.OfType<AttackReachableHighlight>().Single();
+        punchableHighlight.WeaponNames.ShouldBe(["Punch"]);
     }
 
     [Fact]

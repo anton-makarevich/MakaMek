@@ -356,6 +356,9 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
                 return;
             }
 
+            // Drop the attacker-wide highlights added when the attacker was picked, so only the
+            // targets that are valid for this attack type stay highlighted.
+            _viewModel.ClearHighlights();
             HighlightValidTargets([attackType]);
             CurrentStep = PhysicalAttackStep.TargetSelection;
             _viewModel.NotifyStateChanged();
