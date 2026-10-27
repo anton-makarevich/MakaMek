@@ -1,4 +1,4 @@
-"""Headless Blender driver: canonical mech model -> 84x72 top-down board sprite frames.
+"""Headless Blender driver: canonical mech model -> top-down board sprite frames.
 
 This is the only supported entry point (docs/architecture/blender-render-driver.md, section 2):
 
@@ -8,11 +8,17 @@ This is the only supported entry point (docs/architecture/blender-render-driver.
             --preset tools/blender/board-topdown.json \
             --scale  <effectiveScale> \
             --out    <output directory> \
-            [--clips Idle,Walk] [--report render-report.json]
+            [--clips Idle,Walk] [--report render-report.json] \
+            [--fit] [--supersample N] [--model-yaw -90]
 
 The driver is a renderer, not a policy engine: it never reads manifests, tonnage, overrides or
 coverage thresholds. `--scale` is the only scale input, and it is in pixel space - after it,
 1 model unit == 1 pixel.
+
+Clips: when the model carries glTF animations, `--clips Walk` selects the action named `Walk` and the
+preset's `frames`/`fps` decide the shipped sampling; each clip resets the pose first. Models without
+animations render statically, exactly as before. Animated MW5 models are exported in source space, so
+they need `--model-yaw -90` (the assembly report prints the value).
 
 Exit codes: 0 ok, 2 bad arguments, 3 missing input, 4 invalid preset / failed verification.
 """
@@ -40,6 +46,11 @@ EXIT_MISSING_INPUT = 3
 EXIT_INVALID = 4
 
 _DEFAULT_CLIPS = "Idle"
+
+# glTF stores animation times in seconds; Blender's importer lays them out as keyframes at the scene's fps.
+# Pinning the import rate keeps the source frame == time * SOURCE_FPS, so a clip sampled at any output rate
+# resolves to the same pose on every machine.
+SOURCE_FPS = 30
 
 
 def parse_args(argv):
@@ -78,28 +89,72 @@ def parse_args(argv):
     parser.add_argument("--no-outline", action="store_true", help="disable the Freestyle outline")
     parser.add_argument("--save-blend", default=None, help="save the generated scene for inspection")
     parser.add_argument("--model-yaw", default=0.0, type=float,
-                        help="spike-only: extra yaw for source exports that are not yet canonical "
-                             "(+Z forward). Canonical models need 0.")
+                        help="yaw for models exported in a different facing. Canonical static models need 0; "
+                             "animated MW5 models are exported in source space and need -90 "
+                             "(the assembly report prints modelYawDegrees).")
     return parser.parse_args(argv)
 
 
-def frame_numbers(preset, clips, single_frame=None):
-    """Absolute frame numbers the render loop will visit, de-duplicated and in order.
+def resolve_action(name, actions):
+    """Find the action for a preset clip, tolerating Blender's `.001` suffix for duplicate names."""
+    if name in actions:
+        return actions[name]
+    for action_name, value in actions.items():
+        if action_name.lower() == name.lower():
+            return value
+    for action_name, value in sorted(actions.items()):
+        if action_name.lower().startswith(name.lower() + "."):
+            return value
+    return None
 
-    `--fit` measures exactly these frames, so the fitted canvas cannot disagree with what is actually
-    rendered.
+
+def clip_schedule(preset, clips, actions, single_frame=None):
+    """One entry per clip: output frame index -> source frame the pose is sampled from.
+
+    Static models (no armature/actions) keep the historical behaviour: output frame N is scene frame N.
+    Animated models spread the requested output frame count over the action's key range, so the preset's
+    `frames`/`fps` decide the shipped rate and the source's native rate never leaks into the output.
+
+    Loop clips sample the **full period excluding the endpoint**: stage 1 drops the duplicate closing key, so
+    the action range is one source frame short of the period (0..59 for a 2 s / 60-frame walk). Sampling
+    0..59 inclusively would leave a 1/30 s wrap interval and a visible hitch. Non-loop clips keep the
+    inclusive endpoint so the final pose is rendered.
     """
-    numbers = []
+    schedule = {}
     for clip in clips:
-        if single_frame is not None:
-            count, first = 1, single_frame
-        else:
-            count, first = int(preset["clips"][clip]["frames"]), 1
-        for offset in range(count):
-            frame = first + offset
-            if frame not in numbers:
-                numbers.append(frame)
-    return numbers
+        spec = preset["clips"][clip]
+        loop = bool(spec.get("loop", True))
+        declared_frames = max(1, int(spec["frames"]))
+        frames = 1 if single_frame is not None else declared_frames
+        source = resolve_action(clip, actions) if actions else None
+
+        entries = []
+        for offset in range(frames):
+            if single_frame is not None:
+                index = min(max(1, single_frame), declared_frames)
+                total = declared_frames
+            else:
+                index = offset + 1
+                total = frames
+
+            if total == 1:
+                fraction = 0.0
+            elif loop:
+                fraction = (index - 1) / total
+            else:
+                fraction = (index - 1) / (total - 1)
+
+            if source is None:
+                entries.append((index, float(index)))
+            else:
+                action = source[1]
+                start, end = action.frame_range
+                # +1 source frame puts the loop's wrap interval back after stage 1 removed the closing key.
+                span = (end - start) + (1.0 if loop else 0.0)
+                entries.append((index, start + fraction * span))
+
+        schedule[clip] = entries
+    return schedule
 
 
 def main(argv):
@@ -158,8 +213,25 @@ def main(argv):
     preset["styling"]["outline"]["width"] *= supersample
 
     scene_module.reset()
+    # Pin the import rate before the glTF importer creates actions: it lays keyframes out at scene fps, so
+    # source frame == seconds * SOURCE_FPS for every clip.
+    bpy.context.scene.render.fps = SOURCE_FPS
+    bpy.context.scene.render.fps_base = 1.0
     imported = scene_module.import_model(args.model)
+    actions = scene_module.actions_by_name(imported)
+    # Measure from the bind pose, not from whatever frame the importer left the action on.
+    scene_module.reset_pose(imported)
     _, metrics = scene_module.normalise(imported, render_scale, args.model_yaw)
+
+    if actions:
+        missing = [name for name in clips if resolve_action(name, actions) is None]
+        if missing:
+            print(
+                f"model has no animation for {', '.join(missing)}; it contains: {', '.join(sorted(actions))}",
+                file=sys.stderr)
+            return EXIT_INVALID
+
+    schedule = clip_schedule(preset, clips, actions, args.frame)
 
     if args.fit:
         # Per-unit canvas: the projection plus a small margin so the 1 px outline is not clipped. At
@@ -171,11 +243,25 @@ def main(argv):
             return int(math.ceil((value + 2 * margin) / supersample)) * supersample
 
         # Measured over every frame this run renders, not just the pose `normalise` saw, so a limb
-        # that swings past the rest footprint cannot be clipped by its own canvas. The camera keeps
-        # looking at the world origin (the sprite is drawn centred in the hex), so the canvas must
-        # cover the largest extent on *either* side of the origin, not just the union's width.
-        minimum, maximum = scene_module.animated_bounds(
-            imported, frame_numbers(preset, clips, args.frame))
+        # that swings past the rest footprint cannot be clipped by its own canvas. Each clip is measured
+        # with its own action active; the camera keeps looking at the world origin (the sprite is drawn
+        # centred in the hex), so the canvas must cover the largest extent on *either* side of the origin.
+        minimum = maximum = None
+        for clip in clips:
+            source = resolve_action(clip, actions) if actions else None
+            scene_module.reset_pose(imported)
+            if source is not None:
+                scene_module.use_action(*source)
+
+            low, high = scene_module.animated_bounds(imported, [frame for _, frame in schedule[clip]])
+            if minimum is None:
+                minimum, maximum = low, high
+            else:
+                for axis in range(3):
+                    minimum[axis] = min(minimum[axis], low[axis])
+                    maximum[axis] = max(maximum[axis], high[axis])
+
+        scene_module.reset_pose(imported)
         preset["output"]["cellWidth"] = _fit(2 * max(-minimum.x, maximum.x))
         preset["output"]["cellHeight"] = _fit(2 * max(-minimum.y, maximum.y))
 
@@ -195,24 +281,41 @@ def main(argv):
     scene = bpy.context.scene
     out_dir = os.path.abspath(args.out)
     expected = []
+    clip_report = []
     for clip in clips:
         spec = preset["clips"][clip]
-        frame_count = 1 if args.frame is not None else int(spec["frames"])
-        first = args.frame if args.frame is not None else 1
+        source = resolve_action(clip, actions) if actions else None
         clip_dir = os.path.join(out_dir, "frames", clip)
         os.makedirs(clip_dir, exist_ok=True)
-        for offset in range(frame_count):
-            frame = first + offset
-            path = os.path.join(clip_dir, f"{frame:03d}.png")
+
+        scene_module.reset_pose(imported)
+        if source is not None:
+            scene_module.use_action(*source)
+
+        for index, frame in schedule[clip]:
+            path = os.path.join(clip_dir, f"{index:03d}.png")
             # Remove the previous frame first: verification must only be able to pass on output this
             # run produced, never on a stale file from an earlier render.
             if os.path.exists(path):
                 os.remove(path)
-            scene.frame_set(frame)
+            scene_module.set_frame(frame)
             scene.render.filepath = path
             bpy.ops.render.render(write_still=True)
             expected.append(path)
-            print(f"rendered {path}", file=sys.stderr)
+            print(f"rendered {path} (source frame {frame:.2f})", file=sys.stderr)
+
+        clip_report.append({
+            "clip": clip,
+            "frames": len(schedule[clip]),
+            "fps": spec["fps"],
+            "loop": spec.get("loop", True),
+            "hold": spec.get("hold"),
+            "action": source[1].name if source is not None else None,
+            "sourceRange": [round(value, 4) for value in source[1].frame_range] if source is not None else None,
+            "sourceFrames": [round(value, 4) for _, value in schedule[clip]],
+        })
+
+    scene_module.reset_pose(imported)
 
     # Blender can exit 0 with partial output, so verify every expected frame on disk.
     missing = [path for path in expected if not os.path.isfile(path) or os.path.getsize(path) == 0]
@@ -234,7 +337,8 @@ def main(argv):
         "cellWidth": scene.render.resolution_x,
         "cellHeight": scene.render.resolution_y,
         "outline": bool(scene.render.use_freestyle),
-        "clips": clips,
+        "clips": [entry["clip"] for entry in clip_report],
+        "animations": clip_report,
         "frames": [os.path.abspath(path) for path in expected],
         "metrics": metrics,
     }

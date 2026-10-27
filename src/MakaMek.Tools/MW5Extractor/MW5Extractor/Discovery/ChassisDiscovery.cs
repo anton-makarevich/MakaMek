@@ -362,6 +362,17 @@ public static class ChassisDiscovery
                    variant.Id.StartsWith(filter, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Picks the chassis a filter refers to: a folder, a variant id, or - when the filter narrowed the report to one
+    /// chassis - that chassis.
+    /// </summary>
+    public static ChassisEntry Select(IReadOnlyList<ChassisEntry> chassis, string filter) =>
+        chassis.FirstOrDefault(entry => Equals(entry.Folder, filter))
+        ?? chassis.FirstOrDefault(entry => entry.Variants.Any(variant => Equals(variant.Id, filter)))
+        ?? (chassis.Count == 1
+            ? chassis[0]
+            : throw new InvalidOperationException($"No chassis matches '{filter}'."));
+
     private static bool Equals(string left, string right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
     private static bool StartsWith(string value, string prefix) =>

@@ -16,6 +16,15 @@ public sealed record AssemblyRequest
 
     public bool SkipCockpit { get; init; }
     public bool SkipWeapons { get; init; }
+
+    /// <summary>
+    /// Canonical clips to bake into a skinned, animated model (<c>Walk</c>, <c>Run</c>, …). Empty keeps the static
+    /// rest-pose merge.
+    /// </summary>
+    public IReadOnlyList<string> Clips { get; init; } = [];
+
+    /// <summary>Optional path to a clip vocabulary; defaults to the one shipped with the tool.</summary>
+    public string? ClipMapPath { get; init; }
 }
 
 /// <summary>One mesh placed in the assembled model.</summary>
@@ -60,7 +69,20 @@ public sealed record AssemblyReport
     /// <summary>Largest plan-view span in metres — what the 90° camera sees.</summary>
     public required float PlanViewExtentMeters { get; init; }
 
+    /// <summary>
+    /// <c>canonical</c> (Y-up, facing +Z, footprint centred) for static models, or <c>mw5-source</c> (Y-up, facing
+    /// +X) for animated ones, which have to stay in the skeleton's own space; render those with
+    /// <c>--model-yaw -90</c>.
+    /// </summary>
+    public string ModelSpace { get; init; } = "canonical";
+
+    /// <summary>Yaw the driver must apply to reach canonical plan-view orientation (0 or -90).</summary>
+    public float ModelYawDegrees { get; init; }
+
     public required IReadOnlyList<AssemblyPart> Parts { get; init; }
+
+    /// <summary>Clips baked into the model, with their source asset and sampling metadata. Empty for a static model.</summary>
+    public IReadOnlyList<ClipEntry> Animations { get; init; } = [];
 
     /// <summary>Loadout entries that could not be placed, with the reason. Never silently dropped.</summary>
     public required IReadOnlyList<string> Unmapped { get; init; }

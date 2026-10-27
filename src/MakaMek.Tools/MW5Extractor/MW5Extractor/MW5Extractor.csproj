@@ -22,4 +22,10 @@
         <PackageReference Include="SharpGLTF.Toolkit" Version="1.0.7" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Canonical clip vocabulary: data, not code. Copied next to the CLI so ClipVocabulary.Load() finds it. -->
+        <Content Include="..\clip-map.json" Link="clip-map.json"
+                 CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>
