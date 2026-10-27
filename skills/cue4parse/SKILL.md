@@ -1,6 +1,14 @@
 ---
 name: cue4parse
-description: Reference manual for CUE4Parse and the MW5Extractor tool (src/MakaMek.Tools/MW5Extractor) — pak mounting, virtual-path enumeration, skeletal mesh/skeleton/socket reading, glTF/PSK/JSON export, and MechWarrior 5 asset gotchas. Manual invocation only: load it when the user asks for it or when MW5Extractor/AGENTS.md says to, not for generic C#/Avalonia/asset tasks.
+description: "Reference manual for CUE4Parse and the MW5Extractor tool (src/MakaMek.Tools/MW5Extractor) — pak mounting, virtual-path enumeration, skeletal mesh/skeleton/socket reading, glTF/PSK/JSON export, and MechWarrior 5 asset gotchas. Manual invocation only: load it when the user asks for it or when MW5Extractor/AGENTS.md says to, not for generic C#/Avalonia/asset tasks."
+metadata:
+  author: MakaMek project conventions
+  version: "1.0"
+  framework: CUE4Parse + CUE4Parse-Conversion 1.2.2.202610 (UE 4.26)
+  reference-doc: src/MakaMek.Tools/MW5Extractor/README.md
+  # Hidden from the model's available list; loaded on demand by id.
+  # See src/MakaMek.Tools/MW5Extractor/AGENTS.md, which points here before extractor work.
+  opencode/autoinvoke: false
 ---
 
 # CUE4Parse / MW5Extractor reference
