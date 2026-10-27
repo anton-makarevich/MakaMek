@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:templatedControls="using:Sanet.MakaMek.Avalonia.Controls.TemplatedControls"
+             xmlns:viewModels1="using:Sanet.MakaMek.Presentation.ViewModels"
+             xmlns:extensions="using:Sanet.MakaMek.Avalonia.Controls.Extensions"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.PhysicalAttackPreviewPanel"
+             x:DataType="viewModels1:BattleMapViewModel"
+             x:CompileBindings="True">
+
+    <templatedControls:GamePanel
+        IsVisible="{Binding IsPhysicalAttackPreviewVisible}"
+        Title="{extensions:Localize 'PhysicalAttackPreview_Title'}"
+        CloseCommand="{Binding ClosePhysicalAttackPreviewCommand}"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Center">
+        <StackPanel
+            Width="300"
+            Margin="10"
+            Spacing="6"
+            DataContext="{Binding PhysicalAttackPreview}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05b;"/>
+                <TextBlock Text="{Binding AttackTypeName}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding TargetName}"/>
+            </StackPanel>
+            <TextBlock Text="{Binding TargetNumberText}" FontWeight="Bold"/>
+            <TextBlock
+                Text="{Binding ImpossibleText}"
+                Foreground="#FFFF5555"
+                IsVisible="{Binding IsImpossible}"/>
+            <ItemsControl ItemsSource="{Binding ModifierLines}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </templatedControls:GamePanel>
+</UserControl>

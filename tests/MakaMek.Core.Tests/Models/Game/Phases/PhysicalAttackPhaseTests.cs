@@ -63,50 +63,18 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
                                ?? new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
     }
 
-    private PhysicalAttackPhase CreateEnabledSut(HexPosition? targetPosition = null,
+    private PhysicalAttackPhase CreateSut(HexPosition? targetPosition = null,
         HexPosition? secondAttackerPosition = null)
     {
         DeployUnits(targetPosition, secondAttackerPosition);
-        return new PhysicalAttackPhase(Game) { IsDeclarationEnabled = true };
+        return new PhysicalAttackPhase(Game);
     }
 
     [Fact]
-    public void Enter_ShouldTransitionToNextPhaseImmediately()
-    {
-        // Act
-        _sut.Enter();
-
-        // Assert
-        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttack, Game);
-        _mockNextPhase.Received(1).Enter();
-        Game.PhaseStepState.ShouldBeNull();
-        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishOnlyChangePhaseCommand()
+    public void Enter_ActivatesTheInitiativeLoserForItsUnitsWithOptions()
     {
         // Arrange
-        CommandPublisher.ClearReceivedCalls();
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        var publishedCommands = CommandPublisher.ReceivedCalls()
-            .Where(call => call.GetMethodInfo().Name == nameof(CommandPublisher.PublishCommand))
-            .Select(call => call.GetArguments()[0])
-            .ToList();
-
-        publishedCommands.Count.ShouldBe(1);
-        publishedCommands[0].ShouldBeOfType<ChangePhaseCommand>();
-    }
-
-    [Fact]
-    public void Enter_WhenDeclarationEnabled_ActivatesTheInitiativeLoserForItsUnitsWithOptions()
-    {
-        // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
 
         // Act
         sut.Enter();
@@ -123,7 +91,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void Enter_PlayerWithNoOption_IsNeverActivatedAndIsLogged()
     {
         // Arrange: the target turns its back, so it can neither punch nor kick the attacker
-        var sut = CreateEnabledSut(new HexPosition(AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Top));
+        var sut = CreateSut(new HexPosition(AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Top));
 
         // Act
         sut.Enter();
@@ -145,7 +113,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void Enter_WhenNoPlayerHasAnOption_GoesStraightToTheNextPhase()
     {
         // Arrange
-        var sut = CreateEnabledSut(new HexPosition(new HexCoordinates(9, 9), HexDirection.Top));
+        var sut = CreateSut(new HexPosition(new HexCoordinates(9, 9), HexDirection.Top));
 
         // Act
         sut.Enter();
@@ -160,7 +128,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_ValidPunch_StoresTheDeclarationBroadcastsItAndMovesOn()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
         var declaration = Punch(PartLocation.LeftArm, PartLocation.RightArm);
 
@@ -179,7 +147,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_KickWithTheChosenLeg_StoresThatLeg()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -194,7 +162,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_NoDeclaration_IsBroadcastAndMovesOnWithoutStoringAnything()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -211,7 +179,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_WhenWrongPlayer_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -226,7 +194,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_ForAUnitWithNoOption_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -241,7 +209,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     {
         // Arrange: both of player 1's units can attack, so player 1 stays active after the first
         var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
-        var sut = CreateEnabledSut(secondAttackerPosition:
+        var sut = CreateSut(secondAttackerPosition:
             new HexPosition(targetHex.GetNeighbour(HexDirection.TopLeft), HexDirection.BottomRight));
         sut.Enter();
         sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Punch(PartLocation.LeftArm)));
@@ -261,7 +229,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_KickWithBothLegs_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -282,7 +250,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_TargetBecomesSubmergedAfterEnter_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
         var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
         var hex = new Hex(targetHex);
@@ -302,7 +270,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_PunchWithAnArmThatCannotReach_ShouldReturnAnError()
     {
         // Arrange: the target is in the right side arc, so only the right arm reaches it
-        var sut = CreateEnabledSut(
+        var sut = CreateSut(
             new HexPosition(AttackerHex.GetNeighbour(HexDirection.BottomRight), HexDirection.TopLeft));
         sut.Enter();
 
@@ -318,7 +286,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_SameArmTwice_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -332,7 +300,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_NoLimbs_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -346,7 +314,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_UnknownTarget_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -361,7 +329,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_PushNotYetSupported_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
 
         // Act
@@ -376,7 +344,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_Rejected_EchoesTheIdempotencyKey()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
         var key = Guid.NewGuid();
 
@@ -385,20 +353,6 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(c => c.IdempotencyKey == key));
-    }
-
-    [Fact]
-    public void HandleCommand_WhileDeclarationIsDisabled_ShouldReturnAnError()
-    {
-        // Arrange
-        DeployUnits();
-        Game.SetActivePlayer(_player1, 2);
-
-        // Act
-        _sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Punch(PartLocation.LeftArm)));
-
-        // Assert
-        VerifyRejected(ErrorCode.InvalidGameState);
     }
 
     [Fact]
@@ -426,7 +380,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     public void HandleCommand_AfterExit_ShouldReturnAnError()
     {
         // Arrange
-        var sut = CreateEnabledSut();
+        var sut = CreateSut();
         sut.Enter();
         sut.Exit();
 

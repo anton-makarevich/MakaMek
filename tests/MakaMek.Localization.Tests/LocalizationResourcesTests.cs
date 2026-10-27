@@ -294,6 +294,12 @@ public class LocalizationResourcesTests
     [InlineData("Action_TurnTorso", "Turn Torso")]
     [InlineData("Action_SkipAttack", "Skip Attack")]
     [InlineData("Action_DeclareAttack", "Declare Attack")]
+    // Physical attack actions and preview
+    [InlineData("Action_SelectUnitToAttack", "Select unit to attack")]
+    [InlineData("Action_DeclarePhysicalAttack_WithLimb", "{0} ({1})")]
+    [InlineData("PhysicalAttack_BothArms", "Both Arms")]
+    [InlineData("PhysicalAttack_NoOptions", "This unit has no physical attack options")]
+    [InlineData("PhysicalAttackPreview_Title", "Physical attack")]
     // Movement actions
     [InlineData("Action_SelectUnitToMove", "Select unit to move")]
     [InlineData("Action_SelectMovementType", "Select movement type")]

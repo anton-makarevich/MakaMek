@@ -400,6 +400,26 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IsWeaponSelectionVisible = false;
     }
 
+    /// <summary>
+    /// The to-hit preview for the physical attack being declared, or null when there is none.
+    /// </summary>
+    public PhysicalAttackPreviewViewModel? PhysicalAttackPreview =>
+        (CurrentState as PhysicalAttackState)?.Preview;
+
+    public bool IsPhysicalAttackPreviewVisible
+    {
+        get => CurrentState is PhysicalAttackState { Preview: not null } && field;
+        set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
+    /// Hides the preview panel without abandoning the target selection.
+    /// </summary>
+    public void ClosePhysicalAttackPreviewCommand()
+    {
+        IsPhysicalAttackPreviewVisible = false;
+    }
+
     private void SubscribeToGameChanges()
     {
         _gameSubscription?.Dispose();
@@ -660,6 +680,10 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 TransitionToState(new WeaponsAttackState(this));
                 break;
 
+            case PhaseNames.PhysicalAttack when phaseState.UnitsToPlay > 0:
+                TransitionToState(new PhysicalAttackState(this));
+                break;
+
             case PhaseNames.End:
                 ClearWeaponAttacks();
                 TransitionToState(new EndState(this));
@@ -711,6 +735,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
         NotifyPropertyChanged(nameof(IsAttackOverlayVisible));
         NotifyPropertyChanged(nameof(Attacker));
+        NotifyPropertyChanged(nameof(PhysicalAttackPreview));
+        NotifyPropertyChanged(nameof(IsPhysicalAttackPreviewVisible));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
         NotifyPropertyChanged(nameof(AvailableActions));
@@ -1078,8 +1104,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         SelectedUnitHeatProjection.Unit = SelectedUnit;
     }
 
-    public IUnit? Attacker =>
-        CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
+    public IUnit? Attacker => (CurrentState as ICombatSelectionRoles)?.Attacker;
 
     public void HandleHexSelection(Hex selectedHex)
     {
@@ -1192,6 +1217,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             WeaponsAttackState weapons =>
                 weapons.CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection
                 && !unit.HasDeclaredWeaponAttack,
+            PhysicalAttackState physical =>
+                physical.CurrentStep is PhysicalAttackStep.SelectingUnit or PhysicalAttackStep.ActionSelection
+                && !unit.HasDeclaredPhysicalAttack,
             _ => false
         };
     }

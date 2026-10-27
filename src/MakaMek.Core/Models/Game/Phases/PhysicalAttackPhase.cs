@@ -15,21 +15,8 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
 {
     private readonly HashSet<Guid> _unitsToDeclare = [];
 
-    /// <summary>
-    /// Temporary: while false, the phase advances as soon as it is entered, because no client can
-    /// declare a physical attack yet and the phase would wait forever. The UI ticket (#1506)
-    /// switches it on and then removes it.
-    /// </summary>
-    internal bool IsDeclarationEnabled { get; init; }
-
     public override void Enter()
     {
-        if (!IsDeclarationEnabled)
-        {
-            Game.TransitionToNextPhase(Name);
-            return;
-        }
-
         FindUnitsToDeclare();
         base.Enter();
     }

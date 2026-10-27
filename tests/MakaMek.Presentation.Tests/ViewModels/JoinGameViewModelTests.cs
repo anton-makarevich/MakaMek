@@ -77,6 +77,7 @@ public class JoinGameViewModelTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

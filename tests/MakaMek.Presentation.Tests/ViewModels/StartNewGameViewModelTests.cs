@@ -96,6 +96,7 @@ public class StartNewGameViewModelTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             _logger);
@@ -2402,6 +2403,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             _logger,

@@ -69,6 +69,7 @@ public class InitiativeStateTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             Substitute.For<IBattleMapFactory>(),
             hashService,
             Substitute.For<ILogger<ClientGame>>());

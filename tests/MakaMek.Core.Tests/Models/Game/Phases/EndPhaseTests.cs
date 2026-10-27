@@ -710,6 +710,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),

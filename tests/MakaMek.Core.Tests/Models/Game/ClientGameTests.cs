@@ -83,6 +83,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             _logger, null, CommandAckTimeout);
@@ -987,6 +988,121 @@ public class ClientGameTests
     }
 
     [Fact]
+    public void DeclarePhysicalAttack_ShouldPublishCommand_WithDeclaration()
+    {
+        // Arrange
+        var (player, unitData, targetUnitData) = ArrangePhysicalAttackTurn();
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Punch,
+                AttackerLimbs = [PartLocation.LeftArm],
+                TargetId = targetUnitData.Id!.Value
+            }
+        };
+
+        // Act
+        _sut.DeclarePhysicalAttack(command);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(cmd =>
+            cmd.PlayerId == command.PlayerId &&
+            cmd.UnitId == command.UnitId &&
+            cmd.Declaration != null &&
+            cmd.Declaration.AttackType == PhysicalAttackType.Punch &&
+            cmd.Declaration.AttackerLimbs.SequenceEqual(command.Declaration!.AttackerLimbs) &&
+            cmd.Declaration.TargetId == command.Declaration.TargetId &&
+            cmd.IdempotencyKey.HasValue));
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldPublishNullDeclaration_WhenSkipping()
+    {
+        // Arrange
+        var (player, unitData, _) = ArrangePhysicalAttackTurn();
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Declaration = null
+        };
+
+        // Act
+        _sut.DeclarePhysicalAttack(command);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(cmd =>
+            cmd.PlayerId == command.PlayerId &&
+            cmd.UnitId == command.UnitId &&
+            cmd.Declaration == null &&
+            cmd.IdempotencyKey.HasValue));
+    }
+
+    [Fact]
+    public void DeclarePhysicalAttack_ShouldNotPublishCommand_WhenNoActivePlayer()
+    {
+        // Arrange
+        var command = new PhysicalAttackCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            Declaration = null
+        };
+
+        // Act
+        _sut.DeclarePhysicalAttack(command);
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    private (Player Player, UnitData UnitData, UnitData TargetUnitData) ArrangePhysicalAttackTurn()
+    {
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        _sut.JoinGameWithUnits(player,[],[]);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var targetPlayer = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
+        var targetUnitData = MechFactoryTests.CreateDummyMechData();
+        targetUnitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = targetPlayer.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = targetPlayer.Name,
+            Units = [targetUnitData],
+            Tint = "#00FF00",
+            PilotAssignments = []
+        });
+
+        return (player, unitData, targetUnitData);
+    }
+
+    [Fact]
     public void DeclareWeaponAttack_ShouldNotPublishCommand_WhenNoActivePlayer()
     {
         // Arrange
@@ -1844,6 +1960,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -1945,6 +2062,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
@@ -3776,6 +3894,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
+            Substitute.For<IPhysicalAttackCalculator>(),
             _mapFactory,
             _hashService,
             _logger,
