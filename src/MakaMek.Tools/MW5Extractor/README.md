@@ -38,7 +38,10 @@ hand-written deserialiser and no hand-curated weapon table are required for the 
 ```bash
 dotnet build src/MakaMek.Tools/MW5Extractor/MW5Extractor.Cli/MW5Extractor.Cli.csproj
 
-export MW5_PAKS_PATH="…/MechWarrior 5 Mercenaries/Content/MW5Mercs/Content/Paks"   # or pass --paks
+# The paks directory — the folder that contains MW5Mercs-WindowsNoEditor.pak / MW5Mercs-WinGDK.pak:
+#   Epic / Steam: …/MechWarrior 5 Mercenaries/MW5Mercs/Content/Paks
+#   Xbox / GDK:   …/MechWarrior 5 Mercenaries/Content/MW5Mercs/Content/Paks
+export MW5_PAKS_PATH="…/MechWarrior 5 Mercenaries/MW5Mercs/Content/Paks"   # or pass --paks
 dotnet run --project src/MakaMek.Tools/MW5Extractor/MW5Extractor.Cli -- mount
 ```
 

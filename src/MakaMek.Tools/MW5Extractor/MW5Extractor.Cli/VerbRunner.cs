@@ -51,7 +51,7 @@ internal static class VerbRunner
         var message = exception.Message;
         if (json)
         {
-            output.WriteLine(JsonOutput.Envelope(command, [message]));
+            output.WriteLine(JsonOutput.Failure(command, [message]));
         }
         else
         {

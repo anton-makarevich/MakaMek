@@ -34,7 +34,7 @@ public static class JsonOutput
             Warnings = warnings ?? []
         });
 
-    public static string Envelope(string command, IReadOnlyList<string> errors, IReadOnlyList<string>? warnings = null) =>
+    public static string Failure(string command, IReadOnlyList<string> errors, IReadOnlyList<string>? warnings = null) =>
         Serialize(new JsonEnvelope<object>
         {
             Ok = false,

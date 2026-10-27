@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using CUE4Parse.FileProvider.Objects;
 using MakaMek.Tools.MW5Extractor.Discovery;
 using MakaMek.Tools.MW5Extractor.Extraction;
 using MakaMek.Tools.MW5Extractor.Inspection;
@@ -77,7 +78,7 @@ public static class MechAssembler
 
         var bodyGlb = await ExportMesh(archive, chassis.Body, partsDirectory, cancellationToken);
         var boneMatrices = ReadBoneMatrices(bodyGlb);
-        var socketBones = ReadSocketBones(archive, chassis.Body);
+        var socketBones = ReadSocketBones(archive, chassis.Body, warnings);
 
         if (!request.SkipCockpit)
         {
@@ -229,7 +230,19 @@ public static class MechAssembler
                 continue;
             }
 
-            var weaponAsset = archive.FindFile(weapon.WeaponAsset);
+            GameFile? weaponAsset;
+            try
+            {
+                weaponAsset = archive.FindFile(weapon.WeaponAsset);
+            }
+            catch (AmbiguousAssetException ambiguous)
+            {
+                unmapped.Add(
+                    $"{weapon.SlotId}: weapon data asset '{weapon.WeaponAsset}' is ambiguous " +
+                    $"({string.Join(", ", ambiguous.Candidates.Take(3))})");
+                continue;
+            }
+
             if (weaponAsset is null)
             {
                 unmapped.Add($"{weapon.SlotId}: weapon data asset '{weapon.WeaponAsset}' not found");
@@ -365,7 +378,8 @@ public static class MechAssembler
 
         var local = Matrix4x4.CreateScale(attachment.Scale) *
                     Matrix4x4.CreateTranslation(attachment.TranslationCm / 100f);
-        return UeToGltf * local * Matrix4x4.Transpose(UeToGltf);
+        // UE → glTF for a row-vector transform: v_gltf = v_ue · C, so a UE-space matrix L becomes Cᵀ·L·C.
+        return Matrix4x4.Transpose(UeToGltf) * local * UeToGltf;
     }
 
     private static Matrix4x4 Bone(
@@ -382,13 +396,35 @@ public static class MechAssembler
         return Matrix4x4.Identity;
     }
 
-    private static IReadOnlyDictionary<string, string> ReadSocketBones(UnrealArchive archive, string bodyAsset)
+    private static IReadOnlyDictionary<string, string> ReadSocketBones(
+        UnrealArchive archive,
+        string bodyAsset,
+        List<string> warnings)
     {
         var body = AssetInspector.Inspect(archive, bodyAsset);
         var skeletonName = body.Mesh?.SkeletonAsset;
-        var skeleton = skeletonName is null ? null : archive.FindFile(skeletonName);
+        if (skeletonName is null)
+        {
+            warnings.Add("body mesh has no skeleton asset; weapon sockets cannot be resolved");
+            return new Dictionary<string, string>();
+        }
+
+        GameFile? skeleton;
+        try
+        {
+            skeleton = archive.FindFile(skeletonName);
+        }
+        catch (AmbiguousAssetException ambiguous)
+        {
+            warnings.Add(
+                $"skeleton '{skeletonName}' is ambiguous " +
+                $"({string.Join(", ", ambiguous.Candidates.Take(3))}); weapon sockets cannot be resolved");
+            return new Dictionary<string, string>();
+        }
+
         if (skeleton is null)
         {
+            warnings.Add($"skeleton '{skeletonName}' not found; weapon sockets cannot be resolved");
             return new Dictionary<string, string>();
         }
 

@@ -46,7 +46,7 @@ The statements above are directionally right but the real tree is messier; measu
 | Reality | Consequence |
 |---|---|
 | **104** mech folders, not 76: Clan chassis live one level deeper, `Objects/Mechs/CLANS/<Chassis>/`, and DLC content is nested inside the single base pak (`MW5Mercs/Content/DLC7/...`) | Chassis identity must be resolved from the chassis' own child folders, not from the segment after `Mechs` |
-| 102 chassis are monolithic (`Model/Body/<Chassis>_SKM`); **Atlas II ("modular") has no body mesh** — it is a set of part meshes plus `Model/Body/AS7II` | "One skeletal mesh per chassis" is false for newer DLC chassis |
+| 102 chassis are monolithic (`Model/Body/<Chassis>_SKM`); **Atlas II is modular**: it has no `<Chassis>_SKM`, but it does have a body mesh at `Model/Body/AS7II` plus separate part meshes; Blackhawk KU ships no body mesh at all (its weapons use the Nova code) | "One skeletal mesh per chassis" is false for newer DLC chassis, and a missing `<Chassis>_SKM` does not mean a missing body |
 | Body meshes carry **no sockets**; the shared `Mech_SKL` carries 47 (`Torso_Weapon`, `Forearm_Left_Weapon`, `Weapon_Melee_*`, `WeldTarget_*`) | Mount transforms exist, but at torso/arm granularity — not per hardpoint |
 | 101 cockpit meshes, 90 cockpit glass meshes; 14 chassis ship no glass | Glass is per chassis and sometimes absent |
 | 104 `<Chassis>_HPS` hardpoint sets, 686 variant (`_MDA`/`_Loadout`/`_UnitCard`) assets, 12,541 weapon meshes, 10,978 animation assets | Everything the assembly step needs is present |

@@ -42,7 +42,7 @@ internal static class LsCommand
             {
                 using var archive = UnrealArchive.Open(connection.Resolve(parseResult));
 
-                var prefix = NormalizePrefix(parseResult.GetValue(pathArgument));
+                var prefix = NormalizePrefix(parseResult.GetValue(pathArgument)!);
                 var pattern = parseResult.GetValue(patternOption);
                 var limit = parseResult.GetValue(limitOption);
 
@@ -103,8 +103,8 @@ internal static class LsCommand
             return true;
         }
 
-        return prefix.Contains('/')
-            ? path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase)
-            : path.Contains("/" + prefix + "/", StringComparison.OrdinalIgnoreCase);
+        return path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase) ||
+               (!prefix.Contains('/') &&
+                path.Contains("/" + prefix + "/", StringComparison.OrdinalIgnoreCase));
     }
 }

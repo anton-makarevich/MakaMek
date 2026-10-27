@@ -34,11 +34,20 @@ internal static class FindCommand
             var json = connection.IsJson(parseResult);
             return await VerbRunner.RunAsync("find", json, Console.Out, Console.Error, () =>
             {
-                var chassis = parseResult.GetValue(chassisArgument);
+                var chassis = parseResult.GetValue(chassisArgument)!;
                 using var archive = UnrealArchive.Open(connection.Resolve(parseResult));
 
                 var report = ChassisDiscovery.Build(archive, chassis);
                 var entry = SelectEntry(report.Chassis, chassis);
+
+                var outPath = parseResult.GetValue(outOption);
+                string? writtenPath = null;
+                if (!string.IsNullOrWhiteSpace(outPath))
+                {
+                    writtenPath = Path.GetFullPath(outPath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(writtenPath)!);
+                    File.WriteAllText(writtenPath, Json.JsonOutput.Serialize(entry));
+                }
 
                 if (json)
                 {
@@ -50,13 +59,9 @@ internal static class FindCommand
                 VerbRunner.WriteWarnings(Console.Error, entry.Warnings);
                 VerbRunner.WriteWarnings(Console.Error, report.Warnings);
 
-                var outPath = parseResult.GetValue(outOption);
-                if (!string.IsNullOrWhiteSpace(outPath))
+                if (writtenPath is not null)
                 {
-                    var path = Path.GetFullPath(outPath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                    File.WriteAllText(path, Json.JsonOutput.Serialize(entry));
-                    Console.WriteLine($"report    {path}");
+                    Console.WriteLine($"report    {writtenPath}");
                 }
 
                 return Task.CompletedTask;

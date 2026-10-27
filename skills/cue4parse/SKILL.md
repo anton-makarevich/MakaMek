@@ -133,7 +133,7 @@ So: **do not write a bespoke deserialiser before trying `--format json`.**
 | Monolithic body | `Model/Body/<Folder>_SKM` (case varies: `Kitfox_SKM` in folder `KitFox`) |
 | Modular body | Newer DLC chassis have no `<Folder>_SKM`; body parts are individual meshes (`Model/Body/Forearm_Left`, `Clavicle_Left`, …) plus a body mesh named after the model code (`Model/Body/AS7II`). Detect via the weapon-name chassis token. |
 | Cockpit | `Model/Cockpit/<Chassis>_Cockpit_SKM` + `<Chassis>_CockpitGlass_STM`; not every chassis has glass, and modular chassis name it differently (`Model/AtlasII_Cockpit`). |
-| Weapons | `Model/Weapons/Weapon_Mech_<Chassis>_<Location>_<Hardpoint>_<Weapon>_SKM` with `AH|EH|BH|MH|EB` hardpoint tokens; `_ANI`/`_PHY` are sidecars, and some weapons have no hardpoint token (mount adapters) or an empty weapon token (`EB1_Blank`). |
+| Weapons | `Model/Weapons/Weapon_Mech_<Chassis>_<Location>_<Hardpoint>_<Weapon>_SKM` with hardpoint tokens `AH`, `EH`, `BH`, `MH` or `EB` plus a digit (`AH1`, `MH2`, …); `_ANI`/`_PHY` are sidecars, and some weapons have no hardpoint token (mount adapters) or an empty weapon token (`EB1_Blank`). |
 | Variants | `MDA/<Model>_MDA`, `Loadout/<Model>_Loadout`, `UnitCard/…`, sometimes directly in the chassis folder (DLC8 `AtlasC_Loadout`). |
 | Animations | `Animation/<Chassis>_<Clip>_ANI` (plus `_AOF`, `_Montage`, `_BLS`). |
 | Units / axes | UE cm and Z-up: a 18.4 m Atlas has `Bounds.BoxExtent ≈ (347, 714, 919)`. Divide by 100 for metres; mech faces **+X**. |
