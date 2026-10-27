@@ -23,6 +23,8 @@
   <Folder Name="/Tools/">
     <Project Path="src/MakaMek.Tools/MtfConverter/MtfConverter.csproj" />
     <Project Path="src/MakaMek.Tools/MmuxPackager/MmuxPackager.csproj" />
+    <Project Path="src/MakaMek.Tools/MW5Extractor/MW5Extractor/MW5Extractor.csproj" />
+    <Project Path="src/MakaMek.Tools/MW5Extractor/MW5Extractor.Cli/MW5Extractor.Cli.csproj" />
     <Project Path="src/MakaMek.Tools/BotContainer/BotContainer.csproj" />
     <Project Path="src/MakaMek.Tools/BotAgent/BotAgent.csproj" />
     <Project Path="src/MakaMek.Tools/BotAgent.Models/BotAgent.Models.csproj" />

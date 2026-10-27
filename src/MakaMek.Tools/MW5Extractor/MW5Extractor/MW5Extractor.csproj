@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>MW5Extractor</AssemblyName>
+        <RootNamespace>MakaMek.Tools.MW5Extractor</RootNamespace>
+        <Description>Headless MechWarrior 5 asset discovery and extraction (CUE4Parse) for the MakaMek asset pipeline</Description>
+        <!--
+          Both advisories come transitively from CUE4Parse-Conversion (image/SDK helpers used for texture export).
+          The versions are pinned to the CUE4Parse release; this is a local, read-only tool with no untrusted input.
+          Re-check on the next CUE4Parse bump instead of silencing them repository-wide.
+        -->
+        <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CUE4Parse" Version="1.2.2.202610" />
+        <PackageReference Include="CUE4Parse-Conversion" Version="1.2.2.202610" />
+    </ItemGroup>
+
+</Project>
