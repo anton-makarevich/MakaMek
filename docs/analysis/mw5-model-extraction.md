@@ -39,6 +39,25 @@ Date: 2026-10-25 · Scope: research only, no code changes.
 - Weapons/arms are **separate meshes attached to sockets** — an extracted mech body may be missing arms or weapons.
 - Materials are custom UE4 material graphs (paint-scheme composition, camo masks), not plain PBR — expect flat/grey previews from `umodel`/FModel.
 
+#### 2.2.1 Verified against the pak (2026-10-27, [MW5Extractor](../../src/MakaMek.Tools/MW5Extractor/README.md))
+
+The statements above are directionally right but the real tree is messier; measured on a full base + DLC install (285,997 virtual files):
+
+| Reality | Consequence |
+|---|---|
+| **104** mech folders, not 76: Clan chassis live one level deeper, `Objects/Mechs/CLANS/<Chassis>/`, and DLC content is nested inside the single base pak (`MW5Mercs/Content/DLC7/...`) | Chassis identity must be resolved from the chassis' own child folders, not from the segment after `Mechs` |
+| 102 chassis are monolithic (`Model/Body/<Chassis>_SKM`); **Atlas II is modular**: it has no `<Chassis>_SKM`, but it does have a body mesh at `Model/Body/AS7II` plus separate part meshes; Blackhawk KU ships no body mesh at all (its weapons use the Nova code) | "One skeletal mesh per chassis" is false for newer DLC chassis, and a missing `<Chassis>_SKM` does not mean a missing body |
+| Body meshes carry **no sockets**; the shared `Mech_SKL` carries 47 (`Torso_Weapon`, `Forearm_Left_Weapon`, `Weapon_Melee_*`, `WeldTarget_*`) | Mount transforms exist, but at torso/arm granularity — not per hardpoint |
+| 101 cockpit meshes, 90 cockpit glass meshes; 14 chassis ship no glass | Glass is per chassis and sometimes absent |
+| 104 `<Chassis>_HPS` hardpoint sets, 686 variant (`_MDA`/`_Loadout`/`_UnitCard`) assets, 12,541 weapon meshes, 10,978 animation assets | Everything the assembly step needs is present |
+| `MWMechHardpointAsset`/`MWMechDataAsset`/`MWMechLoadoutAsset` are custom classes CUE4Parse leaves as `UObject`, **but `JsonPropertiesExporter` dumps them fully**: `Atlas_HPS.json` lists `HardpointSlotID` (`Torso_Left_MH1_lrm10`), `MechSkeletonSocketID` (`Torso_Weapon`), `MechPart`, and `HardpointVisuals` (weapon tag → weapon Blueprint); `AS7-D_Loadout.json` lists `InstalledWeapons[]` as `HardpointSlotID` → weapon data asset | Hardpoint topology, mount socket and the equipment→asset mapping are machine-readable headlessly — no hand-written deserialiser, no hand-curated weapon table |
+
+The MW5 layout is therefore "body + cockpit + glass + weapon meshes + data assets", with **two body layouts** to support. Filenames remain the cheapest discovery index (`Weapon_Mech_AS7_Torso_Right_BH1_AC20_SKM` encodes chassis, location, hardpoint and weapon), and the `<Chassis>_HPS`/`_MDA`/`_Loadout` JSON is the authoritative assembly data.
+
+#### 2.2.2 Assembly verified (2026-10-27)
+
+`MW5Extractor assemble` now builds a full variant from the pak and produces one renderable glTF (`AS7-D.glb`, ~50k triangles): body (`Atlas_SKM`) + third-person cockpit (`AS7_TP_Cockpit_DM0_STM`, named by `<Chassis>_MDL`, parented to the `Cockpit` bone) + the loadout's weapon meshes, each placed by its slot's skeleton bone. The loadout → weapon-data-asset → `WeaponType` tag → `<Chassis>_HPS` visual → `_SKM` mesh chain is fully data-driven; the only manual knowledge left is which *MakaMek* equipment corresponds to which MW5 weapon tag. The first-person cockpit (`Atlas_Cockpit_SKM`/`_CockpitGlass_STM`) is an interior asset and must not be used as the visible head. Output is byte-identical across runs.
+
 ### 2.3 Chassis count (measured from this repo)
 
 ```
@@ -107,6 +126,8 @@ If the pipeline needs to run for 76 chassis repeatedly, write it as a scripted t
 | Render | `blender -b -P tools/blender/render.py` — this **is** the pipeline's renderer (see `../architecture/blender-render-driver.md`); the same install also covers PSK/PSA round-tripping |
 
 A C# tool on CUE4Parse fits this repo's stack (net10.0, no Python build step needed for extraction) and can emit the `.mmux` packages directly.
+
+**This now exists:** [`src/MakaMek.Tools/MW5Extractor`](../../src/MakaMek.Tools/MW5Extractor/README.md) mounts the paks, enumerates and classifies all 104 chassis into `discovery-report.json`, reads meshes/skeletons/sockets, exports glTF/PSK/JSON, and dumps the custom hardpoint/loadout data assets — headless, read-only, no GUI. It is the intended `unreal` adapter of `MakaMek.Pipeline.Import`.
 
 ### 3.5 Extraction gotchas
 

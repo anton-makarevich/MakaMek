@@ -165,7 +165,7 @@ public interface IModelSource
 |---|---|---|---|
 | `gltf` | SharpGLTF | `.gltf`, `.glb` | Baseline; also the canonical writer. Any internet source that ships glTF goes here directly |
 | `assimp` | AssimpNet (Assimp 5) | FBX, OBJ, DAE, STL, 3DS, LWO, MD5… | The catch-all for asset stores and hobbyist exports. FBX is what most shops ship |
-| `unreal` | CUE4Parse | MW5, other UE4/UE5 games | `.pak`/`.utoc`, skeletal meshes, skeleton, AnimSequences, materials. AES key from config, never hard-coded |
+| `unreal` | CUE4Parse | MW5, other UE4/UE5 games | `.pak`/`.utoc`, skeletal meshes, skeleton, AnimSequences, materials. AES key from config, never hard-coded. Bootstrapped by [`MW5Extractor`](../../src/MakaMek.Tools/MW5Extractor/README.md) (#1652), which already mounts MW5 paks, classifies all 104 chassis, reads meshes/skeletons/sockets and exports glTF/PSK/JSON headlessly |
 | `unity` | AssetsTools.NET | Unity games / asset bundles | Same C# ecosystem, large coverage gain for a small adapter |
 | `cryengine` | — | MWO (`MWO.pak`, `.cgf/.chr/.caf`) | **Deferred**: no mature C# reader. Accept an FBX produced elsewhere via the `assimp` adapter instead |
 
@@ -463,6 +463,9 @@ src/MakaMek.Tools/
   MakaMek.Pipeline.Pack/           .mmux v2 writer (shared with MmuxPackager)
   MakaMek.Pipeline.Cli/            makamek-pipeline
   MakaMek.Pipeline.Mcp/            MCP server
+  MW5Extractor/                    #1652 spike: MW5 pak mounting, chassis discovery, inspect, glTF/PSK/JSON export
+    MW5Extractor/                  library (the future `unreal` adapter)
+    MW5Extractor.Cli/              mount, ls, find, inspect, extract, discovery-report
 tools/blender/
   render.py                        scene build → render → verify outputs (see blender-render-driver.md)
   scene.py, preset.py, README.md
