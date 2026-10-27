@@ -65,24 +65,90 @@ def _mesh_objects(objects):
     return [obj for obj in objects if obj.type == "MESH"]
 
 
+def armatures(objects):
+    """The armatures in the imported model. A static model has none, which keeps the old path intact."""
+    return [obj for obj in objects if obj.type == "ARMATURE"]
+
+
+def actions_by_name(objects):
+    """Clip name -> (armature, action) for every action the glTF importer created on a bone rig.
+
+    glTF animation names become action names; the extractor writes the canonical clip name, so the preset's
+    `--clips Walk` finds the action named `Walk` without any mapping in the driver. Only one action is assigned
+    to the armature at a time, so the remaining clips are picked up from `bpy.data.actions`.
+    """
+    rigs = armatures(objects)
+    found = {}
+    for obj in rigs:
+        animation = obj.animation_data
+        if animation is None or animation.action is None:
+            continue
+        found.setdefault(animation.action.name, (obj, animation.action))
+
+    if rigs:
+        for action in bpy.data.actions:
+            found.setdefault(action.name, (rigs[0], action))
+
+    return found
+
+
+def reset_pose(objects):
+    """Return every bone to its rest transform and detach any action.
+
+    Without this, a clip that does not animate a bone would keep that bone's pose from the previously rendered
+    clip, which makes the second clip in one invocation depend on the first.
+    """
+    for obj in armatures(objects):
+        if obj.animation_data is not None:
+            obj.animation_data.action = None
+            for track in list(obj.animation_data.nla_tracks):
+                obj.animation_data.nla_tracks.remove(track)
+
+        for bone in obj.pose.bones:
+            bone.location = (0.0, 0.0, 0.0)
+            bone.rotation_mode = "QUATERNION"
+            bone.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
+            bone.rotation_euler = (0.0, 0.0, 0.0)
+            bone.scale = (1.0, 1.0, 1.0)
+
+    bpy.context.view_layer.update()
+
+
+def use_action(obj, action):
+    """Make `action` the active pose for one armature (handles Blender 4.4+ slotted actions)."""
+    obj.animation_data_create()
+    obj.animation_data.action = action
+    if hasattr(obj.animation_data, "action_slot") and len(action.slots) > 0:
+        obj.animation_data.action_slot = action.slots[0]
+
+    bpy.context.view_layer.update()
+
+
 def world_bounds(objects, depsgraph=None):
-    """Axis-aligned world-space bounds over every mesh's bounding box.
+    """Axis-aligned world-space bounds over every mesh's evaluated vertices.
 
     Without `depsgraph` the bounds describe the rest geometry. Pass the evaluated depsgraph to measure
-    the posed/deformed geometry after modifiers and animation have been applied.
+    the posed/deformed geometry after the armature modifier and animation have been applied: an object's
+    `bound_box` is the *undeformed* mesh bounds, so it cannot see a skinned pose.
     """
     minimum = Vector((math.inf, math.inf, math.inf))
     maximum = Vector((-math.inf, -math.inf, -math.inf))
     for obj in _mesh_objects(objects):
         source = obj.evaluated_get(depsgraph) if depsgraph is not None else obj
-        for corner in source.bound_box:
-            point = source.matrix_world @ Vector(corner)
-            minimum.x = min(minimum.x, point.x)
-            minimum.y = min(minimum.y, point.y)
-            minimum.z = min(minimum.z, point.z)
-            maximum.x = max(maximum.x, point.x)
-            maximum.y = max(maximum.y, point.y)
-            maximum.z = max(maximum.z, point.z)
+        mesh = source.to_mesh()
+        try:
+            matrix = source.matrix_world
+            for vertex in mesh.vertices:
+                point = matrix @ vertex.co
+                minimum.x = min(minimum.x, point.x)
+                minimum.y = min(minimum.y, point.y)
+                minimum.z = min(minimum.z, point.z)
+                maximum.x = max(maximum.x, point.x)
+                maximum.y = max(maximum.y, point.y)
+                maximum.z = max(maximum.z, point.z)
+        finally:
+            source.to_mesh_clear()
+
     return minimum, maximum
 
 
@@ -91,14 +157,15 @@ def animated_bounds(objects, frames):
 
     `normalise` measures the rest geometry once, but an animation deforms it, so a limb that swings
     past the resting footprint would be clipped by a canvas fitted from that single pose. Evaluating
-    the depsgraph per frame gives the extent the render will actually produce.
+    the depsgraph per frame gives the extent the render will actually produce. Frames are floats so an
+    animated clip can be sampled between keys (Blender interpolates the subframe).
     """
     scene = bpy.context.scene
     original_frame = scene.frame_current
     minimum = Vector((math.inf, math.inf, math.inf))
     maximum = Vector((-math.inf, -math.inf, -math.inf))
     for frame in frames:
-        scene.frame_set(frame)
+        set_frame(frame)
         bpy.context.view_layer.update()
         low, high = world_bounds(objects, bpy.context.evaluated_depsgraph_get())
         minimum.x = min(minimum.x, low.x)
@@ -109,6 +176,12 @@ def animated_bounds(objects, frames):
         maximum.z = max(maximum.z, high.z)
     scene.frame_set(original_frame)
     return minimum, maximum
+
+
+def set_frame(frame):
+    """Set the scene frame, including the fractional part (source clips are resampled)."""
+    whole = math.floor(frame)
+    bpy.context.scene.frame_set(whole, subframe=frame - whole)
 
 
 def normalise(objects, scale, model_yaw_deg=0.0):

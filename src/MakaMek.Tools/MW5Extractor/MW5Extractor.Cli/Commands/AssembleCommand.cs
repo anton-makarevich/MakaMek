@@ -35,6 +35,18 @@ internal static class AssembleCommand
             Description = "Assemble the bare chassis only."
         };
 
+        var clipsOption = new Option<string[]>("--clips")
+        {
+            Description = "Canonical clips to bake in (e.g. --clips Walk). Produces a skinned <variant>.animated.glb.",
+            Arity = ArgumentArity.OneOrMore,
+            AllowMultipleArgumentsPerToken = true
+        };
+
+        var clipMapOption = new Option<string?>("--clip-map")
+        {
+            Description = "Clip alias map (default: clip-map.json next to the tool)."
+        };
+
         var command = new Command("assemble", "Merge body + cockpit + glass + loadout weapons into one renderable glTF model.");
         foreach (var option in connection.All)
         {
@@ -45,6 +57,8 @@ internal static class AssembleCommand
         command.Options.Add(outOption);
         command.Options.Add(skipCockpitOption);
         command.Options.Add(skipWeaponsOption);
+        command.Options.Add(clipsOption);
+        command.Options.Add(clipMapOption);
         command.Arguments.Add(chassisArgument);
 
         command.SetAction(async (parseResult, cancellationToken) =>
@@ -66,7 +80,12 @@ internal static class AssembleCommand
                         Variant = variant,
                         OutputDirectory = output,
                         SkipCockpit = parseResult.GetValue(skipCockpitOption),
-                        SkipWeapons = parseResult.GetValue(skipWeaponsOption)
+                        SkipWeapons = parseResult.GetValue(skipWeaponsOption),
+                        Clips = (parseResult.GetValue(clipsOption) ?? [])
+                            .SelectMany(value => value.Split(
+                                ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                            .ToList(),
+                        ClipMapPath = parseResult.GetValue(clipMapOption)
                     },
                     cancellationToken);
 
@@ -108,6 +127,14 @@ internal static class AssembleCommand
                 $"  {Path.GetFileName(part.AssetPath)}{detail}");
         }
 
+        foreach (var clip in report.Animations)
+        {
+            Console.WriteLine(
+                $"  clip      {clip.Name,-9} {clip.SampledFrames,4} frames @ {clip.Fps:0.##} fps " +
+                $"({clip.DurationSeconds:0.00} s, {clip.AnimatedBones} bones, root {clip.RootMotionMeters:0.000} m)" +
+                $"  {Path.GetFileName(clip.AssetPath)}");
+        }
+
         if (report.Unmapped.Count > 0)
         {
             Console.WriteLine("  unmapped");
@@ -118,6 +145,12 @@ internal static class AssembleCommand
         }
 
         Console.WriteLine($"  report {reportPath}");
+        if (report.ModelSpace != "canonical")
+        {
+            Console.WriteLine(
+                $"  note: animated model stays in {report.ModelSpace} space; " +
+                $"render with --model-yaw {report.ModelYawDegrees:0}");
+        }
     }
 
     private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);

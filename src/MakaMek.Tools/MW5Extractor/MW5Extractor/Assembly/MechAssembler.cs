@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using CUE4Parse.FileProvider.Objects;
+using MakaMek.Tools.MW5Extractor.Animation;
 using MakaMek.Tools.MW5Extractor.Discovery;
 using MakaMek.Tools.MW5Extractor.Extraction;
 using MakaMek.Tools.MW5Extractor.Inspection;
@@ -40,7 +41,7 @@ public static class MechAssembler
         var unmapped = new List<string>();
 
         var discovery = ChassisDiscovery.Build(archive, request.Chassis);
-        var chassis = SelectChassis(discovery.Chassis, request.Chassis);
+        var chassis = ChassisDiscovery.Select(discovery.Chassis, request.Chassis);
         if (chassis.Body is null)
         {
             throw new InvalidOperationException($"Chassis '{chassis.Folder}' has no body mesh; cannot assemble.");
@@ -122,8 +123,54 @@ public static class MechAssembler
             mergeParts.Add(new MergePart { Label = item.Kind, GlbPath = glb, Transform = item.Transform });
         }
 
-        var modelPath = Path.Combine(outputDirectory, $"{variant.Id}.glb");
-        var merged = ModelMerger.Merge(mergeParts, modelPath);
+        var samples = new List<ClipSample>();
+        if (request.Clips.Count > 0)
+        {
+            samples.AddRange(ResolveClips(archive, variant, request, warnings));
+        }
+
+        var modelPath = Path.Combine(
+            outputDirectory,
+            samples.Count > 0 ? $"{variant.Id}.animated.glb" : $"{variant.Id}.glb");
+
+        int vertexCount;
+        int triangleCount;
+        BoundsInfo bounds;
+        float planViewExtent;
+        IReadOnlyList<int> partVertices;
+        IReadOnlyList<int> partTriangles;
+
+        if (samples.Count > 0)
+        {
+            var skinnedParts = plan
+                .Select((item, index) => new SkinnedPart
+                {
+                    Kind = item.Kind,
+                    GlbPath = mergeParts[index].GlbPath,
+                    Transform = item.Transform,
+                    Bone = item.Kind == "body" ? null : item.Bone
+                })
+                .ToList();
+
+            var built = SkinnedModelBuilder.Build(skinnedParts, samples, modelPath);
+            vertexCount = built.VertexCount;
+            triangleCount = built.TriangleCount;
+            bounds = built.Bounds;
+            planViewExtent = built.PlanViewExtentMeters;
+            partVertices = built.PartVertices;
+            partTriangles = built.PartTriangles;
+            warnings.AddRange(built.Warnings);
+        }
+        else
+        {
+            var merged = ModelMerger.Merge(mergeParts, modelPath);
+            vertexCount = merged.VertexCount;
+            triangleCount = merged.TriangleCount;
+            bounds = merged.Bounds;
+            planViewExtent = merged.PlanViewExtentMeters;
+            partVertices = merged.PartVertices;
+            partTriangles = merged.PartTriangles;
+        }
 
         var parts = plan.Select((item, index) => new AssemblyPart
         {
@@ -135,8 +182,8 @@ public static class MechAssembler
             WeaponTag = item.Tag,
             Translation = AssemblyReport.Vector(item.Transform.Translation),
             GlbPath = mergeParts[index].GlbPath,
-            VertexCount = merged.PartVertices[index],
-            TriangleCount = merged.PartTriangles[index]
+            VertexCount = partVertices[index],
+            TriangleCount = partTriangles[index]
         }).ToList();
 
         stopwatch.Stop();
@@ -146,15 +193,62 @@ public static class MechAssembler
             Chassis = chassis.Folder,
             Variant = variant.Id,
             ModelPath = modelPath,
-            VertexCount = merged.VertexCount,
-            TriangleCount = merged.TriangleCount,
-            Bounds = merged.Bounds,
-            PlanViewExtentMeters = merged.PlanViewExtentMeters,
+            VertexCount = vertexCount,
+            TriangleCount = triangleCount,
+            Bounds = bounds,
+            PlanViewExtentMeters = planViewExtent,
+            ModelSpace = samples.Count > 0 ? "mw5-source" : "canonical",
+            ModelYawDegrees = samples.Count > 0 ? -90f : 0f,
             Parts = parts,
+            Animations = samples.Select(sample => sample.Entry).ToList(),
             Unmapped = unmapped,
             Warnings = warnings,
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds
         };
+    }
+
+    /// <summary>Resolves requested canonical clips to their MW5 assets and decodes them into per-frame bone samples.</summary>
+    private static List<ClipSample> ResolveClips(
+        UnrealArchive archive,
+        VariantEntry variant,
+        AssemblyRequest request,
+        List<string> warnings)
+    {
+        var vocabulary = ClipVocabulary.Load(request.ClipMapPath);
+        var inventory = ClipInventory.Build(archive, variant.Id, vocabulary);
+
+        var known = inventory.Clips.Where(clip => clip.Status == "available").Select(clip => clip.Name).ToList();
+        var samples = new List<ClipSample>();
+
+        foreach (var name in request.Clips.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var entry = inventory.Clips.FirstOrDefault(clip =>
+                string.Equals(clip.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            if (entry is null)
+            {
+                throw new InvalidOperationException(
+                    $"'{name}' is not a canonical clip. Known: {string.Join(", ", vocabulary.Clips.Select(c => c.Name))}");
+            }
+
+            if (entry.AssetPath is null)
+            {
+                throw new InvalidOperationException(
+                    $"'{variant.Id}' ships no '{entry.Name}' clip. Available: {(known.Count == 0 ? "none" : string.Join(", ", known))}");
+            }
+
+            var definition = vocabulary.Clips.First(clip =>
+                string.Equals(clip.Name, entry.Name, StringComparison.OrdinalIgnoreCase));
+
+            var sample = AnimationClipReader.Read(archive, definition, entry.AssetPath);
+            warnings.AddRange(sample.Entry.Warnings);
+            samples.Add(sample with
+            {
+                Entry = sample.Entry with { Candidates = entry.Candidates }
+            });
+        }
+
+        return samples;
     }
 
     /// <summary>Adds the visible (third-person) cockpit from the chassis model data asset, if it declares one.</summary>
@@ -495,13 +589,6 @@ public static class MechAssembler
 
         return slotId;
     }
-
-    private static ChassisEntry SelectChassis(IReadOnlyList<ChassisEntry> chassis, string filter) =>
-        chassis.FirstOrDefault(entry => Equals(entry.Folder, filter))
-        ?? chassis.FirstOrDefault(entry => entry.Variants.Any(variant => Equals(variant.Id, filter)))
-        ?? (chassis.Count == 1
-            ? chassis[0]
-            : throw new InvalidOperationException($"No chassis matches '{filter}'."));
 
     private static VariantEntry? SelectVariant(ChassisEntry chassis, string? variant) =>
         variant is null

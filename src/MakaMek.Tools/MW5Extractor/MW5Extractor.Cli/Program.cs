@@ -18,6 +18,7 @@ rootCommand.Add(InspectCommand.Create());
 rootCommand.Add(ExtractCommand.Create());
 rootCommand.Add(DiscoveryReportCommand.Create());
 rootCommand.Add(AssembleCommand.Create());
+rootCommand.Add(ClipsCommand.Create());
 
 var parseResult = rootCommand.Parse(args);
 if (parseResult.Errors.Count > 0)

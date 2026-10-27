@@ -36,10 +36,29 @@ MW5Extractor/            library
   Discovery/             Mw5AssetPath (path/name classifier), ChassisDiscovery (report assembly)
   Inspection/            AssetInspector (exports, tags, bones, sockets, LODs)
   Extraction/            AssetExtractor (glTF / PSK / properties JSON)
-  Reporting/             JSON DTOs for mount, discovery, inspect, extract
+  Animation/             ClipVocabulary (clip-map.json), ClipInventory, AnimationClipReader
+  Assembly/              MechAssembler, ModelMerger (static), SkinnedModelBuilder (animated)
+  Reporting/             JSON DTOs for mount, discovery, inspect, extract, clips, assembly
   Json/                  serializer options and the --json envelope
-MW5Extractor.Cli/        CLI: mount, ls, find, inspect, extract, discovery-report
+clip-map.json            canonical clip vocabulary + aliases (data, not code)
+MW5Extractor.Cli/        CLI: mount, ls, find, inspect, extract, clips, assemble, discovery-report
 ```
+
+## Animation rules
+
+- **Aliases live in `clip-map.json`** (ordered patterns per canonical clip + an exclusion list). Do not add a
+  chassis-name switch; add a pattern.
+- **Tracks map to bones by name.** `Mech_SKL` (272 bones), `Atlas_SKM` (110) and an animated clip (39) have
+  different indices; index-based mapping silently animates the wrong limb.
+- **Convert keys the way CUE4Parse converts bones**: y/z swap with negated quaternion W, translations cm → m.
+  `CUE4Parse-Conversion.AnimationExporter` cannot write glTF; the glTF animation is written with SharpGLTF.
+- **Strip root motion** (horizontal only), report how much, and drop a looping clip's duplicate closing key.
+  Never let stage 2 compensate for motion the game rules do not produce.
+- **Animated models stay in MW5 source space** (Y-up, facing +X, `modelSpace = "mw5-source"`,
+  `modelYawDegrees = -90`): Blender drops an armature-level transform on skinned meshes, which would split body
+  and attachments. Static models stay canonical. Do not "fix" this by baking the basis into the armature.
+- **Attachments are rigid skinned vertices**, bound 100% to their mount joint. Bone-parented glTF nodes survive
+  Blender's importer unreliably.
 
 ## Tests
 

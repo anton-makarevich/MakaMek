@@ -59,24 +59,34 @@ These are non-negotiable and enforced by the normalizer (`validate` fails otherw
 | Rest pose | bind pose = the source's rest pose; T-pose is *not* required (mechs have no arms-out pose) |
 | Materials | PBR kept as authored, but exactly one material property, `extras.boardLook`, names the sprite material profile |
 | Sprite colour | **luminance only**: the board sprite carries shape and shading, never hue. Near-white base, darker creases/outline, alpha for the silhouette. Owner tint is applied at runtime (see §4.4) |
-| Animation fps | resampled to **30 fps**, linear interpolation |
+| Animation fps | source keys kept at their native rate (MW5 authors at **30 fps**); stage 2 resamples to the preset's shipped rate (e.g. `Walk` 10 frames @ 12 fps) |
 | Scene | exactly one scene, no lights/cameras/empties exported (stage 2 owns those) |
+
+Animated MW5 models are the one deliberate exception to "facing +Z": the skeleton has to stay in its exported
+space (Y-up, facing +X) because Blender's glTF importer cancels an armature-level transform on skinned meshes,
+which would split the body and its attachments into different spaces. `assemble` records
+`modelSpace = "mw5-source"` and `modelYawDegrees = -90`; the driver applies the yaw. Static models remain fully
+canonical.
 
 ### 2.3 Canonical clips
 
 The game only needs a fixed vocabulary — so the pipeline defines it and every source is mapped onto it:
 
-| Clip | Loop | Required | Used by |
-|---|---|---|---|
-| `Idle` | ✔ | yes | default board state |
-| `Walk` | ✔ | yes | `MovementType.Walk` |
-| `Run` | ✔ | yes | `MovementType.Run` |
-| `Jump` | ✔ | no | `MovementType.Jump` |
-| `ProneEnter` | ✘ | yes | falling / knocked down |
-| `ProneIdle` | ✔ | yes | `UnitStatus.Prone` |
-| `StandUp` | ✘ | yes | standing up |
-| `Shutdown` | ✘ | no | `UnitStatus.Shutdown` |
-| `Destroyed` | ✘ | no | `IsOutOfCommission` |
+| Clip | Loop | Required | Used by | MW5 source (verified, `AS7` 2026-10-27) |
+|---|---|---|---|---|
+| `Idle` | ✔ | yes | default board state | `AS7_Stand_ANI` (31 keys, 1 s) |
+| `Walk` | ✔ | yes | `MovementType.Walk` | `AS7_WalkForward_Straight_ANI` (61 keys, 2 s) |
+| `Run` | ✔ | yes | `MovementType.Run` | `AS7_RunForward_Straight_ANI` (31 keys, 1 s) |
+| `Jump` | ✔ | no | `MovementType.Jump` | none on the Atlas — jump-capable chassis only |
+| `ProneEnter` | ✘ | yes | falling / knocked down | **absent** (MW5 has no knockdown) |
+| `ProneIdle` | ✔ | yes | `UnitStatus.Prone` | **absent** |
+| `StandUp` | ✘ | yes | standing up | **absent** |
+| `Shutdown` | ✘ | no | `UnitStatus.Shutdown` | none on the Atlas (chassis-dependent) |
+| `Destroyed` | ✘ | no | `IsOutOfCommission` | `AS7_Falling_ANI` (91 keys, 3 s) |
+
+MW5 also ships first-person (`_FP_`), injury (`_Limp`), turn (`_Turn_`/`_Turning_`), reverse (`_Backward`),
+aim/melee and BlendSpace (`_BLS`) variants. They are *not* aliases of the canonical clips: the inventory
+excludes them by pattern and reports them as `ignored`, never as a silent substitute.
 
 `model.json` records, per clip, **how it was satisfied** — this is the key to "regardless of source":
 
@@ -95,9 +105,22 @@ The game only needs a fixed vocabulary — so the pipeline defines it and every 
 For every canonical clip, in order:
 
 1. **Extracted** — the adapter found an animation matching the canonical name (or a declared alias).
-2. **Aliased** — adapter-specific pattern matched (e.g. UE `Anim_Mech_Walk_Fwd` → `Walk`). Aliases live in the adapter, not in shared code.
+2. **Aliased** — adapter-specific pattern matched (UE `AS7_WalkForward_Straight_ANI` → `Walk`). Aliases are
+   **data**: `src/MakaMek.Tools/MW5Extractor/clip-map.json` holds an ordered pattern list per canonical clip
+   plus an exclusion list, so a new chassis or a better alias is a JSON edit, not a code change.
 3. **Synthesized** — a declarative rule in `clips.rules.json` derives the clip from another clip by transform: e.g. `ProneEnter = Idle + root pitch 85° over 6 frames + sink 0.4 m`, `StandUp = ProneEnter reversed`. This is how MW5 gets prone/stand-up at all — it has no knockdown animations.
 4. **Absent** — nothing could satisfy it; the manifest records `absent` and stage 2 renders the static frame as the fallback. Never fails the build.
+
+MW5-specific rules implemented by `MW5Extractor`:
+
+- Ranked aliases: `_WalkForward_Straight_ANI` beats `_WalkForward_Left_ANI`/`_Right_ANI`, which still appear as
+  candidates in the inventory (they are legitimate variants, just not the canonical pick).
+- Third-person only: `_FP_` is excluded, because the first-person rig is a different skeleton/layering.
+- Root motion is stripped at import: the horizontal travel of the skeleton root is removed and reported
+  (`Walk`: 8.6 m over 2 s). Sprites are board-anchored; the runtime moves the unit, not the animation.
+- The duplicate closing key of a looping clip is dropped, so `Walk` ships 60 sampled poses from 61 keys.
+- `clips <chassis> --probe` records frame count, derived fps, duration, animated bones, root travel and loop
+  closure per clip, so "which clips exist" is measured, not assumed.
 
 Because step 3 is data, adding a new "cheat" animation for a whole family of sources is a JSON edit, not a code change.
 
@@ -351,9 +374,33 @@ artifacts/sprites/AS7/
   render-report.json             # per-clip frames, Blender version, samples, effectiveScale breakdown, warnings
 ```
 
-Division of labour: Blender writes PNG frames and nothing else, already at the 1× cell size. All assembly — luminance conversion, atlas packing, `unit.png`, contact sheet, lineup, reports — is the pipeline's job, which is why the atlas layout can change without touching Python.
+Division of labour: Blender writes PNG frames and nothing else. All assembly — luminance conversion, atlas
+packing, `unit.png`, contact sheet, previews and reports — is the pipeline's job, which is why the atlas layout
+can change without touching Python's render path.
 
-Frames are rendered at **84×72, the same resolution as every existing asset**, not supersampled. That is a deliberate 1:1 match with the UI's draw box (`Stretch = Fill` into 84×72), so there is no resampling step and no resampling blur; a sharper variant can be added later purely by changing `cellWidth`/`cellHeight` in the preset (the atlas JSON carries the cell size), without touching the renderer or the runtime.
+Animated models use the same entry point with clip selection:
+
+```bash
+blender … -P tools/blender/render.py -- \
+  --model artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
+  --scale 5.098 --model-yaw -90 --fit --supersample 4 \
+  --clips Walk --out artifacts/spike/anim/AS7-D --report artifacts/spike/anim/AS7-D/report.json
+
+python tools/blender/sheet.py \
+  --frames artifacts/spike/anim/AS7-D/frames --report artifacts/spike/anim/AS7-D/report.json \
+  --assembly artifacts/mw5/assemble/AS7-D/AS7-D.animated.assembly.json \
+  --preset tools/blender/board-topdown.json \
+  --out artifacts/spike/anim/AS7-D --frames-out artifacts/spike/anim/AS7-D/frames-1x \
+  --name AS7-D
+```
+
+`sheet.py` box-downsamples 4× frames to 1×, packs one row per clip into a power-of-two atlas, writes
+`unit-sprites.json`/`clips.csv`/`clips.json`, draws a labelled contact sheet on neutral and hex backgrounds,
+and emits a 4× GIF per clip for a motion sanity check. It needs Pillow; the render path does not.
+
+Frames are rendered at the **fitted per-model cell** (`--fit`): the plan-view projection plus a 2 px margin,
+drawn 1:1 centred in the 100 × 86.6 hex. 4× supersampling is the default quality path for the shipped sheet;
+`sheet.py` does the box downsample. A fixed 84×72 cell is the legacy layout, not the contract.
 
 The atlas exists so the MakaMek runtime change is mechanical: `.mmux` v2 adds `unit-sprites.png` + `unit-sprites.json` next to the unchanged `unit.png`, and `UnitControl` swaps its `Image` for a Presto `SpriteSheet`.
 

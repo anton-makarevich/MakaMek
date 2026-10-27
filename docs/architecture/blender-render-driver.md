@@ -26,7 +26,8 @@ blender -b --factory-startup -noaudio \
         --preset  presets/board-topdown.json \
         --scale   5.06 \
         --out     artifacts/sprites/AS7 \
-        --clips   Idle,Walk,Run,ProneEnter,ProneIdle,StandUp \
+        --clips   Idle,Walk,Run \
+        --fit --supersample 4 \
         --report  artifacts/sprites/AS7/render-report.json
 ```
 
@@ -39,7 +40,10 @@ Rules:
 - `--scale` is **required** and is the pipeline's `effectiveScale` (§3.2). The driver never reads manifests, overrides or tonnage: it is a renderer, not a policy engine.
 - The `.blend` is **not** an input and not checked in. The scene is constructed by the script from the preset, so the scene is diffable text, not an opaque binary.
 
-Optional flags: `--engine cycles|eevee`, `--samples N`, `--resolution N`, `--save-blend path`, `--frame N` (single-frame smoke test), `--no-outline`, `--device cpu|gpu`.
+Optional flags: `--engine cycles|eevee`, `--samples N`, `--resolution N`, `--save-blend path`, `--frame N`
+(single output frame, a render smoke test), `--no-outline`, `--device cpu|gpu`, `--lighting
+lights|ambient|flat`, `--fit` (per-model canvas), `--supersample N` (render N× and let the pipeline
+downsample), `--model-yaw degrees` (source-space models; canonical models need `0`).
 
 ## 3. Scene contract
 
@@ -54,7 +58,7 @@ Built by the driver, every run, from the preset:
 | Outline | **Freestyle** line set (silhouette + crease), dark and thin — this is what replaces the current 2D line art |
 | Film | `transparent = True`; output is converted to 8-bit **luminance + alpha** by the pipeline (see §4) |
 | Colour management | `Standard` view transform, not AgX/Filmic: a filmic curve is designed to desaturate and compress highlights, which fights a controlled grey ramp |
-| Frame range | Per clip: `[start, start + frames - 1]`, one clip per render pass |
+| Frame range | Per clip: the preset's `frames`/`fps`, sampled across the imported action's key range (§3.3); static models keep the historical `1..N` scene frames |
 | Ground | Optional shadow catcher for a soft contact shadow (luminance only, like everything else) |
 
 Nothing in the scene is hand-edited between runs. If the scene needs a change, it is a preset change or a driver change.
@@ -89,6 +93,34 @@ effectiveScale = pxPerMetre
 - The driver does **not** read `model.json`, `scale-overrides.json`, `planView.*`, tonnage or coverage thresholds. That keeps the calibration and override logic in C# (where it is unit-covered) and makes the Python side purely mechanical.
 - The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`pxPerMetre`, `correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.
 - A pre-scaled model (`--scale 1.0` with the scale baked into the `.glb`) is deliberately **not** supported: it would make the canonical model depend on a presentation preset and break reuse by a future 3D client.
+
+### 3.3 Animated clips
+
+A model may carry glTF animations. Stage 1 names each animation with the canonical clip name (`Walk`, `Run`,
+…), so `--clips Walk` selects the action named `Walk`: no clip mapping lives in the driver.
+
+Rules, measured in spike [#1653](https://github.com/anton-makarevich/MakaMek/issues/1653):
+
+- **Import rate.** The scene fps is pinned to 30 *before* `import_scene.gltf`. glTF animation times are in
+  seconds; Blender lays the keys out at scene fps, so a source frame is `seconds × 30` on every machine.
+- **Sampling.** The preset's `frames`/`fps` are the shipped rate, not the source rate. Output frame *k*
+  samples the action's key range at `start + (k−1)/(N−1) × (end − start)`, using subframes. Ten output
+  frames over a 60-key walk therefore read at 12 fps while the source stays at 30.
+- **Pose reset.** Before each clip the driver detaches the action, removes NLA tracks and resets every pose
+  bone. Without that, a second clip in one invocation inherits bones the first clip did not animate.
+- **Root motion** is stripped in stage 1 — the sprite is board-anchored. The driver never compensates for it.
+- **Loop closing key.** Stage 1 drops the duplicated last key of a looping clip; the last rendered frame is
+  the last *distinct* pose and the runtime wraps to frame 1.
+- **Fitting.** `--fit` measures the evaluated (deformed) mesh over every source frame the run renders, per
+  clip with its action active. An object's `bound_box` is the undeformed mesh, so animated frames cannot be
+  fitted from it.
+- **Space.** Animated MW5 models stay in the skeleton's exported space (metres, Y-up, facing **+X**):
+  Blender's glTF importer drops an armature-level transform on skinned meshes, so a baked canonical basis
+  would leave the body and its attachments in different spaces. `assemble` reports
+  `modelSpace = "mw5-source"` and `modelYawDegrees = -90`; pass that value to `--model-yaw`. Static models
+  stay canonical and need `0`.
+- **Report.** `render-report.json` records, per clip, the action name, its frame range, and the source frame
+  behind every output frame — that is what lets the contact sheet label `f04 src 19.7`.
 
 ## 4. Preset → scene mapping
 
@@ -134,12 +166,12 @@ EEVEE-Next requires an OpenGL/Vulkan context and fails in headless containers wi
 
 | Quantity | Value |
 |---|---|
-| Frame | **84×72** (1×, the same size as every existing asset), luminance + alpha, transparent |
+| Frame | the fitted per-model canvas (`--fit`); spike [#1642](https://github.com/anton-makarevich/MakaMek/issues/1642) measured 83×42 for an assembled Atlas at 1× |
 | Samples | 32–64 + OIDN denoise (flat board look, no GI needs) |
-| Per frame, CPU | ~0.2–1 s — at 84×72 the cost is dominated by per-frame scene sync and Freestyle, not by pixel fill |
-| Frames per chassis | ~60 (6 clips) |
-| Per chassis | under a minute |
-| 76 chassis | ~15–75 min single machine, parallel across chassis |
+| Per frame, CPU | ~1.5 s at 1× and ~3.1 s at 4× supersampling for an assembled, animated Atlas (fitted canvas, 64 samples, Freestyle) |
+| Frames per model | ~60 (one row per clip; e.g. Walk = 10 frames at 12 fps) |
+| Per model | a few minutes at 4×; linear in frames |
+| 199 models | ~7–8 h single machine at 4×, parallelisable across models |
 
 If this lands above the acceptable time, the levers are, in order: fewer samples (denoise compensates), fewer clips per pass, then a second machine. Writing a rasteriser is *not* on that list.
 
@@ -156,11 +188,11 @@ Note the resolution is a **preset value, not an architectural one**: raising `ce
 ```
 tools/blender/
   render.py            entry point: arg parsing → scene build → render → verify outputs
-  scene.py             camera / lights / outline / film construction
+  scene.py             camera / lights / outline / film / animation (actions, pose reset, bounds)
   preset.py            preset → bpy settings, strict unknown-key rejection
+  sheet.py             sprite atlas, contact sheet, clips.csv/json and GIF previews (Pillow, stage-2 post)
+  board-topdown.json   the preset (the driver's only look/scale input besides --scale)
   README.md            how to run it locally, how to pin the version
-presets/
-  board-topdown.json
 ```
 
 This is the only Python in the repository, it is a build tool, and it has no runtime counterpart. Everything else in the pipeline stays C#: import/normalise, preset ownership, atlas packing, `.mmux` writing, CLI and MCP.

@@ -58,6 +58,48 @@ The MW5 layout is therefore "body + cockpit + glass + weapon meshes + data asset
 
 `MW5Extractor assemble` now builds a full variant from the pak and produces one renderable glTF (`AS7-D.glb`, ~50k triangles): body (`Atlas_SKM`) + third-person cockpit (`AS7_TP_Cockpit_DM0_STM`, named by `<Chassis>_MDL`, parented to the `Cockpit` bone) + the loadout's weapon meshes, each placed by its slot's skeleton bone. The loadout → weapon-data-asset → `WeaponType` tag → `<Chassis>_HPS` visual → `_SKM` mesh chain is fully data-driven; the only manual knowledge left is which *MakaMek* equipment corresponds to which MW5 weapon tag. The first-person cockpit (`Atlas_Cockpit_SKM`/`_CockpitGlass_STM`) is an interior asset and must not be used as the visible head. Output is byte-identical across runs.
 
+#### 2.2.3 Animation clips verified (2026-10-27)
+
+`MW5Extractor clips AS7-D --probe` decodes each candidate and reports what is really there. The Atlas folder
+ships **91** animation assets; only six canonical slots exist and three of them are empty:
+
+| Canonical | Source asset | Keys | fps | Duration | Animated bones | Root travel | Loop closure |
+|---|---|---|---|---|---|---|---|
+| `Idle` | `AS7_Stand_ANI` | 31 | 30 | 1.0 s | 39 | 0 m | 0° |
+| `Walk` | `AS7_WalkForward_Straight_ANI` | 61 (60 sampled) | 30 | 2.0 s | 39 | **8.61 m** | 0° |
+| `Run` | `AS7_RunForward_Straight_ANI` | 31 (30 sampled) | 30 | 1.0 s | 39 | **18.45 m** | 7.9° |
+| `Jump` | — | — | — | — | — | — | chassis-dependent |
+| `Shutdown` | — | — | — | — | — | — | chassis-dependent |
+| `Destroyed` | `AS7_Falling_ANI` | 91 | 30 | 3.0 s | 39 | 0 m | 0.4° |
+| `ProneEnter` / `ProneIdle` / `StandUp` | — | — | — | — | — | — | **absent everywhere** |
+
+Findings that shaped the tooling:
+
+- **Aliases are data.** First-person (`_FP_`), injury (`_Limp`), turn (`_Turn_`/`_Turning_`), reverse
+  (`_Backward_`), aim/melee and BlendSpace (`_BLS`) clips are excluded by an ordered pattern list in
+  `clip-map.json`; `_WalkForward_Straight_ANI` outranks `_WalkForward_Left_ANI`/`_Right_ANI`.
+- **30 fps, N+1 keys.** A 2 s walk has 61 keys at 30 fps; the closing key duplicates the first pose. Sampling
+  every key and dropping the last gives 60 shipped poses (the loop wraps 60 → 1).
+- **`bForceRootLock` does not mean no root motion.** The walk still translates `Root` by 8.6 m and the run by
+  18.45 m; stage 1 zeroes the horizontal root translation and reports the stripped distance. The sprite is
+  board-anchored.
+- **Indexes do not line up.** `Mech_SKL` has 272 bones, `Atlas_SKM` references 110, and a walk track animates
+  only 39. Tracks are mapped to joints **by bone name**; index-based mapping silently animates the wrong limb.
+- **`Idle` is a static stance, not a breathing loop.** `AS7_Stand_ANI` has 30 keys, but every key is identical:
+  the clip only holds the pose (34 constant channels, one key each after collapsing). Rendering it produces
+  pixel-identical frames, even at 4× supersampling. Ship the pose for completeness, but do not count on idle
+  motion at board size; the walk/run leg cycle is the motion that reads.
+- **`Run` is not perfectly closed** (7.9° on one bone). The loop still ships, with the closure error recorded
+  in `clips.json` rather than hidden.
+- **Not every chassis has every clip.** `Jump` and `Shutdown` are chassis-dependent and reported `missing`;
+  only prone/stand-up are `absent` by design (MW5 never shipped knockdown).
+- **CUE4Parse cannot write animated glTF.** `AnimationExporter` only offers ActorX (`.psa`), UEFormat and USD.
+  `MW5Extractor` therefore reads `UAnimSequence → ConvertAnims()` tracks and writes the glTF animation itself
+  with SharpGLTF (`UAnimSequence.ConvertAnims`, `CAnimTrack.GetBoneTransform`, y/z swap + cm→m).
+- **Blender drops an armature-level transform on skinned meshes.** Baking the canonical rotation into the
+  armature moved the body but not its attachments; the animated model therefore stays in MW5 source space and
+  the driver applies `--model-yaw -90`. See `../architecture/blender-render-driver.md` §3.3.
+
 ### 2.3 Chassis count (measured from this repo)
 
 ```
@@ -161,14 +203,17 @@ So: **P0 changes nothing but the PNG.** Animation later needs a v2 package + a s
 
 ### 4.2 Animation inventory
 
+Verified against the Atlas pak on 2026-10-27 — real asset names, key counts and root motion are in §2.2.3.
+The mapping is data (`src/MakaMek.Tools/MW5Extractor/clip-map.json`), not a per-chassis assumption.
+
 | Clip | Source in MW5 | Notes |
 |---|---|---|
-| `Idle` | ✅ chassis idle / AnimBlueprint idle | subtle torso sway + weight shift |
-| `Walk` | ✅ locomotion | loop; leg cycle reads well even top-down |
-| `Run` | ✅ locomotion | longer stride, faster |
+| `Idle` | ✅ chassis idle (`<Chassis>_Stand_ANI`) | subtle torso sway + weight shift |
+| `Walk` | ✅ locomotion (`<Chassis>_WalkForward_Straight_ANI`) | loop; leg cycle reads top-down, 2 s at 30 fps |
+| `Run` | ✅ locomotion (`<Chassis>_RunForward_Straight_ANI`) | longer stride, faster; 1 s at 30 fps |
 | `Jump` | ⚠️ only chassis with jump jets | useful for `MovementType.Jump` |
-| `Shutdown` / `PowerUp` | ✅ shutdown/power-up | good for `UnitStatus.Shutdown` |
-| `Destroyed` | ✅ destruction/collapse | good for `IsOutOfCommission` |
+| `Shutdown` / `PowerUp` | ⚠️ chassis-dependent | good for `UnitStatus.Shutdown` |
+| `Destroyed` | ✅ destruction/collapse (`<Chassis>_Falling_ANI`) | good for `IsOutOfCommission` |
 | `ProneEnter` | ❌ **does not exist** | MW5 has no knockdown mechanic |
 | `ProneIdle` | ❌ **does not exist** | author |
 | `StandUp` | ❌ **does not exist** | author |
@@ -200,7 +245,10 @@ The current art is top-down and the `UnitControl` rotates sprites for facing, so
 
 ### 4.5 Frame cell, colour and atlas
 
-- Current draw size is `0.84 × hex` = **84 × 72.746** logical px, so render at **84×72 per frame** (1×, the same as every existing asset) and accept the same ~1.01× vertical stretch that `Stretch = Fill` already applies to today's 84×72 art. There is no *extra* resampling introduced by the pipeline — it is identical to the status quo — but if pixel-exactness is ever wanted, render 84×73 and switch `UnitControl` to `Stretch = Uniform`. Because resolution is only a preset value, a sharper variant later is a `cellWidth`/`cellHeight` change plus render time, not a format change. (No padding inside the cell: the atlas packer adds the 2 px gutters between cells.)
+- The **fitted per-model canvas** supersedes the legacy fixed 84 × 72 cell (spikes #1642/#1653): render at the
+  model's plan-view projection + 2 px margin (`render.py --fit`), box-downsample 4× frames to 1×, and draw the
+  result 1:1 centred in the 100 × 86.6 hex. Every unit therefore ships its own `cellWidth`/`cellHeight`, carried
+  in `unit-sprites.json`. The old `84 × 72` size (0.84 × hex) remains the fallback for existing art only.
 - Sprite *size* is not chosen here: it comes from the tonnage-volume scale chain in `../architecture/asset-pipeline.md` §4.3, with per-chassis overrides in `scale-overrides.json`.
 - Keep the **84:72 aspect** inside the cell, or switch `UnitControl` to `Stretch = Uniform`; `Stretch = Fill` on a square frame would squash the mech.
 - **Luminance only, no hue.** The shipped sprites are tinted at runtime (`UnitControl` composites the owner colour over the sprite with the sprite's alpha as an `OpacityMask`), so they must be a white→dark-grey ramp: near-white base, darker creases and outline. Measured on the current art: ~98% of opaque pixels are neutral (R≈G≈B) across a full 4…255 range — the tint path already assumes exactly this. Details in `../architecture/blender-render-driver.md` §3.1.
@@ -232,6 +280,12 @@ Proposed `.mmux` v2 additions (backwards compatible — `unit.png` stays as the 
 ```
 
 Suggested clip costs at 12 fps: walk 10 frames ≈ 0.83 s loop; prone transition 6 frames = 0.5 s (matches a tabletop "falls this turn" beat); stand-up 7 frames ≈ 0.6 s.
+
+Measured on the assembled, animated Atlas (spike #1653): the fitted 1× cell for `Walk` is **91 × 63**
+(the union of every sampled frame at 5.098 px/m, +2 px margin), the atlas is 1024 × 128 with one row, and
+`sheet.py` writes `unit-sprites.png`/`unit-sprites.json`, a labelled `contact-sheet.png` (1× frames at 2× zoom
+on neutral and hex backgrounds), `clips.csv`/`clips.json` and `preview-Walk.gif`. The source is 60 poses at
+30 fps, shipped as 10 at 12 fps; frames re-render pixel-identically (max channel delta 0).
 
 ### 4.6 Integration map (when we get past P0)
 

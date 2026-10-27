@@ -33,6 +33,10 @@ Blueprint path; `AS7-D_Loadout.json` lists `InstalledWeapons[]` as `HardpointSlo
 So hardpoint topology, mount socket and the weapon-asset mapping are all machine-readable — no
 hand-written deserialiser and no hand-curated weapon table are required for the assembly step.
 
+Animations decode too: `UAnimSequence.ConvertAnims()` yields one track per skeleton bone with rotated/
+translated/scaled keys, and `cli clips --probe` turns that into a measured per-chassis inventory. MW5 keys at
+30 fps; the Atlas walk is 61 keys over 2 s with 8.6 m of (stripped) root travel.
+
 ## Build & run
 
 ```bash
@@ -56,7 +60,8 @@ Every verb accepts `--paks`, `--extra <dir>` (repeatable), `--aes <hex>`, `--ood
 | `find <chassis>` | classify one chassis: body, body parts, cockpit, glass, hardpoints, weapons, variants, animations | `find Atlas` / `find AS7-D` |
 | `inspect <asset>` | exports, generic tags, bones, sockets with transforms, LODs, material slots, animation info | `inspect Atlas_SKM` |
 | `extract <asset>` | `--format gltf\|psk\|json` → files on disk | `extract Atlas_SKM` / `extract Atlas_HPS -f json` |
-| `assemble <chassis\|variant>` | merge body + cockpit + loadout weapons into **one** renderable glTF (`<VARIANT>.glb` + `<VARIANT>.assembly.json`) | `assemble AS7-D` |
+| `clips <chassis>` | map the chassis' animation assets onto the canonical vocabulary; `--probe` decodes frames/fps/root motion/loop closure | `clips AS7-D --probe` |
+| `assemble <chassis\|variant>` | merge body + cockpit + loadout weapons into **one** renderable glTF (`<VARIANT>.glb` + `<VARIANT>.assembly.json`); `--clips Walk` produces a skinned animated `<VARIANT>.animated.glb` | `assemble AS7-D --clips Walk` |
 | `discovery-report` | every chassis in one JSON file, plus assumption checks against the research notes | `discovery-report` |
 
 Asset arguments accept a full virtual path, a path suffix (`Atlas/Model/Body/Atlas_SKM`) or a unique
@@ -94,6 +99,60 @@ Notes that matter:
 - Weapons that have no visual (melee actuators, empty slots) are listed under `unmapped` with a reason.
 - Output is deterministic: the same command twice produced a byte-identical `.glb` (verified 2026-10-27).
 
+## Animation: canonical clips, one model
+
+`clips <chassis> --probe` is the inventory: it resolves MW5 asset names to the canonical vocabulary
+(`Idle`, `Walk`, `Run`, `Jump`, `Shutdown`, `Destroyed`) and reports frame counts, derived fps, duration,
+animated bones, root travel and loop closure. Aliases are data in `clip-map.json` (next to the library):
+
+```jsonc
+{ "name": "Walk", "loop": true, "patterns": ["_WalkForward_Straight_ANI", "_WalkForward_ANI", "_Walk_ANI"] }
+```
+
+`assemble <variant> --clips Walk` then bakes the clip into a **skinned** glTF:
+
+```
+<variant>.animated.glb      body skin + skeleton + attachments + glTF animation named "Walk"
+<variant>.assembly.json     animations[]: source asset, keys, fps, duration, root travel, loop closure
+```
+
+What is different from the static merge:
+
+- **The body keeps its skin and joints.** A clip is bone-local transforms, so only geometry that still
+  references the joints can be animated. Attachments (cockpit, weapons) are rigidly bound to their mount joint
+  in the same skin, not merged into the body.
+- **Tracks map by bone name.** `Mech_SKL` has 272 bones, `Atlas_SKM` 110, and a walk animates 39 — indices do
+  not line up.
+- **Keys are converted like the exporter converts bones:** y/z swap with negated quaternion W, translations
+  cm → m. `CUE4Parse`'s `AnimationExporter` cannot write glTF (ActorX/UEFormat/USD only), so the glTF animation
+  is written with SharpGLTF.
+- **Root motion is stripped** (horizontal only) and reported; the sprite is board-anchored.
+- **The closing key of a loop is dropped** (61 keys → 60 sampled poses for the 2 s walk).
+- **The animated model stays in MW5 source space** (Y-up, facing +X). Blender's glTF importer cancels an
+  armature-level transform on skinned meshes; the assembly report says `modelSpace = "mw5-source"` and
+  `modelYawDegrees = -90`, and the driver applies `--model-yaw -90`.
+
+Full walk pipeline (after `assemble AS7-D --clips Walk`):
+
+```bash
+F:/blender/blender.exe -b --factory-startup -noaudio --python-exit-code 1 \
+  -P tools/blender/render.py -- \
+  --model artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
+  --preset tools/blender/board-topdown.json \
+  --scale 5.098 --model-yaw -90 --fit --supersample 4 \
+  --clips Walk --out artifacts/spike/anim/AS7-D \
+  --report artifacts/spike/anim/AS7-D/report.json
+
+python tools/blender/sheet.py \
+  --frames artifacts/spike/anim/AS7-D/frames --report artifacts/spike/anim/AS7-D/report.json \
+  --assembly artifacts/mw5/assemble/AS7-D/AS7-D.animated.assembly.json \
+  --preset tools/blender/board-topdown.json \
+  --out artifacts/spike/anim/AS7-D --frames-out artifacts/spike/anim/AS7-D/frames-1x --name AS7-D
+```
+
+Verified on `AS7-D` (2026-10-27): Walk = 61 keys @ 30 fps / 2 s, 8.61 m root travel stripped, 39 animated
+bones, loop closure 0°, 60 sampled poses → 10 shipped frames at 12 fps, fitted 1× cell 91 × 63.
+
 ## Output
 
 Nothing is written outside gitignored `artifacts/mw5/`:
@@ -103,7 +162,9 @@ artifacts/mw5/
   mount-report.json
   discovery-report.json
   inspect/<asset>.json
+  clips/<chassis>.json        # canonical clip inventory (+ decoded metrics with --probe)
   extract/<asset>/…           # mirrors the virtual path, e.g. …/Atlas/Model/Body/Atlas_SKM.glb
+  assemble/<variant>/…        # <VARIANT>.glb + .assembly.json, or <VARIANT>.animated.glb with --clips
 ```
 
 ## Exit codes
@@ -118,8 +179,8 @@ artifacts/mw5/
   mounts and exports without either.
 - **glTF exports are faithful, not pretty:** materials resolve to material instances (not board-look),
   textures come out where referenced. Rendering stays stage 2's job (`tools/blender/render.py`).
-- **Not implemented here** (later slices): animation clips and skinned merges (assembly is the static rest
-  pose), `.mmux` v2 output, the 199-variant batch and contact sheets.
+- **Not implemented here** (later slices): `.mmux` v2 output, the 199-variant batch, published contact sheets
+  and animation authoring for prone/stand-up (MW5 ships none).
 - Chassis identity is the MW5 folder; the `chassis-map.json` (MW5 folder → MegaMek code) belongs to the
   assembly/packaging step. `assemble` already reports the variant id it used.
 

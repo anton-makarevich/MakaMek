@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "description": "MW5 animation asset names -> canonical clip vocabulary. Matching is a ranked suffix test on the asset name, so aliases live here and not in code. Add a pattern, not a switch.",
+  "exclude": [
+    "_FP_",
+    "_Limp",
+    "_Backward",
+    "_Turn_",
+    "_Turning_",
+    "_BLS",
+    "_Montage",
+    "_MTG",
+    "_AOF",
+    "_Initialize",
+    "_AimNeutral",
+    "_Punch",
+    "_Katana"
+  ],
+  "clips": [
+    {
+      "name": "Idle",
+      "loop": true,
+      "hold": null,
+      "patterns": ["_Stand_ANI", "_Idle_ANI", "_Idle"]
+    },
+    {
+      "name": "Walk",
+      "loop": true,
+      "hold": null,
+      "patterns": ["_WalkForward_Straight_ANI", "_WalkForward_ANI", "_Walk_ANI"]
+    },
+    {
+      "name": "Run",
+      "loop": true,
+      "hold": null,
+      "patterns": ["_RunForward_Straight_ANI", "_RunForward_ANI", "_Run_ANI"]
+    },
+    {
+      "name": "Jump",
+      "loop": true,
+      "hold": null,
+      "patterns": ["_JumpJet_ANI", "_Jump_ANI"]
+    },
+    {
+      "name": "Shutdown",
+      "loop": false,
+      "hold": "last",
+      "patterns": ["_Shutdown_ANI", "_PowerDown_ANI"]
+    },
+    {
+      "name": "Destroyed",
+      "loop": false,
+      "hold": "last",
+      "patterns": ["_Falling_ANI", "_Destroyed_ANI", "_Collapse_ANI"]
+    }
+  ],
+  "absent": {
+    "ProneEnter": "MW5 shipped no knockdown mechanic, so no fall clip exists per chassis; author it in Blender.",
+    "ProneIdle": "No prone state in MW5; author it in Blender.",
+    "StandUp": "No get-up state in MW5; author it in Blender."
+  }
+}

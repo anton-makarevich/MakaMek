@@ -179,7 +179,39 @@ Gotchas found the hard way:
 - Canonical space: source is metres/Y-up facing +X; rotate −90° about Y so it faces +Z, then centre the
   footprint on the origin and put the lowest vertex on Y=0.
 
-## 9. Anti-patterns
+## 9. Animation clips
+
+`AnimationExporter` supports **ActorX (`.psa`), UEFormat and USD only** — not glTF. To get a glTF animation,
+read the sequence and write it yourself:
+
+```csharp
+using CUE4Parse_Conversion.Animations;      // ConvertAnims() extension
+var anim = archive.LoadObject<UAnimSequence>("…/AS7_WalkForward_Straight_ANI");
+var skeleton = anim.Skeleton.TryLoad<USkeleton>(out var sk) ? sk : throw …;
+var set = anim.ConvertAnims();               // CAnimSet
+var seq = set.Sequences[0];                  // CAnimSequence: NumFrames, AnimEndTime, Tracks
+var track = seq.Tracks[boneIndex];           // one per skeleton bone (272 for Mech_SKL)
+track.GetBoneTransform(frame, frameCount, ref fQuat, ref fVector, ref fVector);
+```
+
+Gotchas measured on the Atlas walk:
+
+- **Bones differ.** `Mech_SKL` = 272 bones; `Atlas_SKM` = 110; the walk animates 39. `seq.Tracks[i]`
+  corresponds to `skeleton.ReferenceSkeleton.FinalRefBoneInfo[i]` — map **by name**, never by index.
+- **Native rate is 30 fps.** A 2 s walk has 61 keys (`duration × 30 + 1`); the last key repeats the first.
+  Derive fps as `(NumFrames - 1) / SequenceLength` and drop the closing key for a loop.
+- **Root motion exists.** Despite `bForceRootLock = True`, `Root` translates 8.6 m over the walk and 18.45 m
+  over the run. Strip horizontal root translation for a board-anchored sprite.
+- **Same basis change as the exporter.** Bone node transforms use `SwapYZ` `(x, z, y, -w)` for quaternions and
+  `(x, z, y) * 0.01` for translations (`Gltf.CreateGltfSkeleton`). Applying the same conversion to the keys is
+  what makes an MW5 clip bind to the exported body without retargeting.
+- **Blender drops an armature-level transform on skinned meshes.** Keep animated models in the skeleton's
+  exported space and rotate in the driver (`--model-yaw -90`).
+- **glTF animation extras are not preserved** by SharpGLTF's `Animation`; clip metadata (fps, root travel,
+  loop closure) goes in the assembly report and `clips.json`, not in the glb.
+- `clips <chassis> --probe` is the quick way to see what decodes before writing animation code.
+
+## 10. Anti-patterns
 
 - Loading assets to answer a discovery question (285k paths are cheap; 285k packages are not).
 - Hard-coding `EGame.GAME_UE5_x` for MW5; drive the version from `MountOptions.Game` → `VersionContainer`.
@@ -187,7 +219,7 @@ Gotchas found the hard way:
 - Treating `FStructFallback` as "unreadable" — try the JSON exporter first, then walk `FPropertyTag`.
 - Keeping any exported `.glb`/`.png`/`.json` in the repo: MW5 output is never committed.
 
-## 10. Verify against source
+## 11. Verify against source
 
 - `CUE4Parse` repo: `CUE4Parse/FileProvider/DefaultFileProvider.cs`, `FileProvider/Vfs/AbstractVfsFileProvider.cs`,
   `UE4/Assets/Objects/FPropertyTag.cs`, `Compression/OodleHelper.cs`.

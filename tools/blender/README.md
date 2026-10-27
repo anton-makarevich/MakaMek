@@ -14,8 +14,9 @@ The look lives in [board-topdown.json](board-topdown.json).
 ```
 tools/blender/
   render.py    entry point: arguments -> scene build -> render -> verify outputs -> JSON report
-  scene.py     camera / lights / materials / Freestyle / output settings
+  scene.py     camera / lights / materials / Freestyle / output settings / animation helpers
   preset.py    preset loading and strict validation (unknown keys are errors)
+  sheet.py     atlas, contact sheet, clips.csv/json, GIF previews (Pillow; not used by the render path)
 ```
 
 ## Requirements
@@ -64,9 +65,9 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--preset` | preset JSON (required) |
 | `--scale` | **required**, pixel space: after it, 1 model unit = 1 px, so `ortho_scale` is simply the larger cell dimension and frames the sprite directly |
 | `--out` | output directory (required) |
-| `--clips` | comma-separated clip names from the preset (default `Idle`) |
+| `--clips` | comma-separated clip names from the preset (default `Idle`). On an animated model each name resolves to the glTF animation of the same name; a missing clip fails the run instead of rendering a static pose |
 | `--report` | write the JSON report to this path as well |
-| `--frame N` | render a single frame per clip (static sprite / smoke test) |
+| `--frame N` | render a single output frame per clip (static sprite / smoke test) |
 | `--samples N` | override the preset sample count |
 | `--resolution N` | render an N×N cell instead of the preset's or the fitted one — local inspection only |
 | `--fit` | size the cell to this model's plan-view projection (+2 px margin at 1×, rounded up to a multiple of the supersample factor) instead of a fixed cell. Measured over **every rendered frame**, so an animated pose cannot be clipped. Each unit ships its own canvas and is drawn 1:1, centred in the hex |
@@ -76,9 +77,56 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
 | `--no-outline` | disable the Freestyle outline |
 | `--save-blend PATH` | keep the generated scene for inspection |
-| `--model-yaw DEG` | **spike-only**: extra yaw for source exports that are not yet canonical. Canonical models face `+Z` and need `0` |
+| `--model-yaw DEG` | yaw for models exported in a different facing. Canonical static models need `0`; animated MW5 models are exported in source space and need **-90** (the assembly report prints `modelYawDegrees`) |
 
 Exit codes: `0` ok, `2` bad arguments, `3` missing input, `4` invalid preset or failed verification.
+
+## Animated clips and sheets
+
+An assembled animated model carries one glTF animation per clip, named with the canonical vocabulary
+(`Walk`, `Run`, …). `--clips Walk` resolves the action of that name; the preset's `frames`/`fps` decide the
+shipped sampling, not the source rate.
+
+```bash
+blender -b --factory-startup -noaudio --python-exit-code 1 \
+        -P tools/blender/render.py -- \
+        --model  artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
+        --preset tools/blender/board-topdown.json \
+        --scale  5.098 --model-yaw -90 --fit --supersample 4 \
+        --clips  Walk \
+        --out    artifacts/spike/anim/AS7-D \
+        --report artifacts/spike/anim/AS7-D/report.json
+
+python tools/blender/sheet.py \
+        --frames artifacts/spike/anim/AS7-D/frames \
+        --report artifacts/spike/anim/AS7-D/report.json \
+        --assembly artifacts/mw5/assemble/AS7-D/AS7-D.animated.assembly.json \
+        --preset tools/blender/board-topdown.json \
+        --out artifacts/spike/anim/AS7-D \
+        --frames-out artifacts/spike/anim/AS7-D/frames-1x \
+        --name AS7-D
+```
+
+What the driver does with a clip:
+
+- Pins the scene to 30 fps **before** the glTF import, so a glTF time of `t` seconds becomes source frame
+  `t × 30` on every machine.
+- Samples the action's key range evenly for the preset's output frame count, using subframes: `Walk` is 60
+  source poses but ships 10 frames at 12 fps.
+- Resets every pose bone and detaches NLA tracks before each clip, so a second clip cannot inherit bones the
+  first one did not animate.
+- Measures `--fit` from the evaluated (deformed) mesh per clip, with that clip's action active.
+- Fails with exit `4` when the model has animations but the requested clip is not among them.
+
+`sheet.py` (Pillow, `pip install pillow`) box-downsamples the 4× frames to 1× and writes:
+
+```
+unit-sprites.png / .json      # one row per clip, 2 px gutters, power-of-two, cell size + clip metadata
+contact-sheet.png             # every frame labelled ("f04 src 19.7"), neutral and hex backgrounds
+clips.csv / clips.json        # source asset, source fps/frames, shipped fps/frames, root motion, loop closure
+preview-<clip>.gif            # 4× motion sanity check
+frames-1x/<clip>/<frame:03>.png  # the downsampled 1× frames, when --frames-out is given
+```
 
 ## Scale is not the driver's business
 
@@ -147,8 +195,9 @@ instead of rendering an unlit sprite.
 `--factory-startup`, fixed seed (`0`), adaptive sampling off, fixed samples and denoiser, fixed thread
 count (`4`), `Standard` view transform, no motion blur, no persistent data.
 
-- Same machine, same build: the frame is **byte identical** across runs (verified on 5.2.3, Cycles CPU,
-  64 samples, Freestyle on).
+- Same machine, same build: static frames are byte-identical across runs; animated frames are
+  **pixel-identical** (max channel delta **0** on all 10 `Walk` frames) while the PNG container bytes differ.
+  Compare pixels, not hashes.
 - Across machines/builds: expect small differences. Compare perceptually (per-channel delta), not by hash.
 - Measured (5.2.3, CPU, AS7, Freestyle on), marginal cost per frame:
 
@@ -180,6 +229,17 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
   `glTF_not_exported` collection. They are not part of the model; the driver deletes them before
   measuring, shading and rendering. Anything that measures a glTF by hand must exclude them too, or
   the reported bounds are wrong by the helper's size.
+- **The importer drops an armature-level transform on skinned meshes.** A canonical basis baked into the
+  armature rotates the attachments but leaves the body in source space (and vice versa). Animated models
+  therefore ship in source space and the driver applies `--model-yaw -90`; `--fit` then recentres the
+  footprint and grounds the feet. Do not try to bake the basis into the skeleton root: the importer
+  normalises that too.
+- **Bone-parented mesh nodes are unreliable across the importer.** Attachments must be skinned vertices
+  bound 100 % to their mount joint (what `MW5Extractor assemble --clips` does), not child nodes of a bone.
+- **`--fit` must measure evaluated vertices.** `Object.bound_box` is the undeformed mesh, so an animated
+  pose is invisible to it; the driver's `world_bounds` walks the evaluated mesh instead.
+- **Pixel-identical ≠ byte-identical.** Repeated animated renders on the same build produced frames with a
+  max channel delta of 0, but different PNG container bytes (metadata), so compare pixels, not file hashes.
 - FModel exports UE cm as glTF metres, keeps the mech **facing +X** (not the canonical +Z) and gives
   weapons their own `Weapon_SKL` skeleton. Until stage 1 normalises the model, pass `--model-yaw 90`
   and do not expect weapons to land on their hardpoints.
