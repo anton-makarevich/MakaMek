@@ -97,6 +97,7 @@ public class PhysicalAttackIndicatorMotionTests
         indicator.IconPath.Fill.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint,
             "the glyph belongs to the attacker, like the hex it sits in");
         indicator.BadgePath.Stroke.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint);
+        indicator.BadgePath.Fill.ShouldBeNull("the hex is an outline; its figure is created unfilled");
         indicator.PulsePath.Stroke.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint);
     });
 
@@ -162,7 +163,7 @@ public class PhysicalAttackIndicatorMotionTests
             indicator.PulsePath.Opacity.ShouldBe(0, "the reduced pulse is a still badge, not a loop");
             indicator.BadgePath.IsVisible.ShouldBeTrue();
             indicator.BadgePath.Opacity.ShouldBeGreaterThan(0, "the hex stays visible without the loop");
-            indicator.BadgePath.Fill.ShouldNotBeNull();
+            indicator.BadgePath.Stroke.ShouldNotBeNull("the hex is a tinted outline, not a filled plate");
             indicator.IconPath.Opacity.ShouldBeGreaterThan(0, "the icon stays visible without the loop");
         }
         finally

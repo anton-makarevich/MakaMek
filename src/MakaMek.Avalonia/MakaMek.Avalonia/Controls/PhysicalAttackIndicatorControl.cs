@@ -62,8 +62,6 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     private const double IconSize = 17;
     private const double BadgeStrokeThickness = 2;
 
-    private static readonly IBrush BadgeBrush = new SolidColorBrush(Color.FromArgb(0xB0, 0, 0, 0));
-
     private readonly Path _pulse;
     private readonly Path _badge;
     private readonly Path _icon;
@@ -83,7 +81,7 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
 
         var tint = new SolidColorBrush(Color.Parse(viewModel.AttackerTint));
         _pulse = HexShapeMotion.CreateScaledHex(SizeFactor, 0, BadgeStrokeThickness, tint);
-        _badge = HexShapeMotion.CreateScaledHex(SizeFactor, BadgeInset, BadgeStrokeThickness, tint, BadgeBrush);
+        _badge = HexShapeMotion.CreateScaledHex(SizeFactor, BadgeInset, BadgeStrokeThickness, tint);
         _icon = CreateIcon(viewModel.AttackType, tint);
 
         Children.Add(_pulse);

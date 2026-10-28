@@ -118,14 +118,16 @@ internal static class HexShapeMotion
     /// Creates a hexagon path scaled to <paramref name="scale"/> of a map hex. Unlike
     /// <see cref="CreateHex"/> it is visible at rest, because an indicator is not an entrance.
     /// </summary>
-    public static Path CreateScaledHex(double scale, double inset, double thickness, IBrush? stroke,
-        IBrush? fill = null) => new()
+    /// <remarks>
+    /// The hexagon is stroked only: the figure is created unfilled, so a brush set on
+    /// <see cref="Shape.Fill"/> would have nothing to paint.
+    /// </remarks>
+    public static Path CreateScaledHex(double scale, double inset, double thickness, IBrush? stroke) => new()
     {
         Data = CreateHexGeometry(inset, scale),
         Stroke = stroke,
         StrokeThickness = thickness,
         StrokeJoin = PenLineJoin.Round,
-        Fill = fill,
         Opacity = 1,
         IsHitTestVisible = false,
         Stretch = Stretch.None,
