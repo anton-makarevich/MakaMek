@@ -629,7 +629,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             case MechSkidCommand skid:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(skid.UnitId));
                 break;
-            case MechFallCommand fall:
+            // A fall command is also published when the piloting skill roll succeeds and the mech
+            // stays upright; only a real fall changes its place on the board.
+            case MechFallCommand { DamageData: not null } fall:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(fall.UnitId));
                 break;
             case MechStandUpCommand standUp:

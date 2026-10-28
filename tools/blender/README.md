@@ -133,9 +133,11 @@ frames-1x/<clip>/<frame:03>.png  # the downsampled 1× frames, when --frames-out
 `unit-sprites.json` (schema `version: 2`) carries, per clip, a `distancePerCycle` in
 `distanceUnits: "spritePixels"`: the sampled foot-contact stride from the assembly report's
 `footGait.correctedStrideMeters` (falling back to the root endpoint, then `rootMotionMeters`) multiplied
-by the report's `appliedScale`. The `footGait` block records the shipped-frame contacts and their slip;
-generate it with `clips --probe --shipped-frames N`, where N is the preset's frames per clip. The sheet
-also records the render provenance (`preset`, `appliedScale`, `supersample`, `modelYawDegrees`). A repeated
+by the report's `appliedScale`. The `footGait` block records the shipped-frame contacts and their slip
+and is read from the `source_clips` entries of the `--assembly` JSON, which the assembler fills in with its
+default probe count (`10`). `clips --probe --shipped-frames N` prints the same diagnostics for inspection, but
+`sheet.py` never reads that standalone report. The sheet also records the render provenance
+(`preset`, `appliedScale`, `supersample`, `modelYawDegrees`). A repeated
 `--distance-per-cycle Walk=43.9` overrides one clip after visual calibration; without an override the
 value is computed.
 

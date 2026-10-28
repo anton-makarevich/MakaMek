@@ -392,6 +392,59 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void MechFallCommand_PublishesPlaybackInterruptionForThatUnit_WhenTheMechActuallyFell()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _game.HandleCommand(new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(2),
+                HitDirection.Front)
+        });
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.IsResetAll.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MechFallCommand_DoesNotPublishPlaybackInterruption_WhenThePilotingSkillRollSucceeded()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        // A successful roll publishes the command with no damage data: the mech never left its hex.
+        _game.HandleCommand(new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = null
+        });
+
+        // Assert
+        received.ShouldBeNull();
+    }
+
+    [Fact]
     public void DetachingHandlers_ResetsEveryPlayback()
     {
         // Arrange

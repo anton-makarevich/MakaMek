@@ -109,7 +109,8 @@ public class MmuxUnitPackageReader
         try
         {
             using var document = JsonDocument.Parse(json);
-            version = document.RootElement.TryGetProperty("version", out var versionElement)
+            version = document.RootElement is { ValueKind: JsonValueKind.Object } root
+                      && root.TryGetProperty("version", out var versionElement)
                       && versionElement.ValueKind == JsonValueKind.String
                 ? versionElement.GetString()
                 : null;
