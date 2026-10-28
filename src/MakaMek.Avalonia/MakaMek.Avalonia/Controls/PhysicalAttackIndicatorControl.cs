@@ -71,8 +71,8 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
 
         var tint = new SolidColorBrush(Color.Parse(viewModel.AttackerTint));
-        _pulse = SelectionHexMotion.CreateScaledHex(SizeFactor, 0, BadgeStrokeThickness, tint);
-        _badge = SelectionHexMotion.CreateScaledHex(SizeFactor, BadgeInset, BadgeStrokeThickness, tint, BadgeBrush);
+        _pulse = HexShapeMotion.CreateScaledHex(SizeFactor, 0, BadgeStrokeThickness, tint);
+        _badge = HexShapeMotion.CreateScaledHex(SizeFactor, BadgeInset, BadgeStrokeThickness, tint, BadgeBrush);
         _icon = CreateIcon(viewModel.AttackType);
 
         Children.Add(_pulse);
@@ -87,10 +87,10 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         _scope = PrestoAvalonia.CreateScope(this);
         _scope.Execute(_ =>
         {
-            _enterAnimation = this.Animate(SelectionHexMotion.IndicatorEnter);
+            _enterAnimation = this.Animate(HexShapeMotion.IndicatorEnter);
             // Only the pulse path loops: the badge and the icon stay where the entrance left them.
             // The pulse is the unit selector's, so a declaration reads as the same kind of marker.
-            _pulseAnimation = _pulse.Animate(SelectionHexMotion.IdlePulse);
+            _pulseAnimation = _pulse.Animate(HexShapeMotion.IdlePulse);
         });
     }
 

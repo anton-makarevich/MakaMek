@@ -22,7 +22,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 {
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
-    private readonly List<WeaponAttackControl> _weaponAttackControls = [];
+    private readonly List<WeaponAttackIndicatorControl> _weaponAttackIndicatorControls = [];
     private readonly Dictionary<Guid, PhysicalAttackIndicatorControl> _physicalAttackIndicators = [];
     private readonly AvaloniaResourcesLocator _resourcesLocator = new();
 
@@ -47,7 +47,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         DisposePhysicalAttackIndicators();
         MapCanvas.Children.Clear();
         _movementPathSegments.Clear();
-        _weaponAttackControls.Clear();
+        _weaponAttackIndicatorControls.Clear();
 
         var maxH = 0d;
         var maxV = 0d;
@@ -110,7 +110,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
-        UpdateWeaponAttacks();
+        UpdateWeaponAttackIndicators();
         UpdatePhysicalAttackIndicators();
     }
 
@@ -194,9 +194,9 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             UpdateMovementPath();
         }
-        else if (e.PropertyName == nameof(ViewModel.WeaponAttacks))
+        else if (e.PropertyName == nameof(ViewModel.WeaponAttackIndicators))
         {
-            UpdateWeaponAttacks();
+            UpdateWeaponAttackIndicators();
         }
         else if (e.PropertyName == nameof(ViewModel.PhysicalAttackIndicators))
         {
@@ -230,21 +230,21 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
     }
 
-    private void UpdateWeaponAttacks()
+    private void UpdateWeaponAttackIndicators()
     {
-        foreach (var control in _weaponAttackControls)
+        foreach (var control in _weaponAttackIndicatorControls)
         {
             MapCanvas.Children.Remove(control);
         }
 
-        _weaponAttackControls.Clear();
+        _weaponAttackIndicatorControls.Clear();
 
-        if (ViewModel?.WeaponAttacks == null) return;
+        if (ViewModel?.WeaponAttackIndicators == null) return;
 
-        foreach (var attack in ViewModel.WeaponAttacks)
+        foreach (var indicator in ViewModel.WeaponAttackIndicators)
         {
-            var control = new WeaponAttackControl(attack);
-            _weaponAttackControls.Add(control);
+            var control = new WeaponAttackIndicatorControl(indicator);
+            _weaponAttackIndicatorControls.Add(control);
             MapCanvas.Children.Add(control);
         }
     }

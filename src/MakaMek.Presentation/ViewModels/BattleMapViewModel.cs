@@ -106,7 +106,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         private set => SetProperty(ref field, value);
     }
 
-    public List<WeaponAttackViewModel>? WeaponAttacks
+    public List<WeaponAttackIndicatorViewModel>? WeaponAttackIndicators
     {
         get;
         private set => SetProperty(ref field, value);
@@ -522,14 +522,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
-                _commandStreamPhase = phaseCommand.Phase;
-                // Declarations outlive the declaration phase, so the leftovers only go when the
-                // game leaves the physical attack phases. This runs on the command stream rather
-                // than on the phase-changes subscription, because that subscription fires while
-                // the command is still being applied and before _commandStreamPhase catches up.
-                // Rejected limbs publish no resolution, so this boundary is what clears them.
-                if (phaseCommand.Phase is not (PhaseNames.PhysicalAttack or PhaseNames.PhysicalAttackResolution))
+                // Declarations outlive the phase they were made in: a charge or a death from above
+                // is declared while moving, a punch during the physical attack phase, and all of
+                // them resolve in the physical attack resolution. That is therefore the only phase
+                // whose end drops whatever is left, and it is also what clears the limbs the gates
+                // rejected, since those publish no resolution of their own.
+                if (_commandStreamPhase == PhaseNames.PhysicalAttackResolution)
                     ClearPhysicalAttackIndicators();
+                _commandStreamPhase = phaseCommand.Phase;
                 AnnouncePhase(phaseCommand.Phase);
                 break;
             case ChangeActivePlayerCommand:
@@ -599,12 +599,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         if (attacker?.Position == null || attacker.Owner == null) return;
 
         // Initialize the collection if it's null
-        WeaponAttacks ??= [];
+        WeaponAttackIndicators ??= [];
 
         // Dictionary to track offsets per target
         var targetOffsets = new Dictionary<Guid, int>();
 
-        var newAttacks = command.WeaponTargets
+        var newIndicators = command.WeaponTargets
             .Select(wt =>
             {
                 var assignment = wt.Weapon.Assignments.FirstOrDefault();
@@ -627,7 +627,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
                 if (weapon == null) throw new Exception("The weapon is not found");
 
-                var attack = new WeaponAttackViewModel
+                var indicator = new WeaponAttackIndicatorViewModel
                 {
                     From = attacker.Position!.Coordinates,
                     To = target.Position!.Coordinates,
@@ -640,40 +640,40 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 // Increment and save offset for this target
                 targetOffsets[target.Id] = offset + 5;
 
-                return attack;
+                return indicator;
             })
-            .Where(attack => attack is not null)
-            .Select(attack => attack!)
+            .Where(indicator => indicator is not null)
+            .Select(indicator => indicator!)
             .ToList();
 
-        WeaponAttacks.AddRange(newAttacks);
-        NotifyPropertyChanged(nameof(WeaponAttacks));
+        WeaponAttackIndicators.AddRange(newIndicators);
+        NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
 
     private void ProcessWeaponAttackResolution(WeaponAttackResolutionCommand command)
     {
-        if (Game == null || WeaponAttacks == null || !WeaponAttacks.Any()) return;
+        if (Game == null || WeaponAttackIndicators == null || !WeaponAttackIndicators.Any()) return;
 
         var assignment = command.WeaponData.Assignments.FirstOrDefault();
         if (assignment is null) return;
 
-        // Find and remove the attack that matches the weapon name and target ID
-        var attacksToRemove = WeaponAttacks
-            .Where(attack =>
-                attack.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
+        // Find and remove the indicator that matches the weapon name and target ID
+        var indicatorsToRemove = WeaponAttackIndicators
+            .Where(indicator =>
+                indicator.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
                 && slotAssignment.Location == assignment.Location
                 && slotAssignment.FirstSlot == assignment.FirstSlot
-                && attack.TargetId == command.TargetId)
+                && indicator.TargetId == command.TargetId)
             .ToList();
 
-        if (attacksToRemove.Any())
+        if (indicatorsToRemove.Any())
         {
-            foreach (var attack in attacksToRemove)
+            foreach (var indicator in indicatorsToRemove)
             {
-                WeaponAttacks.Remove(attack);
+                WeaponAttackIndicators.Remove(indicator);
             }
 
-            NotifyPropertyChanged(nameof(WeaponAttacks));
+            NotifyPropertyChanged(nameof(WeaponAttackIndicators));
         }
     }
 
@@ -789,7 +789,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
 
             case PhaseNames.End:
-                ClearWeaponAttacks();
+                ClearWeaponAttackIndicators();
                 TransitionToState(new EndState(this));
                 break;
 
@@ -799,12 +799,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         }
     }
 
-    private void ClearWeaponAttacks()
+    private void ClearWeaponAttackIndicators()
     {
         // Clear weapon attacks during phase transitions
-        if (WeaponAttacks?.Any() != true) return;
-        WeaponAttacks.Clear();
-        NotifyPropertyChanged(nameof(WeaponAttacks));
+        if (WeaponAttackIndicators?.Any() != true) return;
+        WeaponAttackIndicators.Clear();
+        NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
 
     private void ShowUnitsToDeploy()

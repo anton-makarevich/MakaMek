@@ -8,14 +8,14 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
-public class WeaponAttackControl : Control
+public class WeaponAttackIndicatorControl : Control
 {
-    private readonly WeaponAttackViewModel _viewModel;
+    private readonly WeaponAttackIndicatorViewModel _viewModel;
     private readonly Point _from;
     private readonly Point _to;
     private readonly IBrush _color;
     
-    public WeaponAttackControl(WeaponAttackViewModel viewModel)
+    public WeaponAttackIndicatorControl(WeaponAttackIndicatorViewModel viewModel)
     {
         _viewModel = viewModel;
         _from = new Point(viewModel.From.H + HexCoordinatesPixelExtensions.HexWidth * 0.5, viewModel.From.V + HexCoordinatesPixelExtensions.HexHeight * 0.5);

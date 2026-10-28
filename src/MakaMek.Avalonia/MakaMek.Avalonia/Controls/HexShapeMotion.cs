@@ -8,14 +8,16 @@ using Sanet.MakaMek.Map.Models;
 namespace Sanet.MakaMek.Avalonia.Controls;
 
 /// <summary>
-/// The motion vocabulary of the hexagonal selection outline: the builders that play it and the
-/// geometry it strokes.
+/// The motion vocabulary shared by the hex shaped marks on the board: the builders that play it and
+/// the geometry it strokes.
 /// </summary>
 /// <remarks>
-/// The outline animates its own children, never the control that carries the facing rotation, and
-/// every builder has a reduced form so the outline degrades to a short fade under reduced motion.
+/// <see cref="SelectionHex"/> and <see cref="PhysicalAttackIndicatorControl"/> are both built from
+/// this module, so the selection outline and the attack badges move the same way. A mark animates
+/// its own children, never the control that carries the facing rotation, and every builder has a
+/// reduced form so the mark degrades to a short fade under reduced motion.
 /// </remarks>
-internal static class SelectionHexMotion
+internal static class HexShapeMotion
 {
     /// <summary>
     /// How far the hexagon is pulled in from the hex border, in pixels.

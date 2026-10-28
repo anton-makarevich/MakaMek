@@ -3,7 +3,7 @@ using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-public record WeaponAttackViewModel
+public record WeaponAttackIndicatorViewModel
 {
     public required HexCoordinates From { get; init; }
     public required HexCoordinates To { get; init; }
