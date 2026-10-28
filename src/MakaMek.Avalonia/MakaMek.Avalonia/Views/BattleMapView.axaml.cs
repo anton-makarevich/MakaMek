@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -22,6 +23,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
+    private readonly Dictionary<Guid, PhysicalAttackIndicatorControl> _physicalAttackIndicators = [];
     private readonly AvaloniaResourcesLocator _resourcesLocator = new();
 
     public BattleMapView()
@@ -41,6 +43,8 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         }
 
         var directionSelector = DirectionSelector;
+        // The badges loop, so they have to die with the canvas they are drawn on.
+        DisposePhysicalAttackIndicators();
         MapCanvas.Children.Clear();
         _movementPathSegments.Clear();
         _weaponAttackControls.Clear();
@@ -107,6 +111,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // restore overlays after a full canvas rebuild
         UpdateMovementPath();
         UpdateWeaponAttacks();
+        UpdatePhysicalAttackIndicators();
     }
 
     /// <summary>
@@ -193,6 +198,10 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         {
             UpdateWeaponAttacks();
         }
+        else if (e.PropertyName == nameof(ViewModel.PhysicalAttackIndicators))
+        {
+            UpdatePhysicalAttackIndicators();
+        }
     }
 
     private void UpdateMovementPath()
@@ -238,5 +247,74 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _weaponAttackControls.Add(control);
             MapCanvas.Children.Add(control);
         }
+    }
+
+    /// <summary>
+    /// Keeps the attack badges in step with the view model without rebuilding the ones that are
+    /// still running: a rebuilt badge would restart its entrance and pulse every time a limb
+    /// resolves.
+    /// </summary>
+    private void UpdatePhysicalAttackIndicators()
+    {
+        var indicators = ViewModel?.PhysicalAttackIndicators;
+        if (indicators is not { Count: > 0 })
+        {
+            DisposePhysicalAttackIndicators();
+            return;
+        }
+
+        foreach (var attackerId in _physicalAttackIndicators.Keys
+                     .Where(id => indicators.All(indicator => indicator.AttackerId != id))
+                     .ToList())
+        {
+            RemovePhysicalAttackIndicator(attackerId);
+        }
+
+        foreach (var indicator in indicators)
+        {
+            if (_physicalAttackIndicators.TryGetValue(indicator.AttackerId, out var existing))
+            {
+                if (existing.Shows(indicator)) continue;
+                RemovePhysicalAttackIndicator(indicator.AttackerId);
+            }
+
+            var control = new PhysicalAttackIndicatorControl(indicator);
+            _physicalAttackIndicators[indicator.AttackerId] = control;
+            MapCanvas.Children.Add(control);
+        }
+    }
+
+    private void RemovePhysicalAttackIndicator(Guid attackerId)
+    {
+        if (!_physicalAttackIndicators.Remove(attackerId, out var control)) return;
+        MapCanvas.Children.Remove(control);
+        control.Dispose();
+    }
+
+    private void DisposePhysicalAttackIndicators()
+    {
+        foreach (var control in _physicalAttackIndicators.Values)
+        {
+            MapCanvas.Children.Remove(control);
+            control.Dispose();
+        }
+
+        _physicalAttackIndicators.Clear();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        // A view that is attached again gets its badges back; the declarations they mark may still
+        // be pending if the view was detached mid-phase.
+        UpdatePhysicalAttackIndicators();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        // The badges loop, and Presto only pauses the animations of a detached control by default,
+        // which keeps them alive and ticking against a visual tree that is gone.
+        DisposePhysicalAttackIndicators();
+        base.OnDetachedFromVisualTree(e);
     }
 }

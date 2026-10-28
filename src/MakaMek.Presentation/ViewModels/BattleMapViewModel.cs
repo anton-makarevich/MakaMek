@@ -113,6 +113,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
+    /// The physical attacks declared for the current turn and not yet fully resolved. One entry per
+    /// attacker because a unit declares at most one physical attack per turn.
+    /// </summary>
+    public List<PhysicalAttackIndicatorViewModel>? PhysicalAttackIndicators
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
     /// Boundary outlines for the current highlighted coordinate group.
     /// </summary>
     public IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> HighlightBoundaryOutlines =>
@@ -513,6 +523,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case ChangePhaseCommand phaseCommand:
                 _commandStreamPhase = phaseCommand.Phase;
+                // Declarations outlive the declaration phase, so the leftovers only go when the
+                // game leaves the physical attack phases. This runs on the command stream rather
+                // than on the phase-changes subscription, because that subscription fires while
+                // the command is still being applied and before _commandStreamPhase catches up.
+                // Rejected limbs publish no resolution, so this boundary is what clears them.
+                if (phaseCommand.Phase is not (PhaseNames.PhysicalAttack or PhaseNames.PhysicalAttackResolution))
+                    ClearPhysicalAttackIndicators();
                 AnnouncePhase(phaseCommand.Phase);
                 break;
             case ChangeActivePlayerCommand:
@@ -526,6 +543,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case WeaponAttackResolutionCommand resolutionCommand:
                 ProcessWeaponAttackResolution(resolutionCommand);
+                break;
+            case PhysicalAttackCommand physicalAttackCommand:
+                ProcessPhysicalAttackDeclaration(physicalAttackCommand);
+                break;
+            case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
+                ProcessPhysicalAttackResolution(physicalAttackResolutionCommand);
                 break;
             case MechStandUpCommand standUpCommand:
                 ProcessMechStandUp(standUpCommand.UnitId, false);
@@ -652,6 +675,87 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
             NotifyPropertyChanged(nameof(WeaponAttacks));
         }
+    }
+
+    /// <summary>
+    /// Turns a declaration into the badge the map shows, replacing any declaration the same
+    /// attacker already made so a repeated command does not stack two badges.
+    /// </summary>
+    private void ProcessPhysicalAttackDeclaration(PhysicalAttackCommand command)
+    {
+        if (Game == null) return;
+
+        // A null declaration means the unit makes no attack this turn, which is the common case.
+        if (command.Declaration is not { } declaration) return;
+
+        var attacker = Game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == command.UnitId);
+        if (attacker?.Position is not { } attackerPosition || attacker.Owner == null) return;
+
+        var target = Game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == declaration.TargetId);
+        if (target?.Position is not { } targetPosition) return;
+
+        PhysicalAttackIndicators ??= [];
+        PhysicalAttackIndicators.RemoveAll(indicator => indicator.AttackerId == attacker.Id);
+        PhysicalAttackIndicators.Add(new PhysicalAttackIndicatorViewModel
+        {
+            AttackerId = attacker.Id,
+            TargetId = target.Id,
+            AttackType = declaration.AttackType,
+            From = attackerPosition.Coordinates,
+            To = targetPosition.Coordinates,
+            AttackerTint = attacker.Owner.Tint,
+            PendingLimbs = declaration.AttackerLimbs.ToList()
+        });
+        NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
+    }
+
+    /// <summary>
+    /// Removes the limb a resolution reports from its badge; the badge itself only goes when the
+    /// last declared limb is resolved. Hits and misses both count, and a command that reports an
+    /// already resolved limb changes nothing.
+    /// </summary>
+    private void ProcessPhysicalAttackResolution(PhysicalAttackResolutionCommand command)
+    {
+        if (PhysicalAttackIndicators is not { Count: > 0 }) return;
+
+        var index = PhysicalAttackIndicators.FindIndex(indicator =>
+            indicator.AttackerId == command.AttackerId
+            && indicator.TargetId == command.TargetId
+            && indicator.AttackType == command.ResolutionData.AttackType);
+        if (index < 0) return;
+
+        var indicator = PhysicalAttackIndicators[index];
+        var remainingLimbs = indicator.PendingLimbs
+            .Where(limb => limb != command.ResolutionData.AttackerLimb)
+            .ToList();
+
+        // The limb was not declared, or it was already resolved.
+        if (remainingLimbs.Count == indicator.PendingLimbs.Count) return;
+
+        if (remainingLimbs.Count == 0)
+        {
+            PhysicalAttackIndicators.RemoveAt(index);
+        }
+        else
+        {
+            PhysicalAttackIndicators[index] = indicator with { PendingLimbs = remainingLimbs };
+        }
+
+        NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
+    }
+
+    /// <summary>
+    /// Drops every declaration badge, which happens when the game leaves the physical attack phases.
+    /// </summary>
+    private void ClearPhysicalAttackIndicators()
+    {
+        if (PhysicalAttackIndicators?.Any() != true) return;
+        PhysicalAttackIndicators.Clear();
+        NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
     }
 
     private void UpdateGamePhase()

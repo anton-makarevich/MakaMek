@@ -80,6 +80,16 @@ internal static class SelectionHexMotion
     public static readonly AnimationBuilder TargetPulse = IdlePulse.With(b => b.Duration(1100));
 
     /// <summary>
+    /// The entrance of a physical attack indicator: the badge springs to its size. It has no draw
+    /// step because the badge is filled, and a filled path would show through the stroke reveal.
+    /// </summary>
+    public static readonly AnimationBuilder IndicatorEnter = Presto.Build()
+        .Opacity(from: 0, to: 1)
+        .Scale(from: 0.82, to: 1)
+        .Ease(Eases.Spring(stiffness: 180, damping: 18))
+        .WhenReduced(r => r.Opacity(from: 0, to: 1).Duration(120).Ease(Eases.None));
+
+    /// <summary>
     /// Creates one of the hexagon paths. The geometry is already in hex-local pixels, so the path is
     /// stretched by nothing and pinned to the top left corner of the unit.
     /// </summary>
@@ -103,14 +113,44 @@ internal static class SelectionHexMotion
     };
 
     /// <summary>
+    /// Creates a hexagon path scaled to <paramref name="scale"/> of a map hex. Unlike
+    /// <see cref="CreateHex"/> it is visible at rest, because an indicator is not an entrance.
+    /// </summary>
+    public static Path CreateScaledHex(double scale, double inset, double thickness, IBrush? stroke,
+        IBrush? fill = null) => new()
+    {
+        Data = CreateHexGeometry(inset, scale),
+        Stroke = stroke,
+        StrokeThickness = thickness,
+        StrokeJoin = PenLineJoin.Round,
+        Fill = fill,
+        Opacity = 1,
+        IsHitTestVisible = false,
+        Stretch = Stretch.None,
+        Width = HexCoordinatesPixelExtensions.HexWidth * scale,
+        Height = HexCoordinatesPixelExtensions.HexHeight * scale,
+        HorizontalAlignment = HorizontalAlignment.Left,
+        VerticalAlignment = VerticalAlignment.Top,
+        RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
+    };
+
+    /// <summary>
     /// Builds the hexagon the outline strokes, pulled in by <paramref name="inset"/> pixels.
     /// </summary>
-    public static Geometry CreateHexGeometry(double inset)
+    public static Geometry CreateHexGeometry(double inset) => CreateHexGeometry(inset, 1);
+
+    /// <summary>
+    /// Builds the hexagon at <paramref name="scale"/> of a map hex, pulled in by
+    /// <paramref name="inset"/> pixels of the scaled hex.
+    /// </summary>
+    public static Geometry CreateHexGeometry(double inset, double scale)
     {
         var corners = HexagonGeometry.GetCorners();
-        const double centerX = HexCoordinatesPixelExtensions.HexWidth / 2;
-        const double centerY = HexCoordinatesPixelExtensions.HexHeight / 2;
-        var scale = 1 - inset / (HexCoordinatesPixelExtensions.HexHeight / 2);
+        const double hexCenterX = HexCoordinatesPixelExtensions.HexWidth / 2;
+        const double hexCenterY = HexCoordinatesPixelExtensions.HexHeight / 2;
+        var centerX = hexCenterX * scale;
+        var centerY = hexCenterY * scale;
+        var total = scale * (1 - inset / (HexCoordinatesPixelExtensions.HexHeight / 2));
 
         var geometry = new StreamGeometry();
         using var context = geometry.Open();
@@ -125,6 +165,6 @@ internal static class SelectionHexMotion
         return geometry;
 
         Point ToPoint((double X, double Y) corner) =>
-            new(centerX + (corner.X - centerX) * scale, centerY + (corner.Y - centerY) * scale);
+            new(centerX + (corner.X - hexCenterX) * total, centerY + (corner.Y - hexCenterY) * total);
     }
 }
