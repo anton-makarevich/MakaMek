@@ -101,6 +101,20 @@ public class PhysicalAttackIndicatorMotionTests
     });
 
     [Fact]
+    public Task TheIconIsTiltedButTheHexOutlineStaysUpright() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var indicator = CreateIndicator(PhysicalAttackType.Kick);
+
+        var rotation = indicator.IconPath.RenderTransform.ShouldBeOfType<RotateTransform>();
+        rotation.Angle.ShouldBeGreaterThanOrEqualTo(30);
+        rotation.Angle.ShouldBeLessThanOrEqualTo(45);
+        indicator.IconPath.RenderTransformOrigin.ShouldBe(
+            new RelativePoint(0.5, 0.5, RelativeUnit.Relative), "the glyph turns around its centre");
+        indicator.BadgePath.RenderTransform.ShouldBeNull("the hex outline stays as it is");
+    });
+
+    [Fact]
     public Task TheEntranceMakesTheBadgeVisible() => Dispatch(() =>
     {
         using var engine = StartEngine();

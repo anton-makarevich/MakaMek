@@ -46,6 +46,13 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     /// </summary>
     public const int LayerIndex = 2;
 
+    /// <summary>
+    /// How far the glyph is tilted, in degrees clockwise, around its own centre. The hex stays
+    /// upright; only the glyph inside is turned, so it reads as an attack rather than a straight-on
+    /// badge and the boot points the way a kick travels.
+    /// </summary>
+    public const double IconRotationDegrees = 35;
+
     private const double BadgeInset = 1.5;
     private const double IconSize = 17;
     private const double BadgeStrokeThickness = 2;
@@ -167,6 +174,10 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
             Stretch = Stretch.Uniform,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
+            // The glyph never animates, so it owns its render transform; Presto only ever touches
+            // the badge and the pulse, and the hex outline stays upright.
+            RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            RenderTransform = new RotateTransform(IconRotationDegrees),
             IsHitTestVisible = false
         };
     }
