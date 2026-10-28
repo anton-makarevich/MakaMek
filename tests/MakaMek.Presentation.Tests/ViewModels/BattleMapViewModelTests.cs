@@ -229,49 +229,76 @@ public class BattleMapViewModelTests
         .ToList();
 
     [Fact]
-    public void MoveUnitCommand_IsPublishedOnThePlaybackStream()
-    {        // Arrange
+    public void MoveUnitCommand_IsPublishedOnThePlaybackStream_WhenUnitAnimationsAreEnabled()
+    {
+        // Arrange
+        FeatureFlags.IsUnitAnimationEnabled = true;
+        try
+        {
+            var player = JoinPlayerWithUnit("Mover", "#FF0000");
+            var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+            DeployOnFreshMap(unit);
+            MoveUnitCommand? received = null;
+            using var subscription = _sut.UnitMoveCommands.Subscribe(command => received = command);
+
+            // Act
+            _game.HandleCommand(CreateWalkMove(unit.Id, player.Id));
+
+            // Assert
+            received.ShouldNotBeNull();
+            received!.Value.UnitId.ShouldBe(unit.Id);
+            received.Value.MovementPath.ShouldHaveSingleItem();
+            received.Value.MovementType.ShouldBe(MovementType.Walk);
+        }
+        finally
+        {
+            FeatureFlags.IsUnitAnimationEnabled = false;
+        }
+    }
+
+    [Fact]
+    public void MoveUnitCommand_IsNotPublished_WhenUnitAnimationsAreDisabled()
+    {
+        // Arrange
+        FeatureFlags.IsUnitAnimationEnabled = false;
         var player = JoinPlayerWithUnit("Mover", "#FF0000");
         var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
         DeployOnFreshMap(unit);
         MoveUnitCommand? received = null;
         using var subscription = _sut.UnitMoveCommands.Subscribe(command => received = command);
 
-        var move = new MoveUnitCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            UnitId = unit.Id,
-            PlayerId = player.Id,
-            MovementType = MovementType.Walk,
-            IsCompleted = true,
-            MovementPath =
-            [
-                new PathSegmentData
-                {
-                    From = new HexPositionData
-                    {
-                        Coordinates = new HexCoordinateData(0, 0),
-                        Facing = (int)HexDirection.Top
-                    },
-                    To = new HexPositionData
-                    {
-                        Coordinates = new HexCoordinateData(1, 0),
-                        Facing = (int)HexDirection.Top
-                    },
-                    Costs = []
-                }
-            ]
-        };
-
         // Act
-        _game.HandleCommand(move);
+        _game.HandleCommand(CreateWalkMove(unit.Id, player.Id));
 
         // Assert
-        received.ShouldNotBeNull();
-        received!.Value.UnitId.ShouldBe(unit.Id);
-        received.Value.MovementPath.ShouldHaveSingleItem();
-        received.Value.MovementType.ShouldBe(MovementType.Walk);
+        received.ShouldBeNull();
     }
+
+    private static MoveUnitCommand CreateWalkMove(Guid unitId, Guid playerId) => new()
+    {
+        GameOriginId = Guid.NewGuid(),
+        UnitId = unitId,
+        PlayerId = playerId,
+        MovementType = MovementType.Walk,
+        IsCompleted = true,
+        MovementPath =
+        [
+            new PathSegmentData
+            {
+                From = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(0, 0),
+                    Facing = (int)HexDirection.Top
+                },
+                To = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(1, 0),
+                    Facing = (int)HexDirection.Top
+                },
+                Costs = []
+            }
+        ]
+    };
 
     [Fact]
     public void MoveUnitCommand_StandingStill_IsNotPublished()

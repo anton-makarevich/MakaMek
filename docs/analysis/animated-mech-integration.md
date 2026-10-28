@@ -153,9 +153,10 @@ other content. The prototype build used `artifacts/mw5/packages/v2-root` (gitign
 
 ## 3. Runtime playback
 
-- `BattleMapViewModel.UnitMoveCommands` publishes received `MoveUnitCommand`s on the UI dispatcher;
-  `UnitPlaybackInterruptions` cancels playback on displacement, skid, fall, stand-up, game change,
-  detach and disposal.
+- `BattleMapViewModel.UnitMoveCommands` publishes received `MoveUnitCommand`s on the UI dispatcher,
+  but only while `FeatureFlags.IsUnitAnimationEnabled` is on (off by default until v2 ships, so units
+  keep moving instantly); `UnitPlaybackInterruptions` cancels playback on displacement, skid, fall,
+  stand-up, game change, detach and disposal.
 - `MovementPlaybackTimeline` (Presentation, pure and unit-tested) classifies path segments into
   translations, turns and redundant segments, then allocates the fixed 5 s: `180 ms` per 60° turn
   (capped at 40% of the duration), the rest proportional to distance. Turn-only paths spread the whole

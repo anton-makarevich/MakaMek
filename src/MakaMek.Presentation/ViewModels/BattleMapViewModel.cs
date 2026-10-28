@@ -356,7 +356,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     /// <summary>
     /// Movement commands, already delivered on the UI dispatcher, for unit controls to animate along
-    /// their path. Subscribers must not treat this as state: the unit model already holds the destination.
+    /// their path. Only published while <see cref="FeatureFlags.IsUnitAnimationEnabled"/> is on, because
+    /// playback needs MMUX v2 sprite packages. Subscribers must not treat this as state: the unit model
+    /// already holds the destination.
     /// </summary>
     public IObservable<MoveUnitCommand> UnitMoveCommands => _unitMoveCommands.AsObservable();
 
@@ -608,7 +610,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         switch (command)
         {
             case MoveUnitCommand { MovementPath.Count: > 0 } move
-                when move.MovementType != MovementType.StandingStill:
+                when FeatureFlags.IsUnitAnimationEnabled
+                     && move.MovementType != MovementType.StandingStill:
                 _unitMoveCommands.OnNext(move);
                 break;
             case DisplaceUnitCommand displacement:
