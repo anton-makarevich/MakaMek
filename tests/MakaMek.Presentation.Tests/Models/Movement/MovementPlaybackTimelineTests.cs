@@ -47,6 +47,12 @@ public class MovementPlaybackTimelineTests
     }
 
     [Fact]
+    public void Create_ReturnsNull_ForMissingPath()
+    {
+        MovementPlaybackTimeline.Create(null, MovementType.Walk).ShouldBeNull();
+    }
+
+    [Fact]
     public void Create_ReturnsNull_WhenEverySegmentIsRedundant()
     {
         var timeline = MovementPlaybackTimeline.Create(
@@ -54,6 +60,19 @@ public class MovementPlaybackTimelineTests
             Segment(0, 0, 0, 0, 0, 0),
             Segment(0, 0, 0, 0, 0, 0)
         ], MovementType.Walk);
+
+        timeline.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Create_ReturnsNull_ForNonPositiveDuration(double durationSeconds)
+    {
+        var timeline = MovementPlaybackTimeline.Create(
+            [Segment(0, 0, 0, 1, 0, 0)],
+            MovementType.Walk,
+            TimeSpan.FromSeconds(durationSeconds));
 
         timeline.ShouldBeNull();
     }
@@ -174,6 +193,18 @@ public class MovementPlaybackTimelineTests
     }
 
     [Fact]
+    public void Turn_InterpolatesFacingBackwards_WhenThatIsTheShortestDirection()
+    {
+        // 0 -> 5 is a single -60° step; the timeline may end at a negative facing.
+        var timeline = MovementPlaybackTimeline.Create(
+            [Segment(0, 0, 0, 0, 0, 5)], MovementType.Walk)!;
+
+        timeline.Phases.Count.ShouldBe(1);
+        timeline.Sample(0.5).FacingDegrees.ShouldBe(-30, 0.001);
+        timeline.Sample(1).FacingDegrees.ShouldBe(-60, 0.001);
+    }
+
+    [Fact]
     public void Sample_KeepsTravelledDistanceContinuousAcrossSegments()
     {
         var timeline = MovementPlaybackTimeline.Create(
@@ -200,8 +231,18 @@ public class MovementPlaybackTimelineTests
 
         var sample = timeline.Sample(0.5);
 
+        timeline.Phases.ShouldAllBe(phase => phase.IsReversed);
         sample.SignedDistance.ShouldBeLessThan(0);
         timeline.Sample(1).SignedDistance.ShouldBe(-timeline.TotalDistance, 0.001);
+    }
+
+    [Fact]
+    public void ForwardSegment_IsNotMarkedAsReversed()
+    {
+        var timeline = MovementPlaybackTimeline.Create(
+            [Segment(0, 0, 0, 1, 0, 0)], MovementType.Walk)!;
+
+        timeline.Phases.ShouldAllBe(phase => !phase.IsReversed);
     }
 
     [Fact]

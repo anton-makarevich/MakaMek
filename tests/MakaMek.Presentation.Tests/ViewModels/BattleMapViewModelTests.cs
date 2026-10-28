@@ -368,6 +368,30 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void MechSkidCommand_PublishesPlaybackInterruptionForThatUnit()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _game.HandleCommand(new MechSkidCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            SkidDistance = 1,
+            DamageData = null
+        });
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.IsResetAll.ShouldBeFalse();
+    }
+
+    [Fact]
     public void DetachingHandlers_ResetsEveryPlayback()
     {
         // Arrange
