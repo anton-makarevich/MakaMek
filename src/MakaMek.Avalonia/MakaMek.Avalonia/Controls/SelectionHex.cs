@@ -42,9 +42,9 @@ internal sealed class SelectionHex : Grid, IDisposable
 
         // The outline lives in its own scope, so every animation it starts dies with it.
         _scope = PrestoAvalonia.CreateScope(this);
-        _hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, ownerBrush);
-        _echo = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
-        _pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
+        _hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, ownerBrush);
+        _echo = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, ownerBrush);
+        _pulse = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, ownerBrush);
 
         // The hexagon draws its own stroke, so it starts hidden until the entrance reveals it.
         PrestoAvalonia.CreateDrawable(_hex);
@@ -76,7 +76,7 @@ internal sealed class SelectionHex : Grid, IDisposable
             _hexAnimation = null;
             _echoAnimation?.Revert();
             _echoAnimation = null;
-            _scope.Execute(_ => { _hexAnimation = _hex.Animate(SelectionHexMotion.Exit); });
+            _scope.Execute(_ => { _hexAnimation = _hex.Animate(HexShapeMotion.Exit); });
             return;
         }
 
@@ -91,8 +91,8 @@ internal sealed class SelectionHex : Grid, IDisposable
             _echoAnimation = null;
             _scope.Execute(_ =>
             {
-                _hexAnimation = _hex.Animate(SelectionHexMotion.Enter);
-                _echoAnimation = _echo.Animate(SelectionHexMotion.Echo);
+                _hexAnimation = _hex.Animate(HexShapeMotion.Enter);
+                _echoAnimation = _echo.Animate(HexShapeMotion.Echo);
             });
         }
 
@@ -100,8 +100,8 @@ internal sealed class SelectionHex : Grid, IDisposable
         if (kind == UnitSelectionKind.Attacker) return;
 
         var pulse = kind == UnitSelectionKind.Target
-            ? SelectionHexMotion.TargetPulse
-            : SelectionHexMotion.IdlePulse;
+            ? HexShapeMotion.TargetPulse
+            : HexShapeMotion.IdlePulse;
         _scope.Execute(_ => { _pulseAnimation = _pulse.Animate(pulse); });
     }
 

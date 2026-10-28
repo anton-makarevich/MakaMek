@@ -11,7 +11,7 @@ Sources reviewed: `README.md`, `GUIDE.md` (the full manual), `docs/ARCHITECTURE.
 Presto is a very good fit for MakaMek's UI layer, for four reasons:
 
 1. **Exact platform match.** Presto targets `net10.0` and is built against **Avalonia 12.1.4** — the same versions pinned in `Directory.Build.props` (`AvaloniaVersion=12.1.4`, `net10.0`). No version conflict.
-2. **Code-first API.** MakaMek builds its board visuals in C# (`UnitControl`, `PathSegmentControl`, `WeaponAttackControl`, `HexRenderControl`), not in XAML. Presto's builder (`control.Animate(b => b.X(…).Ease(…))`) is designed for exactly that, with typed extension methods instead of string property names.
+2. **Code-first API.** MakaMek builds its board visuals in C# (`UnitControl`, `PathSegmentControl`, `WeaponAttackIndicatorControl`, `HexRenderControl`), not in XAML. Presto's builder (`control.Animate(b => b.X(…).Ease(…))`) is designed for exactly that, with typed extension methods instead of string property names.
 3. **It replaces hand-rolled animation code, not the app architecture.** Presto is additive: an `Animation` is just a timer that writes Avalonia properties at `BindingPriority.Animation`. Nothing else in the app has to change.
 4. **Breadth.** Beyond tweens it ships springs, timelines, stagger, presence/lifecycle, state motion, drag/pan-zoom, scroll observers, path drawing/morphing, image filters, particles, render-thread scenes, and a set of ready-made controls.
 

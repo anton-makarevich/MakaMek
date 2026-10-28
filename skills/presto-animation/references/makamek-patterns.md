@@ -45,7 +45,7 @@ Why a module: every call site then uses the same durations/eases, reduced-motion
 
 Shipped in #1624. See the full design in `docs/analysis/presto-animation-capabilities.md` §5.
 
-The motion vocabulary lives in one module, `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionHexMotion.cs`
+The motion vocabulary lives in one module, `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/HexShapeMotion.cs`
 (internal, with `InternalsVisibleTo` for `MakaMek.Avalonia.Tests`), so the builders and the geometry can be
 tested without a board. The visual itself is a control of its own,
 `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/SelectionHex.cs`, so `UnitControl` only tells it which role the
@@ -80,9 +80,9 @@ private UnitSelectionKind _kind = UnitSelectionKind.None;
 
 // ctor
 _scope = PrestoAvalonia.CreateScope(this);
-_hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, ownerBrush);
-_echo = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
-_pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, ownerBrush);
+_hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, ownerBrush);
+_echo = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, ownerBrush);
+_pulse = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, ownerBrush);
 PrestoAvalonia.CreateDrawable(_hex);   // start in the draw state at "0 0"
 ```
 

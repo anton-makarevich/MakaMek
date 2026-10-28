@@ -2303,7 +2303,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void WeaponAttacks_ShouldBePopulated_WhenWeaponAttackDeclarationCommandReceived()
+    public void WeaponAttackIndicators_ShouldBePopulated_WhenWeaponAttackDeclarationCommandReceived()
     {
         // Arrange
         var playerId = Guid.NewGuid();
@@ -2390,10 +2390,10 @@ public class BattleMapViewModelTests
         game.HandleCommand(weaponAttackCommand);
         
         // Assert
-        _sut.WeaponAttacks.ShouldNotBeNull();
-        _sut.WeaponAttacks.Count.ShouldBe(1);
+        _sut.WeaponAttackIndicators.ShouldNotBeNull();
+        _sut.WeaponAttackIndicators.Count.ShouldBe(1);
         
-        var attack = _sut.WeaponAttacks.First();
+        var attack = _sut.WeaponAttackIndicators.First();
         attack.From.ShouldBe(attackerPosition.Coordinates);
         attack.To.ShouldBe(targetPosition.Coordinates);
         attack.Weapon.ShouldBe(weapon);
@@ -2402,7 +2402,7 @@ public class BattleMapViewModelTests
     }
     
     [Fact]
-    public void WeaponAttacks_ShouldAccumulate_WhenMultipleWeaponAttackDeclarationCommandsReceived()
+    public void WeaponAttackIndicators_ShouldAccumulate_WhenMultipleWeaponAttackDeclarationCommandsReceived()
     {
         // Arrange
         var playerId = Guid.NewGuid();
@@ -2530,17 +2530,17 @@ public class BattleMapViewModelTests
         game.HandleCommand(weaponAttackCommand2);
         
         // Assert
-        _sut.WeaponAttacks.ShouldNotBeNull();
-        _sut.WeaponAttacks.Count.ShouldBe(2);
+        _sut.WeaponAttackIndicators.ShouldNotBeNull();
+        _sut.WeaponAttackIndicators.Count.ShouldBe(2);
         
-        var attack1 = _sut.WeaponAttacks[0];
+        var attack1 = _sut.WeaponAttackIndicators[0];
         attack1.From.ShouldBe(attacker1Position.Coordinates);
         attack1.To.ShouldBe(targetPosition.Coordinates);
         attack1.Weapon.ShouldBe(weapon1);
         attack1.AttackerTint.ShouldBe(activePlayer.Tint);
         attack1.LineOffset.ShouldBe(5);
         
-        var attack2 = _sut.WeaponAttacks[1];
+        var attack2 = _sut.WeaponAttackIndicators[1];
         attack2.From.ShouldBe(attacker2Position.Coordinates);
         attack2.To.ShouldBe(targetPosition.Coordinates);
         attack2.Weapon.ShouldBe(weapon2);
@@ -2549,7 +2549,7 @@ public class BattleMapViewModelTests
     }
     
     [Fact]
-    public void WeaponAttacks_ShouldRemoveSpecificAttack_WhenWeaponAttackResolutionCommandReceived()
+    public void WeaponAttackIndicators_ShouldRemoveSpecificAttack_WhenWeaponAttackResolutionCommandReceived()
     {
         // Arrange
         var playerId = Guid.NewGuid();
@@ -2664,13 +2664,13 @@ public class BattleMapViewModelTests
                 Weapon = weaponTargetData1.Weapon with { Assignments = [] }
             }]
         });
-        _sut.WeaponAttacks.ShouldBeEmpty();
+        _sut.WeaponAttackIndicators.ShouldBeEmpty();
         
         game.HandleCommand(weaponAttackCommand);
         
         // Verify both attacks are present
-        _sut.WeaponAttacks.ShouldNotBeNull();
-        _sut.WeaponAttacks.Count.ShouldBe(2);
+        _sut.WeaponAttackIndicators.ShouldNotBeNull();
+        _sut.WeaponAttackIndicators.Count.ShouldBe(2);
         
         // Create a resolution command for the first weapon
         var resolutionCommand = new WeaponAttackResolutionCommand
@@ -2694,16 +2694,16 @@ public class BattleMapViewModelTests
         {
             WeaponData = resolutionCommand.WeaponData with { Assignments = [] }
         });
-        _sut.WeaponAttacks.Count.ShouldBe(2);
+        _sut.WeaponAttackIndicators.Count.ShouldBe(2);
         
         // Act
         game.HandleCommand(resolutionCommand);
         
         // Assert
-        _sut.WeaponAttacks.Count.ShouldBe(1); // Only one attack should remain
+        _sut.WeaponAttackIndicators.Count.ShouldBe(1); // Only one attack should remain
         
         // The remaining attack should be for weapon2
-        var remainingAttack = _sut.WeaponAttacks.First();
+        var remainingAttack = _sut.WeaponAttackIndicators.First();
         remainingAttack.Weapon.ShouldBe(weapon2);
         remainingAttack.TargetId.ShouldBe(target.Id);
     }
@@ -2838,6 +2838,235 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PhysicalAttackDeclaration_AddsAnIndicatorWithTheDeclaredAttack()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+
+        // Act
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch,
+            [PartLocation.LeftArm, PartLocation.RightArm]);
+
+        // Assert
+        var indicator = _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+        indicator.AttackerId.ShouldBe(attacker.Id);
+        indicator.TargetId.ShouldBe(target.Id);
+        indicator.AttackType.ShouldBe(PhysicalAttackType.Punch);
+        indicator.From.ShouldBe(new HexCoordinates(0, 0));
+        indicator.To.ShouldBe(new HexCoordinates(1, 0));
+        indicator.AttackerTint.ShouldBe("#FF0000");
+        indicator.PendingLimbs.ShouldBe([PartLocation.LeftArm, PartLocation.RightArm]);
+    }
+
+    [Fact]
+    public void PhysicalAttackDeclaration_WithoutADeclaration_AddsNoIndicator()
+    {
+        // Arrange
+        var (attacker, _) = DeployPhysicalAttackers();
+
+        // Act - a null declaration is how a unit says it attacks nothing this turn
+        _game.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            UnitId = attacker.Id,
+            Declaration = null
+        });
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeNull();
+    }
+
+    [Fact]
+    public void PhysicalAttackDeclaration_TwiceForTheSameAttacker_KeepsOneIndicator()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch, [PartLocation.LeftArm]);
+
+        // Act
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Kick, [PartLocation.LeftLeg]);
+
+        // Assert
+        var indicator = _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+        indicator.AttackType.ShouldBe(PhysicalAttackType.Kick);
+        indicator.PendingLimbs.ShouldBe([PartLocation.LeftLeg]);
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_WhileALimbIsStillPending_KeepsTheIndicator()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch,
+            [PartLocation.LeftArm, PartLocation.RightArm]);
+
+        // Act - the first arm of a two-arm punch
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm);
+
+        // Assert
+        var indicator = _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+        indicator.PendingLimbs.ShouldBe([PartLocation.RightArm]);
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_OfTheLastLimb_RemovesTheIndicator()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch,
+            [PartLocation.LeftArm, PartLocation.RightArm]);
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm);
+
+        // Act
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.RightArm);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_OfAMiss_RemovesTheIndicator()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Kick, [PartLocation.LeftLeg]);
+
+        // Act
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Kick, PartLocation.LeftLeg, isHit: false);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_OfAnAlreadyResolvedLimb_ChangesNothing()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch,
+            [PartLocation.LeftArm, PartLocation.RightArm]);
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        var propertiesChanged = 0;
+        _sut.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(BattleMapViewModel.PhysicalAttackIndicators)) propertiesChanged++;
+        };
+
+        // Act - the same resolution delivered twice
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem().PendingLimbs.ShouldBe([PartLocation.RightArm]);
+        propertiesChanged.ShouldBe(0);
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_ForAnotherTarget_LeavesTheIndicatorsAlone()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        var (otherAttacker, otherTarget) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch, [PartLocation.LeftArm]);
+        DeclarePhysicalAttack(otherAttacker, otherTarget, PhysicalAttackType.Kick, [PartLocation.LeftLeg]);
+
+        // Act - a resolution the declared attack does not match
+        ResolvePhysicalAttack(otherAttacker, target, PhysicalAttackType.Kick, PartLocation.LeftLeg);
+
+        // Assert
+        _sut.PhysicalAttackIndicators!.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void PhysicalAttackIndicators_SurvivePhasesUntilThePhysicalAttackResolutionEnds()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        SetPhase(PhaseNames.Movement);
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch, [PartLocation.LeftArm]);
+
+        // Act and assert - a declaration made before the physical phases (a charge or a death from
+        // above is declared while moving) is not dropped by the phases in between
+        SetPhase(PhaseNames.Initiative);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        SetPhase(PhaseNames.WeaponsAttack);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        SetPhase(PhaseNames.PhysicalAttack);
+        SetPhase(PhaseNames.PhysicalAttackResolution);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        // Act - the phase the declarations are resolved in is over
+        SetPhase(PhaseNames.Heat);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PhysicalAttackDeclaration_ForAnUndeployedTarget_AddsNoIndicator()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        target.RemoveFromBoard();
+
+        // Act
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Punch, [PartLocation.LeftArm]);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeNull();
+    }
+
+    private (IUnit Attacker, IUnit Target) DeployPhysicalAttackers()
+    {
+        var attackerPlayer = JoinPlayerWithUnit("Attacker", "#FF0000");
+        var targetPlayer = JoinPlayerWithUnit("Defender", "#00FF00");
+        var attacker = _sut.Units.First(unit => unit.Owner!.Id == attackerPlayer.Id);
+        var target = _sut.Units.First(unit => unit.Owner!.Id == targetPlayer.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top), null);
+        target.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top), null);
+        return (attacker, target);
+    }
+
+    private void DeclarePhysicalAttack(IUnit attacker, IUnit target, PhysicalAttackType attackType,
+        IReadOnlyList<PartLocation> limbs)
+        => _game.HandleCommand(new PhysicalAttackCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            UnitId = attacker.Id,
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = attackType,
+                AttackerLimbs = limbs,
+                TargetId = target.Id
+            }
+        });
+
+    private void ResolvePhysicalAttack(IUnit attacker, IUnit target, PhysicalAttackType attackType,
+        PartLocation limb, bool isHit = true)
+        => _game.HandleCommand(new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            AttackerId = attacker.Id,
+            TargetId = target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                attackType,
+                limb,
+                2,
+                new AttackResolutionData(
+                    ToHitNumber: 7,
+                    AttackRoll: [new DiceResult(1), new DiceResult(6)],
+                    IsHit: isHit,
+                    AttackDirection: HitDirection.Front,
+                    ExternalHeat: 0),
+                [])
+        });
+
+    [Fact]
     public void KickPilotingSkillRollCommand_AddsALocalizedLogEntry()
     {
         // Arrange
@@ -2881,7 +3110,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void UpdateGamePhase_ShouldPersistWeaponAttacksBetweenWeaponsAttackAndResolutionPhases_AndClearOnEndPhase()
+    public void UpdateGamePhase_ShouldPersistWeaponAttackIndicatorsBetweenWeaponsAttackAndResolutionPhases_AndClearOnEndPhase()
     {
         // Arrange
         var playerId = Guid.NewGuid();
@@ -2980,8 +3209,8 @@ public class BattleMapViewModelTests
         game.HandleCommand(weaponAttackCommand);
 
         // Verify weapon attack is present
-        _sut.WeaponAttacks.ShouldNotBeNull();
-        _sut.WeaponAttacks.Count.ShouldBe(1);
+        _sut.WeaponAttackIndicators.ShouldNotBeNull();
+        _sut.WeaponAttackIndicators.Count.ShouldBe(1);
 
         // Act - Transition to WeaponAttackResolution phase
         game.HandleCommand(new ChangePhaseCommand
@@ -2991,8 +3220,8 @@ public class BattleMapViewModelTests
         });
 
         // Assert - Weapon attacks should persist during the resolution phase
-        _sut.WeaponAttacks.ShouldNotBeNull();
-        _sut.WeaponAttacks.Count.ShouldBe(1, "Weapon attacks should persist between WeaponsAttack and WeaponAttackResolution phases");
+        _sut.WeaponAttackIndicators.ShouldNotBeNull();
+        _sut.WeaponAttackIndicators.Count.ShouldBe(1, "Weapon attacks should persist between WeaponsAttack and WeaponAttackResolution phases");
 
         // Act - Transition to End phase (two-stage protocol)
         game.HandleCommand(new ChangePhaseCommand
@@ -3008,7 +3237,7 @@ public class BattleMapViewModelTests
         });
 
         // Assert - Weapon attacks should be cleared when transitioning to the End phase
-        _sut.WeaponAttacks.ShouldBeEmpty("Weapon attacks should be cleared when transitioning to End phase");
+        _sut.WeaponAttackIndicators.ShouldBeEmpty("Weapon attacks should be cleared when transitioning to End phase");
     }
 
     [Fact]

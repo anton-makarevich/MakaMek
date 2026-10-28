@@ -9,21 +9,21 @@ using Shouldly;
 namespace MakaMek.Avalonia.Tests.Controls;
 
 /// <summary>
-/// The selection outline is motion, so it is not covered by the usual unit tests. What can be
-/// checked headlessly is that the motion is well formed: the geometry is a hexagon inside the hex,
-/// the entrance shows the outline, the exit hides it again, the pulse loops and the reduced forms
-/// neither loop nor leave the outline invisible.
+/// The hex shaped marks on the board are motion, so they are not covered by the usual unit tests.
+/// What can be checked headlessly is that their shared motion vocabulary is well formed: the
+/// geometry is a hexagon inside the hex, the entrance shows the outline, the exit hides it again,
+/// the pulse loops and the reduced forms neither loop nor leave the mark invisible.
 /// </summary>
 /// <remarks>
 /// The self-drawing stroke itself needs a platform that measures the contour, which the headless
 /// platform does not, so only the parts that do not depend on it are asserted here.
 /// </remarks>
-public class SelectionHexMotionTests
+public class HexShapeMotionTests
 {
     [Fact]
     public Task TheGeometryIsAHexagonInsideTheHex() => Dispatch(() =>
     {
-        var bounds = SelectionHexMotion.CreateHexGeometry(SelectionHexMotion.Inset).Bounds;
+        var bounds = HexShapeMotion.CreateHexGeometry(HexShapeMotion.Inset).Bounds;
 
         bounds.Left.ShouldBeGreaterThan(0);
         bounds.Top.ShouldBeGreaterThan(0);
@@ -36,7 +36,7 @@ public class SelectionHexMotionTests
     [Fact]
     public Task TheGeometryIsInsetByTheSameAmountOnEverySide() => Dispatch(() =>
     {
-        var bounds = SelectionHexMotion.CreateHexGeometry(SelectionHexMotion.Inset).Bounds;
+        var bounds = HexShapeMotion.CreateHexGeometry(HexShapeMotion.Inset).Bounds;
 
         bounds.Left.ShouldBe(HexCoordinatesPixelExtensions.HexWidth / 2 - bounds.Width / 2, 3);
         bounds.Top.ShouldBe(HexCoordinatesPixelExtensions.HexHeight / 2 - bounds.Height / 2, 3);
@@ -45,7 +45,7 @@ public class SelectionHexMotionTests
     [Fact]
     public Task TheOutlineIsInvisibleAndInertAtRest() => Dispatch(() =>
     {
-        var hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, Brushes.Red);
+        var hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, Brushes.Red);
 
         hex.Opacity.ShouldBe(0);
         hex.IsHitTestVisible.ShouldBeFalse();
@@ -56,7 +56,7 @@ public class SelectionHexMotionTests
     [Fact]
     public Task TheOutlineIsTheSizeOfTheHexSoItTurnsAroundTheHexCentre() => Dispatch(() =>
     {
-        var hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, Brushes.Red);
+        var hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, Brushes.Red);
 
         // The hexagon is drawn in the middle of the path, so the path has to be the size of the hex
         // for a relative origin of one half to be the centre of the hexagon.
@@ -65,19 +65,36 @@ public class SelectionHexMotionTests
     });
 
     [Fact]
+    public Task TheInsetOfAScaledHexShrinksWithTheHex() => Dispatch(() =>
+    {
+        // The attack badge is a fraction of a hex. Its inset is measured in unscaled hex pixels, so
+        // it shrinks in proportion; measuring it in scaled pixels would make the small badge
+        // visibly smaller without changing anything about the large outline.
+        const double scale = 0.5;
+        const double inset = 6;
+
+        var full = HexShapeMotion.CreateHexGeometry(0, scale).Bounds;
+        var insetBounds = HexShapeMotion.CreateHexGeometry(inset, scale).Bounds;
+
+        ((full.Height - insetBounds.Height) / 2).ShouldBe(inset * scale, 3);
+        insetBounds.Left.ShouldBe(HexCoordinatesPixelExtensions.HexWidth * scale / 2 - insetBounds.Width / 2, 3);
+        insetBounds.Top.ShouldBe(HexCoordinatesPixelExtensions.HexHeight * scale / 2 - insetBounds.Height / 2, 3);
+    });
+
+    [Fact]
     public Task TheEntranceShowsTheOutlineAndTheExitHidesItAgain() => Dispatch(() =>
     {
         using var engine = StartEngine();
-        var hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, Brushes.Red);
+        var hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, Brushes.Red);
         var scope = PrestoAvalonia.CreateScope(hex);
 
-        scope.Execute(_ => { hex.Animate(SelectionHexMotion.Enter); });
+        scope.Execute(_ => { hex.Animate(HexShapeMotion.Enter); });
         engine.Advance(120);
 
         hex.Opacity.ShouldBeGreaterThan(0.9);
         hex.RenderTransform.ShouldNotBeNull("the outline scales itself into place");
 
-        scope.Execute(_ => { hex.Animate(SelectionHexMotion.Exit); });
+        scope.Execute(_ => { hex.Animate(HexShapeMotion.Exit); });
         engine.Advance(30);
 
         hex.Opacity.ShouldBeLessThan(0.1);
@@ -88,10 +105,10 @@ public class SelectionHexMotionTests
     public Task ThePulseLoopsWhileTheUnitIsSelected() => Dispatch(() =>
     {
         using var engine = StartEngine();
-        var pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, Brushes.Red);
+        var pulse = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, Brushes.Red);
         var scope = PrestoAvalonia.CreateScope(pulse);
 
-        scope.Execute(_ => { pulse.Animate(SelectionHexMotion.IdlePulse); });
+        scope.Execute(_ => { pulse.Animate(HexShapeMotion.IdlePulse); });
         engine.Advance(30);
 
         pulse.Opacity.ShouldBeLessThan(1, "the pulse fades the outline in and out");
@@ -105,10 +122,10 @@ public class SelectionHexMotionTests
     public Task ThePulseTravelsFarEnoughToBeSeen() => Dispatch(() =>
     {
         using var engine = StartEngine();
-        var pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, Brushes.Red);
+        var pulse = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, Brushes.Red);
         var scope = PrestoAvalonia.CreateScope(pulse);
 
-        scope.Execute(_ => { pulse.Animate(SelectionHexMotion.IdlePulse); });
+        scope.Execute(_ => { pulse.Animate(HexShapeMotion.IdlePulse); });
 
         // The pulse grows out of the outline, so it has to leave the stroke of the outline behind,
         // otherwise it only ever shows as a slightly brighter outline.
@@ -127,16 +144,16 @@ public class SelectionHexMotionTests
         Presto.Defaults.ReducedMotion = true;
         try
         {
-            var hex = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 4, Brushes.Red);
+            var hex = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 4, Brushes.Red);
             var scope = PrestoAvalonia.CreateScope(hex);
 
-            scope.Execute(_ => { hex.Animate(SelectionHexMotion.Enter); });
+            scope.Execute(_ => { hex.Animate(HexShapeMotion.Enter); });
             engine.Advance(30);
 
             hex.Opacity.ShouldBeGreaterThan(0.9, "the reduced entrance still fades the outline in");
 
-            var pulse = SelectionHexMotion.CreateHex(SelectionHexMotion.Inset, 2, Brushes.Red);
-            scope.Execute(_ => { pulse.Animate(SelectionHexMotion.IdlePulse); });
+            var pulse = HexShapeMotion.CreateHex(HexShapeMotion.Inset, 2, Brushes.Red);
+            scope.Execute(_ => { pulse.Animate(HexShapeMotion.IdlePulse); });
             engine.Advance(30);
 
             pulse.Opacity.ShouldBe(0, "the reduced pulse is a still outline, not a loop");
@@ -177,7 +194,7 @@ public class SelectionHexMotionTests
     private static Task Dispatch(Action action)
     {
         var session = HeadlessUnitTestSession.GetOrStartForAssembly(
-            typeof(SelectionHexMotionTests).Assembly);
+            typeof(HexShapeMotionTests).Assembly);
         return session.Dispatch(action, CancellationToken.None);
     }
 }

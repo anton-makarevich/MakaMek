@@ -1,0 +1,54 @@
+Third-party notices for Sanet.MakaMek.Avalonia.Controls
+=======================================================
+
+This assembly embeds third-party icon artwork. The notices below cover it. The
+file is an embedded Avalonia resource, so it travels with every build of the
+assembly; XML comments in the style files do not, because the XAML compiler
+strips them.
+
+
+Phosphor Icons
+--------------
+
+Used by: Styles/Icons.axaml (PunchIcon, KickIcon).
+
+MIT License
+
+Copyright (c) 2020 Phosphor Icons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Source: https://github.com/phosphor-icons/core
+License: https://github.com/phosphor-icons/homepage/blob/master/LICENSE
+
+
+Font Awesome Free
+-----------------
+
+Used by: Styles/Icons.axaml (the other icons) and
+Assets/Fonts/Font Awesome 6 Free-Solid-900.otf.
+
+Copyright Fonticons, Inc. (https://fontawesome.com)
+
+Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Fonts: SIL OFL 1.1 (https://scripts.sil.org/OFL)
+Code: MIT
+
+Source: https://github.com/FortAwesome/Font-Awesome
+License: https://fontawesome.com/license/free
