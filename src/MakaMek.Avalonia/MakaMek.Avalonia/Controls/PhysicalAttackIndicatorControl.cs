@@ -51,7 +51,6 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     private const double BadgeStrokeThickness = 2;
 
     private static readonly IBrush BadgeBrush = new SolidColorBrush(Color.FromArgb(0xB0, 0, 0, 0));
-    private static readonly IBrush IconBrush = Brushes.White;
 
     private readonly Path _pulse;
     private readonly Path _badge;
@@ -73,7 +72,7 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         var tint = new SolidColorBrush(Color.Parse(viewModel.AttackerTint));
         _pulse = HexShapeMotion.CreateScaledHex(SizeFactor, 0, BadgeStrokeThickness, tint);
         _badge = HexShapeMotion.CreateScaledHex(SizeFactor, BadgeInset, BadgeStrokeThickness, tint, BadgeBrush);
-        _icon = CreateIcon(viewModel.AttackType);
+        _icon = CreateIcon(viewModel.AttackType, tint);
 
         Children.Add(_pulse);
         Children.Add(_badge);
@@ -152,13 +151,17 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         coordinates.H + HexCoordinatesPixelExtensions.HexWidth * 0.5,
         coordinates.V + HexCoordinatesPixelExtensions.HexHeight * 0.5);
 
-    private static Path CreateIcon(PhysicalAttackType attackType)
+    /// <summary>
+    /// Builds the punch or kick glyph, filled with the attacker tint so the badge reads as the
+    /// owner's mark the way the hex and the pulse do.
+    /// </summary>
+    private static Path CreateIcon(PhysicalAttackType attackType, IBrush brush)
     {
         var resources = new AvaloniaResourcesLocator();
         return new Path
         {
             Data = resources.TryFindResource(IconResourceKey(attackType)) as Geometry,
-            Fill = IconBrush,
+            Fill = brush,
             Width = IconSize,
             Height = IconSize,
             Stretch = Stretch.Uniform,

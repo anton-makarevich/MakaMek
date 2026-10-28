@@ -88,6 +88,19 @@ public class PhysicalAttackIndicatorMotionTests
     });
 
     [Fact]
+    public Task TheIconIsFilledWithTheAttackerTint() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var indicator = CreateIndicator(PhysicalAttackType.Punch);
+
+        var tint = Color.Parse("#FF0000");
+        indicator.IconPath.Fill.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint,
+            "the glyph belongs to the attacker, like the hex it sits in");
+        indicator.BadgePath.Stroke.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint);
+        indicator.PulsePath.Stroke.ShouldBeOfType<SolidColorBrush>().Color.ShouldBe(tint);
+    });
+
+    [Fact]
     public Task TheEntranceMakesTheBadgeVisible() => Dispatch(() =>
     {
         using var engine = StartEngine();
