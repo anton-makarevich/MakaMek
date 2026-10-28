@@ -84,7 +84,8 @@ public static class ClipInventory
     /// Decodes every available clip and fills in frame counts, fps, duration, animated bones, root travel and loop
     /// closure. A clip that fails to decode is reported as <c>error</c>, never silently dropped.
     /// </summary>
-    public static ClipInventoryReport Probe(UnrealArchive archive, ClipInventoryReport report, ClipVocabulary vocabulary)
+    public static ClipInventoryReport Probe(UnrealArchive archive, ClipInventoryReport report,
+        ClipVocabulary vocabulary, int shippedFrames = 10)
     {
         var clips = new List<ClipEntry>();
         var warnings = new List<string>(report.Warnings);
@@ -107,7 +108,7 @@ public static class ClipInventory
 
             try
             {
-                var sample = AnimationClipReader.Read(archive, definition, entry.AssetPath);
+                var sample = AnimationClipReader.Read(archive, definition, entry.AssetPath, shippedFrames: shippedFrames);
                 clips.Add(sample.Entry with { Candidates = entry.Candidates, Status = "available" });
                 warnings.AddRange(sample.Entry.Warnings);
             }

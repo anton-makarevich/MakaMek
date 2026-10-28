@@ -72,11 +72,11 @@ public sealed record AssemblyReport
     /// <summary>
     /// <c>canonical</c> (Y-up, facing +Z, footprint centred) for static models, or <c>mw5-source</c> (Y-up, facing
     /// +X) for animated ones, which have to stay in the skeleton's own space; render those with
-    /// <c>--model-yaw -90</c>.
+    /// <c>--model-yaw 90</c>.
     /// </summary>
     public string ModelSpace { get; init; } = "canonical";
 
-    /// <summary>Yaw the driver must apply to reach canonical plan-view orientation (0 or -90).</summary>
+    /// <summary>Yaw the driver must apply to reach canonical plan-view orientation (0 or 90).</summary>
     public float ModelYawDegrees { get; init; }
 
     public required IReadOnlyList<AssemblyPart> Parts { get; init; }

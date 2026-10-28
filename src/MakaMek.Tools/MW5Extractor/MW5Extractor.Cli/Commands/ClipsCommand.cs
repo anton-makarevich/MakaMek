@@ -18,7 +18,7 @@ internal static class ClipsCommand
 
         var probeOption = new Option<bool>("--probe")
         {
-            Description = "Decode every available clip (frames, fps, duration, animated bones, root travel, loop closure)."
+            Description = "Decode every available clip (frames, fps, duration, animated bones, root travel, sampled foot contacts, loop closure)."
         };
 
         var outOption = new Option<string?>("--out", "-o")
@@ -29,6 +29,12 @@ internal static class ClipsCommand
         var clipMapOption = new Option<string?>("--clip-map")
         {
             Description = "Clip alias map (default: clip-map.json next to the tool)."
+        };
+
+        var shippedFramesOption = new Option<int>("--shipped-frames")
+        {
+            Description = "Frames the render preset ships per clip; used for the sampled foot probe.",
+            DefaultValueFactory = _ => 10
         };
 
         var command = new Command(
@@ -43,6 +49,7 @@ internal static class ClipsCommand
         command.Options.Add(probeOption);
         command.Options.Add(outOption);
         command.Options.Add(clipMapOption);
+        command.Options.Add(shippedFramesOption);
         command.Arguments.Add(chassisArgument);
 
         command.SetAction(async (parseResult, _) =>
@@ -57,7 +64,8 @@ internal static class ClipsCommand
                 var report = ClipInventory.Build(archive, chassis, vocabulary);
                 if (parseResult.GetValue(probeOption))
                 {
-                    report = ClipInventory.Probe(archive, report, vocabulary);
+                    report = ClipInventory.Probe(archive, report, vocabulary,
+                        parseResult.GetValue(shippedFramesOption));
                 }
 
                 var outPath = ArtifactPaths.Resolve(
@@ -99,6 +107,20 @@ internal static class ClipsCommand
             foreach (var warning in clip.Warnings)
             {
                 Console.WriteLine($"  {"",11} warn: {warning}");
+            }
+
+            if (clip.FootGait is { } gait)
+            {
+                Console.WriteLine(
+                    $"  {"",11} feet({gait.Frames} shipped): corrected stride " +
+                    $"{gait.CorrectedStrideMeters:0.000} m (root {clip.RootEndpointDisplacementMeters:0.000} m)");
+                foreach (var contact in gait.Contacts)
+                {
+                    Console.WriteLine(
+                        $"  {"",11}   {contact.Foot,-5} {contact.Bone} {contact.StartSeconds:0.000}s " +
+                        $"root {contact.RootTravelMeters:0.000} m " +
+                        $"foot {contact.FootTravelMeters:0.000} m ({contact.SampleCount} frames)");
+                }
             }
         }
 

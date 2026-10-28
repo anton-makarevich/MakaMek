@@ -54,7 +54,30 @@ def parse_args(argv):
     parser.add_argument("--frames-out", default=None,
                         help="optional directory to write the downsampled 1x frames (<clip>/<index:03>.png); "
                              "must not be the same directory as --frames")
+    parser.add_argument("--distance-per-cycle", action="append", default=[], metavar="CLIP=PIXELS",
+                        help="override the computed distance-per-cycle for one clip, in 1x sprite pixels "
+                             "(repeatable: --distance-per-cycle Walk=43.9). Use after visual calibration.")
+    parser.add_argument("--model-yaw", type=float, default=None,
+                        help="yaw the frames were rendered with, for provenance. Defaults to the "
+                             "assembly report's modelYawDegrees.")
     return parser.parse_args(argv)
+
+
+def parse_distance_overrides(values):
+    """Parses repeated CLIP=PIXELS arguments into a {clip: pixels} map."""
+    overrides = {}
+    for value in values:
+        name, separator, raw = value.partition("=")
+        if not separator or not name.strip():
+            raise ValueError(f"expected CLIP=PIXELS, got '{value}'")
+        try:
+            pixels = float(raw)
+        except ValueError:
+            raise ValueError(f"distance-per-cycle for '{name}' is not a number: '{raw}'") from None
+        if pixels <= 0:
+            raise ValueError(f"distance-per-cycle for '{name}' must be positive, got {pixels}")
+        overrides[name.strip()] = pixels
+    return overrides
 
 
 def load_json(path):
@@ -218,7 +241,10 @@ def build_preview(images, path, fps):
     scaled[0].save(path, save_all=True, append_images=scaled[1:], duration=duration, loop=0, disposal=2)
 
 
-def write_metadata(out_dir, name, loaded, width, height, padding, preset, report, assembly):
+def write_metadata(out_dir, name, loaded, width, height, padding, preset, report, assembly,
+                   distance_overrides=None, model_yaw=None):
+    distance_overrides = distance_overrides or {}
+    applied_scale = (report or {}).get("appliedScale")
     source_clips = {}
     if assembly:
         for entry in assembly.get("animations", []):
@@ -235,12 +261,25 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
         spec = dict(preset["clips"].get(clip_name, {}))
         source = source_clips.get(clip_name, {})
         render = rendered.get(clip_name, {})
+
+        # Prefer the sampled foot-contact stride; fall back to the root endpoint for clips without
+        # foot contacts or older assemblies.
+        gait = source.get("footGait") or {}
+        foot_stride = gait.get("correctedStrideMeters")
+        root_travel = source.get("rootEndpointDisplacementMeters")
+        if root_travel is None or root_travel <= 0:
+            root_travel = source.get("rootMotionMeters") or 0
+        stride_meters = foot_stride if foot_stride is not None and foot_stride > 0 else root_travel
+        computed_distance = round(stride_meters * applied_scale, 3) if applied_scale else 0
+        distance_per_cycle = distance_overrides.get(clip_name, computed_distance)
+
         clip = {
             "row": row,
             "frames": len(images),
             "fps": spec.get("fps"),
             "loop": spec.get("loop", True),
             "hold": spec.get("hold"),
+            "distancePerCycle": distance_per_cycle,
         }
         if source:
             clip["source"] = {
@@ -251,15 +290,30 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
                 "sampledFrames": source.get("sampledFrames"),
                 "durationSeconds": source.get("durationSeconds"),
                 "rootMotionMeters": source.get("rootMotionMeters"),
+                "rootEndpointDisplacementMeters": source.get("rootEndpointDisplacementMeters"),
+                "rootDisplacementXMeters": source.get("rootDisplacementXMeters"),
+                "rootDisplacementZMeters": source.get("rootDisplacementZMeters"),
+                "rootProgressMonotonic": source.get("rootProgressMonotonic"),
+                "rootMaxLateralDeviationMeters": source.get("rootMaxLateralDeviationMeters"),
+                "rootPathLengthMeters": source.get("rootPathLengthMeters"),
                 "loopClosureDegrees": source.get("loopClosureDegrees"),
                 "loopClosureMeters": source.get("loopClosureMeters"),
             }
+            gait = source.get("footGait")
+            if gait:
+                gait = dict(gait)
+                gait["suggestedDistancePerCycle"] = computed_distance
+                clip["footGait"] = gait
         if render:
             clip["sourceFrames"] = render.get("sourceFrames")
             clip["sourceRange"] = render.get("sourceRange")
 
         animations[clip_name] = clip
         source_range = render.get("sourceRange") or [None, None]
+        gait = source.get("footGait") or {}
+        corrected_stride = gait.get("correctedStrideMeters")
+        suggested_distance = (round(corrected_stride * applied_scale, 3)
+                              if corrected_stride and applied_scale else None)
         rows.append({
             "name": clip_name,
             "asset": source.get("assetPath"),
@@ -274,12 +328,17 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
             "loop": spec.get("loop", True),
             "hold": spec.get("hold"),
             "rootMotionMeters": source.get("rootMotionMeters"),
+            "rootEndpointDisplacementMeters": source.get("rootEndpointDisplacementMeters"),
+            "distancePerCycle": distance_per_cycle,
+            "distanceOverridden": clip_name in distance_overrides,
+            "correctedStrideMeters": corrected_stride,
+            "suggestedDistancePerCycle": suggested_distance,
             "loopClosureDegrees": source.get("loopClosureDegrees"),
             "notes": "; ".join(source.get("warnings") or []),
         })
 
     document = {
-        "version": 1,
+        "version": 2,
         "model": name,
         "sheet": "unit-sprites.png",
         "cellWidth": width,
@@ -287,6 +346,13 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
         "padding": padding,
         "colorSpace": "luminance",
         "pivot": [0.5, 0.5],
+        "distanceUnits": "spritePixels",
+        "render": {
+            "preset": (report or {}).get("preset"),
+            "appliedScale": applied_scale,
+            "supersample": (report or {}).get("supersample"),
+            "modelYawDegrees": model_yaw if model_yaw is not None else (assembly or {}).get("modelYawDegrees"),
+        },
         "animations": animations,
     }
 
@@ -300,7 +366,9 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
 
     fields = ["name", "asset", "sourceFrames", "sourceFps", "sourceFrameStart", "sourceFrameEnd",
               "sampledFrames", "shippedFrames", "shippedFps", "durationSeconds", "loop", "hold",
-              "rootMotionMeters", "loopClosureDegrees", "notes"]
+              "rootMotionMeters", "rootEndpointDisplacementMeters", "distancePerCycle", "distanceOverridden",
+              "correctedStrideMeters", "suggestedDistancePerCycle",
+              "loopClosureDegrees", "notes"]
     with open(os.path.join(out_dir, "clips.csv"), "w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -338,6 +406,12 @@ def main(argv):
     os.makedirs(args.out, exist_ok=True)
     name = args.name or os.path.basename(os.path.dirname(os.path.abspath(args.frames))) or "model"
 
+    try:
+        distance_overrides = parse_distance_overrides(args.distance_per_cycle)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return EXIT_BAD_ARGS
+
     downsample = 1
     if args.downsample == "auto":
         downsample = int((report or {}).get("supersample", 1) or 1)
@@ -369,7 +443,8 @@ def main(argv):
         build_preview(images, os.path.join(args.out, f"preview-{clip_name}.gif"), clip_fps)
 
     document = write_metadata(
-        args.out, name, loaded, width, height, args.padding, preset, report, assembly)
+        args.out, name, loaded, width, height, args.padding, preset, report, assembly,
+        distance_overrides, args.model_yaw)
 
     print(json.dumps({
         "model": name,
@@ -379,6 +454,8 @@ def main(argv):
         "atlasContent": [raw_width, raw_height],
         "downsample": downsample,
         "frames": sum(len(images) for _, images in loaded),
+        "distancePerCycle": {clip: spec["distancePerCycle"]
+                             for clip, spec in document["animations"].items()},
         "out": os.path.abspath(args.out),
     }))
     return EXIT_OK

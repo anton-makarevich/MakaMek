@@ -206,7 +206,7 @@ Gotchas measured on the Atlas walk:
   `(x, z, y) * 0.01` for translations (`Gltf.CreateGltfSkeleton`). Applying the same conversion to the keys is
   what makes an MW5 clip bind to the exported body without retargeting.
 - **Blender drops an armature-level transform on skinned meshes.** Keep animated models in the skeleton's
-  exported space and rotate in the driver (`--model-yaw -90`).
+  exported space and rotate in the driver (`--model-yaw 90`).
 - **glTF animation extras are not preserved** by SharpGLTF's `Animation`; clip metadata (fps, root travel,
   loop closure) goes in the assembly report and `clips.json`, not in the glb.
 - `clips <chassis> --probe` is the quick way to see what decodes before writing animation code.

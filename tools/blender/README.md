@@ -77,7 +77,7 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
 | `--no-outline` | disable the Freestyle outline |
 | `--save-blend PATH` | keep the generated scene for inspection |
-| `--model-yaw DEG` | yaw for models exported in a different facing. Canonical static models need `0`; animated MW5 models are exported in source space and need **-90** (the assembly report prints `modelYawDegrees`) |
+| `--model-yaw DEG` | yaw for models exported in a different facing. Canonical static models need `0`; animated MW5 models are exported in source space and need **90** (the assembly report prints `modelYawDegrees`) |
 
 Exit codes: `0` ok, `2` bad arguments, `3` missing input, `4` invalid preset or failed verification.
 
@@ -92,7 +92,7 @@ blender -b --factory-startup -noaudio --python-exit-code 1 \
         -P tools/blender/render.py -- \
         --model  artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
         --preset tools/blender/board-topdown.json \
-        --scale  5.098 --model-yaw -90 --fit --supersample 4 \
+        --scale  5.098 --model-yaw 90 --fit --supersample 4 \
         --clips  Walk \
         --out    artifacts/spike/anim/AS7-D \
         --report artifacts/spike/anim/AS7-D/report.json
@@ -129,6 +129,17 @@ clips.csv / clips.json        # source asset, source fps/frames, shipped fps/fra
 preview-<clip>.gif            # 4× motion sanity check
 frames-1x/<clip>/<frame:03>.png  # the downsampled 1× frames, when --frames-out is given
 ```
+
+`unit-sprites.json` (schema `version: 2`) carries, per clip, a `distancePerCycle` in
+`distanceUnits: "spritePixels"`: the sampled foot-contact stride from the assembly report's
+`footGait.correctedStrideMeters` (falling back to the root endpoint, then `rootMotionMeters`) multiplied
+by the report's `appliedScale`. The `footGait` block records the shipped-frame contacts and their slip
+and is read from the `source_clips` entries of the `--assembly` JSON, which the assembler fills in with its
+default probe count (`10`). `clips --probe --shipped-frames N` prints the same diagnostics for inspection, but
+`sheet.py` never reads that standalone report. The sheet also records the render provenance
+(`preset`, `appliedScale`, `supersample`, `modelYawDegrees`). A repeated
+`--distance-per-cycle Walk=43.9` overrides one clip after visual calibration; without an override the
+value is computed.
 
 ## Scale is not the driver's business
 
@@ -233,7 +244,7 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
   the reported bounds are wrong by the helper's size.
 - **The importer drops an armature-level transform on skinned meshes.** A canonical basis baked into the
   armature rotates the attachments but leaves the body in source space (and vice versa). Animated models
-  therefore ship in source space and the driver applies `--model-yaw -90`; `--fit` then recentres the
+  therefore ship in source space and the driver applies `--model-yaw 90`; `--fit` then recentres the
   footprint and grounds the feet. Do not try to bake the basis into the skeleton root: the importer
   normalises that too.
 - **Bone-parented mesh nodes are unreliable across the importer.** Attachments must be skinned vertices

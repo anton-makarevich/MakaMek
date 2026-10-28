@@ -65,7 +65,7 @@ These are non-negotiable and enforced by the normalizer (`validate` fails otherw
 Animated MW5 models are the one deliberate exception to "facing +Z": the skeleton has to stay in its exported
 space (Y-up, facing +X) because Blender's glTF importer cancels an armature-level transform on skinned meshes,
 which would split the body and its attachments into different spaces. `assemble` records
-`modelSpace = "mw5-source"` and `modelYawDegrees = -90`; the driver applies the yaw. Static models remain fully
+`modelSpace = "mw5-source"` and `modelYawDegrees = 90`; the driver applies the yaw. Static models remain fully
 canonical.
 
 ### 2.3 Canonical clips
@@ -383,7 +383,7 @@ Animated models use the same entry point with clip selection:
 ```bash
 blender … -P tools/blender/render.py -- \
   --model artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
-  --scale 5.098 --model-yaw -90 --fit --supersample 4 \
+  --scale 5.098 --model-yaw 90 --fit --supersample 4 \
   --clips Walk --out artifacts/spike/anim/AS7-D --report artifacts/spike/anim/AS7-D/report.json
 
 python tools/blender/sheet.py \

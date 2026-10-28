@@ -121,7 +121,7 @@ Rules, measured in spike [#1653](https://github.com/anton-makarevich/MakaMek/iss
 - **Space.** Animated MW5 models stay in the skeleton's exported space (metres, Y-up, facing **+X**):
   Blender's glTF importer drops an armature-level transform on skinned meshes, so a baked canonical basis
   would leave the body and its attachments in different spaces. `assemble` reports
-  `modelSpace = "mw5-source"` and `modelYawDegrees = -90`; pass that value to `--model-yaw`. Static models
+  `modelSpace = "mw5-source"` and `modelYawDegrees = 90`; pass that value to `--model-yaw`. Static models
   stay canonical and need `0`.
 - **Report.** `render-report.json` records, per clip, the action name, its frame range, and the source frame
   behind every output frame — that is what lets the contact sheet label `f04 src 19.7`.

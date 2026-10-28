@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Assets.Models.Units;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services.PackageReaders;
 
@@ -28,6 +29,7 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
 
         public readonly ConcurrentDictionary<string, UnitData> UnitDataCache = new();
         public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
+        public readonly ConcurrentDictionary<string, UnitAnimationData> AnimationCache = new();
     }
 
     /// <summary>
@@ -73,6 +75,17 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     {
         var state = await EnsureInitialized();
         return state.ImageCache.GetValueOrDefault(model);
+    }
+
+    /// <summary>
+    /// Gets the optional sprite atlas for a unit model
+    /// </summary>
+    /// <param name="model">The unit model identifier</param>
+    /// <returns>Atlas bytes and metadata if present, null otherwise</returns>
+    public async Task<UnitAnimationData?> GetUnitAnimation(string model)
+    {
+        var state = await EnsureInitialized();
+        return state.AnimationCache.GetValueOrDefault(model);
     }
 
     /// <summary>
@@ -123,8 +136,26 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
             var model = package.Data.Model;
             TryCache(state.UnitDataCache, model, package.Data);
             TryCache(state.ImageCache, model, package.Image);
+
+            // A v1 package overwriting a v2 one must also drop the stale atlas, so the unit never shows
+            // animation data that belongs to a package that is no longer authoritative.
+            if (package.Animation is null)
+            {
+                state.AnimationCache.TryRemove(model, out _);
+            }
+            else
+            {
+                TryCache(state.AnimationCache, model, package.Animation);
+            }
+
             if (!string.IsNullOrEmpty(providerId))
                 state.ResourceOwnership[model] = providerId;
+        }
+
+        if (package.SpriteError is not null)
+        {
+            _logger.LogWarning("Unit '{Model}' has unusable sprite data: {SpriteError}", package.Data.Model,
+                package.SpriteError);
         }
     }
 }

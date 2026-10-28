@@ -60,7 +60,7 @@ Every verb accepts `--paks`, `--extra <dir>` (repeatable), `--aes <hex>`, `--ood
 | `find <chassis>` | classify one chassis: body, body parts, cockpit, glass, hardpoints, weapons, variants, animations | `find Atlas` / `find AS7-D` |
 | `inspect <asset>` | exports, generic tags, bones, sockets with transforms, LODs, material slots, animation info | `inspect Atlas_SKM` |
 | `extract <asset>` | `--format gltf\|psk\|json` → files on disk | `extract Atlas_SKM` / `extract Atlas_HPS -f json` |
-| `clips <chassis>` | map the chassis' animation assets onto the canonical vocabulary; `--probe` decodes frames/fps/root motion/loop closure | `clips AS7-D --probe` |
+| `clips <chassis>` | map the chassis' animation assets onto the canonical vocabulary; `--probe` decodes frames/fps/root motion/sampled foot contacts/loop closure | `clips AS7-D --probe --shipped-frames 10` |
 | `assemble <chassis\|variant>` | merge body + cockpit + loadout weapons into **one** renderable glTF (`<VARIANT>.glb` + `<VARIANT>.assembly.json`); `--clips Walk` produces a skinned animated `<VARIANT>.animated.glb` | `assemble AS7-D --clips Walk` |
 | `discovery-report` | every chassis in one JSON file, plus assumption checks against the research notes | `discovery-report` |
 
@@ -103,7 +103,10 @@ Notes that matter:
 
 `clips <chassis> --probe` is the inventory: it resolves MW5 asset names to the canonical vocabulary
 (`Idle`, `Walk`, `Run`, `Jump`, `Shutdown`, `Destroyed`) and reports frame counts, derived fps, duration,
-animated bones, root travel and loop closure. Aliases are data in `clip-map.json` (next to the library):
+animated bones, root travel, sampled foot contacts and loop closure. `--shipped-frames N` (default `10`)
+samples the `LeftFoot_Down` / `RightFoot_Down` notify windows at the frames the sprite ships; the resulting
+`footGait.correctedStrideMeters` is the default `distancePerCycle` source for the packager. Aliases are data
+in `clip-map.json` (next to the library):
 
 ```jsonc
 { "name": "Walk", "loop": true, "patterns": ["_WalkForward_Straight_ANI", "_WalkForward_ANI", "_Walk_ANI"] }
@@ -130,7 +133,7 @@ What is different from the static merge:
 - **The closing key of a loop is dropped** (61 keys → 60 sampled poses for the 2 s walk).
 - **The animated model stays in MW5 source space** (Y-up, facing +X). Blender's glTF importer cancels an
   armature-level transform on skinned meshes; the assembly report says `modelSpace = "mw5-source"` and
-  `modelYawDegrees = -90`, and the driver applies `--model-yaw -90`.
+  `modelYawDegrees = 90`, and the driver applies `--model-yaw 90`.
 
 Full walk pipeline (after `assemble AS7-D --clips Walk`):
 
@@ -139,7 +142,7 @@ F:/blender/blender.exe -b --factory-startup -noaudio --python-exit-code 1 \
   -P tools/blender/render.py -- \
   --model artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
   --preset tools/blender/board-topdown.json \
-  --scale 5.098 --model-yaw -90 --fit --supersample 4 \
+  --scale 5.098 --model-yaw 90 --fit --supersample 4 \
   --clips Walk --out artifacts/spike/anim/AS7-D \
   --report artifacts/spike/anim/AS7-D/report.json
 

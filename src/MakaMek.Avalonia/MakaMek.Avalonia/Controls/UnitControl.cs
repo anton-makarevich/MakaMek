@@ -15,13 +15,16 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
 using AvaloniaAnimation = Avalonia.Animation.Animation;
+using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Utils;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Presentation.Models.Movement;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -36,6 +39,20 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly BattleMapViewModel _viewModel;
         private readonly IUnit _unit;
         private readonly IDisposable _subscription;
+        private readonly IDisposable? _moveSubscription;
+        private readonly IDisposable? _interruptionSubscription;
+        private readonly IUnitSpriteService<UnitSpriteSet>? _spriteService;
+        private readonly ControlScope _playbackScope;
+        private readonly Queue<MoveUnitCommand> _pendingMoves = new();
+        private readonly ImageBrush _tintMaskBrush = new();
+        private Bitmap? _staticUnitImage;
+        private UnitSpriteSet? _spriteSet;
+        private MovementPlaybackTimeline? _activeTimeline;
+        private MonacoLabs.Presto.Timer? _playbackTimer;
+        private PlaybackPoint? _displayPosition;
+        private double? _displayFacingDegrees;
+        private bool _isPlaying;
+        private bool _disposed;
         private readonly Border _tintBorder;
         private readonly StackPanel _actionButtons;
         private readonly StackPanel _healthBars;
@@ -54,11 +71,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
         // Get the contrasting foreground converter from resources
         private readonly ContrastingForegroundConverter? _contrastingForegroundConverter;
 
-        public UnitControl(IUnit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
+        public UnitControl(IUnit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel,
+            IUnitSpriteService<UnitSpriteSet>? spriteService = null)
         {
             _unit = unit;
             _imageService = imageService;
             _viewModel = viewModel;
+            _spriteService = spriteService;
+
+            // Every playback timer lives in this scope, so it stops when the control leaves the tree.
+            _playbackScope = PrestoAvalonia.CreateScope(this);
 
             _contrastingForegroundConverter = _resourcesLocator
                 .TryFindResource("ContrastingForegroundConverter") as ContrastingForegroundConverter;
@@ -322,6 +344,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     UpdateTorsoArrow(state, torsoArrow);
                 });
 
+            // Movement commands arrive on the UI dispatcher from the view model. They never write unit
+            // state: the model already holds the destination, and this control only replays the path.
+            _moveSubscription = viewModel.UnitMoveCommands
+                .Where(command => command.UnitId == _unit.Id)
+                .Subscribe(OnMoveCommand);
+
+            _interruptionSubscription = viewModel.UnitPlaybackInterruptions
+                .Where(interruption => interruption.IsResetAll || interruption.UnitId == _unit.Id)
+                .Subscribe(_ => CancelPlayback());
+
             // Initial update
             Render();
             UpdateImage().SafeFireAndForget();
@@ -388,12 +420,22 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private void Render()
         {
             IsVisible = _unit.IsDeployed;
+
+            // While a command is playing back, the display position wins. The model already holds the
+            // destination, and the poll must not snap the control there before the animation finishes.
+            if (_displayPosition is { } display)
+            {
+                PositionAttachedElements(display.X, display.Y);
+                return;
+            }
+
             if (_unit.Position == null) return;
             var hexPosition = _unit.Position;
+            PositionAttachedElements(hexPosition.Coordinates.H, hexPosition.Coordinates.V);
+        }
 
-            var leftPos = hexPosition.Coordinates.H;
-            var topPos = hexPosition.Coordinates.V;
-
+        private void PositionAttachedElements(double leftPos, double topPos)
+        {
             SetValue(Canvas.LeftProperty, leftPos);
             SetValue(Canvas.TopProperty, topPos);
 
@@ -512,17 +554,222 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         private async Task UpdateImage()
         {
-            var image = await _imageService.GetImage("units/mechs", _unit.Model.ToUpperInvariant());
-            if (image != null)
+            var model = _unit.Model.ToUpperInvariant();
+            var image = await _imageService.GetImage("units/mechs", model);
+
+            if (_spriteService != null)
             {
-                _unitImage.Source = image;
+                _spriteSet = await _spriteService.GetSpriteSet(model);
+            }
+
+            _staticUnitImage = image;
+
+            if (_spriteSet is null)
+            {
+                // v1 units keep the historical 84% frame.
+                _unitImage.Stretch = Stretch.Fill;
+                _unitImage.Width = Width * 0.84;
+                _unitImage.Height = Height * 0.84;
+                _tintBorder.Width = _unitImage.Width;
+                _tintBorder.Height = _unitImage.Height;
+            }
+
+            if (image != null && !_isPlaying)
+            {
+                ShowImage(image);
             }
 
             // Apply player's tint color if available
             if (_unit.Owner == null) return;
             var color = Color.Parse(_unit.Owner.Tint);
-            _tintBorder.OpacityMask = new ImageBrush { Source = image, Stretch = Stretch.Fill };
             _tintBorder.Background = new SolidColorBrush(color);
+        }
+
+        /// <summary>
+        /// Shows an image in the unit slot and uses the same bitmap as the owner-tint mask, so the tint
+        /// follows the sprite frame instead of staying on the idle art.
+        /// </summary>
+        private void ShowImage(IImage image)
+        {
+            _unitImage.Source = image;
+
+            if (_spriteSet is not null && image is CroppedBitmap cropped)
+            {
+                // CroppedBitmap is not an IImageBrushSource, so the tint mask reads the same sub-rectangle
+                // from the atlas the frame was cut from.
+                var rect = cropped.SourceRect;
+                _tintMaskBrush.Source = (IImageBrushSource)_spriteSet.Atlas;
+                _tintMaskBrush.SourceRect =
+                    new RelativeRect(rect.X, rect.Y, rect.Width, rect.Height, RelativeUnit.Absolute);
+            }
+            else
+            {
+                _tintMaskBrush.Source = (IImageBrushSource)image;
+                _tintMaskBrush.SourceRect = new RelativeRect(0, 0, 1, 1, RelativeUnit.Relative);
+            }
+
+            _tintMaskBrush.Stretch = Stretch.Fill;
+            _tintBorder.OpacityMask = _tintMaskBrush;
+
+            // A unit with an atlas is drawn 1:1: the control box is sized to the bitmap so sprite pixels
+            // equal board pixels and <c>distancePerCycle</c> can be compared with path distance directly.
+            if (_spriteSet is not null)
+            {
+                var width = image.Size.Width;
+                var height = image.Size.Height;
+                _unitImage.Stretch = Stretch.Fill;
+                _unitImage.Width = width;
+                _unitImage.Height = height;
+                _tintBorder.Width = width;
+                _tintBorder.Height = height;
+            }
+        }
+
+        private void ShowStaticImage()
+        {
+            if (_staticUnitImage != null)
+            {
+                ShowImage(_staticUnitImage);
+            }
+        }
+
+        /// <summary>
+        /// Queues a received movement command for this unit. Commands are replayed one after another so
+        /// a chunk that continues after an interrupt (a fall, a bridge collapse) plays after the chunk
+        /// that preceded it, each starting from its own path start.
+        /// </summary>
+        internal void OnMoveCommand(MoveUnitCommand command)
+        {
+            _pendingMoves.Enqueue(command);
+            if (!_isPlaying)
+            {
+                StartNextPlayback();
+            }
+        }
+
+        private void StartNextPlayback()
+        {
+            while (_pendingMoves.Count > 0)
+            {
+                var command = _pendingMoves.Dequeue();
+                var timeline = MovementPlaybackTimeline.Create(command.MovementPath, command.MovementType);
+                if (timeline is null) continue; // standing still or a no-op path: nothing to show
+
+                StartPlayback(timeline);
+                return;
+            }
+        }
+
+        private void StartPlayback(MovementPlaybackTimeline timeline)
+        {
+            _activeTimeline = timeline;
+            _isPlaying = true;
+
+            // The model has already arrived; the presentation starts at the path start and follows the
+            // same fixed-duration clock for position, facing and sprite frames.
+            ApplyPlaybackSample(timeline.Sample(0));
+
+            if (Presto.Defaults.ReducedMotion)
+            {
+                ApplyPlaybackSample(timeline.Sample(1));
+                CompletePlayback();
+                return;
+            }
+
+            _playbackTimer = _playbackScope.Execute(_ => Presto.CreateTimer(new TimerParams
+            {
+                Duration = timeline.DurationMilliseconds,
+                Autoplay = true,
+                OnUpdate = timer => ApplyPlaybackProgress(timer.Progress),
+                OnComplete = _ => CompletePlayback()
+            }));
+        }
+
+        private void ApplyPlaybackProgress(double progress)
+        {
+            if (_activeTimeline is null) return;
+            ApplyPlaybackSample(_activeTimeline.Sample(progress));
+        }
+
+        private void ApplyPlaybackSample(MovementPlaybackSample sample)
+        {
+            _displayPosition = sample.Position;
+            _displayFacingDegrees = sample.FacingDegrees;
+
+            Render();
+            RenderTransform = new RotateTransform(sample.FacingDegrees, 0, 0);
+            UpdateSpriteFrame(sample);
+        }
+
+        private void UpdateSpriteFrame(MovementPlaybackSample sample)
+        {
+            if (_spriteSet is null) return;
+
+            var clipName = sample.Clip switch
+            {
+                MovementPlaybackClip.Walk => "Walk",
+                MovementPlaybackClip.Run => "Run",
+                _ => null
+            };
+
+            if (clipName is null || !_spriteSet.Clips.TryGetValue(clipName, out var clip))
+            {
+                // Jump, prone, or a package without this clip: translate with the static art.
+                ShowStaticImage();
+                return;
+            }
+
+            var frameIndex = MovementPlaybackTimeline.ResolveFrameIndex(
+                sample.SignedDistance, clip.DistancePerCycle, clip.Frames.Count);
+            ShowImage(clip.Frames[frameIndex]);
+        }
+
+        private void CompletePlayback()
+        {
+            _playbackTimer = null;
+            _activeTimeline = null;
+            _isPlaying = false;
+            RestoreAuthoritativeVisuals();
+
+            if (_pendingMoves.Count > 0)
+            {
+                StartNextPlayback();
+            }
+        }
+
+        /// <summary>
+        /// Stops the active playback and drops anything queued: the model has moved in a way the
+        /// animation cannot represent (displaced, fell, stood up, was destroyed, or the game changed).
+        /// </summary>
+        private void CancelPlayback()
+        {
+            _pendingMoves.Clear();
+
+            var timer = _playbackTimer;
+            _playbackTimer = null;
+            timer?.Cancel();
+
+            _activeTimeline = null;
+            _isPlaying = false;
+            RestoreAuthoritativeVisuals();
+        }
+
+        /// <summary>
+        /// Returns the control to the authoritative model state after a playback: position, facing,
+        /// static image and the sprite-frame fallback. Never writes display state back to the unit.
+        /// </summary>
+        private void RestoreAuthoritativeVisuals()
+        {
+            _displayPosition = null;
+            _displayFacingDegrees = null;
+
+            ShowStaticImage();
+            Render();
+
+            var facing = (_unit as Mech)?.TorsoDirection
+                         ?? _unit.Position?.Facing
+                         ?? HexDirection.Top;
+            RenderTransform = new RotateTransform((int)facing * 60, 0, 0);
         }
 
         public bool HandleInteraction(Point position)
@@ -543,9 +790,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
+            CancelPlayback();
             HideMovementPath();
             _subscription.Dispose();
+            _moveSubscription?.Dispose();
+            _interruptionSubscription?.Dispose();
             _selectionHex.Dispose();
+            _playbackScope.Revert();
         }
 
         public StackPanel ActionButtons => _actionButtons;
@@ -648,6 +902,14 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         private void UpdateRotation(UnitState state)
         {
+            // Playback owns the body facing while it runs: the path, not the torso, decides where the
+            // sprite points. The model-facing value is restored when the playback ends.
+            if (_displayFacingDegrees is { } displayFacing)
+            {
+                RenderTransform = new RotateTransform(displayFacing, 0, 0);
+                return;
+            }
+
             var isMech = _unit is Mech;
             var torsoFacing = isMech && state.TorsoDirection.HasValue
                 ? (int)state.TorsoDirection.Value

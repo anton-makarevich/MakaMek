@@ -54,6 +54,37 @@ public sealed record ClipEntry
     /// <summary>Horizontal travel of the skeleton's root bone, in metres. Must be ~0 for a board-anchored sprite.</summary>
     public float RootMotionMeters { get; init; }
 
+    /// <summary>
+    /// Horizontal displacement between the root bone's first and last key, in metres, measured before root
+    /// motion is stripped. This is the stride the clip was authored with; <see cref="RootMotionMeters"/>
+    /// only records the largest excursion, which includes any lateral sway.
+    /// </summary>
+    public float RootEndpointDisplacementMeters { get; init; }
+
+    /// <summary>X component (glTF space) of the root displacement vector, in metres.</summary>
+    public float RootDisplacementXMeters { get; init; }
+
+    /// <summary>Z component (glTF space) of the root displacement vector, in metres.</summary>
+    public float RootDisplacementZMeters { get; init; }
+
+    /// <summary>
+    /// True when the root advances monotonically along <see cref="RootEndpointDisplacementMeters"/>:
+    /// no key moves backwards against the clip's forward direction.
+    /// </summary>
+    public bool RootProgressMonotonic { get; init; }
+
+    /// <summary>Largest distance of any root key from the first-to-last displacement line, in metres.</summary>
+    public float RootMaxLateralDeviationMeters { get; init; }
+
+    /// <summary>Accumulated horizontal distance travelled by the root across all keys, in metres.</summary>
+    public float RootPathLengthMeters { get; init; }
+
+    /// <summary>
+    /// Optional gait diagnostics measured from the clip's foot-down notify windows. Present when the clip
+    /// has foot contacts and the skeleton exposes a foot/toe bone.
+    /// </summary>
+    public FootGaitMetrics? FootGait { get; init; }
+
     /// <summary>Per-bone pose error between the first and last key of a loop, in degrees.</summary>
     public float LoopClosureDegrees { get; init; }
 
@@ -69,6 +100,54 @@ public sealed record AbsentClip
 {
     public required string Name { get; init; }
     public required string Reason { get; init; }
+}
+
+/// <summary>
+/// Foot-contact gait diagnostics measured on the frames the sprite actually ships. The root endpoint is
+/// the authored body stride; this measures what the planted foot does on the sampled frames, which is
+/// the part the eye reads as foot sliding.
+/// </summary>
+public sealed record FootGaitMetrics
+{
+    /// <summary>Number of shipped frames the contacts were sampled from.</summary>
+    public int Frames { get; init; }
+
+    /// <summary>Per-contact measurements, in clip order.</summary>
+    public IReadOnlyList<FootContactMetric> Contacts { get; init; } = [];
+
+    /// <summary>
+    /// Stride suggested by the sampled planted-foot slippage: the authored endpoint scaled by how much
+    /// of the root travel is "used up" by foot slip during stance. Metres; multiply by the render scale
+    /// for sprite pixels.
+    /// </summary>
+    public float CorrectedStrideMeters { get; init; }
+
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+}
+
+/// <summary>One foot-down notify window sampled at the shipped frames.</summary>
+public sealed record FootContactMetric
+{
+    /// <summary><c>Left</c> or <c>Right</c>.</summary>
+    public required string Foot { get; init; }
+
+    /// <summary>Skeleton bone used to measure the foot.</summary>
+    public required string Bone { get; init; }
+
+    public float StartSeconds { get; init; }
+    public float DurationSeconds { get; init; }
+
+    /// <summary>Horizontal root travel during the sampled stance window, in metres.</summary>
+    public float RootTravelMeters { get; init; }
+
+    /// <summary>Horizontal foot travel during the sampled stance window, in metres. Zero is planted.</summary>
+    public float FootTravelMeters { get; init; }
+
+    /// <summary>Signed foot slip along the clip's forward direction, in metres.</summary>
+    public float ForwardSlipMeters { get; init; }
+
+    /// <summary>Number of shipped frames that fell inside this stance window.</summary>
+    public int SampleCount { get; init; }
 }
 
 /// <summary>A decoded clip ready to be written into a glTF animation: per-frame local transforms per bone.</summary>
