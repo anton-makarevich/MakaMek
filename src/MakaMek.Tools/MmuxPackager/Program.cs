@@ -12,6 +12,7 @@ namespace MakaMek.Tools.MmuxPackager;
 public class Program
 {
     private const string ManifestVersion = "1.0";
+    private const string ManifestVersionWithSprites = "2.0";
     private const string RequiredMakaMekVersion = "0.43.2";
     
     public static async Task<int> Main(string[] args)
@@ -28,6 +29,12 @@ public class Program
             Required = true
         };
 
+        var spritesSourceOption = new Option<string?>("--sprites-source", "-s")
+        {
+            Description = "Optional path to a folder containing <Model>/unit-sprites.png and " +
+                          "<Model>/unit-sprites.json. Units that have both are packaged as manifest 2.0."
+        };
+
         var outputOption = new Option<string>("--output", "-o")
         {
             Description = "Path to output folder for generated .mmux files",
@@ -38,6 +45,7 @@ public class Program
         {
             dataSourceOption,
             imageSourceOption,
+            spritesSourceOption,
             outputOption
         };
 
@@ -45,10 +53,11 @@ public class Program
         {
             var dataSourcePath = parseResult.GetValue(dataSourceOption)!;
             var imageSourcePath = parseResult.GetValue(imageSourceOption)!;
+            var spritesSourcePath = parseResult.GetValue(spritesSourceOption);
             var outputPath = parseResult.GetValue(outputOption)!;
             try
             {
-                await PackageUnits(dataSourcePath, imageSourcePath, outputPath);
+                await PackageUnits(dataSourcePath, imageSourcePath, outputPath, spritesSourcePath);
             }
             catch (ArgumentException ex)
             {
@@ -71,7 +80,8 @@ public class Program
         return await parseResult.InvokeAsync();
     }
 
-    static async Task PackageUnits(string dataSourcePath, string imageSourcePath, string outputPath)
+    static async Task PackageUnits(string dataSourcePath, string imageSourcePath, string outputPath,
+        string? spritesSourcePath)
     {
         // Validate input paths
         if (!Directory.Exists(dataSourcePath))
@@ -84,6 +94,11 @@ public class Program
             throw new DirectoryNotFoundException($"Image source directory '{imageSourcePath}' does not exist.");
         }
 
+        if (!string.IsNullOrWhiteSpace(spritesSourcePath) && !Directory.Exists(spritesSourcePath))
+        {
+            throw new DirectoryNotFoundException($"Sprites source directory '{spritesSourcePath}' does not exist.");
+        }
+
         // Create an output directory if it doesn't exist
         if (!Directory.Exists(outputPath))
         {
@@ -91,10 +106,11 @@ public class Program
             Console.WriteLine($"Created output directory: {outputPath}");
         }
 
-        await ProcessJsonFiles(dataSourcePath, imageSourcePath, outputPath);
+        await ProcessJsonFiles(dataSourcePath, imageSourcePath, outputPath, spritesSourcePath);
     }
 
-    static async Task ProcessJsonFiles(string dataSourcePath, string imageSourcePath, string outputPath)
+    static async Task ProcessJsonFiles(string dataSourcePath, string imageSourcePath, string outputPath,
+        string? spritesSourcePath)
     {
         var jsonFiles = Directory.GetFiles(dataSourcePath, "*.json", SearchOption.TopDirectoryOnly);
         
@@ -113,7 +129,7 @@ public class Program
         {
             try
             {
-                await ProcessSingleUnit(jsonFilePath, imageSourcePath, outputPath);
+                await ProcessSingleUnit(jsonFilePath, imageSourcePath, outputPath, spritesSourcePath);
                 successCount++;
             }
             catch (Exception ex)
@@ -131,7 +147,8 @@ public class Program
         }
     }
 
-    static async Task ProcessSingleUnit(string jsonFilePath, string imageSourcePath, string outputPath)
+    static async Task ProcessSingleUnit(string jsonFilePath, string imageSourcePath, string outputPath,
+        string? spritesSourcePath)
     {
         Console.WriteLine($"Processing: {jsonFilePath}");
         
@@ -189,9 +206,28 @@ public class Program
 
             Console.WriteLine($"Found image: {Path.GetFileName(imageFilePath)}");
 
+            // Optional v2 sprite atlas: both files must exist for the package to advertise animations.
+            var spritesDirectory = FindSpritesDirectory(spritesSourcePath, unitData.Model);
+            var spriteImagePath = spritesDirectory is null
+                ? null
+                : Path.Combine(spritesDirectory, "unit-sprites.png");
+            var spriteMetadataPath = spritesDirectory is null
+                ? null
+                : Path.Combine(spritesDirectory, "unit-sprites.json");
+
+            var hasSprites = spriteImagePath is not null
+                             && spriteMetadataPath is not null
+                             && File.Exists(spriteImagePath)
+                             && File.Exists(spriteMetadataPath);
+
+            if (hasSprites)
+            {
+                Console.WriteLine($"Found sprite atlas: {spriteImagePath}");
+            }
+
             // Create manifest
             var manifest = new ManifestData(
-                version: ManifestVersion,
+                version: hasSprites ? ManifestVersionWithSprites : ManifestVersion,
                 unitId: unitData.Model,
                 requiredMakaMekVersion: RequiredMakaMekVersion,
                 author: "", // Should be provided in the future
@@ -199,9 +235,13 @@ public class Program
             );
 
             // Create the .mmux package
-            await CreateMmuxPackage(unitData, imageFilePath, manifest, outputPath, jsonOptions);
+            await CreateMmuxPackage(unitData, imageFilePath, manifest, outputPath, jsonOptions,
+                hasSprites ? spriteImagePath : null,
+                hasSprites ? spriteMetadataPath : null);
 
-            Console.WriteLine($"Successfully created: {unitData.Model}.mmux");
+            Console.WriteLine(hasSprites
+                ? $"Successfully created (v2, with sprites): {unitData.Model}.mmux"
+                : $"Successfully created: {unitData.Model}.mmux");
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -257,7 +297,49 @@ public class Program
         return prefixMatch;
     }
 
-    static async Task CreateMmuxPackage(UnitData unitData, string imageFilePath, ManifestData manifest, string outputPath, JsonSerializerOptions jsonOptions)
+    static string? FindSpritesDirectory(string? spritesSourcePath, string model)
+    {
+        if (string.IsNullOrWhiteSpace(spritesSourcePath) || !Directory.Exists(spritesSourcePath))
+        {
+            return null;
+        }
+
+        var direct = Path.Combine(spritesSourcePath, model);
+        if (Directory.Exists(direct))
+        {
+            return direct;
+        }
+
+        // Case-insensitive fallback for model folders authored on a case-sensitive filesystem.
+        return Directory
+            .GetDirectories(spritesSourcePath)
+            .FirstOrDefault(directory =>
+                Path.GetFileName(directory).Equals(model, StringComparison.OrdinalIgnoreCase));
+    }
+
+    static async Task AddFileEntry(ZipArchive archive, string entryName, string sourcePath)
+    {
+        var entry = archive.CreateEntry(entryName);
+        await using var entryStream = await entry.OpenAsync();
+        try
+        {
+            await using var source = File.OpenRead(sourcePath);
+            await source.CopyToAsync(entryStream);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InvalidOperationException(
+                $"Access denied reading file '{sourcePath}': {ex.Message}", ex);
+        }
+        catch (IOException ex)
+        {
+            throw new InvalidOperationException($"Error reading file '{sourcePath}': {ex.Message}", ex);
+        }
+    }
+
+    static async Task CreateMmuxPackage(UnitData unitData, string imageFilePath, ManifestData manifest,
+        string outputPath, JsonSerializerOptions jsonOptions, string? spriteImagePath = null,
+        string? spriteMetadataPath = null)
     {
         var mmuxFileName = $"{unitData.Model}.mmux";
         var mmuxFilePath = Path.Combine(outputPath, mmuxFileName);
@@ -312,6 +394,18 @@ public class Program
                 {
                     var manifestJson = JsonSerializer.Serialize(manifest, jsonOptions);
                     await writer.WriteAsync(manifestJson);
+                }
+
+                // Add the optional v2 sprite atlas. Both entries are root-level siblings of unit.png so
+                // an older reader that ignores them still finds the static unit.
+                if (spriteImagePath is not null)
+                {
+                    await AddFileEntry(archive, "unit-sprites.png", spriteImagePath);
+                }
+
+                if (spriteMetadataPath is not null)
+                {
+                    await AddFileEntry(archive, "unit-sprites.json", spriteMetadataPath);
                 }
             }
 

@@ -88,6 +88,84 @@ public class UnitCachingServiceTests
         return memoryStream;
     }
 
+    private const string ValidSpriteMetadataJson = """
+        {
+          "version": 2,
+          "cellWidth": 16,
+          "cellHeight": 18,
+          "padding": 2,
+          "pivot": [0.5, 0.5],
+          "distanceUnits": "spritePixels",
+          "animations": {
+            "Walk": { "row": 0, "frames": 2, "fps": 12, "loop": true, "distancePerCycle": 21.5 },
+            "Run": { "row": 1, "frames": 2, "fps": 16, "loop": true, "distancePerCycle": 43.0 }
+          }
+        }
+        """;
+
+    private static Stream CreateMmuxStreamWithManifest(
+        string model,
+        string chassis,
+        string? manifestVersion,
+        bool includeSpriteImage = false,
+        bool includeSpriteMetadata = false,
+        string? spriteMetadataJson = null)
+    {
+        var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            var unitData = new UnitData
+            {
+                Model = model,
+                Chassis = chassis,
+                Mass = 20,
+                EngineRating = 160,
+                EngineType = "Standard",
+                ArmorValues = new Dictionary<PartLocation, ArmorLocation>(),
+                Equipment = new List<ComponentData>(),
+                AdditionalAttributes = new Dictionary<string, string>(),
+                Quirks = new Dictionary<string, string>()
+            };
+
+            AddTextEntry(archive, "unit.json", JsonSerializer.Serialize(unitData, JsonOptions));
+            AddBinaryEntry(archive, "unit.png", new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+
+            if (manifestVersion is not null)
+            {
+                AddTextEntry(archive, "manifest.json",
+                    $"{{\"version\":\"{manifestVersion}\",\"unitId\":\"{model}\"}}");
+            }
+
+            if (includeSpriteImage)
+            {
+                AddBinaryEntry(archive, "unit-sprites.png", [0x89, 0x50, 0x4E, 0x47, 0x0D]);
+            }
+
+            if (includeSpriteMetadata)
+            {
+                AddTextEntry(archive, "unit-sprites.json", spriteMetadataJson ?? ValidSpriteMetadataJson);
+            }
+        }
+
+        memoryStream.Position = 0;
+        return memoryStream;
+    }
+
+    private static void AddTextEntry(ZipArchive archive, string name, string content)
+    {
+        var entry = archive.CreateEntry(name);
+        using var stream = entry.Open();
+        using var writer = new StreamWriter(stream);
+        writer.Write(content);
+    }
+
+    private static void AddBinaryEntry(ZipArchive archive, string name, byte[] content)
+    {
+        var entry = archive.CreateEntry(name);
+        using var stream = entry.Open();
+        stream.Write(content, 0, content.Length);
+    }
+
     private static Stream CreateMmuxStreamMissingUnitJson()
     {
         var memoryStream = new MemoryStream();
@@ -209,6 +287,154 @@ public class UnitCachingServiceTests
         // Assert
         imageBytes.ShouldNotBeNull();
         imageBytes.Length.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnNull_WhenV1PackageHasNoManifest()
+    {
+        // Arrange
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnNull_WhenV1ManifestHasNoSprites()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest("LCT-1V", "Locust", "1.0");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnSpriteData_WhenV2PackageHasSprites()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest(
+            "LCT-1V", "Locust", "2.0", includeSpriteImage: true, includeSpriteMetadata: true);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldNotBeNull();
+        animation.Atlas.ShouldNotBeEmpty();
+        animation.Sheet.CellWidth.ShouldBe(16);
+        animation.Sheet.CellHeight.ShouldBe(18);
+        animation.Sheet.Padding.ShouldBe(2);
+        animation.Sheet.DistanceUnits.ShouldBe("spritePixels");
+        animation.Sheet.Animations.ShouldContainKey("Walk");
+        animation.Sheet.Animations["Walk"].DistancePerCycle.ShouldBe(21.5);
+        animation.Sheet.Animations["Run"].Row.ShouldBe(1);
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnNull_WhenV2PackageHasNoSpriteEntries()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest("LCT-1V", "Locust", "2.0");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitData_ShouldReturnNull_WhenManifestMajorVersionIsUnsupported()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest("LCT-1V", "Locust", "3.0");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var unitData = await sut.GetUnitData("LCT-1V");
+
+        // Assert
+        unitData.ShouldBeNull();
+        _logger.ReceivedCalls().Any(call =>
+                call.GetMethodInfo().Name == "Log" &&
+                call.GetArguments().Length > 0 &&
+                call.GetArguments()[0] is LogLevel.Error)
+            .ShouldBeTrue("the unsupported version must be logged before the unit is skipped");
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnNull_WhenSpriteMetadataIsMalformed()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest(
+            "LCT-1V", "Locust", "2.0",
+            includeSpriteImage: true,
+            includeSpriteMetadata: true,
+            spriteMetadataJson: "{ \"cellWidth\": 16, oops }");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldReturnNull_WhenOnlyOneSpriteEntryExists()
+    {
+        // Arrange
+        await using var mmuxStream = CreateMmuxStreamWithManifest(
+            "LCT-1V", "Locust", "2.0", includeSpriteImage: true);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetUnitAnimation_ShouldDropStaleAtlas_WhenV1PackageOverwritesV2()
+    {
+        // Arrange
+        var v2Provider = Substitute.For<IResourceStreamProvider>();
+        var v1Provider = Substitute.For<IResourceStreamProvider>();
+        await using var v2Stream = CreateMmuxStreamWithManifest(
+            "LCT-1V", "Locust", "2.0", includeSpriteImage: true, includeSpriteMetadata: true);
+        await using var v1Stream = CreateTestMmuxStream("LCT-1V", "Locust");
+
+        v2Provider.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        v2Provider.GetResourceStream("LCT-1V").Returns(v2Stream);
+        v1Provider.GetAvailableResourceIds().Returns(["LCT-1V"]);
+        v1Provider.GetResourceStream("LCT-1V").Returns(v1Stream);
+
+        var sut = new UnitCachingService([v2Provider, v1Provider], _loggerFactory);
+
+        // Act
+        var animation = await sut.GetUnitAnimation("LCT-1V");
+
+        // Assert
+        animation.ShouldBeNull();
+        (await sut.GetUnitData("LCT-1V")).ShouldNotBeNull();
     }
 
     [Fact]

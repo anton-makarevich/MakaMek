@@ -130,6 +130,13 @@ preview-<clip>.gif            # 4× motion sanity check
 frames-1x/<clip>/<frame:03>.png  # the downsampled 1× frames, when --frames-out is given
 ```
 
+`unit-sprites.json` (schema `version: 2`) carries, per clip, a `distancePerCycle` in
+`distanceUnits: "spritePixels"`: the root endpoint displacement from the assembly report (falling back
+to `rootMotionMeters`) multiplied by the report's `appliedScale`. It also records the render provenance
+(`preset`, `appliedScale`, `supersample`, `modelYawDegrees`). A repeated
+`--distance-per-cycle Walk=43.9` overrides one clip after visual calibration; without an override the
+value is computed.
+
 ## Scale is not the driver's business
 
 The driver never reads manifests, tonnage, `scale-overrides.json` or coverage thresholds. The C#

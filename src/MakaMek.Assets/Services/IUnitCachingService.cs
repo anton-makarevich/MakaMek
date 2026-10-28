@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Assets.Models.Units;
 using Sanet.MakaMek.Assets.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
@@ -18,6 +19,14 @@ public interface IUnitCachingService : IProgressReporting
     /// <param name="model">The unit model identifier</param>
     /// <returns>Image bytes if found, null otherwise</returns>
     Task<byte[]?> GetUnitImage(string model);
+
+    /// <summary>
+    /// Gets the optional sprite atlas for a unit model. Only MMUX v2 packages with a valid
+    /// <c>unit-sprites.png</c>/<c>unit-sprites.json</c> pair have one.
+    /// </summary>
+    /// <param name="model">The unit model identifier</param>
+    /// <returns>Atlas bytes and metadata if present, null otherwise</returns>
+    Task<UnitAnimationData?> GetUnitAnimation(string model);
 
     /// <summary>
     /// Gets all available unit models

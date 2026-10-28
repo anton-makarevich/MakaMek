@@ -33,11 +33,13 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation.Models.Movement;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -203,6 +205,14 @@ public class BattleMapViewModelTests
         return player;
     }
 
+    private void DeployOnFreshMap(IUnit unit)
+    {
+        _game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        unit.Deploy(position, _game.BattleMap!.GetHex(position.Coordinates));
+    }
+
     private void SetPhase(PhaseNames phase)
         => _game.HandleCommand(new ChangePhaseCommand { GameOriginId = Guid.NewGuid(), Phase = phase });
 
@@ -217,6 +227,133 @@ public class BattleMapViewModelTests
     private List<TurnNotification> InitiativeAnnouncements() => _sut.TurnNotifications
         .Where(notification => notification.Kind == TurnNotificationKind.Initiative)
         .ToList();
+
+    [Fact]
+    public void MoveUnitCommand_IsPublishedOnThePlaybackStream()
+    {        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        DeployOnFreshMap(unit);
+        MoveUnitCommand? received = null;
+        using var subscription = _sut.UnitMoveCommands.Subscribe(command => received = command);
+
+        var move = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            PlayerId = player.Id,
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(0, 0),
+                        Facing = (int)HexDirection.Top
+                    },
+                    To = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 0),
+                        Facing = (int)HexDirection.Top
+                    },
+                    Costs = []
+                }
+            ]
+        };
+
+        // Act
+        _game.HandleCommand(move);
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.MovementPath.ShouldHaveSingleItem();
+        received.Value.MovementType.ShouldBe(MovementType.Walk);
+    }
+
+    [Fact]
+    public void MoveUnitCommand_StandingStill_IsNotPublished()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        DeployOnFreshMap(unit);
+        var published = false;
+        using var subscription = _sut.UnitMoveCommands.Subscribe(_ => published = true);
+
+        // Act
+        _game.HandleCommand(new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            PlayerId = player.Id,
+            MovementType = MovementType.StandingStill,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(0, 0),
+                        Facing = (int)HexDirection.Top
+                    },
+                    To = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(0, 0),
+                        Facing = (int)HexDirection.Top
+                    },
+                    Costs = []
+                }
+            ]
+        });
+
+        // Assert
+        published.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DisplaceUnitCommand_PublishesPlaybackInterruptionForThatUnit()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Mover", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _game.HandleCommand(new DisplaceUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            FromCoordinates = new HexCoordinateData(0, 0),
+            ToCoordinates = new HexCoordinateData(1, 0),
+            NewFacing = (int)HexDirection.Bottom,
+            DisplacementReason = DisplacementReason.DominoEffect
+        });
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.IsResetAll.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DetachingHandlers_ResetsEveryPlayback()
+    {
+        // Arrange
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _sut.DetachHandlers();
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.IsResetAll.ShouldBeTrue();
+    }
 
     [Fact]
     public void InitiativeWinner_IsAnnounced_WhenTheRealServerSequenceIsReplayed()

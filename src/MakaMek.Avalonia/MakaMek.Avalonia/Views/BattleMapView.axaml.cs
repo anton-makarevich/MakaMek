@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
@@ -89,8 +90,11 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // and their poll subscription would otherwise outlive the controls they belong to.
         DisposeUnitControls();
 
+        var spriteService = (Application.Current as App)?.ServiceProvider?.GetService<IUnitSpriteService>();
+        // The map is rebuilt from scratch, so decoded atlases are re-read from the cache/providers.
+        (spriteService as UnitSpriteService)?.ClearCache();
         _unitControls = ViewModel?.Units
-            .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
+            .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel, spriteService))
             .ToList();
         if (_unitControls != null)
         {

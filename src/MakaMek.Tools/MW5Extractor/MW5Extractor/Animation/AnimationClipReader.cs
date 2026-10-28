@@ -85,13 +85,37 @@ public static class AnimationClipReader
         // interval is (N-1)/length - not N/length, which would compress the clip by one frame.
         var inputFps = frameCount > 1 ? (frameCount - 1) / length : 1f;
 
-        var rootMotion = RootMotion(bones, rootName, frameCount);
+        // Capture the authored root trajectory before stripping it: the endpoint displacement is the
+        // stride that drives the runtime distance-per-cycle calibration. RootMotionMeters alone is only
+        // the maximum excursion and overstates the stride whenever the root also sways sideways.
+        var trajectory = AnalyzeRootTrajectory(bones, rootName, frameCount);
+        var rootMotion = trajectory?.MaxExcursionMeters ?? 0;
+
         if (rootMotion > RootMotionToleranceMeters)
         {
             StripRootDrift(bones, rootName, frameCount);
             warnings.Add(
                 $"{definition.Name}: stripped {rootMotion:0.000} m of root travel from '{rootName}' " +
                 "(the sprite is board-anchored).");
+        }
+
+        if (trajectory is { } root)
+        {
+            if (!root.IsMonotonic)
+            {
+                warnings.Add(
+                    $"{definition.Name}: root progress is not monotonic; the stride (endpoint " +
+                    $"{root.EndpointDisplacementMeters:0.000} m) may not match the visible gait.");
+            }
+
+            if (rootMotion > RootMotionToleranceMeters &&
+                MathF.Abs(root.EndpointDisplacementMeters - rootMotion) > rootMotion * 0.1f)
+            {
+                warnings.Add(
+                    $"{definition.Name}: endpoint displacement ({root.EndpointDisplacementMeters:0.000} m) " +
+                    $"differs from maximum root excursion ({rootMotion:0.000} m); " +
+                    "the clip may include lateral drift.");
+            }
         }
 
         // A looping clip repeats its first pose at SequenceLength; rendering both would double the pose for one
@@ -122,6 +146,12 @@ public static class AnimationClipReader
                 DurationSeconds = MathF.Round(length, 4),
                 AnimatedBones = bones.Count,
                 RootMotionMeters = MathF.Round(rootMotion, 4),
+                RootEndpointDisplacementMeters = MathF.Round(trajectory?.EndpointDisplacementMeters ?? 0, 4),
+                RootDisplacementXMeters = MathF.Round(trajectory?.Displacement.X ?? 0, 4),
+                RootDisplacementZMeters = MathF.Round(trajectory?.Displacement.Z ?? 0, 4),
+                RootProgressMonotonic = trajectory is null || trajectory.Value.IsMonotonic,
+                RootMaxLateralDeviationMeters = MathF.Round(trajectory?.MaxLateralDeviationMeters ?? 0, 4),
+                RootPathLengthMeters = MathF.Round(trajectory?.PathLengthMeters ?? 0, 4),
                 LoopClosureDegrees = MathF.Round(MaxClosureDegrees(bones, frameCount), 4),
                 LoopClosureMeters = MathF.Round(MaxClosureMeters(bones, frameCount), 4),
                 Skeleton = skeleton.Name,
@@ -267,23 +297,79 @@ public static class AnimationClipReader
         return MathF.Acos(clamped) * 2f * (180f / MathF.PI);
     }
 
-    /// <summary>Largest horizontal displacement of the root bone over the clip, in metres.</summary>
-    private static float RootMotion(IReadOnlyDictionary<string, SampledBone> bones, string root, int frameCount)
+    /// <summary>
+    /// Pre-strip diagnostics of the root bone's horizontal trajectory.
+    /// </summary>
+    private readonly record struct RootTrajectory(
+        Vector3 Displacement,
+        float EndpointDisplacementMeters,
+        float MaxExcursionMeters,
+        float PathLengthMeters,
+        float MaxLateralDeviationMeters,
+        bool IsMonotonic);
+
+    /// <summary>
+    /// Measures the horizontal root trajectory before <see cref="StripRootDrift"/> removes it.
+    /// The endpoint displacement is the authored stride; the excursion is the largest distance from the
+    /// first key and, like the old <c>rootMotionMeters</c>, includes any sideways sway.
+    /// </summary>
+    private static RootTrajectory? AnalyzeRootTrajectory(
+        IReadOnlyDictionary<string, SampledBone> bones,
+        string root,
+        int frameCount)
     {
         if (frameCount < 2 || !bones.TryGetValue(root, out var bone) || bone.Translations is null)
         {
-            return 0;
+            return null;
         }
 
         var first = bone.Translations[0];
-        var maximum = 0f;
+        var last = bone.Translations[frameCount - 1];
+        var displacement = new Vector3(last.X - first.X, 0, last.Z - first.Z);
+        var endpoint = displacement.Length();
+        var forward = endpoint > 1e-6f ? displacement / endpoint : Vector3.Zero;
+
+        var maximumExcursion = 0f;
+        var pathLength = 0f;
+        var maximumLateralDeviation = 0f;
+        var isMonotonic = true;
+
         for (var frame = 1; frame < frameCount; frame++)
         {
-            var delta = bone.Translations[frame] - first;
-            maximum = MathF.Max(maximum, MathF.Sqrt(delta.X * delta.X + delta.Z * delta.Z));
+            var previous = bone.Translations[frame - 1];
+            var current = bone.Translations[frame];
+
+            var stepX = current.X - previous.X;
+            var stepZ = current.Z - previous.Z;
+            pathLength += MathF.Sqrt(stepX * stepX + stepZ * stepZ);
+
+            var fromFirstX = current.X - first.X;
+            var fromFirstZ = current.Z - first.Z;
+            maximumExcursion = MathF.Max(maximumExcursion, MathF.Sqrt(fromFirstX * fromFirstX + fromFirstZ * fromFirstZ));
+
+            if (endpoint > 1e-6f)
+            {
+                // Signed progress along the displacement line: a negative step means the root moved
+                // backwards, so the clip's root path cannot drive a clean stride.
+                var progress = stepX * forward.X + stepZ * forward.Z;
+                if (progress < -1e-4f)
+                {
+                    isMonotonic = false;
+                }
+
+                // Perpendicular distance from the first-to-last line, in the XZ plane.
+                var lateral = MathF.Abs(fromFirstX * forward.Z - fromFirstZ * forward.X);
+                maximumLateralDeviation = MathF.Max(maximumLateralDeviation, lateral);
+            }
         }
 
-        return maximum;
+        return new RootTrajectory(
+            displacement,
+            endpoint,
+            maximumExcursion,
+            pathLength,
+            maximumLateralDeviation,
+            isMonotonic);
     }
 
     private static void StripRootDrift(Dictionary<string, SampledBone> bones, string root, int frameCount)

@@ -82,6 +82,9 @@ public static class CoreServices
             new AvaloniaAssetImageService("avares://Sanet.MakaMek.Avalonia/Assets"));
         services.AddSingleton<CachedImageService>();
 
+        // Decodes MMUX v2 sprite atlases once per model for the board unit controls.
+        services.AddSingleton<IUnitSpriteService, UnitSpriteService>();
+
         // Register a hybrid service that routes to the appropriate underlying service
         services.AddSingleton<IImageService>(sp =>
         {

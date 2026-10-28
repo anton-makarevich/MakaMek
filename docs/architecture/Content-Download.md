@@ -36,8 +36,11 @@ Unit data is distributed as **MMUX packages** (MakaMek Unit eXchange format):
 
 ```
 unit.mmux
-├── unit.json    # Unit specifications (JSON)
-└── unit.png     # Unit sprite image (PNG)
+├── manifest.json        # Format version (v1 or v2)
+├── unit.json            # Unit specifications (JSON)
+├── unit.png             # Static unit image, also the reduced-motion fallback
+├── unit-sprites.png     # Optional (v2): one animation row per clip
+└── unit-sprites.json    # Optional (v2): cell geometry, rows/fps/loop, distancePerCycle
 ```
 
 **unit.json** contains:
@@ -45,6 +48,12 @@ unit.mmux
 - Component definitions
 - Movement and combat stats
 - Weight class and type information
+
+`manifest.json` is optional for older packages: a missing manifest or a `1.x` version is read as v1.
+A `2.x` version adds the sprite pair; a package without it still loads as v1. Other major versions are
+rejected with an unsupported-version error, and a broken sprite pair falls back to the static image
+instead of dropping the unit. `MmuxPackager` writes v2 only when `--sprites-source` supplies
+`<Model>/unit-sprites.png` and `<Model>/unit-sprites.json` for a unit.
 
 ## Platform-Specific Implementations
 

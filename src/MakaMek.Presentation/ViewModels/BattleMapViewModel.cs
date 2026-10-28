@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
@@ -21,6 +22,7 @@ using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation.Models.Movement;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -42,6 +44,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
+    private readonly Subject<MoveUnitCommand> _unitMoveCommands = new();
+    private readonly Subject<UnitPlaybackInterruption> _playbackInterruptions = new();
+    private bool _playbackStreamsDisposed;
     private readonly IObservable<ConnectionStatus>? _connectionStatusSource;
     private readonly ObservableCollection<string> _commandLog = [];
     private readonly ILocalizationService _localizationService;
@@ -350,6 +355,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     public IReadOnlyCollection<string> CommandLog => _commandLog;
 
     /// <summary>
+    /// Movement commands, already delivered on the UI dispatcher, for unit controls to animate along
+    /// their path. Subscribers must not treat this as state: the unit model already holds the destination.
+    /// </summary>
+    public IObservable<MoveUnitCommand> UnitMoveCommands => _unitMoveCommands.AsObservable();
+
+    /// <summary>
+    /// Placement changes that must cancel a running movement playback: displacement, skid, fall,
+    /// stand-up, and the reset published when the game or the view is replaced.
+    /// </summary>
+    public IObservable<UnitPlaybackInterruption> UnitPlaybackInterruptions =>
+        _playbackInterruptions.AsObservable();
+
+    /// <summary>
     /// Gets the latest server rejection message for display without opening the command log.
     /// </summary>
     public string? CommandFeedbackLabel
@@ -435,6 +453,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         UnsubscribeFromCommandFeedback();
+        ResetPlayback();
 
         if (Game is null) return;
 
@@ -515,6 +534,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             CommandFeedbackLabel = null;
         }
 
+        PublishPlaybackEvents(command);
+
         switch (command)
         {
             case TurnIncrementedCommand turnCommand:
@@ -574,6 +595,44 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             UpdateGamePhase();
 
         NotifyStateChanged();
+    }
+
+    /// <summary>
+    /// Forwards playback-relevant commands to the unit controls. Movement commands animate along their
+    /// path; placement-changing commands cancel a playback that the model has already superseded.
+    /// </summary>
+    private void PublishPlaybackEvents(IGameCommand command)
+    {
+        if (_playbackStreamsDisposed) return;
+
+        switch (command)
+        {
+            case MoveUnitCommand { MovementPath.Count: > 0 } move
+                when move.MovementType != MovementType.StandingStill:
+                _unitMoveCommands.OnNext(move);
+                break;
+            case DisplaceUnitCommand displacement:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(displacement.UnitId));
+                break;
+            case MechSkidCommand skid:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(skid.UnitId));
+                break;
+            case MechFallCommand fall:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(fall.UnitId));
+                break;
+            case MechStandUpCommand standUp:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(standUp.UnitId));
+                break;
+        }
+    }
+
+    /// <summary>Cancels every running playback; called when the game or the view is replaced.</summary>
+    private void ResetPlayback()
+    {
+        if (!_playbackStreamsDisposed)
+        {
+            _playbackInterruptions.OnNext(UnitPlaybackInterruption.ResetAll);
+        }
     }
 
     private void ProcessMechStandUp(Guid unitId, bool isFalling)
@@ -1628,6 +1687,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         UnsubscribeFromCommandFeedback();
+        ResetPlayback();
+        _playbackStreamsDisposed = true;
+        _unitMoveCommands.OnCompleted();
+        _unitMoveCommands.Dispose();
+        _playbackInterruptions.OnCompleted();
+        _playbackInterruptions.Dispose();
         if (Game is { IsDisposed: false })
         {
             Game.Dispose();
@@ -1660,6 +1725,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         UnsubscribeFromCommandFeedback();
+        ResetPlayback();
         ConnectionStatus.Subscribe(null, Scheduler);
     }
 

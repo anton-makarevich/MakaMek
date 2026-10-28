@@ -54,6 +54,31 @@ public sealed record ClipEntry
     /// <summary>Horizontal travel of the skeleton's root bone, in metres. Must be ~0 for a board-anchored sprite.</summary>
     public float RootMotionMeters { get; init; }
 
+    /// <summary>
+    /// Horizontal displacement between the root bone's first and last key, in metres, measured before root
+    /// motion is stripped. This is the stride the clip was authored with; <see cref="RootMotionMeters"/>
+    /// only records the largest excursion, which includes any lateral sway.
+    /// </summary>
+    public float RootEndpointDisplacementMeters { get; init; }
+
+    /// <summary>X component (glTF space) of the root displacement vector, in metres.</summary>
+    public float RootDisplacementXMeters { get; init; }
+
+    /// <summary>Z component (glTF space) of the root displacement vector, in metres.</summary>
+    public float RootDisplacementZMeters { get; init; }
+
+    /// <summary>
+    /// True when the root advances monotonically along <see cref="RootEndpointDisplacementMeters"/>:
+    /// no key moves backwards against the clip's forward direction.
+    /// </summary>
+    public bool RootProgressMonotonic { get; init; }
+
+    /// <summary>Largest distance of any root key from the first-to-last displacement line, in metres.</summary>
+    public float RootMaxLateralDeviationMeters { get; init; }
+
+    /// <summary>Accumulated horizontal distance travelled by the root across all keys, in metres.</summary>
+    public float RootPathLengthMeters { get; init; }
+
     /// <summary>Per-bone pose error between the first and last key of a loop, in degrees.</summary>
     public float LoopClosureDegrees { get; init; }
 
