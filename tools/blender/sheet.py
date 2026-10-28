@@ -57,6 +57,9 @@ def parse_args(argv):
     parser.add_argument("--distance-per-cycle", action="append", default=[], metavar="CLIP=PIXELS",
                         help="override the computed distance-per-cycle for one clip, in 1x sprite pixels "
                              "(repeatable: --distance-per-cycle Walk=43.9). Use after visual calibration.")
+    parser.add_argument("--model-yaw", type=float, default=None,
+                        help="yaw the frames were rendered with, for provenance. Defaults to the "
+                             "assembly report's modelYawDegrees.")
     return parser.parse_args(argv)
 
 
@@ -239,7 +242,7 @@ def build_preview(images, path, fps):
 
 
 def write_metadata(out_dir, name, loaded, width, height, padding, preset, report, assembly,
-                   distance_overrides=None):
+                   distance_overrides=None, model_yaw=None):
     distance_overrides = distance_overrides or {}
     applied_scale = (report or {}).get("appliedScale")
     source_clips = {}
@@ -335,7 +338,7 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
             "preset": (report or {}).get("preset"),
             "appliedScale": applied_scale,
             "supersample": (report or {}).get("supersample"),
-            "modelYawDegrees": (assembly or {}).get("modelYawDegrees"),
+            "modelYawDegrees": model_yaw if model_yaw is not None else (assembly or {}).get("modelYawDegrees"),
         },
         "animations": animations,
     }
@@ -426,7 +429,8 @@ def main(argv):
         build_preview(images, os.path.join(args.out, f"preview-{clip_name}.gif"), clip_fps)
 
     document = write_metadata(
-        args.out, name, loaded, width, height, args.padding, preset, report, assembly, distance_overrides)
+        args.out, name, loaded, width, height, args.padding, preset, report, assembly,
+        distance_overrides, args.model_yaw)
 
     print(json.dumps({
         "model": name,

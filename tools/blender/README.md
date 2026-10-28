@@ -77,7 +77,7 @@ output, so the driver verifies every expected frame exists before exiting.
 | `--device cpu\|gpu` | Cycles device; `cpu` for anything reproducible |
 | `--no-outline` | disable the Freestyle outline |
 | `--save-blend PATH` | keep the generated scene for inspection |
-| `--model-yaw DEG` | yaw for models exported in a different facing. Canonical static models need `0`; animated MW5 models are exported in source space and need **-90** (the assembly report prints `modelYawDegrees`) |
+| `--model-yaw DEG` | yaw for models exported in a different facing. Canonical static models need `0`; animated MW5 models are exported in source space and need **90** (the assembly report prints `modelYawDegrees`) |
 
 Exit codes: `0` ok, `2` bad arguments, `3` missing input, `4` invalid preset or failed verification.
 
@@ -92,7 +92,7 @@ blender -b --factory-startup -noaudio --python-exit-code 1 \
         -P tools/blender/render.py -- \
         --model  artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
         --preset tools/blender/board-topdown.json \
-        --scale  5.098 --model-yaw -90 --fit --supersample 4 \
+        --scale  5.098 --model-yaw 90 --fit --supersample 4 \
         --clips  Walk \
         --out    artifacts/spike/anim/AS7-D \
         --report artifacts/spike/anim/AS7-D/report.json
@@ -240,7 +240,7 @@ count (`4`), `Standard` view transform, no motion blur, no persistent data.
   the reported bounds are wrong by the helper's size.
 - **The importer drops an armature-level transform on skinned meshes.** A canonical basis baked into the
   armature rotates the attachments but leaves the body in source space (and vice versa). Animated models
-  therefore ship in source space and the driver applies `--model-yaw -90`; `--fit` then recentres the
+  therefore ship in source space and the driver applies `--model-yaw 90`; `--fit` then recentres the
   footprint and grounds the feet. Do not try to bake the basis into the skeleton root: the importer
   normalises that too.
 - **Bone-parented mesh nodes are unreliable across the importer.** Attachments must be skinned vertices

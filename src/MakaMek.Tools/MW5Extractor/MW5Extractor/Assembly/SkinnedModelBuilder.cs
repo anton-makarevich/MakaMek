@@ -178,7 +178,7 @@ public static class SkinnedModelBuilder
 
         // Deliberately *not* canonicalised: the whole rig stays in MW5's exported space (metres, Y-up, facing +X).
         // Blender's glTF importer drops an armature-level transform for the skinned mesh, so a baked basis would
-        // leave the body and the attachments in different spaces. The driver applies `--model-yaw -90` instead.
+        // leave the body and the attachments in different spaces. The driver applies `--model-yaw 90` instead.
         var model = scene.ToGltf2();
         var nodesByName = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
         foreach (var node in model.LogicalNodes.Where(node => !string.IsNullOrWhiteSpace(node.Name)))

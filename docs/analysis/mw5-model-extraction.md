@@ -98,7 +98,7 @@ Findings that shaped the tooling:
   with SharpGLTF (`UAnimSequence.ConvertAnims`, `CAnimTrack.GetBoneTransform`, y/z swap + cm→m).
 - **Blender drops an armature-level transform on skinned meshes.** Baking the canonical rotation into the
   armature moved the body but not its attachments; the animated model therefore stays in MW5 source space and
-  the driver applies `--model-yaw -90`. See `../architecture/blender-render-driver.md` §3.3.
+  the driver applies `--model-yaw 90`. See `../architecture/blender-render-driver.md` §3.3.
 
 ### 2.3 Chassis count (measured from this repo)
 

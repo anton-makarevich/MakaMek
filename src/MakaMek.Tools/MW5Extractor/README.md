@@ -130,7 +130,7 @@ What is different from the static merge:
 - **The closing key of a loop is dropped** (61 keys → 60 sampled poses for the 2 s walk).
 - **The animated model stays in MW5 source space** (Y-up, facing +X). Blender's glTF importer cancels an
   armature-level transform on skinned meshes; the assembly report says `modelSpace = "mw5-source"` and
-  `modelYawDegrees = -90`, and the driver applies `--model-yaw -90`.
+  `modelYawDegrees = 90`, and the driver applies `--model-yaw 90`.
 
 Full walk pipeline (after `assemble AS7-D --clips Walk`):
 
@@ -139,7 +139,7 @@ F:/blender/blender.exe -b --factory-startup -noaudio --python-exit-code 1 \
   -P tools/blender/render.py -- \
   --model artifacts/mw5/assemble/AS7-D/AS7-D.animated.glb \
   --preset tools/blender/board-topdown.json \
-  --scale 5.098 --model-yaw -90 --fit --supersample 4 \
+  --scale 5.098 --model-yaw 90 --fit --supersample 4 \
   --clips Walk --out artifacts/spike/anim/AS7-D \
   --report artifacts/spike/anim/AS7-D/report.json
 

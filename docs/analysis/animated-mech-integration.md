@@ -61,7 +61,7 @@ MW5Extractor.Cli assemble AS7-D --clips Idle Walk Run --paks "<paks>" \
 blender -b --factory-startup -noaudio --python-exit-code 1 -P tools/blender/render.py -- \
     --model artifacts/mw5/assemble/AS7-D-v2/AS7-D.animated.glb \
     --preset tools/blender/board-topdown.json \
-    --scale 5.098 --model-yaw -90 --fit --supersample 4 --clips Walk,Run \
+    --scale 5.098 --model-yaw 90 --fit --supersample 4 --clips Walk,Run \
     --out artifacts/mw5/anim/AS7-D-v2 --report artifacts/mw5/anim/AS7-D-v2/report.json
 
 python tools/blender/sheet.py \
@@ -77,7 +77,7 @@ python tools/blender/sheet.py \
 blender -b --factory-startup -noaudio --python-exit-code 1 -P tools/blender/render.py -- \
     --model artifacts/mw5/assemble/AS7-D-v2/AS7-D.animated.glb \
     --preset tools/blender/board-topdown.json \
-    --scale 5.098 --model-yaw -90 --fit --supersample 4 --clips Idle --frame 1 \
+    --scale 5.098 --model-yaw 90 --fit --supersample 4 --clips Idle --frame 1 \
     --out artifacts/mw5/anim/AS7-D-v2-idle --report artifacts/mw5/anim/AS7-D-v2-idle/report.json
 # Downsample the 4x Idle frame by 4 (BOX) -> unit.png
 ```
@@ -86,12 +86,18 @@ blender -b --factory-startup -noaudio --python-exit-code 1 -P tools/blender/rend
 
 | Value | Result |
 |---|---|
-| Applied scale / yaw / supersample | `5.098`, `-90°`, `4` |
+| Applied scale / yaw / supersample | `5.098`, `90°`, `4` |
 | Walk source frames | `0, 6, …, 54` (10 frames at 12 fps), unchanged from #1653 |
 | Run source frames | `0, 3, …, 27` (10 frames at 16 fps) |
 | Atlas cell | `91 × 94` px (1×); Walk row 0, Run row 1 |
 | `distancePerCycle` | Walk `43.878` px, Run `94.058` px |
 | Static Idle canvas | `84 × 44` px (1×) |
+
+**Orientation correction.** The first render used `--model-yaw -90` (the value the assembly report
+reported at the time) and produced sprites with the mech's front at the bottom, opposite to the
+existing board art where facing 0 points up. The frames were re-rendered with `--model-yaw 90`; the
+assembler now reports `modelYawDegrees = 90` and the sheet records that value. `--fit`, the cell size,
+the stride and the frame schedule are unchanged by the 180° flip.
 
 ## 2. mmux v2
 

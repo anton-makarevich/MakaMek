@@ -198,7 +198,7 @@ public static class MechAssembler
             Bounds = bounds,
             PlanViewExtentMeters = planViewExtent,
             ModelSpace = samples.Count > 0 ? "mw5-source" : "canonical",
-            ModelYawDegrees = samples.Count > 0 ? -90f : 0f,
+            ModelYawDegrees = samples.Count > 0 ? 90f : 0f,
             Parts = parts,
             Animations = samples.Select(sample => sample.Entry).ToList(),
             Unmapped = unmapped,

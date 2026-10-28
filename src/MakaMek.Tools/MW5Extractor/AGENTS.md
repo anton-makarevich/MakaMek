@@ -55,7 +55,7 @@ MW5Extractor.Cli/        CLI: mount, ls, find, inspect, extract, clips, assemble
 - **Strip root motion** (horizontal only), report how much, and drop a looping clip's duplicate closing key.
   Never let stage 2 compensate for motion the game rules do not produce.
 - **Animated models stay in MW5 source space** (Y-up, facing +X, `modelSpace = "mw5-source"`,
-  `modelYawDegrees = -90`): Blender drops an armature-level transform on skinned meshes, which would split body
+  `modelYawDegrees = 90`): Blender drops an armature-level transform on skinned meshes, which would split body
   and attachments. Static models stay canonical. Do not "fix" this by baking the basis into the armature.
 - **Attachments are rigid skinned vertices**, bound 100% to their mount joint. Bone-parented glTF nodes survive
   Blender's importer unreliably.
