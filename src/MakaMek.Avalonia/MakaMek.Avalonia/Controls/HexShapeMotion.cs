@@ -142,9 +142,14 @@ internal static class HexShapeMotion
     public static Geometry CreateHexGeometry(double inset) => CreateHexGeometry(inset, 1);
 
     /// <summary>
-    /// Builds the hexagon at <paramref name="scale"/> of a map hex, pulled in by
-    /// <paramref name="inset"/> pixels of the scaled hex.
+    /// Builds the hexagon at <paramref name="scale"/> of a map hex, pulled in from every edge by
+    /// <paramref name="inset"/> pixels of the unscaled hex.
     /// </summary>
+    /// <remarks>
+    /// The inset scales with the hex, so a mark that is a fraction of a hex keeps its inset in
+    /// proportion. Measuring it in scaled pixels instead would pull a small badge in by the same
+    /// number of pixels as a full hexagon, which is a different look rather than a fix.
+    /// </remarks>
     public static Geometry CreateHexGeometry(double inset, double scale)
     {
         var corners = HexagonGeometry.GetCorners();

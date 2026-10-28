@@ -65,6 +65,23 @@ public class HexShapeMotionTests
     });
 
     [Fact]
+    public Task TheInsetOfAScaledHexShrinksWithTheHex() => Dispatch(() =>
+    {
+        // The attack badge is a fraction of a hex. Its inset is measured in unscaled hex pixels, so
+        // it shrinks in proportion; measuring it in scaled pixels would make the small badge
+        // visibly smaller without changing anything about the large outline.
+        const double scale = 0.5;
+        const double inset = 6;
+
+        var full = HexShapeMotion.CreateHexGeometry(0, scale).Bounds;
+        var insetBounds = HexShapeMotion.CreateHexGeometry(inset, scale).Bounds;
+
+        ((full.Height - insetBounds.Height) / 2).ShouldBe(inset * scale, 3);
+        insetBounds.Left.ShouldBe(HexCoordinatesPixelExtensions.HexWidth * scale / 2 - insetBounds.Width / 2, 3);
+        insetBounds.Top.ShouldBe(HexCoordinatesPixelExtensions.HexHeight * scale / 2 - insetBounds.Height / 2, 3);
+    });
+
+    [Fact]
     public Task TheEntranceShowsTheOutlineAndTheExitHidesItAgain() => Dispatch(() =>
     {
         using var engine = StartEngine();

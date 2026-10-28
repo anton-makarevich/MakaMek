@@ -53,6 +53,11 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     /// </summary>
     public const double IconRotationDegrees = 35;
 
+    /// <summary>
+    /// How far the badge hex is pulled in from its edge, in unscaled map-hex pixels. At the badge
+    /// scale that is about half a pixel, which is all the hex needs to keep its stroke on the path
+    /// edge instead of well inside it.
+    /// </summary>
     private const double BadgeInset = 1.5;
     private const double IconSize = 17;
     private const double BadgeStrokeThickness = 2;
