@@ -39,7 +39,19 @@ public class UnitSpriteService : IUnitSpriteService<UnitSpriteSet>
     {
         if (_cache.TryGetValue(model, out var cached)) return cached;
 
-        var animation = await _unitCachingService.GetUnitAnimation(model);
+        UnitAnimationData? animation;
+        try
+        {
+            animation = await _unitCachingService.GetUnitAnimation(model);
+        }
+        catch (Exception ex)
+        {
+            // The unit package cache is shared with the static image path, which handles its own
+            // failures; a sprite lookup must never stop the unit from rendering at all.
+            _logger.LogError(ex, "Error reading the sprite data of unit '{Model}'", model);
+            return null;
+        }
+
         var decoded = animation is null ? null : Decode(model, animation);
         _cache[model] = decoded;
         return decoded;
