@@ -188,6 +188,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     public ICommand DirectionSelectedCommand { get; }
 
+    /// <summary>
+    /// Gets the sprite service the board hands to its unit controls, or <c>null</c> when animation
+    /// support is not registered. The view casts it to <c>IUnitSpriteService&lt;UnitSpriteSet&gt;</c>
+    /// because the sprite set is platform specific.
+    /// </summary>
+    public IUnitSpriteService? UnitSpriteService { get; }
+
     public BattleMapViewModel(
         IImageService imageService,
         ITerrainAssetService terrainAssetService,
@@ -199,11 +206,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null,
         ICommandPublisher? commandPublisher = null,
-        ILogger? connectionLogger = null)
+        ILogger? connectionLogger = null,
+        IUnitSpriteService? unitSpriteService = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
         TerrainBitmaskService = terrainBitmaskService;
+        UnitSpriteService = unitSpriteService;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _platformService = platformService;

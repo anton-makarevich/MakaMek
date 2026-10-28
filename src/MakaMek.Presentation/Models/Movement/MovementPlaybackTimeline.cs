@@ -160,7 +160,7 @@ public sealed class MovementPlaybackTimeline
         var items = Classify(segments);
         if (items.Count == 0) return [];
 
-        var totalDistance = items.Where(item => !item.IsTurn).Sum(item => item.Distance);
+        var totalDistance = items.Where(item => !item.IsTurn).Sum(item => item.Length);
         var totalTurnSteps = items.Where(item => item.IsTurn).Sum(item => item.TurnSteps);
 
         double turnTime;
@@ -184,12 +184,12 @@ public sealed class MovementPlaybackTimeline
         {
             var slot = item.IsTurn
                 ? (totalTurnSteps > 0 ? turnTime * item.TurnSteps / totalTurnSteps : 0)
-                : (totalDistance > 0 ? translationTime * item.Distance / totalDistance : 0);
+                : (totalDistance > 0 ? translationTime * item.Length / totalDistance : 0);
 
             var fromDistance = signedDistance;
             var toDistance = item.IsTurn
                 ? signedDistance
-                : signedDistance + (item.IsReversed ? -item.Distance : item.Distance);
+                : signedDistance + (item.IsReversed ? -item.Length : item.Length);
 
             phases.Add(new MovementPlaybackPhase(
                 time,
@@ -240,7 +240,7 @@ public sealed class MovementPlaybackTimeline
                     fromFacing * DegreesPerFacing,
                     IsTurn: false,
                     TurnSteps: 0,
-                    Distance: distance,
+                    Length: distance,
                     IsReversed: segment.IsReversed));
                 continue;
             }
@@ -255,7 +255,7 @@ public sealed class MovementPlaybackTimeline
                 fromFacing * DegreesPerFacing + ShortestTurnDegrees(fromFacing, toFacing),
                 IsTurn: true,
                 TurnSteps: steps,
-                Distance: 0,
+                Length: 0,
                 IsReversed: segment.IsReversed));
         }
 
@@ -301,6 +301,6 @@ public sealed class MovementPlaybackTimeline
         double ToFacingDegrees,
         bool IsTurn,
         int TurnSteps,
-        double Distance,
+        double Length,
         bool IsReversed);
 }

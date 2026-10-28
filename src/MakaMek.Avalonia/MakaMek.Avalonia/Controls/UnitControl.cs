@@ -41,7 +41,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly IDisposable _subscription;
         private readonly IDisposable? _moveSubscription;
         private readonly IDisposable? _interruptionSubscription;
-        private readonly IUnitSpriteService? _spriteService;
+        private readonly IUnitSpriteService<UnitSpriteSet>? _spriteService;
         private readonly ControlScope _playbackScope;
         private readonly Queue<MoveUnitCommand> _pendingMoves = new();
         private readonly ImageBrush _tintMaskBrush = new();
@@ -72,7 +72,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly ContrastingForegroundConverter? _contrastingForegroundConverter;
 
         public UnitControl(IUnit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel,
-            IUnitSpriteService? spriteService = null)
+            IUnitSpriteService<UnitSpriteSet>? spriteService = null)
         {
             _unit = unit;
             _imageService = imageService;

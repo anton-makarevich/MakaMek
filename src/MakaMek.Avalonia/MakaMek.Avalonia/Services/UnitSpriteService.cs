@@ -8,6 +8,7 @@ using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Units;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Avalonia.Services;
 
@@ -20,7 +21,7 @@ namespace Sanet.MakaMek.Avalonia.Services;
 /// which makes the atlas's <c>distancePerCycle</c> values (in sprite pixels) directly comparable with
 /// the board's pixel distances.
 /// </remarks>
-public class UnitSpriteService : IUnitSpriteService
+public class UnitSpriteService : IUnitSpriteService<UnitSpriteSet>
 {
     private readonly IUnitCachingService _unitCachingService;
     private readonly ILogger<UnitSpriteService> _logger;

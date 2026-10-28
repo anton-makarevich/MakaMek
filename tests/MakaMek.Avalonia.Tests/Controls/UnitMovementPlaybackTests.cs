@@ -258,7 +258,7 @@ public class UnitMovementPlaybackTests
             var imageService = Substitute.For<IImageService<Bitmap>>();
             imageService.GetImage("units/mechs", Model).Returns(Task.FromResult<Bitmap?>(StaticImage));
 
-            var spriteService = Substitute.For<IUnitSpriteService>();
+            var spriteService = Substitute.For<IUnitSpriteService<UnitSpriteSet>>();
             spriteService.GetSpriteSet(Model).Returns(Task.FromResult<UnitSpriteSet?>(SpriteSet));
 
             var dispatcher = Substitute.For<IDispatcherService>();
