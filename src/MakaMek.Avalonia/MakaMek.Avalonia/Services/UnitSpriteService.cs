@@ -96,7 +96,7 @@ public class UnitSpriteService : IUnitSpriteService
                 clips[name] = new UnitSpriteClip(
                     name,
                     frames,
-                    clip.DistancePerCycle,
+                    clip.DistancePerCycle*1.1,
                     clip.Loop,
                     clip.Fps);
             }

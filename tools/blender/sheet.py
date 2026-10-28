@@ -262,13 +262,15 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
         source = source_clips.get(clip_name, {})
         render = rendered.get(clip_name, {})
 
-        # The authored stride: pre-strip endpoint displacement when the extractor measured it, else
-        # the old maximum-excursion figure. Scaled to sprite pixels so the runtime can advance the
-        # frame phase from distance travelled.
+        # Prefer the sampled foot-contact stride; fall back to the root endpoint for clips without
+        # foot contacts or older assemblies.
+        gait = source.get("footGait") or {}
+        foot_stride = gait.get("correctedStrideMeters")
         root_travel = source.get("rootEndpointDisplacementMeters")
         if root_travel is None or root_travel <= 0:
             root_travel = source.get("rootMotionMeters") or 0
-        computed_distance = round(root_travel * applied_scale, 3) if applied_scale else 0
+        stride_meters = foot_stride if foot_stride is not None and foot_stride > 0 else root_travel
+        computed_distance = round(stride_meters * applied_scale, 3) if applied_scale else 0
         distance_per_cycle = distance_overrides.get(clip_name, computed_distance)
 
         clip = {
@@ -297,12 +299,21 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
                 "loopClosureDegrees": source.get("loopClosureDegrees"),
                 "loopClosureMeters": source.get("loopClosureMeters"),
             }
+            gait = source.get("footGait")
+            if gait:
+                gait = dict(gait)
+                gait["suggestedDistancePerCycle"] = computed_distance
+                clip["footGait"] = gait
         if render:
             clip["sourceFrames"] = render.get("sourceFrames")
             clip["sourceRange"] = render.get("sourceRange")
 
         animations[clip_name] = clip
         source_range = render.get("sourceRange") or [None, None]
+        gait = source.get("footGait") or {}
+        corrected_stride = gait.get("correctedStrideMeters")
+        suggested_distance = (round(corrected_stride * applied_scale, 3)
+                              if corrected_stride and applied_scale else None)
         rows.append({
             "name": clip_name,
             "asset": source.get("assetPath"),
@@ -320,6 +331,8 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
             "rootEndpointDisplacementMeters": source.get("rootEndpointDisplacementMeters"),
             "distancePerCycle": distance_per_cycle,
             "distanceOverridden": clip_name in distance_overrides,
+            "correctedStrideMeters": corrected_stride,
+            "suggestedDistancePerCycle": suggested_distance,
             "loopClosureDegrees": source.get("loopClosureDegrees"),
             "notes": "; ".join(source.get("warnings") or []),
         })
@@ -354,6 +367,7 @@ def write_metadata(out_dir, name, loaded, width, height, padding, preset, report
     fields = ["name", "asset", "sourceFrames", "sourceFps", "sourceFrameStart", "sourceFrameEnd",
               "sampledFrames", "shippedFrames", "shippedFps", "durationSeconds", "loop", "hold",
               "rootMotionMeters", "rootEndpointDisplacementMeters", "distancePerCycle", "distanceOverridden",
+              "correctedStrideMeters", "suggestedDistancePerCycle",
               "loopClosureDegrees", "notes"]
     with open(os.path.join(out_dir, "clips.csv"), "w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)

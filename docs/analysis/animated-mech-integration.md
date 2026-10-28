@@ -34,24 +34,29 @@ Measured for AS7-D:
 | Walk | 8.607 m | 8.607 m | yes | 0 m | 8.607 m |
 | Run | 18.450 m | 18.450 m | yes | 0 m | 18.450 m |
 
-Because endpoint displacement equals the old maximum excursion for both clips, the stride is the
-whole root travel: the clips have no sideways drift.
+Because endpoint displacement equals the old maximum excursion for both clips, the root measurement has no
+sideways drift; the sampled foot correction (§1.4) is applied on top of it.
 
 ### 1.2 Sheet metadata
 
-`tools/blender/sheet.py` writes `distancePerCycle` per clip (stride × the report's `appliedScale`, with
-`rootMotionMeters` as the fallback when an older assembly has no endpoint value), plus
-`distanceUnits: "spritePixels"`. A repeated `--distance-per-cycle CLIP=PIXELS` override is available for
-visual calibration. The sheet also records provenance in `render`: preset, `appliedScale`, `supersample`
-and `modelYawDegrees`. Packing, row order, padding and pivot are unchanged; the metadata schema moved to
-version 2 only for the added optional fields.
+`tools/blender/sheet.py` writes `distancePerCycle` per clip. The default is the sampled foot-contact
+stride from the assembly's `footGait.correctedStrideMeters` × the report's `appliedScale`; clips
+without foot contacts (and older assemblies) fall back to the root endpoint, then `rootMotionMeters`.
+A repeated `--distance-per-cycle CLIP=PIXELS` override is available for visual calibration. The sheet
+also records provenance in `render`: preset, `appliedScale`, `supersample` and `modelYawDegrees`, and
+the per-clip `footGait` block. Packing, row order, padding and pivot are unchanged; the metadata schema
+moved to version 2 only for the added optional fields.
+
+The foot probe uses the shipped frame count (`clips --probe --shipped-frames 10`). The extractor reads
+the `LeftFoot_Down` / `RightFoot_Down` notify windows, samples `Foot0_Left` / `Foot0_Right` only at
+those shipped frames, and reports the root travel and foot slip per stance plus the corrected stride.
 
 ### 1.3 Commands used
 
 ```bash
 # 1. Probe the clips and their new stride diagnostics
-MW5Extractor.Cli clips AS7-D --probe --paks "<paks>" --oodle "<oo2core>" --zlib "<zlib-ng>" \
-    -o artifacts/mw5/clips/AS7-D.json
+MW5Extractor.Cli clips AS7-D --probe --shipped-frames 10 --paks "<paks>" \
+    --oodle "<oo2core>" --zlib "<zlib-ng>" -o artifacts/mw5/clips/AS7-D.json
 
 # 2. Assemble the animated model with the three clips
 MW5Extractor.Cli assemble AS7-D --clips Idle Walk Run --paks "<paks>" \
@@ -90,8 +95,22 @@ blender -b --factory-startup -noaudio --python-exit-code 1 -P tools/blender/rend
 | Walk source frames | `0, 6, …, 54` (10 frames at 12 fps), unchanged from #1653 |
 | Run source frames | `0, 3, …, 27` (10 frames at 16 fps) |
 | Atlas cell | `91 × 94` px (1×); Walk row 0, Run row 1 |
-| `distancePerCycle` | Walk `43.878` px, Run `94.058` px |
+| `distancePerCycle` | Walk `43.102` px, Run `97.288` px |
 | Static Idle canvas | `84 × 44` px (1×) |
+
+**Foot-contact calibration.** The default is now measured from the shipped frames, not the root endpoint
+alone. `clips --probe` reads the clip's `LeftFoot_Down` / `RightFoot_Down` notify windows and samples the
+`Foot0_Left` / `Foot0_Right` world positions only at the 10 frames the atlas ships. The corrected stride
+is `rootEndpoint × (rootTravel − footSlip) / rootTravel` over the sampled stance windows:
+
+| Clip | Sampled stance contacts | Corrected stride | Pixels at `5.098 px/m` |
+|---|---|---|---|
+| Walk | Right `3.443 m` root / `0.107 m` slip (5 frames); Left `2.582 m` / `0.006 m` (4 frames) | `8.4546 m` | `43.102` |
+| Run | Right `1.845 m` / `0.076 m` (2 frames); Left `1.845 m` / `0.051 m` (2 frames) | `19.0835 m` | `97.288` |
+
+The root-only values (`43.878 / 94.058`) remain the fallback for clips without foot contacts and older
+assemblies. The 5 s movement slot is unchanged: distance still represents speed, so longer moves cycle
+the legs faster. The sampled probe only changes which stride the frame phase uses.
 
 **Orientation correction.** The first render used `--model-yaw -90` (the value the assembly report
 reported at the time) and produced sprites with the mech's front at the bottom, opposite to the
