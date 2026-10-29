@@ -326,18 +326,79 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void HandleCommand_PushNotYetSupported_ShouldReturnAnError()
+    public void HandleCommand_ValidPush_IsStoredAndBroadcast()
     {
         // Arrange
         var sut = CreateSut();
         sut.Enter();
 
         // Act
-        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id,
-            Punch(PartLocation.LeftArm, PartLocation.RightArm) with { AttackType = PhysicalAttackType.Push }));
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Push()));
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(c =>
+            c.UnitId == _attacker.Id
+            && c.Declaration != null
+            && c.Declaration.AttackType == PhysicalAttackType.Push
+            && c.Declaration.AttackerLimbs.Count == 2
+            && c.Declaration.AttackerLimbs.Contains(PartLocation.LeftArm)
+            && c.Declaration.AttackerLimbs.Contains(PartLocation.RightArm)
+            && c.Declaration.TargetId == _target.Id));
+        _attacker.DeclaredPhysicalAttack!.AttackType.ShouldBe(PhysicalAttackType.Push);
+    }
+
+    [Fact]
+    public void HandleCommand_PushWithOneArm_ShouldReturnAnError()
+    {
+        // Arrange
+        var sut = CreateSut();
+        sut.Enter();
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Push(PartLocation.LeftArm)));
 
         // Assert
         VerifyRejected(ErrorCode.ValidationFailed);
+        _attacker.HasDeclaredPhysicalAttack.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_RejectedPush_DoesNotReserveTheTarget()
+    {
+        // Arrange: a single-arm push is rejected, so the valid declaration must still be accepted
+        var sut = CreateSut();
+        sut.Enter();
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Push(PartLocation.LeftArm)));
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Push()));
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(c =>
+            c.Declaration != null && c.Declaration.AttackType == PhysicalAttackType.Push));
+        _attacker.DeclaredPhysicalAttack.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void HandleCommand_SecondDisplacementDeclarationAgainstTheSameTarget_ShouldReturnAnError()
+    {
+        // Arrange: two of player 1's units can push the same target
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var secondAttackerHex = targetHex.GetAllNeighbours().First(hex => hex != AttackerHex);
+        var sut = CreateSut(secondAttackerPosition: new HexPosition(secondAttackerHex,
+            secondAttackerHex.GetDirectionToNeighbour(targetHex)));
+        sut.Enter();
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Push()));
+        _attacker.HasDeclaredPhysicalAttack.ShouldBeTrue();
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _secondAttacker.Id, Push()));
+
+        // Assert
+        VerifyRejected(ErrorCode.ValidationFailed);
+        _secondAttacker.HasDeclaredPhysicalAttack.ShouldBeFalse();
     }
 
     [Fact]
@@ -419,6 +480,13 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     {
         AttackType = PhysicalAttackType.Kick,
         AttackerLimbs = legs,
+        TargetId = _target.Id
+    };
+
+    private PhysicalAttackDeclarationData Push(params PartLocation[] arms) => new()
+    {
+        AttackType = PhysicalAttackType.Push,
+        AttackerLimbs = arms.Length > 0 ? arms : [PartLocation.LeftArm, PartLocation.RightArm],
         TargetId = _target.Id
     };
 }

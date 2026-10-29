@@ -3837,6 +3837,16 @@ public class ClientGameTests
         // Assert
         unit.Position.ShouldNotBeNull();
         unit.Position.Coordinates.ShouldBe(new HexCoordinates(2, 2));
+        unit.Position.Surface.ShouldBe(HexSurface.Ground);
+
+        // A push can move a unit along a bridge deck, so the command carries the destination surface.
+        _sut.HandleCommand(displaceCommand with
+        {
+            ToCoordinates = new HexCoordinateData(1, 1),
+            Surface = (int)HexSurface.Bridge
+        });
+
+        unit.Position.Surface.ShouldBe(HexSurface.Bridge);
     }
 
     [Fact]

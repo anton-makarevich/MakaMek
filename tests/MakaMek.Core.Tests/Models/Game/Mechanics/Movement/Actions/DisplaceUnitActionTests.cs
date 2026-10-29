@@ -74,5 +74,16 @@ public class DisplaceUnitActionTests : GamePhaseTestsBase
         returnedCommand.ToCoordinates.ShouldBe(_command.ToCoordinates);
         returnedCommand.NewFacing.ShouldBe((int)HexDirection.Top);
         returnedCommand.DisplacementReason.ShouldBe(DisplacementReason.DominoEffect);
+        returnedCommand.Surface.ShouldBe((int)HexSurface.Ground);
+    }
+
+    [Fact]
+    public void Process_ShouldReturnTheDestinationSurface()
+    {
+        var sut = new DisplaceUnitAction(_command with { Surface = (int)HexSurface.Bridge }, publish: true);
+
+        var result = sut.Process(Game);
+
+        ((DisplaceUnitCommand)result[0]).Surface.ShouldBe((int)HexSurface.Bridge);
     }
 }

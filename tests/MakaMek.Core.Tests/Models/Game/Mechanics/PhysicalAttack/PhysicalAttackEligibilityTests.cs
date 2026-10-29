@@ -174,6 +174,7 @@ public class PhysicalAttackEligibilityTests
     [Theory]
     [InlineData(PhysicalAttackType.Punch)]
     [InlineData(PhysicalAttackType.Kick)]
+    [InlineData(PhysicalAttackType.Push)]
     public void NoAttack_WhenAttackerHasAlreadyDeclared(PhysicalAttackType attackType)
     {
         // Arrange
@@ -249,16 +250,188 @@ public class PhysicalAttackEligibilityTests
     }
 
     [Fact]
-    public void NoAttack_WithAPushNotYetSupported()
+    public void Push_TargetInTheFeetFrontHex_BothArms()
     {
         // Arrange
         var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
 
         // Act
-        var limbs = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map);
+        var arms = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map);
 
         // Assert
-        limbs.ShouldBeEmpty();
+        arms.ShouldBe([PartLocation.LeftArm, PartLocation.RightArm], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Push_FollowsTheFeetNotTheTorsoTwist()
+    {
+        // Arrange: a twisted torso faces the target, the feet do not.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.TopRight));
+        attacker.RotateTorso(HexDirection.TopRight);
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map).ShouldNotBeEmpty();
+
+        // Act
+        var arms = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map);
+
+        // Assert
+        arms.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(-1, false)]
+    public void Push_AttackerAndTargetMustStandAtTheSameElevation(int targetIsHigherBy, bool canPush)
+    {
+        // Arrange
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        SetLevel(AttackerHex, 2);
+        SetLevel(targetHex, 2 + targetIsHigherBy);
+
+        // Act
+        var arms = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map);
+
+        // Assert
+        (arms.Count > 0).ShouldBe(canPush);
+    }
+
+    [Fact]
+    public void Push_BridgeDeckAtTheSameStandingLevel_IsAllowed()
+    {
+        // Arrange: the attacker is on a bridge deck at level 2, the target on the ground at level 2
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top, HexSurface.Bridge);
+        var target = CreateMech(_defendingPlayer, targetHex, HexDirection.Bottom);
+        var bridgeHex = new Hex(AttackerHex);
+        bridgeHex.AddTerrain(new BridgeTerrain(2, 10));
+        _map.AddHex(bridgeHex);
+        SetLevel(targetHex, 2);
+
+        // Act
+        var arms = _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map);
+
+        // Assert
+        arms.ShouldBe([PartLocation.LeftArm, PartLocation.RightArm], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Push_ProneTarget_IsNotAllowed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        target.SetProne();
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetNotStandingMech);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void Push_TargetPerformingADisplacementAttack_IsNotAllowed(PhysicalAttackType targetAttackType)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        target.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = targetAttackType,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = attacker.Id
+        });
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetPerformingDisplacementAttack);
+    }
+
+    [Fact]
+    public void Push_MissingArm_IsNotAllowed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.Parts[PartLocation.LeftArm].BlowOff();
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.ArmMissing);
+    }
+
+    [Fact]
+    public void Push_ArmWeaponFired_IsNotAllowed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.RightArm);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.ArmWeaponFired);
+    }
+
+    [Fact]
+    public void Push_DestroyedShoulder_IsStillAllowed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.Parts[PartLocation.LeftArm].GetComponent<ShoulderActuator>()!.Hit();
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe([PartLocation.LeftArm, PartLocation.RightArm], ignoreOrder: true);
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map).ShouldBeNull();
+    }
+
+    [Fact]
+    public void Push_ElevationMismatch_ReportsTheReason()
+    {
+        // Arrange
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        SetLevel(AttackerHex, 2);
+        SetLevel(targetHex, 3);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.ElevationMismatch);
+    }
+
+    [Fact]
+    public void Push_WithoutAUnitInTheFeetFrontHex_ReportsNoTargetInFront()
+    {
+        // Arrange: the target is in a side arc
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void CanResolve_PushTargetThatMovedOutOfTheFrontHex_IsFalse()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Push,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = target.Id
+        });
+        target.Move(new MovementPath(
+        [
+            new PathSegment(target.Position!,
+                new HexPosition(AttackerHex.GetNeighbour(HexDirection.TopRight), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk), null);
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm, _map).ShouldBeFalse();
     }
 
     [Fact]
@@ -408,6 +581,19 @@ public class PhysicalAttackEligibilityTests
         _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map).ShouldBeEmpty();
         _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Kick, _map)
             .ShouldBe([PartLocation.LeftLeg, PartLocation.RightLeg], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Water_PushAgainstASubmergedTargetFromDepth1_IsNotAllowed()
+    {
+        // Arrange: the same effective level, but the attacker is only half-submerged
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        SetWaterHex(AttackerHex, 0, 1);
+        SetWaterHex(targetHex, 1, 2);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
     }
 
     [Theory]

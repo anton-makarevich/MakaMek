@@ -232,6 +232,8 @@
                                 Command="{Binding OnExecute, Converter={StaticResource ActionToCommandConverter}}"
                                 HorizontalAlignment="Center" 
                                 IsVisible="{Binding IsVisible}"
+                                IsEnabled="{Binding IsEnabled}"
+                                ToolTip.Tip="{Binding DisabledReason}"
                                 Background="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
                                 Foreground="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                                 Content="{Binding Label}"/>

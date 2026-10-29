@@ -23,7 +23,7 @@ public interface IRulesProvider
 
     /// <summary>
     /// Gets the per-type base modifier for a physical attack.
-    /// Later milestones extend the table: Push -1 (M2), Charge/DFA +0 (M3),
+    /// Later milestones extend the table: Charge/DFA +0 (M3),
     /// physical weapons -1/-2 (M4), Club -1 (M5).
     /// </summary>
     int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType);

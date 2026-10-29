@@ -8,7 +8,12 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
@@ -557,7 +562,6 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetToHitNumber_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
@@ -571,5 +575,75 @@ public class PhysicalAttackCalculatorTests
 
         // Act & Assert
         Should.Throw<NotSupportedException>(() => sut.GetToHitNumber(attacker, target, attackType, map));
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_Push_AddsTwoPerDamagedShoulder()
+    {
+        // Arrange
+        var attacker = CreateRealMech(new HexPosition(2, 2, HexDirection.Bottom));
+        var target = CreateRealMech(new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+        attacker.Parts[PartLocation.LeftArm].GetComponent<ShoulderActuator>()!.Hit();
+        _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.Push).Returns(-1);
+
+        // Act
+        var oneShoulder = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Push, map);
+
+        attacker.Parts[PartLocation.RightArm].GetComponent<ShoulderActuator>()!.Hit();
+        var twoShoulders = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Push, map);
+
+        // Assert
+        var oneModifier = oneShoulder.OtherModifiers.OfType<DamagedShoulderModifier>().ShouldHaveSingleItem();
+        oneModifier.Value.ShouldBe(2);
+        oneModifier.DamagedShoulders.ShouldBe(1);
+        var twoModifier = twoShoulders.OtherModifiers.OfType<DamagedShoulderModifier>().ShouldHaveSingleItem();
+        twoModifier.Value.ShouldBe(4);
+        twoModifier.DamagedShoulders.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_IntactShoulders_HasNoDamagedShoulderModifier()
+    {
+        // Arrange
+        var attacker = CreateRealMech(new HexPosition(2, 2, HexDirection.Bottom));
+        var target = CreateRealMech(new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+        _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.Push).Returns(-1);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Push, map);
+
+        // Assert
+        result.OtherModifiers.OfType<DamagedShoulderModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_Punch_DoesNotAddThePushShoulderModifier()
+    {
+        // Arrange: a destroyed shoulder blocks a punch with that arm, but it never adds the push modifier
+        var attacker = CreateRealMech(new HexPosition(2, 2, HexDirection.Bottom));
+        var target = CreateRealMech(new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+        attacker.Parts[PartLocation.LeftArm].GetComponent<ShoulderActuator>()!.Hit();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        result.OtherModifiers.OfType<DamagedShoulderModifier>().ShouldBeEmpty();
+    }
+
+    private static Mech CreateRealMech(HexPosition position)
+    {
+        var mech = new MechFactory(
+                new TotalWarfareRulesProvider(),
+                new ClassicBattletechComponentProvider(),
+                Substitute.For<ILocalizationService>())
+            .Create(MechFactoryTests.CreateDummyMechData());
+        mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
+        mech.Deploy(position, null);
+        mech.Move(MovementPath.CreateSingleSegmentPath(position), null);
+        return mech;
     }
 }

@@ -222,9 +222,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
     }
 
     /// <summary>
-    /// Gets the per-type base modifier for a physical attack. Only Punch and Kick are supported
-    /// in M1; other types throw. Later milestones extend the table: Push -1 (M2), Charge and DFA +0
-    /// (M3), physical weapons -1 or -2 (M4), Club -1 (M5).
+    /// Gets the per-type base modifier for a physical attack. Punch, Kick and Push are supported;
+    /// other types throw. Later milestones extend the table: Charge and DFA +0 (M3), physical
+    /// weapons -1 or -2 (M4), Club -1 (M5).
     /// </summary>
     public int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType)
     {
@@ -232,6 +232,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
         {
             PhysicalAttackType.Punch => 0,
             PhysicalAttackType.Kick => -2,
+            PhysicalAttackType.Push => -1,
             _ => throw new NotSupportedException(
                 $"Physical attack base modifier is not supported for attack type: {attackType}")
         };
@@ -239,11 +240,14 @@ public class TotalWarfareRulesProvider : IRulesProvider
 
     /// <summary>
     /// Physical attack damage is based on the attacker's tonnage: one point per ten tons for a
-    /// punch and one point per five tons for a kick, rounded up. Each damaged or missing actuator
-    /// halves the result, rounding down to a minimum of one point (Total Warfare, p. 145).
+    /// punch and one point per five tons for a kick, rounded up. A push deals no damage. Each
+    /// damaged or missing actuator halves the result, rounding down to a minimum of one point
+    /// (Total Warfare, p. 145-148).
     /// </summary>
     public int GetPhysicalAttackDamage(int tonnage, PhysicalAttackType attackType, int reducingActuators)
     {
+        if (attackType == PhysicalAttackType.Push) return 0;
+
         var divisor = attackType switch
         {
             PhysicalAttackType.Punch => 10,
@@ -261,7 +265,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
 
     /// <summary>
     /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
-    /// make one when it misses (Total Warfare, p. 146). A punch creates no obligation of its own.
+    /// make one when it misses (Total Warfare, p. 146). A push forces the target to roll when it
+    /// hits (p. 148). A punch creates no obligation of its own.
     /// Requirements disabled through <see cref="RequiresPilotingSkillRoll"/> are omitted.
     /// </summary>
     public IReadOnlyList<PhysicalAttackPsrRequirement> GetPhysicalAttackPsrRequirements(
@@ -271,6 +276,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         IReadOnlyList<PhysicalAttackPsrRequirement> candidates = attackType switch
         {
             PhysicalAttackType.Punch => [],
+            PhysicalAttackType.Push when isHit =>
+                [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.PushHit)],
+            PhysicalAttackType.Push => [],
             PhysicalAttackType.Kick when isHit =>
                 [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)],
             PhysicalAttackType.Kick =>
@@ -301,6 +309,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PhysicalAttackType.Kick =>
                 CountDestroyed(limbComponents, MakaMekComponent.UpperLegActuator)
                 + CountDestroyed(limbComponents, MakaMekComponent.LowerLegActuator),
+            // A push deals no damage, so no actuator can reduce it.
+            PhysicalAttackType.Push => 0,
             _ => throw new NotSupportedException(
                 $"Physical attack actuator damage reduction is not supported for attack type: {attackType}")
         };
@@ -591,6 +601,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
             // docs/rules/physical-attacks.md section 3 calls for both rolls and gives no modifier for either.
             PilotingSkillRollType.KickHit => 0,
             PilotingSkillRollType.KickMiss => 0,
+            // A successful push gives the defender no extra modifier (unlike Charge/DFA, which
+            // are +2): Total Warfare p. 148 asks for a plain Piloting Skill Roll.
+            PilotingSkillRollType.PushHit => 0,
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }

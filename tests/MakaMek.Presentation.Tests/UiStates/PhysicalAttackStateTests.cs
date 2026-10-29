@@ -14,6 +14,8 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -122,6 +124,21 @@ public class PhysicalAttackStateTests
         _localizationService.GetString("PhysicalAttackPreview_Title").Returns("Physical attack");
         _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
         _localizationService.GetString("PhysicalAttackType_Kick").Returns("Kick");
+        _localizationService.GetString("PhysicalAttackType_Push").Returns("Push");
+        _localizationService.GetString("PhysicalAttackRestriction_NoTargetInFront")
+            .Returns("No unit directly in front");
+        _localizationService.GetString("PhysicalAttackRestriction_TargetNotStandingMech")
+            .Returns("The target must be a standing Mech");
+        _localizationService.GetString("PhysicalAttackRestriction_TargetPerformingDisplacementAttack")
+            .Returns("The target is performing a Charge or Death From Above");
+        _localizationService.GetString("PhysicalAttackRestriction_ElevationMismatch")
+            .Returns("The target must be at the same elevation");
+        _localizationService.GetString("PhysicalAttackRestriction_ArmMissing")
+            .Returns("Both arms are required");
+        _localizationService.GetString("PhysicalAttackRestriction_ArmWeaponFired")
+            .Returns("An arm-mounted weapon was fired this turn");
+        _localizationService.GetString("PhysicalAttackRestriction_TargetAlreadyDisplaced")
+            .Returns("The target is already being displaced this turn");
         _localizationService.GetString("Attack_TargetNumber").Returns("Target ToHit Number");
         _localizationService.GetString("Attack_ImpossibleToHit").Returns("Impossible to hit");
         _localizationService.GetString("Modifier_PilotingSkill").Returns("Piloting Skill: +{0}");
@@ -778,6 +795,157 @@ public class PhysicalAttackStateTests
         declaration.OnExecute();
 
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    [Fact]
+    public void FrontArcTarget_OffersPushEnabled()
+    {
+        DeployPair();
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeTrue();
+        push.DisabledReason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SideArcTarget_DisablesPushWithNoTargetInFront()
+    {
+        DeployPair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("No unit directly in front");
+    }
+
+    [Fact]
+    public void TorsoTwist_DoesNotCreateAPushTarget()
+    {
+        // Arrange: the target is in the feet's side arc but the torso faces it
+        DeployPair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+        ((Mech)Attacker).RotateTorso(HexDirection.TopRight);
+        SelectAttacker();
+
+        // Act
+        var push = GetAction("Push");
+
+        // Assert
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("No unit directly in front");
+    }
+
+    [Fact]
+    public void ProneTarget_DisablesPushBecauseTheTargetMustStand()
+    {
+        DeployPair();
+        ((Mech)Enemy).SetProne();
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("The target must be a standing Mech");
+    }
+
+    [Fact]
+    public void ElevationMismatch_DisablesPush()
+    {
+        DeployPair();
+        _game.BattleMap!.AddHex(new Hex(Enemy.Position!.Coordinates, 1));
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("The target must be at the same elevation");
+    }
+
+    [Fact]
+    public void FiredArmWeapon_DisablesPush()
+    {
+        DeployPair();
+        FireWeaponIn(Attacker, PartLocation.RightArm);
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("An arm-mounted weapon was fired this turn");
+    }
+
+    [Fact]
+    public void TargetAlreadyReservedForADisplacement_DisablesPush()
+    {
+        DeployPair();
+        var otherAttacker = _viewModel.Units.Last(unit =>
+            unit.Owner!.Id == _player.Id && !ReferenceEquals(unit, Attacker));
+        otherAttacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        otherAttacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Push,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = Enemy.Id
+        });
+        SelectAttacker();
+
+        var push = GetAction("Push");
+
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("The target is already being displaced this turn");
+    }
+
+    [Fact]
+    public void Push_OffersOneBothArmsOptionAndPublishesOneDeclaration()
+    {
+        // Arrange
+        DeployPair();
+        StubCalculator();
+        SelectAttacker();
+        GetAction("Push").OnExecute();
+
+        // Act
+        _sut.HandleHexSelection(new Hex(Enemy.Position!.Coordinates));
+        var options = _sut.GetAvailableActions().ToList();
+        GetAction("Push (Both Arms)").OnExecute();
+
+        // Assert
+        options.Select(action => action.Label).ShouldBe(["Push (Both Arms)", "Skip Attack"]);
+        options.ShouldAllBe(action => action.IsVisible);
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(command =>
+            command.UnitId == Attacker.Id
+            && command.Declaration != null
+            && command.Declaration.AttackType == PhysicalAttackType.Push
+            && command.Declaration.AttackerLimbs.Contains(PartLocation.LeftArm)
+            && command.Declaration.AttackerLimbs.Contains(PartLocation.RightArm)
+            && command.Declaration.AttackerLimbs.Count == 2
+            && command.Declaration.TargetId == Enemy.Id));
+    }
+
+    [Fact]
+    public void DisabledPushAction_DoesNothingWhenInvoked()
+    {
+        // Arrange
+        DeployPair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+        SelectAttacker();
+        var push = GetAction("Push");
+
+        // Act
+        push.OnExecute();
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.ActionSelection);
+        _sut.SelectedAttackType.ShouldBeNull();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    private static void FireWeaponIn(IUnit unit, PartLocation location)
+    {
+        var laser = new MediumLaser();
+        unit.Parts[location].TryAddComponent(laser).ShouldBeTrue();
+        laser.MarkAsFired();
     }
 
     [Fact]

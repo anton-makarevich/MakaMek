@@ -184,6 +184,7 @@
   <data name="PilotingSkillRollType_RubbleEntry" xml:space="preserve"><value>Rubble Entry</value></data>
   <data name="PilotingSkillRollType_KickHit" xml:space="preserve"><value>Hit by Kick</value></data>
   <data name="PilotingSkillRollType_KickMiss" xml:space="preserve"><value>Missed Kick</value></data>
+  <data name="PilotingSkillRollType_PushHit" xml:space="preserve"><value>Hit by Push</value></data>
   <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
   <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
   <data name="PilotingSkillRollType_CliffFall" xml:space="preserve"><value>Cliff Fall</value></data>
@@ -201,6 +202,13 @@
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
   <data name="PhysicalAttackPreview_Title" xml:space="preserve"><value>Physical attack</value></data>
   <data name="Action_DeclarePhysicalAttack_WithLimb" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="PhysicalAttackRestriction_NoTargetInFront" xml:space="preserve"><value>No unit directly in front of this unit</value></data>
+  <data name="PhysicalAttackRestriction_TargetNotStandingMech" xml:space="preserve"><value>The target must be a standing Mech</value></data>
+  <data name="PhysicalAttackRestriction_TargetPerformingDisplacementAttack" xml:space="preserve"><value>The target is performing a Charge or Death From Above</value></data>
+  <data name="PhysicalAttackRestriction_ElevationMismatch" xml:space="preserve"><value>The target must be at the same elevation</value></data>
+  <data name="PhysicalAttackRestriction_ArmMissing" xml:space="preserve"><value>Both arms are required</value></data>
+  <data name="PhysicalAttackRestriction_ArmWeaponFired" xml:space="preserve"><value>An arm-mounted weapon was fired this turn</value></data>
+  <data name="PhysicalAttackRestriction_TargetAlreadyDisplaced" xml:space="preserve"><value>The target is already being displaced this turn</value></data>
   <data name="AttackDirection_Left" xml:space="preserve"><value>Left</value></data>
   <data name="AttackDirection_Right" xml:space="preserve"><value>Right</value></data>
   <data name="AttackDirection_Front" xml:space="preserve"><value>Front</value></data>
@@ -234,6 +242,7 @@
   <data name="Modifier_PartialCover" xml:space="preserve"><value>Partial Cover: +{0}</value></data>
   <data name="Modifier_WaterDepth" xml:space="preserve"><value>Water Depth ({0}): {1}</value></data>
   <data name="Modifier_SkidDistance" xml:space="preserve"><value>Skid ({0} hexes moved): {1}</value></data>
+  <data name="Modifier_DamagedShoulder" xml:space="preserve"><value>Damaged Shoulder ({0}): +{1}</value></data>
   <data name="WeaponRestriction_NotAvailable" xml:space="preserve"><value>Weapon not available</value></data>
   <data name="WeaponRestriction_Underwater" xml:space="preserve"><value>Cannot fire underwater</value></data>
   <data name="WeaponRestriction_PartialCoverLegs" xml:space="preserve"><value>Cannot fire leg weapons while in partial cover</value></data>

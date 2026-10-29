@@ -7,11 +7,12 @@ using Sanet.MakaMek.Core.Models.Units;
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
-/// Pure mechanics resolution of a punch or a kick for a single attacking limb. The resolver
-/// follows the resolution order of the weapon resolver: the to-hit number comes from the
-/// physical attack calculator, the hit is rolled on 2D6, the direction of the attack is taken
-/// from the target's facing, the hit location is rolled on 1D6 on the punch or kick table and the
-/// damage is distributed by the standard damage transfer calculator.
+/// Pure mechanics resolution of a punch, a kick or a push. The resolver follows the resolution
+/// order of the weapon resolver: the to-hit number comes from the physical attack calculator, the
+/// hit is rolled on 2D6, the direction of the attack is taken from the target's facing, the hit
+/// location is rolled on 1D6 on the punch or kick table and the damage is distributed by the
+/// standard damage transfer calculator. A push deals no damage and has no hit location: it keeps
+/// only the roll, the direction and the piloting skill requirement.
 /// The resolver never mutates a unit: applying the damage and rolling the critical hits stays
 /// with the caller, exactly as with weapon hits.
 /// <para>
@@ -87,6 +88,18 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         }
 
         var attackDirection = context.Target.GetAttackDirection(context.Attacker);
+
+        // A push deals no damage and has no hit-location table: the displacement, not damage,
+        // is its outcome. Keep the to-hit roll, direction and PSR requirement.
+        if (context.AttackType == PhysicalAttackType.Push)
+        {
+            return new PhysicalAttackResolutionData(
+                context.AttackType,
+                context.AttackerLimb,
+                damage,
+                CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, null),
+                psrRequirements);
+        }
 
         var locationRoll = _diceRoller.RollD6();
         var rolledLocation = _rulesProvider.GetPhysicalAttackHitLocation(

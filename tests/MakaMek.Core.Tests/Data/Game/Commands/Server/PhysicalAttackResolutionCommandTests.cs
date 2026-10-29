@@ -125,6 +125,32 @@ public class PhysicalAttackResolutionCommandTests
     }
 
     [Fact]
+    public void Render_Push_OmitsTheLimbSuffix()
+    {
+        // Arrange: a Push resolves once for both arms, so naming one limb would be misleading
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Push,
+                PartLocation.LeftArm,
+                0,
+                new AttackResolutionData(9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+                [])
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("Player 1's LCT-1V misses Player 2's LCT-1V with Push (Target: 9, Roll: 5)");
+    }
+
+    [Fact]
     public void Render_UnknownAttacker_IsEmpty()
     {
         // Arrange

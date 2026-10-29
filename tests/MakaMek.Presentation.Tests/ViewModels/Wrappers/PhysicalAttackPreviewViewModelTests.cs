@@ -99,4 +99,29 @@ public class PhysicalAttackPreviewViewModelTests
     {
         CreateSut(13).ImpossibleText.ShouldBe("Impossible to hit");
     }
+
+    [Fact]
+    public void PushPreview_ShowsTheDamagedShoulderModifier()
+    {
+        // Arrange
+        _localizationService.GetString("PhysicalAttackType_Push").Returns("Push");
+        _localizationService.GetString("Modifier_DamagedShoulder").Returns("Damaged Shoulder ({0}): +{1}");
+        var breakdown = CreateBreakdown() with
+        {
+            OtherModifiers = [new DamagedShoulderModifier { Value = 4, DamagedShoulders = 2 }]
+        };
+        var sut = new PhysicalAttackPreviewViewModel(
+            _attacker,
+            _target,
+            PhysicalAttackType.Push,
+            7,
+            breakdown,
+            _localizationService);
+
+        // Act
+        var lines = sut.ModifierLines;
+
+        // Assert
+        lines.ShouldContain("Damaged Shoulder (2): +4");
+    }
 }

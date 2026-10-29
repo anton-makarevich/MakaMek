@@ -103,15 +103,23 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
 
         if (command.Declaration is not { } declaration) return null;
 
-        var target = Game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == declaration.TargetId);
+        var allUnits = Game.Players.SelectMany(p => p.Units).ToList();
+        var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
         var limbs = declaration.AttackerLimbs;
-        if (target == null || limbs is not { Count: > 0 } 
-                           || limbs.Distinct().Count() != limbs.Count 
-                           || !PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition) 
-                           || limbs.Count > definition.MaxLimbsPerDeclaration)
+        if (target == null || limbs is not { Count: > 0 }
+                           || limbs.Distinct().Count() != limbs.Count
+                           || !PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)
+                           || limbs.Count > definition.MaxLimbsPerDeclaration
+                           || limbs.Count < definition.MinLimbsPerDeclaration)
             return ErrorCode.ValidationFailed;
 
         var eligibleLimbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, declaration.AttackType, Game.BattleMap!);
-        return limbs.All(eligibleLimbs.Contains) ? null : ErrorCode.ValidationFailed;
+        if (!limbs.All(eligibleLimbs.Contains)) return ErrorCode.ValidationFailed;
+
+        // A target may be the target of only one Charge, DFA or Push per turn.
+        return PhysicalAttackDefinitions.IsDisplacementAttack(declaration.AttackType)
+               && PhysicalAttackDisplacementBudget.IsReserved(declaration.TargetId, allUnits)
+            ? ErrorCode.ValidationFailed
+            : null;
     }
 }
