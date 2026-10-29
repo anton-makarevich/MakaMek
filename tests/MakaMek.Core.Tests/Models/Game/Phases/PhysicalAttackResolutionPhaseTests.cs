@@ -659,8 +659,38 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             MockFallProcessor.Received(1).ProcessPotentialFall(
                 _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
                 Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
-                    contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+                    contexts != null
+                    && contexts.Count == 1
+                    && contexts[0].RollType == PilotingSkillRollType.PushHit
+                    && ((PushHitRollContext)contexts[0]).WaterDepth == 0));
         });
+    }
+
+    [Fact]
+    public void Enter_PushIntoWater_AddsTheWaterDepthModifierToThePushPsr()
+    {
+        // Arrange: the destination is Depth 1 water at the same hex level
+        SetMap();
+        var waterHex = new Hex(DestinationHex);
+        waterHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(waterHex);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert: still one push roll, carrying the water depth instead of an extra water-entry roll
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.Position.Surface.ShouldBe(HexSurface.Ground);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null
+                && contexts.Count == 1
+                && contexts[0].RollType == PilotingSkillRollType.PushHit
+                && ((PushHitRollContext)contexts[0]).WaterDepth == 1));
     }
 
     [Fact]

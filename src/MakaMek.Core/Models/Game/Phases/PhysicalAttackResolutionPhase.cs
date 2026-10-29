@@ -38,6 +38,8 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     ];
 
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
+    private readonly Dictionary<Guid, (List<PilotingSkillRollContext> Contexts, PushHitRollContext Context)>
+        _pushHitContexts = new();
     private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider);
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
@@ -48,6 +50,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     {
         base.Enter();
         _accumulatedDamage.Clear();
+        _pushHitContexts.Clear();
 
         var queue = BuildAttackQueue();
         var reciprocalPushes = GetReciprocalPushPairs(queue);
@@ -214,7 +217,14 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 _ => throw new NotSupportedException(
                     $"No piloting skill roll recipient is defined for {requirement.Recipient}")
             };
-            GetAccumulatedDamage(recipient).RollContexts.Add(GetRollContext(requirement.RollType));
+            var contexts = GetAccumulatedDamage(recipient).RollContexts;
+            var context = GetRollContext(requirement.RollType);
+            contexts.Add(context);
+
+            // The push PSR is written before the displacement is applied. Keep a handle on it so
+            // the water-entry modifier can be added once the destination is known.
+            if (context is PushHitRollContext pushHitContext)
+                _pushHitContexts[recipient.Id] = (contexts, pushHitContext);
         }
 
         return resolution;
@@ -296,6 +306,9 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
             },
             publish: true));
 
+        // A push into water is not an extra roll: the water-entry modifier belongs to the push PSR.
+        ApplyPushWaterEntryModifier(target, map);
+
         Execute(new DisplaceUnitAction(
             new DisplaceUnitCommand
             {
@@ -312,6 +325,23 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         if (result.TriggersAutomaticFall && target is Mech targetMech)
             ResolveAutomaticFall(targetMech, result.LevelsFallen);
+    }
+
+    /// <summary>
+    /// Adds the standard water-entry modifier to the PushHit PSR when the target was displaced
+    /// into water. Entering water is not a separate roll (Total Warfare, p. 148, 151).
+    /// </summary>
+    private void ApplyPushWaterEntryModifier(IUnit target, IBattleMap map)
+    {
+        if (!_pushHitContexts.TryGetValue(target.Id, out var entry)) return;
+        if (target.Position is not { Surface: HexSurface.Ground } position) return;
+
+        var waterDepth = map.GetHex(position.Coordinates)?.GetWaterDepth() ?? 0;
+        if (waterDepth < 1) return;
+
+        var index = entry.Contexts.IndexOf(entry.Context);
+        if (index >= 0)
+            entry.Contexts[index] = entry.Context with { WaterDepth = waterDepth };
     }
 
     /// <summary>
