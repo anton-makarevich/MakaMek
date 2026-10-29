@@ -148,12 +148,14 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     }
 
     /// <summary>
-    /// The resource key of the icon for an attack type. Only punch and kick can be declared, so the
-    /// rest fall back to the punch icon rather than drawing nothing.
+    /// The resource key of the icon for an attack type. Punch, Kick and Push each have their own
+    /// icon so the declaration badge is unambiguous; anything else falls back to the punch icon
+    /// rather than drawing nothing.
     /// </summary>
     internal static string IconResourceKey(PhysicalAttackType attackType) => attackType switch
     {
         PhysicalAttackType.Kick => "KickIcon",
+        PhysicalAttackType.Push => "PushIcon",
         _ => "PunchIcon"
     };
 
@@ -162,7 +164,7 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         coordinates.V + HexCoordinatesPixelExtensions.HexHeight * 0.5);
 
     /// <summary>
-    /// Builds the punch or kick glyph, filled with the attacker tint so the badge reads as the
+    /// Builds the attack-type glyph, filled with the attacker tint so the badge reads as the
     /// owner's mark the way the hex and the pulse do.
     /// </summary>
     private static Path CreateIcon(PhysicalAttackType attackType, IBrush brush)

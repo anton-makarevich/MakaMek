@@ -10,7 +10,7 @@ strips them.
 Phosphor Icons
 --------------
 
-Used by: Styles/Icons.axaml (PunchIcon, KickIcon).
+Used by: Styles/Icons.axaml (PunchIcon, KickIcon, PushIcon).
 
 MIT License
 

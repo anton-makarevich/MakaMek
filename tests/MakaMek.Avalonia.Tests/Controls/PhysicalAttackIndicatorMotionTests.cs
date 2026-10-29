@@ -47,26 +47,34 @@ public class PhysicalAttackIndicatorMotionTests
     });
 
     [Fact]
-    public Task PunchAndKickResolveDifferentIcons() => Dispatch(() =>
+    public Task PunchKickAndPushResolveDifferentIcons() => Dispatch(() =>
     {
         using var engine = StartEngine();
         using var punch = CreateIndicator(PhysicalAttackType.Punch);
         using var kick = CreateIndicator(PhysicalAttackType.Kick);
+        using var push = CreateIndicator(PhysicalAttackType.Push);
 
         var punchGeometry = punch.IconPath.Data;
         var kickGeometry = kick.IconPath.Data;
+        var pushGeometry = push.IconPath.Data;
         punchGeometry.ShouldNotBeNull("the punch icon comes from the icon resources");
         kickGeometry.ShouldNotBeNull("the kick icon comes from the icon resources");
+        pushGeometry.ShouldNotBeNull("the push icon comes from the icon resources");
         kickGeometry.ShouldNotBeSameAs(punchGeometry);
+        pushGeometry.ShouldNotBeSameAs(punchGeometry);
+        pushGeometry.ShouldNotBeSameAs(kickGeometry);
 
         // A typo in the path data usually collapses the shape instead of failing to parse.
         punchGeometry.Bounds.Width.ShouldBeGreaterThan(5);
         punchGeometry.Bounds.Height.ShouldBeGreaterThan(5);
         kickGeometry.Bounds.Width.ShouldBeGreaterThan(5);
         kickGeometry.Bounds.Height.ShouldBeGreaterThan(5);
+        pushGeometry.Bounds.Width.ShouldBeGreaterThan(5);
+        pushGeometry.Bounds.Height.ShouldBeGreaterThan(5);
 
         PhysicalAttackIndicatorControl.IconResourceKey(PhysicalAttackType.Punch).ShouldBe("PunchIcon");
         PhysicalAttackIndicatorControl.IconResourceKey(PhysicalAttackType.Kick).ShouldBe("KickIcon");
+        PhysicalAttackIndicatorControl.IconResourceKey(PhysicalAttackType.Push).ShouldBe("PushIcon");
     });
 
     [Fact]
