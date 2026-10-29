@@ -101,7 +101,8 @@
                                                                 InfoCommand="{Binding $parent[UserControl].((viewModels:EndGameViewModel)DataContext).ShowUnitInfoCommand}"
                                                                 InfoCommandParameter="{Binding $parent[StackPanel].DataContext}"
                                                                 IsRemoveButtonVisible="False"
-                                                                CanEditUnitName="False"/>
+                                                                CanEditUnitName="False"
+                                                                ImageService="{Binding $parent[UserControl].((viewModels:EndGameViewModel)DataContext).ImageService}"/>
                                                             <TextBlock 
                                                                 Classes="bodySmall"
                                                                 HorizontalAlignment="Center"

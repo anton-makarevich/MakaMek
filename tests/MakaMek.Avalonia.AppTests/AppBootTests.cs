@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia;
+using Sanet.MakaMek.Services;
 using Shouldly;
 
 namespace MakaMek.Avalonia.AppTests;
@@ -16,6 +18,19 @@ public class AppBootTests
         var app = Application.Current as App;
         app.ShouldNotBeNull("the headless platform should have started the real App");
         app.ServiceProvider.ShouldNotBeNull("OnFrameworkInitializationCompleted builds the graph");
+    });
+
+    [Fact]
+    public Task App_RegistersABitmapCompatibleImageService() => HarnessSession.Run(() =>
+    {
+        var app = Application.Current as App;
+        app.ShouldNotBeNull("the headless platform should have started the real App");
+        var services = app.ServiceProvider;
+        services.ShouldNotBeNull("OnFrameworkInitializationCompleted builds the graph");
+
+        // The unit card controls hold only the IImageService<Bitmap> cast, so the registration
+        // must be bitmap-compatible or the first card would fail instead of the boot.
+        services.GetRequiredService<IImageService>().ShouldBeAssignableTo<IImageService<Bitmap>>();
     });
 
     [Fact]

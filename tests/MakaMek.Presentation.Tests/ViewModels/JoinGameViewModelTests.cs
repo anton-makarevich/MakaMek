@@ -62,6 +62,7 @@ public class JoinGameViewModelTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
+    private readonly IImageService _imageService = Substitute.For<IImageService>();
     private readonly ClientGame _clientGame;
     private bool _connectorConnected;
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
@@ -135,9 +136,16 @@ public class JoinGameViewModelTests
             _mapFactory,
             _mapPreviewRenderer,
             _clipboardService,
-            localizationService ?? _localizationService);
+            localizationService ?? _localizationService,
+            _imageService);
         sut.AttachHandlers();
         return sut;
+    }
+
+    [Fact]
+    public void ImageService_ShouldBeTheInjectedService()
+    {
+        CreateSut().ImageService.ShouldBeSameAs(_imageService);
     }
 
     private void ConnectAndAckLobby()
@@ -834,7 +842,8 @@ public class JoinGameViewModelTests
             _mapFactory,
             _mapPreviewRenderer,
             _clipboardService,
-            _localizationService);
+            _localizationService,
+            Substitute.For<IImageService>());
         sut.AttachHandlers();
 
         // Act
@@ -865,7 +874,8 @@ public class JoinGameViewModelTests
             _mapFactory,
             _mapPreviewRenderer,
             _clipboardService,
-            _localizationService);
+            _localizationService,
+            Substitute.For<IImageService>());
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();

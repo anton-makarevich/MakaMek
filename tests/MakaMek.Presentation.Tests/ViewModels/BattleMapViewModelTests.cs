@@ -989,7 +989,8 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var navigationService = Substitute.For<INavigationService>();
-        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory);
+        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory,
+            Substitute.For<IImageService>());
         navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         var game = CreateClientGame();
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -5493,7 +5494,8 @@ public class BattleMapViewModelTests
         game.SetBattleMap(BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = game;
         var navigationService = Substitute.For<INavigationService>();
-        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory);
+        var endGameViewModel = new EndGameViewModel(_localizationService, _mechFactory,
+            Substitute.For<IImageService>());
         navigationService.GetNewViewModelAsync<EndGameViewModel>().Returns(endGameViewModel);
         _sut.SetNavigationService(navigationService);
 

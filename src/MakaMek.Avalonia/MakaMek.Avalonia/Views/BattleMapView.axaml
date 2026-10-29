@@ -291,6 +291,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="units:IUnit">
                                 <controls:SquadUnitTile
+                                    ImageService="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).ImageService}"
                                     SelectCommand="{Binding $parent[UserControl].((viewModels1:BattleMapViewModel)DataContext).SelectSquadUnitCommand}">
                                     <controls:SquadUnitTile.IsActive>
                                         <MultiBinding Converter="{StaticResource SquadTileActiveConverter}">

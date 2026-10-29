@@ -29,7 +29,6 @@ public class MainMenuViewModelTests
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ITerrainAssetService _terrainAssetService = Substitute.For<ITerrainAssetService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly ILogger<MainMenuViewModel> _logger = Substitute.For<ILogger<MainMenuViewModel>>();
 
     public MainMenuViewModelTests()
     {
@@ -108,7 +107,8 @@ public class MainMenuViewModelTests
             Substitute.For<IMechFactory>(),
             Substitute.For<IClipboardService>(),
             Substitute.For<IRelayHubConfigurationProvider>(),
-            Substitute.For<IRelayRoomClient>()
+            Substitute.For<IRelayRoomClient>(),
+            Substitute.For<IImageService>()
         );
         _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns(startVm);
 
@@ -148,7 +148,8 @@ public class MainMenuViewModelTests
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IMapPreviewRenderer>(),
             Substitute.For<IClipboardService>(),
-            _localizationService
+            _localizationService,
+            Substitute.For<IImageService>()
         );
         _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);
 

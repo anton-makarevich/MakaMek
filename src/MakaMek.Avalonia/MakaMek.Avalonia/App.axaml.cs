@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Behaviors;
@@ -17,6 +18,7 @@ using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
 using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;
 using MainWindow = Sanet.MakaMek.Avalonia.Views.MainWindow;
@@ -49,7 +51,17 @@ public partial class App : Application
 
         var serviceProvider = services.BuildServiceProvider();
         ServiceProvider = serviceProvider;
-        
+
+        // Resolving eagerly runs the image service factory, so a missing service or logger fails
+        // here rather than silently leaving the unit cards without an image. The controls only
+        // hold the platform-specific cast; a non-bitmap registration is a wiring error.
+        var imageService = serviceProvider.GetRequiredService<IImageService>();
+        if (imageService is not IImageService<Bitmap>)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(IImageService)} must be registered with a bitmap implementation, but {imageService.GetType().FullName} was registered.");
+        }
+
         // Resolve converters and expose them (and the localization service) as application
         // resources so {StaticResource ...} and the Localize markup extension can use them.
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();

@@ -17,6 +17,7 @@ using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -29,6 +30,7 @@ public class EndGameViewModelTests
     private readonly INavigationService _navigationService;
     private readonly ClientGame _game;
     private readonly MechFactory _mechFactory;
+    private readonly IImageService _imageService = Substitute.For<IImageService>();
 
     public EndGameViewModelTests()
     {
@@ -41,7 +43,7 @@ public class EndGameViewModelTests
             rulesProvider,
             new ClassicBattletechComponentProvider(),
             localizationService);
-        _sut = new EndGameViewModel(localizationService, _mechFactory);
+        _sut = new EndGameViewModel(localizationService, _mechFactory, _imageService);
         _sut.SetNavigationService(_navigationService);
 
         var commandPublisher = Substitute.For<ICommandPublisher>();
@@ -98,6 +100,12 @@ public class EndGameViewModelTests
         // Assert
         _sut.Players.ShouldBeEmpty();
         _sut.ReturnToMenuCommand.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ImageService_ShouldBeTheInjectedService()
+    {
+        _sut.ImageService.ShouldBeSameAs(_imageService);
     }
 
     [Fact]

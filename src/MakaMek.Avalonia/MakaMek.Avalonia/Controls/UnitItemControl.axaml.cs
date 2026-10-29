@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
@@ -6,8 +6,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 
@@ -15,8 +13,7 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 
 public partial class UnitItemControl : UserControl
 {
-    private readonly IImageService<Bitmap>? _imageService;
-    private readonly ILogger<UnitItemControl>? _logger;
+    private int _requestVersion;
 
     public static readonly StyledProperty<ICommand?> RemoveCommandProperty =
         AvaloniaProperty.Register<UnitItemControl, ICommand?>(nameof(RemoveCommand));
@@ -38,6 +35,20 @@ public partial class UnitItemControl : UserControl
 
     public static readonly StyledProperty<string?> PlayerTintProperty =
         AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
+
+    /// <summary>
+    /// Image service the card loads its preview from. The host view binds it from the screen
+    /// ViewModel, so the control declares its dependency instead of locating one.
+    /// </summary>
+    public static readonly StyledProperty<IImageService?> ImageServiceProperty =
+        AvaloniaProperty.Register<UnitItemControl, IImageService?>(nameof(ImageService));
+
+    static UnitItemControl()
+    {
+        // Class handlers are registered once per type: a change on any card reloads that card only.
+        PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, _) => control.ReloadImage());
+        ImageServiceProperty.Changed.AddClassHandler<UnitItemControl>((control, _) => control.ReloadImage());
+    }
 
     public ICommand? InfoCommand
     {
@@ -81,65 +92,61 @@ public partial class UnitItemControl : UserControl
         set => SetValue(CanEditUnitNameProperty, value);
     }
 
+    public IImageService? ImageService
+    {
+        get => GetValue(ImageServiceProperty);
+        set => SetValue(ImageServiceProperty, value);
+    }
+
     public UnitItemControl()
     {
         InitializeComponent();
-
-        // Try to get image service from App resources
-        var serviceProvider = ((App?)Application.Current)?.ServiceProvider;
-        if (serviceProvider == null) return;
-        var imageService = serviceProvider.GetService<IImageService>();
-        _imageService = imageService as IImageService<Bitmap>;
-        _logger = serviceProvider.GetService<ILogger<UnitItemControl>>();
-        if (_imageService == null) return;
-
-        DataContextChanged += OnDataContextChanged;
-
-        // Listen for PlayerTint property changes to update the tint
-        PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, _) =>
-        {
-            if (control.DataContext is UnitViewModel unitVm)
-            {
-                control.LoadUnitImage(unitVm).SafeFireAndForget();
-            }
-        });
+        // Always listen: the service and the card's unit may arrive in either order.
+        DataContextChanged += (_, _) => ReloadImage();
     }
-    
-    private void OnDataContextChanged(object? sender, EventArgs e)
+
+    private void ReloadImage()
     {
-        if (DataContext is UnitViewModel unitVm && _imageService != null)
+        // Bumped per request so an image that arrives after the card changed hands is discarded.
+        var version = ++_requestVersion;
+
+        if (DataContext is not UnitViewModel unitVm || ImageService is not { } service)
         {
-            LoadUnitImage(unitVm).SafeFireAndForget();
+            Apply(null, null);
+            return;
         }
+
+        var imageService = service as IImageService<Bitmap>
+            ?? throw new InvalidOperationException(
+                $"{nameof(UnitItemControl)} needs a bitmap image service, but {service.GetType().FullName} was registered.");
+
+        // Captured next to the request so the image and the tint always belong together.
+        var tint = PlayerTint;
+        LoadUnitImage(imageService, unitVm, tint, version).SafeFireAndForget();
     }
-    
-    private async Task LoadUnitImage(UnitViewModel unitVm)
+
+    private async Task LoadUnitImage(IImageService<Bitmap> imageService, UnitViewModel unitVm,
+        string? tint, int version)
     {
-        if (_imageService == null) return;
+        var image = await imageService.GetImage("units/mechs", unitVm.Model.ToUpperInvariant());
+        if (version != _requestVersion) return;
+        Apply(image, tint);
+    }
 
-        try
-        {
-            var image = await _imageService.GetImage("units/mechs", unitVm.Model.ToUpperInvariant());
-            if (image != null && UnitImage != null)
-            {
-                UnitImage.Source = image;
+    private void Apply(Bitmap? image, string? tint)
+    {
+        if (UnitImage != null) UnitImage.Source = image;
+        if (TintBorder == null) return;
 
-                // Apply player's tint color if available
-                if (!string.IsNullOrEmpty(PlayerTint) && TintBorder != null)
-                {
-                    var color = Color.Parse(PlayerTint);
-                    TintBorder.OpacityMask = new ImageBrush
-                    {
-                        Source = image,
-                        Stretch = Stretch.Fill
-                    };
-                    TintBorder.Background = new SolidColorBrush(color);
-                }
-            }
-        }
-        catch (Exception ex)
+        // The tint is cut to the shape of the image, so it only makes sense while both exist.
+        if (image == null || string.IsNullOrEmpty(tint) || !Color.TryParse(tint, out var color))
         {
-            _logger?.LogError(ex, "Error loading unit image for {Model}", unitVm.Model);
+            TintBorder.OpacityMask = null;
+            TintBorder.Background = null;
+            return;
         }
+
+        TintBorder.OpacityMask = new ImageBrush { Source = image, Stretch = Stretch.Fill };
+        TintBorder.Background = new SolidColorBrush(color);
     }
 }

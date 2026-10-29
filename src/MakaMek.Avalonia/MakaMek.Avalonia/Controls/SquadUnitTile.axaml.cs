@@ -6,8 +6,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Services;
 
@@ -18,14 +16,25 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 /// </summary>
 public partial class SquadUnitTile : UserControl
 {
-    private readonly IImageService<Bitmap>? _imageService;
-    private readonly ILogger<SquadUnitTile>? _logger;
+    private int _requestVersion;
 
     public static readonly StyledProperty<ICommand?> SelectCommandProperty =
         AvaloniaProperty.Register<SquadUnitTile, ICommand?>(nameof(SelectCommand));
 
     public static readonly StyledProperty<bool> IsActiveProperty =
         AvaloniaProperty.Register<SquadUnitTile, bool>(nameof(IsActive));
+
+    /// <summary>
+    /// Image service the tile loads its icon from. The host view binds it from
+    /// <c>BattleMapViewModel</c>, so the tile declares its dependency instead of locating one.
+    /// </summary>
+    public static readonly StyledProperty<IImageService?> ImageServiceProperty =
+        AvaloniaProperty.Register<SquadUnitTile, IImageService?>(nameof(ImageService));
+
+    static SquadUnitTile()
+    {
+        ImageServiceProperty.Changed.AddClassHandler<SquadUnitTile>((tile, _) => tile.LoadUnitImage());
+    }
 
     /// <summary>
     /// Gets or sets the command that selects this tile's unit.
@@ -45,17 +54,23 @@ public partial class SquadUnitTile : UserControl
         set => SetValue(IsActiveProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the image service the tile's icon is loaded from.
+    /// </summary>
+    public IImageService? ImageService
+    {
+        get => GetValue(ImageServiceProperty);
+        set => SetValue(ImageServiceProperty, value);
+    }
+
     public SquadUnitTile()
     {
         InitializeComponent();
 
-        var serviceProvider = ((App?)Application.Current)?.ServiceProvider;
-        _imageService = serviceProvider?.GetService<IImageService>() as IImageService<Bitmap>;
-        _logger = serviceProvider?.GetService<ILogger<SquadUnitTile>>();
         DataContextChanged += (_, _) =>
         {
             ShowFacing();
-            LoadUnitImage().SafeFireAndForget();
+            LoadUnitImage();
         };
     }
 
@@ -67,23 +82,47 @@ public partial class SquadUnitTile : UserControl
             : null;
     }
 
-    private async Task LoadUnitImage()
+    private void LoadUnitImage()
     {
-        if (_imageService == null || DataContext is not IUnit unit) return;
-        try
+        // Bumped per request so an image that arrives after the tile changed hands is discarded.
+        var version = ++_requestVersion;
+
+        if (DataContext is not IUnit unit || ImageService is not { } service)
         {
-            var image = await _imageService.GetImage("units/mechs", unit.Model.ToUpperInvariant());
-            // The tile may have been handed another unit while the image was loading.
-            if (image == null || !ReferenceEquals(DataContext, unit)) return;
-            UnitImage.Source = image;
-            if (unit.Owner == null) return;
-            UnitTint.OpacityMask = new ImageBrush { Source = image, Stretch = Stretch.Uniform };
-            UnitTint.Background = new SolidColorBrush(Color.Parse(unit.Owner.Tint));
+            Apply(null, null);
+            return;
         }
-        catch (Exception ex)
+
+        var imageService = service as IImageService<Bitmap>
+            ?? throw new InvalidOperationException(
+                $"{nameof(SquadUnitTile)} needs a bitmap image service, but {service.GetType().FullName} was registered.");
+
+        // Captured next to the request so the image and the tint always belong together.
+        var tint = unit.Owner?.Tint;
+        FetchImage(imageService, unit, tint, version).SafeFireAndForget();
+    }
+
+    private async Task FetchImage(IImageService<Bitmap> imageService, IUnit unit, string? tint, int version)
+    {
+        var image = await imageService.GetImage("units/mechs", unit.Model.ToUpperInvariant());
+        if (version != _requestVersion) return;
+        Apply(image, tint);
+    }
+
+    private void Apply(Bitmap? image, string? tint)
+    {
+        if (UnitImage != null) UnitImage.Source = image;
+        if (UnitTint == null) return;
+
+        // The tint is cut to the shape of the image, so it only makes sense while both exist.
+        if (image == null || string.IsNullOrEmpty(tint) || !Color.TryParse(tint, out var color))
         {
-            // A tile without its image still identifies the unit by pilot and tonnage.
-            _logger?.LogError(ex, "Error loading squad tile image for {Model}", unit.Model);
+            UnitTint.OpacityMask = null;
+            UnitTint.Background = null;
+            return;
         }
+
+        UnitTint.OpacityMask = new ImageBrush { Source = image, Stretch = Stretch.Uniform };
+        UnitTint.Background = new SolidColorBrush(color);
     }
 }

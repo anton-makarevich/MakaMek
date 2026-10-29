@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -20,13 +21,21 @@ public class EndGameViewModel : BaseViewModel
     private IClientGame? _game;
     private GameEndReason _endReason;
 
-    public EndGameViewModel(ILocalizationService localizationService, IMechFactory mechFactory)
+    public EndGameViewModel(ILocalizationService localizationService, IMechFactory mechFactory,
+        IImageService imageService)
     {
         _localizationService = localizationService;
         _mechFactory = mechFactory;
+        ImageService = imageService;
         ReturnToMenuCommand = new AsyncCommand(ReturnToMenu);
         ShowUnitInfoCommand = new AsyncCommand<EndGameUnitViewModel>(ShowUnitInfo);
     }
+
+    /// <summary>
+    /// Image service the unit cards load their preview from. Exposed so the view can hand it to
+    /// the controls it declares; the platform-specific cast stays in the view.
+    /// </summary>
+    public IImageService ImageService { get; }
 
     /// <summary>
     /// Initialize the view model with the game and end reason
